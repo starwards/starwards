@@ -8,6 +8,7 @@ import {
     Spaceship,
     Vec2,
     XY,
+    ammoTypes,
     makeId,
 } from '@starwards/core/internal';
 
@@ -37,6 +38,15 @@ const SPAWN_BEARING_SPREAD_DEGREES = 30;
 const SPAWN_JITTER_METERS = 300;
 const WAVE_CLEAR_DELAY_SECONDS = 15;
 const PLAYER_SHIP_ID = 'GVTS';
+
+/** Continuous seconds a raider must be unable to fight (every chain gun broken, or magazine empty of every ammo type) before it's written off as gone (issue #2233). */
+export const CANT_FIGHT_SECONDS = 30;
+/** Continuous seconds a raider must sit beyond `OUT_OF_PLAY_DISTANCE_METERS` from every alive station, receding or stationary, before it's written off as gone (issue #2233). */
+export const OUT_OF_PLAY_SECONDS = 60;
+/** Distance from every alive station beyond which a receding/stationary raider starts the out-of-play clock (issue #2233). */
+export const OUT_OF_PLAY_DISTANCE_METERS = 200_000;
+/** Hard ceiling on how long a wave can hold up progression: this many seconds after a wave spawns, the next one spawns regardless of the current wave's state (issue #2233). Waves may overlap. */
+export const WAVE_INTERVAL_SECONDS = 480;
 
 /** Wave `n`'s points budget: 10, 25, 42, 60, 81, 105, 126, 148, 174, 200 for waves 1-10. */
 export function waveBudget(waveNumber: number): number {
@@ -138,12 +148,80 @@ const allStationPositions = STATIONS.map((station) => station.position);
 export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
     let game: GameApi;
     let waveNumber = 0;
-    let currentWaveShipIds: string[] = [];
+    /** Every wave still holding at least one not-yet-gone raider; older waves are dropped once fully gone. */
+    let liveWaves: { shipIds: string[] }[] = [];
+    /** The most recently spawned wave's raider ids -- its clear-state alone drives `waveClearTimer` (waves may overlap; an older wave clearing late triggers nothing). */
+    let latestWaveShipIds: string[] = [];
     let waveClearTimer: number | null = null;
+    /** Seconds since `latestWaveShipIds` spawned; crossing `WAVE_INTERVAL_SECONDS` spawns the next wave regardless of clear state. */
+    let secondsSinceLatestSpawn = 0;
     let defeated = false;
+    /** Per-raider continuous "can't fight" streak, reset the moment it can fight again. */
+    const cantFightSeconds = new Map<string, number>();
+    /** Per-raider continuous "receding/stationary beyond range" streak and the distance it was last measured at. */
+    const outOfPlay = new Map<string, { seconds: number; lastMinDistance: number }>();
 
     function aliveStationIds(): string[] {
         return STATIONS.filter((station) => !!game.getShip(station.id)).map((station) => station.id);
+    }
+
+    function isRaiderGone(id: string): boolean {
+        const object = game.getObject(id);
+        return !object || object.destroyed;
+    }
+
+    function forgetRaider(id: string) {
+        cantFightSeconds.delete(id);
+        outOfPlay.delete(id);
+    }
+
+    /** Evaluates the two #2233 "gone" predicates for one still-live raider and converts it to a Derelict if either trips. */
+    function evaluateIncapacitation(id: string, deltaSeconds: number, aliveIds: readonly string[]) {
+        if (isRaiderGone(id)) {
+            forgetRaider(id);
+            return;
+        }
+        const shipApi = game.getShip(id);
+        if (!shipApi) {
+            forgetRaider(id);
+            return;
+        }
+
+        const cantFight =
+            shipApi.state.chainGuns.every((gun) => gun.broken) ||
+            ammoTypes.every((ammoType) => shipApi.state.magazine.getCount(ammoType) === 0);
+        if (cantFight) {
+            const seconds = (cantFightSeconds.get(id) ?? 0) + deltaSeconds;
+            if (seconds >= CANT_FIGHT_SECONDS) {
+                game.convertToDerelict(id);
+                forgetRaider(id);
+                return;
+            }
+            cantFightSeconds.set(id, seconds);
+        } else {
+            cantFightSeconds.delete(id);
+        }
+
+        const position = game.getObject(id)?.position;
+        if (!position || !aliveIds.length) {
+            return;
+        }
+        const minDistance = Math.min(...aliveIds.map((sid) => XY.distance(position, stationPositionsById[sid])));
+        if (minDistance > OUT_OF_PLAY_DISTANCE_METERS) {
+            const previous = outOfPlay.get(id);
+            const seconds =
+                previous && minDistance >= previous.lastMinDistance - 1e-6
+                    ? previous.seconds + deltaSeconds
+                    : deltaSeconds;
+            if (seconds >= OUT_OF_PLAY_SECONDS) {
+                game.convertToDerelict(id);
+                forgetRaider(id);
+                return;
+            }
+            outOfPlay.set(id, { seconds, lastMinDistance: minDistance });
+        } else {
+            outOfPlay.delete(id);
+        }
     }
 
     function spawnWave() {
@@ -153,7 +231,7 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
         const targetId = pickWaveTargetStationId(waveNumber, alive, stationPositionsById, playerPosition);
         const spawnCenter = sampleWaveSpawnCenter(stationPositionsById[targetId], allStationPositions, rng);
 
-        currentWaveShipIds = generateWaveComposition(waveNumber, rng).map((model) => {
+        const shipIds = generateWaveComposition(waveNumber, rng).map((model) => {
             const id = makeId();
             const jitter = XY.byLengthAndDirection(rng() * SPAWN_JITTER_METERS, rng() * 360);
             const ship = new Spaceship().init(id, Vec2.make(XY.add(spawnCenter, jitter)), model, Faction.Raiders);
@@ -161,7 +239,10 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
             game.orderAttack(id, targetId);
             return id;
         });
+        liveWaves.push({ shipIds });
+        latestWaveShipIds = shipIds;
         waveClearTimer = null;
+        secondsSinceLatestSpawn = 0;
     }
 
     return {
@@ -199,9 +280,11 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
                 return;
             }
 
+            const allLiveShipIds = liveWaves.flatMap((wave) => wave.shipIds);
+
             const playerPosition = game.getObject(PLAYER_SHIP_ID)?.position;
             if (playerPosition) {
-                for (const shipId of currentWaveShipIds) {
+                for (const shipId of allLiveShipIds) {
                     const shipApi = game.getShip(shipId);
                     if (!shipApi) {
                         continue;
@@ -214,15 +297,21 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
                 }
             }
 
-            const waveHasSurvivors = currentWaveShipIds.some((id) => {
-                const object = game.getObject(id);
-                return object && !object.destroyed;
-            });
-            if (!waveHasSurvivors) {
+            for (const shipId of allLiveShipIds) {
+                evaluateIncapacitation(shipId, deltaSeconds, alive);
+            }
+            liveWaves = liveWaves.filter((wave) => !wave.shipIds.every(isRaiderGone));
+
+            const latestWaveCleared = latestWaveShipIds.every(isRaiderGone);
+            if (latestWaveCleared) {
                 waveClearTimer = (waveClearTimer ?? 0) + deltaSeconds;
-                if (waveClearTimer >= WAVE_CLEAR_DELAY_SECONDS) {
-                    spawnWave();
-                }
+            }
+            secondsSinceLatestSpawn += deltaSeconds;
+
+            const clearDelayHit = waveClearTimer !== null && waveClearTimer >= WAVE_CLEAR_DELAY_SECONDS;
+            const intervalHit = secondsSinceLatestSpawn >= WAVE_INTERVAL_SECONDS;
+            if (clearDelayHit || intervalHit) {
+                spawnWave();
             }
         },
     };

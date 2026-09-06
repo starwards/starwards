@@ -1,4 +1,17 @@
 import {
+    CANT_FIGHT_SECONDS,
+    OUT_OF_PLAY_DISTANCE_METERS,
+    OUT_OF_PLAY_SECONDS,
+    STATIONS,
+    WAVE_INTERVAL_SECONDS,
+    createWaveDefenceMap,
+    furthestStationId,
+    generateWaveComposition,
+    pickWaveTargetStationId,
+    sampleWaveSpawnCenter,
+    waveBudget,
+} from '../scenarios/wave-defence';
+import {
     Faction,
     GameApi,
     GameMap,
@@ -9,18 +22,10 @@ import {
     Spaceship,
     Vec2,
     XY,
+    ammoTypes,
     makeId,
     waitFor,
 } from '@starwards/core/internal';
-import {
-    STATIONS,
-    createWaveDefenceMap,
-    furthestStationId,
-    generateWaveComposition,
-    pickWaveTargetStationId,
-    sampleWaveSpawnCenter,
-    waveBudget,
-} from '../scenarios/wave-defence';
 
 import { makeDriver } from './driver';
 
@@ -329,6 +334,202 @@ describe('wave_defence map (integration)', () => {
             gameDriver.gameManager.update(0);
         }
         expect(npcWaveIds()).toHaveLength(0); // still no wave 2, no matter how many paused ticks pass
+    });
+});
+
+describe('wave progression: incapacitated/out-of-play raiders and the hard wave timer (issue #2233)', () => {
+    const gameDriver = makeDriver();
+
+    function npcWaveIds() {
+        return [...gameDriver.shipManagers.keys()].filter(
+            (id: string) => !STATIONS.some((s) => s.id === id) && id !== 'GVTS',
+        );
+    }
+
+    async function waitForShipManagersGone(ids: readonly string[]) {
+        await waitFor(
+            () => {
+                for (const id of ids) {
+                    if (gameDriver.shipManagers.has(id)) {
+                        throw new Error(`ship manager for ${id} not cleaned up yet`);
+                    }
+                }
+            },
+            2000,
+            10,
+        );
+    }
+
+    it('converts a raider to a Derelict after its chain guns are broken for 30s continuously (not sooner), then the wave clears', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20); // orders land
+
+        const wave1Ids = npcWaveIds();
+        for (const id of wave1Ids) {
+            for (const gun of gameDriver.getShip(id).state.chainGuns) {
+                gun.rateOfFireFactor = 0; // ChainGun.broken = super.broken || rateOfFireFactor <= 0
+            }
+        }
+
+        for (let i = 0; i < CANT_FIGHT_SECONDS - 1; i++) {
+            gameDriver.gameManager.update(1);
+        }
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(0); // 29s: not yet
+
+        gameDriver.gameManager.update(2); // crosses the 30s mark
+        await waitForShipManagersGone(wave1Ids);
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(wave1Ids.length);
+
+        // the wave now reads as fully cleared -- the existing 15s clear delay still applies. The
+        // crossing tick above already counted 2s toward it (raiders read as gone by its own end).
+        expect(npcWaveIds()).toHaveLength(0);
+        for (let i = 0; i < 12; i++) {
+            gameDriver.gameManager.update(1);
+        }
+        expect(npcWaveIds()).toHaveLength(0); // 14s of the 15s clear delay elapsed
+        gameDriver.gameManager.update(1.5);
+        expect(npcWaveIds().length).toBeGreaterThan(0); // wave 2 spawned
+    });
+
+    it('converts a raider to a Derelict after its magazine has held zero of every ammo type for 30s continuously', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+
+        const wave1Ids = npcWaveIds();
+        for (const id of wave1Ids) {
+            const { magazine } = gameDriver.getShip(id).state;
+            for (const ammoType of ammoTypes) {
+                magazine.setCount(ammoType, 0);
+            }
+        }
+
+        for (let i = 0; i < CANT_FIGHT_SECONDS - 1; i++) {
+            gameDriver.gameManager.update(1);
+        }
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(0);
+
+        gameDriver.gameManager.update(2);
+        await waitForShipManagersGone(wave1Ids);
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(wave1Ids.length);
+    });
+
+    it('converts a raider that recedes past 200km from every station for 60s continuously, but not one that is closing', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+
+        const [recedingId, closingId] = npcWaveIds();
+        const recedingObj = gameDriver.spaceManager.state.get(recedingId)!;
+        const closingObj = gameDriver.spaceManager.state.get(closingId)!;
+
+        // due north of station-large (the nearest station from up here either way)
+        const farY = STATIONS[0].position.y + OUT_OF_PLAY_DISTANCE_METERS + 50_000;
+        const pin = (obj: typeof recedingObj, y: number) => {
+            obj.position = Vec2.make({ x: 0, y });
+            obj.velocity = Vec2.make({ x: 0, y: 0 });
+        };
+
+        for (let i = 0; i < OUT_OF_PLAY_SECONDS - 1; i++) {
+            pin(recedingObj, farY + i * 100); // distance to station-large strictly increasing
+            pin(closingObj, farY - i * 100); // distance to station-large strictly decreasing, still >200km
+            gameDriver.gameManager.update(1);
+        }
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(0); // 59s: not yet
+
+        pin(recedingObj, farY + (OUT_OF_PLAY_SECONDS - 1) * 100);
+        pin(closingObj, farY - (OUT_OF_PLAY_SECONDS - 1) * 100);
+        gameDriver.gameManager.update(1); // crosses the 60s mark for the receding raider only
+        await waitForShipManagersGone([recedingId]);
+
+        const derelicts = [...gameDriver.spaceManager.state.getAll('Derelict')];
+        expect(derelicts).toHaveLength(1);
+        expect(gameDriver.getShip(closingId)).toBeDefined(); // never accumulated: distance kept decreasing
+    });
+
+    it('spawns wave 2 at exactly WAVE_INTERVAL_SECONDS with no wave-1 raider destroyed, not before; wave 1 stays alive and ordered', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+
+        const wave1Ids = npcWaveIds();
+        const pins = wave1Ids.map((id) => {
+            const obj = gameDriver.spaceManager.state.get(id)!;
+            return { obj, position: Vec2.make(obj.position) };
+        });
+        const pinInPlace = () => {
+            for (const { obj, position } of pins) {
+                obj.position = Vec2.make(position);
+                obj.velocity = Vec2.make({ x: 0, y: 0 });
+            }
+        };
+
+        for (let i = 0; i < WAVE_INTERVAL_SECONDS - 1; i++) {
+            pinInPlace();
+            gameDriver.gameManager.update(1);
+        }
+        expect(npcWaveIds()).toHaveLength(wave1Ids.length); // wave 2 not spawned yet
+
+        pinInPlace();
+        gameDriver.gameManager.update(2); // crosses WAVE_INTERVAL_SECONDS
+        expect(npcWaveIds().length).toBeGreaterThan(wave1Ids.length);
+
+        for (const id of wave1Ids) {
+            expect(gameDriver.getShip(id)).toBeDefined();
+            expect(gameDriver.getShip(id).state.order).toEqual(Order.ATTACK);
+        }
+    });
+
+    it('does not spawn wave 3 early when wave 1 clears after wave 2 already spawned via the interval timer', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+
+        const wave1Ids = npcWaveIds();
+        for (let i = 0; i < WAVE_INTERVAL_SECONDS; i++) {
+            gameDriver.gameManager.update(1);
+        }
+        const afterWave2 = npcWaveIds();
+        expect(afterWave2.length).toBeGreaterThan(wave1Ids.length); // wave 2 spawned via the interval
+
+        for (const id of wave1Ids) {
+            gameDriver.spaceManager.destroyObject(id);
+        }
+        gameDriver.gameManager.update(1 / 20);
+        await waitForShipManagersGone(wave1Ids);
+
+        for (let i = 0; i < 20; i++) {
+            gameDriver.gameManager.update(1); // well past wave 1's own 15s clear delay
+        }
+        const wave2Ids = afterWave2.filter((id) => !wave1Ids.includes(id));
+        expect(npcWaveIds().sort()).toEqual(wave2Ids.sort()); // still just wave 2 -- no wave 3 yet
+    });
+
+    it('advances neither the incapacitation timers nor the interval timer while paused', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+
+        const wave1Ids = npcWaveIds();
+        for (const id of wave1Ids) {
+            for (const gun of gameDriver.getShip(id).state.chainGuns) {
+                gun.rateOfFireFactor = 0;
+            }
+        }
+
+        for (let i = 0; i < 1000; i++) {
+            gameDriver.gameManager.update(0);
+        }
+
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(0);
+        expect(npcWaveIds()).toHaveLength(wave1Ids.length);
     });
 });
 

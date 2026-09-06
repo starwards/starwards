@@ -31,6 +31,11 @@ export interface GameApi {
     orderFollow(shipId: string, targetId: string): void;
     /** Clears any pending bot order on the ship. No-op on player ships. */
     orderNone(shipId: string): void;
+    /**
+     * Converts an expendable NPC ship into an inert Derelict at its current position (the #2111
+     * death path). No-op if the ship is already destroyed, unknown, or not expendable (player ships).
+     */
+    convertToDerelict(shipId: string): void;
     /** Read-only lookup of a single space object, by id. */
     getObject(id: string): DeepReadonly<SpaceObject> | undefined;
     /** Read-only view of every live space object. */
