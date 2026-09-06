@@ -134,3 +134,63 @@ test.describe('Station registry', () => {
         await pilotContext.close();
     });
 });
+
+// Issue #2132: the generic `station.html` page (no `?ship=`, no fixed station type) sits in
+// standby showing its own id until the GM assigns it a ship + station type from the roster.
+test.describe('GM station assignment', () => {
+    test.beforeEach(async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(two_vs_one);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    test('roster and game setup controls are visible before the game starts', async ({ page }) => {
+        await gameDriver.gameManager.stopGame();
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await expect(page.locator('[data-id="Station Roster"]')).toBeVisible({ timeout: 10000 });
+        const gameSetup = page.locator('[data-id="Game Setup"]');
+        await expect(gameSetup).toBeVisible({ timeout: 10000 });
+        await expect(gameSetup.locator('button.tp-btnv_b', { hasText: '2v1 Game' })).toBeVisible();
+    });
+
+    test('GM assigns a generic station to a ship + type, and reassigns it live without reload', async ({
+        page,
+        browser,
+    }) => {
+        const stationContext = await browser.newContext();
+        const stationPage = await stationContext.newPage();
+        setupPageErrorHandlers(stationPage);
+        await navigateToScreen(stationPage, '/station.html', { baseURL: gameDriver.baseURL });
+
+        const standby = stationPage.locator('[data-id="Standby"]');
+        await expect(standby).toBeVisible({ timeout: 10000 });
+        const stationId = (await standby.textContent())?.trim();
+        expect(stationId).toHaveLength(3);
+
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        const roster = page.locator('[data-id="Station Roster"]');
+        await expect(roster).toBeVisible({ timeout: 10000 });
+        const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
+        await expect(row).toBeVisible({ timeout: 10000 });
+
+        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
+        await row.locator('[data-id="Station Roster Type"]').selectOption('pilot');
+
+        await expect(stationPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        await expect
+            .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
+            .toBe('GVTS');
+
+        // reassign live: same station type, different ship — no reload of the station tab
+        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS2');
+        await expect
+            .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
+            .toBe('GVTS2');
+        await expect(stationPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+
+        await stationContext.close();
+    });
+});

@@ -1,5 +1,6 @@
 import {
     AdminState,
+    AssignStationArg,
     GameApi,
     GameMap,
     GameStatus,
@@ -141,11 +142,11 @@ export class GameManager {
     }
 
     /**
-     * Drains `state.registerStationCommands`/`disconnectStationCommands` (see `stations/` in
-     * core): applies registration/disconnect bookkeeping generically, validates any requested
-     * ship self-assignment against `playerShipIds` + the stations manifest — the one
-     * Starwards-specific piece the generic registry module can't do itself — and then
-     * reconciles auto-assignment.
+     * Drains `state.registerStationCommands`/`disconnectStationCommands`/`assignStationCommands`
+     * (see `stations/` in core): applies registration/disconnect bookkeeping and GM assignment
+     * overrides generically, validates any requested/GM-assigned ship+type against
+     * `playerShipIds` + the stations manifest — the one Starwards-specific piece the generic
+     * registry module can't do itself — and then reconciles auto-assignment.
      */
     private drainStationCommands() {
         for (const arg of this.state.registerStationCommands) {
@@ -161,8 +162,41 @@ export class GameManager {
             this.disconnectedStationSince.set(stationId, Date.now());
         }
         this.state.disconnectStationCommands = [];
+        for (const arg of this.state.assignStationCommands) {
+            this.applyStationAssignment(arg);
+        }
+        this.state.assignStationCommands = [];
         this.reconcileStationAssignments();
         this.pruneStaleStations();
+    }
+
+    /**
+     * A GM's assignment override for an already-registered station. Unlike self-assignment
+     * (`registerStation`, only ever fills an *empty* slot), this can move an already-assigned
+     * station and can steal a `(shipId, stationType)` slot another station currently holds — the
+     * GM is the authority. Empty `shipId`/`stationType` together unassign; anything else that
+     * fails {@link isValidStationSlot} is silently ignored, same as a rejected self-assignment.
+     */
+    private applyStationAssignment(arg: AssignStationArg) {
+        const entry = this.state.stations.get(arg.stationId);
+        if (!entry) {
+            return;
+        }
+        if (!arg.shipId && !arg.stationType) {
+            entry.shipId = '';
+            entry.stationType = '';
+            return;
+        }
+        if (!this.isValidStationSlot(arg.shipId, arg.stationType)) {
+            return;
+        }
+        for (const other of this.state.stations.values()) {
+            if (other.id !== entry.id && other.shipId === arg.shipId && other.stationType === arg.stationType) {
+                other.shipId = '';
+            }
+        }
+        entry.shipId = arg.shipId;
+        entry.stationType = arg.stationType;
     }
 
     /**
