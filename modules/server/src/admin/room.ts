@@ -2,6 +2,7 @@ import {
     AdminState,
     REGISTER_STATION_REJECTED,
     RegisterStationArg,
+    assignStation,
     cmdReceiver,
     createLogger,
     handleJsonPointerCommand,
@@ -84,6 +85,7 @@ export class AdminRoom extends Room<AdminState> {
                 receiveRegistration(client, { ...message, value: { ...message.value, stationId } });
             },
         );
+        this.onMessage(assignStation.cmdName, cmdReceiver(manager, assignStation));
     }
 
     public onLeave(client: Client) {
