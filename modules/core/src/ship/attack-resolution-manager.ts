@@ -7,8 +7,9 @@ import { ArmorPlate } from './armor';
 import { ShipState } from './ship-state';
 
 /**
- * Explosion damage arrives per tick (damageFactor × dt × capped overlap), so this is
- * calibrated for sanding over a full cloud pass (a handful of small defects), not instant kills.
+ * A blast's surface scrape is one detonation event, sized off the warhead's flat damageFactor
+ * (issue #2236) — this scales that single application down to a handful of small defects on the
+ * hull-mounted systems it reaches, not an instant kill.
  */
 const SURFACE_EFFECT_FACTOR = 0.05;
 
@@ -204,8 +205,14 @@ export class AttackResolutionManager {
             if (plate.broken) {
                 breachHit = true;
             }
-            const share = overlap / hitSize;
-            const chain = this.walkPlateLayers(plate, damage, damage.amount * share, cellBudget);
+            // A blast is one detonation event that reaches every plate inside its radius at the
+            // same intensity: a wider blast touches more plates, not a thinner one (issue #2236).
+            // An impact round's hit arc is a single point (EPSILON-wide, see
+            // resolveProjectileContactDamage) so it only ever lands on one plate; sharing its
+            // total by that plate's fraction of the hit is a no-op there, but matters on the rare
+            // impact that straddles a plate seam.
+            const amount = damage.delivery === 'explosion' ? damage.amount : damage.amount * (overlap / hitSize);
+            const chain = this.walkPlateLayers(plate, damage, amount, cellBudget);
             exposureSum += chain * overlap;
         }
         return { exposure: exposureSum / totalAreaDegrees, breachHit };
