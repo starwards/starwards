@@ -35,13 +35,26 @@ describe('solveShellIntercept', () => {
     }
 
     /**
+     * Normalizes without `XY.normalize`, which rounds the unit vector's components to
+     * `limitPercision`'s 1e-4 grid — a ~5e-5 rad tilt of the firing line. That is a rounding artifact
+     * of this test's own flight model, not of the solution under test, and it grows with the flight:
+     * at the far corner of the envelope (a ~22km chase) it alone lands the shell ~1m off the target,
+     * right on this test's tolerance, so whether the property passed came down to which geometries
+     * fast-check happened to sample.
+     */
+    function exactNormalize(vector: XY): XY {
+        const length = Math.hypot(vector.x, vector.y);
+        return { x: vector.x / length, y: vector.y / length };
+    }
+
+    /**
      * Where the shell actually is at fuze time: launched from the muzzle, carrying the hull's own
      * velocity, flying along the firing line the aim point defines. This is the same flight
      * `getShellExplosionLocation` integrates for a mount that has finished swinging onto its
      * `bearingCommand`.
      */
     function detonationPoint(shipPosition: XY, shipVelocity: XY, radius: number, aimPoint: XY, fuze: number) {
-        const firingLine = XY.normalize(XY.difference(aimPoint, shipPosition));
+        const firingLine = exactNormalize(XY.difference(aimPoint, shipPosition));
         const muzzle = XY.add(shipPosition, XY.scale(firingLine, radius));
         const shellVelocity = XY.add(shipVelocity, XY.scale(firingLine, config.chainGuns[0][1].bulletSpeed));
         return XY.add(muzzle, XY.scale(shellVelocity, fuze));

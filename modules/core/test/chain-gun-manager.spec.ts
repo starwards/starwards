@@ -68,6 +68,120 @@ describe('ChainGunManager', () => {
 
             expect(chainGun.projectile).to.equal('None');
         });
+
+        it('switches away from a depleted projectile when asked to check depletion (issue #2237)', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const chainGun = shipMgr.state.chainGuns[0];
+            const magazine = shipMgr.state.magazine;
+            expect(magazine.count_ArmPenShell).to.be.greaterThan(0);
+
+            chainGun.projectile = 'HiExpShell';
+            magazine.setCount('HiExpShell', 0);
+            switchToAvailableAmmo(chainGun, magazine, true);
+
+            expect(chainGun.projectile).to.equal('ArmPenShell');
+        });
+
+        it('does not interrupt a round already chambered from the depleted type (no unload-and-refund flap)', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const chainGun = shipMgr.state.chainGuns[0];
+            const magazine = shipMgr.state.magazine;
+
+            // The magazine's last HiExpShell round has already moved into the chamber (this is
+            // what "count reaches 0" looks like mid-load, not an untouched depleted selection).
+            chainGun.projectile = 'HiExpShell';
+            chainGun.loadedProjectile = 'HiExpShell';
+            magazine.setCount('HiExpShell', 0);
+
+            switchToAvailableAmmo(chainGun, magazine, true);
+
+            // Switching now would trigger ChainGunManager's unload path, crediting the chambered
+            // round back to the magazine and undoing the depletion it was just switched away for.
+            expect(chainGun.projectile).to.equal('HiExpShell');
+        });
+
+        it('falls back to None when every ammo type is depleted, even mid-selection', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const chainGun = shipMgr.state.chainGuns[0];
+            const magazine = shipMgr.state.magazine;
+
+            chainGun.projectile = 'HiExpShell';
+            for (const at of ammoTypes) {
+                magazine.setCount(at, 0);
+            }
+            switchToAvailableAmmo(chainGun, magazine, true);
+
+            expect(chainGun.projectile).to.equal('None');
+        });
+
+        it('does not flap away from a selection that still has ammo', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const chainGun = shipMgr.state.chainGuns[0];
+            const magazine = shipMgr.state.magazine;
+            expect(magazine.count_ArmPenShell).to.be.greaterThan(0);
+
+            chainGun.projectile = 'ArmPenShell';
+            switchToAvailableAmmo(chainGun, magazine, true);
+
+            expect(chainGun.projectile).to.equal('ArmPenShell');
+        });
+
+        it('leaves a depleted selection alone unless a depletion check is requested', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const chainGun = shipMgr.state.chainGuns[0];
+            const magazine = shipMgr.state.magazine;
+
+            chainGun.projectile = 'HiExpShell';
+            magazine.setCount('HiExpShell', 0);
+            switchToAvailableAmmo(chainGun, magazine);
+
+            expect(chainGun.projectile).to.equal('HiExpShell');
+        });
     });
 
     describe('loading and firing', () => {

@@ -27,8 +27,27 @@ type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
 };
 
-export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
-    if (chainGun.projectile === 'None') {
+/**
+ * `evenIfDepleted` also switches away from a selected type whose magazine count has hit 0 (NPC
+ * automation, so a bot never sits silent holding a depleted type while other types are loadable —
+ * issue #2237). Defaults to off: the constructor call below runs for player ships too, and a
+ * player's manual ammo selection must never be overridden by this function.
+ *
+ * A magazine count of 0 alone isn't "depleted": the count is decremented the instant a round
+ * moves into the chamber (`loadedProjectile`), before it has fired, so the type's last round can
+ * be mid-load while its count already reads 0. Switching away then would hit
+ * `ChainGunManager.updateChainGun`'s unload path, which credits that chambered round back to the
+ * magazine — undoing the depletion this function was just asked to react to, and flapping the
+ * selection back and forth every tick. Only treat it as depleted once nothing of that type is
+ * chambered either.
+ */
+export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine, evenIfDepleted = false) {
+    const depleted =
+        chainGun.projectile !== 'None' &&
+        evenIfDepleted &&
+        chainGun.loadedProjectile !== chainGun.projectile &&
+        magazine.getCount(chainGun.projectile) === 0;
+    if (chainGun.projectile === 'None' || depleted) {
         chainGun.projectile = new Iterator(ammoTypes)
             .filter((p) => chainGun.design.isAmmoEnabled(p) && magazine.getCount(p) > 0)
             .firstOr('None');

@@ -363,7 +363,7 @@ export class AutomationManager implements Updateable {
      */
     private aimAndFire(target: SpaceObject, deltaSecondsAvg: number) {
         for (const chainGun of this.state.chainGuns) {
-            switchToAvailableAmmo(chainGun, this.state.magazine);
+            switchToAvailableAmmo(chainGun, this.state.magazine, true);
             const { aimPoint, secondsToLive } = solveShellIntercept(this.state, chainGun, target);
             const shipToAimPoint = XY.difference(aimPoint, this.state.position);
             const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
