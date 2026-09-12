@@ -83,8 +83,9 @@ describe('layered armor resolution walk', () => {
         expect(state.smartPilot.offsetFactor).to.equal(0);
     });
 
-    // FRONT_HIT_ARC spans exactly 6 plates, so each plate's own share of a hit is 1/6 of the
-    // damage.amount — none of these hits is confined to a single plate
+    // FRONT_HIT_ARC spans exactly 6 plates. For impact delivery, each plate's own share of a hit
+    // is 1/6 of damage.amount (none of these hits is confined to a single plate). Explosion
+    // delivery does not divide by this count -- see issue #2236.
     const FRONT_PLATE_COUNT = 6;
 
     it('Tandem impact vs Reactive over Composite: pops a cell AND continues into the composite', () => {
@@ -102,8 +103,10 @@ describe('layered armor resolution walk', () => {
         const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
         const damaged = damageManager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
         expect(countBrokenLayer(state, 0)).to.equal(0);
+        // unlike impact, a blast's amount is not divided by the touched-plate count: every plate
+        // inside the blast radius takes the same flat erosion (issue #2236)
         for (const plate of frontPlates(state)) {
-            expect(plate.layers[0].health).to.be.closeTo(100 - 40 / FRONT_PLATE_COUNT, 0.1);
+            expect(plate.layers[0].health).to.be.closeTo(100 - 40, 0.1);
             expect(plate.layers[1].health).to.equal(1000);
         }
         // intact cells, penetration 0 → chain 0 → no internal damage; the surface scrape lands
@@ -124,8 +127,9 @@ describe('layered armor resolution walk', () => {
     it('HiExp explosion erodes the Whipple screen at quarter rate, composite untouched while intact', () => {
         const { state, damageManager } = setUpLayeredShip(whippleOverComposite);
         damageManager.takeWeaponDamage(frontDamage(100, 'HiExp', 'explosion'));
+        // flat per plate (not divided by FRONT_PLATE_COUNT) -- see issue #2236
         for (const plate of frontPlates(state)) {
-            expect(plate.layers[0].health).to.be.closeTo(500 - (100 / FRONT_PLATE_COUNT) * 0.25, 0.1);
+            expect(plate.layers[0].health).to.be.closeTo(500 - 100 * 0.25, 0.1);
             expect(plate.layers[1].health).to.equal(1000);
         }
     });

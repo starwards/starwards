@@ -11,6 +11,7 @@ module.exports = {
         engineer: [path.resolve(__dirname, 'src', 'screens', 'engineer.ts')],
         relay: [path.resolve(__dirname, 'src', 'screens', 'relay.ts')],
         signals: [path.resolve(__dirname, 'src', 'screens', 'signals.ts')],
+        station: [path.resolve(__dirname, 'src', 'screens', 'station.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
         input: [path.resolve(__dirname, 'src', 'screens', 'input.ts')],
         gallery: [path.resolve(__dirname, 'src', 'gallery', 'gallery.ts')],
@@ -77,6 +78,11 @@ module.exports = {
             filename: 'signals.html',
             template: path.resolve(__dirname, 'templates', 'station.html'),
             chunks: ['signals'],
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'station.html',
+            template: path.resolve(__dirname, 'templates', 'station.html'),
+            chunks: ['station'],
         }),
         new HtmlWebpackPlugin({
             filename: 'gm.html',

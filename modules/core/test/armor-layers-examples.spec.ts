@@ -308,9 +308,10 @@ describe('spec §9 worked examples', () => {
             const { ship, state, spaceManager, damageManager } = setUpLayeredShip(fullStack);
             const manager = new ShipManagerPc(ship, state, spaceManager, new MockDie());
             damageManager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
-            // each plate's own 1/6 share of the 40 damage erodes its reactive cells (eroded, not popped)
+            // a blast's amount is not divided by the touched-plate count (unlike impact): every
+            // plate takes the same flat erosion, eroding its reactive cells (issue #2236)
             for (const plate of frontPlates(state)) {
-                expect(plate.layers[0].health).to.be.closeTo(100 - 40 / FRONT_PLATE_COUNT, 0.1);
+                expect(plate.layers[0].health).to.be.closeTo(100 - 40, 0.1);
             }
             // scratch the whipple screen too, then run the ship update loop
             frontPlates(state)[0].layers[1].health = 490;
@@ -318,7 +319,7 @@ describe('spec §9 worked examples', () => {
             // armor does not heal — every layer stays at its damaged value until explicit repair
             expect(frontPlates(state)[0].layers[1].health).to.equal(490);
             for (const plate of frontPlates(state)) {
-                expect(plate.layers[0].health).to.be.closeTo(100 - 40 / FRONT_PLATE_COUNT, 0.1);
+                expect(plate.layers[0].health).to.be.closeTo(100 - 40, 0.1);
             }
         });
 

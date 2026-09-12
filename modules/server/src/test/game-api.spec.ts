@@ -70,6 +70,26 @@ describe('GameApi (issue #2060)', () => {
         expect(gameDriver.gameManager.state.message).toEqual('');
     });
 
+    it('convertToDerelict replaces an NPC ship with a Derelict at the same position; no-op on player ships', async () => {
+        let npcId = '';
+        let playerId = '';
+        await gameDriver.gameManager.startGame(
+            makeMap((game) => {
+                npcId = game.addNpcSpaceship(newShip('DRL', Faction.Raiders, 'demo-ship')).spaceObject.id;
+                playerId = game.addPlayerSpaceship(newShip('PLD', Faction.Gravitas, 'demo-ship')).spaceObject.id;
+            }),
+        );
+
+        gameDriver.gameManager.scriptApi.convertToDerelict(playerId);
+        expect(gameDriver.gameManager.scriptApi.getObject(playerId)?.destroyed).not.toBe(true);
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(0);
+
+        gameDriver.gameManager.scriptApi.convertToDerelict(npcId);
+        expect(gameDriver.gameManager.scriptApi.getObject(npcId)?.destroyed).toBe(true);
+        gameDriver.gameManager.update(1 / 20); // flushes the queued Derelict insert
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(1);
+    });
+
     it('getObject/getObjects expose a read-only view of live space objects', async () => {
         let shipId = '';
         await gameDriver.gameManager.startGame(

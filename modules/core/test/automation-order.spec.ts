@@ -16,6 +16,7 @@ import {
     ThrusterDesign,
     Vec2,
     XY,
+    ammoTypes,
     chaingunPlatformChaingun,
     demoShipThruster,
     makeShipState,
@@ -1513,5 +1514,89 @@ describe('NPC to PC conversion', () => {
         }
 
         expect(pcMgr.state.reactor.energy).to.be.greaterThan(initialEnergy * 0.5);
+    });
+});
+
+describe('NPC gunnery switches ammo type once the selected one runs dry (issue #2237)', () => {
+    function createHostile(id: string, faction: Faction, position: XY) {
+        const hostile = new Spaceship();
+        hostile.id = id;
+        hostile.faction = faction;
+        hostile.position.setValue(position);
+        return hostile;
+    }
+
+    it('switches to another loaded ammo type within one tick and resumes firing', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        const gun = shipMgr.state.chainGuns[0];
+        const magazine = shipMgr.state.magazine;
+        gun.projectile = 'HiExpShell';
+        magazine.setCount('HiExpShell', 0);
+        expect(magazine.count_ArmPenShell).to.be.greaterThan(0);
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(gun.projectile).to.equal('ArmPenShell');
+        expect(gun.isFiring).to.equal(true);
+    });
+
+    it('drops to None, and stops firing, when every ammo type is depleted', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        const gun = shipMgr.state.chainGuns[0];
+        gun.projectile = 'HiExpShell';
+        for (const ammoType of ammoTypes) {
+            shipMgr.state.magazine.setCount(ammoType, 0);
+        }
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(gun.projectile).to.equal('None');
+        expect(gun.isFiring).to.equal(false);
+    });
+
+    it('does not switch away from a selection that still has ammo (no flapping)', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        const gun = shipMgr.state.chainGuns[0];
+        gun.projectile = 'ArmPenShell';
+        expect(shipMgr.state.magazine.count_ArmPenShell).to.be.greaterThan(0);
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(gun.projectile).to.equal('ArmPenShell');
+    });
+
+    it('leaves a player ship with a depleted selection unchanged', () => {
+        const { spaceMgr, shipMgr } = createShipSetup(ShipManagerPc, shipConfigurations['chaingun-platform']);
+
+        const gun = shipMgr.state.chainGuns[0];
+        const magazine = shipMgr.state.magazine;
+        gun.projectile = 'HiExpShell';
+        magazine.setCount('HiExpShell', 0);
+        expect(magazine.count_ArmPenShell).to.be.greaterThan(0);
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(gun.projectile).to.equal('HiExpShell');
     });
 });

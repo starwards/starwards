@@ -1,4 +1,4 @@
-import { Asteroid, Projectile, SpaceManager, Spaceship, Vec2, XY, ammoDesigns } from '../src';
+import { Asteroid, Damage, Projectile, SpaceManager, Spaceship, Vec2, XY, ammoDesigns } from '../src';
 
 import { expect } from 'chai';
 
@@ -205,7 +205,7 @@ describe('proximity-fuzed warheads (issue #1976)', () => {
         expect(distanceFromHull).to.be.greaterThan(shell.radius); // never actually touched the hull
     });
 
-    it('explosion overlap streams damage events tagged with explosion delivery', () => {
+    it('explosion overlap delivers a damage event tagged with explosion delivery (issue #2236: one detonation event, not a per-tick stream)', () => {
         const spaceMgr = new SpaceManager();
         const ship = makeShip('blast-target');
         const shell = new Projectile('HiExpShell');
@@ -215,12 +215,15 @@ describe('proximity-fuzed warheads (issue #1976)', () => {
         spaceMgr.forceFlushEntities();
 
         tick(spaceMgr, 0.05); // time-fuze detonation next to the hull
-        for (let i = 0; i < 10 && [...spaceMgr.resolveObjectDamage(ship.id)].length === 0; i++) {
+        // resolveObjectDamage drains the queue as it's read, so accumulate across every tick
+        // instead of polling it as the loop condition (that would drain and discard the one
+        // detonation event before the assertions below ever see it)
+        const damageEvents: Damage[] = [];
+        for (let i = 0; i < 10; i++) {
             tick(spaceMgr, 0.05); // let the blast grow into the hull
+            damageEvents.push(...spaceMgr.resolveObjectDamage(ship.id));
         }
-        tick(spaceMgr, 0.05);
 
-        const damageEvents = [...spaceMgr.resolveObjectDamage(ship.id)];
         expect(damageEvents.length).to.be.greaterThan(0);
         for (const damage of damageEvents) {
             expect(damage.delivery).to.equal('explosion');

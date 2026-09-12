@@ -44,6 +44,15 @@ export class Explosion extends SpaceObjectBase {
     @gameField('string')
     public readonly type = 'Explosion';
 
+    /**
+     * server-side only, not synced: ids of objects this blast has already dealt its one
+     * detonation event to. A warhead detonates once against a given target — the amount is a
+     * property of the warhead, not an integral of how long the blast geometrically overlapped it
+     * (issue #2236) — so each target this Explosion touches takes damage exactly once, on the
+     * tick it first overlaps, regardless of how many further ticks the overlap physically persists.
+     */
+    public readonly hitObjectIds = new Set<string>();
+
     // server-side only. 'Collision' (e.g. GM-spawned explosions) means a generic
     // hit handled by the flat-damage path.
     private _damageType: SpaceDamageType = 'Collision';

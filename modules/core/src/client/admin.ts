@@ -1,7 +1,9 @@
 import {
+    type AssignStationArg,
     REGISTER_STATION_REJECTED,
     type RegisterStationArg,
     type RegisterStationRejected,
+    assignStation,
     registerStation,
 } from '../stations';
 
@@ -58,6 +60,8 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
         },
         sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(adminRoom, pointerStr, value),
         registerStation: (arg: RegisterStationArg) => adminRoom.send(registerStation.cmdName, { value: arg }),
+        /** GM override: (re)binds a registered station to a ship + station type, or unassigns it (`shipId: '', stationType: ''`). */
+        assignStation: (arg: AssignStationArg) => adminRoom.send(assignStation.cmdName, { value: arg }),
         /** Fires when the server rejects a `registerStation` request for `stationId` (see `AdminRoom`'s collision check). */
         onRegisterStationRejected: (cb: (stationId: string) => void): (() => void) => {
             rejectedListeners.add(cb);

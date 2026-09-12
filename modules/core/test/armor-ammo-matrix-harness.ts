@@ -351,7 +351,7 @@ export function matrixToMarkdown(matrix: Matrix): string {
     );
     lines.push('');
     lines.push(
-        "**Impact and explosion tables are not comparable to each other.** Impact rows apply the warhead's real per-hit `damage`. Real explosion damage accrues per tick as `damageFactor × dt × overlap` over the cloud's lifetime (geometry-dependent); explosion rows here apply one nominal application of `damageFactor × 1s × 1m overlap`, which exercises the armor response but is not a per-shot damage figure. The tables are split so the numbers are not read side by side.",
+        "**Impact and explosion tables are not comparable to each other.** Impact rows apply the warhead's real per-hit `damage`. Explosion rows apply the warhead's real per-detonation `damageFactor` -- a blast is a single detonation event against a given plate, not an integral over dwell time (issue #2236) -- but that single application still isn't a full per-shot figure: a real blast can reach several plates at once (`damageFactor` lands on each), while this rig fires at one plate in isolation. The tables are split so the numbers are not read side by side.",
     );
     lines.push('');
 
@@ -373,7 +373,9 @@ export function matrixToMarkdown(matrix: Matrix): string {
     lines.push('');
     lines.push(...tableFor(impact, 'Shots to breach'));
     lines.push('');
-    lines.push('## Explosion ammo (nominal 1s × 1m application of `damageFactor` — not per-shot damage)');
+    lines.push(
+        '## Explosion ammo (one real per-plate detonation event, `damageFactor` — not a full per-shot total across every plate a real blast reaches)',
+    );
     lines.push('');
     lines.push(...tableFor(explosion, 'Applications to breach'));
     lines.push('');
