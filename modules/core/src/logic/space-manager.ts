@@ -782,10 +782,12 @@ export class SpaceManager implements Updateable {
                     positionChange = res.positionChange;
                     Vec2.add(subject.velocity, res.velocityChange, subject.velocity);
                     this.clampToAbsoluteMaxSpeed(subject);
-                    if (Spaceship.isInstance(subject)) {
-                        this.handleShipCollisionDamage(deltaSeconds, res.damageAmount, subject, object, response);
-                    } else if (Asteroid.isInstance(subject)) {
-                        subject.health -= res.damageAmount;
+                    if (res.damageAmount > 0) {
+                        if (Spaceship.isInstance(subject)) {
+                            this.handleShipCollisionDamage(deltaSeconds, res.damageAmount, subject, object, response);
+                        } else if (Asteroid.isInstance(subject)) {
+                            subject.health -= res.damageAmount;
+                        }
                     }
                 }
                 if (positionChange) {
@@ -823,8 +825,18 @@ export class SpaceManager implements Updateable {
             // a much bigger mass. Damage is untouched -- only the physical pushback scales down
             // (issue #2092 design redirect).
             const massScale = (BLAST_IMPULSE_MASS_REFERENCE_RADIUS / subject.radius) ** 3;
+            // A warhead detonates once against a given target: damageFactor is the blast's flat,
+            // bounded per-detonation figure, not a per-second rate to integrate over however long
+            // the (possibly still-moving, still-growing) cloud happens to overlap the hull -- that
+            // integral made the outcome a function of shell speed and target diameter instead of
+            // the warhead (issue #2236). The impulse below is unrelated physical pushback and
+            // keeps accruing every tick of physical overlap, same as before.
+            const alreadyDetonatedOnTarget = object.hitObjectIds.has(subject.id);
+            if (!alreadyDetonatedOnTarget) {
+                object.hitObjectIds.add(subject.id);
+            }
             return {
-                damageAmount: object.damageFactor * deltaSeconds * Math.min(response.overlap, object.radius * 2),
+                damageAmount: alreadyDetonatedOnTarget ? 0 : object.damageFactor,
                 positionChange: null,
                 velocityChange: XY.scale(response.overlapV, -exposure * object.blastFactor * massScale),
             };
@@ -838,6 +850,24 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    /**
+     * The footprint used to size a hit's damage arc. An explosion detonates once per target
+     * (see calcSolidCollision), on whichever tick collision detection first notices the overlap
+     * -- which can be well before the blast has finished growing. The warhead's actual reach is
+     * its fully-grown radius (current radius plus whatever it still gains over its remaining
+     * lifetime), not however far it happened to have expanded by that tick, so the one detonation
+     * event is sized off the former (issue #2236). Every other collider uses its live geometry.
+     */
+    private damageFootprint(object: SpaceObject) {
+        if (Explosion.isInstance(object)) {
+            return {
+                position: object.position,
+                radius: object.radius + object.expansionSpeed * object.secondsToLive,
+            };
+        }
+        return object;
+    }
+
     private handleShipCollisionDamage(
         deltaSeconds: number,
         damageAmount: number,
@@ -845,7 +875,7 @@ export class SpaceManager implements Updateable {
         object: SpaceObject,
         response: SWResponse,
     ) {
-        const damageBoundries = circlesIntersection(subject, object);
+        const damageBoundries = circlesIntersection(subject, this.damageFootprint(object));
         if (damageBoundries) {
             const shipLocalDamageBoundries: [XY, XY] = [
                 subject.globalToLocal(XY.difference(damageBoundries[0], subject.position)),

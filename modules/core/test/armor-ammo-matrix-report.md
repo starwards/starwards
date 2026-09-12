@@ -27,7 +27,7 @@ The design spec defines **deflection**: a deflecting armor (Reactive) pushes an 
 
 Rig: a single plate whose outer layer is the tested model (100 health, the demo-ship baseline) over a composite backing layer that is pre-broken, so observed system damage is governed solely by the tested layer (`makeArmor` requires a composite innermost layer; an intact one engages HiExp/ArmPen/Tandem and would zero the chain for every model). Each application drives `AttackResolutionManager.resolveWeaponAttack` — the exact resolution path a real hit takes — and records plate erosion plus resolved system hits on both channels, split structurally using the documented "surface hits first, then penetration hits" ordering (not by comparing damage amounts). Resolved damage amounts are recorded pre-defect-roll; defects and system breakage are out of scope.
 
-**Impact and explosion tables are not comparable to each other.** Impact rows apply the warhead's real per-hit `damage`. Real explosion damage accrues per tick as `damageFactor × dt × overlap` over the cloud's lifetime (geometry-dependent); explosion rows here apply one nominal application of `damageFactor × 1s × 1m overlap`, which exercises the armor response but is not a per-shot damage figure. The tables are split so the numbers are not read side by side.
+**Impact and explosion tables are not comparable to each other.** Impact rows apply the warhead's real per-hit `damage`. Explosion rows apply the warhead's real per-detonation `damageFactor` -- a blast is a single detonation event against a given plate, not an integral over dwell time (issue #2236) -- but that single application still isn't a full per-shot figure: a real blast can reach several plates at once (`damageFactor` lands on each), while this rig fires at one plate in isolation. The tables are split so the numbers are not read side by side.
 
 ## ⚠ 2 anomalies flagged
 
@@ -64,7 +64,7 @@ Rig: a single plate whose outer layer is the tested model (100 health, the demo-
 | faraday | TandemMissile | Tandem | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 50.00 | — |
 | faraday | ElecMissile | Elec | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | — | — | — |
 
-## Explosion ammo (nominal 1s × 1m application of `damageFactor` — not per-shot damage)
+## Explosion ammo (one real per-plate detonation event, `damageFactor` — not a full per-shot total across every plate a real blast reaches)
 
 | Armor | Ammo | Type | Outcome | plateDamage | penetration | Plate erosion (1st) | Applications to breach | Surface hits / dmg | Penetration hits / dmg | Anomalies |
 |---|---|---|---|---|---|---|---|---|---|---|
