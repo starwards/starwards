@@ -6,6 +6,7 @@ import {
     Radar,
     RadarSectorValues,
     Reactor,
+    ScanLevel,
     ShipState,
     SmartPilot,
     SmartPilotMode,
@@ -14,6 +15,7 @@ import {
     TargetedStatus,
     ammoTypes,
     applyRadarSectors,
+    playerScanLevel,
     sampleRadarAreaFactor,
     toPositiveDegreesDelta,
 } from '..';
@@ -281,8 +283,18 @@ export abstract class ShipManager implements Updateable {
             ? this.spaceManager.state.getAll('Spaceship')
             : this.spaceManager.state;
         let result = new Iterator(iterable).filter((v) => v.id !== this.state.id && v.isCorporal);
+        // shipOnly/enemyOnly assert type/faction, which the crew only knows once Signals has
+        // scanned a contact to BASIC — below that, cycling would classify it just by landing on it.
+        if (this.state.weaponsTarget.shipOnly) {
+            result = result.filter((v) => playerScanLevel(v, this.state.faction) >= ScanLevel.BASIC);
+        }
         if (this.state.weaponsTarget.enemyOnly) {
-            result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.faction);
+            result = result.filter(
+                (v) =>
+                    playerScanLevel(v, this.state.faction) >= ScanLevel.BASIC &&
+                    v.faction !== Faction.NONE &&
+                    v.faction !== this.state.faction,
+            );
         }
         const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.faction);
         return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
