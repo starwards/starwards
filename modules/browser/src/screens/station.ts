@@ -1,11 +1,17 @@
 import * as PIXI from 'pixi.js';
 
 import { Driver, createLogger } from '@starwards/core';
-import { attachGameMessageOverlay, createWrapperRenderer, renderStandby } from './station-lifecycle';
+import {
+    attachGameMessageOverlay,
+    createWrapperRenderer,
+    renderStandby,
+    renderWaitingScreen,
+} from './station-lifecycle';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { beginStationRegistrationWithRetry } from '../station-identity';
+import { computeSeatView } from './station-seat-view';
 import { stationScreens } from './station-screens';
 import { wrapRootWidgetContainer } from '../container';
 
@@ -21,28 +27,36 @@ window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.r
 
 /**
  * The generic bridge seat (issue #2132): no `?ship=`, no fixed station type. Registers on the
- * admin room with an empty assignment and sits in standby — showing this seat's own id large, so
- * the GM can match a physical screen to its roster row — until the GM assigns it a
- * `(shipId, stationType)`. From there it renders whichever screen the stations manifest names
- * (see `station-screens.ts`), and switches screens in place on a reassignment, no reload.
+ * admin room with an empty assignment and sits in a waiting screen — showing this seat's own id
+ * large, so the GM can match a physical screen to its roster row, plus (while wholly unassigned)
+ * a breakout button back to the manual lobby — until the GM assigns it a `(shipId, stationType)`
+ * and a game/replay is running. From there it renders whichever screen the stations manifest
+ * names (see `station-screens.ts`), and switches screens in place on a reassignment, no reload.
+ *
+ * A stopped game falls back to the waiting screen too (issue #2242): `GameManager.stopGame`
+ * leaves `stations` assignments intact, so the seat stays assigned but has nothing to render
+ * until the next `startGame`/`loadGame` calls `reconcileStationAssignments` — see
+ * `computeSeatView` for the exact condition, re-evaluated here on `/gameStatus`.
  */
 const driver = new Driver(window.location).connect();
 const registration = beginStationRegistrationWithRetry(driver, '', '');
 const renderer = createWrapperRenderer();
 
-let shown = ''; // `${shipId}|${stationType}` of whatever is currently rendered, to skip redundant re-renders
+let shown = ''; // `${shipId}|${stationType}|${gameStatus}` of whatever is currently rendered, to skip redundant re-renders
 
 function show() {
     void driver.getAdminDriver().then((adminDriver) => {
         const entry = adminDriver.state.stations.get(registration.stationId);
         const shipId = entry?.shipId ?? '';
         const stationType = entry?.stationType ?? '';
-        const key = `${shipId}|${stationType}`;
+        const gameStatus = adminDriver.state.gameStatus;
+        const key = `${shipId}|${stationType}|${gameStatus}`;
         if (key === shown) {
             return;
         }
         shown = key;
-        const screenInit = shipId && stationType ? stationScreens[stationType] : undefined;
+        const { view, showBreakout } = computeSeatView(shipId, stationType, gameStatus);
+        const screenInit = view === 'assigned' ? stationScreens[stationType] : undefined;
         renderer.show((wrapperEl, addCleanup) => {
             if (screenInit) {
                 const container = wrapRootWidgetContainer(wrapperEl);
@@ -52,7 +66,7 @@ function show() {
                     .then((admin) => addCleanup(attachGameMessageOverlay(wrapperEl, admin)))
                     .catch((err: unknown) => logError('failed to attach game message overlay', err));
             } else {
-                renderStandby(wrapperEl, registration.stationId);
+                renderWaitingScreen(wrapperEl, registration.stationId, showBreakout);
             }
         });
     });
@@ -63,4 +77,5 @@ void driver.getAdminDriver().then((adminDriver) => {
     show();
     adminDriver.events.on('/stations', show);
     adminDriver.events.on('/stations/**', show);
+    adminDriver.events.on('/gameStatus', show);
 });

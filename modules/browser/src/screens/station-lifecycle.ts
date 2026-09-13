@@ -49,6 +49,51 @@ export function renderStandby(element: JQuery<HTMLElement>, text: string) {
 }
 
 /**
+ * The generic seat's (`station.html`) waiting screen (issue #2242): shown while unassigned, or
+ * while assigned but no game/replay is running (see `computeSeatView`). Shows this seat's own id
+ * large enough to match against a physical screen, plus — only while wholly unassigned — a
+ * breakout button back to the manual lobby (`index.html?lobby`). The id itself is not editable
+ * here; it stays whatever `getOrCreateStationId` resolved for this tab.
+ */
+export function renderWaitingScreen(element: JQuery<HTMLElement>, stationId: string, showBreakout: boolean) {
+    element.attr('data-id', 'Waiting Screen').css({
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1.5em',
+        backgroundColor: hsl.background,
+        color: hsl.primary.main(3),
+        fontFamily: 'sans-serif',
+    });
+    element.empty();
+    $('<div />')
+        .attr('data-id', 'station-id')
+        .css({
+            fontSize: '6vw',
+            letterSpacing: '0.1em',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+        })
+        .text(stationId || 'connecting...')
+        .appendTo(element);
+    if (showBreakout) {
+        $('<button />')
+            .attr('data-id', 'lobby-breakout')
+            .text('Lobby')
+            .css({
+                fontSize: '1.2vw',
+                padding: '0.5em 1.5em',
+                cursor: 'pointer',
+            })
+            .on('click', () => window.location.assign('index.html?lobby'))
+            .appendTo(element);
+    }
+}
+
+/**
  * Renders the GM's free-text `AdminState.message` (scenario/end-of-game announcements) as a
  * banner over the given screen wrapper, on every station. It sits above the screen content
  * without blocking it, so a paused end-state radar stays visible — and legible as an intentional
