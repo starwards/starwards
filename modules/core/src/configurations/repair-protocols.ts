@@ -92,9 +92,10 @@ export type RepairProtocolStats = {
     onComplete?: (state: ShipState) => void;
     /**
      * When true, the protocol needs one of the ship's finite `Reactor.energyCells` and refuses to
-     * enqueue past what's actually available (issue #2137) — see `getAvailableRepairProtocols` /
-     * `RepairManager.drainEnqueueCommands`. Consumption itself happens in the protocol's own
-     * `onComplete`, once the operation actually finishes.
+     * go pending past what's actually available (issue #2137) — see `getAvailableRepairProtocols` /
+     * `RepairManager.availabilityRefusal`. The cell itself is spent the instant the protocol starts
+     * running and refunded only if a wind-down cancellation reaches 0% (issue #2247) — see
+     * `RepairManager.start` / `tickCancelling`.
      */
     consumesEnergyCell?: boolean;
 };
@@ -312,15 +313,16 @@ export const armorPlateRenewal: RepairProtocolStats = {
 
 /**
  * `onComplete` for `reactorJumpStart` (issue #2137): the bootstrap effect the design calls for —
- * +30% reactor efficiency, +30% energy, one energy cell spent. No defectible `targets`: a partial
- * +30% bump toward normal is not the same operation as `resetTargets`'s full reset-to-normal, so
- * (like `armorPlateRenewal`) the effect is written here instead.
+ * +30% reactor efficiency, +30% energy. No defectible `targets`: a partial +30% bump toward normal
+ * is not the same operation as `resetTargets`'s full reset-to-normal, so (like `armorPlateRenewal`)
+ * the effect is written here instead. The energy cell itself is spent by `RepairManager.start`
+ * when the protocol begins running, not here — `consumesEnergyCell` protocols all share that one
+ * spend/refund path (issue #2247).
  */
 function jumpStartReactor(state: ShipState): void {
     const reactor = state.reactor;
     reactor.effeciencyFactor = Math.min(1, reactor.effeciencyFactor + 0.3);
     reactor.energy = Math.min(reactor.design.maxEnergy, reactor.energy + 0.3 * reactor.design.maxEnergy);
-    reactor.energyCells = Math.max(0, reactor.energyCells - 1);
 }
 
 /**
@@ -328,7 +330,7 @@ function jumpStartReactor(state: ShipState): void {
  * reactor can't run the repair protocols that would fix it. Spends one of the ship's finite
  * `Reactor.energyCells` (restocked only while docked, see `ReactorCellManager`) to bootstrap just
  * enough efficiency and energy for normal repair protocols to progress. `energyDraw: 0` so it's
- * runnable from true zero energy — `RepairManager.tickActive` skips the energy-spend check
+ * runnable from true zero energy — `RepairManager.tickRunning` skips the energy-spend check
  * entirely for a zero-draw protocol, since `EnergyManager.trySpendEnergy` would otherwise refuse
  * to spend even nothing out of an empty reactor.
  */
@@ -435,11 +437,24 @@ export function validateRepairCatalog(state: ShipState, catalog: Record<string, 
 }
 
 /**
+ * Whether every system `protocol` targets or declares a side effect on is actually fitted to this
+ * ship — a fixed property of the ship's design, unlike tier or energy-cell state, which change
+ * live. Split out from `isProtocolAvailable` (issue #2247 review) so a display-only filter (the
+ * repair-queue widget hiding rows for equipment this ship structurally lacks) can check exactly
+ * this, without also hiding a docked-tier or out-of-cells protocol that should stay visible and
+ * explain itself via the slot's `refusalReason`.
+ */
+export function hasProtocolEquipment(state: ShipState, protocol: RepairProtocolStats): boolean {
+    const systems = [...protocol.targets.map((t) => t.system), ...protocol.sideEffectSystems];
+    return systems.every((system) => getRepairableSystemInstances(state, system).length > 0);
+}
+
+/**
  * Whether `protocol` can run at all on `state` — i.e. its tier is within what `state`'s ship
- * currently qualifies for (see `getEffectiveRepairTier`), and every system it targets or declares
- * a side effect on is actually fitted to this ship. This is the seam for "the protocols available
- * to *this* ship": further applicability conditions (current damage state, ...) are meant to layer
- * onto this same function later, not be built as parallel filters elsewhere.
+ * currently qualifies for (see `getEffectiveRepairTier`), it has an energy cell if it needs one,
+ * and it has {@link hasProtocolEquipment}. This is the seam for "the protocols available to *this*
+ * ship": further applicability conditions (current damage state, ...) are meant to layer onto this
+ * same function later, not be built as parallel filters elsewhere.
  */
 export function isProtocolAvailable(state: ShipState, protocol: RepairProtocolStats): boolean {
     if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(state)]) {
@@ -448,8 +463,7 @@ export function isProtocolAvailable(state: ShipState, protocol: RepairProtocolSt
     if (protocol.consumesEnergyCell && state.reactor.energyCells <= 0) {
         return false;
     }
-    const systems = [...protocol.targets.map((t) => t.system), ...protocol.sideEffectSystems];
-    return systems.every((system) => getRepairableSystemInstances(state, system).length > 0);
+    return hasProtocolEquipment(state, protocol);
 }
 
 /**

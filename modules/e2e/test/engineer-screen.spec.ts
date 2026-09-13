@@ -1,13 +1,43 @@
-import { DockingMode, PowerLevel } from '@starwards/core';
+import { DockingMode, PowerLevel, RepairPriority } from '@starwards/core';
+import { Locator, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
-import { expect, test } from '@playwright/test';
-import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
+import { expectNonInteractiveBar, makeDriver, waitForPropertyValue } from './driver';
 
 import { maps } from '@starwards/server';
 
 const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
+
+/** The repair-queue widget renders one folder per catalog protocol — scope reads to that protocol's own row, since every row shares the same field labels (issue #2247). */
+function protocolRow(panel: Locator, protocolName: string): Locator {
+    return panel.locator('.tp-fldv', { hasText: protocolName }).first();
+}
+
+async function rowValue(row: Locator, labelText: string): Promise<string> {
+    const label = row.getByText(labelText, { exact: true });
+    await expect(label).toBeVisible();
+    const input = label.locator('..').locator('input');
+    return await input.inputValue();
+}
+
+async function waitForRowValue(
+    row: Locator,
+    labelText: string,
+    condition: (value: string) => boolean,
+    timeout = 5000,
+): Promise<string> {
+    const startTime = Date.now();
+    let last = '';
+    while (Date.now() - startTime < timeout) {
+        last = await rowValue(row, labelText);
+        if (condition(last)) {
+            return last;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error(`Timeout waiting for '${labelText}' to match condition. Final value: ${last}`);
+}
 
 test.describe('Engineer Screen', () => {
     test.beforeEach(async ({ page }) => {
@@ -48,38 +78,28 @@ test.describe('Engineer Screen', () => {
         await expectNonInteractiveBar(warpPanel.locator('.sw-bar').first());
     });
 
-    test('catalog entries render as buttons (protocol name as row label, hotkey/duration/tier/dark summary as the clickable caption) (issue #2212)', async ({
+    test('every catalog protocol renders as its own row, hotkeys-only (no buttons), starting OFF (issue #2247)', async ({
         page,
     }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
 
-        const catalogRow = repairQueuePanel.locator('.tp-lblv', { hasText: 'Sensor-array degauss' });
-        await expect(catalogRow).toBeVisible();
-        const catalogButton = catalogRow.locator('button.tp-btnv_b');
-        await expect(catalogButton).toBeVisible();
-        await expect(catalogButton).toContainText('ALT+4');
-        await expect(catalogButton).toContainText('30s');
-        await expect(catalogButton).toContainText('field');
+        const row = protocolRow(repairQueuePanel, 'Sensor-array degauss');
+        await expect(row).toBeVisible();
+        await expect(row).toContainText('ALT+4');
+        await expect(row).toContainText('ALT+SHIFT+4');
+        // exactly one button: the folder's own collapse/expand toggle — no raise/lower buttons on
+        // the engineer screen, hotkeys only (issue #2247)
+        await expect(row.locator('button')).toHaveCount(1);
+        expect(await rowValue(row, 'priority')).toBe('OFF');
+        expect(await rowValue(row, 'details')).toContain('field');
+        expect(await rowValue(row, 'details')).toContain('30s');
 
         const ship = gameDriver.getShip(shipId);
-        expect(ship.state.repairQueue.operations.length).toBe(0);
+        expect(ship.state.repairQueue.slots.every((s) => s.priority === RepairPriority.OFF)).toBe(true);
     });
 
-    test('clicking a catalog entry enqueues that protocol (A2), same as the hotkey path', async ({ page }) => {
-        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
-        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-
-        const catalogRow = repairQueuePanel.locator('.tp-lblv', { hasText: 'Sensor-array degauss' });
-        await catalogRow.locator('button.tp-btnv_b').click();
-
-        const ship = gameDriver.getShip(shipId);
-        await expect
-            .poll(() => ship.state.repairQueue.operations.map((o) => o.protocolId), { timeout: 5000 })
-            .toEqual(['sensorArrayDegauss']);
-    });
-
-    test('damage report shows a defect, and enqueueing/cancelling a repair via hotkey drives the queue', async ({
+    test('damage report shows a defect, and raising/cancelling a repair via hotkey drives its slot', async ({
         page,
     }) => {
         const ship = gameDriver.getShip(shipId);
@@ -91,32 +111,25 @@ test.describe('Engineer Screen', () => {
 
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible();
+        const row = protocolRow(repairQueuePanel, 'Sensor-array degauss');
         // sensorArrayDegauss is the 4th catalog entry -> alt+4 (see repair-queue.ts hotkey order)
         await page.keyboard.press('Alt+4');
 
-        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
-        const firstProgress = await waitForPropertyValue(
-            page,
-            'progress',
-            (v) => parseFloat(v) > 0,
-            'Repair Queue',
-            5000,
-        );
+        await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
+        const firstProgress = await waitForRowValue(row, 'progress', (v) => parseFloat(v) > 0, 5000);
         // a real progression over time, not a restatement of the wait predicate above
         await page.waitForTimeout(500);
-        const laterProgress = await getPropertyValue(page, 'progress', 'Repair Queue');
+        const laterProgress = await rowValue(row, 'progress');
         expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
 
-        const cancelButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Cancel' });
-        await cancelButton.click();
-
-        // terminal status must reach the client and stay visible for a few seconds (R4) — a
-        // cancelled repair is not indistinguishable from one that simply vanished
-        await waitForPropertyValue(page, 'state', (v) => v === 'CANCELLED', 'Repair Queue', 2000);
-        await expect(repairQueuePanel.getByText('state', { exact: true })).not.toBeVisible({ timeout: 5000 });
+        // either hotkey on a RUNNING slot starts the wind-down (cancel = wind-down, issue #2247)
+        await page.keyboard.press('Alt+4');
+        await waitForRowValue(row, 'priority', (v) => v === 'CANCELLING', 2000);
+        await waitForRowValue(row, 'priority', (v) => v === 'OFF', 5000);
+        expect(await rowValue(row, 'progress')).toBe('0%');
     });
 
-    test('radar traverse servo alignment (#2109) is listed as a field-tier protocol and drives visible progress via hotkey', async ({
+    test('radar traverse servo alignment (#2109) drives visible progress via hotkey and takes the radar dark', async ({
         page,
     }) => {
         const ship = gameDriver.getShip(shipId);
@@ -124,138 +137,99 @@ test.describe('Engineer Screen', () => {
 
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        await expect(repairQueuePanel.getByText('Radar traverse servo alignment', { exact: true })).toBeVisible();
+        const row = protocolRow(repairQueuePanel, 'Radar traverse servo alignment');
+        await expect(row).toBeVisible();
 
         // radarTraverseServoAlignment is the 5th catalog entry -> alt+5
         await page.keyboard.press('Alt+5');
 
-        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
-        const firstProgress = await waitForPropertyValue(
-            page,
-            'progress',
-            (v) => parseFloat(v) > 0,
-            'Repair Queue',
-            5000,
-        );
+        await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
+        const firstProgress = await waitForRowValue(row, 'progress', (v) => parseFloat(v) > 0, 5000);
         await page.waitForTimeout(500);
-        const laterProgress = await getPropertyValue(page, 'progress', 'Repair Queue');
+        const laterProgress = await rowValue(row, 'progress');
         expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
-        expect(ship.state.radars[1].power).toBe(PowerLevel.SHUTDOWN); // side effect: radar dark while the op runs
+        expect(ship.state.radars[1].power).toBe(PowerLevel.SHUTDOWN); // side effect: radar dark while it runs
     });
 
-    test('crew station cannot enqueue a docked-tier protocol, even via its hotkey (A2)', async ({ page }) => {
+    test('raising priority multiple times steps LOW -> MEDIUM -> HIGH while something else is running (no pre-emption)', async ({
+        page,
+    }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        await expect(repairQueuePanel.getByText('Hull-wide systems overhaul', { exact: true })).not.toBeVisible();
+        // actuatorRecalibration=alt+1 occupies the running slot first
+        await page.keyboard.press('Alt+1');
+        const runningRow = protocolRow(repairQueuePanel, 'Actuator recalibration');
+        await waitForRowValue(runningRow, 'priority', (v) => v === 'RUNNING', 5000);
+
+        // thrustLinePurge=alt+2 stays pending behind it and can be stepped through priorities
+        const pendingRow = protocolRow(repairQueuePanel, 'Thrust-line purge');
+        await page.keyboard.press('Alt+2');
+        await waitForRowValue(pendingRow, 'priority', (v) => v === 'LOW', 2000);
+        await page.keyboard.press('Alt+2');
+        await waitForRowValue(pendingRow, 'priority', (v) => v === 'MEDIUM', 2000);
+        await page.keyboard.press('Alt+2');
+        await waitForRowValue(pendingRow, 'priority', (v) => v === 'HIGH', 2000);
+        // lower it back down
+        await page.keyboard.press('Alt+Shift+2');
+        await waitForRowValue(pendingRow, 'priority', (v) => v === 'MEDIUM', 2000);
+
+        // the first protocol never lost the running slot throughout
+        expect(await rowValue(runningRow, 'priority')).toBe('RUNNING');
+    });
+
+    test('crew station cannot raise a docked-tier protocol while undocked, even via its hotkey', async ({ page }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const row = protocolRow(repairQueuePanel, 'Hull-wide systems overhaul');
+        await expect(row).toBeVisible(); // always shown — the fixed set of catalog slots (issue #2247)
 
         // hullWideSystemsOverhaul is the 10th catalog entry -> alt+0. The key is always bound; the
         // server-side tier gate is what actually refuses it while undocked.
         await page.keyboard.press('Alt+0');
-        await waitForPropertyValue(page, 'notice', (v) => v !== '', 'Repair Queue', 5000);
+        await waitForRowValue(row, 'notice', (v) => v !== '', 5000);
+        expect(await rowValue(row, 'priority')).toBe('OFF');
 
         const ship = gameDriver.getShip(shipId);
-        expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'hullWideSystemsOverhaul')).toBe(false);
+        const slot = ship.state.repairQueue.slots.find((s) => s.protocolId === 'hullWideSystemsOverhaul')!;
+        expect(slot.priority).toBe(RepairPriority.OFF);
     });
 
-    test('docking live-reveals a docked-tier protocol, and enqueueing it via hotkey drives the queue', async ({
-        page,
-    }) => {
+    test('docking makes a docked-tier protocol raisable, and undocking mid-run force-stops it', async ({ page }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        const overhaulLabel = repairQueuePanel.getByText('Hull-wide systems overhaul', { exact: true });
-        await expect(overhaulLabel).not.toBeVisible();
+        const row = protocolRow(repairQueuePanel, 'Hull-wide systems overhaul');
 
         const ship = gameDriver.getShip(shipId);
         ship.state.docking.mode = DockingMode.DOCKED;
 
-        await expect(overhaulLabel).toBeVisible({ timeout: 5000 });
         // hullWideSystemsOverhaul is the 10th catalog entry -> alt+0
         await page.keyboard.press('Alt+0');
-
-        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
-        expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'hullWideSystemsOverhaul')).toBe(true);
+        await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
 
         ship.state.docking.mode = DockingMode.UNDOCKED;
 
-        await waitForPropertyValue(page, 'state', (v) => v === 'CANCELLED', 'Repair Queue', 2000);
+        await waitForRowValue(row, 'priority', (v) => v === 'OFF', 2000);
+        await waitForRowValue(row, 'notice', (v) => v !== '', 2000);
     });
 
-    test('docking live-reveals armor plate renewal, and enqueueing it via hotkey drives visible progress', async ({
-        page,
-    }) => {
+    test('docking makes armor plate renewal raisable and drives visible progress via hotkey', async ({ page }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        const renewalLabel = repairQueuePanel.getByText('Armor plate renewal', { exact: true });
-        await expect(renewalLabel).not.toBeVisible();
+        const row = protocolRow(repairQueuePanel, 'Armor plate renewal');
 
         const ship = gameDriver.getShip(shipId);
         ship.state.armor.plateRepairSeconds = 10;
         ship.state.armor.armorPlates[0].layers[0].health = 0;
         ship.state.docking.mode = DockingMode.DOCKED;
 
-        await expect(renewalLabel).toBeVisible({ timeout: 5000 });
         // armorPlateRenewal is the 11th catalog entry -> alt+q
         await page.keyboard.press('Alt+q');
 
-        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
-        expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'armorPlateRenewal')).toBe(true);
-        const firstProgress = await waitForPropertyValue(
-            page,
-            'progress',
-            (v) => parseFloat(v) > 0,
-            'Repair Queue',
-            5000,
-        );
+        await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
+        const firstProgress = await waitForRowValue(row, 'progress', (v) => parseFloat(v) > 0, 5000);
         await page.waitForTimeout(500);
-        const laterProgress = await getPropertyValue(page, 'progress', 'Repair Queue');
+        const laterProgress = await rowValue(row, 'progress');
         expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
-    });
-
-    test('reordering via Move up drives the server-side queue order through the real command path', async ({
-        page,
-    }) => {
-        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
-        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-
-        // actuatorRecalibration=alt+1, thrustLinePurge=alt+2, feedSystemOverhaul=alt+3
-        await page.keyboard.press('Alt+1');
-        await page.keyboard.press('Alt+2');
-        await page.keyboard.press('Alt+3');
-
-        const ship = gameDriver.getShip(shipId);
-        await expect
-            .poll(() => ship.state.repairQueue.operations.map((o) => o.protocolId), { timeout: 5000 })
-            .toEqual(['actuatorRecalibration', 'thrustLinePurge', 'feedSystemOverhaul']);
-
-        // move the last queued row ("Feed-system overhaul") up, ahead of "Thrust-line purge" —
-        // "Actuator recalibration" (index 0) is ACTIVE and has no move buttons at all
-        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Move up' }).nth(1).click();
-
-        await expect
-            .poll(() => ship.state.repairQueue.operations.map((o) => o.protocolId), { timeout: 5000 })
-            .toEqual(['actuatorRecalibration', 'feedSystemOverhaul', 'thrustLinePurge']);
-    });
-
-    test('a refused enqueue (queue full) shows a notice instead of silently doing nothing', async ({ page }) => {
-        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
-        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        const ship = gameDriver.getShip(shipId);
-
-        // 16 is the queue cap. Waiting for each press to land server-side before the next (rather
-        // than firing all 17 back-to-back) keeps this reliable under CI's heavier load, where a
-        // tight keydown/keyup loop can outrun the hotkeys-js -> command round trip.
-        for (let i = 0; i < 16; i++) {
-            await page.keyboard.press('Alt+4'); // sensorArrayDegauss
-            await expect.poll(() => ship.state.repairQueue.operations.length, { timeout: 5000 }).toBe(i + 1);
-        }
-        await page.keyboard.press('Alt+4'); // the 17th must be refused
-
-        // Read the refusal off server state directly, not the client-rendered panel: the notice
-        // auto-clears after TERMINAL_DISPLAY_SECONDS (2s, real time, server-side) regardless of how
-        // long the colyseus round trip to the client takes, so polling the DOM races that window
-        // under CI's heavier load. Server state is the authoritative, immediate source of truth for
-        // "did the hotkey's enqueue get refused".
-        await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 5000 }).not.toBe('');
     });
 
     test('reactor jump-start (#2137) recovers a zero-energy, damaged reactor and spends one energy cell', async ({
@@ -272,11 +246,12 @@ test.describe('Engineer Screen', () => {
         await expect(engineeringStatusPanel).toBeVisible({ timeout: 10000 });
         await waitForPropertyValue(page, 'energy cells', (v) => v === '1/2', 'Engineering Status');
 
+        const row = protocolRow(repairQueuePanel, 'Reactor jump-start');
         // reactorJumpStart is the 13th catalog entry -> alt+e
         await page.keyboard.press('Alt+e');
 
-        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
-        await waitForPropertyValue(page, 'state', (v) => v === 'DONE', 'Repair Queue', 15000);
+        await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
+        await waitForRowValue(row, 'priority', (v) => v === 'OFF', 15000);
 
         await expect.poll(() => ship.state.reactor.effeciencyFactor, { timeout: 5000 }).toBeCloseTo(0.3, 1);
         // reactor.energy keeps regenerating every tick once effeciencyFactor is off zero, so this

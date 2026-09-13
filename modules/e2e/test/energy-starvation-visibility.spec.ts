@@ -1,7 +1,7 @@
 import { Locator, expect, test } from '@playwright/test';
-import { RepairOperationStatus, SmartPilotMode } from '@starwards/core';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
-import { getPropertyValue, makeDriver } from './driver';
+import { SmartPilotMode } from '@starwards/core';
+import { makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
 
@@ -85,45 +85,55 @@ test.describe('Engineer Screen — energy starvation visibility', () => {
         await cleanupPageState(page);
     });
 
-    test('a repair stalled by an energy shortfall shows why while it is still stalled, not only once it aborts', async ({
+    /** Scope reads to actuatorRecalibration's own row — every repair-queue row shares field labels (issue #2247). */
+    function protocolRow(panel: Locator, protocolName: string): Locator {
+        return panel.locator('.tp-fldv', { hasText: protocolName }).first();
+    }
+
+    async function rowValue(row: Locator, labelText: string): Promise<string> {
+        const label = row.getByText(labelText, { exact: true });
+        await expect(label).toBeVisible();
+        const input = label.locator('..').locator('input');
+        return await input.inputValue();
+    }
+
+    test('a repair stalled by an energy shortfall shows why while it is still stalled, not only once it force-stops', async ({
         page,
     }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const row = protocolRow(repairQueuePanel, 'Actuator recalibration');
         const ship = gameDriver.getShip(shipId);
 
         await page.keyboard.press('Alt+1'); // actuatorRecalibration — first catalog entry
-        await expect
-            .poll(() => ship.state.repairQueue.operations[0]?.status, { timeout: 5000 })
-            .toBe(RepairOperationStatus.ACTIVE);
-        expect(ship.state.repairQueue.operations.length).toBe(1); // exactly one enqueue, not a double keypress
+        const slot = () => ship.state.repairQueue.slots.find((s) => s.protocolId === 'actuatorRecalibration')!;
+        await expect.poll(() => slot().priority, { timeout: 5000 }).toBe(4); // RUNNING
 
-        // deterministic zero, same as the abort test below — but checked well inside the
-        // ENERGY_STARVATION_GRACE_SECONDS window (2s), before the operation would actually abort
+        // deterministic zero, same as the force-stop test below — but checked well inside the
+        // ENERGY_STARVATION_GRACE_SECONDS window (2s), before the run would actually force-stop
         ship.state.reactor.effeciencyFactor = 0;
         ship.state.reactor.energy = 0;
 
-        await expect.poll(() => ship.state.repairQueue.operations[0]?.energyStarved, { timeout: 1500 }).toBe(true);
-        expect(ship.state.repairQueue.operations[0]?.status).toBe(RepairOperationStatus.ACTIVE); // stalled, not aborted
+        await expect.poll(() => slot().energyStarved, { timeout: 1500 }).toBe(true);
+        expect(slot().priority).toBe(4); // stalled, not force-stopped — still RUNNING
 
-        // getPropertyValue reads the blade's raw synced value, not its `format`-ed display text —
-        // this still proves the field reaches the widget live, which is what a stalled repair
-        // needs: RepairOperation.energyStarved true while the op is still ACTIVE.
-        const readout = await getPropertyValue(page, 'repair energy', 'Repair Queue');
-        expect(readout).toBe('true');
+        // rowValue reads the blade's live-bound display text, proving the field reaches the widget
+        // live — which is what a stalled repair needs: RepairProtocolSlot.energyStarved true while
+        // the slot is still RUNNING.
+        expect(await rowValue(row, 'repair energy')).toBe('insufficient reactor energy');
     });
 
-    test('a sustained energy shortfall aborts the active repair and says why, not just that it stopped', async ({
+    test('a sustained energy shortfall force-stops the running repair and says why, not just that it stopped', async ({
         page,
     }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const row = protocolRow(repairQueuePanel, 'Actuator recalibration');
         const ship = gameDriver.getShip(shipId);
 
         await page.keyboard.press('Alt+1'); // actuatorRecalibration — first catalog entry
-        await expect
-            .poll(() => ship.state.repairQueue.operations[0]?.status, { timeout: 5000 })
-            .toBe(RepairOperationStatus.ACTIVE);
+        const slot = () => ship.state.repairQueue.slots.find((s) => s.protocolId === 'actuatorRecalibration')!;
+        await expect.poll(() => slot().priority, { timeout: 5000 }).toBe(4); // RUNNING
 
         // "reactor too damaged to replenish energy" (the issue's actual root cause) — not just a
         // momentary energy=0. The reactor recharges every tick (EnergyManager.update); the repair's
@@ -133,10 +143,9 @@ test.describe('Engineer Screen — energy starvation visibility', () => {
         ship.state.reactor.effeciencyFactor = 0;
         ship.state.reactor.energy = 0;
 
-        await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 10000 }).toContain('energy');
-        expect(ship.state.repairQueue.operations.length).toBe(0); // aborted, not stuck silently
+        await expect.poll(() => slot().refusalReason, { timeout: 10000 }).toContain('energy');
+        expect(slot().priority).toBe(0); // force-stopped to OFF, not stuck silently
 
-        const readout = await getPropertyValue(page, 'notice', 'Repair Queue');
-        expect(readout).toContain('energy');
+        expect(await rowValue(row, 'notice')).toContain('energy');
     });
 });

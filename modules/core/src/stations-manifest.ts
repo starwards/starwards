@@ -90,9 +90,7 @@ export const stationCommands = [
     'systemCoolant',
     'warpFrequency',
     'changeFrequency',
-    'enqueueRepair',
-    'cancelRepair',
-    'reorderRepair',
+    'cycleRepairPriority',
     // signals
     'beamDirection',
     'beamArc',
