@@ -28,9 +28,17 @@ import { getSystems } from './system';
 export const ENERGY_STARVATION_GRACE_SECONDS = 2;
 
 /**
- * Reverts `slot`'s declared side effects and clears the saved list. Called both by `RepairManager`
- * (completion, cancellation wind-down, force-stop) and by `resetShipState` (a slot left RUNNING
- * across an NPC<->PC conversion has no manager left to revert it otherwise — see `SavedPowerEntry`).
+ * Reverts `slot`'s declared side effects and, when `refundEnergyCell` is true, refunds one spent
+ * `Reactor.energyCells` (capped at `design.maxEnergyCells`). Called both by `RepairManager`
+ * (completion, cancellation wind-down, force-stop) and by `resetShipState` (a slot left
+ * RUNNING/CANCELLING across an NPC<->PC conversion has no manager left to revert it otherwise —
+ * see `SavedPowerEntry`).
+ *
+ * The energy-cell rule (issue #2247 review): a cell stays spent only on a successful completion —
+ * every other exit from RUNNING/CANCELLING refunds it, same as chain-gun ammo returning an
+ * unloaded round to the magazine. Callers pass `refundEnergyCell` rather than this function
+ * inferring it, since only the caller (which already has the protocol, or — for `resetShipState` —
+ * looks it up in the real catalog) knows whether the slot's protocol `consumesEnergyCell` at all.
  *
  * Only restores a saved `power` value if nothing else changed it since the side effect forced it —
  * a player who commanded power on the affected system mid-run (or a GM, or a second protocol) has
@@ -40,7 +48,7 @@ export const ENERGY_STARVATION_GRACE_SECONDS = 2;
  * down mid-run is indistinguishable from the side effect itself (both read as
  * `PowerLevel.SHUTDOWN`), so that specific case still gets silently reverted. Accepted as-is.
  */
-export function revertSlotSideEffects(state: ShipState, slot: RepairProtocolSlot) {
+export function revertRepairSlot(state: ShipState, slot: RepairProtocolSlot, refundEnergyCell: boolean) {
     for (const entry of slot.savedPower) {
         if (!isRepairableSystemKey(entry.system)) {
             continue; // defensive: the schema field is a plain string, not the union it represents
@@ -51,6 +59,9 @@ export function revertSlotSideEffects(state: ShipState, slot: RepairProtocolSlot
         }
     }
     slot.savedPower.splice(0);
+    if (refundEnergyCell) {
+        state.reactor.energyCells = Math.min(state.reactor.design.maxEnergyCells, state.reactor.energyCells + 1);
+    }
 }
 
 /**
@@ -221,7 +232,11 @@ export class RepairManager implements Updateable {
                 }
             } else if (slot.priority === RepairPriority.RUNNING) {
                 if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(this.state)]) {
-                    this.forceOff(slot, `${protocol.name} was cancelled: ship no longer has the required repair tier`);
+                    this.forceOff(
+                        slot,
+                        protocol,
+                        `${protocol.name} was cancelled: ship no longer has the required repair tier`,
+                    );
                 }
             }
         }
@@ -276,7 +291,7 @@ export class RepairManager implements Updateable {
         }
         const protocol = this.getProtocol(slot.protocolId);
         if (!protocol) {
-            this.forceOff(slot, 'unknown repair protocol');
+            this.forceOff(slot, undefined, 'unknown repair protocol');
             return;
         }
         if (slot.priority === RepairPriority.CANCELLING) {
@@ -293,7 +308,7 @@ export class RepairManager implements Updateable {
             slot.starvedSeconds += deltaSeconds;
             slot.energyStarved = true;
             if (slot.starvedSeconds >= ENERGY_STARVATION_GRACE_SECONDS) {
-                this.forceOff(slot, `${protocol.name} was cancelled: insufficient reactor energy`);
+                this.forceOff(slot, protocol, `${protocol.name} was cancelled: insufficient reactor energy`);
             }
             return;
         }
@@ -310,13 +325,7 @@ export class RepairManager implements Updateable {
     private tickCancelling(slot: RepairProtocolSlot, protocol: RepairProtocolStats, deltaSeconds: number) {
         slot.progress = Math.max(0, slot.progress - deltaSeconds / this.getDuration(protocol));
         if (slot.progress <= 0) {
-            this.revertSideEffects(slot);
-            if (protocol.consumesEnergyCell) {
-                this.state.reactor.energyCells = Math.min(
-                    this.state.reactor.design.maxEnergyCells,
-                    this.state.reactor.energyCells + 1,
-                );
-            }
+            this.revertSideEffects(slot, !!protocol.consumesEnergyCell);
             slot.priority = RepairPriority.OFF;
             slot.progress = 0;
         }
@@ -327,17 +336,23 @@ export class RepairManager implements Updateable {
         return protocol.dynamicDuration ? protocol.dynamicDuration(this.state) : protocol.duration;
     }
 
+    /** A cell stays spent only on a successful completion — this is the one exit from RUNNING that never refunds it. */
     private complete(slot: RepairProtocolSlot, protocol: RepairProtocolStats) {
-        this.revertSideEffects(slot);
+        this.revertSideEffects(slot, false);
         this.resetTargets(protocol);
         protocol.onComplete?.(this.state);
         slot.priority = RepairPriority.OFF;
         slot.progress = 0;
     }
 
-    /** All-or-nothing force-stop: reverts side effects but — unlike a completed wind-down — never refunds a spent energy cell. */
-    private forceOff(slot: RepairProtocolSlot, reason: string) {
-        this.revertSideEffects(slot);
+    /**
+     * All-or-nothing force-stop (sustained energy starvation, tier lost mid-run): reverts side
+     * effects and — like every other non-completion exit from RUNNING — refunds a spent energy
+     * cell. `protocol` is `undefined` only for the defensive "catalog changed out from under a
+     * RUNNING slot" case, which never refunds since it can't know whether one was ever spent.
+     */
+    private forceOff(slot: RepairProtocolSlot, protocol: RepairProtocolStats | undefined, reason: string) {
+        this.revertSideEffects(slot, !!protocol?.consumesEnergyCell);
         slot.priority = RepairPriority.OFF;
         slot.progress = 0;
         slot.starvedSeconds = 0;
@@ -396,7 +411,7 @@ export class RepairManager implements Updateable {
         }
     }
 
-    private revertSideEffects(slot: RepairProtocolSlot) {
-        revertSlotSideEffects(this.state, slot);
+    private revertSideEffects(slot: RepairProtocolSlot, refundEnergyCell: boolean) {
+        revertRepairSlot(this.state, slot, refundEnergyCell);
     }
 }

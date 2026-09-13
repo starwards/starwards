@@ -437,11 +437,24 @@ export function validateRepairCatalog(state: ShipState, catalog: Record<string, 
 }
 
 /**
+ * Whether every system `protocol` targets or declares a side effect on is actually fitted to this
+ * ship — a fixed property of the ship's design, unlike tier or energy-cell state, which change
+ * live. Split out from `isProtocolAvailable` (issue #2247 review) so a display-only filter (the
+ * repair-queue widget hiding rows for equipment this ship structurally lacks) can check exactly
+ * this, without also hiding a docked-tier or out-of-cells protocol that should stay visible and
+ * explain itself via the slot's `refusalReason`.
+ */
+export function hasProtocolEquipment(state: ShipState, protocol: RepairProtocolStats): boolean {
+    const systems = [...protocol.targets.map((t) => t.system), ...protocol.sideEffectSystems];
+    return systems.every((system) => getRepairableSystemInstances(state, system).length > 0);
+}
+
+/**
  * Whether `protocol` can run at all on `state` — i.e. its tier is within what `state`'s ship
- * currently qualifies for (see `getEffectiveRepairTier`), and every system it targets or declares
- * a side effect on is actually fitted to this ship. This is the seam for "the protocols available
- * to *this* ship": further applicability conditions (current damage state, ...) are meant to layer
- * onto this same function later, not be built as parallel filters elsewhere.
+ * currently qualifies for (see `getEffectiveRepairTier`), it has an energy cell if it needs one,
+ * and it has {@link hasProtocolEquipment}. This is the seam for "the protocols available to *this*
+ * ship": further applicability conditions (current damage state, ...) are meant to layer onto this
+ * same function later, not be built as parallel filters elsewhere.
  */
 export function isProtocolAvailable(state: ShipState, protocol: RepairProtocolStats): boolean {
     if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(state)]) {
@@ -450,8 +463,7 @@ export function isProtocolAvailable(state: ShipState, protocol: RepairProtocolSt
     if (protocol.consumesEnergyCell && state.reactor.energyCells <= 0) {
         return false;
     }
-    const systems = [...protocol.targets.map((t) => t.system), ...protocol.sideEffectSystems];
-    return systems.every((system) => getRepairableSystemInstances(state, system).length > 0);
+    return hasProtocolEquipment(state, protocol);
 }
 
 /**

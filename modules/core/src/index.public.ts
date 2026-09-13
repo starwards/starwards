@@ -32,7 +32,13 @@ export type {
 } from './client';
 
 // --- configurations ---
-export { demoShip, getAvailableRepairProtocols, repairProtocols, shipModels } from './configurations';
+export {
+    demoShip,
+    getAvailableRepairProtocols,
+    hasProtocolEquipment,
+    repairProtocols,
+    shipModels,
+} from './configurations';
 export type { RepairProtocolName, RepairProtocolStats, ShipModel } from './configurations';
 
 // --- events ---

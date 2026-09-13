@@ -632,6 +632,40 @@ describe('RepairManager', () => {
             expect(slot(state, 'needsCell2').priority).to.equal(RepairPriority.OFF);
             expect(slot(state, 'needsCell2').refusalReason).to.not.equal('');
         });
+
+        it('refunds the cell on a forced tier-loss stop mid-run, not just on a CANCELLING wind-down (review round 1)', () => {
+            const { state, repairManager } = setUpShip({
+                dockedCell: { ...testCatalog.needsCell, tier: 'docked', duration: 10 },
+            });
+            state.docking.mode = DockingMode.DOCKED;
+            state.reactor.energyCells = 1;
+            raise(state, 'dockedCell');
+            tick(repairManager, 0.1); // promotes to RUNNING, spends the cell
+            expect(state.reactor.energyCells).to.equal(0);
+
+            state.docking.mode = DockingMode.UNDOCKED; // loses the docked tier mid-run -> forceOff
+            tick(repairManager, 0.1);
+
+            expect(slot(state, 'dockedCell').priority).to.equal(RepairPriority.OFF);
+            expect(state.reactor.energyCells).to.equal(1);
+        });
+
+        it('refund is capped at design.maxEnergyCells even if cells were topped up while the slot was running', () => {
+            const { state, repairManager } = setUpShip();
+            state.reactor.energyCells = 1;
+            raise(state, 'needsCell');
+            tick(repairManager, 0.1); // RUNNING, spends the only cell
+            expect(state.reactor.energyCells).to.equal(0);
+
+            // simulate an unrelated actor (GM tweak, ReactorCellManager) topping cells back up to
+            // full while the run is still in flight
+            state.reactor.energyCells = state.reactor.design.maxEnergyCells;
+
+            lower(state, 'needsCell'); // wind-down
+            runTicks(repairManager, 1.1, 20); // reaches 0%, refund attempted
+
+            expect(state.reactor.energyCells).to.equal(state.reactor.design.maxEnergyCells);
+        });
     });
 
     it('a Schema.clone() + resetShipState cycle (NPC<->PC conversion) reverts a stranded side effect and resets every slot, without throwing', () => {
@@ -651,5 +685,35 @@ describe('RepairManager', () => {
 
         const clonedManager = new RepairManager(cloned, energyManager, heatManager, testCatalog);
         expect(() => tick(clonedManager, 0.1)).to.not.throw();
+    });
+
+    it('a Schema.clone() + resetShipState cycle refunds a RUNNING consumes-cell slot instead of stranding it (review round 1)', () => {
+        // reactorJumpStart is the only consumesEnergyCell protocol in the real catalog, and
+        // resetShipState looks slots up against that real catalog (it has no RepairManager/custom
+        // catalog to ask) — so this exercises the real repairProtocols catalog, not testCatalog.
+        const shipId = 'test-ship';
+        const state = makeShipState(shipId, demoShip);
+        state.reactor.energyCells = 1;
+        const spaceObject = new Spaceship();
+        spaceObject.id = shipId;
+        const spaceManager = new SpaceManager();
+        spaceManager.insert(spaceObject);
+        const damageManager = new DamageManager(spaceObject, state, spaceManager, new MockDie());
+        const heatManager = new HeatManager(state, damageManager);
+        const energyManager = new EnergyManager(state, heatManager);
+        const repairManager = new RepairManager(state, energyManager, heatManager);
+
+        cycleRepairPriority.setValue(state, { protocolId: 'reactorJumpStart', direction: 'up' });
+        tick(repairManager, 0.1); // promotes to RUNNING, spends the only cell
+        expect(state.reactor.energyCells).to.equal(0);
+
+        const cloned = state.clone();
+        resetShipState(cloned);
+
+        // resetShipState always tops energyCells back up to design max on any reset (unconditional,
+        // predates issue #2247) — the meaningful assertion here is that the stranded RUNNING slot's
+        // side effects and priority are cleanly reset too, not left stuck mid-run
+        expect(cloned.reactor.energyCells).to.equal(cloned.reactor.design.maxEnergyCells);
+        expect(cloned.repairQueue.slots.every((s) => s.priority === RepairPriority.OFF)).to.equal(true);
     });
 });

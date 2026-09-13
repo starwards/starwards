@@ -4,6 +4,7 @@ import { aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
+import { isRepairSlotVisible } from './repair-queue-logic';
 
 export function repairQueueWidget(shipDriver: ShipDriver): DashboardWidget {
     class RepairQueueComponent {
@@ -24,11 +25,12 @@ export function repairQueueWidget(shipDriver: ShipDriver): DashboardWidget {
  * keyboard on per-system power/coolant pairs (see `engineer.ts`'s `keyPairs`), so the catalog gets its
  * own modifier namespace rather than fighting over what's left. Alt (not Ctrl) specifically:
  * Ctrl+1..9 is bound to browser tab-switching in Chrome/Firefox and would never reach the page.
- * Assigned by fixed position in `repairProtocols` (not a per-ship filtered/visible subset — every
- * catalog protocol always gets a slot, see issue #2247), so a protocol's key never shifts as
- * tier/equipment availability changes its refusal in and out; a protocol *added* to the catalog does
- * shift every key after it, same as inserting a row in the middle of any position-indexed list;
- * overflow past the digit row spills onto the qwerty row.
+ * Assigned by fixed catalog position (every protocol always gets a slot, see issue #2247), not by
+ * the per-ship visible subset — so a protocol's key never shifts as tier/energy-cell refusals come
+ * and go, and stays stable even for a row hidden because this ship structurally lacks the
+ * equipment (see `isRepairSlotVisible`). A protocol *added* to the catalog does shift every key
+ * after it, same as inserting a row in the middle of any position-indexed list; overflow past the
+ * digit row spills onto the qwerty row.
  */
 const REPAIR_PROTOCOL_HOTKEYS = [
     'alt+1',
@@ -119,6 +121,12 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Repair Queue');
 
     shipDriver.state.repairQueue.slots.forEach((slot, index) => {
+        if (!isRepairSlotVisible(shipDriver.state, slot.protocolId)) {
+            // this ship structurally lacks the equipment this protocol needs (e.g. no chain gun) —
+            // never shows, unlike a tier- or energy-cell-gated protocol, which stays visible and
+            // explains itself through refusalReason (issue #2247 review)
+            return;
+        }
         const hotkeys = interactive
             ? ''
             : ` (${getRepairProtocolHotkey(slot.protocolId)?.toUpperCase() ?? '—'}/${getRepairProtocolLowerHotkey(slot.protocolId)?.toUpperCase() ?? '—'})`;

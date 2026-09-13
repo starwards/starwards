@@ -21,6 +21,7 @@ import {
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
+import { RepairProtocolStats, repairProtocols } from '../configurations/repair-protocols';
 import { Turret, updateTurret } from './turret';
 import { applyLockCommands, rehydrateLockRegistry } from '../lock-commands';
 
@@ -43,7 +44,7 @@ import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
 import { createLogger } from '../logger';
-import { revertSlotSideEffects } from './repair-manager';
+import { revertRepairSlot } from './repair-manager';
 
 const { error: logError } = createLogger('ship-manager');
 
@@ -82,9 +83,15 @@ export function resetShipState(state: ShipState) {
     state.signals.jobs.splice(0);
     // a slot left RUNNING/CANCELLING across this reset (e.g. NPC<->PC conversion) has no
     // RepairManager left to revert its side effects later — do it here or the affected system's
-    // power stays pinned at 0 forever (see SavedPowerEntry / revertSlotSideEffects).
+    // power stays pinned at 0 forever (see SavedPowerEntry / revertRepairSlot). Refund its energy
+    // cell too (same "any non-completion exit refunds it" rule `RepairManager` follows) — gated to
+    // slots that were actually RUNNING/CANCELLING, not every slot, and looked up against the real
+    // catalog since this free function has no `RepairManager` (and its possibly-custom catalog) to
+    // ask.
+    const catalog: Record<string, RepairProtocolStats> = repairProtocols;
     for (const slot of state.repairQueue.slots) {
-        revertSlotSideEffects(state, slot);
+        const wasRunning = slot.priority === RepairPriority.RUNNING || slot.priority === RepairPriority.CANCELLING;
+        revertRepairSlot(state, slot, wasRunning && !!catalog[slot.protocolId]?.consumesEnergyCell);
         slot.priority = RepairPriority.OFF;
         slot.progress = 0;
         slot.starvedSeconds = 0;
