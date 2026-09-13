@@ -4,11 +4,11 @@ import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
 import { RepairManager } from '../src/ship/repair-manager';
+import { RepairPriority } from '../src/ship/repair-queue';
 import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
-import { enqueueRepair } from '../src/ship/repair-commands';
+import { cycleRepairPriority } from '../src/ship/repair-commands';
 import { expect } from 'chai';
-import { tick } from './tick';
 
 function setUpShip() {
     const shipId = 'test-ship';
@@ -27,8 +27,12 @@ function setUpShip() {
 
 type TestShipState = ReturnType<typeof setUpShip>['state'];
 
-function enqueue(state: TestShipState, protocolId: string) {
-    enqueueRepair.setValue(state, { protocolId });
+function raise(state: TestShipState, protocolId: string) {
+    cycleRepairPriority.setValue(state, { protocolId, direction: 'up' });
+}
+
+function slotFor(state: TestShipState, protocolId: string) {
+    return state.repairQueue.slots.find((s) => s.protocolId === protocolId)!;
 }
 
 function runTicks(repairManager: RepairManager, durationSeconds: number, ticksPerSecond: number) {
@@ -53,38 +57,61 @@ describe('reactorJumpStart (field-tier repair-queue protocol, issue #2137)', () 
         state.reactor.energy = 0;
         state.reactor.effeciencyFactor = 0;
 
-        enqueue(state, 'reactorJumpStart');
+        raise(state, 'reactorJumpStart');
         runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20);
 
-        expect(state.repairQueue.recentlyFinished).to.have.lengthOf(1);
+        const slot = slotFor(state, 'reactorJumpStart');
+        expect(slot.priority).to.equal(RepairPriority.OFF);
+        expect(slot.refusalReason).to.equal('');
         expect(state.reactor.effeciencyFactor).to.be.closeTo(0.3, 0.01);
         expect(state.reactor.energy).to.be.closeTo(0.3 * state.reactor.design.maxEnergy, 1);
     });
 
-    it('consumes exactly one energy cell per completed jump-start', () => {
+    it('consumes exactly one energy cell, spent at run start and not refunded on a normal completion', () => {
         const { state, repairManager } = setUpShip();
         state.reactor.energyCells = 2;
         state.reactor.energy = 0;
         state.reactor.effeciencyFactor = 0;
 
-        enqueue(state, 'reactorJumpStart');
-        runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20);
+        raise(state, 'reactorJumpStart');
+        expect(state.reactor.energyCells).to.equal(2); // still pending — not spent yet
+        runTicks(repairManager, 0.1, 20); // promotes to RUNNING
+        expect(state.reactor.energyCells).to.equal(1); // spent at start
 
-        expect(state.reactor.energyCells).to.equal(1);
+        runTicks(repairManager, repairProtocols.reactorJumpStart.duration, 20); // completes
+
+        expect(state.reactor.energyCells).to.equal(1); // stays spent, not refunded, not double-spent
     });
 
-    it('refuses to enqueue a second jump-start beyond the cells actually available', () => {
+    it('refuses to raise reactorJumpStart when no energy cells are available (no reservation accounting: availability requires a cell right now)', () => {
+        const { state, repairManager } = setUpShip();
+        state.reactor.energyCells = 0;
+        state.reactor.energy = 0;
+        state.reactor.effeciencyFactor = 0;
+
+        raise(state, 'reactorJumpStart');
+        runTicks(repairManager, 0.1, 20);
+
+        const slot = slotFor(state, 'reactorJumpStart');
+        expect(slot.priority).to.equal(RepairPriority.OFF);
+        expect(slot.refusalReason).to.include('energy cell');
+    });
+
+    it('refunds its energy cell if cancelled before completion', () => {
         const { state, repairManager } = setUpShip();
         state.reactor.energyCells = 1;
         state.reactor.energy = 0;
         state.reactor.effeciencyFactor = 0;
 
-        enqueue(state, 'reactorJumpStart');
-        enqueue(state, 'reactorJumpStart');
-        tick(repairManager, 0.1);
+        raise(state, 'reactorJumpStart');
+        runTicks(repairManager, 0.1, 20); // promotes to RUNNING, cell spent
+        expect(state.reactor.energyCells).to.equal(0);
 
-        expect(state.repairQueue.operations).to.have.lengthOf(1);
-        expect(state.repairQueue.refusalReason).to.not.equal('');
+        cycleRepairPriority.setValue(state, { protocolId: 'reactorJumpStart', direction: 'down' }); // begin wind-down
+        runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20); // finishes winding down
+
+        expect(slotFor(state, 'reactorJumpStart').priority).to.equal(RepairPriority.OFF);
+        expect(state.reactor.energyCells).to.equal(1);
     });
 
     it('never boosts reactor efficiency above the normal maximum', () => {
@@ -93,7 +120,7 @@ describe('reactorJumpStart (field-tier repair-queue protocol, issue #2137)', () 
         state.reactor.energy = 0;
         state.reactor.effeciencyFactor = 0.9;
 
-        enqueue(state, 'reactorJumpStart');
+        raise(state, 'reactorJumpStart');
         runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20);
 
         expect(state.reactor.effeciencyFactor).to.equal(1);

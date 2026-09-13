@@ -92,9 +92,11 @@ export type RepairProtocolStats = {
     onComplete?: (state: ShipState) => void;
     /**
      * When true, the protocol needs one of the ship's finite `Reactor.energyCells` and refuses to
-     * enqueue past what's actually available (issue #2137) — see `getAvailableRepairProtocols` /
-     * `RepairManager.drainEnqueueCommands`. Consumption itself happens in the protocol's own
-     * `onComplete`, once the operation actually finishes.
+     * be set pending past what's actually available (issue #2137) — see `getAvailableRepairProtocols`
+     * / `RepairManager.unavailabilityReason`. Consumption happens when the protocol starts running
+     * (pending -> `RUNNING`), not in its `onComplete` — same philosophy as chain-gun ammo, which
+     * leaves the magazine at load start. Refunded if the run never completes (self-abort or a
+     * player-cancelled wind-down) — see `RepairManager.revertRepairSlot`.
      */
     consumesEnergyCell?: boolean;
 };
@@ -312,23 +314,25 @@ export const armorPlateRenewal: RepairProtocolStats = {
 
 /**
  * `onComplete` for `reactorJumpStart` (issue #2137): the bootstrap effect the design calls for —
- * +30% reactor efficiency, +30% energy, one energy cell spent. No defectible `targets`: a partial
- * +30% bump toward normal is not the same operation as `resetTargets`'s full reset-to-normal, so
- * (like `armorPlateRenewal`) the effect is written here instead.
+ * +30% reactor efficiency, +30% energy. No defectible `targets`: a partial +30% bump toward normal
+ * is not the same operation as `resetTargets`'s full reset-to-normal, so (like `armorPlateRenewal`)
+ * the effect is written here instead. The energy cell itself is NOT spent here (issue #2247 moved
+ * that to run-start — see `consumesEnergyCell` below and `RepairManager.startRunning`), so this
+ * effect is written exactly once, only on a run that actually reaches completion.
  */
 function jumpStartReactor(state: ShipState): void {
     const reactor = state.reactor;
     reactor.effeciencyFactor = Math.min(1, reactor.effeciencyFactor + 0.3);
     reactor.energy = Math.min(reactor.design.maxEnergy, reactor.energy + 0.3 * reactor.design.maxEnergy);
-    reactor.energyCells = Math.max(0, reactor.energyCells - 1);
 }
 
 /**
  * Field-tier escape hatch for the reactor death-spiral (issue #2137): a damaged, energy-starved
  * reactor can't run the repair protocols that would fix it. Spends one of the ship's finite
  * `Reactor.energyCells` (restocked only while docked, see `ReactorCellManager`) to bootstrap just
- * enough efficiency and energy for normal repair protocols to progress. `energyDraw: 0` so it's
- * runnable from true zero energy — `RepairManager.tickActive` skips the energy-spend check
+ * enough efficiency and energy for normal repair protocols to progress — refunded if the run is
+ * cancelled or self-aborts before completing (see `RepairManager.revertRepairSlot`). `energyDraw: 0`
+ * so it's runnable from true zero energy — `RepairManager.tickRunning` skips the energy-spend check
  * entirely for a zero-draw protocol, since `EnergyManager.trySpendEnergy` would otherwise refuse
  * to spend even nothing out of an empty reactor.
  */

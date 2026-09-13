@@ -2,19 +2,31 @@ import { ArraySchema, Schema } from '@colyseus/schema';
 import { gameField } from '../game-field';
 import { range } from '../range';
 
-export enum RepairOperationStatus {
-    QUEUED,
-    ACTIVE,
-    DONE,
-    CANCELLED,
+/**
+ * Per-protocol priority state (issue #2247): mutually exclusive, one per protocol slot. A protocol
+ * never needs to be in the backlog more than once, so there is no separate ordered list, no
+ * reordering and no duplicates — the priority itself carries the intent.
+ *
+ * `OFF`/`LOW`/`MEDIUM`/`HIGH` are player-set (engineer hotkeys, or GM clicks). `RUNNING`/
+ * `CANCELLING` are server-only: `RepairManager` promotes the highest-priority pending slot to
+ * `RUNNING`, and a priority key pressed on a `RUNNING` slot moves it to `CANCELLING` — a wind-down
+ * (progress runs back to 0%, like a missile unload) rather than an instant stop.
+ */
+export enum RepairPriority {
+    OFF,
+    LOW,
+    MEDIUM,
+    HIGH,
+    RUNNING,
+    CANCELLING,
 }
 
 /**
- * A system's `power` before a repair operation's declared side effect forced it to 0, so it can
- * be restored on completion/cancellation. `@gameField` (not a plain server-only field) so it
- * survives `Schema.clone()` — an NPC<->PC conversion mid-operation must still be able to revert
- * the side effect via `revertOperationSideEffects` (see `repair-manager.ts`), which needs no live
- * `RepairManager` instance to do so.
+ * A system's `power` before a repair protocol's declared side effect forced it to 0, so it can be
+ * restored on completion, self-abort or wind-down. `@gameField` (not a plain server-only field) so
+ * it survives `Schema.clone()` — an NPC<->PC conversion mid-run must still be able to revert the
+ * side effect via `revertRepairSlot` (see `repair-manager.ts`), which needs no live `RepairManager`
+ * instance to do so.
  */
 export class SavedPowerEntry extends Schema {
     @gameField('string') system = '';
@@ -22,11 +34,14 @@ export class SavedPowerEntry extends Schema {
     @gameField('float32') value = 0;
 }
 
-export class RepairOperation extends Schema {
-    @gameField('string') id = '';
+/** One catalog protocol's live state. `RepairQueue.slots` carries exactly one of these per protocol. */
+export class RepairProtocolSlot extends Schema {
     @gameField('string') protocolId = '';
-    @gameField('int8') status: RepairOperationStatus = RepairOperationStatus.QUEUED;
 
+    /** `RUNNING`/`CANCELLING` are set only by `RepairManager`; the rest are player-set. */
+    @gameField('int8') priority: RepairPriority = RepairPriority.OFF;
+
+    /** Meaningful only while `RUNNING`/`CANCELLING` — 0 the rest of the time. */
     @range([0, 1])
     @gameField('float32')
     progress = 0;
@@ -35,88 +50,57 @@ export class RepairOperation extends Schema {
     savedPower = new ArraySchema<SavedPowerEntry>();
 
     /**
-     * Seconds of continuous energy shortfall so far while ACTIVE (real time, not ticks — see
+     * Seconds of continuous energy shortfall so far while `RUNNING` (real time, not ticks — see
      * `ENERGY_STARVATION_GRACE_SECONDS` in `repair-manager.ts`). A momentary dip from an unrelated
-     * consumer must not destroy a nearly-complete operation; only a *sustained* shortfall aborts it.
+     * consumer must not destroy a nearly-complete run; only a *sustained* shortfall aborts it.
      */
     @gameField('float32') starvedSeconds = 0;
 
     /**
-     * True for every tick the operation's energy draw could not be covered, from the very first
-     * shortfall tick — not only once `starvedSeconds` crosses `ENERGY_STARVATION_GRACE_SECONDS`
-     * and the operation actually aborts. Lets the repair-queue widget show *why* an ACTIVE
-     * operation's progress bar has stalled during the grace window, instead of only explaining it
-     * after the fact via `RepairQueue.refusalReason` once the operation is already gone.
+     * True for every tick a `RUNNING` slot's declared energy draw could not be covered, from the
+     * very first shortfall tick — not only once `starvedSeconds` crosses
+     * `ENERGY_STARVATION_GRACE_SECONDS` and the run actually aborts. Lets the repair-queue widget
+     * show *why* a stalled progress bar isn't moving during the grace window.
      */
     @gameField('boolean') energyStarved = false;
 
     /**
-     * Seconds left before a DONE/CANCELLED operation is removed from `RepairQueue.recentlyFinished`
-     * (real time, not ticks — a quantity measured in "one manager tick" silently changes meaning
-     * with the tick rate and is invisible whenever the tick is shorter than the network patch
-     * interval, which it always is here). See `RepairManager`'s `tickRecentlyFinished`.
+     * Why the most recent priority-raise attempt on this slot was refused (protocol unavailable:
+     * above tier, no energy cell, missing equipment), or why a `RUNNING`/pending slot dropped to
+     * `OFF` on its own (tier lost, sustained energy starvation, ...). Cleared the moment the player
+     * changes this slot's priority again. Empty string when there's nothing to show.
      */
-    @gameField('float32') terminalSecondsRemaining = 0;
+    @gameField('string') refusalReason = '';
 }
 
-export type EnqueueRepairArg = { protocolId: string };
-export type CancelRepairArg = { operationId: string };
-export type ReorderRepairArg = { operationId: string; index: number };
+export type CycleRepairPriorityArg = { protocolId: string; direction: 'up' | 'down' };
 
 /**
  * The client-supplied command payload is untyped at runtime (only `StateCommand`'s generic gives
  * it a compile-time shape) — a malformed or hostile message (`null`, a string, `{}`) must degrade
  * to a no-op rather than throw out of destructuring and abort the whole server tick.
  */
-export function isEnqueueRepairArg(value: unknown): value is EnqueueRepairArg {
-    return !!value && typeof value === 'object' && typeof (value as EnqueueRepairArg).protocolId === 'string';
-}
-export function isCancelRepairArg(value: unknown): value is CancelRepairArg {
-    return !!value && typeof value === 'object' && typeof (value as CancelRepairArg).operationId === 'string';
-}
-export function isReorderRepairArg(value: unknown): value is ReorderRepairArg {
+export function isCycleRepairPriorityArg(value: unknown): value is CycleRepairPriorityArg {
     return (
         !!value &&
         typeof value === 'object' &&
-        typeof (value as ReorderRepairArg).operationId === 'string' &&
-        Number.isFinite((value as ReorderRepairArg).index)
+        typeof (value as CycleRepairPriorityArg).protocolId === 'string' &&
+        ((value as CycleRepairPriorityArg).direction === 'up' || (value as CycleRepairPriorityArg).direction === 'down')
     );
 }
 
 /**
- * Server-authoritative repair queue: only `RepairManager` mutates `operations`.
- * Clients render the synced list and send commands through `enqueueRepair` /
- * `cancelRepair` / `reorderRepair` (see `repair-commands.ts`), queued here and
- * drained by `RepairManager.update()` (same pattern as `SpaceState`'s
- * `*Commands` arrays).
+ * Server-authoritative repair queue (issue #2247): one slot per catalog protocol, fixed in catalog
+ * order (`RepairManager` populates it on construction). Only `RepairManager` mutates a slot's
+ * `priority`/`progress`/etc; clients request priority changes through `cycleRepairPriority` (see
+ * `repair-commands.ts`), queued here and drained by `RepairManager.update()` (same pattern as
+ * `SpaceState`'s `*Commands` arrays).
  */
 export class RepairQueue extends Schema {
-    /** Only QUEUED and ACTIVE operations — the ACTIVE one, if any, is always `operations[0]`. */
-    @gameField([RepairOperation])
-    operations = new ArraySchema<RepairOperation>();
-
-    /**
-     * DONE/CANCELLED operations, moved here off `operations` the instant they finish so the
-     * "ACTIVE is always operations[0]" invariant never has to account for a lingering terminal
-     * entry. Retained for `terminalSecondsRemaining` each so the crew can see a repair finished (or
-     * was cancelled) before the row disappears — see `RepairManager.tickRecentlyFinished`.
-     */
-    @gameField([RepairOperation])
-    recentlyFinished = new ArraySchema<RepairOperation>();
-
-    /**
-     * The reason the most recent enqueue command was refused (unknown protocol, above the ship's
-     * repair tier, no matching systems fitted, or the queue is full) — or the reason an active
-     * operation was force-cancelled mid-repair (e.g. a `docked`-tier operation when the ship
-     * undocks) — shown to the crew for `refusalSecondsRemaining`. Otherwise a refusal (e.g. the
-     * queue-length cap) or a forced cancellation would happen with no visible feedback. Empty
-     * string when there's nothing to show.
-     */
-    @gameField('string') refusalReason = '';
-    @gameField('float32') refusalSecondsRemaining = 0;
+    /** One entry per catalog protocol, in catalog order. */
+    @gameField([RepairProtocolSlot])
+    slots = new ArraySchema<RepairProtocolSlot>();
 
     // server only, used for commands
-    public enqueueCommands = Array.of<EnqueueRepairArg>();
-    public cancelCommands = Array.of<CancelRepairArg>();
-    public reorderCommands = Array.of<ReorderRepairArg>();
+    public cyclePriorityCommands = Array.of<CycleRepairPriorityArg>();
 }

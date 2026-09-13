@@ -1,8 +1,8 @@
 import { Faction, ShipManagerPc, SmartPilotMode, SpaceManager, Spaceship, demoShip, makeShipState } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
 
-import { RepairOperationStatus } from '../src/ship/repair-queue';
-import { enqueueRepair } from '../src/ship/repair-commands';
+import { RepairPriority } from '../src/ship/repair-queue';
+import { cycleRepairPriority } from '../src/ship/repair-commands';
 import { expect } from 'chai';
 import { repairProtocols } from '../src/configurations/repair-protocols';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
@@ -38,24 +38,26 @@ describe('launcher servo recalibration (issue #2110)', () => {
         shipMgr.state.tubes[0].bearingSkew = 5;
         shipMgr.state.tubes[0].rateOfFireFactor = 0.5;
 
-        enqueueRepair.setValue(shipMgr.state, { protocolId: 'launcherServoRecalibration' });
+        cycleRepairPriority.setValue(shipMgr.state, { protocolId: 'launcherServoRecalibration', direction: 'up' });
         const duration = repairProtocols.launcherServoRecalibration.duration;
         for (const id of makeIterationsData(duration + 0.1, Math.round((duration + 0.1) * 20))) {
             shipMgr.update(id);
         }
 
-        expect(shipMgr.state.repairQueue.recentlyFinished[0]?.status).to.equal(RepairOperationStatus.DONE);
+        const slot = shipMgr.state.repairQueue.slots.find((s) => s.protocolId === 'launcherServoRecalibration')!;
+        expect(slot.priority).to.equal(RepairPriority.OFF);
+        expect(slot.refusalReason).to.equal('');
         expect(shipMgr.state.tubes[0].bearingSkew).to.equal(0);
         expect(shipMgr.state.tubes[0].rateOfFireFactor).to.equal(1);
     });
 
-    it('A3: an unlocked, loaded tube does not fire while the protocol is active, and safety is locked again on completion', () => {
+    it('A3: an unlocked, loaded tube does not fire while the protocol is running, and safety is locked again on completion', () => {
         const { shipMgr, spaceMgr } = makeShip();
         loadAllTubes(shipMgr, spaceMgr);
         shipMgr.state.tubes[0].safetyLocked = false;
 
-        enqueueRepair.setValue(shipMgr.state, { protocolId: 'launcherServoRecalibration' });
-        shipMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 }); // promote to ACTIVE
+        cycleRepairPriority.setValue(shipMgr.state, { protocolId: 'launcherServoRecalibration', direction: 'up' });
+        shipMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 }); // promote to RUNNING
 
         expect(shipMgr.state.tubes[0].power).to.equal(0); // side effect: tubes dark
 

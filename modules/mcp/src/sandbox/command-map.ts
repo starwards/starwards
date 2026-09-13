@@ -70,22 +70,17 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     systemCoolant: { kind: 'system', field: 'coolantFactor', value: 'number' },
     warpFrequency: { kind: 'fixed', pointer: '/warp/standbyFrequency', value: 'number' },
     changeFrequency: { kind: 'fixed', pointer: '/warp/changeFrequencyCommand', value: 'trigger' },
-    enqueueRepair: {
+    cycleRepairPriority: {
         kind: 'ship-command',
-        cmdName: 'enqueueRepair',
-        args: z.object({ protocolId: z.string().describe('repair protocol id, from the repair-queue status') }),
-    },
-    cancelRepair: {
-        kind: 'ship-command',
-        cmdName: 'cancelRepair',
-        args: z.object({ operationId: z.string().describe('id of the queued operation') }),
-    },
-    reorderRepair: {
-        kind: 'ship-command',
-        cmdName: 'reorderRepair',
+        cmdName: 'cycleRepairPriority',
         args: z.object({
-            operationId: z.string().describe('id of the queued operation'),
-            index: z.number().int().min(0).describe('position to move it to'),
+            protocolId: z.string().describe('repair protocol id, from the repair-queue status'),
+            direction: z
+                .enum(['up', 'down'])
+                .describe(
+                    'up: OFF->LOW->MEDIUM->HIGH, clamped at HIGH; down: the reverse, clamped at OFF. ' +
+                        'Either direction on a RUNNING protocol starts cancelling it (wind-down to OFF).',
+                ),
         }),
     },
 

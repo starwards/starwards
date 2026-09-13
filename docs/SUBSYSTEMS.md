@@ -42,7 +42,7 @@ last_verified: 2026-09-03
 
 **`energyStarved`:** set by `EnergyManager.trySpendEnergy` (`energy-manager.ts`) on whichever system's draw the reactor couldn't cover, cleared the moment that same draw succeeds again. The `Reactor` itself is the one exception: `EnergyManager.update()` sets `reactor.energyStarved` directly whenever `reactor.energy` reaches zero, since a reactor with nothing left to give may have nothing currently *drawing* from it either — without this it would read as fully healthy on the Full Systems Status panel.
 
-`RepairOperation.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for the repair queue specifically: true for every tick an ACTIVE operation's declared energy draw fails, from the very first shortfall tick — not only once the sustained shortfall exceeds `ENERGY_STARVATION_GRACE_SECONDS` and the operation actually aborts (see `RepairManager.tickActive`). It's what lets the repair-queue widget show *why* a stalled progress bar isn't moving during that grace window, before `RepairQueue.refusalReason` has anything to say.
+`RepairProtocolSlot.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for the repair queue specifically: true for every tick a `RUNNING` slot's declared energy draw fails, from the very first shortfall tick — not only once the sustained shortfall exceeds `ENERGY_STARVATION_GRACE_SECONDS` and the run actually aborts (see `RepairManager.tickRunning`). It's what lets the repair-queue widget show *why* a stalled progress bar isn't moving during that grace window, before the slot's own `refusalReason` has anything to say.
 
 ## Subsystems Catalog
 
@@ -62,6 +62,39 @@ last_verified: 2026-09-03
 | **Docking** | `docking.ts` | mode, targetId, rangesFactor | Ship-to-ship attach |
 | **SmartPilot** | `smart-pilot.ts` | rotationMode, maneuveringMode, rotation, maneuvering | Autopilot |
 | **Signals** | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs | auto-managed scan job queue, scan levels |
+
+## Repair Queue
+**Location:** `modules/core/src/ship/repair-queue.ts` (schema), `repair-manager.ts` (engine), `modules/core/src/configurations/repair-protocols.ts` (catalog)
+
+Per-protocol priority state (issue #2247), not an ordered list: `RepairQueue.slots` carries exactly
+one `RepairProtocolSlot` per catalog protocol (fixed at construction, in catalog order), each
+independently `RepairPriority`: `OFF|LOW|MEDIUM|HIGH|RUNNING|CANCELLING`. `OFF`/`LOW`/`MEDIUM`/`HIGH`
+are player-set (engineer `alt+<n>` raises, `alt+shift+<n>` lowers; GM click controls); `RUNNING`/
+`CANCELLING` are server-only.
+
+**Scheduling:** at most one slot is `RUNNING` (or winding down, `CANCELLING`) at a time. Whenever
+neither is present, `RepairManager` promotes the highest-priority pending slot, ties broken by
+catalog order. No pre-emption — raising a slot to `HIGH` never interrupts whatever is already
+`RUNNING`. On reaching 100% progress, the protocol's effect applies and the slot returns to `OFF`
+(no auto-repeat; e.g. `armorPlateRenewal` needs a re-toggle per plate).
+
+**Cancel = wind-down:** a priority key on a `RUNNING` slot sets `CANCELLING` — progress runs back
+toward 0% (like a missile unload) instead of stopping instantly. At 0%, side effects revert, any
+spent energy cell (`RepairProtocolStats.consumesEnergyCell`) is refunded, and the slot returns to
+`OFF`; only then can the next pending protocol start. A priority key on an already-`CANCELLING` slot
+is ignored — the wind-down always completes to `OFF`.
+
+**Availability:** a protocol that can't run right now (tier above the ship's docking state, no
+energy cell, missing equipment) can't be set pending — the toggle is refused with a per-slot
+`refusalReason`, cleared the next time the player changes that slot's priority. A pending slot that
+loses availability (e.g. undocking) drops straight to `OFF`; a `RUNNING` slot that loses its tier
+self-aborts straight to `OFF` (not a `CANCELLING` wind-down, which is reserved for a deliberate
+cancel).
+
+**Energy cells:** `consumesEnergyCell` protocols (e.g. `reactorJumpStart`) spend one of the ship's
+finite `Reactor.energyCells` when the slot starts `RUNNING`, not on completion — same philosophy as
+chain-gun ammo, which leaves the magazine at load start. Refunded on any non-completion (self-abort
+or a cancelled wind-down); kept spent on a normal completion.
 
 ## Pilot Controls
 **Location:** `modules/core/src/ship/ship-state.ts`

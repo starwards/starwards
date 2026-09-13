@@ -9,7 +9,7 @@ import {
 } from '@starwards/core';
 import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
-import { drawRepairQueue, getRepairProtocolHotkey } from '../widgets/repair-queue';
+import { drawRepairQueue, getRepairProtocolHotkeys } from '../widgets/repair-queue';
 import { radarFogOfWar, toCss } from '../colors';
 import { readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
@@ -89,18 +89,24 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         );
     }
 
-    // repair-protocol catalog is a display-only readout (widgets/repair-queue.ts); enqueueing is
-    // hotkey-driven here, on the same manager as power/coolant, since it's the same kind of
-    // engineering action. Bound unconditionally (not only for currently-available protocols) — the
-    // server refuses an unavailable protocol with a visible notice, same as it already does for a
-    // full queue, so a docked-tier key pressed while undocked is a no-op, not a crash.
+    // Engineer screen: hotkeys only, no buttons (issue #2247) — the repair-queue panel
+    // (widgets/repair-queue.ts) is a display-only readout here. alt+<key> raises this protocol's
+    // priority (OFF -> LOW -> MEDIUM -> HIGH); alt+shift+<key> lowers it. Either key on a RUNNING
+    // protocol starts winding it down. Bound unconditionally (not only for currently-available
+    // protocols) — the server refuses an unavailable toggle with a visible per-slot reason, so a
+    // docked-tier key pressed while undocked is a no-op, not a crash.
     for (const [protocolId, protocol] of Object.entries(repairProtocols)) {
-        const key = getRepairProtocolHotkey(protocolId);
-        if (key) {
+        const hotkeys = getRepairProtocolHotkeys(protocolId);
+        if (hotkeys) {
             controlledInput.addClickAction(
-                () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
-                key,
-                `Enqueue: ${protocol.name}`,
+                () => shipDriver.command(repairCommands.cycleRepairPriority, { protocolId, direction: 'up' }),
+                hotkeys.raise,
+                `Raise priority: ${protocol.name}`,
+            );
+            controlledInput.addClickAction(
+                () => shipDriver.command(repairCommands.cycleRepairPriority, { protocolId, direction: 'down' }),
+                hotkeys.lower,
+                `Lower priority: ${protocol.name}`,
             );
         }
     }

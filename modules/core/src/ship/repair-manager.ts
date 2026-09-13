@@ -1,13 +1,9 @@
 import {
-    CancelRepairArg,
-    EnqueueRepairArg,
-    ReorderRepairArg,
-    RepairOperation,
-    RepairOperationStatus,
+    CycleRepairPriorityArg,
+    RepairPriority,
+    RepairProtocolSlot,
     SavedPowerEntry,
-    isCancelRepairArg,
-    isEnqueueRepairArg,
-    isReorderRepairArg,
+    isCycleRepairPriorityArg,
 } from './repair-queue';
 import { IterationData, Updateable } from '../updateable';
 import { PowerLevel, SystemState } from './system';
@@ -22,50 +18,41 @@ import {
 } from '../configurations/repair-protocols';
 import { ShipState } from './ship-state';
 import { getSystems } from './system';
-import { makeId } from '../id';
 
 /**
- * Hard cap on the queue's length (SPEC-0003 doesn't specify one; without it, `repairQueue.operations`
- * — a synced `ArraySchema` broadcast to every client and rendered as one Tweakpane folder per entry —
- * grows without bound). Repair work is always explicitly player-commanded (unlike e.g. signals jobs,
- * which are auto-discovered and therefore evict low-priority entries) — so once full, new enqueue
- * commands are refused rather than silently displacing a queued operation the crew asked for.
- */
-export const MAX_REPAIR_QUEUE_LENGTH = 16;
-
-/**
- * How long a brief energy dip (a chain-gun burst, another consumer's spike) may starve an active
- * operation before it's treated as a *sustained* shortfall and aborted (R3, PR #2030 review round
- * 2). Chosen to comfortably outlast a single weapon-fire tick's energy draw while still enforcing
- * "sustained" — not validated against real playtest numbers, same caveat as the rest of the catalog.
+ * How long a brief energy dip (a chain-gun burst, another consumer's spike) may starve a running
+ * protocol before it's treated as a *sustained* shortfall and aborted. Chosen to comfortably
+ * outlast a single weapon-fire tick's energy draw while still enforcing "sustained" — not
+ * validated against real playtest numbers, same caveat as the rest of the catalog.
  */
 export const ENERGY_STARVATION_GRACE_SECONDS = 2;
 
 /**
- * How long a DONE/CANCELLED operation stays visible in `RepairQueue.recentlyFinished`, and how long
- * a refused-enqueue notice stays in `RepairQueue.refusalReason`, before being cleared (R4). Both are
- * real-time durations, not tick counts — see the fields' own doc comments in `repair-queue.ts`.
- */
-export const TERMINAL_DISPLAY_SECONDS = 2;
-
-/**
- * Reverts `op`'s declared side effects and clears the saved list. Called both by `RepairManager`
- * (done/cancelled) and by `resetShipState` (an operation left active across an NPC<->PC conversion
- * has no manager left to revert it otherwise — see `SavedPowerEntry`).
+ * Reverts `slot`'s declared side effects and, unless `refundEnergyCell` is false, refunds the
+ * energy cell it spent at start (if its protocol `consumesEnergyCell`). Called both by
+ * `RepairManager` — a self-abort or a `CANCELLING` wind-down reaching 0% both refund, a normal
+ * completion (`refundEnergyCell: false`) keeps the cell spent — and by `resetShipState` (a slot
+ * left `RUNNING`/`CANCELLING` across an NPC<->PC conversion has no manager left to revert it
+ * otherwise, see `SavedPowerEntry`).
  *
  * Only restores a saved `power` value if nothing else changed it since the side effect forced it —
- * a player who commanded power on the affected system mid-operation (or a GM, or a second
- * operation) has their intent honored; a stale snapshot never overwrites it.
+ * a player who commanded power on the affected system mid-run (or a GM, or a second protocol) has
+ * their intent honored; a stale snapshot never overwrites it.
  *
- * Known limitation (R7, PR #2030 review round 2): a player who *deliberately* powers the system
- * down mid-operation is indistinguishable from the side effect itself (both read as
- * `PowerLevel.SHUTDOWN`), so that specific case still gets silently reverted. Distinguishing it
- * would need an ownership flag on every `@gameField` write this side effect could collide with —
- * infrastructure this codebase has nowhere else and that's disproportionate to the edge case.
- * Accepted as-is.
+ * Known limitation (carried over from the pre-#2247 repair-queue design): a player who
+ * *deliberately* powers the system down mid-run is indistinguishable from the side effect itself
+ * (both read as `PowerLevel.SHUTDOWN`), so that specific case still gets silently reverted.
+ * Distinguishing it would need an ownership flag on every `@gameField` write this side effect could
+ * collide with — infrastructure this codebase has nowhere else and that's disproportionate to the
+ * edge case. Accepted as-is.
  */
-export function revertOperationSideEffects(state: ShipState, op: RepairOperation) {
-    for (const entry of op.savedPower) {
+export function revertRepairSlot(
+    state: ShipState,
+    slot: RepairProtocolSlot,
+    catalog: Record<string, RepairProtocolStats> = repairProtocols,
+    refundEnergyCell = true,
+): void {
+    for (const entry of slot.savedPower) {
         if (!isRepairableSystemKey(entry.system)) {
             continue; // defensive: the schema field is a plain string, not the union it represents
         }
@@ -74,7 +61,15 @@ export function revertOperationSideEffects(state: ShipState, op: RepairOperation
             instance.power = entry.value;
         }
     }
-    op.savedPower.splice(0);
+    slot.savedPower.splice(0);
+    if (refundEnergyCell) {
+        const protocol = Object.prototype.hasOwnProperty.call(catalog, slot.protocolId)
+            ? catalog[slot.protocolId]
+            : undefined;
+        if (protocol?.consumesEnergyCell) {
+            state.reactor.energyCells = Math.min(state.reactor.design.maxEnergyCells, state.reactor.energyCells + 1);
+        }
+    }
 }
 
 /**
@@ -90,17 +85,17 @@ export interface RepairHeatSink {
     addHeat(value: number, system: SystemState): void;
 }
 
+/** Scheduling tie-break within a priority tier is catalog order, i.e. `this.slots`' own order. */
+const PENDING_PRIORITIES_HIGH_TO_LOW = [RepairPriority.HIGH, RepairPriority.MEDIUM, RepairPriority.LOW] as const;
+
 /**
- * Server-authoritative repair execution engine (SPEC-0003): a strictly serial
- * queue of `RepairOperation`s, one active at a time, draining commands pushed
- * onto `state.repairQueue` by `repair-commands.ts`. Sibling to
- * `damage-manager.ts` / `heat-manager.ts`.
- *
- * Invariant: whenever an operation is ACTIVE, it is always `operations[0]` — enforced by
- * `ensureActive` (only ever promotes the lowest-index QUEUED entry) and `drainReorderCommands`
- * (never moves a QUEUED entry to index 0 while one is active). DONE/CANCELLED operations never sit
- * in `operations` at all — `finish()` moves them to `recentlyFinished` immediately — so this
- * invariant never has to account for a lingering terminal entry.
+ * Server-authoritative repair-priority scheduler (issue #2247): one `RepairProtocolSlot` per
+ * catalog protocol, each independently `OFF`/`LOW`/`MEDIUM`/`HIGH`/`RUNNING`/`CANCELLING`. At most
+ * one slot is ever `RUNNING` (or winding down, `CANCELLING`) at a time; whenever neither is present,
+ * the highest-priority pending slot is promoted, ties broken by catalog order. No pre-emption:
+ * raising a slot to `HIGH` never interrupts whatever is already `RUNNING`. Sibling to
+ * `damage-manager.ts` / `heat-manager.ts`. A protocol can't be queued more than once, so there is
+ * no ordered list to reorder and no queue-length cap needed.
  */
 export class RepairManager implements Updateable {
     constructor(
@@ -108,25 +103,32 @@ export class RepairManager implements Updateable {
         private energySource: RepairEnergySource,
         private heatSink: RepairHeatSink,
         private catalog: Record<string, RepairProtocolStats> = repairProtocols,
-    ) {}
+    ) {
+        this.ensureSlots();
+    }
 
     update({ deltaSeconds }: IterationData) {
-        this.tickRecentlyFinished(deltaSeconds);
-        this.tickRefusalNotice(deltaSeconds);
-        this.drainCancelCommands();
-        this.drainReorderCommands();
-        this.drainEnqueueCommands();
-        this.cancelIfTierLost();
-        this.ensureActive();
-        this.tickActive(deltaSeconds);
+        this.drainCycleCommands();
+        this.cancelIfUnavailable();
+        this.ensureRunning();
+        this.tickRunning(deltaSeconds);
+        this.tickCancelling(deltaSeconds);
     }
 
-    private get operations() {
-        return this.state.repairQueue.operations;
+    private get slots() {
+        return this.state.repairQueue.slots;
     }
 
-    private get recentlyFinished() {
-        return this.state.repairQueue.recentlyFinished;
+    /** One slot per `this.catalog` entry, in catalog order — created once, on construction. */
+    private ensureSlots() {
+        const existingIds = new Set(this.slots.map((s) => s.protocolId));
+        for (const protocolId of Object.keys(this.catalog)) {
+            if (!existingIds.has(protocolId)) {
+                const slot = new RepairProtocolSlot();
+                slot.protocolId = protocolId;
+                this.slots.push(slot);
+            }
+        }
     }
 
     /**
@@ -139,225 +141,12 @@ export class RepairManager implements Updateable {
         return Object.prototype.hasOwnProperty.call(this.catalog, protocolId) ? this.catalog[protocolId] : undefined;
     }
 
-    private getActive(): RepairOperation | undefined {
-        return this.operations.find((o) => o.status === RepairOperationStatus.ACTIVE);
+    private getRunning(): RepairProtocolSlot | undefined {
+        return this.slots.find((s) => s.priority === RepairPriority.RUNNING);
     }
 
-    /**
-     * How many of the ship's finite `Reactor.energyCells` are already spoken for by QUEUED/ACTIVE
-     * operations — derived live from `this.operations` rather than tracked separately, since a cell
-     * is only actually spent in `jumpStartReactor`'s `onComplete`, once an operation leaves the
-     * queue for good (issue #2137).
-     */
-    private reservedEnergyCells(): number {
-        return this.operations.filter((o) => this.getProtocol(o.protocolId)?.consumesEnergyCell).length;
-    }
-
-    /** Real-time countdown, not "one manager tick" — see `RepairOperation.terminalSecondsRemaining`. */
-    private tickRecentlyFinished(deltaSeconds: number) {
-        for (let i = this.recentlyFinished.length - 1; i >= 0; i--) {
-            const op = this.recentlyFinished[i];
-            op.terminalSecondsRemaining -= deltaSeconds;
-            if (op.terminalSecondsRemaining <= 0) {
-                this.recentlyFinished.splice(i, 1);
-            }
-        }
-    }
-
-    private tickRefusalNotice(deltaSeconds: number) {
-        const queue = this.state.repairQueue;
-        if (queue.refusalSecondsRemaining <= 0) {
-            return;
-        }
-        queue.refusalSecondsRemaining -= deltaSeconds;
-        if (queue.refusalSecondsRemaining <= 0) {
-            queue.refusalSecondsRemaining = 0;
-            queue.refusalReason = '';
-        }
-    }
-
-    /** Shared by enqueue refusals and mid-repair forced cancellations — both are "why nothing happened / why it stopped" notices on the same field. */
-    private notifyRefusal(reason: string) {
-        this.state.repairQueue.refusalReason = reason;
-        this.state.repairQueue.refusalSecondsRemaining = TERMINAL_DISPLAY_SECONDS;
-    }
-
-    private drainCancelCommands() {
-        const commands: unknown[] = this.state.repairQueue.cancelCommands;
-        this.state.repairQueue.cancelCommands = [];
-        for (const command of commands) {
-            if (!isCancelRepairArg(command)) {
-                continue;
-            }
-            const { operationId }: CancelRepairArg = command;
-            const index = this.operations.findIndex((o) => o.id === operationId);
-            if (index < 0) {
-                continue;
-            }
-            const op = this.operations[index];
-            if (op.status === RepairOperationStatus.QUEUED) {
-                // never started: free, immediate removal, nothing to revert
-                this.operations.splice(index, 1);
-            } else if (op.status === RepairOperationStatus.ACTIVE) {
-                this.abort(op);
-            }
-        }
-    }
-
-    /**
-     * Moves the QUEUED operation named by each command to its requested index — never to index 0
-     * while an operation is ACTIVE there (SPEC-0003: the active operation cannot be demoted, only
-     * cancelled), preserving the "ACTIVE is always operations[0]" invariant. Uses only single-index
-     * replacement (`ops[i] = ops[j]`), never `splice`'s add/remove.
-     *
-     * This still momentarily writes over the moved operation's own array slot before its final
-     * `ops[to] = op` (same category of change as `state.thrusters[i] = makeThruster(...)` during
-     * ship construction) — R6 (PR #2030 review round 2) raised whether that pattern is safe under
-     * Colyseus v3's refcount tracking across a client round trip. Settled, not just observed via
-     * e2e: `test/repair-queue-sync.spec.ts` drives a real `Encoder`/`Decoder` pair through exactly
-     * this reorder and asserts every operation's id/protocolId/progress on the decoded mirror — not
-     * just its length — matches the source after the move. No dropped ref, no swapped/duplicated
-     * instance.
-     */
-    private drainReorderCommands() {
-        const commands: unknown[] = this.state.repairQueue.reorderCommands;
-        this.state.repairQueue.reorderCommands = [];
-        for (const command of commands) {
-            if (!isReorderRepairArg(command)) {
-                continue;
-            }
-            const { operationId, index }: ReorderRepairArg = command;
-            const ops = this.operations;
-            const from = ops.findIndex((o) => o.id === operationId);
-            if (from < 0 || ops[from].status !== RepairOperationStatus.QUEUED) {
-                continue;
-            }
-            const minIndex = ops.length > 0 && ops[0].status === RepairOperationStatus.ACTIVE ? 1 : 0;
-            const to = Math.max(minIndex, Math.min(Math.trunc(index), ops.length - 1));
-            this.moveOperation(from, to);
-        }
-    }
-
-    private moveOperation(from: number, to: number) {
-        const ops = this.operations;
-        const op = ops[from];
-        if (from < to) {
-            for (let i = from; i < to; i++) {
-                ops[i] = ops[i + 1];
-            }
-        } else {
-            for (let i = from; i > to; i--) {
-                ops[i] = ops[i - 1];
-            }
-        }
-        ops[to] = op;
-    }
-
-    private drainEnqueueCommands() {
-        const commands: unknown[] = this.state.repairQueue.enqueueCommands;
-        this.state.repairQueue.enqueueCommands = [];
-        for (const command of commands) {
-            if (!isEnqueueRepairArg(command)) {
-                continue;
-            }
-            const { protocolId }: EnqueueRepairArg = command;
-            if (this.operations.length >= MAX_REPAIR_QUEUE_LENGTH) {
-                this.notifyRefusal('repair queue is full');
-                continue;
-            }
-            const protocol = this.getProtocol(protocolId);
-            if (!protocol) {
-                this.notifyRefusal('unknown repair protocol');
-                continue;
-            }
-            if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(this.state)]) {
-                this.notifyRefusal(`${protocol.name} requires a higher repair tier than this ship has`);
-                continue;
-            }
-            if (!isProtocolAvailable(this.state, protocol)) {
-                this.notifyRefusal(`${protocol.name} needs equipment this ship doesn't have`);
-                continue;
-            }
-            if (protocol.consumesEnergyCell && this.reservedEnergyCells() >= this.state.reactor.energyCells) {
-                this.notifyRefusal(`${protocol.name} needs an energy cell but none are available`);
-                continue;
-            }
-            const op = new RepairOperation();
-            op.id = makeId();
-            op.protocolId = protocolId;
-            op.status = RepairOperationStatus.QUEUED;
-            this.operations.push(op);
-        }
-    }
-
-    /**
-     * A `docked`-tier operation loses its footing the instant the ship stops being docked
-     * (undocking started, or forced e.g. by combat) — the repair queue is all-or-nothing, same as
-     * an energy-starvation abort, so the operation is cancelled outright rather than left stalled
-     * or silently allowed to keep running off-dock.
-     */
-    private cancelIfTierLost() {
-        const active = this.getActive();
-        if (!active) {
-            return;
-        }
-        const protocol = this.getProtocol(active.protocolId);
-        if (!protocol) {
-            return;
-        }
-        if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(this.state)]) {
-            this.abort(active);
-            this.notifyRefusal(`${protocol.name} was cancelled: ship no longer has the required repair tier`);
-        }
-    }
-
-    private ensureActive() {
-        if (this.getActive()) {
-            return;
-        }
-        const next = this.operations.find((o) => o.status === RepairOperationStatus.QUEUED);
-        if (!next) {
-            return;
-        }
-        next.status = RepairOperationStatus.ACTIVE;
-        const protocol = this.getProtocol(next.protocolId);
-        if (protocol) {
-            this.applySideEffects(next, protocol);
-        }
-    }
-
-    private tickActive(deltaSeconds: number) {
-        const active = this.getActive();
-        if (!active) {
-            return;
-        }
-        const protocol = this.getProtocol(active.protocolId);
-        if (!protocol) {
-            this.abort(active);
-            return;
-        }
-        // A zero-draw protocol (e.g. reactorJumpStart, armorPlateRenewal) must be runnable from
-        // true zero energy — but EnergyManager.trySpendEnergy checks `energy > value` (strictly
-        // greater), so spending even nothing out of an exactly-empty reactor reads as a refusal.
-        // Skip the spend attempt entirely rather than let that edge case starve a free operation.
-        if (protocol.energyDraw > 0 && !this.energySource.trySpendEnergy(protocol.energyDraw * deltaSeconds)) {
-            // brief dip: no progress/heat this tick, but the operation survives until the shortfall
-            // is sustained past the grace window (R3) — then it's still all-or-nothing
-            active.starvedSeconds += deltaSeconds;
-            active.energyStarved = true;
-            if (active.starvedSeconds >= ENERGY_STARVATION_GRACE_SECONDS) {
-                this.abort(active);
-                this.notifyRefusal(`${protocol.name} was cancelled: insufficient reactor energy`);
-            }
-            return;
-        }
-        active.starvedSeconds = 0;
-        active.energyStarved = false;
-        this.applyHeat(protocol, deltaSeconds);
-        active.progress = Math.min(1, active.progress + deltaSeconds / this.getDuration(protocol));
-        if (active.progress >= 1) {
-            this.complete(active, protocol);
-        }
+    private getCancelling(): RepairProtocolSlot | undefined {
+        return this.slots.find((s) => s.priority === RepairPriority.CANCELLING);
     }
 
     /** `dynamicDuration`, when declared, always wins over the static `duration` — see its doc comment. */
@@ -365,30 +154,248 @@ export class RepairManager implements Updateable {
         return protocol.dynamicDuration ? protocol.dynamicDuration(this.state) : protocol.duration;
     }
 
-    private complete(op: RepairOperation, protocol: RepairProtocolStats) {
-        this.revertSideEffects(op);
+    /**
+     * Why `protocol` can't be set pending right now, or `undefined` if it can — same underlying
+     * check as `isProtocolAvailable` (single source of truth for the boolean), refined into a
+     * specific message only once that check has already failed.
+     */
+    private unavailabilityReason(protocol: RepairProtocolStats): string | undefined {
+        if (isProtocolAvailable(this.state, protocol)) {
+            return undefined;
+        }
+        if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(this.state)]) {
+            return `${protocol.name} requires a higher repair tier than this ship has`;
+        }
+        if (protocol.consumesEnergyCell && this.state.reactor.energyCells <= 0) {
+            return `${protocol.name} needs an energy cell but none are available`;
+        }
+        return `${protocol.name} needs equipment this ship doesn't have`;
+    }
+
+    private drainCycleCommands() {
+        const commands: unknown[] = this.state.repairQueue.cyclePriorityCommands;
+        this.state.repairQueue.cyclePriorityCommands = [];
+        for (const command of commands) {
+            if (!isCycleRepairPriorityArg(command)) {
+                continue;
+            }
+            const { protocolId, direction }: CycleRepairPriorityArg = command;
+            const slot = this.slots.find((s) => s.protocolId === protocolId);
+            if (slot) {
+                this.applyCycle(slot, direction);
+            }
+        }
+    }
+
+    /**
+     * `OFF -> LOW -> MEDIUM -> HIGH` ('up', clamped at `HIGH`) / the reverse ('down', clamped at
+     * `OFF`). Either key on a `RUNNING` slot starts the wind-down (`CANCELLING`); either key on an
+     * already-`CANCELLING` slot is ignored — the wind-down always completes to `OFF` (issue #2247's
+     * open decision, option (a): no mid-wind-down resume).
+     */
+    private applyCycle(slot: RepairProtocolSlot, direction: 'up' | 'down') {
+        if (slot.priority === RepairPriority.RUNNING) {
+            slot.priority = RepairPriority.CANCELLING;
+            slot.refusalReason = '';
+            return;
+        }
+        if (slot.priority === RepairPriority.CANCELLING) {
+            return;
+        }
+        if (direction === 'up') {
+            this.raise(slot);
+        } else {
+            this.lower(slot);
+        }
+    }
+
+    private raise(slot: RepairProtocolSlot) {
+        switch (slot.priority) {
+            case RepairPriority.OFF: {
+                const protocol = this.getProtocol(slot.protocolId);
+                const reason = protocol ? this.unavailabilityReason(protocol) : 'unknown repair protocol';
+                if (reason) {
+                    slot.refusalReason = reason;
+                    return;
+                }
+                slot.refusalReason = '';
+                slot.priority = RepairPriority.LOW;
+                return;
+            }
+            case RepairPriority.LOW:
+                slot.refusalReason = '';
+                slot.priority = RepairPriority.MEDIUM;
+                return;
+            case RepairPriority.MEDIUM:
+                slot.refusalReason = '';
+                slot.priority = RepairPriority.HIGH;
+                return;
+            default:
+                return; // HIGH: clamped
+        }
+    }
+
+    private lower(slot: RepairProtocolSlot) {
+        switch (slot.priority) {
+            case RepairPriority.HIGH:
+                slot.refusalReason = '';
+                slot.priority = RepairPriority.MEDIUM;
+                return;
+            case RepairPriority.MEDIUM:
+                slot.refusalReason = '';
+                slot.priority = RepairPriority.LOW;
+                return;
+            case RepairPriority.LOW:
+                slot.refusalReason = '';
+                slot.priority = RepairPriority.OFF;
+                return;
+            default:
+                return; // OFF: clamped
+        }
+    }
+
+    /**
+     * A pending slot that loses availability (e.g. undocking drops a docked-tier protocol below
+     * the ship's effective tier) drops straight to `OFF` — it never ran, so there's nothing to
+     * revert. A `RUNNING` slot that loses its tier is aborted the same way an energy-starved one is
+     * — side effects reverted, energy cell refunded, straight to `OFF`, never a `CANCELLING`
+     * wind-down (that path is reserved for a deliberate player cancel).
+     */
+    private cancelIfUnavailable() {
+        for (const slot of this.slots) {
+            const protocol = this.getProtocol(slot.protocolId);
+            if (!protocol) {
+                continue;
+            }
+            if (
+                slot.priority === RepairPriority.LOW ||
+                slot.priority === RepairPriority.MEDIUM ||
+                slot.priority === RepairPriority.HIGH
+            ) {
+                const reason = this.unavailabilityReason(protocol);
+                if (reason) {
+                    slot.priority = RepairPriority.OFF;
+                    slot.refusalReason = reason;
+                }
+            } else if (slot.priority === RepairPriority.RUNNING) {
+                if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(this.state)]) {
+                    this.abortToOff(
+                        slot,
+                        `${protocol.name} was cancelled: ship no longer has the required repair tier`,
+                    );
+                }
+            }
+        }
+    }
+
+    private ensureRunning() {
+        if (this.getRunning() || this.getCancelling()) {
+            return;
+        }
+        for (const priority of PENDING_PRIORITIES_HIGH_TO_LOW) {
+            const slot = this.slots.find((s) => s.priority === priority);
+            if (slot) {
+                this.startRunning(slot);
+                return;
+            }
+        }
+    }
+
+    private startRunning(slot: RepairProtocolSlot) {
+        const protocol = this.getProtocol(slot.protocolId);
+        if (!protocol) {
+            slot.priority = RepairPriority.OFF;
+            return;
+        }
+        slot.priority = RepairPriority.RUNNING;
+        slot.progress = 0;
+        slot.refusalReason = '';
+        this.applySideEffects(slot, protocol);
+        // Spent at start, not on completion — same philosophy as chain-gun ammo, which leaves the
+        // magazine at load start (`chain-gun-manager.ts` load branch). Refunded by `revertRepairSlot`
+        // if this run never completes (self-abort or wind-down) — see `abortToOff`.
+        if (protocol.consumesEnergyCell) {
+            this.state.reactor.energyCells = Math.max(0, this.state.reactor.energyCells - 1);
+        }
+    }
+
+    private tickRunning(deltaSeconds: number) {
+        const slot = this.getRunning();
+        if (!slot) {
+            return;
+        }
+        const protocol = this.getProtocol(slot.protocolId);
+        if (!protocol) {
+            this.abortToOff(slot, '');
+            return;
+        }
+        // A zero-draw protocol (e.g. reactorJumpStart, armorPlateRenewal) must be runnable from
+        // true zero energy — but EnergyManager.trySpendEnergy checks `energy > value` (strictly
+        // greater), so spending even nothing out of an exactly-empty reactor reads as a refusal.
+        // Skip the spend attempt entirely rather than let that edge case starve a free protocol.
+        if (protocol.energyDraw > 0 && !this.energySource.trySpendEnergy(protocol.energyDraw * deltaSeconds)) {
+            // brief dip: no progress/heat this tick, but the run survives until the shortfall is
+            // sustained past the grace window — then it's still all-or-nothing
+            slot.starvedSeconds += deltaSeconds;
+            slot.energyStarved = true;
+            if (slot.starvedSeconds >= ENERGY_STARVATION_GRACE_SECONDS) {
+                this.abortToOff(slot, `${protocol.name} was cancelled: insufficient reactor energy`);
+            }
+            return;
+        }
+        slot.starvedSeconds = 0;
+        slot.energyStarved = false;
+        this.applyHeat(protocol, deltaSeconds);
+        slot.progress = Math.min(1, slot.progress + deltaSeconds / this.getDuration(protocol));
+        if (slot.progress >= 1) {
+            this.complete(slot, protocol);
+        }
+    }
+
+    /**
+     * Wind-down: progress runs back toward 0 at the same rate it would run forward (like a missile
+     * unload). No energy draw, no heat and no starvation tracking while winding down — the protocol
+     * isn't doing work, it's undoing it. At 0%, `abortToOff` reverts side effects, refunds the
+     * energy cell, and only then can the next pending protocol start.
+     */
+    private tickCancelling(deltaSeconds: number) {
+        const slot = this.getCancelling();
+        if (!slot) {
+            return;
+        }
+        const protocol = this.getProtocol(slot.protocolId);
+        if (!protocol) {
+            this.abortToOff(slot, '');
+            return;
+        }
+        slot.progress = Math.max(0, slot.progress - deltaSeconds / this.getDuration(protocol));
+        if (slot.progress <= 0) {
+            this.abortToOff(slot, '');
+        }
+    }
+
+    private complete(slot: RepairProtocolSlot, protocol: RepairProtocolStats) {
+        // side effects revert on completion too — the declared power-down was only ever for the
+        // run's duration, not a permanent effect. The energy cell (if any) stays spent: it was
+        // already committed at start and this run did complete.
+        revertRepairSlot(this.state, slot, this.catalog, false);
         this.resetTargets(protocol);
         protocol.onComplete?.(this.state);
-        op.progress = 1;
-        this.finish(op, RepairOperationStatus.DONE);
+        slot.priority = RepairPriority.OFF;
+        slot.progress = 0;
+        slot.refusalReason = '';
+        slot.starvedSeconds = 0;
+        slot.energyStarved = false;
     }
 
-    private abort(op: RepairOperation) {
-        this.revertSideEffects(op);
-        this.finish(op, RepairOperationStatus.CANCELLED);
-    }
-
-    /** Moves `op` out of the live queue and into `recentlyFinished` for `TERMINAL_DISPLAY_SECONDS`. */
-    private finish(op: RepairOperation, status: RepairOperationStatus) {
-        op.status = status;
-        op.starvedSeconds = 0;
-        op.energyStarved = false;
-        op.terminalSecondsRemaining = TERMINAL_DISPLAY_SECONDS;
-        const index = this.operations.indexOf(op);
-        if (index >= 0) {
-            this.operations.splice(index, 1);
-        }
-        this.recentlyFinished.push(op);
+    /** Self-abort (starvation, tier lost) or a wind-down reaching 0% — never a completion. */
+    private abortToOff(slot: RepairProtocolSlot, reason: string) {
+        revertRepairSlot(this.state, slot, this.catalog);
+        slot.priority = RepairPriority.OFF;
+        slot.progress = 0;
+        slot.starvedSeconds = 0;
+        slot.energyStarved = false;
+        slot.refusalReason = reason;
     }
 
     private resetTargets(protocol: RepairProtocolStats) {
@@ -404,16 +411,9 @@ export class RepairManager implements Updateable {
 
     /**
      * `protocol.heat` is a fixed total budget added over `protocol.duration`, split evenly across
-     * the distinct target *system keys* (SPEC-0003) — and, when a key resolves to more than one
-     * live instance (e.g. all 6 thrusters), split evenly again across those instances so the total
-     * delivered stays `protocol.heat` regardless of how many instances the ship happens to have.
-     *
-     * Consequence (R2, PR #2030 review round 2, confirmed as intended): repair heat on a
-     * multi-instance system can no longer push any *single* instance over the overheat threshold on
-     * its own the way a single-instance system's full budget can — the per-instance share is always
-     * a fraction of the total. The existing overheat-cascade test only exercises this because it
-     * targets `docking` (single-instance); a multi-instance system reaching overheat via repair heat
-     * alone would need a much larger `heat` budget than any current catalog entry declares.
+     * the distinct target *system keys*, and, when a key resolves to more than one live instance,
+     * split evenly again across those instances so the total delivered stays `protocol.heat`
+     * regardless of how many instances the ship happens to have.
      */
     private applyHeat(protocol: RepairProtocolStats, deltaSeconds: number) {
         if (protocol.heat <= 0) {
@@ -436,20 +436,16 @@ export class RepairManager implements Updateable {
         }
     }
 
-    private applySideEffects(op: RepairOperation, protocol: RepairProtocolStats) {
+    private applySideEffects(slot: RepairProtocolSlot, protocol: RepairProtocolStats) {
         for (const key of protocol.sideEffectSystems) {
             getRepairableSystemInstances(this.state, key).forEach((instance, index) => {
                 const entry = new SavedPowerEntry();
                 entry.system = key;
                 entry.index = index;
                 entry.value = instance.power;
-                op.savedPower.push(entry);
+                slot.savedPower.push(entry);
                 instance.power = PowerLevel.SHUTDOWN;
             });
         }
-    }
-
-    private revertSideEffects(op: RepairOperation) {
-        revertOperationSideEffects(this.state, op);
     }
 }

@@ -33,6 +33,7 @@ import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
 import { ReactorCellManager } from './reactor-cell-manager';
+import { RepairPriority } from './repair-queue';
 import { Signals } from './signals';
 import { SignalsJobManager } from './signals-job-manager';
 import { SpaceManager } from '../logic/space-manager';
@@ -40,7 +41,7 @@ import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
 import { createLogger } from '../logger';
-import { revertOperationSideEffects } from './repair-manager';
+import { revertRepairSlot } from './repair-manager';
 
 const { error: logError } = createLogger('ship-manager');
 
@@ -77,16 +78,20 @@ export function resetShipState(state: ShipState) {
     }
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
-    // an operation left ACTIVE across this reset (e.g. NPC<->PC conversion) has no RepairManager
-    // left to revert its side effects later — do it here or the affected system's power stays
-    // pinned at 0 forever (see SavedPowerEntry / revertOperationSideEffects).
-    for (const op of state.repairQueue.operations) {
-        revertOperationSideEffects(state, op);
+    // a slot left RUNNING/CANCELLING across this reset (e.g. NPC<->PC conversion) has no
+    // RepairManager left to revert its side effects or refund its energy cell later — do it here or
+    // the affected system's power (and a spent energy cell) stay stranded forever (see
+    // SavedPowerEntry / revertRepairSlot).
+    for (const slot of state.repairQueue.slots) {
+        if (slot.priority === RepairPriority.RUNNING || slot.priority === RepairPriority.CANCELLING) {
+            revertRepairSlot(state, slot);
+        }
+        slot.priority = RepairPriority.OFF;
+        slot.progress = 0;
+        slot.starvedSeconds = 0;
+        slot.energyStarved = false;
+        slot.refusalReason = '';
     }
-    state.repairQueue.operations.splice(0);
-    state.repairQueue.recentlyFinished.splice(0);
-    state.repairQueue.refusalReason = '';
-    state.repairQueue.refusalSecondsRemaining = 0;
     for (const at of ammoTypes) {
         state.magazine.setCount(at, state.magazine.getMax(at));
     }
@@ -97,9 +102,7 @@ export function resetShipState(state: ShipState) {
     state.maneuveringModeCommand = false;
     state.fireTubesCommand = false;
     state.hullDamaged = false;
-    state.repairQueue.enqueueCommands = [];
-    state.repairQueue.cancelCommands = [];
-    state.repairQueue.reorderCommands = [];
+    state.repairQueue.cyclePriorityCommands = [];
     state.lockCommands = [];
     // The WeakMap-keyed lock registry carries nothing across a `Schema.clone()` (NPC↔PC
     // conversion clones the whole state tree into fresh instances), so re-derive it from the
