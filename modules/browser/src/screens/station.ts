@@ -1,17 +1,13 @@
 import * as PIXI from 'pixi.js';
 
 import { Driver, createLogger } from '@starwards/core';
-import {
-    attachGameMessageOverlay,
-    createWrapperRenderer,
-    renderStandby,
-    renderWaitingScreen,
-} from './station-lifecycle';
+import { attachGameMessageOverlay, createWrapperRenderer, renderStandby } from './station-lifecycle';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { beginStationRegistrationWithRetry } from '../station-identity';
 import { computeSeatView } from './station-seat-view';
+import { renderWaitingScreen } from './waiting-screen';
 import { stationScreens } from './station-screens';
 import { wrapRootWidgetContainer } from '../container';
 
@@ -66,7 +62,7 @@ function show() {
                     .then((admin) => addCleanup(attachGameMessageOverlay(wrapperEl, admin)))
                     .catch((err: unknown) => logError('failed to attach game message overlay', err));
             } else {
-                renderWaitingScreen(wrapperEl, registration.stationId, showBreakout);
+                addCleanup(renderWaitingScreen(wrapperEl, registration.stationId, showBreakout));
             }
         });
     });
