@@ -8,7 +8,16 @@
         <link type="text/css" rel="stylesheet" href="styles/goldenlayout-base.css" />
         <link type="text/css" rel="stylesheet" href="styles/goldenlayout-dark-theme.css" />
         <link type="text/css" rel="stylesheet" href="styles/index.css" />
-        <style></style>
+        <style>
+            /* Issue #2242: static/styles/index.css sets #wrapper { overflow: hidden }, which clips
+               the lobby's stacked cards below the viewport on mobile. Only the lobby (this page)
+               needs to scroll — station pages keep the shared rule's overflow: hidden. */
+            #wrapper {
+                height: auto;
+                min-height: 100%;
+                overflow-y: auto;
+            }
+        </style>
     </head>
     <body>
         <div id="wrapper"></div>

@@ -21,7 +21,8 @@ test.describe('Station registry', () => {
     });
 
     test('lobby shows the station id and allows renaming it', async ({ page }) => {
-        await navigateToScreen(page, '/', { baseURL: gameDriver.baseURL });
+        // Issue #2242: a running game routes `/` to the seat — `?lobby` keeps this on the lobby.
+        await navigateToScreen(page, '/?lobby', { baseURL: gameDriver.baseURL });
         const badge = page.locator('[data-id="station-id"]');
         await expect(badge).toBeVisible({ timeout: 10000 });
         const originalId = await badge.textContent();
@@ -41,7 +42,7 @@ test.describe('Station registry', () => {
         const otherContext = await browser.newContext();
         const otherPage = await otherContext.newPage();
         setupPageErrorHandlers(otherPage);
-        await navigateToScreen(otherPage, '/', { baseURL: gameDriver.baseURL });
+        await navigateToScreen(otherPage, '/?lobby', { baseURL: gameDriver.baseURL });
         await otherPage.locator('[data-id="station-id-input"]').fill('DUP');
         await otherPage.getByRole('button', { name: 'Rename' }).click();
         await expect(otherPage.locator('[data-id="station-id"]')).toHaveText('DUP');
@@ -52,7 +53,7 @@ test.describe('Station registry', () => {
             .poll(() => gameDriver.gameManager.state.stations.get('DUP')?.connected, { timeout: 3000 })
             .toBe(true);
 
-        await navigateToScreen(page, '/', { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, '/?lobby', { baseURL: gameDriver.baseURL });
         // `useConnectedStationIds` is event-driven, not polled, but the state still has to sync
         // from the server over the wire — retry the rename attempt instead of a blind wait.
         await expect(async () => {
@@ -93,7 +94,7 @@ test.describe('Station registry', () => {
     });
 
     test('a lobby rename retires the old station id from the GM roster', async ({ page }) => {
-        await navigateToScreen(page, '/', { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, '/?lobby', { baseURL: gameDriver.baseURL });
         const badge = page.locator('[data-id="station-id"]');
         await expect(badge).toBeVisible({ timeout: 10000 });
         const originalId = await badge.textContent();
@@ -165,10 +166,12 @@ test.describe('GM station assignment', () => {
         setupPageErrorHandlers(stationPage);
         await navigateToScreen(stationPage, '/station.html', { baseURL: gameDriver.baseURL });
 
-        const standby = stationPage.locator('[data-id="Standby"]');
-        await expect(standby).toBeVisible({ timeout: 10000 });
-        const stationId = (await standby.textContent())?.trim();
+        // Unassigned: waiting screen shows the seat's own id and offers a Lobby breakout.
+        const waitingId = stationPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]');
+        await expect(waitingId).toBeVisible({ timeout: 10000 });
+        const stationId = (await waitingId.textContent())?.trim();
         expect(stationId).toHaveLength(3);
+        await expect(stationPage.locator('[data-id="lobby-breakout"]')).toBeVisible();
 
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
         const roster = page.locator('[data-id="Station Roster"]');
@@ -192,5 +195,86 @@ test.describe('GM station assignment', () => {
         await expect(stationPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
 
         await stationContext.close();
+    });
+
+    // Issue #2242: a stopped game must fall back to the waiting screen instead of keeping a
+    // (now player-less) assigned screen up. `GameManager`'s reconciliation clears the specific
+    // `shipId` the instant `playerShipIds` empties, but leaves `stationType` set — that's the
+    // GM's claim on the seat, and it's what keeps the Lobby breakout hidden.
+    test('stopping the game returns an assigned seat to the waiting screen, keeping its station type', async ({
+        page,
+        browser,
+    }) => {
+        const stationContext = await browser.newContext();
+        const stationPage = await stationContext.newPage();
+        setupPageErrorHandlers(stationPage);
+        await navigateToScreen(stationPage, '/station.html', { baseURL: gameDriver.baseURL });
+
+        const waitingId = stationPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]');
+        await expect(waitingId).toBeVisible({ timeout: 10000 });
+        const stationId = (await waitingId.textContent())?.trim();
+
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        const roster = page.locator('[data-id="Station Roster"]');
+        const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
+        await expect(row).toBeVisible({ timeout: 10000 });
+        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
+        await row.locator('[data-id="Station Roster Type"]').selectOption('pilot');
+        await expect(stationPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+
+        await gameDriver.gameManager.stopGame();
+
+        // Assigned but the game stopped: waiting screen again, no Lobby breakout. The specific
+        // shipId is cleared by GameManager's own reconciliation the instant playerShipIds empties
+        // (that ship no longer exists), but stationType — the GM's claim on this seat — survives,
+        // which is what keeps the breakout hidden and lets the seat auto-resolve a new ship below.
+        await expect(stationPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]')).toHaveText(stationId!, {
+            timeout: 10000,
+        });
+        await expect(stationPage.locator('[data-id="lobby-breakout"]')).toHaveCount(0);
+        expect(gameDriver.gameManager.state.stations.get(stationId!)?.stationType).toBe('pilot');
+
+        await stationContext.close();
+        await gameDriver.gameManager.startGame(two_vs_one);
+    });
+});
+
+// Issue #2242: a running game or replay routes a fresh lobby load straight to the bridge seat.
+test.describe('Lobby entry routing', () => {
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    test('a fresh tab redirects from the lobby to the seat while a game is running', async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(two_vs_one);
+
+        await navigateToScreen(page, '/', { baseURL: gameDriver.baseURL });
+        await expect(page.locator('[data-id="Waiting Screen"], [data-id="Standby"]').first()).toBeVisible({
+            timeout: 10000,
+        });
+        expect(page.url()).toContain('station.html');
+
+        await gameDriver.gameManager.stopGame();
+    });
+
+    test('`?lobby` keeps the lobby open even while a game is running', async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(two_vs_one);
+
+        await navigateToScreen(page, '/?lobby', { baseURL: gameDriver.baseURL });
+        await expect(page.locator('[data-id="station-id"]')).toBeVisible({ timeout: 10000 });
+        expect(page.url()).not.toContain('station.html');
+
+        await gameDriver.gameManager.stopGame();
+    });
+
+    test('the lobby loads normally while no game is running', async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.stopGame();
+
+        await navigateToScreen(page, '/', { baseURL: gameDriver.baseURL });
+        await expect(page.locator('[data-id="title"]')).toBeVisible({ timeout: 10000 });
+        expect(page.url()).not.toContain('station.html');
     });
 });
