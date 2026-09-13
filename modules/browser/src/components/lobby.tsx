@@ -1,16 +1,10 @@
 import { AdminDriver, Driver, StationRegistration, VERSION } from '@starwards/core';
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
-import {
-    beginStationRegistrationWithRetry,
-    getOrCreateStationId,
-    isValidStationId,
-    setStationId,
-} from '../station-identity';
+import { beginStationRegistrationWithRetry, getOrCreateStationId } from '../station-identity';
 import {
     useAdminDriver,
     useCanStartGame,
-    useConnectedStationIds,
     useIsGameRunning,
     useIsRecording,
     useIsReplaying,
@@ -26,77 +20,31 @@ import { ReplayMenu } from './replay-menu';
 import WebFont from 'webfontloader';
 
 /**
- * Shows this device's persistent station registry id and lets a technician rename it. Registers
- * on the admin room with no station type/ship — the lobby is where a device sits before it picks
- * a bridge seat, not a seat itself (issue #2131). The collision check against ids currently
- * `connected` is a pre-emptive courtesy so a technician gets an immediate error on an obvious
- * collision; it isn't the enforcement — the server rejects any registration (initial or renamed)
- * that collides with a different, still-connected session, and `registerAs` reacts to that by
- * falling back to a fresh generated id (see `beginStationRegistrationWithRetry`).
+ * Shows this device's persistent station registry id (assigned by `getOrCreateStationId`, not
+ * user-editable — issue #2242 review). Registers on the admin room with no station type/ship —
+ * the lobby is where a device sits before it picks a bridge seat, not a seat itself (issue #2131).
+ * The server can still force a fresh id on a collision (two tabs racing to the same generated id);
+ * `registerAs` reacts to that by generating a genuinely fresh one (see
+ * `beginStationRegistrationWithRetry`).
  */
 const StationIdBadge = ({ driver, adminDriver }: { driver: Driver; adminDriver: AdminDriver | null }) => {
     const [stationId, setStationIdState] = React.useState(getOrCreateStationId);
-    const [draft, setDraft] = React.useState(stationId);
-    const [error, setError] = React.useState('');
-    const connectedIds = useConnectedStationIds(adminDriver);
     const registrationRef = React.useRef<StationRegistration | null>(null);
-
-    const registerAs = React.useCallback(() => {
-        // A rename calls this again for the new id — dispose the previous registration first, or
-        // its listeners keep firing (re-sending the old, now-abandoned id on every reconnect).
-        registrationRef.current?.dispose();
-        registrationRef.current = beginStationRegistrationWithRetry(driver, '', '', (newId) => {
-            setStationIdState(newId);
-            setDraft(newId);
-            setError(`id collided with another connected station; reassigned to "${newId}"`);
-        });
-    }, [driver]);
 
     React.useEffect(() => {
         if (!adminDriver) {
             return;
         }
-        registerAs();
+        registrationRef.current?.dispose();
+        registrationRef.current = beginStationRegistrationWithRetry(driver, '', '', setStationIdState);
         return () => registrationRef.current?.dispose();
-    }, [adminDriver, registerAs]);
-
-    const submitRename = () => {
-        const normalized = draft.toUpperCase();
-        if (!isValidStationId(normalized)) {
-            setError('1-16 characters: A-Z, 0-9, -');
-            return;
-        }
-        if (normalized !== stationId && connectedIds.has(normalized)) {
-            setError(`"${normalized}" is already connected`);
-            return;
-        }
-        setError('');
-        setStationId(normalized);
-        setStationIdState(normalized);
-        registerAs();
-    };
+    }, [adminDriver, driver]);
 
     return (
         <div style={{ marginBottom: 16 }}>
             <div data-id="station-id" style={{ fontSize: 32, letterSpacing: 6, fontWeight: 'bold' }}>
                 {stationId}
             </div>
-            <input
-                data-id="station-id-input"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && submitRename()}
-                style={{ textTransform: 'uppercase', textAlign: 'center' }}
-                maxLength={16}
-            />
-            <Button key="rename-station" onClick={submitRename}>
-                Rename
-            </Button>
-            {error && (
-                <div data-id="station-id-error" style={{ color: 'red' }}>
-                    {error}
-                </div>
-            )}
         </div>
     );
 };
@@ -292,6 +240,13 @@ export const Lobby = (p: Props) => {
                         <NetworkInfoPanel driver={p.driver} />
                         <pre key="Utilities">
                             <h2>Utilities</h2>
+                            <Button
+                                key="generic-seat"
+                                palette="secondary"
+                                onClick={() => window.location.assign('station.html')}
+                            >
+                                Generic Seat
+                            </Button>
                             <Button
                                 key="input"
                                 palette="secondary"
