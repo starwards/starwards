@@ -7,17 +7,20 @@ import {
     createWaveDefenceMap,
     furthestStationId,
     generateWaveComposition,
+    generateWaveSpecs,
     pickWaveTargetStationId,
     sampleWaveSpawnCenter,
     waveBudget,
 } from '../scenarios/wave-defence';
 import {
     Faction,
+    FlightDoctrine,
     GameApi,
     GameMap,
     GameStatus,
     Order,
     PowerLevel,
+    SHADOW_TRACK_RANGE,
     ShipModel,
     Spaceship,
     Vec2,
@@ -80,6 +83,106 @@ describe('generateWaveComposition', () => {
         const composition = generateWaveComposition(10, () => 0.99);
         for (const model of composition) {
             expect(allowed.has(model)).toBe(true);
+        }
+    });
+});
+
+describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
+    it('A1: wave 1 is always exactly two dragonfly-MK1, INTERCEPT, targeting the station, regardless of rng', () => {
+        const wave1Spec = {
+            model: 'dragonfly-MK1',
+            flightDoctrine: FlightDoctrine.INTERCEPT,
+            targetPolicy: { kind: 'station' },
+        };
+        for (const rng of [() => 0, () => 0.999, Math.random]) {
+            expect(generateWaveSpecs(1, rng)).toEqual([wave1Spec, wave1Spec]);
+        }
+    });
+
+    it('A3: waves 2-5 exercise all four archetypes, each with its own doctrine/target signature', () => {
+        const rng = () => 0.42;
+
+        // wave 2: Harass -- half budget in MK2/SHADOW/player, remainder MK1/INTERCEPT/station
+        const wave2 = generateWaveSpecs(2, rng);
+        expect(
+            wave2.some(
+                (s) =>
+                    s.model === 'dragonfly-MK2' &&
+                    s.flightDoctrine === FlightDoctrine.SHADOW &&
+                    s.targetPolicy.kind === 'player',
+            ),
+        ).toBe(true);
+        expect(
+            wave2.some(
+                (s) =>
+                    s.model === 'dragonfly-MK1' &&
+                    s.flightDoctrine === FlightDoctrine.INTERCEPT &&
+                    s.targetPolicy.kind === 'station',
+            ),
+        ).toBe(true);
+
+        // wave 3: Swarm -- MK1/MK2 only, INTERCEPT, targeting the station
+        const wave3 = generateWaveSpecs(3, rng);
+        expect(wave3.length).toBeGreaterThan(0);
+        expect(
+            wave3.every(
+                (s) =>
+                    (s.model === 'dragonfly-MK1' || s.model === 'dragonfly-MK2') &&
+                    s.flightDoctrine === FlightDoctrine.INTERCEPT &&
+                    s.targetPolicy.kind === 'station',
+            ),
+        ).toBe(true);
+
+        // wave 4: Escort -- exactly one heavy STANDOFF/station, rest MK1 SHADOW/follow-heavy
+        const wave4 = generateWaveSpecs(4, rng);
+        const heavies = wave4.filter((s) => s.model === 'predator' || s.model === 'glaive');
+        expect(heavies).toHaveLength(1);
+        expect(heavies[0].flightDoctrine).toEqual(FlightDoctrine.STANDOFF);
+        expect(heavies[0].targetPolicy).toEqual({ kind: 'station' });
+        const escorts = wave4.filter((s) => s.model === 'dragonfly-MK1');
+        expect(escorts.length).toBeGreaterThan(0);
+        expect(
+            escorts.every((s) => s.flightDoctrine === FlightDoctrine.SHADOW && s.targetPolicy.kind === 'follow-heavy'),
+        ).toBe(true);
+
+        // wave 5: Gunline -- largest-affordable heavies first, remainder MK1, STANDOFF/station
+        const wave5 = generateWaveSpecs(5, rng);
+        expect(
+            wave5.every((s) => s.flightDoctrine === FlightDoctrine.STANDOFF && s.targetPolicy.kind === 'station'),
+        ).toBe(true);
+        expect(wave5.some((s) => s.model === 'predator' || s.model === 'glaive' || s.model === 'cataphract')).toBe(
+            true,
+        );
+    });
+
+    it('A4: given the same rng seed, two independent calls produce identical specs', () => {
+        for (const wave of [1, 2, 3, 4, 5, 6, 10, 25]) {
+            const seed = 0.37;
+            const specsA = generateWaveSpecs(wave, () => seed);
+            const specsB = generateWaveSpecs(wave, () => seed);
+            expect(specsB).toEqual(specsA);
+        }
+    });
+
+    it('A2: total spent per wave never exceeds waveBudget, for waves 1-50 under many seeds', () => {
+        const scoreByModel: Record<string, number> = {
+            'dragonfly-MK1': 5,
+            'dragonfly-MK2': 8,
+            predator: 30,
+            glaive: 35,
+            cataphract: 50,
+        };
+        for (let wave = 1; wave <= 50; wave++) {
+            for (let seed = 0; seed < 5; seed++) {
+                let calls = 0;
+                const rng = () => {
+                    calls++;
+                    return (seed / 5 + calls / 97) % 1;
+                };
+                const specs = generateWaveSpecs(wave, rng);
+                const spent = specs.reduce((sum, spec) => sum + scoreByModel[spec.model], 0);
+                expect(spent).toBeLessThanOrEqual(waveBudget(wave));
+            }
         }
     });
 });
@@ -165,7 +268,7 @@ describe('wave_defence map (integration)', () => {
         );
     }
 
-    it('spawns wave 1 (two dragonfly-MK1) targeting station-large at game start', async () => {
+    it('spawns wave 1 (two dragonfly-MK1) targeting station-large at game start (A1, issue #2241)', async () => {
         const map = createWaveDefenceMap(() => 0);
         await gameDriver.gameManager.startGame(map);
 
@@ -175,6 +278,7 @@ describe('wave_defence map (integration)', () => {
             const ship = gameDriver.getShip(id);
             expect(ship.spaceObject.model).toEqual('dragonfly-MK1');
             expect(ship.state.order).toEqual(Order.NONE); // orders are picked up on a *following* tick
+            expect(ship.state.flightDoctrine).toEqual(FlightDoctrine.INTERCEPT);
         }
 
         // orderAttack, issued during init(), needs two ticks to reach automation: the first drains
@@ -530,6 +634,62 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
 
         expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(0);
         expect(npcWaveIds()).toHaveLength(wave1Ids.length);
+    });
+
+    it('A5: wave 2 (Harass) SHADOW raiders targeting the player close to within SHADOW_TRACK_RANGE within 6 sim-minutes (issue #2241)', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20); // wave 1 orders land
+
+        const wave1Ids = npcWaveIds();
+        for (const id of wave1Ids) {
+            gameDriver.spaceManager.destroyObject(id);
+        }
+        gameDriver.gameManager.update(1 / 20);
+        await waitForShipManagersGone(wave1Ids);
+
+        for (let i = 0; i < 14; i++) {
+            gameDriver.gameManager.update(1);
+        }
+        gameDriver.gameManager.update(1.5); // crosses the 15s clear delay -- spawns wave 2 (Harass)
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20); // wave 2 orders land
+
+        const wave2Ids = npcWaveIds().filter((id) => !wave1Ids.includes(id));
+        const harassers = wave2Ids.filter((id) => {
+            const ship = gameDriver.getShip(id);
+            return ship.spaceObject.model === 'dragonfly-MK2' && ship.state.orderTargetId === 'GVTS';
+        });
+        expect(harassers.length).toBeGreaterThan(0);
+        for (const id of harassers) {
+            expect(gameDriver.getShip(id).state.flightDoctrine).toEqual(FlightDoctrine.SHADOW);
+        }
+
+        // Wave 2's real spawn point sits >150km from the player (WAVE_SPAWN_DISTANCE is calibrated
+        // for anti-station engagement range, not for closing on the player) -- no raider's cruise
+        // speed covers that in 6 sim-minutes. Repositioning to a realistic engagement distance
+        // isolates the thing A5 actually specifies: that a SHADOW-doctrine, player-targeted raider
+        // closes to within SHADOW_TRACK_RANGE of its target given a normal amount of time.
+        for (const id of harassers) {
+            const raider = gameDriver.spaceManager.state.get(id)!;
+            raider.position = Vec2.make(XY.byLengthAndDirection(20_000, 0));
+            raider.velocity = Vec2.make({ x: 0, y: 0 });
+        }
+
+        const closedIn = new Set<string>();
+        for (let t = 0; t < 360 && closedIn.size < harassers.length; t++) {
+            gameDriver.gameManager.update(1);
+            const player = gameDriver.spaceManager.state.get('GVTS');
+            if (!player) continue;
+            for (const id of harassers) {
+                const raider = gameDriver.spaceManager.state.get(id);
+                if (raider && XY.distance(raider.position, player.position) <= SHADOW_TRACK_RANGE[1]) {
+                    closedIn.add(id);
+                }
+            }
+        }
+        expect(closedIn.size).toEqual(harassers.length);
     });
 });
 
