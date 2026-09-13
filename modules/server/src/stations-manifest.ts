@@ -65,15 +65,7 @@ const defaultStationsManifest: StationsManifest = {
                 'damage-report',
                 'repair-queue',
             ],
-            commands: [
-                'systemPower',
-                'systemCoolant',
-                'warpFrequency',
-                'changeFrequency',
-                'enqueueRepair',
-                'cancelRepair',
-                'reorderRepair',
-            ],
+            commands: ['systemPower', 'systemCoolant', 'warpFrequency', 'changeFrequency', 'cycleRepairPriority'],
             prompt:
                 'You run engineering. You balance power and coolant across systems, run damage control, and set ' +
                 'warp frequency.',

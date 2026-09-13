@@ -1,4 +1,4 @@
-import { JobStatus, RepairOperationStatus, StationWidget, System, ammoTypes } from '@starwards/core/internal';
+import { JobStatus, RepairPriority, StationWidget, System, ammoTypes } from '@starwards/core/internal';
 
 import { StationSession } from './sandbox/session';
 import { describeContact } from './contacts';
@@ -147,17 +147,12 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
     'repair-queue': (s) => {
         const queue = s.shipDriver.state.repairQueue;
         return {
-            refusalReason: queue?.refusalReason,
-            operations: [...(queue?.operations ?? [])].map((op) => ({
-                id: op.id,
-                protocolId: op.protocolId,
-                status: RepairOperationStatus[op.status],
-                progress: op.progress,
-            })),
-            recentlyFinished: [...(queue?.recentlyFinished ?? [])].map((op) => ({
-                id: op.id,
-                protocolId: op.protocolId,
-                status: RepairOperationStatus[op.status],
+            slots: [...(queue?.slots ?? [])].map((slot) => ({
+                protocolId: slot.protocolId,
+                priority: RepairPriority[slot.priority],
+                progress: slot.progress,
+                energyStarved: slot.energyStarved,
+                refusalReason: slot.refusalReason,
             })),
         };
     },

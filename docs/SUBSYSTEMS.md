@@ -42,7 +42,18 @@ last_verified: 2026-09-03
 
 **`energyStarved`:** set by `EnergyManager.trySpendEnergy` (`energy-manager.ts`) on whichever system's draw the reactor couldn't cover, cleared the moment that same draw succeeds again. The `Reactor` itself is the one exception: `EnergyManager.update()` sets `reactor.energyStarved` directly whenever `reactor.energy` reaches zero, since a reactor with nothing left to give may have nothing currently *drawing* from it either — without this it would read as fully healthy on the Full Systems Status panel.
 
-`RepairOperation.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for the repair queue specifically: true for every tick an ACTIVE operation's declared energy draw fails, from the very first shortfall tick — not only once the sustained shortfall exceeds `ENERGY_STARVATION_GRACE_SECONDS` and the operation actually aborts (see `RepairManager.tickActive`). It's what lets the repair-queue widget show *why* a stalled progress bar isn't moving during that grace window, before `RepairQueue.refusalReason` has anything to say.
+`RepairProtocolSlot.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for repair protocols specifically: true for every tick a RUNNING slot's declared energy draw fails, from the very first shortfall tick — not only once the sustained shortfall exceeds `ENERGY_STARVATION_GRACE_SECONDS` and the run is force-stopped (see `RepairManager.tickRunning`). It's what lets the repair-queue widget show *why* a stalled progress bar isn't moving during that grace window, before that slot's own `refusalReason` has anything to say.
+
+### Repair Protocols (issue #2247)
+
+Each catalog protocol (`configurations/repair-protocols.ts`) has its own `RepairProtocolSlot` on `ShipState.repairQueue.slots` — one per protocol, in catalog order, created once and never resized. A slot's `priority` (`RepairPriority`: `OFF`/`LOW`/`MEDIUM`/`HIGH`/`RUNNING`/`CANCELLING`) is its whole state; there is no separate queue list, so a protocol never needs to be in the backlog more than once.
+
+- **Scheduling:** when nothing is `RUNNING`/`CANCELLING`, `RepairManager` promotes the highest-priority pending slot; ties go to catalog order. No pre-emption — raising a slot to `HIGH` never interrupts one already running.
+- **Cancel = wind-down:** either priority key on a `RUNNING` slot sets `CANCELLING`, and progress runs back to 0% (like missile unload) instead of stopping instantly; a key pressed while `CANCELLING` is ignored. At 0%, side effects revert and a spent energy cell (see below) is refunded.
+- **Completion:** at 100%, the protocol's effect applies and the slot returns to `OFF` — no auto-repeat.
+- **Availability:** a slot that can't run now (tier, energy cell, missing equipment) refuses the priority raise with a per-slot `refusalReason`, cleared the next time the player changes that slot's priority. A pending or running slot that loses availability (undocking, sustained energy starvation) is force-stopped to `OFF` with a reason — no refund in that case.
+- **Energy cells:** `consumesEnergyCell` protocols (e.g. `reactorJumpStart`) spend one `Reactor.energyCells` the instant they start `RUNNING`, not on completion — same timing as chain-gun ammo, which leaves the magazine at load start. There is no reservation accounting: a protocol can't be pending without a cell being available at that moment.
+- **Input:** the engineer screen is hotkeys only (`alt+<n>` raises, `alt+shift+<n>` lowers — no buttons); the GM screen keeps click controls (raise/lower buttons per protocol, issue #2212).
 
 ## Subsystems Catalog
 

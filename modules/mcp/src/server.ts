@@ -34,7 +34,7 @@ type ExecuteCommandInput = {
     seconds?: number;
     id?: string;
     protocolId?: string;
-    operationId?: string;
+    direction?: 'up' | 'down';
     position?: { x: number; y: number };
     delta?: { x: number; y: number };
     title?: string;
@@ -350,8 +350,8 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
                 system: z.string().optional().describe('system pointer, for power and coolant commands'),
                 seconds: z.number().optional().describe('how long to hold the trigger, for fire commands'),
                 id: z.string().optional().describe('target id, for waypoint commands'),
-                protocolId: z.string().optional().describe('repair protocol id, for enqueueRepair'),
-                operationId: z.string().optional().describe('repair operation id, for repair queue commands'),
+                protocolId: z.string().optional().describe('repair protocol id, for cycleRepairPriority'),
+                direction: z.enum(['up', 'down']).optional().describe('priority direction, for cycleRepairPriority'),
                 position: z.object({ x: z.number(), y: z.number() }).optional().describe('for placeWaypoint'),
                 delta: z.object({ x: z.number(), y: z.number() }).optional().describe('for moveWaypoint'),
                 title: z.string().optional(),
