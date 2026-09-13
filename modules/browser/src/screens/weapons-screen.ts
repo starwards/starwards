@@ -23,7 +23,7 @@ export async function initWeaponsScreen(
 ): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
-    await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
+    await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 10000 });
     await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     const teardownInput = wireInput(shipDriver);
     drawSystemsStatus(
