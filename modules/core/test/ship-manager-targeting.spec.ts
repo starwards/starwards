@@ -2,7 +2,10 @@ import {
     Asteroid,
     Explosion,
     Faction,
+    Order,
     PowerLevel,
+    ScanLevel,
+    ShipManagerNpc,
     ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
@@ -163,7 +166,9 @@ describe('ShipManager weapons target lifecycle', () => {
     it('nextTargetCommand acquires a visible enemy ship when enemyOnly is set', () => {
         const { makeShipMgr, flush } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
-        makeShipMgr('e', Faction.Raiders, 2000, 0);
+        const { obj: enemy } = makeShipMgr('e', Faction.Raiders, 2000, 0);
+        // Signals has scanned it to BASIC — its faction and type are known, so it is cyclable.
+        enemy.scanLevels[Number(Faction.Gravitas)] = ScanLevel.BASIC;
         flush();
         mgr.state.weaponsTarget.shipOnly = true;
         mgr.state.weaponsTarget.enemyOnly = true;
@@ -195,6 +200,116 @@ describe('ShipManager weapons target lifecycle', () => {
         mgr.handleTargetCommands();
         expect(mgr.state.weaponsTarget.targetId).to.equal(null);
         expect(mgr.state.weaponsTarget.clearTargetCommand).to.equal(false);
+    });
+});
+
+describe('ShipManager weapons target cycling is gated on scan level', () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it('enemyOnly excludes a hostile the crew has not scanned past UFO', () => {
+        const { makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('e', Faction.Raiders, 2000, 0);
+        flush();
+        mgr.state.weaponsTarget.shipOnly = false;
+        mgr.state.weaponsTarget.enemyOnly = true;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal(null);
+    });
+
+    it('enemyOnly re-admits that same hostile once Signals scans it to BASIC', () => {
+        const { makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        const { obj: enemy } = makeShipMgr('e', Faction.Raiders, 2000, 0);
+        flush();
+        enemy.scanLevels[Number(Faction.Gravitas)] = ScanLevel.BASIC;
+        mgr.state.weaponsTarget.shipOnly = false;
+        mgr.state.weaponsTarget.enemyOnly = true;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal('e');
+    });
+
+    it('shipOnly excludes an unscanned contact and admits it once scanned to BASIC', () => {
+        const { makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        const { obj: contact } = makeShipMgr('c', Faction.Raiders, 1000, 0);
+        flush();
+        mgr.state.weaponsTarget.shipOnly = true;
+        mgr.state.weaponsTarget.enemyOnly = false;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal(null);
+
+        contact.scanLevels[Number(Faction.Gravitas)] = ScanLevel.BASIC;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+    });
+
+    it('with both filters off, an unscanned contact is still cyclable on purpose', () => {
+        const { makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('u', Faction.Raiders, 2000, 0);
+        flush();
+        mgr.state.weaponsTarget.shipOnly = false;
+        mgr.state.weaponsTarget.enemyOnly = false;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal('u');
+    });
+
+    it('own-faction contacts stay cyclable under shipOnly without ever being scanned (floored at BASIC)', () => {
+        const { makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('friend', Faction.Gravitas, 1000, 0);
+        flush();
+        mgr.state.weaponsTarget.shipOnly = true;
+        mgr.state.weaponsTarget.enemyOnly = false;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal('friend');
+    });
+
+    it('an NPC under attack orders still acquires the player as weapons target with only UFO-level intel on it', () => {
+        const spaceMgr = new SpaceManager();
+        const attackerObj = new Spaceship();
+        attackerObj.id = 'attacker';
+        attackerObj.radius = demoShipConfig.radius;
+        attackerObj.faction = Faction.Raiders;
+        const targetObj = new Spaceship();
+        targetObj.id = 'target';
+        targetObj.radius = demoShipConfig.radius;
+        targetObj.faction = Faction.Gravitas;
+        targetObj.position.x = 0;
+        targetObj.position.y = 2000;
+        const die = new MockDie();
+        die.expectedRoll = 1;
+        const attackerMgr = new ShipManagerNpc(
+            attackerObj,
+            makeShipState(attackerObj.id, demoShipConfig),
+            spaceMgr,
+            die,
+        );
+        spaceMgr.insert(attackerObj);
+        spaceMgr.insert(targetObj);
+        spaceMgr.forceFlushEntities();
+
+        // the attacker's own faction holds no intel on the target beyond raw physics
+        expect(targetObj.scanLevels[Number(Faction.Raiders)]).to.equal(ScanLevel.UFO);
+
+        attackerMgr.state.order = Order.ATTACK;
+        attackerMgr.state.orderTargetId = targetObj.id;
+
+        for (const id of makeIterationsData(5, 20)) {
+            attackerMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(attackerMgr.state.weaponsTarget.targetId).to.equal('target');
     });
 });
 
