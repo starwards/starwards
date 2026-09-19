@@ -679,7 +679,7 @@ export class SpaceManager implements Updateable {
         const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.shipId = projectile.shipId;
-        explosion.velocity = projectile.velocity.clone();
+        explosion.velocity = Vec2.make(XY.scale(projectile.velocity, explosion.velocityInheritance));
         this.clampToAbsoluteMaxSpeed(explosion);
         this.insert(explosion);
     }

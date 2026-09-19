@@ -1,4 +1,14 @@
-import { Asteroid, Damage, Projectile, SpaceManager, Spaceship, Vec2, XY, ammoDesigns } from '../src';
+import {
+    Asteroid,
+    BLAST_LIFETIME_FACTOR,
+    Damage,
+    Projectile,
+    SpaceManager,
+    Spaceship,
+    Vec2,
+    XY,
+    ammoDesigns,
+} from '../src';
 
 import { expect } from 'chai';
 
@@ -27,7 +37,9 @@ const contactFuzedAmmo = ['ArmPenShell', 'ArmPenMissile', 'TandemMissile', 'Elec
 const proximityFuzedAmmo = ['HiExpShell', 'FragShell', 'HiExpMissile', 'FragMissile'] as const;
 
 // spec §8 warhead table: impact rounds carry a flat damage number; explosion rounds
-// carry a per-second damageFactor plus blast size (expansionSpeed × secondsToLive) and linger
+// carry a per-second damageFactor plus blast size (expansionSpeed × secondsToLive) and linger.
+// secondsToLive is shortened by BLAST_LIFETIME_FACTOR (expansionSpeed raised by the same
+// factor, so blastSize is unchanged) -- see issue #2252.
 const impactDamagePins = {
     ArmPenShell: 30,
     ArmPenMissile: 60,
@@ -35,10 +47,10 @@ const impactDamagePins = {
     ElecMissile: 25,
 } as const;
 const explosionPins = {
-    HiExpShell: { damageFactor: 20, blastSize: 200, secondsToLive: 1 },
-    FragShell: { damageFactor: 10, blastSize: 250, secondsToLive: 1 },
-    HiExpMissile: { damageFactor: 50, blastSize: 350, secondsToLive: 0.35 },
-    FragMissile: { damageFactor: 10, blastSize: 800, secondsToLive: 1.6 },
+    HiExpShell: { damageFactor: 20, blastSize: 200, secondsToLive: 1 / BLAST_LIFETIME_FACTOR },
+    FragShell: { damageFactor: 10, blastSize: 250, secondsToLive: 1 / BLAST_LIFETIME_FACTOR },
+    HiExpMissile: { damageFactor: 50, blastSize: 350, secondsToLive: 0.35 / BLAST_LIFETIME_FACTOR },
+    FragMissile: { damageFactor: 10, blastSize: 800, secondsToLive: 1.6 / BLAST_LIFETIME_FACTOR },
 } as const;
 
 describe('warhead fuze design (issue #1976)', () => {
@@ -77,14 +89,17 @@ describe('warhead fuze design (issue #1976)', () => {
             }
             expect(warhead.explosion.damageFactor, model).to.equal(pin.damageFactor);
             expect(warhead.explosion.secondsToLive, model).to.equal(pin.secondsToLive);
-            expect(warhead.explosion.expansionSpeed * warhead.explosion.secondsToLive, model).to.equal(pin.blastSize);
+            expect(warhead.explosion.expansionSpeed * warhead.explosion.secondsToLive, model).to.be.closeTo(
+                pin.blastSize,
+                1e-9,
+            );
         }
         const clusterFrag = ammoDesigns.ClusterMissile.warheads.Frag;
         if (clusterFrag.fuze.type !== 'proximity') {
             throw new Error('cluster Frag mode should be proximity-fuzed');
         }
         expect(clusterFrag.explosion.damageFactor).to.equal(10);
-        expect(clusterFrag.explosion.expansionSpeed * clusterFrag.explosion.secondsToLive).to.equal(750);
+        expect(clusterFrag.explosion.expansionSpeed * clusterFrag.explosion.secondsToLive).to.be.closeTo(750, 1e-9);
     });
 });
 

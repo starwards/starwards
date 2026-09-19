@@ -31,6 +31,16 @@ export type ClusterWarheadMode = (typeof clusterWarheadModes)[number];
  */
 const SHELL_BLAST_SIZE_FACTOR = 0.5;
 
+/**
+ * Shortens every warhead's blast lifetime while raising its expansion speed by the same
+ * factor, so `secondsToLive * expansionSpeed` -- and so `blastRadius`/`damageFootprint`, the
+ * warhead's actual reach -- is unchanged. A shorter-lived, faster-growing cloud spends less
+ * time drifting away (at BLAST_VELOCITY_INHERITANCE of the shell's velocity) before it expires,
+ * raising the odds it still overlaps a moving target when it detonates (issue #2252). Pinned
+ * per warhead in explosion-product-invariant.spec.ts.
+ */
+export const BLAST_LIFETIME_FACTOR = 3;
+
 // contact: a single damage event at the point of impact, no explosion object.
 // proximity: detonates into a growing Explosion, either on approach to a target
 // (within `range`) or on contact — also the backup time-fuze on lifetime expiry.
@@ -99,7 +109,12 @@ export const ammoDesigns = {
         fuze: { type: 'proximity', range: 100 },
         heatPerShot: 5,
         homing: null,
-        explosion: { secondsToLive: 1, expansionSpeed: 200, damageFactor: 20, blastFactor: 2 },
+        explosion: {
+            secondsToLive: 1 / BLAST_LIFETIME_FACTOR,
+            expansionSpeed: 200 * BLAST_LIFETIME_FACTOR,
+            damageFactor: 20,
+            blastFactor: 2,
+        },
     },
     ArmPenShell: {
         name: '30mm ArmPen shell',
@@ -120,7 +135,12 @@ export const ammoDesigns = {
         fuze: { type: 'proximity', range: 100 },
         heatPerShot: 5,
         homing: null,
-        explosion: { secondsToLive: 1, expansionSpeed: 250, damageFactor: 10, blastFactor: 4 },
+        explosion: {
+            secondsToLive: 1 / BLAST_LIFETIME_FACTOR,
+            expansionSpeed: 250 * BLAST_LIFETIME_FACTOR,
+            damageFactor: 10,
+            blastFactor: 4,
+        },
     },
     HiExpMissile: {
         name: 'HiExp missile',
@@ -137,7 +157,12 @@ export const ammoDesigns = {
             sprint: TERMINAL_SPRINT,
         },
         // sharp 350m blast (blast size = expansionSpeed * secondsToLive)
-        explosion: { secondsToLive: 0.35, expansionSpeed: 1_000, damageFactor: 50, blastFactor: 1 },
+        explosion: {
+            secondsToLive: 0.35 / BLAST_LIFETIME_FACTOR,
+            expansionSpeed: 1_000 * BLAST_LIFETIME_FACTOR,
+            damageFactor: 50,
+            blastFactor: 1,
+        },
     },
     ArmPenMissile: {
         name: 'ArmPen missile',
@@ -172,7 +197,12 @@ export const ammoDesigns = {
         },
         // dedicated shrapnel warhead. All frag warheads share the same intensity (damageFactor 10);
         // the missile's edge over the cluster frag mode is size and time: an 800m cloud lingering 1.6s
-        explosion: { secondsToLive: 1.6, expansionSpeed: 500, damageFactor: 10, blastFactor: 1 },
+        explosion: {
+            secondsToLive: 1.6 / BLAST_LIFETIME_FACTOR,
+            expansionSpeed: 500 * BLAST_LIFETIME_FACTOR,
+            damageFactor: 10,
+            blastFactor: 1,
+        },
     },
     ClusterMissile: {
         name: 'Cluster missile',
@@ -189,14 +219,24 @@ export const ammoDesigns = {
             maxSpeed: 600,
             sprint: TERMINAL_SPRINT,
         },
-        explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
+        explosion: {
+            secondsToLive: 1 / BLAST_LIFETIME_FACTOR,
+            expansionSpeed: 750 * BLAST_LIFETIME_FACTOR,
+            damageFactor: 10,
+            blastFactor: 1,
+        },
         warheads: {
             // big lingering 750m shrapnel cloud — sands external systems over a large area
             Frag: {
                 damageType: 'Frag',
                 delivery: 'explosion',
                 fuze: { type: 'proximity', range: 100 },
-                explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
+                explosion: {
+                    secondsToLive: 1 / BLAST_LIFETIME_FACTOR,
+                    expansionSpeed: 750 * BLAST_LIFETIME_FACTOR,
+                    damageFactor: 10,
+                    blastFactor: 1,
+                },
             },
             // focused submunitions — the carrier penetrates and its bomblets pepper every
             // internal system in the struck area; shares its per-event numbers with ArmPenShell
