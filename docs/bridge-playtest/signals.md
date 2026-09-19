@@ -35,7 +35,6 @@ position vs own ship's position via `XY.difference`.
 | Clear Target | `'` |
 | Zoom In | `=` |
 | Zoom Out | `-` |
-| Place Waypoint | `w` |
 
 Target cycling iterates **all `Spaceship` objects in `spaceDriver.state`**,
 filtered to `s.id !== shipId` (own ship). It is independent of the **weapons**
