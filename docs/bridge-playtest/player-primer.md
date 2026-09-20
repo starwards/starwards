@@ -6,13 +6,13 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 
 - Five people, one ship (**Gravitas**): Pilot, Weapons, Signals, Engineer at screens; Captain has no screen.
 - Ship: forward-fixed chaingun, two missile tubes, 70 km omni radar + steerable 50 km scan beam, 1,000-energy reactor pool, afterburner (gamepad only).
-- Systems run at `power × (1 − hacked)`, zero when broken. Use spends shared energy; fast spending makes heat; over-limit heat damages; damaged systems drift (guns miss, thrusters skew, radar flickers) then break. Engineer sets power/coolant and runs repairs (30–240 s, draw energy, usually darken a system).
-- Only Engineer sees power/heat/damage; only Signals sees far and identifies contacts (Weapons sees 5 km); gun points where Pilot points; Signals' and Weapons' targets are **separate**. Say contact names aloud ("Asteroid 47").
+- Systems run at `power × (1 − hacked)`, zero when broken. Use spends shared energy; fast spending makes heat; over-limit heat damages; damaged systems drift (guns miss, thrusters skew, radar flickers) then break. Engineer raises a repair protocol's priority and runs repairs (10–240 s, most draw energy and darken a system).
+- Only Engineer sees power/heat/damage; only Signals sees far and identifies contacts (Weapons sees 10 km); gun points where Pilot points; Signals' and Weapons' targets are **separate**. Say contact names aloud ("Asteroid 47").
 - Unknown contact = **UFO** (grey dot, no name). Scan tiers UFO → BASIC (faction, model) → SNAPSHOT/FULL (internals), 5 s per tier at full power, automatic.
 - Docking: in range of a friendly station, Pilot presses `Z`. Docked: magazine refills (~150 s), energy cells restock, two docked-only repairs unlock. Undock stops restock and **cancels** a running docked-only repair.
 - Scenario (wave defence): three friendly stations (Large, Small, Chaingun Platform). Waves spawn 140 km out, beyond all friendly sensors; waves 1–3 hit stations in order, wave 4+ the station furthest from you. ~4–6 min arrival; next wave 15 s after the last dies. Enemies: Dragonfly (fast fighter), Predator (stock version of your hull), Glaive (gun frigate), Cataphract (slow heavy). *(Timings are estimates.)*
 - Defeat: last station destroyed. No win condition.
-- Entry: lobby station button opens `pilot/weapons/signals/engineer/gm.html?ship=`. Each tab gets a 3-character station ID (lobby + GM roster). Standby screen until the GM starts a game.
+- Entry: opening the server address while a game is running puts your tab straight on your seat's waiting screen — a large station ID, plus a **Lobby** button while the GM hasn't assigned you yet. The GM assigns each seat's ship and role from the roster; once assigned and the game is running, your seat shows its station screen automatically. Each tab keeps a 3-character station ID across reloads. `?lobby` on the address keeps a tab on the ship-picking lobby instead. The lobby's `pilot/weapons/signals/engineer/gm.html?ship=` buttons are the manual fallback — a fixed page pinned to a fixed ship, no roster assignment needed.
 
 ---
 
@@ -59,7 +59,7 @@ DIRECT = raw thrusters. VELOCITY = hold dialled rate/speed. TARGET = face / matc
 **Job:** select the target the Captain names, load before the shot is needed, fire when the Pilot gives the nose.
 
 **Screen**
-- 5 km tactical radar, gun crosshair, speed lines. Keyboard only.
+- 10 km tactical radar, gun crosshair, speed lines. Keyboard only.
 - Top-left: **Tubes** (ammo selected, loaded, loading bar, safety, auto-load). Middle-left: **Ammo** (magazine counts).
 - Middle-right: **Targeting** (target ID, three filters). Bottom-left: **Gun** (projectile, loaded, loading, auto-load).
 - Top-right: tubes, chaingun, magazine, radars.
@@ -139,7 +139,7 @@ Scans queue automatically for everything in view; top job runs, one tier per 5 s
 - Top-left: reactor energy, afterburner fuel, hull. Middle-left: warp status and frequency.
 - Centre: **systems table** — status, power, energy/min, heat, coolant slider (mouse works), hacked flag, damaged sub-properties.
 - Top-right: **Damage report**. Bottom-left: armour plates.
-- Middle-right: **Repair Queue** — *notice* line (why an enqueue was refused), **Enqueue** buttons (hover = key, seconds, tier, what goes dark, cells left), queue entries (QUEUED / ACTIVE / DONE / CANCELLED, progress, *insufficient reactor energy* when starved, **Cancel / Move up / Move down**).
+- Middle-right: **Repair Queue** — one fixed row per protocol, showing priority (OFF / LOW / MEDIUM / HIGH / RUNNING / CANCELLING), progress while running, *repair energy* (insufficient reactor energy) when starved, and a *notice* line (why the last priority raise was refused).
 
 **Keys**
 
@@ -163,8 +163,7 @@ Power/coolant key pairs, one per system in ship order: `1`/`Q`, `2`/`W`, `3`/`E`
 | `]` / `[` | Warp standby frequency up / down; `\` commits (warp ships only) |
 | `SPACE` | Hotkey help |
 
-Thirteen protocols, as listed above.
-One repair at a time; reorder the queue. Dark = zero power for the whole run. All-or-nothing: cancel at 89/90 s = nothing. Starved 2 s = abort. One protocol fixes every instance (all six thrusters). Docked-only protocols show only while docked, cancel on undock.
+Thirteen protocols, one fixed row each — nothing to submit and no row order to change, only priority. `Alt+<key>` raises priority OFF → LOW → MEDIUM → HIGH (clamps at HIGH); `Alt+Shift+<key>` lowers it back down (clamps at OFF). Either key on the RUNNING protocol starts a wind-down (CANCELLING): progress runs back to 0%, then side effects revert and a spent energy cell refunds; either key during CANCELLING is ignored, the wind-down always finishes. One repair at a time, no pre-emption: the highest-priority pending protocol starts only once nothing else is RUNNING/CANCELLING, ties broken by the row order above. Completion returns the row to OFF with no auto-repeat, so a renewed armour plate needs a fresh `Alt+Q` per plate. Dark = zero power on that system for the run. Starved of energy for a sustained 2 s force-stops the run outright (same revert as a cancel, but instant). One protocol fixes every instance it targets (all six thrusters). A protocol whose tier, energy cell, or equipment isn't available refuses the raise with a reason on its row; a pending protocol that loses availability (e.g. undocking) drops to OFF with a reason — a docked-only row stays visible while undocked, it just refuses.
 
 **Say / Ask**
 - → Weapons before `Alt+1`: "Gun dark 45 s, now." → Pilot before `Alt+2`: "Thrusters off 60 s."
@@ -172,9 +171,9 @@ One repair at a time; reorder the queue. Dark = zero power for the whole run. Al
 - → Pilot: "Warp frequency 3 → 5 in ten seconds." (only you see it)
 
 **Mistakes**
-- Enqueueing without telling the owner of the dark system.
+- Raising a protocol's priority without telling the owner of the dark system.
 - Repairing the first skewed thruster; wait, one run fixes all six.
-- Ignoring the *notice* line: a refused enqueue (queue full, undocked, no cells) shows nothing else.
+- Ignoring the *notice* line: a refused raise (wrong tier, no cells, missing equipment) is the only sign it didn't take.
 
 ---
 
@@ -185,7 +184,7 @@ One repair at a time; reorder the queue. Dark = zero power for the whole run. Al
 **Screen**
 - Left: GM radar (select, drag, inspect). Right: **Tweak** / **Create** tabs.
 - **Game controls**: pause / slow / play / fast, clock, restart, recording.
-- **Station Roster**: `● ABC — pilot → shipId` (filled dot = connected; `unassigned` / `standby` when unbound).
+- **Station Roster**: one row per station ID — `●`/`○` connected, then **ship** and **role** dropdowns. Pick a ship, then a role, to bind that seat; clearing the ship dropdown unassigns it.
 - Menu adds any station's widgets (radar, repair queue, damage report, targeting, tubes, docking).
 
 **Keys** (objects selected on GM radar)
@@ -197,7 +196,7 @@ One repair at a time; reorder the queue. Dark = zero power for the whole run. Al
 | `Delete` | Delete selection |
 | `SPACE` | Hotkey help |
 
-Lobby scenarios: `two_vs_one`, `solo`, `wave_defence`. Roster is **view-only** here; ships come from `?ship=` or auto-assignment. Roster reassignment from the GM screen **(may differ in your build)** — fix bindings by reopening the station URL.
+Lobby scenarios: `two_vs_one`, `solo`, `wave_defence`. The roster is how a seat gets its ship and role — a station opened via the lobby's `?ship=` buttons or a bare seat's auto-generated id both show up here for the GM to bind (or rebind, or clear).
 
 **Say / Ask**
 - → Engineer: any live Tweak (armour repair seconds, magazine restock, warp jam); captions update, crew's model does not.
