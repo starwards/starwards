@@ -22,8 +22,8 @@
 | Strafe | A / D | axis 2 (deadzone ±0.1) |
 | Boost | W / S | axis 3 (deadzone ±0.1, inverted) |
 | Reset Rotation Offset | — | button 14 |
-| Rotation Mode toggle | — | button 10 |
-| Maneuvering Mode toggle | — | button 11 |
+| Rotation Mode toggle | N | button 10 |
+| Maneuvering Mode toggle | M | button 11 |
 | Afterburner | — | button 6 |
 | Anti-Drift | — | button 7 |
 | Brakes | — | button 5 |
@@ -60,8 +60,9 @@
 
 ## Factually-verifiable gaps (not opinions)
 
-- No on-screen indicator of current Rotation Mode / Maneuvering Mode — the
-  toggles are momentary buttons with no visible state on the pilot screen.
+- Rotation Mode / Maneuvering Mode toggles (`N`/`M`, or gamepad buttons 10/11)
+  are momentary — no dedicated on/off indicator — but the current mode is
+  shown as text (`rotationMode` / `maneuveringMode`) in the `pilotStats` panel.
 - The SPACE-key hotkey help modal is the only built-in onboarding affordance.
 - Warp frequency is **not** displayed on pilot — it lives on engineering
   (`screens/engineer.ts` shows it). Pilot only sees Warp Up/Down outcomes via

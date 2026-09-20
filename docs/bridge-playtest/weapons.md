@@ -6,7 +6,7 @@
 
 | Region | Widget | Notes |
 |---|---|---|
-| Background (full screen) | `tacticalRadar` | range = 5000m, with crosshairs from `chainGun` and speed lines |
+| Background (full screen) | `tacticalRadar` | range = 10000m, with crosshairs from `chainGun` and speed lines |
 | Top-right | `systemsStatus` | filtered to tubes, chainGun, magazine, radar |
 | Top-left | `tubesStatus` | per-tube: ammo to use, ammo loaded, loading bar, safety-locked toggle, auto-load toggle |
 | Middle-left | `ammoStatus` | per-projectile-type magazine count / max |
@@ -82,8 +82,8 @@ their tracer fire even past sensor range).
 
 ## Factually-verifiable gaps (not opinions)
 
-- Tactical radar is fixed at 5000m (no zoom on weapons), but `tacticalRadar`
-  source supports a `range` prop. Currently hard-coded in `screens/weapons.ts`.
+- Tactical radar is fixed at 10000m (no zoom on weapons), but `tacticalRadar`
+  source supports a `range` prop. Currently hard-coded in `screens/weapons-screen.ts`.
 - Targeting filters (`shipOnly`, `enemyOnly`, `shortRangeOnly`) appear both in
   the `targetingStatus` panel (as toggles) and as hotkeys (`p`, `o`, `i`) —
   same state shown twice with different controls.

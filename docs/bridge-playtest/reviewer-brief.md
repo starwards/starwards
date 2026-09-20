@@ -5,7 +5,7 @@
 ## Setup & reporting
 
 - Run `starwards.exe` (Windows 10/11 only, unsigned — on the SmartScreen warning click **More info → Run anyway**; allow Firewall access). A console window opens and your browser opens the lobby at `http://localhost:8080`. Keep the console open.
-- Stations open from the lobby buttons; phones/tablets on the same Wi-Fi join via the lobby's "Connect other devices" QR code. Solo: GM screen in one tab, a crew station in another. **SPACE** shows each station's hotkeys.
+- If a game is already running, opening that address routes straight to a waiting screen showing your seat's ID — the GM binds it to a ship and role from the roster; the screen switches automatically once bound. Otherwise (or with `?lobby` on the address) you land on the ship-picking lobby: station buttons, or "Connect other devices" QR code for phones/tablets on the same Wi-Fi. Solo: GM screen in one tab, a crew station in another. **SPACE** shows each station's hotkeys.
 - Build version: bottom-right of the lobby page (e.g. `v0.4.2-7-gabc1234`).
 - Report: open a GitHub issue on starwards/starwards with the **Playtest feedback** template. Fields: Build · Station(s) played · Solo or group? · What confused you? · What felt good? · Anything broken? (screenshot helps) · Anything else? No need to reproduce or diagnose.
 
