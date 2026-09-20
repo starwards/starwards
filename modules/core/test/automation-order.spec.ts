@@ -734,7 +734,12 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         // 45-degree maxBearingSkew so the mount isn't `broken`.
         gun.bearingSkew = 30;
 
-        spaceMgr.insert(createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0)));
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        // this test is about the mount's aim converging on a stationary hostile over 600 ticks of
+        // sustained fire, not the hostile's physics — frozen so blast impulse (issue #2252) can't
+        // push it off its scripted position once shots start actually registering
+        hostile.freeze = true;
+        spaceMgr.insert(hostile);
         spaceMgr.forceFlushEntities();
 
         runOneTick(shipMgr, spaceMgr);
@@ -764,7 +769,12 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         // though it sits squarely inside the arc the mount was fitted with.
         gun.bearingSkew = 40;
 
-        spaceMgr.insert(createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0)));
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        // this test is about the hull giving way to bring a stationary hostile back into a mount's
+        // traverse, not the hostile's physics — frozen so blast impulse (issue #2252) can't push
+        // it off its scripted position once shots start actually registering
+        hostile.freeze = true;
+        spaceMgr.insert(hostile);
         spaceMgr.forceFlushEntities();
 
         for (let i = 0; i < 60; i++) {

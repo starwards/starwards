@@ -2,6 +2,16 @@ import { SpaceDamageType } from './damage-profile';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { gameField } from '../game-field';
+import { tweakable } from '../tweakable';
+
+/**
+ * Fraction of the detonating shell's velocity a freshly spawned blast inherits. Full
+ * inheritance (1) let a still-growing cloud fly away from a target as fast as the shell that
+ * spawned it, so it rarely stayed overlapping long enough to register (issue #2252, measured
+ * at ~1.8% blast registration against a moving dragonfly-MK1). Tweakable so a GM can dial it
+ * in live without a redeploy.
+ */
+export const BLAST_VELOCITY_INHERITANCE = 0.3;
 
 export class Explosion extends SpaceObjectBase {
     public static isInstance = (o: unknown): o is Explosion => {
@@ -10,6 +20,14 @@ export class Explosion extends SpaceObjectBase {
 
     @gameField('float32')
     public secondsToLive = 0.5;
+
+    /**
+     * See {@link BLAST_VELOCITY_INHERITANCE}. Set at spawn from the shooter's shell velocity
+     * (see SpaceManager.explodeProjectile); never touched by warhead design tables.
+     */
+    @tweakable({ type: 'number', number: { min: 0, max: 1 } })
+    @gameField('float32')
+    public velocityInheritance = BLAST_VELOCITY_INHERITANCE;
 
     /**
      * radius growth speed in meters / seconds

@@ -37,6 +37,9 @@ function runSustainedEngagement(mount: ChaingunDesign) {
     const shipMgr = new ShipManagerNpc(attacker, makeShipState(attacker.id, design), spaceMgr, die);
 
     const target = new Spaceship().init('target', Vec2.make({ x: 0, y: 3000 }), 'demo-ship', Faction.Gravitas);
+    // this test is about the ATTACKER's heading/firing stability, not the target's physics — frozen
+    // so sustained, now-more-often-registering fire (issue #2252) can't shove it off its position
+    target.freeze = true;
 
     spaceMgr.insert(attacker);
     spaceMgr.insert(target);
