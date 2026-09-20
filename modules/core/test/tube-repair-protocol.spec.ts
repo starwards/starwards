@@ -1,10 +1,10 @@
 import { Faction, ShipManagerPc, SmartPilotMode, SpaceManager, Spaceship, demoShip, makeShipState } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
+import { RepairPriority, RepairProtocolMode } from '../src/ship/repair-queue';
+import { cycleRepairPriority, toggleRepairProtocolMode } from '../src/ship/repair-commands';
+import { getModeStats, repairProtocols } from '../src/configurations/repair-protocols';
 
-import { RepairPriority } from '../src/ship/repair-queue';
-import { cycleRepairPriority } from '../src/ship/repair-commands';
 import { expect } from 'chai';
-import { repairProtocols } from '../src/configurations/repair-protocols';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 function makeShip() {
@@ -39,7 +39,11 @@ describe('launcher servo recalibration (issue #2110)', () => {
         shipMgr.state.tubes[0].rateOfFireFactor = 0.5;
 
         cycleRepairPriority.setValue(shipMgr.state, { protocolId: 'launcherServoRecalibration', direction: 'up' });
-        const duration = repairProtocols.launcherServoRecalibration.duration;
+        // default mode is Responsive — same duration the catalog always authored (issue #2255)
+        const duration = getModeStats(
+            repairProtocols.launcherServoRecalibration,
+            RepairProtocolMode.Responsive,
+        ).duration;
         for (const id of makeIterationsData(duration + 0.1, Math.round((duration + 0.1) * 20))) {
             shipMgr.update(id);
         }
@@ -55,6 +59,8 @@ describe('launcher servo recalibration (issue #2110)', () => {
         loadAllTubes(shipMgr, spaceMgr);
         shipMgr.state.tubes[0].safetyLocked = false;
 
+        // Dark mode is the one that darkens tubes (issue #2255) — Responsive, the default, does not
+        toggleRepairProtocolMode.setValue(shipMgr.state, { protocolId: 'launcherServoRecalibration' });
         cycleRepairPriority.setValue(shipMgr.state, { protocolId: 'launcherServoRecalibration', direction: 'up' });
         shipMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 }); // promote to RUNNING
 
@@ -67,7 +73,7 @@ describe('launcher servo recalibration (issue #2110)', () => {
         }
         expect([...spaceMgr.state.getAll('Projectile')].length).to.equal(0);
 
-        const duration = repairProtocols.launcherServoRecalibration.duration;
+        const duration = getModeStats(repairProtocols.launcherServoRecalibration, RepairProtocolMode.Dark).duration;
         for (const id of makeIterationsData(duration, Math.round(duration * 20))) {
             shipMgr.update(id);
             spaceMgr.update(id);

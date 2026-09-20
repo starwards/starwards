@@ -35,11 +35,12 @@ export type {
 export {
     demoShip,
     getAvailableRepairProtocols,
+    getModeStats,
     hasProtocolEquipment,
     repairProtocols,
     shipModels,
 } from './configurations';
-export type { RepairProtocolName, RepairProtocolStats, ShipModel } from './configurations';
+export type { RepairProtocolModeStats, RepairProtocolName, RepairProtocolStats, ShipModel } from './configurations';
 
 // --- events ---
 export type { RoomEventEmitter } from './events';
@@ -83,6 +84,7 @@ export {
     PowerLevel,
     PowerLevelStep,
     RepairPriority,
+    RepairProtocolMode,
     ShipState,
     Signals,
     SignalsJob,

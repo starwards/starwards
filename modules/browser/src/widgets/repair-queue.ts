@@ -1,10 +1,23 @@
-import { RepairPriority, RepairProtocolStats, ShipDriver, repairCommands, repairProtocols } from '@starwards/core';
+import {
+    RepairPriority,
+    RepairProtocolMode,
+    RepairProtocolStats,
+    ShipDriver,
+    getModeStats,
+    repairCommands,
+    repairProtocols,
+} from '@starwards/core';
 import { addBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readNumberProp, readProp } from '../property-wrappers';
+import {
+    getRepairProtocolHotkey,
+    getRepairProtocolLowerHotkey,
+    getRepairProtocolModeHotkey,
+    isRepairSlotVisible,
+} from './repair-queue-logic';
 
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
-import { isRepairSlotVisible } from './repair-queue-logic';
 
 export function repairQueueWidget(shipDriver: ShipDriver): DashboardWidget {
     class RepairQueueComponent {
@@ -18,54 +31,6 @@ export function repairQueueWidget(shipDriver: ShipDriver): DashboardWidget {
         component: RepairQueueComponent,
         defaultProps: {},
     };
-}
-
-/**
- * Engineer screen is the only bearer of engineering hotkeys and already exhausts the alphanumeric
- * keyboard on per-system power/coolant pairs (see `engineer.ts`'s `keyPairs`), so the catalog gets its
- * own modifier namespace rather than fighting over what's left. Alt (not Ctrl) specifically:
- * Ctrl+1..9 is bound to browser tab-switching in Chrome/Firefox and would never reach the page.
- * Assigned by fixed catalog position (every protocol always gets a slot, see issue #2247), not by
- * the per-ship visible subset — so a protocol's key never shifts as tier/energy-cell refusals come
- * and go, and stays stable even for a row hidden because this ship structurally lacks the
- * equipment (see `isRepairSlotVisible`). A protocol *added* to the catalog does shift every key
- * after it, same as inserting a row in the middle of any position-indexed list; overflow past the
- * digit row spills onto the qwerty row.
- */
-const REPAIR_PROTOCOL_HOTKEYS = [
-    'alt+1',
-    'alt+2',
-    'alt+3',
-    'alt+4',
-    'alt+5',
-    'alt+6',
-    'alt+7',
-    'alt+8',
-    'alt+9',
-    'alt+0',
-    'alt+q',
-    'alt+w',
-    'alt+e',
-    'alt+r',
-    'alt+t',
-];
-
-/** The raise hotkey assigned to `protocolId`, or `undefined` if the catalog has grown past `REPAIR_PROTOCOL_HOTKEYS`. */
-export function getRepairProtocolHotkey(
-    protocolId: string,
-    catalog: Record<string, RepairProtocolStats> = repairProtocols,
-): string | undefined {
-    const index = Object.keys(catalog).indexOf(protocolId);
-    return index >= 0 ? REPAIR_PROTOCOL_HOTKEYS[index] : undefined;
-}
-
-/** The lower hotkey for `protocolId` — the same digit/letter as the raise hotkey, with `shift` added. */
-export function getRepairProtocolLowerHotkey(
-    protocolId: string,
-    catalog: Record<string, RepairProtocolStats> = repairProtocols,
-): string | undefined {
-    const raise = getRepairProtocolHotkey(protocolId, catalog);
-    return raise ? raise.replace('alt+', 'alt+shift+') : undefined;
 }
 
 function formatPriority(priority: RepairPriority): string {
@@ -91,15 +56,21 @@ function protocolName(protocolId: string): string {
     return (repairProtocols as Record<string, { name: string }>)[protocolId]?.name ?? protocolId;
 }
 
-function protocolSummary(protocolId: string, shipDriver: ShipDriver): string {
+function formatMode(mode: RepairProtocolMode): string {
+    return mode === RepairProtocolMode.Dark ? 'DARK' : 'RESPONSIVE';
+}
+
+/** `protocolSummary` reads the slot's *current* mode (issue #2255) — a field-tier row's price changes as the crew toggles it. */
+function protocolSummary(protocolId: string, mode: RepairProtocolMode, shipDriver: ShipDriver): string {
     const protocol = (repairProtocols as Record<string, RepairProtocolStats>)[protocolId];
     if (!protocol) {
         return '';
     }
+    const modeStats = getModeStats(protocol, mode);
     // dynamicDuration (e.g. armorPlateRenewal's GM-tweakable Armor.plateRepairSeconds) always
-    // overrides the static catalog number — same rule RepairManager.getDuration() applies.
-    const duration = protocol.dynamicDuration ? protocol.dynamicDuration(shipDriver.state) : protocol.duration;
-    const darkSystems = protocol.sideEffectSystems.length ? `, dark: ${protocol.sideEffectSystems.join(', ')}` : '';
+    // overrides the mode's static catalog number — same rule RepairManager.getDuration() applies.
+    const duration = protocol.dynamicDuration ? protocol.dynamicDuration(shipDriver.state) : modeStats.duration;
+    const darkSystems = modeStats.sideEffectSystems.length ? `, dark: ${modeStats.sideEffectSystems.join(', ')}` : '';
     // energyCells is finite (issue #2137) — shown so the crew can see how many jump-starts are
     // left before this protocol's priority can no longer be raised.
     const cells = protocol.consumesEnergyCell
@@ -127,20 +98,31 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
             // explains itself through refusalReason (issue #2247 review)
             return;
         }
+        const modeHotkey = interactive ? undefined : getRepairProtocolModeHotkey(slot.protocolId);
         const hotkeys = interactive
             ? ''
-            : ` (${getRepairProtocolHotkey(slot.protocolId)?.toUpperCase() ?? '—'}/${getRepairProtocolLowerHotkey(slot.protocolId)?.toUpperCase() ?? '—'})`;
+            : ` (${getRepairProtocolHotkey(slot.protocolId)?.toUpperCase() ?? '—'}/${getRepairProtocolLowerHotkey(slot.protocolId)?.toUpperCase() ?? '—'}${modeHotkey ? `/${modeHotkey.toUpperCase()}` : ''})`;
         const row = pane.addFolder({ title: `${protocolName(slot.protocolId)}${hotkeys}` });
         panelCleanup.add(() => row.dispose());
 
-        // reactor.energyCells and armor.plateRepairSeconds are the only catalog-summary inputs that
-        // change live (a dynamicDuration protocol's duration, or how many jump-starts are left) —
-        // aggregate() re-renders this text whenever either actually changes value.
+        // reactor.energyCells, armor.plateRepairSeconds and this slot's own mode are the only
+        // catalog-summary inputs that change live (a dynamicDuration protocol's duration, how many
+        // jump-starts are left, or a field-tier row's Responsive/Dark price) — aggregate()
+        // re-renders this text whenever any of them actually change value.
         addTextBlade(
             row,
             aggregate(
-                [readProp(shipDriver, '/reactor/energyCells'), readProp(shipDriver, '/armor/plateRepairSeconds')],
-                () => protocolSummary(slot.protocolId, shipDriver),
+                [
+                    readProp(shipDriver, '/reactor/energyCells'),
+                    readProp(shipDriver, '/armor/plateRepairSeconds'),
+                    readProp(shipDriver, `/repairQueue/slots/${index}/mode`),
+                ],
+                () =>
+                    protocolSummary(
+                        slot.protocolId,
+                        shipDriver.state.repairQueue.slots[index]?.mode ?? RepairProtocolMode.Responsive,
+                        shipDriver,
+                    ),
             ),
             { label: 'details' },
             panelCleanup.add,
@@ -151,6 +133,25 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
             { label: 'priority', format: formatPriority },
             panelCleanup.add,
         );
+        // a docked/shipyard-tier slot's `mode` field exists on the schema but is meaningless (see
+        // RepairProtocolSlot.mode) — getRepairProtocolModeHotkey (and this row) only exist for a
+        // field-tier protocol, the one kind that actually has two modes to show or toggle between.
+        if (getRepairProtocolModeHotkey(slot.protocolId)) {
+            addTextBlade(
+                row,
+                readProp<RepairProtocolMode>(shipDriver, `/repairQueue/slots/${index}/mode`),
+                { label: 'mode', format: formatMode },
+                panelCleanup.add,
+            );
+            if (interactive) {
+                addButton(
+                    row,
+                    () => shipDriver.command(repairCommands.toggleRepairProtocolMode, { protocolId: slot.protocolId }),
+                    { label: '', title: 'Toggle Responsive/Dark mode' },
+                    panelCleanup.add,
+                );
+            }
+        }
         addBarBlade(
             row,
             readNumberProp(shipDriver, `/repairQueue/slots/${index}/progress`),

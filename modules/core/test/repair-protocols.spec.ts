@@ -1,12 +1,15 @@
 import {
     RepairProtocolStats,
+    findUncoveredDefectibleFields,
     getAvailableRepairProtocols,
+    getModeStats,
     isProtocolAvailable,
     repairProtocols,
     validateRepairCatalog,
 } from '../src/configurations/repair-protocols';
 import { demoShip, dragonflyMK2, makeShipState } from '../src';
 import { DockingMode } from '../src/ship/docking';
+import { RepairProtocolMode } from '../src/ship/repair-queue';
 import { expect } from 'chai';
 
 describe('repair protocols catalog', () => {
@@ -26,10 +29,10 @@ describe('repair protocols catalog', () => {
             bogus: {
                 name: 'Bogus protocol',
                 targets: [{ system: 'reactor', field: 'notARealField' }],
-                duration: 10,
-                energyDraw: 1,
-                heat: 0,
-                sideEffectSystems: [],
+                modes: {
+                    [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                    [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                },
                 tier: 'field',
             },
         };
@@ -43,10 +46,10 @@ describe('repair protocols catalog', () => {
             noChainGun: {
                 name: 'Needs a chain gun',
                 targets: [{ system: 'chainGuns', field: 'bearingSkew' }],
-                duration: 10,
-                energyDraw: 1,
-                heat: 0,
-                sideEffectSystems: [],
+                modes: {
+                    [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                    [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                },
                 tier: 'field',
             },
         };
@@ -60,10 +63,15 @@ describe('repair protocols catalog', () => {
             noChainGun: {
                 name: 'Side-effects a chain gun',
                 targets: [{ system: 'reactor', field: 'effeciencyFactor' }],
-                duration: 10,
-                energyDraw: 1,
-                heat: 0,
-                sideEffectSystems: ['chainGuns'],
+                modes: {
+                    [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                    [RepairProtocolMode.Dark]: {
+                        duration: 10,
+                        energyDraw: 1,
+                        heat: 0,
+                        sideEffectSystems: ['chainGuns'],
+                    },
+                },
                 tier: 'field',
             },
         };
@@ -77,32 +85,79 @@ describe('repair protocols catalog', () => {
         expect(targeted).to.equal(true);
     });
 
+    describe('R1: field-tier protocols expose responsive and dark modes (issue #2255)', () => {
+        it('every field-tier protocol has a side-effect-free Responsive mode and a Dark mode at a third of its duration, with the historical side effect', () => {
+            const fieldProtocols = Object.values(repairProtocols).filter((p) => p.tier === 'field');
+            expect(fieldProtocols.length).to.be.greaterThan(0);
+            for (const protocol of fieldProtocols) {
+                const responsive = getModeStats(protocol, RepairProtocolMode.Responsive);
+                const dark = getModeStats(protocol, RepairProtocolMode.Dark);
+                expect(
+                    responsive.sideEffectSystems,
+                    `${protocol.name}: Responsive must be side-effect free`,
+                ).to.deep.equal([]);
+                expect(dark.duration, `${protocol.name}: Dark duration`).to.be.closeTo(responsive.duration / 3, 0.001);
+                expect(dark.energyDraw, `${protocol.name}: energyDraw unchanged between modes`).to.equal(
+                    responsive.energyDraw,
+                );
+                expect(dark.heat, `${protocol.name}: heat (total budget) unchanged between modes`).to.equal(
+                    responsive.heat,
+                );
+            }
+        });
+
+        it('every docked/shipyard-tier protocol stays single-mode (no `modes` property)', () => {
+            const singleModeProtocols = Object.values(repairProtocols).filter((p) => p.tier !== 'field');
+            expect(singleModeProtocols.length).to.be.greaterThan(0);
+            for (const protocol of singleModeProtocols) {
+                expect('modes' in protocol, `${protocol.name} should not declare modes`).to.equal(false);
+            }
+        });
+    });
+
+    describe('R3: every @defectible field on a repairable system is targeted by some protocol (issue #2255)', () => {
+        it('has no uncovered defectible fields on the dragonfly (which fits every system this catalog could reference)', () => {
+            const state = makeShipState('test-ship', demoShip);
+            const uncovered = findUncoveredDefectibleFields(state, repairProtocols);
+            expect(uncovered).to.deep.equal([]);
+        });
+
+        it('reports an uncovered field when a catalog omits it', () => {
+            const state = makeShipState('test-ship', demoShip);
+            const catalogMissingOneField: Record<string, RepairProtocolStats> = Object.fromEntries(
+                Object.entries(repairProtocols).filter(([id]) => id !== 'radarTraverseServoAlignment'),
+            );
+            const uncovered = findUncoveredDefectibleFields(state, catalogMissingOneField);
+            expect(uncovered).to.deep.include({ system: 'radars', field: 'turnSpeedFactor' });
+        });
+    });
+
     describe('isProtocolAvailable / getAvailableRepairProtocols', () => {
         const noChainGunTarget: RepairProtocolStats = {
             name: 'Needs a chain gun',
             targets: [{ system: 'chainGuns', field: 'bearingSkew' }],
-            duration: 10,
-            energyDraw: 1,
-            heat: 0,
-            sideEffectSystems: [],
+            modes: {
+                [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+            },
             tier: 'field',
         };
         const noChainGunSideEffect: RepairProtocolStats = {
             name: 'Side-effects a chain gun',
             targets: [{ system: 'reactor', field: 'effeciencyFactor' }],
-            duration: 10,
-            energyDraw: 1,
-            heat: 0,
-            sideEffectSystems: ['chainGuns'],
+            modes: {
+                [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: ['chainGuns'] },
+            },
             tier: 'field',
         };
         const needsOnlyReactor: RepairProtocolStats = {
             name: 'Reactor only',
             targets: [{ system: 'reactor', field: 'effeciencyFactor' }],
-            duration: 10,
-            energyDraw: 1,
-            heat: 0,
-            sideEffectSystems: [],
+            modes: {
+                [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+            },
             tier: 'field',
         };
 

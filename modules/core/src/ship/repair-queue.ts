@@ -18,6 +18,18 @@ export enum RepairPriority {
 }
 
 /**
+ * A field-tier protocol's chosen mode (issue #2255, R1) — player-set, same as priority, but
+ * toggled independently of it via a dedicated gesture rather than folded into the priority ladder
+ * (see `ToggleRepairProtocolModeArg` / `getRepairProtocolModeHotkey`). Meaningless for a
+ * docked/shipyard-tier slot (single-mode, see `SingleModeRepairProtocolStats`) — `RepairManager`
+ * refuses to toggle those, and `getModeStats` ignores `mode` for them.
+ */
+export enum RepairProtocolMode {
+    Responsive,
+    Dark,
+}
+
+/**
  * A system's `power` before a protocol's declared side effect forced it to 0, so it can be
  * restored on completion/cancellation. `@gameField` (not a plain server-only field) so it survives
  * `Schema.clone()` — an NPC<->PC conversion mid-run must still be able to revert the side effect via
@@ -38,6 +50,14 @@ export class RepairProtocolSlot extends Schema {
     @gameField('string') protocolId = '';
 
     @gameField('int8') priority: RepairPriority = RepairPriority.OFF;
+
+    /**
+     * Which mode this slot will run in the next time it's promoted to RUNNING — Responsive by
+     * default (today's duration, no side effect: the safe choice a crew gets without opting into
+     * anything). Locked for the duration of a RUNNING/CANCELLING run (`RepairManager` refuses a
+     * toggle then) so the price a run started at is the price it finishes at.
+     */
+    @gameField('int8') mode: RepairProtocolMode = RepairProtocolMode.Responsive;
 
     @range([0, 1])
     @gameField('float32')
@@ -87,6 +107,16 @@ export function isCycleRepairPriorityArg(value: unknown): value is CycleRepairPr
     );
 }
 
+/** Flips a field-tier slot's `mode` between Responsive and Dark — see `RepairProtocolMode`. */
+export type ToggleRepairProtocolModeArg = { protocolId: string };
+
+/** Same defensive shape as `isCycleRepairPriorityArg` — a malformed payload degrades to a no-op. */
+export function isToggleRepairProtocolModeArg(value: unknown): value is ToggleRepairProtocolModeArg {
+    return (
+        !!value && typeof value === 'object' && typeof (value as ToggleRepairProtocolModeArg).protocolId === 'string'
+    );
+}
+
 /**
  * Server-authoritative per-protocol repair priority state (issue #2247): one {@link RepairProtocolSlot}
  * per catalog protocol, populated once by `RepairManager`'s constructor. Clients send priority changes
@@ -100,4 +130,7 @@ export class RepairQueue extends Schema {
 
     // server only, used for commands
     public cyclePriorityCommands = Array.of<CycleRepairPriorityArg>();
+
+    // server only, used for commands
+    public toggleModeCommands = Array.of<ToggleRepairProtocolModeArg>();
 }
