@@ -2,11 +2,13 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { EVENTS_EXT, RecordedEvent } from './headless-recorder';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import { T0_PLAY_DEAD_DRAGONFLY, runTraining } from './training/training-scenarios';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT0Map } from '../scenarios/training';
 import { parseFrameLine, parseHeader } from '../recording/recording-format';
 
+import { RECORDING_EXT } from '../recording/game-recorder';
 import { SavedGame } from '../serialization/game-state-protocol';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
@@ -26,6 +28,17 @@ describe('HeadlessRecorder', () => {
         expect(header).toMatchObject({ mapName: 'training_t0', seed: 1, params: result.params, hz: SERVER_TICK_HZ });
         const frames = frameLines.map((line) => parseFrameLine(line)!);
         expect(frames.length).toBe(result.frames);
+
+        // isFiring edges land at tick resolution, between 1 s frames, alternating start/stop per mount.
+        const events = fs
+            .readFileSync(result.recording!.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
+            .trim()
+            .split('\n')
+            .map((line) => JSON.parse(line) as RecordedEvent);
+        const gvtsFire = events.filter((e) => e.objectId === TRAINING_PLAYER_ID && e.mount === 0);
+        expect(gvtsFire[0]?.kind).toBe('fire_start');
+        gvtsFire.forEach((e, i) => expect(e.kind).toBe(i % 2 ? 'fire_stop' : 'fire_start'));
+        expect(gvtsFire.some((e) => Math.abs(e.t - Math.round(e.t)) > 1 / SERVER_TICK_HZ / 2)).toBe(true);
 
         const branch = frames.find((f) => f.t >= 10)!;
         const end = frames.find((f) => f.t >= 15)!;

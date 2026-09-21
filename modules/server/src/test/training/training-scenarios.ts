@@ -1,4 +1,5 @@
-import { GameMap, XY, isTargetInKillZone } from '@starwards/core/internal';
+import { GameMap, XY } from '@starwards/core/internal';
+import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT0Map } from '../../scenarios/training';
 
@@ -94,10 +95,7 @@ export async function runTraining<P>(
     const dt = 1 / hz;
     let armorStrippedAt: number | null = null;
     let secondsFiring = 0;
-    let inRangeTicks = 0;
-    let killZoneTicks = 0;
-    let liveTicks = 0;
-    const [gun] = gvts.state.chainGuns;
+    const gunnery: GunnerySample[] = [];
     let targetHealth = 1;
     let targetDrift = 0;
     let killed = false;
@@ -121,15 +119,10 @@ export async function runTraining<P>(
         if (gvts.state.chainGuns.some((g) => g.isFiring)) {
             secondsFiring += dt;
         }
-        const gvtsPosition = game.api.getObject(TRAINING_PLAYER_ID)?.position ?? XY.zero;
-        if (XY.distance(target.position, gvtsPosition) <= gun.design.maxShellRange) {
-            inRangeTicks++;
-        }
         const targetObject = game.spaceManager.state.get(TRAINING_TARGET_ID);
-        if (targetObject && isTargetInKillZone(gvts.state, gun, targetObject)) {
-            killZoneTicks++;
+        if (targetObject) {
+            gunnery.push(sampleGunnery(gvts.state, targetObject));
         }
-        liveTicks++;
         targetDrift = XY.distance(target.position, targetStart);
     }
     await recorder?.capture(true);
@@ -143,8 +136,7 @@ export async function runTraining<P>(
         targetHealth,
         shellsFired: startShells - shells(),
         secondsFiring,
-        inRangeFraction: liveTicks ? inRangeTicks / liveTicks : NaN,
-        killZoneFraction: liveTicks ? killZoneTicks / liveTicks : NaN,
+        ...gunneryFractions(gunnery),
         targetDrift,
         gvtsSpeed: XY.lengthOf(game.api.getObject(TRAINING_PLAYER_ID)?.velocity ?? XY.zero),
         hz,
