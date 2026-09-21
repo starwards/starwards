@@ -71,8 +71,11 @@ export const shipInputConfig = {
     target: new GamepadButtonConfig(0, 2),
     clearTarget: new GamepadButtonConfig(0, 0),
     afterBurner: new GamepadButtonConfig(0, 6),
+    afterBurnerKey: 'b',
     antiDrift: new GamepadButtonConfig(0, 7),
+    antiDriftKey: 'v',
     breaks: new GamepadButtonConfig(0, 5),
+    breaksKey: 'c',
     rotationMode: new GamepadButtonConfig(0, 10),
     rotationModeKey: 'n',
     maneuveringMode: new GamepadButtonConfig(0, 11),
@@ -96,6 +99,7 @@ export const shipInputConfig = {
         offsetKeys: new KeysRangeConfig('.', ',', '/', 0.05),
     },
     resetRotatioTargetOffset: new GamepadButtonConfig(0, 14),
+    resetRotatioTargetOffsetKey: 'g',
     // direction and arc are absolute settings, so they are stepped from wherever they currently
     // are — an analog axis would instead drive them from zero, which is what `offSetonly` avoids
     radarDirection: {
