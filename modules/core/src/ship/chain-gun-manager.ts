@@ -1,5 +1,14 @@
 import { Die, EnergySource, HeatSink } from './ship-manager-abstract';
-import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, ammoDesigns, ammoTypes } from '../space';
+import {
+    Faction,
+    Projectile,
+    ScanLevel,
+    SpaceObject,
+    Spaceship,
+    ammoDesigns,
+    ammoTypes,
+    clusterWarheadModes,
+} from '../space';
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 
@@ -142,10 +151,22 @@ export class ChainGunManager implements Updateable {
         if (chainGun.changeProjectileCommand) {
             chainGun.changeProjectileCommand = false;
             const enabledAmmo = new Iterator(ammoTypes).filter((p) => chainGun.design.isAmmoEnabled(p));
-            if (chainGun.projectile === 'None') {
-                chainGun.projectile = enabledAmmo.firstOr('None');
+            const lastWarheadMode = clusterWarheadModes[clusterWarheadModes.length - 1];
+            if (
+                chainGun.projectile === 'ClusterMissile' &&
+                chainGun.design.isAmmoEnabled('ClusterMissile') &&
+                chainGun.clusterWarhead !== lastWarheadMode
+            ) {
+                // cluster munitions carry multiple selectable warheads: the cycle visits each one
+                // as its own stop before moving on to the next ammo type
+                chainGun.clusterWarhead =
+                    clusterWarheadModes[clusterWarheadModes.indexOf(chainGun.clusterWarhead) + 1] ?? lastWarheadMode;
             } else {
-                chainGun.projectile = enabledAmmo.elementAfter(chainGun.projectile);
+                chainGun.projectile =
+                    chainGun.projectile === 'None'
+                        ? enabledAmmo.firstOr('None')
+                        : enabledAmmo.elementAfter(chainGun.projectile);
+                chainGun.clusterWarhead = clusterWarheadModes[0];
             }
         }
         if (!chainGun.effectiveness) {

@@ -7,6 +7,7 @@ import {
     SpaceManager,
     Spaceship,
     ammoTypes,
+    clusterWarheadModes,
     makeShipState,
     shipConfigurations,
 } from '../src';
@@ -181,6 +182,62 @@ describe('ChainGunManager', () => {
             switchToAvailableAmmo(chainGun, magazine);
 
             expect(chainGun.projectile).to.equal('HiExpShell');
+        });
+    });
+
+    describe('changeProjectileCommand — cluster warhead cycling', () => {
+        it('cycling onto ClusterMissile visits every warhead mode before advancing to the next ammo type', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const tube = shipMgr.state.tubes[0];
+            // demo-ship tube ammo order: HiExpMissile, ArmPenMissile, FragMissile, ClusterMissile, TandemMissile, ElecMissile
+            tube.projectile = 'FragMissile';
+
+            const cycle = () => {
+                tube.changeProjectileCommand = true;
+                shipMgr.update([...makeIterationsData(0.001, 1)][0]);
+            };
+
+            cycle();
+            expect(tube.projectile).to.equal('ClusterMissile');
+            expect(tube.clusterWarhead).to.equal(clusterWarheadModes[0]);
+
+            cycle();
+            expect(tube.projectile).to.equal('ClusterMissile');
+            expect(tube.clusterWarhead).to.equal(clusterWarheadModes[1]);
+
+            cycle();
+            expect(tube.projectile).to.equal('TandemMissile');
+            expect(tube.clusterWarhead).to.equal(clusterWarheadModes[0]);
+        });
+
+        it('moves off ClusterMissile immediately if it stops being enabled mid-warhead-cycle', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const tube = shipMgr.state.tubes[0];
+            tube.projectile = 'ClusterMissile';
+            tube.clusterWarhead = clusterWarheadModes[0];
+            tube.design.use_ClusterMissile = false;
+
+            shipMgr.update([...makeIterationsData(0.001, 1)][0]);
+
+            expect(tube.projectile).to.not.equal('ClusterMissile');
         });
     });
 
