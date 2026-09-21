@@ -72,6 +72,11 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         'Reset Rotation Offset',
     );
     input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/smartPilot/rotationTargetOffset')),
+        shipInputConfig.resetRotatioTargetOffsetKey,
+        'Reset Rotation Offset',
+    );
+    input.addMomentaryClickAction(
         writeProp(shipDriver, '/rotationModeCommand'),
         new GamepadButtonConfig(0, 10),
         'Rotation Mode',
@@ -97,8 +102,18 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         'After Burner',
     );
     input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/afterBurnerCommand')),
+        shipInputConfig.afterBurnerKey,
+        'After Burner',
+    );
+    input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/antiDrift')),
         new GamepadButtonConfig(0, 7),
+        'Anti Drift',
+    );
+    input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/antiDrift')),
+        shipInputConfig.antiDriftKey,
         'Anti Drift',
     );
     input.addMomentaryClickAction(
@@ -106,6 +121,7 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         new GamepadButtonConfig(0, 5),
         'Breaks',
     );
+    input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/breaks')), shipInputConfig.breaksKey, 'Breaks');
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelUpCommand'), 'r', 'Warp Up');
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelDownCommand'), 'f', 'Warp Down');
     input.addMomentaryClickAction(writeProp(shipDriver, '/docking/toggleCommand'), 'z', 'Toggle Dock');

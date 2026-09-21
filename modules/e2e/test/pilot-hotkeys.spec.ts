@@ -5,9 +5,6 @@
  * the expected server-side state changes via the JSON Pointer command
  * surface. Each test proves both that the browser input wiring fires
  * and that the server's @commandable whitelist admits the write.
- *
- * Gamepad-only inputs (antiDrift, breaks, afterBurner, etc.) are not
- * covered here — Playwright cannot simulate gamepad input reliably.
  */
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { makeDriver, waitForShipCondition } from './driver';
@@ -133,6 +130,68 @@ test.describe('Pilot hotkeys', () => {
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
             (ship) => ship.state.smartPilot.maneuveringMode !== initial,
+            3000,
+        );
+    });
+
+    // --- Previously gamepad-only momentary controls (see #2260) ---
+
+    test('b key: afterBurnerCommand admitted while held, clears on release', async ({ page }) => {
+        await page.keyboard.down('b');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.afterBurnerCommand === 1,
+            3000,
+        );
+        await page.keyboard.up('b');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.afterBurnerCommand === 0,
+            3000,
+        );
+    });
+
+    test('v key: antiDrift admitted while held, clears on release', async ({ page }) => {
+        await page.keyboard.down('v');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.antiDrift === 1,
+            3000,
+        );
+        await page.keyboard.up('v');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.antiDrift === 0,
+            3000,
+        );
+    });
+
+    test('c key: breaks admitted while held, clears on release', async ({ page }) => {
+        await page.keyboard.down('c');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.breaks === 1,
+            3000,
+        );
+        await page.keyboard.up('c');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.breaks === 0,
+            3000,
+        );
+    });
+
+    test('g key: reset rotation offset admitted while held, clears on release', async ({ page }) => {
+        await page.keyboard.down('g');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.smartPilot.rotationTargetOffset === 1,
+            3000,
+        );
+        await page.keyboard.up('g');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.smartPilot.rotationTargetOffset === 0,
             3000,
         );
     });

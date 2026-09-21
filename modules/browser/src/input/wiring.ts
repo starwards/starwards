@@ -63,6 +63,11 @@ export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
         'Reset Rotation Offset',
     );
     input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/smartPilot/rotationTargetOffset')),
+        shipInputConfig.resetRotatioTargetOffsetKey,
+        'Reset Rotation Offset',
+    );
+    input.addMomentaryClickAction(
         writeProp(shipDriver, '/rotationModeCommand'),
         shipInputConfig.rotationMode,
         'Rotation Mode',
@@ -88,11 +93,22 @@ export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
         'After Burner',
     );
     input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/afterBurnerCommand')),
+        shipInputConfig.afterBurnerKey,
+        'After Burner',
+    );
+    input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/antiDrift')),
         shipInputConfig.antiDrift,
         'Anti Drift',
     );
+    input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/antiDrift')),
+        shipInputConfig.antiDriftKey,
+        'Anti Drift',
+    );
     input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/breaks')), shipInputConfig.breaks, 'Breaks');
+    input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/breaks')), shipInputConfig.breaksKey, 'Breaks');
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelUpCommand'), shipInputConfig.warpUp, 'Warp Up');
     input.addMomentaryClickAction(
         writeProp(shipDriver, '/warp/levelDownCommand'),
