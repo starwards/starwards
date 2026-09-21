@@ -45,7 +45,9 @@ describe('waveBudget', () => {
     // 60). The formula is the named, load-bearing rule -- it is what governs budgets past wave 10
     // -- so this test pins waveBudget to Math.ceil(n ** 1.3 * 10) exactly, not the example table.
     it('matches Math.ceil(n ** 1.3 * 10) for waves 1-10', () => {
-        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(waveBudget)).toEqual([10, 25, 42, 61, 82, 103, 126, 150, 174, 200]);
+        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => waveBudget(n))).toEqual([
+            10, 25, 42, 61, 82, 103, 126, 150, 174, 200,
+        ]);
     });
 });
 
