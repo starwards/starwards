@@ -239,6 +239,87 @@ test.describe('Signals Screen', () => {
         expect(gameDriver.getShip(shipId).state.signals.jobs.some((j) => j.id === active.id)).toBe(true);
     });
 
+    // --- Keyboard bindings: prioritize / cancel / pause-all jobs (issue #2262) ---
+
+    test('p key: prioritizes the job for the radar-selected target', async ({ page }) => {
+        await waitForRadarReady(page);
+        gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push({
+            position: { x: 1000, y: 0 },
+            radius: 50,
+        });
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs.length > 0,
+            5000,
+        );
+        expect(gameDriver.getShip(shipId).state.signals.jobs[0].prioritized).toBe(false);
+
+        await expect(async () => {
+            await page.keyboard.press(']');
+            expect(await getPropertyValue(page, 'Distance', 'Target')).not.toEqual('—');
+        }).toPass({ timeout: 10_000 });
+
+        await page.keyboard.press('p');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs[0]?.prioritized === true,
+            3000,
+        );
+    });
+
+    test('x key: cancels the job for the radar-selected target', async ({ page }) => {
+        await waitForRadarReady(page);
+        gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push({
+            position: { x: 1000, y: 0 },
+            radius: 50,
+        });
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs.length > 0,
+            5000,
+        );
+        const jobBefore = gameDriver.getShip(shipId).state.signals.jobs[0];
+
+        await expect(async () => {
+            await page.keyboard.press(']');
+            expect(await getPropertyValue(page, 'Distance', 'Target')).not.toEqual('—');
+        }).toPass({ timeout: 10_000 });
+
+        await page.keyboard.press('x');
+        // the target stays visible, so a fresh job for it re-queues right behind the cancelled
+        // one (see signals-job-manager's updateScanJobs) — assert the cancelled job's own id is
+        // gone, not that the queue is empty
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => !ship.state.signals.jobs.some((j) => j.id === jobBefore.id),
+            3000,
+        );
+    });
+
+    test('hotkey help lists the new job-queue bindings', async ({ page }) => {
+        await waitForRadarReady(page);
+
+        await page.keyboard.press(' ');
+        const modal = page.locator('#hotkey-help-root');
+        await expect(modal.getByText('Prioritize Job')).toBeVisible();
+        await expect(modal.getByText('Cancel Job')).toBeVisible();
+        await expect(modal.getByText('Pause All Jobs')).toBeVisible();
+
+        await page.screenshot({ path: 'test-results/screenshots/signals-hotkey-help.png' });
+    });
+
+    test('z key: toggles pause-all via /signals/jobsPaused', async ({ page }) => {
+        await waitForRadarReady(page);
+
+        expect(gameDriver.getShip(shipId).state.signals.jobsPaused).toBe(false);
+        await page.keyboard.press('z');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobsPaused,
+            3000,
+        );
+    });
+
     test('paused toggle halts job progress via /signals/jobsPaused', async ({ page }) => {
         const panel = page.locator('[data-id="Signals Jobs"]');
         await expect(panel).toBeVisible({ timeout: 10000 });

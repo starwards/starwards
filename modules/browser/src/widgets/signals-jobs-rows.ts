@@ -11,6 +11,12 @@ export type JobView = Pick<SignalsJob, 'id' | 'targetId' | 'status' | 'progress'
  * were cut off, and how many jobs are dormant. A dormant job is one the station will skip, so it
  * is never listed as a row — only counted, so the operator isn't misled about what is next.
  */
+/** The job (if any) currently targeting `targetId` — the same lookup the Prioritize button and
+ * the keyboard bindings for prioritize/cancel use to turn a radar selection into a job. */
+export function findJobForTarget(source: Iterable<JobView>, targetId: string | undefined): JobView | undefined {
+    return targetId ? [...source].find((job) => job.targetId === targetId) : undefined;
+}
+
 export function visibleJobRows(source: Iterable<JobView>) {
     const jobs = [...source];
     const activeIndex = jobs.findIndex((job) => job.status === JobStatus.IN_PROGRESS);
