@@ -59,8 +59,8 @@ describe('starwards mcp server', () => {
             prompt?: string;
         }[];
         const names = stations.map((s) => s.station);
-        expect(names).toEqual(expect.arrayContaining(['pilot', 'weapons', 'engineer', 'signals']));
-        expect(stations.find((s) => s.station === 'pilot')?.prompt).toBeTruthy();
+        expect(names).toEqual(expect.arrayContaining(['helms', 'weapons', 'engineer', 'signals']));
+        expect(stations.find((s) => s.station === 'helms')?.prompt).toBeTruthy();
     });
 
     it('does not offer the game master seat by default', async () => {
@@ -76,32 +76,32 @@ describe('starwards mcp server', () => {
     });
 
     it('registers the seat in the station registry on login, as mcp-<station>', async () => {
-        payload(await call('login', { shipId: test_map_1.testShipId, station: 'pilot' }));
+        payload(await call('login', { shipId: test_map_1.testShipId, station: 'helms' }));
         await waitFor(() => {
             // the server normalizes every station id to upper-case (issue #2131 review), so a
-            // browser id ("MY-TABLET") and an MCP one ("mcp-pilot") key the same entry space.
-            expect(gameDriver.gameManager.state.stations.get('MCP-PILOT')).toMatchObject({
+            // browser id ("MY-TABLET") and an MCP one ("mcp-helms") key the same entry space.
+            expect(gameDriver.gameManager.state.stations.get('MCP-HELMS')).toMatchObject({
                 connected: true,
-                stationType: 'pilot',
+                stationType: 'helms',
                 shipId: test_map_1.testShipId,
             });
         }, 3_000);
     });
 
     it('registers under a caller-supplied stationId instead, when given one', async () => {
-        payload(await call('login', { shipId: test_map_1.testShipId, station: 'pilot', stationId: 'my-tablet' }));
+        payload(await call('login', { shipId: test_map_1.testShipId, station: 'helms', stationId: 'my-tablet' }));
         await waitFor(() => {
             expect(gameDriver.gameManager.state.stations.get('MY-TABLET')).toMatchObject({
                 connected: true,
-                stationType: 'pilot',
+                stationType: 'helms',
                 shipId: test_map_1.testShipId,
             });
         }, 3_000);
     });
 
-    describe('logged in as pilot', () => {
+    describe('logged in as helms', () => {
         beforeEach(async () => {
-            payload(await call('login', { shipId: test_map_1.testShipId, station: 'pilot' }));
+            payload(await call('login', { shipId: test_map_1.testShipId, station: 'helms' }));
         });
 
         it('reports the capabilities of the seat', async () => {
@@ -109,7 +109,7 @@ describe('starwards mcp server', () => {
                 station: string;
                 commands: { command: string; range?: [number, number] }[];
             };
-            expect(caps.station).toBe('pilot');
+            expect(caps.station).toBe('helms');
             const rotation = caps.commands.find((c) => c.command === 'rotation');
             expect(rotation?.range).toEqual([-1, 1]);
         });
@@ -137,7 +137,7 @@ describe('starwards mcp server', () => {
         });
 
         it('reads its own panels', async () => {
-            const stats = payload(await call('get_ship_status', { widget: 'pilot-stats' })) as { energy: number };
+            const stats = payload(await call('get_ship_status', { widget: 'helms-stats' })) as { energy: number };
             expect(typeof stats.energy).toBe('number');
         });
 
@@ -171,7 +171,7 @@ describe('starwards mcp server', () => {
     describe('a station denied a widget/command it does not hold', () => {
         it('can see nothing and do nothing outside its seat', async () => {
             // the manifest is the server's, so this exercises the deny-by-default path through a real
-            // seat: the engineer station holds no radar and no pilot commands
+            // seat: the engineer station holds no radar and no helms commands
             payload(await call('login', { shipId: test_map_1.testShipId, station: 'engineer' }));
             expect(refusal(await call('get_radar_contacts'))).toContain('no radar');
             expect(refusal(await call('execute_command', { command: 'rotation', value: 0.5 }))).toContain(

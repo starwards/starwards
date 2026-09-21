@@ -27,20 +27,20 @@ const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
 
 type Props = { range: number };
-export function pilotRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
+export function helmsRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
     return {
-        name: 'pilot radar',
+        name: 'helms radar',
         type: 'component',
         component: class {
             constructor(container: WidgetContainer, _p: Props) {
-                void drawPilotRadar(spaceDriver, shipDriver, container);
+                void drawHelmsRadar(spaceDriver, shipDriver, container);
             }
         },
         defaultProps: { range: 5000 },
     };
 }
 
-export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
+export async function drawHelmsRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
     const warpLevelProp = readProp<number>(shipDriver, '/warp/currentLevel');
     const isWarpProp = aggregate([warpLevelProp], () => {
         const warpLevel = warpLevelProp.getValue();
@@ -51,7 +51,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     const root = new CameraView(camera);
 
     await root.initialize({ backgroundColor: radarFogOfWar }, container);
-    root.canvas.setAttribute('data-id', 'Pilot Radar');
+    root.canvas.setAttribute('data-id', 'Helms Radar');
 
     const overallMask = new Graphics();
     root.stage.addChild(overallMask);

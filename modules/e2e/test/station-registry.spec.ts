@@ -54,11 +54,11 @@ test.describe('Station registry', () => {
         // targets. No `?ship=` on either: identity resolution alone is under test here.
         const pageA = await context.newPage();
         setupPageErrorHandlers(pageA);
-        await navigateToScreen(pageA, '/pilot.html', { baseURL: gameDriver.baseURL });
+        await navigateToScreen(pageA, '/helms.html', { baseURL: gameDriver.baseURL });
 
         const pageB = await context.newPage();
         setupPageErrorHandlers(pageB);
-        await navigateToScreen(pageB, '/pilot.html', { baseURL: gameDriver.baseURL });
+        await navigateToScreen(pageB, '/helms.html', { baseURL: gameDriver.baseURL });
 
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
         const roster = page.locator('[data-id="Station Roster"]');
@@ -76,22 +76,22 @@ test.describe('Station registry', () => {
     });
 
     test('GM roster shows a station bound to its self-assigned ship', async ({ page, browser }) => {
-        const pilotContext = await browser.newContext();
-        const pilotPage = await pilotContext.newPage();
-        setupPageErrorHandlers(pilotPage);
-        await navigateToScreen(pilotPage, '/pilot.html?ship=GVTS', {
+        const helmsContext = await browser.newContext();
+        const helmsPage = await helmsContext.newPage();
+        setupPageErrorHandlers(helmsPage);
+        await navigateToScreen(helmsPage, '/helms.html?ship=GVTS', {
             baseURL: gameDriver.baseURL,
         });
-        await expect(pilotPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        await expect(helmsPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
 
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
-        await expect(roster).toContainText('pilot');
+        await expect(roster).toContainText('helms');
         await expect(roster).toContainText('GVTS');
 
         await page.screenshot({ path: 'test-results/station-registry-gm-roster.png' });
-        await pilotContext.close();
+        await helmsContext.close();
     });
 });
 
@@ -139,9 +139,9 @@ test.describe('GM station assignment', () => {
         await expect(row).toBeVisible({ timeout: 10000 });
 
         await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
-        await row.locator('[data-id="Station Roster Type"]').selectOption('pilot');
+        await row.locator('[data-id="Station Roster Type"]').selectOption('helms');
 
-        await expect(stationPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
         await expect
             .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
             .toBe('GVTS');
@@ -151,7 +151,7 @@ test.describe('GM station assignment', () => {
         await expect
             .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
             .toBe('GVTS2');
-        await expect(stationPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
 
         await stationContext.close();
     });
@@ -178,8 +178,8 @@ test.describe('GM station assignment', () => {
         const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
         await expect(row).toBeVisible({ timeout: 10000 });
         await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
-        await row.locator('[data-id="Station Roster Type"]').selectOption('pilot');
-        await expect(stationPage.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        await row.locator('[data-id="Station Roster Type"]').selectOption('helms');
+        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
 
         await gameDriver.gameManager.stopGame();
 
@@ -191,7 +191,7 @@ test.describe('GM station assignment', () => {
             timeout: 10000,
         });
         await expect(stationPage.locator('[data-id="lobby-breakout"]')).toHaveCount(0);
-        expect(gameDriver.gameManager.state.stations.get(stationId!)?.stationType).toBe('pilot');
+        expect(gameDriver.gameManager.state.stations.get(stationId!)?.stationType).toBe('helms');
 
         await stationContext.close();
         await gameDriver.gameManager.startGame(two_vs_one);

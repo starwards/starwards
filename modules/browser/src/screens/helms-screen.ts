@@ -7,30 +7,30 @@ import { readWriteNumberProp, writeProp } from '../property-wrappers';
 
 import { drawArmorStatus } from '../widgets/armor';
 import { drawDockingStatus } from '../widgets/docking';
-import { drawPilotRadar } from '../widgets/pilot-radar';
-import { drawPilotStats } from '../widgets/pilot';
+import { drawHelmsRadar } from '../widgets/helms-radar';
+import { drawHelmsStats } from '../widgets/helms';
 import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
-import { isPilotSystem } from './station-system-filters';
+import { isHelmsSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
-export async function initPilotScreen(
+export async function initHelmsScreen(
     driver: Driver,
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
-    await drawPilotRadar(spaceDriver, shipDriver, container);
+    await drawHelmsRadar(spaceDriver, shipDriver, container);
     await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     const teardownInput = wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
-        shipDriver.systems.filter((s) => isPilotSystem(s.pointer)),
+        shipDriver.systems.filter((s) => isHelmsSystem(s.pointer)),
     );
-    drawPilotStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
+    drawHelmsStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     if (shipDriver.state.warp) {
         drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
     }

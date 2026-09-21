@@ -19,10 +19,10 @@ import { gameControlsWidget } from '../widgets/game-controls';
 import { gameSetupWidget } from '../widgets/game-setup';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
+import { helmsRadarWidget } from '../widgets/helms-radar';
+import { helmsWidget } from '../widgets/helms';
 import { longRangeRadarWidget } from '../widgets/long-range-radar';
 import { monitorWidget } from '../widgets/monitor';
-import { pilotRadarWidget } from '../widgets/pilot-radar';
-import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { repairQueueWidget } from '../widgets/repair-queue';
 
@@ -175,8 +175,8 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
             if (cancelled) break;
             dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, shipId + ' radar');
             dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
-            dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, shipId + ' pilot radar');
-            dashboard.registerWidget(pilotWidget(shipDriver), {}, shipId + ' helm');
+            dashboard.registerWidget(helmsRadarWidget(spaceDriver, shipDriver), {}, shipId + ' helms radar');
+            dashboard.registerWidget(helmsWidget(shipDriver), {}, shipId + ' helm');
             dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
             dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, shipId + ' design state');
             dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, shipId + ' target radar');

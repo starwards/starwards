@@ -1,7 +1,7 @@
 /**
- * Pilot screen keyboard hotkey integration tests.
+ * Helms screen keyboard hotkey integration tests.
  *
- * These tests verify that keyboard inputs on the pilot screen produce
+ * These tests verify that keyboard inputs on the helms screen produce
  * the expected server-side state changes via the JSON Pointer command
  * surface. Each test proves both that the browser input wiring fires
  * and that the server's @commandable whitelist admits the write.
@@ -16,11 +16,11 @@ const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
-test.describe('Pilot hotkeys', () => {
+test.describe('Helms hotkeys', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
-        await navigateToScreen(page, `/pilot.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         // Ensure the page has received the ship state before pressing keys
         await page.waitForTimeout(500);
     });

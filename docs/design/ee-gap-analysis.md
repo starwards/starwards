@@ -12,8 +12,8 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Weapons | Weapons | Done | Three engagement circles vs EE's beam weapons |
 | Engineering | Engineer | Done | Same power/heat/coolant concept, different UI |
 | Science | Signals | Partial | Scan levels + signals jobs replace EE's scan/probe |
-| Relay/Comms | Relay | Designed | Route coordination + probes replace EE's hail system |
-| — | Navigator | Designed | No EE equivalent; new station for warp topology |
+| Relay/Comms | Dradis screen (Relay officer in long games; SIGINT in a short bridge game) | Designed | Route coordination + probes replace EE's hail system |
+| — | Astrogator | Designed | No EE equivalent; off-bridge, long-games-only, post-event role for warp topology (formerly called Navigator) |
 | Main Screen | — | Skip | 2D radar views replace 3D camera; deliberate choice |
 | Single Pilot | — | Planned | Combined controls for solo operation |
 | Tactical (Helm+Weapons) | — | Planned | Combined station for smaller crews |
@@ -21,7 +21,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Damage Control | Part of Engineer | Done | Engineering handles damage in Starwards |
 | Power Management | Part of Engineer | Done | Integrated into engineering station |
 | Drone Pilot | — | Skip | No drone system; fighters are NPC-only |
-| Dock Master | Part of GM/Relay | Designed | Docking controlled by pilot + GM |
+| Dock Master | Part of GM/Dradis | Designed | Docking controlled by pilot + GM |
 
 ## Weapons & Combat
 
@@ -58,7 +58,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | EE Feature | Starwards | Status | Notes |
 |-----------|-----------|--------|-------|
 | Science scanning (10s charge) | Scan levels (15-60s) | Done | 3-tier vs EE's 2-tier; slower, more meaningful |
-| Scan probes | Probes (Relay) | Designed | Mobile sensors extending vision |
+| Scan probes | Probes (Dradis) | Designed | Mobile sensors extending vision |
 | Science database | — | Planned | Ship/object reference data |
 | Full spectrum scan | — | Skip | Scan levels provide sufficient depth |
 | — | Hack jobs | Planned | No EE equivalent; active cyber warfare ([#1899](https://github.com/starwards/starwards/issues/1899)) |
@@ -71,7 +71,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Waypoints | Waypoints | Done | Layer-based toggle system |
 | Sector naming | — | Planned | Position-based region identification |
 | Terrain (alpha channel) | — | Skip | Warp topology replaces terrain constraints |
-| Navigation screen | Navigator station | Designed | Dedicated station vs EE's shared screen |
+| Navigation screen | Astrogator station | Designed | Dedicated off-bridge role vs EE's shared screen |
 | — | Warp frequency topology | Designed | No EE equivalent; 10-frequency efficiency zones |
 
 ## GM & Scenario
@@ -116,7 +116,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 **Starwards advantages over EE:**
 - Newtonian physics, sectional armor, malfunction-over-destruction
 - Customizable widget-based station screens
-- Dedicated Navigator station with warp topology (novel gameplay)
+- Dedicated Astrogator role with warp topology (novel gameplay)
 - Cyber warfare via Signals station (hack/track)
 - IoT integration via Node-RED
 - Purpose-built for LARP (hours-long play, GM narrative control)

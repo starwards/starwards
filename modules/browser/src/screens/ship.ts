@@ -14,10 +14,10 @@ import { dockingWidget } from '../widgets/docking';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
 import { gunWidget } from '../widgets/gun';
+import { helmsRadarWidget } from '../widgets/helms-radar';
+import { helmsWidget } from '../widgets/helms';
 import { longRangeRadarWidget } from '../widgets/long-range-radar';
 import { monitorWidget } from '../widgets/monitor';
-import { pilotRadarWidget } from '../widgets/pilot-radar';
-import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
@@ -68,9 +68,9 @@ async function initScreen(
 
     dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, 'radar');
     dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, 'tactical radar');
-    dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, 'pilot radar');
+    dashboard.registerWidget(helmsRadarWidget(spaceDriver, shipDriver), {}, 'helms radar');
     dashboard.registerWidget(longRangeRadarWidget(spaceDriver, shipDriver), {}, 'long range radar');
-    dashboard.registerWidget(pilotWidget(shipDriver), {}, 'helm');
+    dashboard.registerWidget(helmsWidget(shipDriver), {}, 'helm');
     dashboard.registerWidget(gunWidget(shipDriver), {}, 'gun');
     dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, 'design state');
     dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, 'target radar');

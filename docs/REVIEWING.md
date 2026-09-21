@@ -34,8 +34,8 @@ The lobby is the game's home page.
   "Connect other devices" panel shows a QR code — scan it from another
   device to open a station there.
 
-Station pages: **GM screen** (runs the scenario), **Pilot**, **Weapons**,
-**Engineer**, **Signals**, **Relay**.
+Station pages: **GM screen** (runs the scenario), **Pilot** (Helms screen),
+**Weapons**, **Engineer**, **Signals**, **Dradis** (Relay screen).
 
 For a meaningful solo run, open two browser tabs: the **GM screen** in one,
 and a crew station (e.g. **Pilot**) in the other.

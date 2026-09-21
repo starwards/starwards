@@ -24,10 +24,10 @@ const scenes = [
     'gm-radar-empty',
     'gm-radar-ships',
     'gm-radar-mixed',
-    // Pilot
-    'pilot-dashboard-stationary',
-    'pilot-dashboard-moving',
-    'pilot-dashboard-target-mode',
+    // Helms
+    'helms-dashboard-stationary',
+    'helms-dashboard-moving',
+    'helms-dashboard-target-mode',
     // Tactical Radar
     'tactical-radar-empty',
     'tactical-radar-single-ship',
@@ -147,8 +147,8 @@ test.describe('Visual Gallery', () => {
     });
 
     test('page title reflects the loaded scene', async ({ page }) => {
-        await page.goto(`${gameDriver.baseURL}/gallery.html?scene=pilot-dashboard-stationary`);
-        await expect(page).toHaveTitle('pilot-dashboard-stationary — Starwards Gallery');
+        await page.goto(`${gameDriver.baseURL}/gallery.html?scene=helms-dashboard-stationary`);
+        await expect(page).toHaveTitle('helms-dashboard-stationary — Starwards Gallery');
     });
 
     test('page title stays static for an unknown scene', async ({ page }) => {

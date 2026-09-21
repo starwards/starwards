@@ -1,4 +1,4 @@
-export function isPilotSystem(pointer: string): boolean {
+export function isHelmsSystem(pointer: string): boolean {
     return (
         pointer.startsWith('/thrusters/') ||
         pointer === '/warp' ||

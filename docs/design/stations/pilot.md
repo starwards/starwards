@@ -3,7 +3,7 @@
 > **See also:** [`docs/bridge-playtest/pilot.md`](../../bridge-playtest/pilot.md) — code-grounded gap analysis from the 2026-04-25 bridge playtest session (widgets actually mounted, input bindings, recent merged PRs, factually-verifiable gaps).
 
 **Status:** Done
-**Crew role:** Helmsman — flies the ship.
+**Crew role:** Pilot — flies the ship. (The screen itself is called Helms.)
 
 ## What it does
 
@@ -24,7 +24,7 @@ Controls: rotation, boost (forward/back), strafe (left/right), anti-drift, brake
 
 ## What's planned
 
-- Warp drive integration with Navigator station (frequency selection on pilot screen)
+- Warp drive integration with the Astrogator station (frequency selection on the Helms screen). Warp is not part of navigation — it's a separate mechanic the Astrogator's routing happens to interact with.
 - Docking approach controls ([#539](https://github.com/starwards/starwards/issues/539))
 - Combined Tactical station (pilot + weapons for small crews)
 

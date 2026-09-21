@@ -1,5 +1,5 @@
 import { Driver, Waypoint, XY } from '@starwards/core';
-import { FollowController, drawRelayRadar } from '../widgets/relay-radar';
+import { FollowController, drawDradisRadar } from '../widgets/dradis-radar';
 import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
 
@@ -20,7 +20,7 @@ import { setupHotkeyHelp } from '../input/hotkey-help';
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
-export async function initRelayScreen(
+export async function initDradisScreen(
     driver: Driver,
     container: ScreenContainer,
     shipId: string,
@@ -30,7 +30,7 @@ export async function initRelayScreen(
 
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    const { root: radarView, layers, follow } = await drawRelayRadar(spaceDriver, shipDriver, container, zoomEvents);
+    const { root: radarView, layers, follow } = await drawDradisRadar(spaceDriver, shipDriver, container, zoomEvents);
     container.getElement().on('contextmenu', (e) => e.preventDefault());
 
     await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);

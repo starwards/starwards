@@ -13,7 +13,7 @@ import { describeContact } from './contacts';
  * reader stays inside what its panel actually displays.
  */
 
-function isPilotSystem(pointer: string): boolean {
+function isHelmsSystem(pointer: string): boolean {
     return (
         pointer.startsWith('/thrusters/') ||
         pointer === '/warp' ||
@@ -48,14 +48,14 @@ function describeSystem(system: System) {
 }
 
 /**
- * The systems a station's own status panel lists. Pilot and weapons each see their own subset; every
+ * The systems a station's own status panel lists. Helms and weapons each see their own subset; every
  * other seat holding this widget sees the systems it was given, which for the engineer is all of them
  * through `full-systems-status`.
  */
 function stationSystems(session: StationSession): System[] {
     const systems = session.shipDriver.systems;
-    if (session.stationName === 'pilot') {
-        return systems.filter((s) => isPilotSystem(s.pointer));
+    if (session.stationName === 'helms') {
+        return systems.filter((s) => isHelmsSystem(s.pointer));
     }
     if (session.stationName === 'weapons') {
         return systems.filter((s) => isWeaponsSystem(s.pointer));
@@ -69,7 +69,7 @@ function stationSystems(session: StationSession): System[] {
 type WidgetReader = (session: StationSession) => unknown;
 
 export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
-    'pilot-stats': (s) => {
+    'helms-stats': (s) => {
         const ship = s.shipDriver.state;
         return {
             energy: ship.reactor?.energy,
@@ -277,9 +277,9 @@ export function scanBeamStatus(session: StationSession) {
 }
 
 /**
- * The pilot radar's reach: normally short, and a hundred times longer at warp, where the pilot is
+ * The helms radar's reach: normally short, and a hundred times longer at warp, where the pilot is
  * flying by a far coarser picture.
  */
-export function pilotRadarRange(session: StationSession): number {
+export function helmsRadarRange(session: StationSession): number {
     return (session.shipDriver.state.warp?.currentLevel ?? 0) > 0.5 ? 100_000 : 5_000;
 }

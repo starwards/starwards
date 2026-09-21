@@ -170,8 +170,9 @@ feature added on top.** This means:
   captain the human embodiment of the signal-to-noise layer in §4.
 
 In the upcoming session shape (5 people, 4 stations, **Captain
-floats**, Relay removed), the captain has no UI to speak of and
-their effectiveness depends entirely on the partial-views matrix
+floats**, Astrogator removed — the Dradis screen stays in scope,
+run by Signal alongside Signals), the captain has no UI to speak of
+and their effectiveness depends entirely on the partial-views matrix
 holding up.
 
 ## 4. Communication layer (state of play)
@@ -252,10 +253,11 @@ dissolve the captain's role**?
 - **Engineer repair menu** (#1898): strengthens — engineer's
   workload becomes a real input the captain must triage against
   pilot/weapons priorities
-- **Signal-owned waypoints** (#1893, replacing the cut Relay):
-  shipped — waypoints placed by signals appear automatically on the
-  pilot's radar (no faction/owner gating), so the signal→pilot handoff
-  bypasses the captain rather than requiring the captain to route it.
+- **Dradis-owned waypoints** (#1893, per #1934): shipped — waypoints
+  are placed on the Dradis screen (which Signal operates in this
+  short-game format) and appear automatically on the pilot's radar
+  (no faction/owner gating), so the Dradis→pilot handoff bypasses
+  the captain rather than requiring the captain to route it.
 
 ## 6. Open / unresolved (user-silent items, listed for completeness)
 

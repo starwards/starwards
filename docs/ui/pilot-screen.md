@@ -16,7 +16,7 @@ Implementation inventory for the Pilot screen: mounted widgets, source files, da
 
 **File**: `modules/browser/src/screens/pilot.ts`
 **URL**: `/pilot.html?ship={shipId}` (optional `?station=ID` to pin this tab's registry id). `?ship=` is a self-assignment *request* the server validates against the station registry (issue #2131) — the screen binds to whatever ship its own registry entry resolves to, which may differ (auto-assigned, or standby if rejected). See [`../testing/README.md`](../testing/README.md) and `modules/core/src/stations/`.
-**Role**: Helm officer - navigation and flight control
+**Role**: Pilot — flies the ship. The screen itself is called Helms.
 
 ## Overview
 The Pilot screen provides flight controls, navigation instruments, and situational awareness for maneuvering the ship. Primary focus on heading, speed, and spatial awareness.

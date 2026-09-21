@@ -81,19 +81,19 @@ describe('a testplay: three stations, one ship', () => {
     }
 
     const signals = new Seat('signals');
-    const pilot = new Seat('pilot');
+    const helms = new Seat('helms');
     const weapons = new Seat('weapons');
 
     beforeEach(async () => {
         await gameDriver.gameManager.startGame(test_map_1);
         const baseUrl = new URL(gameDriver.url());
-        for (const seat of [signals, pilot, weapons]) {
+        for (const seat of [signals, helms, weapons]) {
             await seat.takeSeat(baseUrl);
         }
     });
 
     afterEach(async () => {
-        for (const seat of [weapons, pilot, signals]) {
+        for (const seat of [weapons, helms, signals]) {
             await seat.leave();
         }
     });
@@ -108,7 +108,7 @@ describe('a testplay: three stations, one ship', () => {
 
         // 2. The pilot cannot reach the panel that would tell it what signals is looking at. This is
         //    the whole reason the next step has to happen out loud.
-        expect(pilot.refusal(await pilot.call('get_ship_status', { widget: 'target-info' }))).toContain('target-info');
+        expect(helms.refusal(await helms.call('get_ship_status', { widget: 'target-info' }))).toContain('target-info');
 
         // 3. Signals says it.
         signals.payload(
@@ -116,13 +116,13 @@ describe('a testplay: three stations, one ship', () => {
         );
 
         // 4. The pilot hears it — attributed, so it knows who to believe.
-        const heard = pilot.payload(await pilot.call('listen')) as { heard: CrewMessage[] };
+        const heard = helms.payload(await helms.call('listen')) as { heard: CrewMessage[] };
         expect(heard.heard).toEqual([
             { speaker: 'signals', text: `contact ${contact.id} bearing ${Math.round(contact.bearing)}` },
         ]);
 
         // 5. The pilot acts, and the ship in the running game turns.
-        pilot.payload(await pilot.call('execute_command', { command: 'rotation', value: 0.5 }));
+        helms.payload(await helms.call('execute_command', { command: 'rotation', value: 0.5 }));
         await waitFor(() => {
             expect(gameDriver.getShip(test_map_1.testShipId).state.smartPilot.rotation).toBeCloseTo(0.5, 1);
         }, 3_000);
@@ -132,19 +132,19 @@ describe('a testplay: three stations, one ship', () => {
         expect(weapons.refusal(await weapons.call('execute_command', { command: 'rotation', value: 0.5 }))).toContain(
             'cannot rotation',
         );
-        expect(pilot.refusal(await pilot.call('execute_command', { command: 'fireChainGun', value: true }))).toContain(
+        expect(helms.refusal(await helms.call('execute_command', { command: 'fireChainGun', value: true }))).toContain(
             'cannot fireChainGun',
         );
         // and the seat that does hold it is unaffected by the refusals around it
-        pilot.payload(await pilot.call('execute_command', { command: 'rotation', value: 0.25 }));
+        helms.payload(await helms.call('execute_command', { command: 'rotation', value: 0.25 }));
     });
 
     it('carries one conversation: everyone hears everyone, nobody hears themselves', async () => {
         signals.payload(await signals.call('say', { text: 'contact bearing 040' }));
         weapons.payload(await weapons.call('say', { text: 'no firing solution' }));
 
-        const pilotHeard = (pilot.payload(await pilot.call('listen')) as { heard: CrewMessage[] }).heard;
-        expect(pilotHeard.map((m) => m.speaker)).toEqual(['signals', 'weapons']);
+        const helmsHeard = (helms.payload(await helms.call('listen')) as { heard: CrewMessage[] }).heard;
+        expect(helmsHeard.map((m) => m.speaker)).toEqual(['signals', 'weapons']);
 
         const signalsHeard = (signals.payload(await signals.call('listen')) as { heard: CrewMessage[] }).heard;
         expect(signalsHeard).toEqual([{ speaker: 'weapons', text: 'no firing solution' }]);

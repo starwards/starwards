@@ -5,6 +5,8 @@
 **Date:** 2026-04
 **Status:** Accepted
 
+**Note (2026-09-21):** terminology below predates the Helms/Dradis/Astrogator naming update — see [`docs/GLOSSARY.md`](../../GLOSSARY.md).
+
 ## Context
 
 MS3 originally planned 6 new stations (Signals, Navigator, Relay + docking, repair, ship models) across 6 phases over ~6 months. For a 2-person team with day jobs relying on AI-assisted development, this is high risk for timeline overrun. The project has been in development since 2021 without running a LARP event on Starwards. EmptyEpsilon remains available as fallback.

@@ -3,9 +3,9 @@ import { ammoScenes } from './ammo';
 import { armorScenes } from './armor';
 import { engineeringStatusScenes } from './engineering-status';
 import { gmRadarScenes } from './gm-radar';
+import { helmsScenes } from './helms';
 import { longRangeRadarScenes } from './long-range-radar';
 import { observationModeScenes } from './observation-mode';
-import { pilotScenes } from './pilot';
 import { tacticalRadarScenes } from './tactical-radar';
 import { targetingScenes } from './targeting';
 import { tubesStatusScenes } from './tubes-status';
@@ -24,9 +24,9 @@ export const scenes: Record<string, Scene> = {
     ...armorScenes,
     ...engineeringStatusScenes,
     ...gmRadarScenes,
+    ...helmsScenes,
     ...longRangeRadarScenes,
     ...observationModeScenes,
-    ...pilotScenes,
     ...tacticalRadarScenes,
     ...targetingScenes,
     ...tubesStatusScenes,
