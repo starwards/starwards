@@ -64,6 +64,8 @@ export const shipInputConfig = {
     tubeLoad: ['shift+1', 'shift+2', 'shift+3', 'shift+4'],
     // Alt+digit — cycles that tube's projectile only
     tubeChangeAmmo: ['alt+1', 'alt+2', 'alt+3', 'alt+4'],
+    // Ctrl+digit — cycles that tube's cluster warhead mode only
+    tubeClusterWarhead: ['ctrl+1', 'ctrl+2', 'ctrl+3', 'ctrl+4'],
     warpUp: 'r',
     warpDown: 'f',
     dock: 'z',
