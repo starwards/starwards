@@ -35,9 +35,14 @@ describe('HeadlessRecorder', () => {
             .trim()
             .split('\n')
             .map((line) => JSON.parse(line) as RecordedEvent);
-        const gvtsFire = events.filter((e) => e.objectId === TRAINING_PLAYER_ID && e.mount === 0);
+        const gvtsFire = events.filter(
+            (e) => e.kind !== 'blast_hit' && e.objectId === TRAINING_PLAYER_ID && e.mount === 0,
+        );
         expect(gvtsFire[0]?.kind).toBe('fire_start');
         gvtsFire.forEach((e, i) => expect(e.kind).toBe(i % 2 ? 'fire_stop' : 'fire_start'));
+        expect(events.filter((e) => e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID).length).toBe(
+            result.blastHits,
+        );
         expect(gvtsFire.some((e) => Math.abs(e.t - Math.round(e.t)) > 1 / SERVER_TICK_HZ / 2)).toBe(true);
 
         const branch = frames.find((f) => f.t >= 10)!;

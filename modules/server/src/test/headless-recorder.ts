@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { Explosion, Spaceship, XY } from '@starwards/core/internal';
+
 import { encodeFrameLine, encodeHeader } from '../recording/recording-format';
 
 import { HeadlessGame } from './headless-game';
@@ -8,14 +10,23 @@ import { RECORDING_EXT } from '../recording/game-recorder';
 import { schemaToString } from '../serialization/game-state-serialization';
 
 /** A state edge observed at tick resolution, written to the `.events.jsonl` sidecar. */
-export interface RecordedEvent {
-    /** Game seconds of the tick the edge was observed after. */
-    readonly t: number;
-    readonly kind: 'fire_start' | 'fire_stop';
-    readonly objectId: string;
-    /** Chain gun index on the ship. */
-    readonly mount: number;
-}
+export type RecordedEvent =
+    | {
+          /** Game seconds of the tick the edge was observed after. */
+          readonly t: number;
+          readonly kind: 'fire_start' | 'fire_stop';
+          readonly objectId: string;
+          /** Chain gun index on the ship. */
+          readonly mount: number;
+      }
+    | {
+          readonly t: number;
+          /** First tick an explosion physically overlaps a ship; once per explosion per ship. */
+          readonly kind: 'blast_hit';
+          readonly objectId: string;
+          readonly explosionId: string;
+          readonly damageType: string;
+      };
 
 export const EVENTS_EXT = '.events.jsonl';
 
@@ -26,8 +37,9 @@ export const EVENTS_EXT = '.events.jsonl';
  * be branched from via `HeadlessGame.restore`.
  *
  * Frames are sampled, so a burst shorter than the interval leaves no trace in them. Chain gun
- * `isFiring` edges are therefore observed every tick and written as {@link RecordedEvent} lines to
- * a sidecar `<name>.events.jsonl`, leaving the recording format itself untouched.
+ * `isFiring` edges and first blast-on-ship overlaps are therefore observed every tick and written
+ * as {@link RecordedEvent} lines to a sidecar `<name>.events.jsonl`, leaving the recording format
+ * itself untouched.
  */
 export class HeadlessRecorder {
     readonly filePath: string;
@@ -35,6 +47,7 @@ export class HeadlessRecorder {
     private nextFrameAt = 0;
     private frames = 0;
     private readonly firing = new Map<string, boolean>();
+    private readonly blastHits = new Set<string>();
     private pendingEvents: RecordedEvent[] = [];
 
     constructor(
@@ -74,6 +87,7 @@ export class HeadlessRecorder {
      */
     async capture(force = false) {
         this.observeFiring();
+        this.observeBlastHits();
         if (!force && this.game.seconds + 1e-9 < this.nextFrameAt) {
             return;
         }
@@ -85,6 +99,32 @@ export class HeadlessRecorder {
         fs.appendFileSync(this.filePath, encodeFrameLine({ t: this.game.seconds, frame }));
         this.frames++;
         this.nextFrameAt = this.game.seconds + this.intervalSimSeconds;
+    }
+
+    private observeBlastHits() {
+        const state = this.game.spaceManager.state;
+        const ships = [...state].filter((o): o is Spaceship => Spaceship.isInstance(o) && !o.destroyed);
+        for (const explosion of state) {
+            if (!Explosion.isInstance(explosion) || explosion.destroyed) {
+                continue;
+            }
+            for (const ship of ships) {
+                const key = `${explosion.id}/${ship.id}`;
+                if (
+                    !this.blastHits.has(key) &&
+                    XY.distance(explosion.position, ship.position) < explosion.radius + ship.radius
+                ) {
+                    this.blastHits.add(key);
+                    this.pendingEvents.push({
+                        t: this.game.seconds,
+                        kind: 'blast_hit',
+                        objectId: ship.id,
+                        explosionId: explosion.id,
+                        damageType: explosion.damageType,
+                    });
+                }
+            }
+        }
     }
 
     private observeFiring() {

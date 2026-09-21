@@ -115,13 +115,14 @@ function toMarkdown(
         `- TTK sim-s (killed): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,
         `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
         `- Any system damage (health < 1): ${results.filter((r) => r.targetHealth < 1).length}/${results.length}`,
-        `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)}`,
+        `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
+        `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}; median overlap ticks ${f(median(results.map((r) => r.overlapSamples)))}`,
         '',
-        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | in range | in kill zone | target drift m | GVTS speed end | frames | wall s |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | in range | in kill zone | blast hits | overlap ticks | target drift m | GVTS speed end | frames | wall s |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
-                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} |`,
+                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${r.overlapSamples} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} |`,
         ),
         '',
     ].join('\n');

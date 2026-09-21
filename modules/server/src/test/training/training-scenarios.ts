@@ -24,6 +24,10 @@ export interface TrainingResult {
     readonly inRangeFraction: number;
     /** Fraction of sim-time the GVTS's current aim would put a shell's danger zone on the target. */
     readonly killZoneFraction: number;
+    /** Ticks with any explosion overlapping the target. */
+    readonly overlapSamples: number;
+    /** Distinct explosions that ever overlapped the target. */
+    readonly blastHits: number;
     /** Metres the target moved from its spawn point. */
     readonly targetDrift: number;
     /** GVTS speed (m/s) at end. */
@@ -121,7 +125,7 @@ export async function runTraining<P>(
         }
         const targetObject = game.spaceManager.state.get(TRAINING_TARGET_ID);
         if (targetObject) {
-            gunnery.push(sampleGunnery(gvts.state, targetObject));
+            gunnery.push(sampleGunnery(gvts.state, targetObject, game.spaceManager.state));
         }
         targetDrift = XY.distance(target.position, targetStart);
     }
