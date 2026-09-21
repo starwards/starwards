@@ -289,11 +289,17 @@ async function computeVelocitySpikes(
     // are already sorted by `t`), instead of re-scanning from the start for every frame.
     const speeds = forwardFillSpeeds(frames, vx, vy);
     const deltas = speeds.slice(1).map((s, i) => Math.abs(s.speed - speeds[i].speed));
-    const medianDelta = median(deltas);
-    const threshold = medianDelta * factor;
-    if (threshold <= 0) {
+    // Median of *nonzero* deltas: an object that mostly doesn't move (a PLAY_DEAD target with no
+    // thrust) has a per-frame delta of exactly 0 on almost every frame, so the median over ALL
+    // deltas is 0 -- factor * 0 is a threshold that can never fire, silencing exactly the object
+    // this event exists to catch. A rare nonzero delta (a blast impulse) is the anomaly; baseline
+    // the threshold on those, not on the flat majority.
+    const nonzeroDeltas = deltas.filter((d) => d > 0);
+    if (nonzeroDeltas.length === 0) {
         return;
     }
+    const medianDelta = median(nonzeroDeltas);
+    const threshold = medianDelta * factor;
     for (let i = 1; i < speeds.length; i++) {
         const delta = Math.abs(speeds[i].speed - speeds[i - 1].speed);
         if (delta > threshold) {
