@@ -2,11 +2,11 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import { T0_PLAY_DEAD_DRAGONFLY, runTraining } from './training/training-scenarios';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT0Map } from '../scenarios/training';
 import { parseFrameLine, parseHeader } from '../recording/recording-format';
 
-import { HeadlessGame } from './headless-game';
 import { SavedGame } from '../serialization/game-state-protocol';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
@@ -23,7 +23,7 @@ describe('HeadlessRecorder', () => {
             .trim()
             .split('\n');
         const header = parseHeader(headerLine);
-        expect(header).toMatchObject({ mapName: 'training_t0', seed: 1, params: result.params });
+        expect(header).toMatchObject({ mapName: 'training_t0', seed: 1, params: result.params, hz: SERVER_TICK_HZ });
         const frames = frameLines.map((line) => parseFrameLine(line)!);
         expect(frames.length).toBe(result.frames);
 
@@ -38,7 +38,7 @@ describe('HeadlessRecorder', () => {
             branch.t,
         );
         while (resumed.seconds + 1e-9 < end.t) {
-            resumed.tick(0.1);
+            resumed.tick(1 / (header.hz ?? SERVER_TICK_HZ));
         }
         // Not bit-exact: automation keeps private per-ship state (flight profile, gunnery latches)
         // that a SavedGame doesn't carry. Measured drift over 5 s from t=10 is ~10 m.

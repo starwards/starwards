@@ -18,6 +18,13 @@ import {
 import { SavedGame } from '../serialization/game-state-protocol';
 
 /**
+ * The live server's tick rate: `SpaceRoom` calls `setSimulationInterval` without a delay, so
+ * Colyseus' default (1000/60 ms) applies. Outcomes are tick-rate dependent (blast dwell and
+ * first-contact overlap both scale with it), so headless runs default to this rate.
+ */
+export const SERVER_TICK_HZ = 60;
+
+/**
  * A `GameMap` runner with no Colyseus, no rooms and no wall clock -- `GameManager.update`'s
  * simulation block and nothing else, so a scenario runs as fast as the CPU allows.
  *

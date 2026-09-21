@@ -1,5 +1,6 @@
 import { DEFAULT_WAVE_TUNING, WaveDefenceTuning } from '../scenarios/wave-defence';
 import { SweepCell, runWaveDefence, sweepToMarkdown } from './wave-defence-balance-harness';
+import { SERVER_TICK_HZ } from './headless-game';
 
 import fs from 'fs';
 import path from 'path';
@@ -7,7 +8,7 @@ import path from 'path';
 const REPORT_PATH = path.join(__dirname, 'wave-defence-balance-report.md');
 const SWEEP_SIM_SECONDS = 2400;
 const SWEEP_SEEDS = [1, 2, 3];
-const HZ = 10;
+const HZ = SERVER_TICK_HZ;
 
 const scaled = (factor: number, models: (keyof WaveDefenceTuning['hullScores'])[]): WaveDefenceTuning['hullScores'] => {
     const scores = { ...DEFAULT_WAVE_TUNING.hullScores };

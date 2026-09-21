@@ -3,13 +3,14 @@
  * markdown report.
  *
  *   npm --prefix modules/server run training -- \
- *     --scenario T0 --seeds 64 --timeout 300 --interval 1 --out <dir>
+ *     --scenario T0 --seeds 64 --timeout 300 --interval 1 --hz 60 --out <dir>
  *
  * `--interval 0` disables recording. Recordings land in `<dir>/<scenario>_seed<N>.swr.jsonl`,
  * the report in `<dir>/<scenario>-report.md`.
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';
 
+import { SERVER_TICK_HZ } from '../headless-game';
 import { fork } from 'child_process';
 import fs from 'fs';
 import os from 'os';
@@ -50,9 +51,11 @@ async function main() {
     const firstSeed = Number(arg('first-seed', '1'));
     const timeoutSeconds = Number(arg('timeout', '300'));
     const interval = Number(arg('interval', '1'));
+    const hz = Number(arg('hz', String(SERVER_TICK_HZ)));
     const outDir = path.resolve(arg('out', path.join(os.tmpdir(), 'starwards-training')));
     const options: WorkerJob['options'] = {
         timeoutSeconds,
+        hz,
         recording: interval > 0 ? { dir: outDir, intervalSimSeconds: interval } : undefined,
     };
     const workers = Math.min(os.cpus().length, seedCount);
@@ -101,7 +104,7 @@ function toMarkdown(
     return [
         `# Training ${results[0]?.scenario ?? ''}: ${description}`,
         '',
-        `Timeout ${options.timeoutSeconds} sim-s, 10 Hz, ${results.length} seeds on ${workers} workers, ${f(wallSeconds)} s wall, ${recording}.`,
+        `Timeout ${options.timeoutSeconds} sim-s, ${options.hz} Hz, ${results.length} seeds on ${workers} workers, ${f(wallSeconds)} s wall, ${recording}.`,
         '',
         `- Kill rate: **${killed.length}/${results.length}**`,
         `- TTK sim-s (killed): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,

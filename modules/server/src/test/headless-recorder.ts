@@ -24,6 +24,7 @@ export class HeadlessRecorder {
         name: string,
         private readonly intervalSimSeconds: number,
         params?: unknown,
+        hz?: number,
     ) {
         fs.mkdirSync(dir, { recursive: true });
         this.filePath = path.join(dir, `${name}${RECORDING_EXT}`);
@@ -37,6 +38,7 @@ export class HeadlessRecorder {
                 intervalMs: intervalSimSeconds * 1000,
                 seed: game.seed,
                 params,
+                hz,
             }),
         );
     }

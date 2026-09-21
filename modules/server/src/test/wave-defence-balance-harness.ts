@@ -5,9 +5,8 @@ import {
     createWaveDefenceMap,
     waveBudget,
 } from '../scenarios/wave-defence';
+import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import { IdleStrategy, Spaceship, XY } from '@starwards/core/internal';
-
-import { HeadlessGame } from './headless-game';
 
 const PLAYER_SHIP_ID = 'GVTS';
 /** The proxy only chases raiders this close to some alive station -- it defends, it doesn't hunt. */
@@ -102,7 +101,12 @@ function stationHealth(game: HeadlessGame): Record<string, number> {
     return Object.fromEntries(STATIONS.map((s) => [s.id, game.api.getShip(s.id)?.state.healthRatio ?? 0]));
 }
 
-export function runWaveDefence({ seed, tuning = DEFAULT_WAVE_TUNING, maxSimSeconds, hz = 10 }: RunOptions): RunResult {
+export function runWaveDefence({
+    seed,
+    tuning = DEFAULT_WAVE_TUNING,
+    maxSimSeconds,
+    hz = SERVER_TICK_HZ,
+}: RunOptions): RunResult {
     const waves: WaveRecord[] = [];
     const raiders = new Map<string, RaiderRecord>();
     let game: HeadlessGame | undefined;

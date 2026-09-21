@@ -1,7 +1,7 @@
 import { GameMap, XY } from '@starwards/core/internal';
+import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT0Map } from '../../scenarios/training';
 
-import { HeadlessGame } from '../headless-game';
 import { HeadlessRecorder } from '../headless-recorder';
 import fc from 'fast-check';
 
@@ -25,6 +25,7 @@ export interface TrainingResult {
     readonly targetDrift: number;
     /** GVTS speed (m/s) at end. */
     readonly gvtsSpeed: number;
+    readonly hz: number;
     readonly recording?: string;
     readonly frames?: number;
     readonly wallSeconds: number;
@@ -63,7 +64,7 @@ export interface TrainingRunOptions {
 /** One run: `seed` drives both the fast-check layout sample and the die. */
 export async function runTraining<P>(
     scenario: TrainingScenario<P>,
-    { seed, timeoutSeconds, hz = 10, recording }: TrainingRunOptions,
+    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording }: TrainingRunOptions,
 ): Promise<TrainingResult> {
     const started = Date.now();
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
@@ -75,6 +76,7 @@ export async function runTraining<P>(
               `${scenario.name}_seed${seed}`,
               recording.intervalSimSeconds,
               params,
+              hz,
           )
         : undefined;
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
@@ -133,6 +135,7 @@ export async function runTraining<P>(
         meanDistance: distanceTicks ? distanceSum / distanceTicks : NaN,
         targetDrift,
         gvtsSpeed: XY.lengthOf(game.api.getObject(TRAINING_PLAYER_ID)?.velocity ?? XY.zero),
+        hz,
         recording: recorder?.filePath,
         frames: recorder?.frameCount,
         wallSeconds: (Date.now() - started) / 1000,
