@@ -8,17 +8,41 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 - Ship: forward-fixed chaingun, two missile tubes, 70 km omni radar + steerable 50 km scan beam, 1,000-energy reactor pool, afterburner (gamepad only).
 - Systems run at `power × (1 − hacked)`, zero when broken. Use spends shared energy; fast spending makes heat; over-limit heat damages; damaged systems drift (guns miss, thrusters skew, radar flickers) then break. Engineer raises a repair protocol's priority and runs repairs (10–240 s, most draw energy and darken a system).
 - Only Engineer sees power/heat/damage; only Signals sees far and identifies contacts (Weapons sees 10 km); gun points where Pilot points; Signals' and Weapons' targets are **separate**. Say contact names aloud ("Asteroid 47").
-- Unknown contact = **UFO** (grey dot, no name). Scan tiers UFO → BASIC (faction, model) → SNAPSHOT/FULL (internals), 5 s per tier at full power, automatic.
+- Unknown contact = **UFO** (grey dot, no name). Scan tiers UFO → BASIC (faction, model) → FULL (internals), 5 s per tier at full power, automatic. FULL can go stale to SNAPSHOT — see Signals.
 - Docking: in range of a friendly station, Pilot presses `Z`. Docked: magazine refills (~150 s), energy cells restock, two docked-only repairs unlock. Undock stops restock and **cancels** a running docked-only repair.
 - Scenario (wave defence): three friendly stations (Large, Small, Chaingun Platform). Waves spawn 140 km out, beyond all friendly sensors; waves 1–3 hit stations in order, wave 4+ the station furthest from you. ~4–6 min arrival; next wave 15 s after the last dies. Enemies: Dragonfly (fast fighter), Predator (stock version of your hull), Glaive (gun frigate), Cataphract (slow heavy). *(Timings are estimates.)*
 - Defeat: last station destroyed. No win condition.
 - Entry: opening the server address while a game is running puts your tab straight on your seat's waiting screen — a large station ID, plus a **Lobby** button while the GM hasn't assigned you yet. The GM assigns each seat's ship and role from the roster; once assigned and the game is running, your seat shows its station screen automatically. Each tab keeps a 3-character station ID across reloads. `?lobby` on the address keeps a tab on the ship-picking lobby instead. The lobby's `pilot/weapons/signals/engineer/gm.html?ship=` buttons are the manual fallback — a fixed page pinned to a fixed ship, no roster assignment needed.
+- Whatever your seat: no surprises. If something is about to stop working, or you are about to take a lever away from someone, say so **before** it happens — the Captain decides with what they have been told, not with what is true.
+
+---
+
+## Captain
+
+**Job:** decide with what the crew has told you, not with what is true; the whole ship's judgement, none of its screens.
+
+**Decisions**
+- **Which station to let die.** Waves hit the three friendly stations round-robin (1–3), then whichever is furthest from you. The Small Station was deliberately made the cheapest to lose — 3,600 against the Large Station's 7,200 and the Chaingun Platform's 6,480 — so if you must choose, that is the one built to go first.
+- **When to dock.** Restock takes ~150 s against a ~6–7 min gap between waves; docking spends most of that repositioning budget, so weigh it against where you need to be when the next wave lands.
+- **Spending the one repair slot.** Only one repair protocol runs at a time, no pre-emption. The Engineer owns the lever, but you own whether the ship can afford that system going dark right now.
+- **Target priority.** Signals sees far and identifies; Weapons sees 10 km and only what is in front of the gun. You are the only seat hearing both pictures, so target calls are yours to make and pass down.
+- **The comms protocol.** You have no screen — the reports below are your only information. Ask for names and bearings, not just "it's coming"; a report you cannot act on is worse than none.
+
+**Say / Ask**
+- ← Pilot: "Docked" / "Energy red, no thrust."
+- ← Weapons: "Nose 20 degrees right" / "Target inside minimum range, back off."
+- ← Signals: "Three contacts inbound on Small Station, 90 km, unidentified, scanning the lead."
+- ← Engineer: "Energy 200 and falling; one long repair or the gun, not both."
+
+**Mistakes**
+- Picking a target from one seat's picture without asking whether the other seat sees the same thing.
+- Letting a report stand without a name or bearing — send it back rather than acting on a guess.
 
 ---
 
 ## Pilot
 
-**Job:** put the ship where the Captain wants it, pointing where Weapons needs it; dock when told.
+**Job:** put the ship where the Captain wants it, pointing where Weapons needs it, minimising the hits you take; dock when told.
 
 **Screen**
 - Radar centred on ship.
@@ -40,10 +64,11 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 | `SPACE` | Hotkey help |
 
 Gamepad only: afterburner (btn 6), anti-drift (7), brakes (5), reset rotation offset (14); axes 0 rotate, 2 strafe, 3 boost.
-DIRECT = raw thrusters. VELOCITY = hold dialled rate/speed. TARGET = face / match Weapons' target. **Smart pilot dark in VELOCITY/TARGET → steering does nothing**; go DIRECT.
+
+In space nothing slows you down: whatever speed and spin you build stays until you thrust against it. Two independent switches decide how your keys fight that — `N` for turning, `M` for strafe and boost, and they can differ. In DIRECT the keys are raw thrust: press to push, release to stop pushing, not to stop moving. In VELOCITY they dial a rate the ship holds for you, so taps accumulate and it keeps turning or drifting after you let go; centre it with both keys. TARGET hands that half of the flying to Weapons' target — face it, or match its motion. VELOCITY and TARGET both run on the smart pilot: if Engineer says it is dark, or its effectiveness hits zero, they do nothing at all and DIRECT is your only working mode.
 
 **Say / Ask**
-- → Weapons: "Nose on Predator 3, holding" / "Rolling left, hold fire."
+- → Weapons: "Nose on Predator 3, holding" / "Rolling left, hold fire — presenting a fresh side to spread the hits across plates."
 - → Engineer: "Thrusters not responding" / "Need warp in 30 s."
 - → Captain: "Docked" / "Energy red, no thrust."
 
@@ -56,7 +81,7 @@ DIRECT = raw thrusters. VELOCITY = hold dialled rate/speed. TARGET = face / matc
 
 ## Weapons
 
-**Job:** select the target the Captain names, load before the shot is needed, fire when the Pilot gives the nose.
+**Job:** pick the weapon for the range, select the target the Captain names, load before the shot is needed, fire when the Pilot gives the nose. The nose gun is a knife fight — unguided, forward-fixed, 500 m to 8 km, and it only hits where the Pilot points. Missiles home, fly for a minute or more, and reach far past your own 10 km radar: past that you are shooting at Signals' picture, not yours, so ask them before you spend one.
 
 **Screen**
 - 10 km tactical radar, gun crosshair, speed lines. Keyboard only.
@@ -81,13 +106,16 @@ DIRECT = raw thrusters. VELOCITY = hold dialled rate/speed. TARGET = face / matc
 | `Alt+1` `Alt+2` | Cycle that tube's missile type |
 | `SPACE` | Hotkey help |
 
-Missile: `Alt+1` pick → `Shift+1` load → `1` unlock → `X` fire. Tubes start locked and re-lock after every shot. Gun is forward-fixed, minimum range 500 m. Unidentified contacts: grey dots, no name.
+Missile: `Alt+1` pick → `Shift+1` load → `1` unlock → `X` fire. Tubes start locked and re-lock after every shot. Unidentified contacts: grey dots, no name.
+
+Every raider in this scenario wears plain composite plating. ArmPen eats it twice as fast — that is your plate-stripper. Elec ignores plating altogether and goes straight for their systems. HiExp is the all-rounder and also scrapes anything mounted on the outside. Frag never touches plating at all. Ask Signals what a contact is wearing before you spend a tube.
 
 **Say / Ask**
 - → Pilot: "Nose 20 degrees right" / "Target inside minimum range, back off."
-- → Signals: "Which one is the Glaive?" / "Is Contact 12 a ship or a shell?"
+- → Signals: "Which one is the Glaive?" / "Is Contact 12 a ship or a shell?" / "What is it wearing?"
 - → Engineer: "Gun loading slow" / "Tubes not responding."
 - ← Engineer: "gun dark 45 s" precedes an Actuator recalibration.
+- ← Signals: "Composite, plates down 40% on the near side."
 
 **Mistakes**
 - `X` does nothing: tube locked or not loaded — Tubes pane, `1`/`2`.
@@ -112,12 +140,13 @@ Missile: `Alt+1` pick → `Shift+1` load → `1` unlock → `X` fire. Tubes star
 |---|---|
 | `]` / `[` | Next / previous contact (unknowns + identified ships) |
 | `'` | Clear selection |
-| `=` / `-` | Zoom in / out (mouse wheel works) |
+| `=` / `-` | Zoom in / out, snapping through 5 / 10 / 25 / 50 / 100 / 250 km presets |
+| Mouse wheel | Zoom continuously (not the preset steps) |
 | `A` / `D` | Swing beam left / right (5° steps) |
-| `W` / `S` | Narrow / widen beam arc (narrower reaches further) |
+| `W` / `S` | Narrow / widen beam arc (narrower reaches further, both = centre) |
 | `SPACE` | Hotkey help |
 
-Scans queue automatically for everything in view; top job runs, one tier per 5 s at full power (10 s at half). Lever: select contact, **Prioritize Target** — a standing order that resumes if the contact fades and returns. Displaced job loses progress. Asteroids and shells stop at BASIC. Under-powered = slower; damaged = jobs can fail.
+Scans queue automatically for everything in view; top job runs, one tier per 5 s at full power (10 s at half), up to FULL. Lever: select contact, **Prioritize Target** — a standing order that resumes if the contact fades and returns. Displaced job loses progress. Asteroids and shells stop at BASIC and then leave the queue entirely — they will not clutter it. Under-powered = slower; damaged = jobs can fail. A FULL contact you stop watching can go stale: it demotes to **SNAPSHOT**, meant to freeze what was last seen rather than track it live — right now it keeps showing live data instead (known limitation, accepted). Sitting on the edge of your field of view also resets a contact's scan progress, same as being displaced.
 
 **Say / Ask** (SALUTE order: size, activity, location, unit, time, equipment)
 - → Captain: "Three contacts inbound on Small Station, 90 km, unidentified, scanning the lead." Then: "Lead is a Glaive, gun frigate."
@@ -133,7 +162,7 @@ Scans queue automatically for everything in view; top job runs, one tier per 5 s
 
 ## Engineer
 
-**Job:** keep every station alive — power, coolant, repairs — and warn the owner before a system goes dark.
+**Job:** keep the whole ship tuned for what it is doing right now — power and coolant are one shared budget, and the split that suits a warp transit is wrong in a firefight. Repair what breaks.
 
 **Screen**
 - Top-left: reactor energy, afterburner fuel, hull. Middle-left: warp status and frequency.
@@ -174,35 +203,3 @@ Thirteen protocols, one fixed row each — nothing to submit and no row order to
 - Raising a protocol's priority without telling the owner of the dark system.
 - Repairing the first skewed thruster; wait, one run fixes all six.
 - Ignoring the *notice* line: a refused raise (wrong tier, no cells, missing equipment) is the only sign it didn't take.
-
----
-
-## GM
-
-**Job:** start the game, run the scenario, watch every station, fix what the crew cannot.
-
-**Screen**
-- Left: GM radar (select, drag, inspect). Right: **Tweak** / **Create** tabs.
-- **Game controls**: pause / slow / play / fast, clock, restart, recording.
-- **Station Roster**: one row per station ID — `●`/`○` connected, then **ship** and **role** dropdowns. Pick a ship, then a role, to bind that seat; clearing the ship dropdown unassigns it.
-- Menu adds any station's widgets (radar, repair queue, damage report, targeting, tubes, docking).
-
-**Keys** (objects selected on GM radar)
-
-| Key | Does |
-|---|---|
-| `Q` / `E` | Rotate selection (5° steps) |
-| `F` | Freeze / unfreeze selection |
-| `Delete` | Delete selection |
-| `SPACE` | Hotkey help |
-
-Lobby scenarios: `two_vs_one`, `solo`, `wave_defence`. The roster is how a seat gets its ship and role — a station opened via the lobby's `?ship=` buttons or a bare seat's auto-generated id both show up here for the GM to bind (or rebind, or clear).
-
-**Say / Ask**
-- → Engineer: any live Tweak (armour repair seconds, magazine restock, warp jam); captions update, crew's model does not.
-- Do not narrate damage to Pilot/Weapons; it reaches them via the Engineer.
-
-**Mistakes**
-- Narrating a broken system the crew cannot see.
-- Tweaking a live value without telling the Engineer.
-- `Delete` with the wrong object selected.
