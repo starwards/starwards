@@ -8,10 +8,10 @@
  * are harder to observe due to the tight server reset cycle.
  */
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
+import { expect, test } from '@playwright/test';
 import { makeDriver, waitForShipCondition } from './driver';
 
 import { maps } from '@starwards/server';
-import { test } from '@playwright/test';
 
 const { single_ship, weapons_multi_tube, weapons_multi_gun, weapons_no_tubes } = maps;
 const shipId = single_ship.testShipId;
@@ -129,6 +129,35 @@ test.describe('Weapons hotkeys', () => {
     test('alt+1 key: tubes[0].changeProjectileCommand admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('Alt+1');
         await page.waitForTimeout(200);
+    });
+
+    // --- Cluster warhead mode has no dedicated hotkey — alt+1 visits both warhead
+    // modes as extra stops in the same ammo cycle when it reaches ClusterMissile (#2261) ---
+
+    test('alt+1 key: cycles both cluster warhead modes before moving past ClusterMissile', async ({ page }) => {
+        let projectile: string | undefined;
+        for (let i = 0; i < 8 && projectile !== 'ClusterMissile'; i++) {
+            await page.keyboard.press('Alt+1');
+            await page.waitForTimeout(150);
+            projectile = gameDriver.getShip(shipId).state.tubes.at(0)?.projectile;
+        }
+        expect(projectile).toBe('ClusterMissile');
+        expect(gameDriver.getShip(shipId).state.tubes.at(0)?.clusterWarhead).toBe('Frag');
+
+        await page.keyboard.press('Alt+1');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.tubes.at(0)?.clusterWarhead === 'ArmPen',
+            3000,
+        );
+        expect(gameDriver.getShip(shipId).state.tubes.at(0)?.projectile).toBe('ClusterMissile');
+
+        await page.keyboard.press('Alt+1');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.tubes.at(0)?.projectile !== 'ClusterMissile',
+            3000,
+        );
     });
 
     test('f key: every chainGuns[*].isFiring admitted without whitelist rejection', async ({ page }) => {
