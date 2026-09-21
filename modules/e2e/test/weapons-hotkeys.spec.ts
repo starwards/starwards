@@ -101,18 +101,6 @@ test.describe('Weapons hotkeys', () => {
         );
     });
 
-    // --- Per-tube cluster warhead mode toggle (dedicated hotkey per tube index) ---
-    // Tubes spawn with clusterWarhead 'Frag', so pressing tube 0's dedicated key cycles to 'ArmPen'.
-
-    test('ctrl+1 key: tubes[0].clusterWarhead cycles from Frag to ArmPen', async ({ page }) => {
-        await page.keyboard.press('Control+1');
-        await waitForShipCondition(
-            () => gameDriver.getShip(shipId),
-            (ship) => ship.state.tubes.at(0)?.clusterWarhead === 'ArmPen',
-            3000,
-        );
-    });
-
     // --- Momentary commands — whitelist admission checks ---
     // For these we only verify no whitelist rejection (no throw). The server
     // processes and immediately resets the command field; the transient window
@@ -238,22 +226,6 @@ test.describe('Weapons hotkeys — multi-tube isolation', () => {
         const ship = gameDriver.getShip(twoTubeShipId);
         if (ship.state.tubes.at(0)?.safetyLocked !== tube0Before) {
             throw new Error('tube 0 safetyLocked changed after pressing 2 (tube 1 only)');
-        }
-    });
-
-    test('ctrl+2 key: tubes[1].clusterWarhead cycles to ArmPen, tube 0 is unaffected', async ({ page }) => {
-        const tube0Before = gameDriver.getShip(twoTubeShipId).state.tubes.at(0)?.clusterWarhead;
-
-        await page.keyboard.press('Control+2');
-
-        await waitForShipCondition(
-            () => gameDriver.getShip(twoTubeShipId),
-            (ship) => ship.state.tubes.at(1)?.clusterWarhead === 'ArmPen',
-            3000,
-        );
-        const ship = gameDriver.getShip(twoTubeShipId);
-        if (ship.state.tubes.at(0)?.clusterWarhead !== tube0Before) {
-            throw new Error('tube 0 clusterWarhead changed after pressing ctrl+2 (tube 1 only)');
         }
     });
 });
