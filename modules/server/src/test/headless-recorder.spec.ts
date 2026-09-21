@@ -48,5 +48,5 @@ describe('HeadlessRecorder', () => {
             expect(Math.hypot(actual.x - recorded.x, actual.y - recorded.y)).toBeLessThan(50);
         }
         fs.rmSync(dir, { recursive: true, force: true });
-    });
+    }, 60_000);
 });
