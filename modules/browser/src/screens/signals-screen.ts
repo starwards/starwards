@@ -3,16 +3,17 @@ import { HPos, VPos, WidgetContainer } from '../container';
 import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
 import { addSliderBlade, createWidgetPane } from '../panel';
 
+import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
+import { readWriteNumberProp, readWriteProp } from '../property-wrappers';
+
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
 import { SelectionContainer } from '../radar/selection-container';
 import { SignalsJobsLayer } from '../radar/signals-jobs-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
-import { drawSignalsJobs } from '../widgets/signals-jobs';
 import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
-import { readWriteNumberProp } from '../property-wrappers';
 
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
@@ -110,6 +111,17 @@ function wireInput(
     );
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
+    input.addClickAction(
+        () => prioritizeJobForTarget(shipDriver, shipDriver.state.signals.jobs, stationTarget.getSingle()?.id),
+        'p',
+        'Prioritize Job',
+    );
+    input.addClickAction(
+        () => cancelJobForTarget(shipDriver, shipDriver.state.signals.jobs, stationTarget.getSingle()?.id),
+        'x',
+        'Cancel Job',
+    );
+    input.addToggleClickAction(readWriteProp<boolean>(shipDriver, '/signals/jobsPaused'), 'z', 'Pause All Jobs');
     if (beamPointer) {
         input.addRangeAction(
             readWriteNumberProp(shipDriver, `${beamPointer}/bearingCommand`),

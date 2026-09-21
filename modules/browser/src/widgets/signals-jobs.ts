@@ -1,5 +1,5 @@
 import { Destructors, JobStatus, ShipDriver, SpaceDriver, objectDisplayName, playerScanLevel } from '@starwards/core';
-import { JobView, visibleJobRows } from './signals-jobs-rows';
+import { JobView, findJobForTarget, visibleJobRows } from './signals-jobs-rows';
 import { addBarBlade, addButton, addInputBlade, addTextBlade, createWidgetPane } from '../panel';
 import { readNumberProp, readProp, readWriteProp, writeProp } from '../property-wrappers';
 
@@ -16,6 +16,24 @@ function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: Pick<Jo
 
 function staticTextModel(value: string) {
     return { getValue: () => value, onChange: () => () => undefined };
+}
+
+/** Prioritizes the job (if any) targeting `targetId` — shared by the Prioritize button and the
+ * Signals screen's keyboard binding. */
+export function prioritizeJobForTarget(shipDriver: ShipDriver, jobs: Iterable<JobView>, targetId: string | undefined) {
+    const job = findJobForTarget(jobs, targetId);
+    if (job) {
+        writeProp(shipDriver, '/signals/prioritizeJobId').setValue(job.id);
+    }
+}
+
+/** Cancels the job (if any) targeting `targetId` — the keyboard equivalent of a row's Cancel
+ * button, aimed at the radar-selected target instead of a specific row. */
+export function cancelJobForTarget(shipDriver: ShipDriver, jobs: Iterable<JobView>, targetId: string | undefined) {
+    const job = findJobForTarget(jobs, targetId);
+    if (job) {
+        writeProp(shipDriver, '/signals/cancelJobId').setValue(job.id);
+    }
 }
 
 /**
@@ -43,13 +61,7 @@ export function drawSignalsJobs(
 
     addButton(
         pane,
-        () => {
-            const selected = stationTarget.getSingle();
-            const job = selected && jobs().find((j) => j.targetId === selected.id);
-            if (job) {
-                writeProp(shipDriver, '/signals/prioritizeJobId').setValue(job.id);
-            }
-        },
+        () => prioritizeJobForTarget(shipDriver, jobs(), stationTarget.getSingle()?.id),
         { label: '', title: 'Prioritize Target' },
         panelCleanup.add,
     );
