@@ -299,7 +299,7 @@ test.describe('Signals Screen', () => {
     test('hotkey help lists the new job-queue bindings', async ({ page }) => {
         await waitForRadarReady(page);
 
-        await page.keyboard.press('space');
+        await page.keyboard.press(' ');
         const modal = page.locator('#hotkey-help-root');
         await expect(modal.getByText('Prioritize Job')).toBeVisible();
         await expect(modal.getByText('Cancel Job')).toBeVisible();
