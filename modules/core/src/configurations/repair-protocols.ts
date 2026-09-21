@@ -1,6 +1,8 @@
 import { DEFECTIBLE_METADATA } from '../game-field';
+import { RepairProtocolMode } from '../ship/repair-queue';
 import { ShipState } from '../ship/ship-state';
 import { SystemState } from '../ship/system';
+import { allColyseusProperties } from '../traverse';
 
 /**
  * Ship-design-agnostic tier gate: a protocol above the ship's current repair
@@ -58,10 +60,12 @@ export type RepairProtocolTarget = {
     field: string;
 };
 
-export type RepairProtocolStats = {
-    name: string;
-    /** Defectible fields this protocol clears on completion. Cross-cutting by design (SPEC-0003). */
-    targets: RepairProtocolTarget[];
+/**
+ * The cost/effect numbers that differ between a field-tier protocol's two modes (issue #2255,
+ * R1). `duration`/`energyDraw`/`heat` keep the same meaning per-mode as they always had on the
+ * flat, single-mode shape below.
+ */
+export type RepairProtocolModeStats = {
     /** Seconds the operation stays active. */
     duration: number;
     /** Energy drawn per second while active. */
@@ -74,12 +78,18 @@ export type RepairProtocolStats = {
      * (SPEC-0003: "a side effect that zeroes power is just a power write").
      */
     sideEffectSystems: RepairableSystemKey[];
-    tier: RepairProtocolTier;
+};
+
+type RepairProtocolStatsBase = {
+    name: string;
+    /** Defectible fields this protocol clears on completion. Cross-cutting by design (SPEC-0003). */
+    targets: RepairProtocolTarget[];
     /**
      * Overrides `duration` with a value read live from ship state each tick, for a protocol whose
      * duration is a GM-tweakable constant rather than a fixed catalog number (e.g. `armorPlateRenewal`
      * reads `state.armor.plateRepairSeconds`). Reread every tick, so a GM's live tweak affects an
-     * already-active operation, not just future enqueues.
+     * already-active operation, not just future enqueues. Always overrides the current mode's
+     * `duration` — see `getModeStats`.
      */
     dynamicDuration?: (state: ShipState) => number;
     /**
@@ -100,6 +110,82 @@ export type RepairProtocolStats = {
     consumesEnergyCell?: boolean;
 };
 
+/**
+ * A field-tier protocol: a compromise done in the field, so it always offers both of #2255's
+ * modes — {@link RepairProtocolMode.Responsive} (today's duration, no side effect) and
+ * {@link RepairProtocolMode.Dark} (a third of the duration, today's side effect). Which mode a
+ * given run actually uses is tracked per-slot (`RepairProtocolSlot.mode`), not here — this is the
+ * static catalog price list for each mode, not a live selection.
+ */
+export type FieldRepairProtocolStats = RepairProtocolStatsBase & {
+    tier: 'field';
+    modes: Record<RepairProtocolMode, RepairProtocolModeStats>;
+};
+
+/**
+ * A docked (or shipyard) tier protocol: the real thing, not a field compromise, so it stays
+ * single-mode — same flat `duration`/`energyDraw`/`heat`/`sideEffectSystems` shape the whole
+ * catalog used before #2255. Two modes are a field-tier property; do not add them here.
+ */
+export type SingleModeRepairProtocolStats = RepairProtocolStatsBase & {
+    tier: 'docked' | 'shipyard';
+    /** Seconds the operation stays active. */
+    duration: number;
+    /** Energy drawn per second while active. */
+    energyDraw: number;
+    /** Total heat added to target systems over the operation's duration. */
+    heat: number;
+    /**
+     * Systems whose `power` is forced to 0 while the operation is active, and
+     * restored to its pre-operation value on completion or cancellation
+     * (SPEC-0003: "a side effect that zeroes power is just a power write").
+     */
+    sideEffectSystems: RepairableSystemKey[];
+};
+
+export type RepairProtocolStats = FieldRepairProtocolStats | SingleModeRepairProtocolStats;
+
+/**
+ * The `duration`/`energyDraw`/`heat`/`sideEffectSystems` in effect for `protocol` under `mode` —
+ * the single seam every caller (`RepairManager`, the repair-queue widget) reads instead of
+ * branching on `protocol.tier` itself. A single-mode (docked/shipyard) protocol ignores `mode`
+ * and always returns its one flat price; `mode` only matters for a field-tier protocol.
+ */
+export function getModeStats(protocol: RepairProtocolStats, mode: RepairProtocolMode): RepairProtocolModeStats {
+    if (protocol.tier === 'field') {
+        return protocol.modes[mode];
+    }
+    return {
+        duration: protocol.duration,
+        energyDraw: protocol.energyDraw,
+        heat: protocol.heat,
+        sideEffectSystems: protocol.sideEffectSystems,
+    };
+}
+
+/**
+ * Builds a field-tier protocol's two modes from today's numbers (issue #2255, R1): Responsive
+ * keeps `base`'s duration with no side effect; Dark runs at a third of that duration with
+ * `darkSideEffectSystems` (today's `sideEffectSystems`, unchanged).
+ *
+ * `energyDraw` (a rate) and `heat` (a fixed total budget, see {@link RepairProtocolModeStats})
+ * are deliberately left unchanged between modes — the implementer's call the issue asked for,
+ * stated here rather than at every call site: Dark isn't a *different* operation, just the same
+ * one run to a tighter, riskier schedule, so its per-second energy/heat rates stay what the
+ * catalog always authored. Duration shrinking to a third then means Dark's *total* energy cost
+ * drops to a third of Responsive's, while its *total* heat stays the same — delivered three times
+ * as fast (three times the heat per second) as the price of that darkened system.
+ */
+function fieldModes(
+    base: { duration: number; energyDraw: number; heat: number },
+    darkSideEffectSystems: RepairableSystemKey[],
+): Record<RepairProtocolMode, RepairProtocolModeStats> {
+    return {
+        [RepairProtocolMode.Responsive]: { ...base, sideEffectSystems: [] },
+        [RepairProtocolMode.Dark]: { ...base, duration: base.duration / 3, sideEffectSystems: darkSideEffectSystems },
+    };
+}
+
 export const actuatorRecalibration: RepairProtocolStats = {
     name: 'Actuator recalibration',
     targets: [
@@ -108,10 +194,7 @@ export const actuatorRecalibration: RepairProtocolStats = {
         { system: 'radars', field: 'bearingSkew' },
         { system: 'smartPilot', field: 'offsetFactor' },
     ],
-    duration: 45,
-    energyDraw: 2,
-    heat: 20,
-    sideEffectSystems: ['chainGuns'],
+    modes: fieldModes({ duration: 45, energyDraw: 2, heat: 20 }, ['chainGuns']),
     tier: 'field',
 };
 
@@ -121,10 +204,7 @@ export const thrustLinePurge: RepairProtocolStats = {
         { system: 'thrusters', field: 'availableCapacity' },
         { system: 'maneuvering', field: 'efficiency' },
     ],
-    duration: 60,
-    energyDraw: 2,
-    heat: 25,
-    sideEffectSystems: ['thrusters'],
+    modes: fieldModes({ duration: 60, energyDraw: 2, heat: 25 }, ['thrusters']),
     tier: 'field',
 };
 
@@ -134,10 +214,7 @@ export const feedSystemOverhaul: RepairProtocolStats = {
         { system: 'chainGuns', field: 'rateOfFireFactor' },
         { system: 'magazine', field: 'capacity' },
     ],
-    duration: 60,
-    energyDraw: 2,
-    heat: 25,
-    sideEffectSystems: ['magazine'],
+    modes: fieldModes({ duration: 60, energyDraw: 2, heat: 25 }, ['magazine']),
     tier: 'field',
 };
 
@@ -147,20 +224,14 @@ export const sensorArrayDegauss: RepairProtocolStats = {
         { system: 'radars', field: 'malfunctionRangeFactor' },
         { system: 'signals', field: 'jobSuccessFactor' },
     ],
-    duration: 30,
-    energyDraw: 3,
-    heat: 15,
-    sideEffectSystems: ['radars'],
+    modes: fieldModes({ duration: 30, energyDraw: 3, heat: 15 }, ['radars']),
     tier: 'field',
 };
 
 export const radarTraverseServoAlignment: RepairProtocolStats = {
     name: 'Radar traverse servo alignment',
     targets: [{ system: 'radars', field: 'turnSpeedFactor' }],
-    duration: 30,
-    energyDraw: 3,
-    heat: 15,
-    sideEffectSystems: ['radars'],
+    modes: fieldModes({ duration: 30, energyDraw: 3, heat: 15 }, ['radars']),
     tier: 'field',
 };
 
@@ -170,10 +241,7 @@ export const signalProcessorRetune: RepairProtocolStats = {
         { system: 'signals', field: 'jobSpeedFactor' },
         { system: 'docking', field: 'rangesFactor' },
     ],
-    duration: 30,
-    energyDraw: 2,
-    heat: 15,
-    sideEffectSystems: ['signals'],
+    modes: fieldModes({ duration: 30, energyDraw: 2, heat: 15 }, ['signals']),
     tier: 'field',
 };
 
@@ -184,13 +252,11 @@ export const powerTrainReset: RepairProtocolStats = {
         { system: 'warp', field: 'velocityFactor' },
         { system: 'maneuvering', field: 'efficiency' },
     ],
-    duration: 90,
-    energyDraw: 1,
-    heat: 30,
-    // does NOT include 'reactor': zeroing the reactor's own power would zero its regen for the
-    // operation's full 90s duration (effectiveness = broken ? 0 : power * hacked), which is an
-    // accident of the authored numbers, not a designed tradeoff (R1, PR #2030 review)
-    sideEffectSystems: ['warp', 'maneuvering'],
+    // does NOT include 'reactor' in its dark-mode side effect: zeroing the reactor's own power
+    // would zero its regen for the operation's full duration (effectiveness = broken ? 0 : power *
+    // hacked), which is an accident of the authored numbers, not a designed tradeoff (R1, PR #2030
+    // review)
+    modes: fieldModes({ duration: 90, energyDraw: 1, heat: 30 }, ['warp', 'maneuvering']),
     tier: 'field',
 };
 
@@ -200,10 +266,7 @@ export const containmentFieldTuning: RepairProtocolStats = {
         { system: 'warp', field: 'damageFactor' },
         { system: 'reactor', field: 'effeciencyFactor' },
     ],
-    duration: 75,
-    energyDraw: 3,
-    heat: 30,
-    sideEffectSystems: ['warp'],
+    modes: fieldModes({ duration: 75, energyDraw: 3, heat: 30 }, ['warp']),
     tier: 'field',
 };
 
@@ -226,10 +289,7 @@ export const launcherServoRecalibration: RepairProtocolStats = {
         { system: 'tubes', field: 'bearingSkew' },
         { system: 'tubes', field: 'rateOfFireFactor' },
     ],
-    duration: 45,
-    energyDraw: 2,
-    heat: 20,
-    sideEffectSystems: ['tubes'],
+    modes: fieldModes({ duration: 45, energyDraw: 2, heat: 20 }, ['tubes']),
     tier: 'field',
     onComplete: relockTubeSafeties,
 };
@@ -241,10 +301,11 @@ export const fireControlAlignment: RepairProtocolStats = {
         { system: 'smartPilot', field: 'offsetFactor' },
         { system: 'radars', field: 'malfunctionRangeFactor' },
     ],
-    duration: 45,
-    energyDraw: 2,
-    heat: 20,
-    sideEffectSystems: [],
+    // already had no side effect pre-#2255 (the 2026-08-08 §6.2 "scarce safe option") — under R1's
+    // blanket rule its Dark mode inherits that same empty side-effect list, so the two modes here
+    // differ only in duration; that is the intended, uneventful outcome of extending R1 to a
+    // protocol that had nothing to darken in the first place.
+    modes: fieldModes({ duration: 45, energyDraw: 2, heat: 20 }, []),
     tier: 'field',
 };
 
@@ -333,17 +394,50 @@ function jumpStartReactor(state: ShipState): void {
  * runnable from true zero energy — `RepairManager.tickRunning` skips the energy-spend check
  * entirely for a zero-draw protocol, since `EnergyManager.trySpendEnergy` would otherwise refuse
  * to spend even nothing out of an empty reactor.
+ *
+ * Like `fireControlAlignment`, this already had no side effect pre-#2255, so R1's Dark mode is
+ * still side-effect-free here — only its duration (a third of Responsive's) differs.
  */
 export const reactorJumpStart: RepairProtocolStats = {
     name: 'Reactor jump-start',
     targets: [],
-    duration: 10,
-    energyDraw: 0,
-    heat: 0,
-    sideEffectSystems: [],
+    modes: fieldModes({ duration: 10, energyDraw: 0, heat: 0 }, []),
     tier: 'field',
     consumesEnergyCell: true,
     onComplete: jumpStartReactor,
+};
+
+/**
+ * Closes the R3 coverage gap reported on issue #2255: `turnSpeedFactor` (`Turret`'s "turn speed"
+ * defectible) was targeted for `radars` (`radarTraverseServoAlignment`) but not for the other
+ * three turret-based systems that inherit the same field.
+ */
+export const turnSpeedGovernorTuning: RepairProtocolStats = {
+    name: 'Turret traverse governor tuning',
+    targets: [
+        { system: 'thrusters', field: 'turnSpeedFactor' },
+        { system: 'chainGuns', field: 'turnSpeedFactor' },
+        { system: 'tubes', field: 'turnSpeedFactor' },
+    ],
+    modes: fieldModes({ duration: 45, energyDraw: 2, heat: 20 }, ['thrusters', 'chainGuns', 'tubes']),
+    tier: 'field',
+};
+
+/**
+ * Closes the other half of the R3 coverage gap reported on issue #2255: `bearingLimitFactor`
+ * (`Turret`'s "traverse limit" defectible) had no protocol at all — not even `radars`, unlike
+ * `turnSpeedFactor` above.
+ */
+export const traverseLimitRecalibration: RepairProtocolStats = {
+    name: 'Traverse-limit recalibration',
+    targets: [
+        { system: 'thrusters', field: 'bearingLimitFactor' },
+        { system: 'chainGuns', field: 'bearingLimitFactor' },
+        { system: 'radars', field: 'bearingLimitFactor' },
+        { system: 'tubes', field: 'bearingLimitFactor' },
+    ],
+    modes: fieldModes({ duration: 60, energyDraw: 2, heat: 25 }, ['thrusters', 'chainGuns', 'radars', 'tubes']),
+    tier: 'field',
 };
 
 export const repairProtocols = {
@@ -360,6 +454,12 @@ export const repairProtocols = {
     armorPlateRenewal,
     launcherServoRecalibration,
     reactorJumpStart,
+    // Appended, not interleaved: catalog position drives the engineer screen's hotkey assignment
+    // (see `getRepairProtocolHotkey` in `widgets/repair-queue.ts`) — inserting these earlier would
+    // shift every hotkey after them. These two also happen to exactly fill the last two slots of
+    // `REPAIR_PROTOCOL_HOTKEYS` (alt+r, alt+t).
+    turnSpeedGovernorTuning,
+    traverseLimitRecalibration,
 } as const satisfies Record<string, RepairProtocolStats>;
 
 export type RepairProtocolName = keyof typeof repairProtocols;
@@ -437,15 +537,65 @@ export function validateRepairCatalog(state: ShipState, catalog: Record<string, 
 }
 
 /**
- * Whether every system `protocol` targets or declares a side effect on is actually fitted to this
- * ship — a fixed property of the ship's design, unlike tier or energy-cell state, which change
- * live. Split out from `isProtocolAvailable` (issue #2247 review) so a display-only filter (the
- * repair-queue widget hiding rows for equipment this ship structurally lacks) can check exactly
- * this, without also hiding a docked-tier or out-of-cells protocol that should stay visible and
- * explain itself via the slot's `refusalReason`.
+ * Every `@defectible` field declared on a system in `REPAIRABLE_SYSTEM_KEYS` that no protocol in
+ * `catalog` targets (issue #2255, R3) — the exact "covered system, uncovered field" gap that let
+ * `radars/turnSpeedFactor` decay with no counterplay until #2109. Walks `state`'s live schema tree
+ * (same `allColyseusProperties` traversal `getSystems`/`getColyseusPrimitivesJsonPointers` use)
+ * checking raw decorator metadata directly, same as `validateRepairCatalog` above, so a field
+ * declared but disabled on every instance `state`'s ship happens to carry (see that function's own
+ * doc comment) still counts as needing a protocol — `state` should be a ship design that fits
+ * (and enables) every system this catalog could reference, e.g. the dragonfly.
+ */
+export function findUncoveredDefectibleFields(
+    state: ShipState,
+    catalog: Record<string, RepairProtocolStats>,
+): RepairProtocolTarget[] {
+    const targeted = new Set(Object.values(catalog).flatMap((p) => p.targets.map((t) => `${t.system}/${t.field}`)));
+    const uncovered: RepairProtocolTarget[] = [];
+    const seen = new Set<string>();
+    for (const [instance, systemPointer, field] of allColyseusProperties(state)) {
+        if (!(instance instanceof SystemState) || typeof field !== 'string') {
+            continue;
+        }
+        if (Reflect.getMetadata(DEFECTIBLE_METADATA, instance, field) == null) {
+            continue;
+        }
+        const topLevelKey = systemPointer.split('/')[1] ?? '';
+        if (!isRepairableSystemKey(topLevelKey)) {
+            continue;
+        }
+        const key = `${topLevelKey}/${field}`;
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        if (!targeted.has(key)) {
+            uncovered.push({ system: topLevelKey, field });
+        }
+    }
+    return uncovered;
+}
+
+/**
+ * Whether every system `protocol` targets or declares a side effect on (either mode, for a
+ * field-tier protocol) is actually fitted to this ship — a fixed property of the ship's design,
+ * unlike tier or energy-cell state, which change live. Split out from `isProtocolAvailable` (issue
+ * #2247 review) so a display-only filter (the repair-queue widget hiding rows for equipment this
+ * ship structurally lacks) can check exactly this, without also hiding a docked-tier or
+ * out-of-cells protocol that should stay visible and explain itself via the slot's
+ * `refusalReason`.
  */
 export function hasProtocolEquipment(state: ShipState, protocol: RepairProtocolStats): boolean {
-    const systems = [...protocol.targets.map((t) => t.system), ...protocol.sideEffectSystems];
+    const sideEffectSystems =
+        protocol.tier === 'field'
+            ? [
+                  ...new Set([
+                      ...protocol.modes[RepairProtocolMode.Responsive].sideEffectSystems,
+                      ...protocol.modes[RepairProtocolMode.Dark].sideEffectSystems,
+                  ]),
+              ]
+            : protocol.sideEffectSystems;
+    const systems = [...protocol.targets.map((t) => t.system), ...sideEffectSystems];
     return systems.every((system) => getRepairableSystemInstances(state, system).length > 0);
 }
 

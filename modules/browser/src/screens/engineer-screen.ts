@@ -9,7 +9,11 @@ import {
 } from '@starwards/core';
 import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
-import { drawRepairQueue, getRepairProtocolHotkey, getRepairProtocolLowerHotkey } from '../widgets/repair-queue';
+import {
+    getRepairProtocolHotkey,
+    getRepairProtocolLowerHotkey,
+    getRepairProtocolModeHotkey,
+} from '../widgets/repair-queue-logic';
 import { radarFogOfWar, toCss } from '../colors';
 import { readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
@@ -19,6 +23,7 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawDamageReport } from '../widgets/damage-report';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
+import { drawRepairQueue } from '../widgets/repair-queue';
 import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
@@ -110,6 +115,17 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
                 () => shipDriver.command(repairCommands.cycleRepairPriority, { protocolId, direction: 'down' }),
                 lowerKey,
                 `Lower priority: ${protocol.name}`,
+            );
+        }
+        // mode toggle (issue #2255): a third gesture per row, ctrl+alt+<key> — a docked/shipyard-tier
+        // protocol has no mode to toggle, so getRepairProtocolModeHotkey (and this binding) only
+        // exist for a field-tier one.
+        const modeKey = getRepairProtocolModeHotkey(protocolId);
+        if (modeKey) {
+            controlledInput.addClickAction(
+                () => shipDriver.command(repairCommands.toggleRepairProtocolMode, { protocolId }),
+                modeKey,
+                `Toggle Responsive/Dark: ${protocol.name}`,
             );
         }
     }

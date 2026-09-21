@@ -1,9 +1,12 @@
 import {
     CycleRepairPriorityArg,
     RepairPriority,
+    RepairProtocolMode,
     RepairProtocolSlot,
     SavedPowerEntry,
+    ToggleRepairProtocolModeArg,
     isCycleRepairPriorityArg,
+    isToggleRepairProtocolModeArg,
 } from './repair-queue';
 import { IterationData, Updateable } from '../updateable';
 import { PowerLevel, SystemState } from './system';
@@ -11,6 +14,7 @@ import {
     REPAIR_TIER_ORDER,
     RepairProtocolStats,
     getEffectiveRepairTier,
+    getModeStats,
     getRepairableSystemInstances,
     isProtocolAvailable,
     isRepairableSystemKey,
@@ -26,6 +30,14 @@ import { getSystems } from './system';
  * enforcing "sustained" — not validated against real playtest numbers.
  */
 export const ENERGY_STARVATION_GRACE_SECONDS = 2;
+
+/**
+ * How much faster a CANCELLING wind-down unwinds progress than a RUNNING slot builds it (issue
+ * #2255, R2) — cancelling at progress `p` now costs `p / CANCEL_WINDDOWN_SPEED_MULTIPLIER`
+ * instead of `p`, moving the break-even point (where backing out no longer saves time versus just
+ * finishing) from 50% to `1 - 1/CANCEL_WINDDOWN_SPEED_MULTIPLIER` = 2/3 progress.
+ */
+export const CANCEL_WINDDOWN_SPEED_MULTIPLIER = 2;
 
 /**
  * Reverts `slot`'s declared side effects and, when `refundEnergyCell` is true, refunds one spent
@@ -94,6 +106,7 @@ export class RepairManager implements Updateable {
 
     update({ deltaSeconds }: IterationData) {
         this.drainCycleCommands();
+        this.drainToggleModeCommands();
         this.checkAvailabilityLoss();
         this.ensureRunning();
         this.tickRunning(deltaSeconds);
@@ -194,6 +207,36 @@ export class RepairManager implements Updateable {
             }
             slot.priority = slot.priority - 1;
         }
+    }
+
+    private drainToggleModeCommands() {
+        const commands: unknown[] = this.state.repairQueue.toggleModeCommands;
+        this.state.repairQueue.toggleModeCommands = [];
+        for (const command of commands) {
+            if (!isToggleRepairProtocolModeArg(command)) {
+                continue;
+            }
+            this.handleToggleMode(command);
+        }
+    }
+
+    /**
+     * Flips a slot's mode between Responsive and Dark (issue #2255) — a no-op for an unknown
+     * protocol, a docked/shipyard-tier protocol (single-mode: nothing to toggle), or a slot that is
+     * RUNNING/CANCELLING (mode is locked for the run it already started at, same spirit as
+     * `handleCycle` ignoring a key pressed while CANCELLING).
+     */
+    private handleToggleMode({ protocolId }: ToggleRepairProtocolModeArg) {
+        const slot = this.getSlot(protocolId);
+        if (!slot || slot.priority === RepairPriority.RUNNING || slot.priority === RepairPriority.CANCELLING) {
+            return;
+        }
+        const protocol = this.getProtocol(protocolId);
+        if (!protocol || protocol.tier !== 'field') {
+            return;
+        }
+        slot.mode =
+            slot.mode === RepairProtocolMode.Responsive ? RepairProtocolMode.Dark : RepairProtocolMode.Responsive;
     }
 
     /** Why `protocol` cannot run right now, or `undefined` if it can — see `isProtocolAvailable`. */
@@ -298,11 +341,12 @@ export class RepairManager implements Updateable {
             this.tickCancelling(slot, protocol, deltaSeconds);
             return;
         }
+        const modeStats = getModeStats(protocol, slot.mode);
         // A zero-draw protocol (e.g. reactorJumpStart, armorPlateRenewal) must be runnable from
         // true zero energy — but EnergyManager.trySpendEnergy checks `energy > value` (strictly
         // greater), so spending even nothing out of an exactly-empty reactor reads as a refusal.
         // Skip the spend attempt entirely rather than let that edge case starve a free protocol.
-        if (protocol.energyDraw > 0 && !this.energySource.trySpendEnergy(protocol.energyDraw * deltaSeconds)) {
+        if (modeStats.energyDraw > 0 && !this.energySource.trySpendEnergy(modeStats.energyDraw * deltaSeconds)) {
             // brief dip: no progress/heat this tick, but the run survives until the shortfall is
             // sustained past the grace window (R3) — then it's still all-or-nothing
             slot.starvedSeconds += deltaSeconds;
@@ -314,16 +358,23 @@ export class RepairManager implements Updateable {
         }
         slot.starvedSeconds = 0;
         slot.energyStarved = false;
-        this.applyHeat(protocol, deltaSeconds);
-        slot.progress = Math.min(1, slot.progress + deltaSeconds / this.getDuration(protocol));
+        const duration = this.getDuration(protocol, slot.mode);
+        this.applyHeat(protocol, modeStats, duration, deltaSeconds);
+        slot.progress = Math.min(1, slot.progress + deltaSeconds / duration);
         if (slot.progress >= 1) {
             this.complete(slot, protocol);
         }
     }
 
-    /** Progress runs back toward 0% instead of stopping instantly (issue #2247: "cancel = wind-down, like missile unload"). */
+    /**
+     * Progress runs back toward 0% instead of stopping instantly (issue #2247: "cancel = wind-down,
+     * like missile unload"), now at `CANCEL_WINDDOWN_SPEED_MULTIPLIER`x forward speed (issue #2255,
+     * R2) — cancelling at progress `p` costs `p / CANCEL_WINDDOWN_SPEED_MULTIPLIER` of the
+     * duration instead of `p`.
+     */
     private tickCancelling(slot: RepairProtocolSlot, protocol: RepairProtocolStats, deltaSeconds: number) {
-        slot.progress = Math.max(0, slot.progress - deltaSeconds / this.getDuration(protocol));
+        const duration = this.getDuration(protocol, slot.mode);
+        slot.progress = Math.max(0, slot.progress - (deltaSeconds * CANCEL_WINDDOWN_SPEED_MULTIPLIER) / duration);
         if (slot.progress <= 0) {
             this.revertSideEffects(slot, !!protocol.consumesEnergyCell);
             slot.priority = RepairPriority.OFF;
@@ -331,9 +382,9 @@ export class RepairManager implements Updateable {
         }
     }
 
-    /** `dynamicDuration`, when declared, always wins over the static `duration` — see its doc comment. */
-    private getDuration(protocol: RepairProtocolStats): number {
-        return protocol.dynamicDuration ? protocol.dynamicDuration(this.state) : protocol.duration;
+    /** `dynamicDuration`, when declared, always wins over the mode's `duration` — see its doc comment. */
+    private getDuration(protocol: RepairProtocolStats, mode: RepairProtocolMode): number {
+        return protocol.dynamicDuration ? protocol.dynamicDuration(this.state) : getModeStats(protocol, mode).duration;
     }
 
     /** A cell stays spent only on a successful completion — this is the one exit from RUNNING that never refunds it. */
@@ -372,20 +423,25 @@ export class RepairManager implements Updateable {
     }
 
     /**
-     * `protocol.heat` is a fixed total budget added over `protocol.duration`, split evenly across
+     * The active mode's `heat` is a fixed total budget added over `duration`, split evenly across
      * the distinct target *system keys*, and, when a key resolves to more than one live instance,
-     * split evenly again across those instances so the total delivered stays `protocol.heat`
+     * split evenly again across those instances so the total delivered stays that budget
      * regardless of how many instances the ship happens to have.
      */
-    private applyHeat(protocol: RepairProtocolStats, deltaSeconds: number) {
-        if (protocol.heat <= 0) {
+    private applyHeat(
+        protocol: RepairProtocolStats,
+        modeStats: { heat: number },
+        duration: number,
+        deltaSeconds: number,
+    ) {
+        if (modeStats.heat <= 0) {
             return;
         }
         const uniqueKeys = [...new Set(protocol.targets.map((t) => t.system))];
         if (uniqueKeys.length === 0) {
             return;
         }
-        const perKeyHeatPerSecond = protocol.heat / this.getDuration(protocol) / uniqueKeys.length;
+        const perKeyHeatPerSecond = modeStats.heat / duration / uniqueKeys.length;
         for (const key of uniqueKeys) {
             const instances = getRepairableSystemInstances(this.state, key);
             if (instances.length === 0) {
@@ -399,7 +455,7 @@ export class RepairManager implements Updateable {
     }
 
     private applySideEffects(slot: RepairProtocolSlot, protocol: RepairProtocolStats) {
-        for (const key of protocol.sideEffectSystems) {
+        for (const key of getModeStats(protocol, slot.mode).sideEffectSystems) {
             getRepairableSystemInstances(this.state, key).forEach((instance, index) => {
                 const entry = new SavedPowerEntry();
                 entry.system = key;

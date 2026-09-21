@@ -1,14 +1,14 @@
-import { RepairProtocolStats, demoShip, makeShipState } from '@starwards/core';
+import { RepairProtocolMode, RepairProtocolStats, demoShip, makeShipState } from '@starwards/core';
 
 import { isRepairSlotVisible } from '../src/widgets/repair-queue-logic';
 
 const chainGunProtocol: RepairProtocolStats = {
     name: 'Needs a chain gun',
     targets: [{ system: 'chainGuns', field: 'bearingSkew' }],
-    duration: 10,
-    energyDraw: 1,
-    heat: 0,
-    sideEffectSystems: [],
+    modes: {
+        [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+        [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+    },
     tier: 'field',
 };
 
@@ -25,10 +25,10 @@ const dockedTierProtocol: RepairProtocolStats = {
 const cellProtocol: RepairProtocolStats = {
     name: 'Needs an energy cell',
     targets: [],
-    duration: 10,
-    energyDraw: 0,
-    heat: 0,
-    sideEffectSystems: [],
+    modes: {
+        [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+        [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+    },
     tier: 'field',
     consumesEnergyCell: true,
 };

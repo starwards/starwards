@@ -1,10 +1,10 @@
 import { MockDie, makeIterationsData } from './ship-test-harness';
-import { demoShip, getAvailableRepairProtocols, makeShipState, repairProtocols } from '../src';
+import { RepairPriority, RepairProtocolMode } from '../src/ship/repair-queue';
+import { demoShip, getAvailableRepairProtocols, getModeStats, makeShipState, repairProtocols } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
 import { RepairManager } from '../src/ship/repair-manager';
-import { RepairPriority } from '../src/ship/repair-queue';
 import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
 import { cycleRepairPriority } from '../src/ship/repair-commands';
@@ -58,7 +58,11 @@ describe('reactorJumpStart (field-tier repair protocol, issue #2137)', () => {
         state.reactor.effeciencyFactor = 0;
 
         raise(state, 'reactorJumpStart');
-        runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20);
+        runTicks(
+            repairManager,
+            getModeStats(repairProtocols.reactorJumpStart, RepairProtocolMode.Responsive).duration + 0.1,
+            20,
+        );
 
         expect(slot(state, 'reactorJumpStart').priority).to.equal(RepairPriority.OFF);
         expect(state.reactor.effeciencyFactor).to.be.closeTo(0.3, 0.01);
@@ -85,7 +89,11 @@ describe('reactorJumpStart (field-tier repair protocol, issue #2137)', () => {
         state.reactor.effeciencyFactor = 0;
 
         raise(state, 'reactorJumpStart');
-        runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20);
+        runTicks(
+            repairManager,
+            getModeStats(repairProtocols.reactorJumpStart, RepairProtocolMode.Responsive).duration + 0.1,
+            20,
+        );
 
         expect(state.reactor.energyCells).to.equal(1);
     });
@@ -112,7 +120,11 @@ describe('reactorJumpStart (field-tier repair protocol, issue #2137)', () => {
         expect(state.reactor.energyCells).to.equal(0);
 
         cycleRepairPriority.setValue(state, { protocolId: 'reactorJumpStart', direction: 'down' }); // wind-down
-        runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20);
+        runTicks(
+            repairManager,
+            getModeStats(repairProtocols.reactorJumpStart, RepairProtocolMode.Responsive).duration + 0.1,
+            20,
+        );
 
         expect(slot(state, 'reactorJumpStart').priority).to.equal(RepairPriority.OFF);
         expect(state.reactor.energyCells).to.equal(1);
@@ -127,7 +139,11 @@ describe('reactorJumpStart (field-tier repair protocol, issue #2137)', () => {
         state.reactor.effeciencyFactor = 0.9;
 
         raise(state, 'reactorJumpStart');
-        runTicks(repairManager, repairProtocols.reactorJumpStart.duration + 0.1, 20);
+        runTicks(
+            repairManager,
+            getModeStats(repairProtocols.reactorJumpStart, RepairProtocolMode.Responsive).duration + 0.1,
+            20,
+        );
 
         expect(state.reactor.effeciencyFactor).to.equal(1);
     });

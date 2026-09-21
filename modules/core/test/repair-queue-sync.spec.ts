@@ -1,10 +1,10 @@
 import { Decoder, Encoder } from '@colyseus/schema';
+import { RepairPriority, RepairProtocolMode } from '../src/ship/repair-queue';
 import { demoShip, makeShipState } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
 import { RepairManager } from '../src/ship/repair-manager';
-import { RepairPriority } from '../src/ship/repair-queue';
 import { RepairProtocolStats } from '../src/configurations/repair-protocols';
 import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
@@ -43,19 +43,19 @@ describe('RepairQueue slot state survives a Colyseus encode/decode round trip', 
             protocolA: {
                 name: 'Protocol A',
                 targets: [{ system: 'thrusters', field: 'bearingSkew' }],
-                duration: 100,
-                energyDraw: 0,
-                heat: 0,
-                sideEffectSystems: [],
+                modes: {
+                    [RepairProtocolMode.Responsive]: { duration: 100, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+                    [RepairProtocolMode.Dark]: { duration: 100, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+                },
                 tier: 'field',
             },
             protocolB: {
                 name: 'Protocol B',
                 targets: [{ system: 'magazine', field: 'capacity' }],
-                duration: 100,
-                energyDraw: 0,
-                heat: 0,
-                sideEffectSystems: [],
+                modes: {
+                    [RepairProtocolMode.Responsive]: { duration: 100, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+                    [RepairProtocolMode.Dark]: { duration: 100, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+                },
                 tier: 'field',
             },
         };

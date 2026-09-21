@@ -129,7 +129,7 @@ test.describe('Engineer Screen', () => {
         expect(await rowValue(row, 'progress')).toBe('0%');
     });
 
-    test('radar traverse servo alignment (#2109) drives visible progress via hotkey and takes the radar dark', async ({
+    test('radar traverse servo alignment (#2109) drives visible progress via hotkey and, in Dark mode, takes the radar dark (issue #2255)', async ({
         page,
     }) => {
         const ship = gameDriver.getShip(shipId);
@@ -139,16 +139,23 @@ test.describe('Engineer Screen', () => {
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
         const row = protocolRow(repairQueuePanel, 'Radar traverse servo alignment');
         await expect(row).toBeVisible();
+        expect(await rowValue(row, 'mode')).toBe('RESPONSIVE'); // default: no side effect
 
-        // radarTraverseServoAlignment is the 5th catalog entry -> alt+5
-        await page.keyboard.press('Alt+5');
+        // radarTraverseServoAlignment is the 5th catalog entry -> ctrl+alt+5 toggles its mode
+        await page.keyboard.press('Control+Alt+5');
+        expect(await rowValue(row, 'mode')).toBe('DARK');
 
+        await page.keyboard.press('Alt+5'); // raise priority
         await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
         const firstProgress = await waitForRowValue(row, 'progress', (v) => parseFloat(v) > 0, 5000);
         await page.waitForTimeout(500);
         const laterProgress = await rowValue(row, 'progress');
         expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
-        expect(ship.state.radars[1].power).toBe(PowerLevel.SHUTDOWN); // side effect: radar dark while it runs
+        expect(ship.state.radars[1].power).toBe(PowerLevel.SHUTDOWN); // side effect: radar dark while it runs (Dark mode)
+
+        // the mode toggle is locked once the slot is RUNNING (issue #2255)
+        await page.keyboard.press('Control+Alt+5');
+        expect(await rowValue(row, 'mode')).toBe('DARK');
     });
 
     test('raising priority multiple times steps LOW -> MEDIUM -> HIGH while something else is running (no pre-emption)', async ({

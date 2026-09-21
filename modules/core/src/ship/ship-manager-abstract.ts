@@ -21,6 +21,7 @@ import {
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
+import { RepairPriority, RepairProtocolMode } from './repair-queue';
 import { RepairProtocolStats, repairProtocols } from '../configurations/repair-protocols';
 import { Turret, updateTurret } from './turret';
 import { applyLockCommands, rehydrateLockRegistry } from '../lock-commands';
@@ -36,7 +37,6 @@ import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
 import { ReactorCellManager } from './reactor-cell-manager';
-import { RepairPriority } from './repair-queue';
 import { Signals } from './signals';
 import { SignalsJobManager } from './signals-job-manager';
 import { SpaceManager } from '../logic/space-manager';
@@ -97,6 +97,7 @@ export function resetShipState(state: ShipState) {
         slot.starvedSeconds = 0;
         slot.energyStarved = false;
         slot.refusalReason = '';
+        slot.mode = RepairProtocolMode.Responsive;
     }
     for (const at of ammoTypes) {
         state.magazine.setCount(at, state.magazine.getMax(at));
@@ -109,6 +110,7 @@ export function resetShipState(state: ShipState) {
     state.fireTubesCommand = false;
     state.hullDamaged = false;
     state.repairQueue.cyclePriorityCommands = [];
+    state.repairQueue.toggleModeCommands = [];
     state.lockCommands = [];
     // The WeakMap-keyed lock registry carries nothing across a `Schema.clone()` (NPC↔PC
     // conversion clones the whole state tree into fresh instances), so re-derive it from the

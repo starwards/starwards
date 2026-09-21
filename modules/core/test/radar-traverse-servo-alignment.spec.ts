@@ -1,14 +1,14 @@
 import { MockDie, makeIterationsData } from './ship-test-harness';
-import { demoShip, getAvailableRepairProtocols, makeShipState, repairProtocols } from '../src';
+import { RepairPriority, RepairProtocolMode } from '../src/ship/repair-queue';
+import { cycleRepairPriority, toggleRepairProtocolMode } from '../src/ship/repair-commands';
+import { demoShip, getAvailableRepairProtocols, getModeStats, makeShipState, repairProtocols } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
 import { PowerLevel } from '../src/ship/system';
 import { RepairManager } from '../src/ship/repair-manager';
-import { RepairPriority } from '../src/ship/repair-queue';
 import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
-import { cycleRepairPriority } from '../src/ship/repair-commands';
 import { expect } from 'chai';
 import { tick } from './tick';
 
@@ -45,12 +45,17 @@ function runTicks(repairManager: RepairManager, durationSeconds: number, ticksPe
 }
 
 describe('radarTraverseServoAlignment (field-tier repair protocol, #2109)', () => {
-    it('A2: appears in the engineer catalog at field tier and takes radars offline while running', () => {
+    it('A2: appears in the engineer catalog at field tier, Responsive by default with no side effect, and Dark takes radars offline', () => {
         const { state } = setUpShip();
         const available = getAvailableRepairProtocols(state, repairProtocols);
         expect(available).to.have.property('radarTraverseServoAlignment');
         expect(available.radarTraverseServoAlignment.tier).to.equal('field');
-        expect(available.radarTraverseServoAlignment.sideEffectSystems).to.include('radars');
+        expect(
+            getModeStats(available.radarTraverseServoAlignment, RepairProtocolMode.Responsive).sideEffectSystems,
+        ).to.deep.equal([]);
+        expect(
+            getModeStats(available.radarTraverseServoAlignment, RepairProtocolMode.Dark).sideEffectSystems,
+        ).to.include('radars');
     });
 
     it('A1: a radar with degraded turnSpeedFactor is restored to design value by running the protocol to completion', () => {
@@ -58,21 +63,27 @@ describe('radarTraverseServoAlignment (field-tier repair protocol, #2109)', () =
         state.radars[1].turnSpeedFactor = 0.6; // damaged; design normal is 1
 
         raise(state, 'radarTraverseServoAlignment');
-        runTicks(repairManager, repairProtocols.radarTraverseServoAlignment.duration + 0.1, 20);
+        const duration = getModeStats(
+            repairProtocols.radarTraverseServoAlignment,
+            RepairProtocolMode.Responsive,
+        ).duration;
+        runTicks(repairManager, duration + 0.1, 20);
 
         expect(slot(state, 'radarTraverseServoAlignment').priority).to.equal(RepairPriority.OFF);
         expect(state.radars[1].turnSpeedFactor).to.equal(1);
     });
 
-    it('radars go dark while the run is active, and power is restored on completion', () => {
+    it('radars go dark while the run is active in Dark mode, and power is restored on completion', () => {
         const { state, repairManager } = setUpShip();
         const priorPower = state.radars[1].power;
+        toggleRepairProtocolMode.setValue(state, { protocolId: 'radarTraverseServoAlignment' }); // Dark: default (Responsive) has no side effect
         raise(state, 'radarTraverseServoAlignment');
         tick(repairManager, 0.1); // promotes to RUNNING, applies side effect
 
         expect(state.radars[1].power).to.equal(PowerLevel.SHUTDOWN);
 
-        runTicks(repairManager, repairProtocols.radarTraverseServoAlignment.duration, 20);
+        const duration = getModeStats(repairProtocols.radarTraverseServoAlignment, RepairProtocolMode.Dark).duration;
+        runTicks(repairManager, duration, 20);
         expect(state.radars[1].power).to.equal(priorPower);
     });
 
@@ -82,7 +93,11 @@ describe('radarTraverseServoAlignment (field-tier repair protocol, #2109)', () =
         tick(repairManager, 0.1); // promotes to RUNNING while turnSpeedFactor is still at its normal value
 
         state.radars[1].turnSpeedFactor = 0.4; // fresh damage lands after the run is already active
-        runTicks(repairManager, repairProtocols.radarTraverseServoAlignment.duration, 20); // run completes
+        const duration = getModeStats(
+            repairProtocols.radarTraverseServoAlignment,
+            RepairProtocolMode.Responsive,
+        ).duration;
+        runTicks(repairManager, duration, 20); // run completes
 
         expect(state.radars[1].turnSpeedFactor).to.equal(1);
     });

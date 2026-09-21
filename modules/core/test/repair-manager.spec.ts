@@ -1,55 +1,58 @@
+import { CANCEL_WINDDOWN_SPEED_MULTIPLIER, RepairManager } from '../src/ship/repair-manager';
 import { MockDie, makeIterationsData } from './ship-test-harness';
+import { RepairPriority, RepairProtocolMode } from '../src/ship/repair-queue';
+import { cycleRepairPriority, toggleRepairProtocolMode } from '../src/ship/repair-commands';
 import { demoShip, makeShipState } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
 import { DockingMode } from '../src/ship/docking';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
 import { PowerLevel } from '../src/ship/system';
-import { RepairManager } from '../src/ship/repair-manager';
-import { RepairPriority } from '../src/ship/repair-queue';
 import { RepairProtocolStats } from '../src/configurations/repair-protocols';
 import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
-import { cycleRepairPriority } from '../src/ship/repair-commands';
 import { expect } from 'chai';
 import { resetShipState } from '../src/ship/ship-manager-abstract';
 import { tick } from './tick';
 
+// Every entry below deliberately runs the SAME numbers under both modes (mode is irrelevant to
+// what each test exercises) — `dualMode` below is the one entry whose modes genuinely differ, for
+// the mode-toggle behavior tests (issue #2255).
 const testCatalog: Record<string, RepairProtocolStats> = {
     fixThrusters: {
         name: 'Fix thruster offset',
         targets: [{ system: 'thrusters', field: 'bearingSkew' }],
-        duration: 2,
-        energyDraw: 10,
-        heat: 0,
-        sideEffectSystems: ['thrusters'],
+        modes: {
+            [RepairProtocolMode.Responsive]: { duration: 2, energyDraw: 10, heat: 0, sideEffectSystems: ['thrusters'] },
+            [RepairProtocolMode.Dark]: { duration: 2, energyDraw: 10, heat: 0, sideEffectSystems: ['thrusters'] },
+        },
         tier: 'field',
     },
     fixMagazine: {
         name: 'Fix magazine capacity',
         targets: [{ system: 'magazine', field: 'capacity' }],
-        duration: 2,
-        energyDraw: 10,
-        heat: 0,
-        sideEffectSystems: [],
+        modes: {
+            [RepairProtocolMode.Responsive]: { duration: 2, energyDraw: 10, heat: 0, sideEffectSystems: [] },
+            [RepairProtocolMode.Dark]: { duration: 2, energyDraw: 10, heat: 0, sideEffectSystems: [] },
+        },
         tier: 'field',
     },
     heatDocking: {
         name: 'Heat-generating docking fix',
         targets: [{ system: 'docking', field: 'rangesFactor' }],
-        duration: 5,
-        energyDraw: 1,
-        heat: 100,
-        sideEffectSystems: [],
+        modes: {
+            [RepairProtocolMode.Responsive]: { duration: 5, energyDraw: 1, heat: 100, sideEffectSystems: [] },
+            [RepairProtocolMode.Dark]: { duration: 5, energyDraw: 1, heat: 100, sideEffectSystems: [] },
+        },
         tier: 'field',
     },
     heatThrusters: {
         name: 'Heat-generating thruster fix',
         targets: [{ system: 'thrusters', field: 'bearingSkew' }],
-        duration: 4,
-        energyDraw: 1,
-        heat: 24,
-        sideEffectSystems: [],
+        modes: {
+            [RepairProtocolMode.Responsive]: { duration: 4, energyDraw: 1, heat: 24, sideEffectSystems: [] },
+            [RepairProtocolMode.Dark]: { duration: 4, energyDraw: 1, heat: 24, sideEffectSystems: [] },
+        },
         tier: 'field',
     },
     dockedOnly: {
@@ -64,12 +67,23 @@ const testCatalog: Record<string, RepairProtocolStats> = {
     needsCell: {
         name: 'Needs an energy cell',
         targets: [],
-        duration: 1,
-        energyDraw: 0,
-        heat: 0,
-        sideEffectSystems: [],
+        modes: {
+            [RepairProtocolMode.Responsive]: { duration: 1, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+            [RepairProtocolMode.Dark]: { duration: 1, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+        },
         tier: 'field',
         consumesEnergyCell: true,
+    },
+    // genuinely different per mode, for the mode-toggle tests: Responsive is a 6s no-side-effect
+    // run, Dark is a 2s run (a third of 6s, same as R1's real-catalog ratio) that darkens thrusters.
+    dualMode: {
+        name: 'Dual-mode test fix',
+        targets: [{ system: 'thrusters', field: 'bearingSkew' }],
+        modes: {
+            [RepairProtocolMode.Responsive]: { duration: 6, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+            [RepairProtocolMode.Dark]: { duration: 2, energyDraw: 0, heat: 0, sideEffectSystems: ['thrusters'] },
+        },
+        tier: 'field',
     },
 };
 
@@ -97,6 +111,10 @@ function raise(state: TestShipState, protocolId: string) {
 
 function lower(state: TestShipState, protocolId: string) {
     cycleRepairPriority.setValue(state, { protocolId, direction: 'down' });
+}
+
+function toggleMode(state: TestShipState, protocolId: string) {
+    toggleRepairProtocolMode.setValue(state, { protocolId });
 }
 
 function raiseToHigh(state: TestShipState, protocolId: string) {
@@ -347,7 +365,7 @@ describe('RepairManager', () => {
         tick(repairManager, 0.01);
         expect(slot(state, 'fixThrusters').priority).to.equal(RepairPriority.CANCELLING);
 
-        tick(repairManager, 0.5); // still winding down, not yet at 0
+        tick(repairManager, 0.2); // still winding down (at 2x speed, R2), not yet at 0
         expect(slot(state, 'fixThrusters').priority).to.equal(RepairPriority.CANCELLING);
         expect(slot(state, 'fixThrusters').progress).to.be.lessThan(progressBefore);
         expect(slot(state, 'fixThrusters').progress).to.be.greaterThan(0);
@@ -542,10 +560,10 @@ describe('RepairManager', () => {
             needsChainGun: {
                 name: 'Needs a chain gun',
                 targets: [{ system: 'chainGuns', field: 'bearingSkew' }],
-                duration: 10,
-                energyDraw: 1,
-                heat: 0,
-                sideEffectSystems: [],
+                modes: {
+                    [RepairProtocolMode.Responsive]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                    [RepairProtocolMode.Dark]: { duration: 10, energyDraw: 1, heat: 0, sideEffectSystems: [] },
+                },
                 tier: 'field',
             },
         });
@@ -635,7 +653,16 @@ describe('RepairManager', () => {
 
         it('refunds the cell on a forced tier-loss stop mid-run, not just on a CANCELLING wind-down (review round 1)', () => {
             const { state, repairManager } = setUpShip({
-                dockedCell: { ...testCatalog.needsCell, tier: 'docked', duration: 10 },
+                dockedCell: {
+                    name: 'Needs an energy cell (docked)',
+                    targets: [],
+                    duration: 10,
+                    energyDraw: 0,
+                    heat: 0,
+                    sideEffectSystems: [],
+                    tier: 'docked',
+                    consumesEnergyCell: true,
+                },
             });
             state.docking.mode = DockingMode.DOCKED;
             state.reactor.energyCells = 1;
@@ -715,5 +742,127 @@ describe('RepairManager', () => {
         // side effects and priority are cleanly reset too, not left stuck mid-run
         expect(cloned.reactor.energyCells).to.equal(cloned.reactor.design.maxEnergyCells);
         expect(cloned.repairQueue.slots.every((s) => s.priority === RepairPriority.OFF)).to.equal(true);
+    });
+
+    describe('repair protocol mode (issue #2255, R1)', () => {
+        it('runs in Responsive mode by default: no side effect, full duration', () => {
+            const { state, repairManager } = setUpShip();
+            raise(state, 'dualMode');
+            tick(repairManager, 0.1); // promotes to RUNNING
+
+            expect(slot(state, 'dualMode').mode).to.equal(RepairProtocolMode.Responsive);
+            expect(state.thrusters[0].power).to.not.equal(0); // Responsive: no side effect
+        });
+
+        it('toggling to Dark before raising runs the darkened, shorter mode', () => {
+            const { state, repairManager } = setUpShip();
+            toggleMode(state, 'dualMode');
+            raise(state, 'dualMode');
+            tick(repairManager, 0.1); // promotes to RUNNING, applies the Dark-mode side effect
+
+            expect(slot(state, 'dualMode').mode).to.equal(RepairProtocolMode.Dark);
+            expect(state.thrusters[0].power).to.equal(0); // Dark: side effect applied
+
+            runTicks(repairManager, 2, 20); // Dark duration is 2s, a third of Responsive's 6s
+            expect(slot(state, 'dualMode').priority).to.equal(RepairPriority.OFF);
+        });
+
+        it('toggling twice returns to Responsive', () => {
+            const { state } = setUpShip();
+            toggleMode(state, 'dualMode');
+            toggleMode(state, 'dualMode');
+
+            expect(slot(state, 'dualMode').mode).to.equal(RepairProtocolMode.Responsive);
+        });
+
+        it('is ignored once the slot is RUNNING — the mode a run started at is the mode it finishes at', () => {
+            const { state, repairManager } = setUpShip();
+            raise(state, 'dualMode');
+            tick(repairManager, 0.1); // promotes to RUNNING in Responsive mode
+            expect(slot(state, 'dualMode').mode).to.equal(RepairProtocolMode.Responsive);
+
+            toggleMode(state, 'dualMode'); // attempted mid-run — ignored
+            tick(repairManager, 0.1);
+
+            expect(slot(state, 'dualMode').mode).to.equal(RepairProtocolMode.Responsive);
+            expect(state.thrusters[0].power).to.not.equal(0); // still no side effect
+        });
+
+        it('is ignored while CANCELLING', () => {
+            const { state, repairManager } = setUpShip();
+            toggleMode(state, 'dualMode');
+            raise(state, 'dualMode');
+            tick(repairManager, 0.1); // RUNNING, Dark mode
+
+            lower(state, 'dualMode'); // wind-down
+            tick(repairManager, 0.01); // small step: confirm CANCELLING before the wind-down can finish
+            expect(slot(state, 'dualMode').priority).to.equal(RepairPriority.CANCELLING);
+
+            toggleMode(state, 'dualMode'); // ignored while CANCELLING
+            tick(repairManager, 0.1);
+
+            expect(slot(state, 'dualMode').mode).to.equal(RepairProtocolMode.Dark);
+        });
+
+        it('is a no-op on a docked/shipyard-tier (single-mode) protocol', () => {
+            const { state } = setUpShip();
+            const before = slot(state, 'dockedOnly').mode;
+
+            toggleMode(state, 'dockedOnly');
+
+            expect(slot(state, 'dockedOnly').mode).to.equal(before);
+        });
+
+        it('is a no-op on an unknown protocol id, without throwing', () => {
+            const { state, repairManager } = setUpShip();
+
+            toggleMode(state, 'not-a-real-protocol');
+
+            expect(() => tick(repairManager, 0.1)).to.not.throw();
+        });
+
+        it('malformed toggle-mode payloads degrade to a no-op instead of throwing out of the tick', () => {
+            const { state, repairManager } = setUpShip();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (state.repairQueue.toggleModeCommands as any[]).push(null, 'garbage', 42, {});
+
+            expect(() => tick(repairManager, 0.1)).to.not.throw();
+        });
+    });
+
+    describe('cancel wind-down speed (issue #2255, R2)', () => {
+        it(`winds down at ${CANCEL_WINDDOWN_SPEED_MULTIPLIER}x forward speed: cancelling from 2/3 progress takes exactly as long as finishing would`, () => {
+            // Path A: from 2/3 progress, letting the run finish takes duration * (1 - 2/3) = duration/3.
+            // Path B: from 2/3 progress, the wind-down takes duration * (2/3) / CANCEL_WINDDOWN_SPEED_MULTIPLIER.
+            // These are equal exactly when CANCEL_WINDDOWN_SPEED_MULTIPLIER === 2 — a duration of 6s
+            // makes both paths a clean 2s, so this is the break-even point R2 describes.
+            const duration = 6;
+            const breakEvenCatalog: Record<string, RepairProtocolStats> = {
+                breakEven: {
+                    name: 'Break-even fix',
+                    targets: [{ system: 'thrusters', field: 'bearingSkew' }],
+                    modes: {
+                        [RepairProtocolMode.Responsive]: { duration, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+                        [RepairProtocolMode.Dark]: { duration, energyDraw: 0, heat: 0, sideEffectSystems: [] },
+                    },
+                    tier: 'field',
+                },
+            };
+            const { state: stateA, repairManager: managerA } = setUpShip(breakEvenCatalog);
+            raise(stateA, 'breakEven');
+            runTicks(managerA, (2 / 3) * duration, 50); // reach 2/3 progress
+            expect(slot(stateA, 'breakEven').progress).to.be.closeTo(2 / 3, 0.02);
+            runTicks(managerA, duration / 3 + 0.05, 50); // finishing from here takes duration/3
+            expect(slot(stateA, 'breakEven').priority).to.equal(RepairPriority.OFF); // completed
+
+            const { state: stateB, repairManager: managerB } = setUpShip(breakEvenCatalog);
+            raise(stateB, 'breakEven');
+            runTicks(managerB, (2 / 3) * duration, 50); // reach 2/3 progress
+            lower(stateB, 'breakEven'); // cancel from 2/3 progress
+            runTicks(managerB, duration / 3 - 0.05, 50); // just short of duration/3 — not yet wound down
+            expect(slot(stateB, 'breakEven').priority).to.equal(RepairPriority.CANCELLING);
+            runTicks(managerB, 0.1, 50); // now past duration/3 — the wind-down has finished too
+            expect(slot(stateB, 'breakEven').priority).to.equal(RepairPriority.OFF);
+        });
     });
 });
