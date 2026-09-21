@@ -5,8 +5,10 @@
  *   npm --prefix modules/server run training -- \
  *     --scenario T0 --seeds 64 --timeout 300 --interval 1 --out <dir>
  *
- * `--interval 0` disables recording. Recordings land in `<dir>/<scenario>_seed<N>.swr.jsonl`,
- * the report in `<dir>/<scenario>-report.md`.
+ * `--interval 0` disables persisting the recording (each run still records to a scratch dir so
+ * `analysis/checks.ts` has a store to run against -- see `training-scenarios.ts`). Persisted
+ * recordings land in `<dir>/<scenario>_seed<N>.swr.jsonl`, the report in
+ * `<dir>/<scenario>-report.md`. The report's "failed checks" column is always populated.
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';
 
@@ -107,11 +109,11 @@ function toMarkdown(
         `- TTK sim-s (killed): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,
         `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
         '',
-        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | mean dist m | target drift m | GVTS speed end | frames | wall s |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
-                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} |`,
+                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,
         ),
         '',
     ].join('\n');
