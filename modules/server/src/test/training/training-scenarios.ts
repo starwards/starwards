@@ -1,4 +1,4 @@
-import { GameMap, XY } from '@starwards/core/internal';
+import { GameMap, XY, isTargetInKillZone } from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT0Map } from '../../scenarios/training';
 
@@ -19,8 +19,10 @@ export interface TrainingResult {
     readonly shellsFired: number;
     /** Sim-seconds with at least one GVTS chain gun firing. */
     readonly secondsFiring: number;
-    /** Mean GVTS-to-target distance while the target lived. */
-    readonly meanDistance: number;
+    /** Fraction of sim-time the target was within the GVTS chain gun's `maxShellRange`. */
+    readonly inRangeFraction: number;
+    /** Fraction of sim-time the GVTS's current aim would put a shell's danger zone on the target. */
+    readonly killZoneFraction: number;
     /** Metres the target moved from its spawn point. */
     readonly targetDrift: number;
     /** GVTS speed (m/s) at end. */
@@ -92,8 +94,10 @@ export async function runTraining<P>(
     const dt = 1 / hz;
     let armorStrippedAt: number | null = null;
     let secondsFiring = 0;
-    let distanceSum = 0;
-    let distanceTicks = 0;
+    let inRangeTicks = 0;
+    let killZoneTicks = 0;
+    let liveTicks = 0;
+    const [gun] = gvts.state.chainGuns;
     let targetHealth = 1;
     let targetDrift = 0;
     let killed = false;
@@ -117,8 +121,15 @@ export async function runTraining<P>(
         if (gvts.state.chainGuns.some((g) => g.isFiring)) {
             secondsFiring += dt;
         }
-        distanceSum += XY.distance(target.position, game.api.getObject(TRAINING_PLAYER_ID)?.position ?? XY.zero);
-        distanceTicks++;
+        const gvtsPosition = game.api.getObject(TRAINING_PLAYER_ID)?.position ?? XY.zero;
+        if (XY.distance(target.position, gvtsPosition) <= gun.design.maxShellRange) {
+            inRangeTicks++;
+        }
+        const targetObject = game.spaceManager.state.get(TRAINING_TARGET_ID);
+        if (targetObject && isTargetInKillZone(gvts.state, gun, targetObject)) {
+            killZoneTicks++;
+        }
+        liveTicks++;
         targetDrift = XY.distance(target.position, targetStart);
     }
     await recorder?.capture(true);
@@ -132,7 +143,8 @@ export async function runTraining<P>(
         targetHealth,
         shellsFired: startShells - shells(),
         secondsFiring,
-        meanDistance: distanceTicks ? distanceSum / distanceTicks : NaN,
+        inRangeFraction: liveTicks ? inRangeTicks / liveTicks : NaN,
+        killZoneFraction: liveTicks ? killZoneTicks / liveTicks : NaN,
         targetDrift,
         gvtsSpeed: XY.lengthOf(game.api.getObject(TRAINING_PLAYER_ID)?.velocity ?? XY.zero),
         hz,

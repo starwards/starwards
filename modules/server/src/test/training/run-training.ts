@@ -86,6 +86,11 @@ async function main() {
     process.stdout.write(report);
 }
 
+function median(values: number[]) {
+    const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+    return sorted.length ? sorted[Math.floor(sorted.length / 2)] : NaN;
+}
+
 const f = (n: number | null, d = 0) => (n === null || !Number.isFinite(n) ? '–' : n.toFixed(d));
 
 function toMarkdown(
@@ -109,12 +114,14 @@ function toMarkdown(
         `- Kill rate: **${killed.length}/${results.length}**`,
         `- TTK sim-s (killed): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,
         `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
+        `- Any system damage (health < 1): ${results.filter((r) => r.targetHealth < 1).length}/${results.length}`,
+        `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)}`,
         '',
-        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | mean dist m | target drift m | GVTS speed end | frames | wall s |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | in range | in kill zone | target drift m | GVTS speed end | frames | wall s |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
-                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} |`,
+                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} |`,
         ),
         '',
     ].join('\n');

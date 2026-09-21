@@ -1,4 +1,4 @@
-import { Faction, GameMap, IdleStrategy, Spaceship, Vec2, XY } from '@starwards/core/internal';
+import { Faction, GameMap, IdleStrategy, Spaceship, Vec2, XY, shipConfigurations } from '@starwards/core/internal';
 
 export const TRAINING_PLAYER_ID = 'GVTS';
 export const TRAINING_TARGET_ID = 'target';
@@ -8,6 +8,13 @@ export interface T0Params {
     readonly distance: number;
     readonly bearing: number;
 }
+
+/**
+ * Lab-only: the target's top speed is capped to the GVTS's own. Blast knock-back otherwise flings
+ * the thrustless target to its 600 m/s flight-computer cap, out-running a 450 m/s GVTS, so the
+ * rung would measure the chase instead of gunnery. Not a balance change -- no real map does this.
+ */
+const T0_TARGET_MAX_SPEED = shipConfigurations.gravitas.smartPilot.maxSpeed;
 
 /**
  * Training rung 0: the GVTS is ordered to kill a dragonfly-MK1 that never moves or shoots
@@ -25,6 +32,8 @@ export function createTrainingT0Map(params: T0Params): GameMap {
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), 'dragonfly-MK1', Faction.Raiders),
             );
             target.state.idleStrategy = IdleStrategy.PLAY_DEAD;
+            target.state.smartPilot.design.maxSpeed = T0_TARGET_MAX_SPEED;
+            target.state.smartPilot.design.maxSpeedFromAfterBurner = T0_TARGET_MAX_SPEED;
             game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
         },
     };
