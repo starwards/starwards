@@ -10,7 +10,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 - Only Engineer sees power/heat/damage; only Signals sees far and identifies contacts (Weapons sees 10 km); gun points where Pilot points; Signals' and Weapons' targets are **separate**. Say contact names aloud ("Asteroid 47").
 - Unknown contact = **UFO** (grey dot, no name). Scan tiers UFO → BASIC (faction, model) → FULL (internals), 5 s per tier at full power, automatic. FULL can go stale to SNAPSHOT — see Signals.
 - Docking: in range of a friendly station, Pilot presses `Z`. Docked: magazine refills (~150 s), energy cells restock, two docked-only repairs unlock. Undock stops restock and **cancels** a running docked-only repair.
-- Scenario (wave defence): three friendly stations (Large, Small, Chaingun Platform). Waves spawn 140 km out, beyond all friendly sensors; waves 1–3 hit stations in order, wave 4+ the station furthest from you. ~4–6 min arrival; next wave 15 s after the last dies. Enemies: Dragonfly (fast fighter), Predator (stock version of your hull), Glaive (gun frigate), Cataphract (slow heavy). *(Timings are estimates.)*
+- Scenario (wave defence): three friendly stations (Large, Small, Chaingun Platform). Waves spawn 140 km out, beyond all friendly sensors; waves 1–3 hit stations in order, wave 4+ the station furthest from you. ~4–6 min arrival for Dragonflies and Predators, longer for the slower hulls; next wave 15 s after the last dies, or 8 min after the previous one spawned, whichever comes first — so waves can overlap. Enemies: Dragonfly (fast fighter), Predator (stock version of your hull), Glaive (gun frigate), Cataphract (slow heavy). *(Timings are estimates.)*
 - Defeat: last station destroyed. No win condition.
 - Entry: opening the server address while a game is running puts your tab straight on your seat's waiting screen — a large station ID, plus a **Lobby** button while the GM hasn't assigned you yet. The GM assigns each seat's ship and role from the roster; once assigned and the game is running, your seat shows its station screen automatically. Each tab keeps a 3-character station ID across reloads. `?lobby` on the address keeps a tab on the ship-picking lobby instead. The lobby's `pilot/weapons/signals/engineer/gm.html?ship=` buttons are the manual fallback — a fixed page pinned to a fixed ship, no roster assignment needed.
 - Whatever your seat: no surprises. If something is about to stop working, or you are about to take a lever away from someone, say so **before** it happens — the Captain decides with what they have been told, not with what is true.
@@ -22,13 +22,17 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 **Job:** decide with what the crew has told you, not with what is true; the whole ship's judgement, none of its screens.
 
 **Decisions**
-- **Which station to let die.** Waves hit the three friendly stations round-robin (1–3), then whichever is furthest from you. The Small Station was deliberately made the cheapest to lose — 3,600 against the Large Station's 7,200 and the Chaingun Platform's 6,480 — so if you must choose, that is the one built to go first.
-- **When to dock.** Restock takes ~150 s against a ~6–7 min gap between waves; docking spends most of that repositioning budget, so weigh it against where you need to be when the next wave lands.
-- **Spending the one repair slot.** Only one repair protocol runs at a time, no pre-emption. The Engineer owns the lever, but you own whether the ship can afford that system going dark right now.
+- **Which station to let die.** Waves 1–3 hit the three friendly stations one each, in order; from wave 4 each hits whichever is furthest from you. The Small Station was deliberately made the cheapest to lose — 3,600 against the Large Station's 7,200 and the Chaingun Platform's 6,480 — so if you must choose, that is the one built to go first.
+- **When to dock.** Restock takes ~150 s. The next wave spawns 15 s after the last raider dies (or 8 min after the previous one spawned, whichever comes first) and then needs the ~4–6 min above to arrive; that arrival time is your whole window for docking, restocking and getting back to where the next wave lands.
+- **Spending the one repair.** Only one repair runs at a time; a second one waits for it to finish. The Engineer owns the lever, but you own whether the ship can afford that system going dark right now.
 - **Target priority.** Signals sees far and identifies; Weapons sees 10 km and only what is in front of the gun. You are the only seat hearing both pictures, so target calls are yours to make and pass down.
-- **The comms protocol.** You have no screen — the reports below are your only information. Ask for names and bearings, not just "it's coming"; a report you cannot act on is worse than none.
+- **The comms protocol.** You have no screen — the reports below are your only information, and your orders are your only levers. Ask for names and bearings, not just "it's coming"; a report you cannot act on is worse than none. Give orders the same way: a name, a place, a number.
 
 **Say / Ask**
+- → Pilot: "Take us to Small Station and dock" / "Hold here, nose on Glaive 4."
+- → Weapons: "Target is Glaive 4, gun only" / "Hold fire, we are docking."
+- → Signals: "What is inbound on Large Station, and what is it?" / "Name and bearing on the lead."
+- → Engineer: "Thrusters first, the gun can go dark" / "How long before we can afford it?"
 - ← Pilot: "Docked" / "Energy red, no thrust."
 - ← Weapons: "Nose 20 degrees right" / "Target inside minimum range, back off."
 - ← Signals: "Three contacts inbound on Small Station, 90 km, unidentified, scanning the lead."
@@ -108,7 +112,7 @@ In space nothing slows you down: whatever speed and spin you build stays until y
 
 Missile: `Alt+1` pick → `Shift+1` load → `1` unlock → `X` fire. Tubes start locked and re-lock after every shot. Unidentified contacts: grey dots, no name.
 
-Every raider in this scenario wears plain composite plating. ArmPen eats it twice as fast — that is your plate-stripper. Elec ignores plating altogether and goes straight for their systems. HiExp is the all-rounder and also scrapes anything mounted on the outside. Frag never touches plating at all. Ask Signals what a contact is wearing before you spend a tube.
+Every raider in this scenario wears plain composite plating. ArmPen eats it twice as fast — that is your plate-stripper. Elec ignores plating altogether and goes straight for their systems. HiExp is the all-rounder and also scrapes anything mounted on the outside. Frag leaves plating alone and shreds what is bolted on the outside — radars, thrusters, guns — even while the plates hold. Ask Signals what a contact is wearing before you spend a tube.
 
 **Say / Ask**
 - → Pilot: "Nose 20 degrees right" / "Target inside minimum range, back off."
