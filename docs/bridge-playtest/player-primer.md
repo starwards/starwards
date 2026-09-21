@@ -22,7 +22,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 **Job:** decide with what the crew has told you, not with what is true; the whole ship's judgement, none of its screens.
 
 **Decisions**
-- **Which station to let die.** Waves 1–3 hit the three friendly stations one each, in order; from wave 4 each hits whichever is furthest from you. The Small Station was deliberately made the cheapest to lose — 3,600 against the Large Station's 7,200 and the Chaingun Platform's 6,480 — so if you must choose, that is the one built to go first.
+- **Which station to let die.** Waves 1–3 hit the three friendly stations one each, in order; from wave 4 each hits whichever is furthest from you. The Small Station carries half the plating of the Large Station (the Chaingun Platform sits close behind the Large) and is the one the scenario is built around losing; if you must choose, that is the one to let go first.
 - **When to dock.** Restock takes ~150 s. The next wave spawns 15 s after the last raider dies (or 8 min after the previous one spawned, whichever comes first) and then needs the ~4–6 min above to arrive; that arrival time is your whole window for docking, restocking and getting back to where the next wave lands.
 - **Spending the one repair.** Only one repair runs at a time; a second one waits for it to finish. The Engineer owns the lever, but you own whether the ship can afford that system going dark right now.
 - **Target priority.** Signals sees far and identifies; Weapons sees 10 km and only what is in front of the gun. You are the only seat hearing both pictures, so target calls are yours to make and pass down.
