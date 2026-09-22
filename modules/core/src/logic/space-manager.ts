@@ -30,6 +30,7 @@ import { FactionIntelManager } from './faction-intel-manager';
 import { SWResponse } from './collisions-utils';
 import { SpaceDamageType } from '../space/damage-profile';
 import { applyLockCommands } from '../lock-commands';
+import { avoidObstacles } from './obstacle-avoidance';
 import { createLogger } from '../logger';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
@@ -498,7 +499,21 @@ export class SpaceManager implements Updateable {
                         const leadSpeed = homing.sprint
                             ? homing.maxSpeed * homing.sprint.speedMultiplier
                             : homing.maxSpeed;
-                        const destination = predictInterceptPoint(projectile.position, leadSpeed, target);
+                        const intercept = predictInterceptPoint(projectile.position, leadSpeed, target);
+                        const avoidance = avoidObstacles(
+                            projectile,
+                            intercept,
+                            XY.lengthOf(projectile.velocity),
+                            this.spatialIndex,
+                            [projectile.id, projectile.shipId, target.id],
+                        );
+                        // At top speed, thrust along a hull a few degrees off the velocity barely turns
+                        // the velocity. While dodging, over-rotate by the velocity's own error so the
+                        // thrust has a real sideways component.
+                        const destination =
+                            avoidance === intercept
+                                ? intercept
+                                : overSteer(projectile.position, projectile.velocity, avoidance);
                         const relativeDestination = XY.difference(destination, projectile.position);
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
@@ -972,4 +987,12 @@ function collisionErrorMsg(object: SpaceObject, subject: SpaceObject, response: 
     )}(${JSON.stringify(response.b.pos)}) radius: ${JSON.stringify(object.radius)}. state distance: ${XY.lengthOf(
         XY.difference(subject.position, object.position),
     )}. collision distance: ${XY.distance(response.a.pos, response.b.pos)}`;
+}
+
+/** A point as far as `waypoint`, on a bearing past it by the velocity's heading error toward it. */
+function overSteer(position: XY, velocity: XY, waypoint: XY): XY {
+    const toWaypoint = XY.difference(waypoint, position);
+    const desired = XY.angleOf(toWaypoint);
+    const error = toDegreesDelta(desired - XY.angleOf(velocity));
+    return XY.add(position, XY.byLengthAndDirection(XY.lengthOf(toWaypoint), desired + error));
 }

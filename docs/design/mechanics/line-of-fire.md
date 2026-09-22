@@ -23,7 +23,7 @@ A mount is **blocked** when that segment, widened by the shell radius, intersect
 
 ## Scope
 
-- Every mount: chain guns, turrets and tubes. A tube's firing line is its launch line, `overrideSecondsToLive` × launch speed along its fitted bearing. A homing round leaves that line once it steers, which is what local obstacle avoidance covers (see [Movement](movement.md#local-obstacle-avoidance-designed)).
+- Every mount: chain guns, turrets and tubes. A tube's firing line is its launch line, `overrideSecondsToLive` × launch speed along its fitted bearing. A homing round leaves that line once it steers, which is what local obstacle avoidance covers (see [Movement](movement.md#local-obstacle-avoidance-done)).
 - Asteroids have no faction, so they never block.
 - `isLineOfFireBlocked` in `modules/core/src/logic/gunner-assist.ts` is the predicate. `ChainGunManager` evaluates it every tick after the mount swings and the fuze is set, publishes `ChainGun.lineOfFireBlocked` and, for non-player ships, clears `isFiring`.
 - Weapons UI wiring is not built yet (Designed).
