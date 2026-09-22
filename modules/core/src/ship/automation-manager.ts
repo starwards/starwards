@@ -27,7 +27,7 @@ import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
 import { assertUnreachable } from '../utils';
-import { switchToAvailableAmmo } from './chain-gun-manager';
+import { selectAmmoForTarget } from './chain-gun-manager';
 
 /** How often an NPC with no ordered/cached target re-scans for a hostile to fire on. */
 const GUNNERY_RESCAN_INTERVAL_SECONDS = 1;
@@ -363,7 +363,13 @@ export class AutomationManager implements Updateable {
      */
     private aimAndFire(target: SpaceObject, deltaSecondsAvg: number) {
         for (const chainGun of this.state.chainGuns) {
-            switchToAvailableAmmo(chainGun, this.state.magazine, true);
+            selectAmmoForTarget(
+                chainGun,
+                this.state.magazine,
+                this.state.position,
+                target,
+                this.shipManager.peerState(target.id)?.armor,
+            );
             const { aimPoint, secondsToLive } = solveShellIntercept(this.state, chainGun, target);
             const shipToAimPoint = XY.difference(aimPoint, this.state.position);
             const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
