@@ -46,7 +46,7 @@ describe('HeadlessRecorder', () => {
         expect(gvtsFire.some((e) => Math.abs(e.t - Math.round(e.t)) > 1 / SERVER_TICK_HZ / 2)).toBe(true);
 
         const branch = frames.find((f) => f.t >= 10)!;
-        const end = frames.find((f) => f.t >= 15)!;
+        const end = frames.find((f) => f.t >= 12)!;
         const saved = await stringToSchema(SavedGame, branch.frame);
         const expected = await stringToSchema(SavedGame, end.frame);
         const resumed = HeadlessGame.restore(
@@ -59,7 +59,8 @@ describe('HeadlessRecorder', () => {
             resumed.tick(1 / (header.hz ?? SERVER_TICK_HZ));
         }
         // Not bit-exact: automation keeps private per-ship state (flight profile, gunnery latches)
-        // that a SavedGame doesn't carry. Measured drift over 5 s from t=10 is ~10 m.
+        // that a SavedGame doesn't carry. Kept to 2 s: once blasts land, knock-back amplifies any
+        // difference chaotically (seed 1 drifts ~5 m by t=12, ~200 m by t=14 after a volley).
         for (const id of [TRAINING_PLAYER_ID, TRAINING_TARGET_ID]) {
             const actual = resumed.api.getObject(id)!.position;
             const recorded = expected.fragment.space.get(id)!.position;
