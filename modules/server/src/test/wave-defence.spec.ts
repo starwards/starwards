@@ -445,6 +445,8 @@ describe('wave_defence map (integration)', () => {
 });
 
 describe('wave progression: incapacitated/out-of-play raiders and the hard wave timer (issue #2233)', () => {
+    // Each test simulates minutes of game time at 1-20 Hz: ~2 s alone, past the 5 s default under a full parallel run.
+    jest.setTimeout(20_000);
     const gameDriver = makeDriver();
 
     function npcWaveIds() {
