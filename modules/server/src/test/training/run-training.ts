@@ -5,8 +5,10 @@
  *   npm --prefix modules/server run training -- \
  *     --scenario T0 --seeds 64 --timeout 300 --interval 1 --hz 60 --out <dir>
  *
- * `--interval 0` disables recording. Recordings land in `<dir>/<scenario>_seed<N>.swr.jsonl`,
- * the report in `<dir>/<scenario>-report.md`.
+ * `--interval 0` disables persisting the recording (each run still records to a scratch dir so
+ * `analysis/checks.ts` has a store to run against -- see `training-scenarios.ts`). Persisted
+ * recordings land in `<dir>/<scenario>_seed<N>.swr.jsonl`, the report in
+ * `<dir>/<scenario>-report.md`. The report's "failed checks" column is always populated.
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';
 
@@ -118,11 +120,11 @@ function toMarkdown(
         `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
         `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}; median overlap ticks ${f(median(results.map((r) => r.overlapSamples)))}`,
         '',
-        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | in range | in kill zone | blast hits | overlap ticks | target drift m | GVTS speed end | frames | wall s |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | in range | in kill zone | blast hits | overlap ticks | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
-                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${r.overlapSamples} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} |`,
+                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${r.overlapSamples} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,
         ),
         '',
     ].join('\n');
