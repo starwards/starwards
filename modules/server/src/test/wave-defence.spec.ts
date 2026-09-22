@@ -467,7 +467,10 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
     }
 
     it('converts a raider to a Derelict after its chain guns are broken for 30s continuously (not sooner), then the wave clears', async () => {
-        const map = createWaveDefenceMap(() => 0);
+        const writeOffs: [string, string][] = [];
+        const map = createWaveDefenceMap(() => 0, undefined, {
+            onRaiderWrittenOff: (id, reason) => writeOffs.push([id, reason]),
+        });
         await gameDriver.gameManager.startGame(map);
         gameDriver.gameManager.update(1 / 20);
         gameDriver.gameManager.update(1 / 20); // orders land
@@ -487,6 +490,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         gameDriver.gameManager.update(2); // crosses the 30s mark
         await waitForShipManagersGone(wave1Ids);
         expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(wave1Ids.length);
+        expect(writeOffs).toEqual(wave1Ids.map((id) => [id, 'cant-fight']));
 
         // the wave now reads as fully cleared -- the existing 15s clear delay still applies. The
         // crossing tick above already counted 2s toward it (raiders read as gone by its own end).
@@ -524,7 +528,10 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
     });
 
     it('converts a raider that recedes past 200km from every station for 60s continuously, but not one that is closing', async () => {
-        const map = createWaveDefenceMap(() => 0);
+        const writeOffs: [string, string][] = [];
+        const map = createWaveDefenceMap(() => 0, undefined, {
+            onRaiderWrittenOff: (id, reason) => writeOffs.push([id, reason]),
+        });
         await gameDriver.gameManager.startGame(map);
         gameDriver.gameManager.update(1 / 20);
         gameDriver.gameManager.update(1 / 20);
@@ -554,6 +561,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
 
         const derelicts = [...gameDriver.spaceManager.state.getAll('Derelict')];
         expect(derelicts).toHaveLength(1);
+        expect(writeOffs).toEqual([[recedingId, 'out-of-play']]);
         expect(gameDriver.getShip(closingId)).toBeDefined(); // never accumulated: distance kept decreasing
     });
 

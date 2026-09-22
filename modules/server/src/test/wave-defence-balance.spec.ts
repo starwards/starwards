@@ -39,7 +39,7 @@ const SWEEP: { label: string; tuning: WaveDefenceTuning }[] = [
 describe('wave-defence balance harness', () => {
     it('runs wave-defence headless with the player proxy and records wave 1', () => {
         const result = runWaveDefence({ seed: 1, maxSimSeconds: 60, hz: HZ });
-        expect(result.waves[0]).toMatchObject({ wave: 1, hulls: 2 });
+        expect(result.waves[0]).toMatchObject({ wave: 1, hulls: 2, targetStationId: 'station-large' });
         expect(result.raiders.map((r) => r.model)).toEqual(['dragonfly-MK1', 'dragonfly-MK1']);
         expect(result.defeated).toBe(false);
     });

@@ -296,6 +296,15 @@ const stationPositionsById: Readonly<Record<string, XY>> = Object.fromEntries(
 );
 const allStationPositions = STATIONS.map((station) => station.position);
 
+/** Why the scenario wrote a raider off (issue #2233). */
+export type WriteOffReason = 'cant-fight' | 'out-of-play';
+
+/** Observation hooks for headless harnesses; they never change play. */
+interface WaveDefenceHooks {
+    readonly onWaveSpawned?: (waveNumber: number, shipIds: readonly string[], targetStationId: string) => void;
+    readonly onRaiderWrittenOff?: (shipId: string, reason: WriteOffReason) => void;
+}
+
 /**
  * Endless wave-defence scenario: three friendly stations the crew must defend against
  * procedurally generated raider waves. `rng` is injectable for deterministic tests; production
@@ -304,7 +313,7 @@ const allStationPositions = STATIONS.map((station) => station.position);
 export function createWaveDefenceMap(
     rng: () => number = Math.random,
     tuning: WaveDefenceTuning = DEFAULT_WAVE_TUNING,
-    onWaveSpawned?: (waveNumber: number, shipIds: readonly string[]) => void,
+    { onWaveSpawned, onRaiderWrittenOff }: WaveDefenceHooks = {},
 ): GameMap {
     let game: GameApi;
     let waveNumber = 0;
@@ -365,6 +374,7 @@ export function createWaveDefenceMap(
             if (seconds >= CANT_FIGHT_SECONDS) {
                 game.convertToDerelict(id);
                 forgetRaider(id);
+                onRaiderWrittenOff?.(id, 'cant-fight');
                 return;
             }
             cantFightSeconds.set(id, seconds);
@@ -386,6 +396,7 @@ export function createWaveDefenceMap(
             if (seconds >= OUT_OF_PLAY_SECONDS) {
                 game.convertToDerelict(id);
                 forgetRaider(id);
+                onRaiderWrittenOff?.(id, 'out-of-play');
                 return;
             }
             outOfPlay.set(id, { seconds, lastMinDistance: minDistance });
@@ -425,7 +436,7 @@ export function createWaveDefenceMap(
         latestWaveShipIds = shipIds;
         waveClearTimer = null;
         secondsSinceLatestSpawn = 0;
-        onWaveSpawned?.(waveNumber, shipIds);
+        onWaveSpawned?.(waveNumber, shipIds, targetId);
     }
 
     return {

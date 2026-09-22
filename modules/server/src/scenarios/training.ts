@@ -64,3 +64,45 @@ export function createTrainingT1Map(params: T0Params): GameMap {
 }
 
 export const training_t1: GameMap = createTrainingT1Map({ distance: 5000, bearing: 0 });
+
+export const TRAINING_DECOY_ID = 'decoy';
+
+/** T1-missile layout: GVTS-to-target `distance` at start, on `bearing` from the decoy to the target. */
+export interface T1MissileParams {
+    readonly distance: number;
+    readonly bearing: number;
+    /** Start with the decoy between the GVTS and the target; otherwise it sits off to the side of the GVTS-target line. */
+    readonly occluded: boolean;
+}
+
+/** Target's start distance from the decoy it attacks: inside its own gun envelope, so it engages at once. */
+const T1_MISSILE_TARGET_TO_DECOY = 3000;
+
+/**
+ * Training rung T1-missile: a dragonfly-MK1 on an ATTACK order against a friendly decoy (a
+ * `small-station`, PLAY_DEAD), with the GVTS standing off 10-15 km. The wave-defence situation:
+ * a raider busy on a station, the defender out of its reach. The GVTS gets no order -- the
+ * harness drives its tubes.
+ */
+export function createTrainingT1MissileMap({ distance, bearing, occluded }: T1MissileParams): GameMap {
+    return {
+        name: 'training_t1_missile',
+        init: (game) => {
+            const targetPosition = XY.byLengthAndDirection(T1_MISSILE_TARGET_TO_DECOY, bearing);
+            const gvtsPosition = occluded
+                ? XY.byLengthAndDirection(distance - T1_MISSILE_TARGET_TO_DECOY, bearing + 180)
+                : XY.add(targetPosition, XY.byLengthAndDirection(distance, bearing + 90));
+            const decoy = game.addNpcSpaceship(
+                new Spaceship().init(TRAINING_DECOY_ID, new Vec2(0, 0), 'small-station', Faction.Gravitas),
+            );
+            decoy.state.idleStrategy = IdleStrategy.PLAY_DEAD;
+            game.addPlayerSpaceship(
+                new Spaceship().init(TRAINING_PLAYER_ID, Vec2.make(gvtsPosition), 'gravitas', Faction.Gravitas),
+            ).state.idleStrategy = IdleStrategy.PLAY_DEAD;
+            game.addNpcSpaceship(
+                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(targetPosition), 'dragonfly-MK1', Faction.Raiders),
+            );
+            game.orderAttack(TRAINING_TARGET_ID, TRAINING_DECOY_ID);
+        },
+    };
+}
