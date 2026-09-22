@@ -16,6 +16,10 @@ Ships obey Newton's laws. No artificial drag — velocity is maintained indefini
 
 **Drift recovery:** When thrusters are damaged, asymmetric thrust causes drift. Recovery is emergent gameplay — rotate ship to align working thrusters against drift direction.
 
+## Local Obstacle Avoidance (Designed)
+
+Ruling 2026-09-22: homing rounds and NPC hulls steer around solids inside a lookahead cone along their heading. This is local steering, not graph pathfinding ([#856](https://github.com/starwards/starwards/issues/856) stays parked). It is the counterpart of [Line of Fire](line-of-fire.md), which covers ballistic rounds.
+
 ## Warp Drive (Partial)
 
 Basic warp works — multiplies base speed with charging mechanics and heat generation.

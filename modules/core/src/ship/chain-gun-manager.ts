@@ -10,9 +10,10 @@ import {
     clusterWarheadModes,
 } from '../space';
 import { IterationData, Updateable } from '../updateable';
-import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
+import { SpaceManager, XY, calcShellSecondsToLive, capToRange, isLineOfFireBlocked, lerp } from '../logic';
 
 import { ChainGun } from './chain-gun';
+import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
 import { Iterator } from '../logic/iteration';
@@ -105,8 +106,35 @@ export class ChainGunManager implements Updateable {
 
     update({ deltaSeconds }: IterationData) {
         this.calcShellSecondsToLive();
+        this.updateLineOfFire();
         this.updateChainGun(deltaSeconds);
         this.fireChainGun();
+    }
+
+    /** Runs after the mount swung and the fuze was set, so it tests the shot this tick actually fires. */
+    private updateLineOfFire() {
+        const chainGun = this.chainGun;
+        const muzzleToDetonation = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed + this.state.radius;
+        const solids = this.spaceManager.spatialIndex.selectPotentials(
+            new Circle(
+                XY.clone(
+                    XY.add(
+                        this.state.position,
+                        XY.byLengthAndDirection(muzzleToDetonation / 2, chainGun.getGlobalBearing(this.state)),
+                    ),
+                ),
+                muzzleToDetonation / 2 + XY.lengthOf(this.state.velocity) * chainGun.shellSecondsToLive,
+            ),
+        );
+        chainGun.lineOfFireBlocked = isLineOfFireBlocked(
+            this.state,
+            chainGun,
+            solids,
+            this.state.weaponsTarget.targetId,
+        );
+        if (chainGun.lineOfFireBlocked && !this.state.isPlayerShip) {
+            chainGun.isFiring = false;
+        }
     }
 
     private calcShellSecondsToLive() {
