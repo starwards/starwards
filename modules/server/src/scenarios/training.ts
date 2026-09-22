@@ -40,3 +40,39 @@ export function createTrainingT0Map(params: T0Params): GameMap {
 }
 
 export const training_t0: GameMap = createTrainingT0Map({ distance: 5000, bearing: 0 });
+
+/** T1 layout: as T0, plus the target's course, in degrees, flown for `T1_COURSE_LENGTH` metres. */
+export interface T1Params extends T0Params {
+    readonly course: number;
+}
+
+/** Far enough that the target is still under way when a 300 s run ends at 600 m/s. */
+const T1_COURSE_LENGTH = 200_000;
+
+/**
+ * Training rung 1: the T0 target, now under way -- a dragonfly-MK1 on a MOVE order along `course`
+ * at its own top speed (no cap), still holding fire (PLAY_DEAD). Isolates hitting and killing a
+ * thrusting target from being shot at.
+ */
+export function createTrainingT1Map(params: T1Params): GameMap {
+    return {
+        name: 'training_t1',
+        init: (game) => {
+            game.addPlayerSpaceship(
+                new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
+            );
+            const position = XY.byLengthAndDirection(params.distance, params.bearing);
+            const target = game.addNpcSpaceship(
+                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), 'dragonfly-MK1', Faction.Raiders),
+            );
+            target.state.idleStrategy = IdleStrategy.PLAY_DEAD;
+            game.orderMove(
+                TRAINING_TARGET_ID,
+                XY.add(position, XY.byLengthAndDirection(T1_COURSE_LENGTH, params.course)),
+            );
+            game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
+        },
+    };
+}
+
+export const training_t1: GameMap = createTrainingT1Map({ distance: 5000, bearing: 0, course: 90 });

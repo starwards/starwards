@@ -4,7 +4,14 @@ import * as path from 'node:path';
 
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
-import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT0Map } from '../../scenarios/training';
+import {
+    T0Params,
+    T1Params,
+    TRAINING_PLAYER_ID,
+    TRAINING_TARGET_ID,
+    createTrainingT0Map,
+    createTrainingT1Map,
+} from '../../scenarios/training';
 import { ingest, storePathFor } from './analysis/store';
 
 import { GameMap } from '@starwards/core/internal';
@@ -68,8 +75,20 @@ export const T0_PLAY_DEAD_DRAGONFLY: TrainingScenario<T0Params> = {
     createMap: createTrainingT0Map,
 };
 
+export const T1_UNDER_WAY_DRAGONFLY: TrainingScenario<T1Params> = {
+    name: 'T1',
+    description: 'GVTS vs one dragonfly-MK1 under way on a MOVE order, holding fire, 2-8 km, any bearing and course',
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        course: fc.integer({ min: 0, max: 359 }),
+    }),
+    createMap: createTrainingT1Map,
+};
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
+    T1: T1_UNDER_WAY_DRAGONFLY as TrainingScenario<never>,
 };
 
 /**
