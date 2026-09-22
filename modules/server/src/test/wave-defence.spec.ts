@@ -95,6 +95,7 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
             model: 'dragonfly-MK1',
             flightDoctrine: FlightDoctrine.INTERCEPT,
             targetPolicy: { kind: 'station' },
+            aggro: 'Brawler',
         };
         for (const rng of [() => 0, () => 0.999, Math.random]) {
             expect(generateWaveSpecs(1, rng)).toEqual([wave1Spec, wave1Spec]);

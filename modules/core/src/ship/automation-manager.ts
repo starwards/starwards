@@ -333,8 +333,7 @@ export class AutomationManager implements Updateable {
         return capToRange(-MAX_TRANSIT_HEADING_CONCESSION, MAX_TRANSIT_HEADING_CONCESSION, concession);
     }
 
-    private follow(fire: boolean, id: IterationData) {
-        const targetId = this.state.orderTargetId;
+    private follow(fire: boolean, id: IterationData, targetId = this.state.orderTargetId) {
         if (!targetId) {
             return true;
         }
@@ -497,6 +496,9 @@ export class AutomationManager implements Updateable {
         this.idleGiveWayThisTick = false;
         if (this.getAndApplyOrder()) {
             this.shipManager.cancelAllTasks();
+        }
+        if (!this.state.isPlayerShip) {
+            this.updateThreat(id.deltaSeconds);
         }
         // Resolved before chooseAndRunTask so goto()/idle steering can turn the hull toward a
         // held gunnery target this same tick, not one tick behind it.
@@ -671,6 +673,15 @@ export class AutomationManager implements Updateable {
             this.state.orderPosition.setValue(XY.zero);
             return false;
         }
+        const heldId = this.state.threat.heldId;
+        if (heldId) {
+            // Aggro overlay: engage the held attacker with the ATTACK behaviour, never touching the
+            // standing order, which resumes once the grudge fades.
+            if (this.follow(true, id, heldId)) {
+                this.state.threat.forget(heldId);
+            }
+            return false;
+        }
         if (this.state.order === Order.NONE) {
             return this.runAutoPilotRoutines(id, gunneryTarget);
         } else if (this.state.order === Order.MOVE) {
@@ -764,8 +775,10 @@ export class AutomationManager implements Updateable {
         if (!firingAllowed) {
             return null;
         }
-        if (this.state.order === Order.ATTACK && this.state.orderTargetId) {
-            const orderedTarget = this.spaceManager.state.get(this.state.orderTargetId) || null;
+        const primaryId =
+            this.state.threat.heldId ?? (this.state.order === Order.ATTACK ? this.state.orderTargetId : null);
+        if (primaryId) {
+            const orderedTarget = this.spaceManager.state.get(primaryId) || null;
             if (orderedTarget && !orderedTarget.destroyed) {
                 if (this.anyMountCanBearOn(orderedTarget)) {
                     this.gunneryTargetId = null;
@@ -849,6 +862,37 @@ export class AutomationManager implements Updateable {
      * is a legitimate pick, since both callers need the hull free to turn toward it. `excludeId`
      * keeps an unreachable ATTACK-ordered primary from being picked back out as its own opportunity.
      */
+    /**
+     * Ticks the aggro threat table: decay, presence credit to every hostile in gun reach (proactive
+     * characters only), and forgetting attackers that are gone.
+     * @see starwards-design mechanics/npc-aggro-threat-table.md
+     */
+    private updateThreat(deltaSeconds: number) {
+        const threat = this.state.threat;
+        const character = threat.character;
+        if (!character) {
+            return;
+        }
+        const reachable: string[] = [];
+        if (character.presenceRate > 0) {
+            const profile = this.getFlightProfile();
+            for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
+                if (
+                    !candidate.destroyed &&
+                    candidate.faction !== Faction.NONE &&
+                    candidate.faction !== this.state.faction &&
+                    profile.isReachable(XY.distance(candidate.position, this.state.position))
+                ) {
+                    reachable.push(candidate.id);
+                }
+            }
+        }
+        threat.update(deltaSeconds, reachable, (attackerId) => {
+            const attacker = this.spaceManager.state.get(attackerId);
+            return !attacker || attacker.destroyed;
+        });
+    }
+
     private findNearestHostileTarget(excludeId?: string): string | null {
         if (this.state.chainGuns.length === 0) {
             return null;

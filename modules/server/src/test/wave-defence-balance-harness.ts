@@ -62,6 +62,8 @@ interface RaiderRecord {
     fate?: 'killed' | WriteOffReason;
     /** Its wave's arrival phase (arrival until the next wave spawns), while it lived. */
     readonly arrival: ArrivalGunnery;
+    /** Aggro: seconds alive, and of those, seconds on its standing order (no held attacker). */
+    readonly attention: { aliveSeconds: number; missionSeconds: number; switches: number };
     /** The raider's ship state, kept past its manager's removal so its capsule can be read once it is gone. */
     state?: ShipState;
 }
@@ -325,6 +327,7 @@ export function runWaveDefence({
                     wave,
                     spawnedAt: now(),
                     state: game?.api.getShip(id)?.state,
+                    attention: { aliveSeconds: 0, missionSeconds: 0, switches: 0 },
                     arrival: {
                         seconds: 0,
                         inRangeSeconds: 0,
@@ -403,6 +406,13 @@ export function runWaveDefence({
                     (record as { model: string }).model = object.model ?? '';
                 }
                 record.state ??= game.api.getShip(id)?.state;
+                if (record.state) {
+                    record.attention.aliveSeconds += dt;
+                    if (record.state.threat.heldId === null) {
+                        record.attention.missionSeconds += dt;
+                    }
+                    record.attention.switches = record.state.threat.switches;
+                }
                 continue;
             }
             record.goneAt = game.seconds;

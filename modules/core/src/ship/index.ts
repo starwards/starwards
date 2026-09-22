@@ -22,6 +22,7 @@ export * from './ship-manager';
 export * from './ship-manager-abstract';
 export * from './ship-state';
 export * from './capsule';
+export * from './threat-table';
 export * from './signals';
 export * from './signals-job';
 export * from './signals-job-manager';

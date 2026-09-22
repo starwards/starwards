@@ -1,4 +1,5 @@
 import {
+    AggroCharacterName,
     Faction,
     FlightDoctrine,
     GameApi,
@@ -9,8 +10,12 @@ import {
     Spaceship,
     Vec2,
     XY,
+    aggroCharacters,
     ammoTypes,
     makeId,
+    mix,
+    mulberry32,
+    withSpawnNoise,
 } from '@starwards/core/internal';
 
 interface WaveDefenceStation {
@@ -66,11 +71,13 @@ export function waveBudget(waveNumber: number, exponent = DEFAULT_WAVE_TUNING.bu
 export type WaveTargetPolicy =
     { readonly kind: 'station' } | { readonly kind: 'player' } | { readonly kind: 'follow-heavy' };
 
-/** One raider's hull, flight doctrine and order, as authored by a wave archetype (issue #2241). */
+/** One raider's hull, flight doctrine, order and aggro character, as authored by a wave archetype (issue #2241). */
 export interface WaveShipSpec {
     readonly model: ShipModel;
     readonly flightDoctrine: FlightDoctrine;
     readonly targetPolicy: WaveTargetPolicy;
+    /** `null`: no aggro, the raider never leaves its order. */
+    readonly aggro: AggroCharacterName | null;
 }
 
 const MK1_MODEL = 'dragonfly-MK1';
@@ -101,7 +108,12 @@ function buildSwarm(budget: number, rng: () => number, hulls: HullTables): WaveS
             return specs;
         }
         const [model, score] = affordable[Math.floor(rng() * affordable.length)];
-        specs.push({ model, flightDoctrine: FlightDoctrine.INTERCEPT, targetPolicy: { kind: 'station' } });
+        specs.push({
+            model,
+            flightDoctrine: FlightDoctrine.INTERCEPT,
+            targetPolicy: { kind: 'station' },
+            aggro: 'Brawler',
+        });
         remaining -= score;
     }
 }
@@ -112,12 +124,22 @@ function buildGunline(budget: number, hulls: HullTables): WaveShipSpec[] {
     const specs: WaveShipSpec[] = [];
     for (const [model, score] of hulls.heavies) {
         while (remaining >= score) {
-            specs.push({ model, flightDoctrine: FlightDoctrine.STANDOFF, targetPolicy: { kind: 'station' } });
+            specs.push({
+                model,
+                flightDoctrine: FlightDoctrine.STANDOFF,
+                targetPolicy: { kind: 'station' },
+                aggro: 'Brawler',
+            });
             remaining -= score;
         }
     }
     while (remaining >= hulls.mk1) {
-        specs.push({ model: MK1_MODEL, flightDoctrine: FlightDoctrine.STANDOFF, targetPolicy: { kind: 'station' } });
+        specs.push({
+            model: MK1_MODEL,
+            flightDoctrine: FlightDoctrine.STANDOFF,
+            targetPolicy: { kind: 'station' },
+            aggro: 'Brawler',
+        });
         remaining -= hulls.mk1;
     }
     return specs;
@@ -129,25 +151,43 @@ function buildHarass(budget: number, hulls: HullTables): WaveShipSpec[] {
     const specs: WaveShipSpec[] = [];
     let remaining = half;
     while (remaining >= hulls.mk2) {
-        specs.push({ model: MK2_MODEL, flightDoctrine: FlightDoctrine.SHADOW, targetPolicy: { kind: 'player' } });
+        specs.push({
+            model: MK2_MODEL,
+            flightDoctrine: FlightDoctrine.SHADOW,
+            targetPolicy: { kind: 'player' },
+            aggro: 'Hunter',
+        });
         remaining -= hulls.mk2;
     }
     let stationBudget = budget - half + remaining; // unspent half-budget rolls over
     while (stationBudget >= hulls.mk1) {
-        specs.push({ model: MK1_MODEL, flightDoctrine: FlightDoctrine.INTERCEPT, targetPolicy: { kind: 'station' } });
+        specs.push({
+            model: MK1_MODEL,
+            flightDoctrine: FlightDoctrine.INTERCEPT,
+            targetPolicy: { kind: 'station' },
+            aggro: 'Brawler',
+        });
         stationBudget -= hulls.mk1;
     }
     return specs;
 }
 
-/** One heavy holding station, MK1s shadowing it -- the escorts fall back to the station if the heavy dies. */
+/**
+ * One heavy holding station, MK1s shadowing it -- the escorts fall back to the station if the heavy dies.
+ * The heavy's aggro character is unruled, so it keeps the no-aggro behaviour.
+ */
 function buildEscort(budget: number, hulls: HullTables): WaveShipSpec[] {
     const specs: WaveShipSpec[] = [
-        { model: 'predator', flightDoctrine: FlightDoctrine.STANDOFF, targetPolicy: { kind: 'station' } },
+        { model: 'predator', flightDoctrine: FlightDoctrine.STANDOFF, targetPolicy: { kind: 'station' }, aggro: null },
     ];
     let remaining = budget - hulls.predator;
     while (remaining >= hulls.mk1) {
-        specs.push({ model: MK1_MODEL, flightDoctrine: FlightDoctrine.SHADOW, targetPolicy: { kind: 'follow-heavy' } });
+        specs.push({
+            model: MK1_MODEL,
+            flightDoctrine: FlightDoctrine.SHADOW,
+            targetPolicy: { kind: 'follow-heavy' },
+            aggro: 'Brawler',
+        });
         remaining -= hulls.mk1;
     }
     return specs;
@@ -205,6 +245,7 @@ export function generateWaveSpecs(
             model: MK1_MODEL,
             flightDoctrine: FlightDoctrine.INTERCEPT,
             targetPolicy: { kind: 'station' },
+            aggro: 'Brawler',
         };
         return [wave1Spec, wave1Spec];
     }
@@ -413,12 +454,19 @@ export function createWaveDefenceMap(
         const spawnCenter = sampleWaveSpawnCenter(stationPositionsById[targetId], allStationPositions, rng);
 
         let heavyId: string | undefined;
-        const shipIds = generateWaveSpecs(waveNumber, rng, tuning).map((spec) => {
+        const shipIds = generateWaveSpecs(waveNumber, rng, tuning).map((spec, index) => {
             const id = makeId();
             const jitter = XY.byLengthAndDirection(rng() * SPAWN_JITTER_METERS, rng() * 360);
             const ship = new Spaceship().init(id, Vec2.make(XY.add(spawnCenter, jitter)), spec.model, Faction.Raiders);
             const shipApi = game.addNpcSpaceship(ship);
             shipApi.state.flightDoctrine = spec.flightDoctrine;
+            if (spec.aggro) {
+                // Own stream per ship, so the noise never shifts the wave rng's later draws.
+                shipApi.state.threat.character = withSpawnNoise(
+                    aggroCharacters[spec.aggro],
+                    mulberry32(mix(waveNumber, index)),
+                );
+            }
             if (spec.targetPolicy.kind === 'station') {
                 game.orderAttack(id, targetId);
                 heavyId = id;
