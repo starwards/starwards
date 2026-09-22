@@ -9,8 +9,8 @@ import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import { IdleStrategy, ShipState, Spaceship, XY } from '@starwards/core/internal';
 
 const PLAYER_SHIP_ID = 'GVTS';
-/** The proxy only chases raiders this close to some alive station -- it defends, it doesn't hunt. */
-const PROXY_ENGAGE_RADIUS_METERS = 40_000;
+/** A raider this close to the GVTS is engaged; further off, the proxy holds its guard station instead of chasing. */
+const PROXY_ENGAGE_RADIUS_METERS = 12_000;
 const PROXY_DECISION_SECONDS = 1;
 
 /** Deterministic PRNG (mulberry32), so a seed replays the same waves. */
@@ -63,12 +63,17 @@ interface RunOptions {
     readonly tuning?: WaveDefenceTuning;
     readonly maxSimSeconds: number;
     readonly hz?: number;
+    /** Called after every tick, for diagnostics that need tick resolution. */
+    readonly onTick?: (game: HeadlessGame) => void;
 }
 
 /**
- * Crude stand-in for a crew: the GVTS on NPC automation, attacking the raider nearest to it among
- * those within {@link PROXY_ENGAGE_RADIUS_METERS} of an alive station, otherwise standing ground.
- * Untested against a human baseline -- numbers tune the game against this bot, not against crews.
+ * Crude stand-in for a crew: the GVTS on NPC automation guards the station the raiders are closest
+ * to, and engages a raider once one comes within {@link PROXY_ENGAGE_RADIUS_METERS} of the GVTS
+ * itself. It does not chase: a dragonfly's 600 m/s beats the GVTS's 450, so pursuit only ever
+ * trails the wave (measured: chasing kept every raider ~100 km away and cut blast hits on raiders
+ * from 170/min, T0, to under 2/min). Untested against a human baseline -- numbers tune the game
+ * against this bot, not against crews.
  */
 function drivePlayerProxy(game: HeadlessGame, raiderIds: Iterable<string>) {
     const player = game.api.getObject(PLAYER_SHIP_ID);
@@ -76,25 +81,35 @@ function drivePlayerProxy(game: HeadlessGame, raiderIds: Iterable<string>) {
     if (!player || !playerShip) {
         return;
     }
-    const stations = STATIONS.filter((s) => game.api.getShip(s.id)).map((s) => s.position);
-    let best: { id: string; distance: number } | undefined;
+    const stations = STATIONS.filter((s) => game.api.getShip(s.id));
+    if (!stations.length) {
+        return;
+    }
+    let closest: { id: string; toPlayer: number; toStation: number; station: XY } | undefined;
     for (const id of raiderIds) {
         const raider = game.api.getObject(id);
         if (!raider || raider.destroyed) {
             continue;
         }
-        if (!stations.some((s) => XY.distance(s, raider.position) <= PROXY_ENGAGE_RADIUS_METERS)) {
-            continue;
-        }
-        const distance = XY.distance(player.position, raider.position);
-        if (!best || distance < best.distance) {
-            best = { id, distance };
+        const station = stations.reduce((best, s) =>
+            XY.distance(s.position, raider.position) < XY.distance(best.position, raider.position) ? s : best,
+        );
+        const toStation = XY.distance(station.position, raider.position);
+        const toPlayer = XY.distance(player.position, raider.position);
+        if (!closest || toStation < closest.toStation) {
+            closest = { id, toPlayer, toStation, station: station.position };
         }
     }
-    if (best && playerShip.state.orderTargetId !== best.id) {
-        game.api.orderAttack(PLAYER_SHIP_ID, best.id);
-    } else if (!best && playerShip.state.orderTargetId) {
-        game.api.orderNone(PLAYER_SHIP_ID);
+    if (!closest) {
+        return;
+    }
+    if (closest.toPlayer <= PROXY_ENGAGE_RADIUS_METERS) {
+        if (playerShip.state.orderTargetId !== closest.id) {
+            game.api.orderAttack(PLAYER_SHIP_ID, closest.id);
+        }
+    } else {
+        // Guard the threatened station rather than trail the wave.
+        game.api.orderMove(PLAYER_SHIP_ID, closest.station);
     }
 }
 
@@ -107,6 +122,7 @@ export function runWaveDefence({
     tuning = DEFAULT_WAVE_TUNING,
     maxSimSeconds,
     hz = SERVER_TICK_HZ,
+    onTick,
 }: RunOptions): RunResult {
     const waves: WaveRecord[] = [];
     const raiders = new Map<string, RaiderRecord>();
@@ -151,6 +167,7 @@ export function runWaveDefence({
             drivePlayerProxy(game, live);
         }
         game.tick(dt);
+        onTick?.(game);
         for (const id of live) {
             const record = raiders.get(id);
             if (!record) {
