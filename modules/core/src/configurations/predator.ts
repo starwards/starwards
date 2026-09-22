@@ -180,6 +180,13 @@ export const predatorManeuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the tuned dragonfly-MK1 value x2 (hull class). */
+export const predatorCapsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: 600,
+};
+
 export const predatorSignals = {
     isInternal: false,
     isElectronics: true,
@@ -241,4 +248,5 @@ export const predator = {
     docking: predatorDocking,
     maneuvering: predatorManeuvering,
     signals: predatorSignals,
+    capsule: predatorCapsule,
 } satisfies ShipDesign;

@@ -88,8 +88,8 @@ Rig: a single plate whose outer layer is the tested model (100 health, the demo-
 | reactive | HiExpMissile | HiExp | Engages | 1 | 0 | 50.00 | 2 | 5 / 3.13 | — | deflection gap: reactive is specced to deflect HiExp's surface scrape while intact (deflectsSurfaceEffect), but observed 5 surface hit(s) / 3.13 dmg — this property is not implemented in ArmorModelStats/resolveWeaponAttack (src gap, tracked separately, not a regression in this harness) |
 | reactive | FragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | reactive | ClusterMissile:Frag | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
-| faraday | HiExpShell | HiExp | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | 5 / 1.25 | 3 / 60.00 | — |
+| faraday | HiExpShell | HiExp | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | 5 / 1.25 | 4 / 80.00 | — |
 | faraday | FragShell | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
-| faraday | HiExpMissile | HiExp | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | 5 / 3.13 | 3 / 150.00 | — |
+| faraday | HiExpMissile | HiExp | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | 5 / 3.13 | 4 / 200.00 | — |
 | faraday | FragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | faraday | ClusterMissile:Frag | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |

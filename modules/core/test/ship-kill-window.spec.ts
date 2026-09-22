@@ -28,6 +28,9 @@ import { expect } from 'chai';
  *
  * Stations already carry a 1-system margin between their kill threshold and their largest arc
  * (`station-kill-window.spec.ts`); this holds every hull to that same margin.
+ *
+ * That threshold is now a mission kill (`healthRatio` 0); the ship only dies when its capsule is
+ * breached (`damage-manager-death.spec.ts`).
  */
 function frontAndRear(model: keyof typeof shipConfigurations) {
     const state = makeShipState('probe', shipConfigurations[model]);
@@ -106,7 +109,7 @@ describe('ship kill window (issue #2192)', () => {
     }
 
     for (const model of ['dragonfly-MK1', 'gravitas'] as const) {
-        it(`${model}: dies once its larger arc is broken down to the threshold, without ever touching the other arc`, () => {
+        it(`${model}: is mission-killed once its larger arc is broken down to the threshold, and dies only when its capsule is breached`, () => {
             const { front, rear } = frontAndRear(model);
             const largerArea = front >= rear ? ShipArea.front : ShipArea.rear;
             const { state, spaceManager, damageManager } = setUpShip(model);
@@ -130,9 +133,17 @@ describe('ship kill window (issue #2192)', () => {
 
             breakSystem(damageManager, breakable[needed - 1]);
             runDeathCheck(spaceManager, 'probe', damageManager);
+            expect(state.healthRatio, `${model} is mission-killed at ${needed} broken`).to.equal(0);
             expect(
                 spaceManager.state.get('probe')?.destroyed,
-                `${model} must die once ${needed}/${needed} of its larger arc is broken`,
+                `${model} must survive a mission kill while its capsule holds`,
+            ).to.equal(false);
+
+            state.capsule.integrity = 0;
+            runDeathCheck(spaceManager, 'probe', damageManager);
+            expect(
+                spaceManager.state.get('probe')?.destroyed,
+                `${model} must die once its capsule is breached`,
             ).to.equal(true);
         });
     }

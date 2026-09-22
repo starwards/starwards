@@ -154,6 +154,13 @@ export const chaingunPlatformManeuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the tuned dragonfly-MK1 value x4 (hull class). */
+export const chaingunPlatformCapsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: 1200,
+};
+
 export const chaingunPlatformSignals = {
     isInternal: false,
     isElectronics: true,
@@ -179,4 +186,5 @@ export const chaingunPlatform = {
     docking: chaingunPlatformDocking,
     maneuvering: chaingunPlatformManeuvering,
     signals: chaingunPlatformSignals,
+    capsule: chaingunPlatformCapsule,
 } satisfies ShipDesign;

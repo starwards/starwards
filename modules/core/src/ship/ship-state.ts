@@ -6,6 +6,7 @@ import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
+import { Capsule } from './capsule';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
@@ -173,6 +174,10 @@ export class ShipState extends Schema implements Lockable {
 
     @gameField(Signals)
     signals!: Signals;
+
+    /** The ship's core hit-point counter; the ship is lost when it breaks. Not one of `systems()`. */
+    @gameField(Capsule)
+    capsule!: Capsule;
 
     @gameField(RepairQueue)
     repairQueue = new RepairQueue();

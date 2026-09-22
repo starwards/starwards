@@ -132,6 +132,13 @@ export const freighterManeuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the tuned dragonfly-MK1 value x3 (hull class). */
+export const freighterCapsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: 900,
+};
+
 export const freighterSignals = {
     isInternal: false,
     isElectronics: true,
@@ -163,4 +170,5 @@ export const freighter = {
     docking: freighterDocking,
     maneuvering: freighterManeuvering,
     signals: freighterSignals,
+    capsule: freighterCapsule,
 } satisfies ShipDesign;

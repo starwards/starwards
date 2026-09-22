@@ -12,7 +12,6 @@ import {
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 
-import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
@@ -63,40 +62,6 @@ export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine, ev
             .firstOr('None');
     }
 }
-/**
- * Half-width, in degrees, of the side of a target that shell blasts reach. A shell's blast (100 m
- * for HiExp) dwarfs a combat hull, so a hit's footprint wraps the whole side facing the shooter.
- */
-const SHELL_HIT_ARC_HALF_WIDTH = 90;
-
-/**
- * NPC ammo doctrine, re-evaluated every tick against the current target: HiExp, which penetrates
- * internal systems, while any armor plate on the target's side facing `shooterPosition` still
- * stands; Frag, which shreds hull-mounted (external) systems, once every plate there is broken; and
- * back to HiExp if those plates are repaired. Without the target's armor (no shared ship map), or
- * when the preferred type is disabled or empty, falls back to {@link switchToAvailableAmmo}.
- * @see docs/design/mechanics/damage-model-spec.md
- */
-export function selectAmmoForTarget(
-    chainGun: ChainGun,
-    magazine: Magazine,
-    shooterPosition: XY,
-    target: SpaceObject,
-    targetArmor: Armor | undefined,
-) {
-    if (targetArmor) {
-        const facing = XY.angleOf(target.globalToLocal(XY.difference(shooterPosition, target.position)));
-        const facingArc: [number, number] = [facing - SHELL_HIT_ARC_HALF_WIDTH, facing + SHELL_HIT_ARC_HALF_WIDTH];
-        const facingStripped = [...targetArmor.platesInRange(facingArc)].every(([, plate]) => plate.broken);
-        const preferred = facingStripped ? 'FragShell' : 'HiExpShell';
-        if (chainGun.design.isAmmoEnabled(preferred) && magazine.getCount(preferred) > 0) {
-            chainGun.projectile = preferred;
-            return;
-        }
-    }
-    switchToAvailableAmmo(chainGun, magazine, true);
-}
-
 export class ChainGunManager implements Updateable {
     /**
      * used to accuretly simulate very high rate of fire

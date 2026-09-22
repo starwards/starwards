@@ -182,6 +182,13 @@ export const cataphractManeuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the tuned dragonfly-MK1 value x3 (hull class). */
+export const cataphractCapsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: 900,
+};
+
 export const cataphractSignals = {
     isInternal: false,
     isElectronics: true,
@@ -251,4 +258,5 @@ export const cataphract = {
     docking: cataphractDocking,
     maneuvering: cataphractManeuvering,
     signals: cataphractSignals,
+    capsule: cataphractCapsule,
 } satisfies ShipDesign;

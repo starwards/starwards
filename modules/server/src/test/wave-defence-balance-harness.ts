@@ -6,7 +6,7 @@ import {
     waveBudget,
 } from '../scenarios/wave-defence';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { IdleStrategy, Spaceship, XY } from '@starwards/core/internal';
+import { IdleStrategy, ShipState, Spaceship, XY } from '@starwards/core/internal';
 
 const PLAYER_SHIP_ID = 'GVTS';
 /** The proxy only chases raiders this close to some alive station -- it defends, it doesn't hunt. */
@@ -41,9 +41,10 @@ interface RaiderRecord {
     readonly wave: number;
     readonly spawnedAt: number;
     goneAt?: number;
-    /** `killed`: last seen at healthRatio 0 (combat death). `written-off`: the scenario's can't-fight / out-of-play rule. */
+    /** `killed`: its capsule was breached (combat death). `written-off`: the scenario's can't-fight / out-of-play rule. */
     fate?: 'killed' | 'written-off';
-    lastHealth: number;
+    /** The raider's ship state, kept past its manager's removal so its capsule can be read once it is gone. */
+    state?: ShipState;
 }
 
 export interface RunResult {
@@ -126,7 +127,7 @@ export function runWaveDefence({
             stationHealth: {},
         });
         for (const id of shipIds) {
-            raiders.set(id, { model: '', wave, spawnedAt: now(), lastHealth: 1 });
+            raiders.set(id, { model: '', wave, spawnedAt: now(), state: game?.api.getShip(id)?.state });
         }
     });
     game = HeadlessGame.start(map, seed);
@@ -160,11 +161,11 @@ export function runWaveDefence({
                 if (!record.model && Spaceship.isInstance(object)) {
                     (record as { model: string }).model = object.model ?? '';
                 }
-                record.lastHealth = game.api.getShip(id)?.state.healthRatio ?? record.lastHealth;
+                record.state ??= game.api.getShip(id)?.state;
                 continue;
             }
             record.goneAt = game.seconds;
-            record.fate = record.lastHealth <= 0.05 ? 'killed' : 'written-off';
+            record.fate = record.state?.capsule.broken ? 'killed' : 'written-off';
             live.delete(id);
         }
     }
@@ -218,7 +219,7 @@ export function sweepToMarkdown(cells: SweepCell[], maxSimSeconds: number, hz: n
         '- **Player proxy is crude**: GVTS on NPC automation, attacks nearest raider within 40 km of a station, else stands ground. No engineer, no repair, no human baseline -- numbers tune against this bot, not crews.',
     );
     lines.push(
-        "- `killed` = raider last seen at healthRatio ≤ 0.05; otherwise `written-off` (can't-fight / out-of-play rule). Inference, not an engine flag.",
+        "- `killed` = the raider's capsule was breached; otherwise `written-off` (can't-fight / out-of-play rule).",
     );
     lines.push('');
     lines.push('## Survival');
