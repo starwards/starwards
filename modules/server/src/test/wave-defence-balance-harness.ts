@@ -36,6 +36,12 @@ const STANDOFF_METERS = 10_000;
 const MISSILE_ENGAGE_METERS = 15_000;
 /** `standoff-missiles` proxy salvo discipline: launch only while fewer than this many GVTS missiles are in flight. */
 const MAX_MISSILES_IN_FLIGHT = 2;
+/** `standoff-missiles` pilot: thrusters coast once the GVTS is this close to its post... */
+const POST_HOLD_METERS = 1_000;
+/** ...and fly again once it is this far off. */
+const POST_RESUME_METERS = 2_000;
+/** `standoff-missiles` pilot: at this fraction of max speed it stops thrusting along its velocity (cruise). */
+const CRUISE_SPEED_FRACTION = 0.98;
 /** A wave's arrival phase opens when its first raider comes this close to the station it targets. */
 const ARRIVAL_RADIUS_METERS = 40_000;
 
@@ -283,10 +289,18 @@ function standoffPost(game: HeadlessGame, raiderIds: readonly string[], targetSt
 /**
  * See {@link PlayerProxy} `standoff-missiles`: the GVTS crew, every tick, on a player ship's smart
  * pilot -- no orders. Pilot: weapons target on the raider nearest the GVTS, rotation locked on it
- * (TARGET), and the flight to the standoff post flown by hand (DIRECT). Weapons: each chain gun
+ * (TARGET), and the flight to the standoff post flown by hand (DIRECT), coasting within
+ * {@link POST_HOLD_METERS} of it until it is {@link POST_RESUME_METERS} off, and cruising at max speed
+ * rather than thrusting into the speed cap (which the ship brakes back down from). Weapons: each chain gun
  * fires while its shot is in the kill zone and its line of fire isn't BLOCKED.
  */
-function driveCrew(game: HeadlessGame, raiderIds: readonly string[], post: XY | null, deltaSeconds: number) {
+function driveCrew(
+    game: HeadlessGame,
+    raiderIds: readonly string[],
+    post: XY | null,
+    pilot: { holding: boolean },
+    deltaSeconds: number,
+) {
     const crewed = game.shipManagers.get(PLAYER_SHIP_ID);
     const player = game.api.getObject(PLAYER_SHIP_ID);
     if (!crewed || !player) {
@@ -312,9 +326,23 @@ function driveCrew(game: HeadlessGame, raiderIds: readonly string[], post: XY | 
     crewed.setSmartPilotRotationMode(target ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
     // TARGET reads `rotation` as an aim-offset nudge; none. DIRECT without a target faces the post.
     state.smartPilot.rotation = !target && post ? rotateToTarget(deltaSeconds, state, post, 0) : 0;
-    const maneuvering = post ? moveToTarget(deltaSeconds, state, post) : { boost: 0, strafe: 0 };
-    state.smartPilot.maneuvering.x = capToRange(-1, 1, maneuvering.boost);
-    state.smartPilot.maneuvering.y = capToRange(-1, 1, maneuvering.strafe);
+    const offPost = post ? XY.distance(player.position, post) : 0;
+    pilot.holding = offPost < POST_HOLD_METERS || (pilot.holding && offPost < POST_RESUME_METERS);
+    const maneuvering = post && !pilot.holding ? moveToTarget(deltaSeconds, state, post) : { boost: 0, strafe: 0 };
+    let command = state.localToGlobal({
+        x: capToRange(-1, 1, maneuvering.boost),
+        y: capToRange(-1, 1, maneuvering.strafe),
+    });
+    if (XY.lengthOf(player.velocity) >= state.maxSpeed * CRUISE_SPEED_FRACTION) {
+        const heading = XY.normalize(player.velocity);
+        const along = XY.dot(command, heading);
+        if (along > 0) {
+            command = XY.difference(command, XY.scale(heading, along));
+        }
+    }
+    const local = state.globalToLocal(command);
+    state.smartPilot.maneuvering.x = local.x;
+    state.smartPilot.maneuvering.y = local.y;
     for (const gun of state.chainGuns) {
         gun.isFiring = !!target && isTargetInKillZone(state, gun, target) && !gun.lineOfFireBlocked;
     }
@@ -434,6 +462,7 @@ export function runWaveDefence({
     let missilesInFlight = 0;
     let threatening: string[] = [];
     let post: XY | null = null;
+    const pilot = { holding: false };
     while (game.seconds < maxSimSeconds && !game.stopped) {
         for (const [id, record] of raiders) {
             if (record.goneAt === undefined) {
@@ -456,7 +485,7 @@ export function runWaveDefence({
             }
         }
         if (proxy === 'standoff-missiles') {
-            driveCrew(game, threatening, post, dt);
+            driveCrew(game, threatening, post, pilot, dt);
             driveTubes(game, missilesInFlight, missileAmmo);
         }
         const capsuleBefore = new Map([...live].map((id) => [id, raiders.get(id)?.state?.capsule.integrity ?? 1]));
