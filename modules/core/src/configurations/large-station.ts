@@ -1,3 +1,4 @@
+import { FIGHTER_CAPSULE_DAMAGE50 } from './capsule-class';
 import { ShipDesign } from '../ship';
 
 export const largeStationArmor = {
@@ -123,11 +124,11 @@ export const largeStationManeuvering = {
     damage50: 20,
 };
 
-/** The hull core: only its breach kills the ship. `damage50` = the tuned dragonfly-MK1 value x4 (hull class). */
+/** The hull core: only its breach kills the ship. `damage50` = the fighter base x4 (hull class). */
 export const largeStationCapsule = {
     isInternal: true,
     isElectronics: false,
-    damage50: 1200,
+    damage50: FIGHTER_CAPSULE_DAMAGE50 * 4,
 };
 
 export const largeStationSignals = {

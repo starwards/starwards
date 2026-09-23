@@ -18,9 +18,9 @@ function expectCloseRelative(actual: number, expected: number, relTolerance = 0.
 /**
  * Parity fixture: `runTraining`'s scalars (now computed by `extract.ts` reading a store, not the
  * deleted inline loop) must reproduce the values that inline loop produced for the same seed.
- * `t0-seed1-parity.json` was captured from that inline loop (as of commit `2fd730e6`: 60 Hz,
- * capsule, lead fix) -- a later physics change that moves these numbers needs the fixture
- * recaptured the same way, from an inline reference, never from `extract.ts` itself.
+ * `t0-seed1-parity.json` is that inline loop's output on the current physics, written by
+ * `__fixtures__/recapture-t0-seed1-parity.ts` -- a physics change that moves these numbers is
+ * recaptured with that script, never from `extract.ts` itself.
  * Recorded every `FRAME_SECONDS`, not every 60 Hz tick: ingesting ~3,600 tick-exact frames takes
  * minutes. Frame-based `armorStrippedAt` may therefore land up to one frame after the inline
  * value; fire time comes from tick-resolution events and stays exact. 60 sim-seconds: long enough
