@@ -1,4 +1,13 @@
-import { Faction, GameMap, IdleStrategy, Spaceship, Vec2, XY, shipConfigurations } from '@starwards/core/internal';
+import {
+    Faction,
+    GameMap,
+    IdleStrategy,
+    ShipModel,
+    Spaceship,
+    Vec2,
+    XY,
+    shipConfigurations,
+} from '@starwards/core/internal';
 
 export const TRAINING_PLAYER_ID = 'GVTS';
 export const TRAINING_TARGET_ID = 'target';
@@ -42,11 +51,11 @@ export function createTrainingT0Map(params: T0Params): GameMap {
 export const training_t0: GameMap = createTrainingT0Map({ distance: 5000, bearing: 0 });
 
 /**
- * Training rung 1: the T0 target, now fighting -- a dragonfly-MK1 on an ATTACK order against the
- * GVTS, at its own top speed (no cap). A fleeing fighter escapes by design; kills happen while the
- * target engages. The GVTS is non-expendable, so return fire never ends the run.
+ * Training rung 1: the T0 target, now fighting -- a `targetModel` (default dragonfly-MK1) on an
+ * ATTACK order against the GVTS, at its own top speed (no cap). A fleeing fighter escapes by design;
+ * kills happen while the target engages. The GVTS is non-expendable, so return fire never ends the run.
  */
-export function createTrainingT1Map(params: T0Params): GameMap {
+export function createTrainingT1Map(params: T0Params, targetModel: ShipModel = 'dragonfly-MK1'): GameMap {
     return {
         name: 'training_t1',
         init: (game) => {
@@ -55,7 +64,7 @@ export function createTrainingT1Map(params: T0Params): GameMap {
             );
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
             game.addNpcSpaceship(
-                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), 'dragonfly-MK1', Faction.Raiders),
+                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
             );
             game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
             game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
@@ -84,7 +93,10 @@ const T1_MISSILE_TARGET_TO_DECOY = 3000;
  * a raider busy on a station, the defender out of its reach. The GVTS gets no order -- the
  * harness drives its tubes.
  */
-export function createTrainingT1MissileMap({ distance, bearing, occluded }: T1MissileParams): GameMap {
+export function createTrainingT1MissileMap(
+    { distance, bearing, occluded }: T1MissileParams,
+    targetModel: ShipModel = 'dragonfly-MK1',
+): GameMap {
     return {
         name: 'training_t1_missile',
         init: (game) => {
@@ -100,7 +112,7 @@ export function createTrainingT1MissileMap({ distance, bearing, occluded }: T1Mi
                 new Spaceship().init(TRAINING_PLAYER_ID, Vec2.make(gvtsPosition), 'gravitas', Faction.Gravitas),
             ).state.idleStrategy = IdleStrategy.PLAY_DEAD;
             game.addNpcSpaceship(
-                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(targetPosition), 'dragonfly-MK1', Faction.Raiders),
+                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(targetPosition), targetModel, Faction.Raiders),
             );
             game.orderAttack(TRAINING_TARGET_ID, TRAINING_DECOY_ID);
         },

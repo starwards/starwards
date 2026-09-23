@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import {
@@ -13,7 +14,6 @@ import {
 } from '../../scenarios/training';
 import { ingest, storePathFor } from './analysis/store';
 
-import { GameMap } from '@starwards/core/internal';
 import { HeadlessRecorder } from '../headless-recorder';
 import { computeChecks } from './analysis/checks';
 import { computeEvents } from './analysis/events';
@@ -84,9 +84,19 @@ export const T1_ATTACKING_DRAGONFLY: TrainingScenario<T0Params> = {
     createMap: createTrainingT1Map,
 };
 
+/** T1 with another hull attacking the GVTS: the TTK ladder's heavier rungs. */
+const t1WithHull = (name: string, model: ShipModel): TrainingScenario<T0Params> => ({
+    ...T1_ATTACKING_DRAGONFLY,
+    name,
+    description: `GVTS vs one ${model} attacking it, 2-8 km, any bearing`,
+    createMap: (params) => createTrainingT1Map(params, model),
+});
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
+    'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
+    'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
 };
 
 /**

@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 
-import { AmmoType, Projectile, XY, ammoTypes } from '@starwards/core/internal';
+import { AmmoType, Projectile, ShipModel, XY, ammoTypes } from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import {
     T1MissileParams,
@@ -46,13 +46,19 @@ interface T1MissileResult {
     readonly targetHealthyPlates: number;
 }
 
-function runT1Missile(seed: number, ammo: AmmoType, timeoutSeconds: number, hz: number): T1MissileResult {
+function runT1Missile(
+    seed: number,
+    ammo: AmmoType,
+    timeoutSeconds: number,
+    hz: number,
+    model: ShipModel,
+): T1MissileResult {
     const [sample] = fc.sample(
         fc.record({ distance: fc.integer({ min: 10_000, max: 15_000 }), bearing: fc.integer({ min: 0, max: 359 }) }),
         { seed, numRuns: 1 },
     );
     const params: T1MissileParams = { ...sample, occluded: seed % 2 === 1 };
-    const game = HeadlessGame.start(createTrainingT1MissileMap(params), seed);
+    const game = HeadlessGame.start(createTrainingT1MissileMap(params, model), seed);
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     const target = game.api.getShip(TRAINING_TARGET_ID);
     if (!gvts || !target) {
@@ -154,8 +160,9 @@ const seeds = Number(arg('seeds', '64'));
 const first = Number(arg('first', '1'));
 const ammo = arg('ammo', 'HiExpMissile') as AmmoType;
 const timeout = Number(arg('timeout', '300'));
+const model = arg('model', 'dragonfly-MK1') as ShipModel;
 const results: T1MissileResult[] = [];
 for (let seed = first; seed < first + seeds; seed++) {
-    results.push(runT1Missile(seed, ammo, timeout, SERVER_TICK_HZ));
+    results.push(runT1Missile(seed, ammo, timeout, SERVER_TICK_HZ, model));
 }
 fs.writeFileSync(arg('out', `t1m_${ammo}.json`), JSON.stringify(results, null, 1));
