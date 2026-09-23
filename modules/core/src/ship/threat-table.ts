@@ -7,7 +7,10 @@
 export interface AggroCharacter {
     /** Threat a challenger needs to beat the mission; `Infinity` never leaves it. */
     readonly missionWeight: number;
-    /** E-folding time of a grudge, seconds. */
+    /**
+     * How long a grudge holds at full strength after the attacker's last hit, and then the e-folding
+     * time of its decay, seconds.
+     */
     readonly memorySeconds: number;
     /** Fraction by which a challenger must exceed the held entry to take its place. */
     readonly switchMargin: number;
@@ -67,9 +70,10 @@ export function withSpawnNoise(character: AggroCharacter, rng: () => number): Ag
 }
 
 /**
- * Per-ship threat accumulator (the MMO threat table). Fed from weapon damage, decayed every tick;
- * `heldId` is the attacker currently steering the ship, `null` while on mission. Aggressive
- * response only: a held attacker is engaged with the ship's own ATTACK behaviour.
+ * Per-ship threat accumulator (the MMO threat table). Fed from weapon damage; each entry holds while
+ * its attacker keeps hitting and decays once it has gone `memorySeconds` without a hit. `heldId` is
+ * the attacker currently steering the ship, `null` while on mission. Aggressive response only: a held
+ * attacker is engaged with the ship's own ATTACK behaviour.
  */
 export class ThreatTable {
     /** `null`: no aggro -- the ship always follows its standing order. */
@@ -78,6 +82,9 @@ export class ThreatTable {
     /** How many times `heldId` changed, including returns to mission. */
     switches = 0;
     private readonly threat = new Map<string, number>();
+    /** Table clock (sum of `update` deltas) at each attacker's latest hit. */
+    private readonly lastHitAt = new Map<string, number>();
+    private clock = 0;
 
     /** Credits `amount` of threat to `attackerId`. The caller filters self, friendly and unattributed damage. */
     add(attackerId: string, amount: number) {
@@ -85,6 +92,7 @@ export class ThreatTable {
             return;
         }
         this.threat.set(attackerId, (this.threat.get(attackerId) ?? 0) + amount);
+        this.lastHitAt.set(attackerId, this.clock);
     }
 
     get(attackerId: string): number {
@@ -92,7 +100,8 @@ export class ThreatTable {
     }
 
     /**
-     * Decays every grudge, credits presence to `reachableHostileIds`, forgets attackers `isGone`,
+     * Decays every grudge idle past `memorySeconds`, credits presence to `reachableHostileIds`
+     * (presence is not a hit, so it decays like any idle grudge), forgets attackers `isGone`,
      * then lets the strongest challenger (the mission included) displace `heldId` by `switchMargin`.
      */
     update(deltaSeconds: number, reachableHostileIds: Iterable<string>, isGone: (id: string) => boolean) {
@@ -101,9 +110,13 @@ export class ThreatTable {
             this.release();
             return;
         }
-        const decay = Math.exp(-deltaSeconds / character.memorySeconds);
+        this.clock += deltaSeconds;
         for (const [id, value] of this.threat) {
-            this.threat.set(id, value * decay);
+            const idle = this.clock - (this.lastHitAt.get(id) ?? -Infinity);
+            const decaying = Math.min(deltaSeconds, idle - character.memorySeconds);
+            if (decaying > 0) {
+                this.threat.set(id, value * Math.exp(-decaying / character.memorySeconds));
+            }
         }
         if (character.presenceRate > 0) {
             for (const id of reachableHostileIds) {
@@ -112,7 +125,7 @@ export class ThreatTable {
         }
         for (const id of [...this.threat.keys()]) {
             if (isGone(id)) {
-                this.threat.delete(id);
+                this.drop(id);
             }
         }
         if (this.heldId !== null && !this.threat.has(this.heldId)) {
@@ -132,21 +145,27 @@ export class ThreatTable {
         }
         for (const [id, value] of this.threat) {
             if (id !== this.heldId && value < character.missionWeight * 1e-3) {
-                this.threat.delete(id);
+                this.drop(id);
             }
         }
     }
 
     /** Drops `id` and, if it was held, returns to mission. */
     forget(id: string) {
-        this.threat.delete(id);
+        this.drop(id);
         if (this.heldId === id) {
             this.setHeld(null);
         }
     }
 
+    private drop(id: string) {
+        this.threat.delete(id);
+        this.lastHitAt.delete(id);
+    }
+
     private release() {
         this.threat.clear();
+        this.lastHitAt.clear();
         this.setHeld(null);
     }
 

@@ -51,9 +51,25 @@ describe('ThreatTable', () => {
             seconds += 0.05;
         }
         expect(table.heldId).to.equal(null);
-        // memory x ln(peak / (missionWeight / (1 + margin))) = 20 x ln(2.5) ~ 18 s
-        expect(seconds).to.be.within(15, 22);
+        // held 20 s (memory) after the last hit, then memory x ln(peak / (missionWeight / (1 + margin)))
+        // = 20 x ln(2.5) ~ 18 s of decay
+        expect(seconds).to.be.within(36, 41);
         expect(table.switches).to.equal(2);
+    });
+
+    it('a grudge holds at full strength while the attacker keeps hitting within memorySeconds', () => {
+        const table = brawler();
+        const { missionWeight, memorySeconds } = aggroCharacters.Brawler;
+        table.add('a', missionWeight * 2);
+        const ticksPerHit = (memorySeconds / 2) * 20; // a hit every half memory, 20 ticks/s
+        for (let tick = 1; tick <= ticksPerHit * 10; tick++) {
+            table.update(0.05, [], never);
+            if (tick % ticksPerHit === 0) {
+                table.add('a', 1);
+            }
+        }
+        expect(table.heldId).to.equal('a');
+        expect(table.get('a')).to.be.greaterThan(missionWeight * 2);
     });
 
     it('a challenger inside the margin never steals attention from the held attacker', () => {
