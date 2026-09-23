@@ -44,9 +44,7 @@ export interface TrainingResult {
     readonly inRangeFraction: number;
     /** Fraction of sim-time the GVTS's current aim would put a shell's danger zone on the target. */
     readonly killZoneFraction: number;
-    /** Ticks with any explosion overlapping the target. */
-    readonly overlapSamples: number;
-    /** Distinct explosions that ever overlapped the target. */
+    /** Distinct explosions that ever overlapped the target (recorder sidecar, tick-exact). */
     readonly blastHits: number;
     readonly hz: number;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
@@ -147,8 +145,8 @@ export async function runTraining<P>(
         hz,
     );
 
-    // Per-tick gunnery samples: a blast lives about a second, so frame-rate samples would miss
-    // overlaps. `extract.ts` does not compute these.
+    // Per-tick samples of what the bot believed (in range, in kill zone): neither is in the
+    // recording, so `extract.ts` cannot compute them.
     const gunnery: GunnerySample[] = [];
     await recorder.capture();
     while (game.seconds < timeoutSeconds) {
@@ -160,7 +158,7 @@ export async function runTraining<P>(
         }
         const targetObject = game.spaceManager.state.get(TRAINING_TARGET_ID);
         if (targetObject) {
-            gunnery.push(sampleGunnery(gvts.state, targetObject, game.spaceManager.state));
+            gunnery.push(sampleGunnery(gvts.state, targetObject));
         }
     }
     await recorder.capture(true);
@@ -204,11 +202,14 @@ export async function runTraining<P>(
     };
 }
 
+/** Scratch dirs still held open when their run finished; swept once more at process exit. */
+const undeletedScratchDirs = new Set<string>();
+
 /**
- * Best-effort cleanup of the scratch recording+store when the caller didn't ask to keep one.
- * DuckDB's Windows native file handle can lag its `close()` callback (see analysis/store.spec.ts),
- * so a couple of retries absorb that without failing the whole training run over a leftover temp
- * directory the OS will eventually reclaim on its own.
+ * Cleanup of the scratch recording+store when the caller didn't ask to keep one. DuckDB's Windows
+ * native file handle can lag its `close()` callback (see analysis/store.spec.ts), so a few retries
+ * absorb that without failing the run. A dir still busy after them is swept again at process exit,
+ * once every DuckDB instance is gone -- Windows never reclaims `%TEMP%` on its own.
  */
 async function deleteScratchDir(dir: string): Promise<void> {
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -219,4 +220,16 @@ async function deleteScratchDir(dir: string): Promise<void> {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
     }
+    if (!undeletedScratchDirs.size) {
+        process.once('exit', () => {
+            for (const pending of undeletedScratchDirs) {
+                try {
+                    fs.rmSync(pending, { recursive: true, force: true });
+                } catch {
+                    // still locked by another process; nothing more to do at exit
+                }
+            }
+        });
+    }
+    undeletedScratchDirs.add(dir);
 }

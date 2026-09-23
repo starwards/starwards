@@ -15,22 +15,14 @@ import { ShipSystem } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
 
 /**
- * Issue #2192: a Corvette (gravitas) needed ~5 GM energy refills plus GM-forced damage to kill a
- * single fighter, while stations in the same session died in roughly the expected time. Root
- * cause: weapon fire only ever reaches the systems in the firer's currently-faced arc
- * (`ShipState.systemsByAreas`, front vs rear), but `DamageManager.update()`'s kill check counts
- * broken systems across the *whole* ship (both arcs) against `systemKillRatio`. Issue #2107 tuned
- * this same lever for stations and left every other hull's ratio untouched -- but for several
- * non-station hulls the resulting broken-systems threshold equals or exceeds the system count of
- * their *larger* arc, so a sustained attack that never re-flanks (`dragonfly-MK2`) can require
- * literally 100% of one arc broken, or (`dragonfly-MK2` specifically) is mathematically
- * unreachable via any single arc at all.
+ * Mission kill (`healthRatio` 0) must be reachable from a single arc. Weapon fire only reaches the
+ * systems in the arc the attacker faces (`ShipState.systemsByAreas`, front vs rear), while
+ * `systemKillRatio` counts broken systems across the whole ship, so an attack that never re-flanks
+ * can only ever break one arc. Every hull keeps a one-system margin between its mission-kill
+ * threshold and its larger arc -- the margin `station-kill-window.spec.ts` holds stations to
+ * ([#2192](https://github.com/starwards/starwards/issues/2192)).
  *
- * Stations already carry a 1-system margin between their kill threshold and their largest arc
- * (`station-kill-window.spec.ts`); this holds every hull to that same margin.
- *
- * That threshold is now a mission kill (`healthRatio` 0); the ship only dies when its capsule is
- * breached (`damage-manager-death.spec.ts`).
+ * Death is a separate threshold: only a breached capsule kills (`damage-manager-death.spec.ts`).
  */
 function frontAndRear(model: keyof typeof shipConfigurations) {
     const state = makeShipState('probe', shipConfigurations[model]);

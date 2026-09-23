@@ -13,6 +13,8 @@ interface ExtractedMetrics {
     readonly targetHealth: number;
     readonly shellsFired: number;
     readonly secondsFiring: number;
+    /** Distinct explosions that ever overlapped the target, from the recorder's sidecar; 0 without one. */
+    readonly blastHits: number;
     readonly meanDistance: number;
     readonly targetDrift: number;
     readonly gvtsSpeed: number;
@@ -82,17 +84,22 @@ export async function extractMetrics(store: Store, runId: string, roles: Extract
         0,
     );
 
-    const fireEvents = await store.all<{ t: number; kind: string }>(
-        "SELECT t, kind FROM event WHERE run_id = ? AND object_id = ? AND kind IN ('fire_start','fire_stop') ORDER BY t",
+    // Tick-exact when the run left a recorder sidecar (see `computeEvents`), frame-resolution
+    // otherwise. Time with at least one gun firing: the union over guns, not their sum.
+    const fireEvents = await store.all<{ t: number; kind: string; detail_json: string }>(
+        "SELECT t, kind, detail_json FROM event WHERE run_id = ? AND object_id = ? AND kind IN ('fire_start','fire_stop') ORDER BY t",
         runId,
         roles.playerId,
     );
     let secondsFiring = 0;
     let openAt: number | null = null;
+    const openGuns = new Set<number>();
     for (const ev of fireEvents) {
+        const gun = (JSON.parse(ev.detail_json) as { gun?: number }).gun ?? 0;
         if (ev.kind === 'fire_start') {
+            openGuns.add(gun);
             openAt ??= ev.t;
-        } else if (ev.kind === 'fire_stop' && openAt !== null) {
+        } else if (openGuns.delete(gun) && openGuns.size === 0 && openAt !== null) {
             secondsFiring += ev.t - openAt;
             openAt = null;
         }
@@ -100,6 +107,14 @@ export async function extractMetrics(store: Store, runId: string, roles: Extract
     if (openAt !== null) {
         secondsFiring += lastT - openAt;
     }
+    const blastHits =
+        (
+            await store.all<{ n: number }>(
+                "SELECT count(DISTINCT json_extract_string(detail_json, '$.explosionId'))::INTEGER AS n FROM event WHERE run_id = ? AND object_id = ? AND kind = 'blast_hit'",
+                runId,
+                roles.targetId,
+            )
+        )[0]?.n ?? 0;
 
     // Forward-fill both objects' positions across frame times in one pass instead of four
     // sequential `valueAt` round trips per frame -- the latter dominates extract's cost on a
@@ -152,6 +167,7 @@ export async function extractMetrics(store: Store, runId: string, roles: Extract
         targetHealth,
         shellsFired,
         secondsFiring,
+        blastHits,
         meanDistance,
         targetDrift,
         gvtsSpeed,

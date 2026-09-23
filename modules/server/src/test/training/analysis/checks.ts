@@ -292,7 +292,9 @@ async function stripLeadsToKill(
     }
     const strippedAt = stripped[0].t;
     const destroyed = await store.all<{ t: number }>(
-        "SELECT t FROM event WHERE run_id = ? AND object_id = ? AND kind = 'destroyed' ORDER BY t LIMIT 1",
+        // Snapshots drop destroyed objects, so a real recording shows a kill as the target's
+        // `despawn`; `destroyed` only appears when a frame caught the flag before removal.
+        "SELECT t FROM event WHERE run_id = ? AND object_id = ? AND kind IN ('destroyed', 'despawn') ORDER BY t LIMIT 1",
         runId,
         roles.target,
     );

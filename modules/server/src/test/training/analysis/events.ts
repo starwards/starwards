@@ -1,3 +1,7 @@
+import * as fs from 'node:fs';
+
+import { EVENTS_EXT, RecordedEvent } from '../../headless-recorder';
+import { RECORDING_EXT } from '../../../recording/game-recorder';
 import { Store } from './store';
 
 interface EventThresholds {
@@ -32,8 +36,15 @@ interface Row {
 class EventBatch {
     private readonly rows: unknown[][] = [];
 
-    add(runId: string, t: number, kind: string, objectId: string | null, detail: unknown): void {
-        this.rows.push([runId, t, kind, objectId, 'derived', JSON.stringify(detail)]);
+    add(
+        runId: string,
+        t: number,
+        kind: string,
+        objectId: string | null,
+        detail: unknown,
+        source: 'derived' | 'recorded' = 'derived',
+    ): void {
+        this.rows.push([runId, t, kind, objectId, source, JSON.stringify(detail)]);
     }
 
     async flush(store: Store): Promise<void> {
@@ -82,10 +93,30 @@ export async function computeEvents(
     // per-object queries against every one of them (they'd all just come back empty) dominates
     // computeEvents' cost for no events gained.
     const ships = objects.filter((obj) => obj.type === 'Spaceship');
+    // The recorder's tick-exact sidecar, when the run left one: its fire edges replace the
+    // frame-derived ones (a burst shorter than the frame interval never reaches a frame), and its
+    // blast hits exist nowhere else.
+    const recorded = readRecordedEvents(runId);
+    for (const event of recorded ?? []) {
+        if (event.kind === 'blast_hit') {
+            batch.add(
+                runId,
+                event.t,
+                event.kind,
+                event.objectId,
+                { explosionId: event.explosionId, damageType: event.damageType },
+                'recorded',
+            );
+        } else {
+            batch.add(runId, event.t, event.kind, event.objectId, { gun: event.mount }, 'recorded');
+        }
+    }
     for (const obj of ships) {
         await computeBooleanEdges(store, batch, runId, obj.object_id, '/destroyed', 'destroyed', undefined);
         await computeArrayBrokenEvents(store, batch, runId, obj.object_id);
-        await computeFireEvents(store, batch, runId, obj.object_id);
+        if (!recorded) {
+            await computeFireEvents(store, batch, runId, obj.object_id);
+        }
         await computeAmmoEmpty(store, batch, runId, obj.object_id);
         await computeSystemBrokenEvents(store, batch, runId, obj.object_id);
         await computeHealthThresholds(store, batch, runId, obj.object_id, thresholds.healthThresholds);
@@ -103,6 +134,21 @@ export async function computeEvents(
     }
 
     await batch.flush(store);
+}
+
+/** `null` when `recordingPath` has no `.events.jsonl` sidecar (e.g. a live-server recording). */
+function readRecordedEvents(recordingPath: string): RecordedEvent[] | null {
+    const sidecar = recordingPath.endsWith(RECORDING_EXT)
+        ? recordingPath.slice(0, -RECORDING_EXT.length) + EVENTS_EXT
+        : null;
+    if (!sidecar || !fs.existsSync(sidecar)) {
+        return null;
+    }
+    return fs
+        .readFileSync(sidecar, 'utf8')
+        .split('\n')
+        .filter((line) => line.trim())
+        .map((line) => JSON.parse(line) as RecordedEvent);
 }
 
 async function computeBooleanEdges(
