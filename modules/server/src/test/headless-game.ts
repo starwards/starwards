@@ -19,7 +19,7 @@ import {
 import { SavedGame } from '../serialization/game-state-protocol';
 
 /**
- * The live server's tick rate: `SpaceRoom` calls `setSimulationInterval` without a delay, so
+ * The live server's tick rate: `AdminRoom` calls `setSimulationInterval` without a delay, so
  * Colyseus' default (1000/60 ms) applies. Outcomes are tick-rate dependent (blast dwell and
  * first-contact overlap both scale with it), so headless runs default to this rate.
  */

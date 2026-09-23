@@ -148,6 +148,8 @@ describe('AdminRoom station registry', () => {
         await waitForServer(() => stationEntry('FFF')?.shipId === 'GVTS-0TUBE');
 
         await supertest(driver.serverDriver.httpServer).post('/stop-game').send({}).expect(200);
+        // give the admin room a few ticks to (not) re-validate against the emptied player-ship list
+        await sleep(300);
         expect(stationEntry('FFF')?.shipId).toBe('GVTS-0TUBE');
 
         await supertest(driver.serverDriver.httpServer)
