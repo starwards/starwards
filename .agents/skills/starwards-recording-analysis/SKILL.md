@@ -76,8 +76,8 @@ the paths/thresholds it was derived from.
 
 ## Checks
 
-`target_holds_position`, `fire_within_range`, `shells_damage_armor`, `strip_leads_to_kill`,
-`player_stays_mobile`, `frames_regular`. `shells_damage_armor` and `fire_within_range` together
+`fire_within_range`, `shells_damage_armor`, `strip_leads_to_kill`, `player_stays_mobile`,
+`frames_regular`. `shells_damage_armor` and `fire_within_range` together
 separate hit-rate from damage-past-armor -- check both before concluding "the gun can't hit" vs.
 "the gun hits but the shell doesn't damage".
 

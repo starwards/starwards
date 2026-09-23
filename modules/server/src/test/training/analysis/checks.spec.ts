@@ -65,28 +65,6 @@ describe('computeChecks', () => {
         return Object.fromEntries(results.map((r) => [r.name, r]));
     }
 
-    describe('target_holds_position', () => {
-        it('skips with no target role', async () => {
-            expect((await run()).target_holds_position.status).toBe('skip');
-        });
-
-        it('passes when the target stays within range of spawn', async () => {
-            await object('t', 'Spaceship', 0, 1, 'target');
-            await value('t', '/position/x', 0, { num: 0 });
-            await value('t', '/position/y', 0, { num: 0 });
-            await value('t', '/position/x', 1, { num: 10 });
-            expect((await run()).target_holds_position.status).toBe('pass');
-        });
-
-        it('fails when the target drifts past the limit', async () => {
-            await object('t', 'Spaceship', 0, 1, 'target');
-            await value('t', '/position/x', 0, { num: 0 });
-            await value('t', '/position/y', 0, { num: 0 });
-            await value('t', '/position/x', 1, { num: 5000 });
-            expect((await run()).target_holds_position.status).toBe('fail');
-        });
-    });
-
     describe('shells_damage_armor', () => {
         it('skips with no player/target role', async () => {
             expect((await run()).shells_damage_armor.status).toBe('skip');

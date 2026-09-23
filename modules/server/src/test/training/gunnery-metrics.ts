@@ -13,11 +13,15 @@ export interface GunnerySample {
  * (`SavedGame.fragment.ship` / `.space`) alike.
  */
 export function sampleGunnery(ship: ShipState, target: SpaceObject): GunnerySample {
-    const [gun] = ship.chainGuns;
     return {
-        inRange: XY.distance(target.position, ship.position) <= gun.design.maxShellRange,
-        inKillZone: isTargetInKillZone(ship, gun, target),
+        inRange: inGunRange(ship, target),
+        inKillZone: isTargetInKillZone(ship, ship.chainGuns[0], target),
     };
+}
+
+/** `target` within `ship`'s first chain gun's `maxShellRange`. */
+export function inGunRange(ship: ShipState, target: { readonly position: XY }): boolean {
+    return XY.distance(target.position, ship.position) <= ship.chainGuns[0].design.maxShellRange;
 }
 
 /**

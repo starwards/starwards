@@ -1,4 +1,4 @@
-import { AmmoType, Explosion, IdleStrategy, Projectile, ShipState, Spaceship, XY } from '@starwards/core/internal';
+import { AmmoType, IdleStrategy, Projectile, ShipState, Spaceship, XY } from '@starwards/core/internal';
 import {
     DEFAULT_WAVE_TUNING,
     STATIONS,
@@ -8,6 +8,11 @@ import {
     waveBudget,
 } from '../scenarios/wave-defence';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
+
+import { BlastOverlaps } from './blast-overlaps';
+import { inGunRange } from './training/gunnery-metrics';
+import { median } from './training/analysis/metrics';
+import { tapDamage } from './damage-tap';
 
 const PLAYER_SHIP_ID = 'GVTS';
 /** A raider this close to the GVTS is engaged; further off, the proxy holds its guard station instead of chasing. */
@@ -349,11 +354,9 @@ export function runWaveDefence({
     }
 
     const dt = 1 / hz;
-    const gvtsRange = player?.state.chainGuns[0].design.maxShellRange ?? 0;
     let sinceDecision = PROXY_DECISION_SECONDS;
     const live = new Set<string>();
-    /** Blasts already counted against each raider, so one blast counts once however long it overlaps. */
-    const seenBlasts = new Map<string, Set<string>>();
+    const blastOverlaps = new BlastOverlaps();
     const missilesSeen = new Set<string>();
     let missilesInFlight = 0;
     let threatening: string[] = [];
@@ -394,7 +397,7 @@ export function runWaveDefence({
                 }
             }
         }
-        sampleArrival(game, waves[waves.length - 1], raiders, live, capsuleBefore, seenBlasts, gvtsRange, dt);
+        sampleArrival(game, waves[waves.length - 1], raiders, live, capsuleBefore, blastOverlaps, dt);
         for (const id of live) {
             const record = raiders.get(id);
             if (!record) {
@@ -416,7 +419,11 @@ export function runWaveDefence({
                 continue;
             }
             record.goneAt = game.seconds;
-            record.fate = writeOffs.get(id) ?? 'killed';
+            record.fate = writeOffs.get(id) ?? (record.state?.capsule.broken ? 'killed' : undefined);
+            if (!record.fate) {
+                // the scenario removes raiders only by capsule breach or a write-off rule
+                throw new Error(`raider ${id} left play with its capsule intact and no write-off`);
+            }
             live.delete(id);
         }
     }
@@ -447,23 +454,18 @@ function tapGvtsDamage(
     currentWave: () => WaveRecord | undefined,
     raiders: ReadonlyMap<string, RaiderRecord>,
 ) {
-    const { spaceManager } = game;
-    const resolve = spaceManager.resolveObjectDamage.bind(spaceManager);
-    spaceManager.resolveObjectDamage = function* (id: string) {
-        const onStation = STATIONS.some((s) => s.id === id);
-        for (const damage of resolve(id)) {
-            const wave = currentWave();
-            if (wave && damage.shipId === PLAYER_SHIP_ID) {
-                const raider = raiders.get(id);
-                if (onStation) {
-                    wave.gvtsDamageOnStations[id] = (wave.gvtsDamageOnStations[id] ?? 0) + damage.amount;
-                } else if (raider?.wave === wave.wave && wave.arrivedAt !== undefined) {
-                    raider.arrival.gvtsDamageEvents++;
-                }
-            }
-            yield damage;
+    tapDamage(game, (id, damage) => {
+        const wave = currentWave();
+        if (!wave || damage.shipId !== PLAYER_SHIP_ID) {
+            return;
         }
-    };
+        const raider = raiders.get(id);
+        if (STATIONS.some((s) => s.id === id)) {
+            wave.gvtsDamageOnStations[id] = (wave.gvtsDamageOnStations[id] ?? 0) + damage.amount;
+        } else if (raider?.wave === wave.wave && wave.arrivedAt !== undefined) {
+            raider.arrival.gvtsDamageEvents++;
+        }
+    });
 }
 
 /**
@@ -476,11 +478,10 @@ function sampleArrival(
     raiders: ReadonlyMap<string, RaiderRecord>,
     live: ReadonlySet<string>,
     capsuleBefore: ReadonlyMap<string, number>,
-    seenBlasts: Map<string, Set<string>>,
-    gvtsRange: number,
+    blastOverlaps: BlastOverlaps,
     dt: number,
 ) {
-    const gvts = game.api.getObject(PLAYER_SHIP_ID);
+    const gvts = game.api.getShip(PLAYER_SHIP_ID);
     const station = STATIONS.find((s) => s.id === wave.targetStationId);
     if (!gvts || !station) {
         return;
@@ -502,36 +503,32 @@ function sampleArrival(
         }
         wave.arrivedAt = game.seconds;
     }
-    const blasts = [...game.spaceManager.state].filter((o): o is Explosion => Explosion.isInstance(o) && !o.destroyed);
+    const byId = new Map(waveRaiders.map((raider) => [raider.id, raider]));
     for (const { id, record, object } of waveRaiders) {
         const arrival = record.arrival;
         if (!object.destroyed) {
             arrival.seconds += dt;
-            if (XY.distance(object.position, gvts.position) <= gvtsRange) {
+            if (inGunRange(gvts.state, object)) {
                 arrival.inRangeSeconds += dt;
             }
         }
-        const state = record.state;
-        if (state) {
-            arrival.capsuleLost += Math.max(0, (capsuleBefore.get(id) ?? 1) - state.capsule.integrity);
+        if (record.state) {
+            arrival.capsuleLost += Math.max(0, (capsuleBefore.get(id) ?? 1) - record.state.capsule.integrity);
         }
-        const stripped = state ? state.armor.numberOfHealthyPlates === 0 : false;
-        let seen = seenBlasts.get(id);
-        if (!seen) {
-            seen = new Set();
-            seenBlasts.set(id, seen);
+    }
+    for (const [blast, target] of blastOverlaps.next(
+        game.spaceManager.state,
+        waveRaiders.map(({ object }) => object),
+    )) {
+        const raider = byId.get(target.id);
+        if (!raider) {
+            continue;
         }
-        for (const blast of blasts) {
-            if (seen.has(blast.id) || XY.distance(blast.position, object.position) >= blast.radius + object.radius) {
-                continue;
-            }
-            seen.add(blast.id);
-            if (blast.shipId === PLAYER_SHIP_ID) {
-                arrival.gvtsHits++;
-            }
-            if (stripped) {
-                arrival.postStripHits++;
-            }
+        if (blast.shipId === PLAYER_SHIP_ID) {
+            raider.record.arrival.gvtsHits++;
+        }
+        if (raider.record.state?.armor.numberOfHealthyPlates === 0) {
+            raider.record.arrival.postStripHits++;
         }
     }
 }
@@ -544,14 +541,6 @@ export interface SweepCell {
     readonly runs: RunResult[];
 }
 
-function median(values: number[]): number {
-    if (!values.length) {
-        return NaN;
-    }
-    const sorted = [...values].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
 const mean = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : NaN);
 const fmt = (n: number, digits = 0) => (Number.isFinite(n) ? n.toFixed(digits) : '–');
 

@@ -15,6 +15,7 @@ import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } fr
 import { SERVER_TICK_HZ } from '../headless-game';
 import { fork } from 'child_process';
 import fs from 'fs';
+import { median } from './analysis/metrics';
 import os from 'os';
 import path from 'path';
 
@@ -86,11 +87,6 @@ async function main() {
     fs.mkdirSync(outDir, { recursive: true });
     fs.writeFileSync(path.join(outDir, `${scenarioName}-report.md`), report);
     process.stdout.write(report);
-}
-
-function median(values: number[]) {
-    const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
-    return sorted.length ? sorted[Math.floor(sorted.length / 2)] : NaN;
 }
 
 const f = (n: number | null, d = 0) => (n === null || !Number.isFinite(n) ? '–' : n.toFixed(d));

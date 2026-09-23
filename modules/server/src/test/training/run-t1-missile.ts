@@ -11,6 +11,7 @@ import {
 } from '../../scenarios/training';
 
 import fc from 'fast-check';
+import { tapDamage } from '../damage-tap';
 
 /**
  * `node -r ts-node/register/transpile-only run-t1-missile.ts --seeds 64 --ammo HiExpMissile --timeout 300 --out t1m.json`
@@ -75,16 +76,12 @@ function runT1Missile(
     }
 
     let decoyDamage = 0;
-    const { spaceManager } = game;
-    const resolve = spaceManager.resolveObjectDamage.bind(spaceManager);
-    spaceManager.resolveObjectDamage = function* (id: string) {
-        for (const damage of resolve(id)) {
-            if (id === TRAINING_DECOY_ID && damage.shipId === TRAINING_PLAYER_ID) {
-                decoyDamage += damage.amount;
-            }
-            yield damage;
+    tapDamage(game, (id, damage) => {
+        if (id === TRAINING_DECOY_ID && damage.shipId === TRAINING_PLAYER_ID) {
+            decoyDamage += damage.amount;
         }
-    };
+    });
+    const { spaceManager } = game;
 
     const inFlight = new Map<string, XY>();
     const ends: Record<MissileEnd, number> = { target: 0, decoy: 0, other: 0 };

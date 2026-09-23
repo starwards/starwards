@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import { EVENTS_EXT, RecordedEvent } from '../../headless-recorder';
 import { RECORDING_EXT } from '../../../recording/game-recorder';
 import { Store } from './store';
+import { median } from './metrics';
 
 interface EventThresholds {
     /** Multiple of an object's median per-frame speed delta that counts as a `velocity_spike`. */
@@ -51,15 +52,6 @@ class EventBatch {
         await store.insertRows('event', 6, this.rows);
         this.rows.length = 0;
     }
-}
-
-function median(values: number[]): number {
-    if (values.length === 0) {
-        return 0;
-    }
-    const sorted = [...values].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
 /**

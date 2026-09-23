@@ -1,12 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { Explosion, Spaceship, XY } from '@starwards/core/internal';
-
 import { encodeFrameLine, encodeHeader } from '../recording/recording-format';
 
+import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
 import { RECORDING_EXT } from '../recording/game-recorder';
+import { Spaceship } from '@starwards/core/internal';
 import { schemaToString } from '../serialization/game-state-serialization';
 
 /** A state edge observed at tick resolution, written to the `.events.jsonl` sidecar. */
@@ -47,7 +47,7 @@ export class HeadlessRecorder {
     private nextFrameAt = 0;
     private frames = 0;
     private readonly firing = new Map<string, boolean>();
-    private readonly blastHits = new Set<string>();
+    private readonly blastHits = new BlastOverlaps();
     private pendingEvents: RecordedEvent[] = [];
 
     constructor(
@@ -104,26 +104,14 @@ export class HeadlessRecorder {
     private observeBlastHits() {
         const state = this.game.spaceManager.state;
         const ships = [...state].filter((o): o is Spaceship => Spaceship.isInstance(o) && !o.destroyed);
-        for (const explosion of state) {
-            if (!Explosion.isInstance(explosion) || explosion.destroyed) {
-                continue;
-            }
-            for (const ship of ships) {
-                const key = `${explosion.id}/${ship.id}`;
-                if (
-                    !this.blastHits.has(key) &&
-                    XY.distance(explosion.position, ship.position) < explosion.radius + ship.radius
-                ) {
-                    this.blastHits.add(key);
-                    this.pendingEvents.push({
-                        t: this.game.seconds,
-                        kind: 'blast_hit',
-                        objectId: ship.id,
-                        explosionId: explosion.id,
-                        damageType: explosion.damageType,
-                    });
-                }
-            }
+        for (const [explosion, ship] of this.blastHits.next(state, ships)) {
+            this.pendingEvents.push({
+                t: this.game.seconds,
+                kind: 'blast_hit',
+                objectId: ship.id,
+                explosionId: explosion.id,
+                damageType: explosion.damageType,
+            });
         }
     }
 

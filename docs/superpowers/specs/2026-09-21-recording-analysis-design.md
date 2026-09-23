@@ -129,10 +129,9 @@ Initial set, all scoped to a `player` and a `target` role:
 
 | name                        | fails when                                                                                          |
 | --------------------------- | --------------------------------------------------------------------------------------------------- |
-| `target_holds_position`     | target with `PLAY_DEAD`-class order moves more than *D* m from spawn (default 500)                   |
 | `fire_within_range`         | any `fire_start`–`fire_stop` window where mean distance exceeds the gun's effective range           |
 | `shells_damage_armor`       | over any window with ≥ *N* shells fired (default 200) at ≤ *R* m, total plate health delta is 0    |
-| `strip_leads_to_kill`       | `armor_stripped` at `t` but no `destroyed` by `t + T` (default 60 s) while firing continues         |
+| `strip_leads_to_kill`       | `armor_stripped` at `t` but the target isn't destroyed or despawned by `t + T` (default 60 s)       |
 | `player_stays_mobile`       | player speed at end is 0 with no `system_broken` event on propulsion                                |
 | `frames_regular`            | frame `t` gaps deviate from `interval_s` by more than 1 frame                                        |
 
