@@ -248,11 +248,12 @@ export class Radar extends Turret {
     public areaFactor = 1;
 
     /**
-     * false while the reactor cannot feed this radar. An unpowered radar sees nothing at all —
-     * unlike a malfunctioning one, which degrades toward its floor. Not synced: clients read the
-     * resulting geometry off `Spaceship.radarSectors`.
+     * The fraction of its energy draw the reactor granted this tick (see `EnergyManager`): scales
+     * the swept area like power does. An unfed radar (0) sees nothing at all — unlike a
+     * malfunctioning one, which degrades toward its floor. Not synced: clients read the resulting
+     * geometry off `Spaceship.radarSectors`.
      */
-    public powered = true;
+    public supply = 1;
 
     get broken() {
         return super.broken || this.malfunctionRangeFactor >= 1 - this.design.rangeEaseFactor * 2;
@@ -269,14 +270,17 @@ export class Radar extends Turret {
      *
      * `super.broken` (skew jammed past the mount's physical limit) is a distinct failure: the dish
      * is stuck pointed away from where it's commanded, not merely weak-signaled, so unlike
-     * malfunction it does black this out — same as losing power (`!this.powered`).
+     * malfunction it does black this out — same as losing power (`supply` 0).
      */
     get range() {
-        if (!this.powered || super.broken) {
+        if (this.supply <= 0 || super.broken) {
             return 0;
         }
         const effectiveArea =
-            lerp([0, 1], [this.design.malfunctionArea, this.design.area], this.areaFactor) * this.power * this.hacked;
+            lerp([0, 1], [this.design.malfunctionArea, this.design.area], this.areaFactor) *
+            this.power *
+            this.hacked *
+            this.supply;
         return radarRangeFromArea(effectiveArea, this.arc);
     }
 }

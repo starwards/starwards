@@ -83,7 +83,7 @@ export function revertRepairSlot(state: ShipState, slot: RepairProtocolSlot, ref
  * module graph earlier than `ship/index.ts` finishes loading it, breaking the circular re-export.
  */
 export interface RepairEnergySource {
-    trySpendEnergy(value: number): boolean;
+    drawEnergy(value: number): number;
 }
 export interface RepairHeatSink {
     addHeat(value: number, system: SystemState): void;
@@ -342,11 +342,10 @@ export class RepairManager implements Updateable {
             return;
         }
         const modeStats = getModeStats(protocol, slot.mode);
-        // A zero-draw protocol (e.g. reactorJumpStart, armorPlateRenewal) must be runnable from
-        // true zero energy — but EnergyManager.trySpendEnergy checks `energy > value` (strictly
-        // greater), so spending even nothing out of an exactly-empty reactor reads as a refusal.
-        // Skip the spend attempt entirely rather than let that edge case starve a free protocol.
-        if (modeStats.energyDraw > 0 && !this.energySource.trySpendEnergy(modeStats.energyDraw * deltaSeconds)) {
+        // A zero-draw protocol (e.g. reactorJumpStart, armorPlateRenewal) is runnable from true
+        // zero energy: it never draws. An operation is all-or-nothing, so any shortfall -- even a
+        // proportional brownout that grants most of the draw -- is a starved tick.
+        if (modeStats.energyDraw > 0 && this.energySource.drawEnergy(modeStats.energyDraw * deltaSeconds) < 1) {
             // brief dip: no progress/heat this tick, but the run survives until the shortfall is
             // sustained past the grace window (R3) — then it's still all-or-nothing
             slot.starvedSeconds += deltaSeconds;

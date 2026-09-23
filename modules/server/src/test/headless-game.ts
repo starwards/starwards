@@ -191,8 +191,7 @@ export class HeadlessGame {
                 : new ShipManagerNpc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
         if (manager instanceof ShipManagerPc && this.labFreeEnergy) {
             // the same free draw ShipManagerNpc's constructor installs
-            (manager as unknown as { internalProxy: { trySpendEnergy: () => boolean } }).internalProxy.trySpendEnergy =
-                () => true;
+            (manager as unknown as { internalProxy: { drawEnergy: () => number } }).internalProxy.drawEnergy = () => 1;
         }
         this.shipManagers.set(spaceObject.id, manager);
         return manager;

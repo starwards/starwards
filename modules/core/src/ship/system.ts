@@ -123,8 +123,8 @@ export abstract class SystemState extends Schema {
     public energyPerMinute = 0;
 
     /**
-     * Set by whatever tried to spend energy on this system's behalf (see `EnergyManager.trySpendEnergy`)
-     * the moment the reactor can't cover the draw, and cleared the moment it can again. Lets a system
+     * Set by whatever drew energy on this system's behalf (see `EnergyManager.drawEnergy`) the moment
+     * the reactor can't cover the whole draw, and cleared the moment it can again. Lets a system
      * that is otherwise fully intact (not `broken`, no active defect) still show the crew *why* it did
      * nothing this tick — see `getStatus()`.
      */

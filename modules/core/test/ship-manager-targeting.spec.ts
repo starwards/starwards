@@ -464,7 +464,7 @@ describe('ShipManager housekeeping', () => {
         const { obj, mgr } = makeShipMgr('a', Faction.Gravitas);
         flush();
         const radar = mgr.state.radars[0];
-        // no energy and a dead reactor: trySpendEnergy must fail every tick
+        // no energy and a dead reactor: drawEnergy grants nothing every tick
         mgr.state.reactor.power = PowerLevel.SHUTDOWN;
         mgr.state.reactor.energy = 0;
         runTick(mgr);
