@@ -1,4 +1,16 @@
-import { AmmoType, IdleStrategy, Projectile, ShipState, Spaceship, XY } from '@starwards/core/internal';
+import {
+    AmmoType,
+    IdleStrategy,
+    Projectile,
+    ShipState,
+    SmartPilotMode,
+    Spaceship,
+    XY,
+    capToRange,
+    isTargetInKillZone,
+    moveToTarget,
+    rotateToTarget,
+} from '@starwards/core/internal';
 import {
     DEFAULT_WAVE_TUNING,
     STATIONS,
@@ -119,10 +131,11 @@ export type PlayerProxy =
      */
     | 'targeted-station'
     /**
-     * Stand off {@link STANDOFF_METERS} beyond the raider nearest the latest wave's target station, on the
-     * station-to-raider bearing, so the station is never between them. Guns engage opportunistically; tubes
-     * fire at the raider nearest the GVTS within {@link MISSILE_ENGAGE_METERS}. Same raider filter as
-     * `targeted-station`.
+     * The GVTS as a crewed player ship (no orders): it flies to a post {@link STANDOFF_METERS} beyond the
+     * raider nearest the latest wave's target station, on the station-to-raider bearing, so the station is
+     * never between them, with its weapons target and hull locked on the raider nearest it. Guns fire in the
+     * kill zone unless BLOCKED; tubes fire at that target within {@link MISSILE_ENGAGE_METERS}. Same raider
+     * filter as `targeted-station`.
      */
     | 'standoff-missiles';
 
@@ -241,12 +254,12 @@ function driveTargetedStationProxy(game: HeadlessGame, raiderIds: Iterable<strin
 }
 
 /** See {@link PlayerProxy} `standoff-missiles`: the movement half, re-planned each decision. */
-function driveStandoffProxy(game: HeadlessGame, raiderIds: readonly string[], targetStationId: string) {
+function standoffPost(game: HeadlessGame, raiderIds: readonly string[], targetStationId: string): XY | null {
     const guarded =
         STATIONS.find((s) => s.id === targetStationId && game.api.getShip(s.id)) ??
         STATIONS.find((s) => game.api.getShip(s.id));
     if (!guarded) {
-        return;
+        return null;
     }
     let anchor: { position: XY; distance: number } | undefined;
     for (const id of raiderIds) {
@@ -259,22 +272,56 @@ function driveStandoffProxy(game: HeadlessGame, raiderIds: readonly string[], ta
             anchor = { position: raider.position, distance };
         }
     }
-    const post = anchor
+    return anchor
         ? XY.add(
               anchor.position,
               XY.byLengthAndDirection(STANDOFF_METERS, XY.angleOf(XY.difference(anchor.position, guarded.position))),
           )
         : guarded.position;
-    game.api.orderMove(PLAYER_SHIP_ID, post);
 }
 
-/** See {@link PlayerProxy} `standoff-missiles`: the tube half, every tick. */
-function driveTubes(
-    game: HeadlessGame,
-    raiderIds: readonly string[],
-    missilesInFlight: number,
-    ammo: readonly AmmoType[],
-) {
+/**
+ * See {@link PlayerProxy} `standoff-missiles`: the GVTS crew, every tick, on a player ship's smart
+ * pilot -- no orders. Pilot: weapons target on the raider nearest the GVTS, rotation locked on it
+ * (TARGET), and the flight to the standoff post flown by hand (DIRECT). Weapons: each chain gun
+ * fires while its shot is in the kill zone and its line of fire isn't BLOCKED.
+ */
+function driveCrew(game: HeadlessGame, raiderIds: readonly string[], post: XY | null, deltaSeconds: number) {
+    const crewed = game.shipManagers.get(PLAYER_SHIP_ID);
+    const player = game.api.getObject(PLAYER_SHIP_ID);
+    if (!crewed || !player) {
+        return;
+    }
+    const { state } = crewed;
+    let engaged: { id: string; distance: number } | undefined;
+    for (const id of raiderIds) {
+        const raider = game.api.getObject(id);
+        if (!raider || raider.destroyed) {
+            continue;
+        }
+        const distance = XY.distance(player.position, raider.position);
+        if (!engaged || distance < engaged.distance) {
+            engaged = { id, distance };
+        }
+    }
+    if (state.weaponsTarget.targetId !== (engaged?.id ?? null)) {
+        crewed.setTarget(engaged?.id ?? null);
+    }
+    const target = crewed.weaponsTarget;
+    crewed.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+    crewed.setSmartPilotRotationMode(target ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
+    // TARGET reads `rotation` as an aim-offset nudge; none. DIRECT without a target faces the post.
+    state.smartPilot.rotation = !target && post ? rotateToTarget(deltaSeconds, state, post, 0) : 0;
+    const maneuvering = post ? moveToTarget(deltaSeconds, state, post) : { boost: 0, strafe: 0 };
+    state.smartPilot.maneuvering.x = capToRange(-1, 1, maneuvering.boost);
+    state.smartPilot.maneuvering.y = capToRange(-1, 1, maneuvering.strafe);
+    for (const gun of state.chainGuns) {
+        gun.isFiring = !!target && isTargetInKillZone(state, gun, target) && !gun.lineOfFireBlocked;
+    }
+}
+
+/** See {@link PlayerProxy} `standoff-missiles`: the tubes, every tick, at the crew's weapons target. */
+function driveTubes(game: HeadlessGame, missilesInFlight: number, ammo: readonly AmmoType[]) {
     const player = game.api.getObject(PLAYER_SHIP_ID);
     const playerShip = game.api.getShip(PLAYER_SHIP_ID);
     if (!player || !playerShip) {
@@ -289,21 +336,12 @@ function driveTubes(
     if (missilesInFlight >= MAX_MISSILES_IN_FLIGHT) {
         return;
     }
-    let nearest: { id: string; distance: number } | undefined;
-    for (const id of raiderIds) {
-        const raider = game.api.getObject(id);
-        if (!raider || raider.destroyed) {
-            continue;
-        }
-        const distance = XY.distance(player.position, raider.position);
-        if (distance <= MISSILE_ENGAGE_METERS && (!nearest || distance < nearest.distance)) {
-            nearest = { id, distance };
-        }
-    }
-    if (!nearest) {
+    const target = playerShip.state.weaponsTarget.targetId
+        ? game.api.getObject(playerShip.state.weaponsTarget.targetId)
+        : undefined;
+    if (!target || XY.distance(player.position, target.position) > MISSILE_ENGAGE_METERS) {
         return;
     }
-    playerShip.setTarget(nearest.id);
     for (const tube of tubes) {
         tube.safetyLocked = false;
     }
@@ -376,7 +414,12 @@ export function runWaveDefence({
         },
         onRaiderWrittenOff: (id, reason) => writeOffs.set(id, reason),
     });
-    game = HeadlessGame.start(map, seed);
+    // The crew has no engineer to keep the reactor solvent (5 energy/s against >100/s at full thrust),
+    // so it draws free energy like an NPC; see HeadlessGame.
+    game = HeadlessGame.start(map, seed, {
+        crewedPlayer: proxy === 'standoff-missiles',
+        labFreeEnergy: proxy === 'standoff-missiles',
+    });
     tapGvtsDamage(game, waves, raiders);
     const player = game.api.getShip(PLAYER_SHIP_ID);
     if (player) {
@@ -390,6 +433,7 @@ export function runWaveDefence({
     const missilesSeen = new Set<string>();
     let missilesInFlight = 0;
     let threatening: string[] = [];
+    let post: XY | null = null;
     while (game.seconds < maxSimSeconds && !game.stopped) {
         for (const [id, record] of raiders) {
             if (record.goneAt === undefined) {
@@ -406,13 +450,14 @@ export function runWaveDefence({
             if (proxy === 'targeted-station') {
                 driveTargetedStationProxy(game, threatening, targetStationId);
             } else if (proxy === 'standoff-missiles') {
-                driveStandoffProxy(game, threatening, targetStationId);
+                post = standoffPost(game, threatening, targetStationId);
             } else {
                 drivePlayerProxy(game, live);
             }
         }
         if (proxy === 'standoff-missiles') {
-            driveTubes(game, threatening, missilesInFlight, missileAmmo);
+            driveCrew(game, threatening, post, dt);
+            driveTubes(game, missilesInFlight, missileAmmo);
         }
         const capsuleBefore = new Map([...live].map((id) => [id, raiders.get(id)?.state?.capsule.integrity ?? 1]));
         game.tick(dt);

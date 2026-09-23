@@ -7,6 +7,7 @@ import {
     ShipDie,
     ShipManager,
     ShipManagerNpc,
+    ShipManagerPc,
     ShipModel,
     SpaceManager,
     Spaceship,
@@ -29,8 +30,10 @@ export const SERVER_TICK_HZ = 60;
  * simulation block and nothing else, so a scenario runs as fast as the CPU allows.
  *
  * Every ship gets an NPC manager -- including ones the scenario adds via `addPlayerSpaceship`,
- * so automation can fly a ship authored as crew-driven. Those stay non-expendable, as a player
- * ship would.
+ * so automation can fly a ship authored as crew-driven -- unless `crewedPlayer` is set: then
+ * player ships get the player manager (smart pilot modes, energy, repair) and a harness drives them
+ * as a crew would. `labFreeEnergy` (lab-only) lets that crew draw free energy the way NPC managers
+ * do, standing in for the engineer the harness doesn't model. Player ships stay non-expendable.
  *
  * {@link saveGame} and {@link HeadlessGame.restore} round-trip through the same `SavedGame` a
  * recording frame holds, so any frame is a branch point. The die is rebuilt from `seed` +
@@ -48,7 +51,7 @@ export class HeadlessGame {
         getShip: (shipId) => this.shipManagers.get(shipId) as ShipApi | undefined,
         addObject: (obj) => this.spaceManager.insert(obj),
         addPlayerSpaceship: (ship) => this.addShip(ship, true) as never,
-        addNpcSpaceship: (ship) => this.addShip(ship, false),
+        addNpcSpaceship: (ship) => this.addShip(ship, false) as ShipManagerNpc,
         stopGame: () => {
             this.speed = 0;
         },
@@ -79,13 +82,19 @@ export class HeadlessGame {
         private readonly map: GameMap,
         readonly seed: number,
         private totalSeconds: number,
+        private readonly crewedPlayer = false,
+        private readonly labFreeEnergy = false,
     ) {
         this.die = new ShipDie(seed);
         this.die.update({ deltaSeconds: totalSeconds, deltaSecondsAvg: totalSeconds, totalSeconds });
     }
 
-    static start(map: GameMap, seed: number) {
-        const game = new HeadlessGame(map, seed, 0);
+    static start(
+        map: GameMap,
+        seed: number,
+        { crewedPlayer = false, labFreeEnergy = false }: { crewedPlayer?: boolean; labFreeEnergy?: boolean } = {},
+    ) {
+        const game = new HeadlessGame(map, seed, 0, crewedPlayer, labFreeEnergy);
         map.init(game.api);
         game.spaceManager.forceFlushEntities();
         return game;
@@ -176,7 +185,15 @@ export class HeadlessGame {
         spaceObject.expendable = !authoredAsPlayer;
         this.spaceManager.insert(spaceObject);
         const state = makeShipState(spaceObject.id, shipConfigurations[spaceObject.model as ShipModel]);
-        const manager = new ShipManagerNpc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
+        const manager =
+            authoredAsPlayer && this.crewedPlayer
+                ? new ShipManagerPc(spaceObject, state, this.spaceManager, this.die, this.shipManagers)
+                : new ShipManagerNpc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
+        if (manager instanceof ShipManagerPc && this.labFreeEnergy) {
+            // the same free draw ShipManagerNpc's constructor installs
+            (manager as unknown as { internalProxy: { trySpendEnergy: () => boolean } }).internalProxy.trySpendEnergy =
+                () => true;
+        }
         this.shipManagers.set(spaceObject.id, manager);
         return manager;
     }
