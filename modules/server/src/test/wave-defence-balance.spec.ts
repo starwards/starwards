@@ -1,4 +1,4 @@
-import { DEFAULT_WAVE_TUNING, WaveDefenceTuning } from '../scenarios/wave-defence';
+import { DEFAULT_WAVE_TUNING, WAVE_INTERVAL_SECONDS, WaveDefenceTuning } from '../scenarios/wave-defence';
 import { SweepCell, runWaveDefence, sweepToMarkdown } from './wave-defence-balance-harness';
 import { SERVER_TICK_HZ } from './headless-game';
 
@@ -42,6 +42,14 @@ describe('wave-defence balance harness', () => {
         expect(result.waves[0]).toMatchObject({ wave: 1, hulls: 2, targetStationId: 'station-large' });
         expect(result.raiders.map((r) => r.model)).toEqual(['dragonfly-MK1', 'dragonfly-MK1']);
         expect(result.defeated).toBe(false);
+    });
+
+    // Skipped until it can pass: measured 2026-09-23, 0/16 seeds kill a wave-1 raider under every
+    // proxy (nearest-station, targeted-station, standoff-missiles; 16 seeds each, waves 1-4 at
+    // 60 Hz, with line of fire, obstacle avoidance and aggro in). Enable once >= 12/16 seeds do.
+    it.skip('wave 1: the GVTS proxy kills at least one raider (measured 0/16 seeds)', () => {
+        const result = runWaveDefence({ seed: 1, proxy: 'targeted-station', maxSimSeconds: WAVE_INTERVAL_SECONDS });
+        expect(result.raiders.filter((r) => r.wave === 1 && r.fate === 'killed').length).toBeGreaterThan(0);
     });
 
     // Minutes of CPU per cell, so the committed report is regenerated on demand, not checked in CI.
