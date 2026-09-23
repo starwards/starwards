@@ -15,6 +15,7 @@ import {
     makeId,
     mix,
     mulberry32,
+    withMissionWeight,
     withSpawnNoise,
 } from '@starwards/core/internal';
 
@@ -172,13 +173,15 @@ function buildHarass(budget: number, hulls: HullTables): WaveShipSpec[] {
     return specs;
 }
 
-/**
- * One heavy holding station, MK1s shadowing it -- the escorts fall back to the station if the heavy dies.
- * The heavy's aggro character is unruled, so it keeps the no-aggro behaviour.
- */
+/** One heavy holding station, MK1s shadowing it -- the escorts fall back to the station if the heavy dies. */
 function buildEscort(budget: number, hulls: HullTables): WaveShipSpec[] {
     const specs: WaveShipSpec[] = [
-        { model: 'predator', flightDoctrine: FlightDoctrine.STANDOFF, targetPolicy: { kind: 'station' }, aggro: null },
+        {
+            model: 'predator',
+            flightDoctrine: FlightDoctrine.STANDOFF,
+            targetPolicy: { kind: 'station' },
+            aggro: 'Brawler',
+        },
     ];
     let remaining = budget - hulls.predator;
     while (remaining >= hulls.mk1) {
@@ -192,6 +195,12 @@ function buildEscort(budget: number, hulls: HullTables): WaveShipSpec[] {
     }
     return specs;
 }
+
+/**
+ * Aggro `missionWeight` for the swarm hulls: a GVTS HiExp blast lands 20 on a dragonfly, so 60 flips
+ * one at 60 x 1.25 = 75, about 4 blasts. Heavies keep the characters' 250 (about 16 blasts).
+ */
+const SWARM_MISSION_WEIGHT: Partial<Record<ShipModel, number>> = { [MK1_MODEL]: 60, [MK2_MODEL]: 60 };
 
 const ARCHETYPE_CYCLE = ['gunline', 'harass', 'swarm', 'escort'] as const;
 type ArchetypeName = (typeof ARCHETYPE_CYCLE)[number];
@@ -463,7 +472,10 @@ export function createWaveDefenceMap(
             if (spec.aggro) {
                 // Own stream per ship, so the noise never shifts the wave rng's later draws.
                 shipApi.state.threat.character = withSpawnNoise(
-                    aggroCharacters[spec.aggro],
+                    withMissionWeight(
+                        aggroCharacters[spec.aggro],
+                        SWARM_MISSION_WEIGHT[spec.model] ?? aggroCharacters[spec.aggro].missionWeight,
+                    ),
                     mulberry32(mix(waveNumber, index)),
                 );
             }

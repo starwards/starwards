@@ -39,6 +39,21 @@ export const aggroCharacters = {
 
 export type AggroCharacterName = keyof typeof aggroCharacters;
 
+/**
+ * `character` re-weighted to `missionWeight`, e.g. per hull class. `presenceRate` scales with it,
+ * so a proactive character's pull keeps its ratio to the mission. An infinite mission stays infinite.
+ */
+export function withMissionWeight(character: AggroCharacter, missionWeight: number): AggroCharacter {
+    if (!Number.isFinite(character.missionWeight)) {
+        return character;
+    }
+    return {
+        ...character,
+        missionWeight,
+        presenceRate: (character.presenceRate * missionWeight) / character.missionWeight,
+    };
+}
+
 /** `character` with `missionWeight` and `memorySeconds` each scaled by a factor in [0.9, 1.1] drawn from `rng`. */
 export function withSpawnNoise(character: AggroCharacter, rng: () => number): AggroCharacter {
     const noise = () => 0.9 + rng() * 0.2;

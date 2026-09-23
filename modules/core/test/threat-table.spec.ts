@@ -13,6 +13,7 @@ import {
     aggroCharacters,
     makeShipState,
     shipConfigurations,
+    withMissionWeight,
     withSpawnNoise,
 } from '../src';
 
@@ -90,6 +91,16 @@ describe('ThreatTable', () => {
         table.update(0.05, [], never);
         table.update(0.05, [], (id) => id === 'a');
         expect(table.heldId).to.equal(null);
+    });
+
+    it('re-weighting a character scales its presence with the mission and leaves Fixated alone', () => {
+        const hunter = withMissionWeight(aggroCharacters.Hunter, 60);
+        expect(hunter.missionWeight).to.equal(60);
+        expect(hunter.presenceRate / hunter.missionWeight).to.be.closeTo(
+            aggroCharacters.Hunter.presenceRate / aggroCharacters.Hunter.missionWeight,
+            1e-12,
+        );
+        expect(withMissionWeight(aggroCharacters.Fixated, 60)).to.equal(aggroCharacters.Fixated);
     });
 
     it('spawn noise stays within ±10% and leaves an infinite mission alone', () => {

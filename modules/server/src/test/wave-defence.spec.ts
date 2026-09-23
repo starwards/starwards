@@ -158,6 +158,14 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
         );
     });
 
+    it('every raider in waves 1-10 carries an aggro character, the escort heavy included', () => {
+        for (let wave = 1; wave <= 10; wave++) {
+            for (const spec of generateWaveSpecs(wave, () => 0.5)) {
+                expect(spec.aggro).not.toBeNull();
+            }
+        }
+    });
+
     it('A4: given the same rng seed, two independent calls produce identical specs', () => {
         for (const wave of [1, 2, 3, 4, 5, 6, 10, 25]) {
             const seed = 0.37;
@@ -293,6 +301,16 @@ describe('wave_defence map (integration)', () => {
             const ship = gameDriver.getShip(id);
             expect(ship.state.order).toEqual(Order.ATTACK);
             expect(ship.state.orderTargetId).toEqual('station-large');
+        }
+    });
+
+    it('gives wave-1 dragonflies the swarm aggro weight, 60 +-10%', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        for (const id of npcWaveIds()) {
+            const character = gameDriver.getShip(id).state.threat.character;
+            expect(character?.missionWeight).toBeGreaterThanOrEqual(54);
+            expect(character?.missionWeight).toBeLessThanOrEqual(66);
         }
     });
 
