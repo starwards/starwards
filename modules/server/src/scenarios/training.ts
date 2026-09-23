@@ -55,7 +55,12 @@ export const training_t0: GameMap = createTrainingT0Map({ distance: 5000, bearin
  * ATTACK order against the GVTS, at its own top speed (no cap). A fleeing fighter escapes by design;
  * kills happen while the target engages. The GVTS is non-expendable, so return fire never ends the run.
  */
-export function createTrainingT1Map(params: T0Params, targetModel: ShipModel = 'dragonfly-MK1'): GameMap {
+export function createTrainingT1Map(
+    params: T0Params,
+    targetModel: ShipModel = 'dragonfly-MK1',
+    /** Lab-only: the target attacks without its combat weave (`ShipState.labNoCombatWeave`). */
+    noCombatWeave = false,
+): GameMap {
     return {
         name: 'training_t1',
         init: (game) => {
@@ -65,7 +70,7 @@ export function createTrainingT1Map(params: T0Params, targetModel: ShipModel = '
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
             game.addNpcSpaceship(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
-            );
+            ).state.labNoCombatWeave = noCombatWeave;
             game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
             game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
         },

@@ -158,6 +158,12 @@ export class ShipState extends Schema implements Lockable {
     @gameField(Armor)
     armor!: Armor;
 
+    /**
+     * Lab-only switch for headless training rungs: `true` flies ATTACK without the combat weave, to
+     * measure what the weave costs the shooter. Server-only, not synced; unset in every real game.
+     */
+    labNoCombatWeave?: boolean;
+
     private _threat?: ThreatTable;
     /**
      * Server-only aggro state: who this NPC holds a grudge against, and its character. Not synced,

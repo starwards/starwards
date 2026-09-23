@@ -82,12 +82,12 @@ export const T1_ATTACKING_DRAGONFLY: TrainingScenario<T0Params> = {
     createMap: createTrainingT1Map,
 };
 
-/** T1 with another hull attacking the GVTS: the TTK ladder's heavier rungs. */
-const t1WithHull = (name: string, model: ShipModel): TrainingScenario<T0Params> => ({
+/** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, lab-only, without its combat weave. */
+const t1WithHull = (name: string, model: ShipModel, noCombatWeave = false): TrainingScenario<T0Params> => ({
     ...T1_ATTACKING_DRAGONFLY,
     name,
-    description: `GVTS vs one ${model} attacking it, 2-8 km, any bearing`,
-    createMap: (params) => createTrainingT1Map(params, model),
+    description: `GVTS vs one ${model} attacking it${noCombatWeave ? ' without its combat weave (lab-only)' : ''}, 2-8 km, any bearing`,
+    createMap: (params) => createTrainingT1Map(params, model, noCombatWeave),
 });
 
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
@@ -95,6 +95,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
+    'T1-noweave': t1WithHull('T1-noweave', 'dragonfly-MK1', true) as TrainingScenario<never>,
 };
 
 /**

@@ -347,7 +347,9 @@ export class AutomationManager implements Updateable {
             // Only marks the UI-facing weapons-target slot; aiming and firing are `aimAndFire`'s,
             // uniformly for every NPC.
             this.shipManager.setTarget(targetId);
-            weave = this.combatWeave(id, target.position);
+            if (!this.state.labNoCombatWeave) {
+                weave = this.combatWeave(id, target.position);
+            }
         }
         const profile = this.getFlightProfile();
         this.positionNearTarget(
