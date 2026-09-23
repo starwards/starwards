@@ -10,7 +10,7 @@ import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
  * plates -> corvette 16), so it stands in for the reported "Corvette" here.
  */
 describe('energy budget under sustained weapons fire (#2187)', () => {
-    it('a fully-cooled gravitas at max reactor power does not drain its reserve firing its chaingun continuously for a full minute', () => {
+    it('a cooled gravitas at max reactor power does not drain its reserve firing its chaingun continuously for a full minute', () => {
         const spaceMgr = new SpaceManager();
         const shipObj = new Spaceship();
         shipObj.id = 'gravitas-1';
@@ -22,9 +22,11 @@ describe('energy budget under sustained weapons fire (#2187)', () => {
         shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
         state.reactor.power = PowerLevel.MAX;
+        // above NORMAL the reactor heats by what it generates, like the gun by what it draws
+        state.reactor.coolantFactor = 1;
         const chainGun = state.chainGuns[0];
         chainGun.power = PowerLevel.MAX;
-        chainGun.coolantFactor = 1; // fully cooled: route all coolant to the gun under test, so heat can't be the limiter
+        chainGun.coolantFactor = 1; // cool the reactor and the gun under test, so heat can't be the limiter
         chainGun.isFiring = true;
         chainGun.loadAmmo = true;
         switchToAvailableAmmo(chainGun, state.magazine);
