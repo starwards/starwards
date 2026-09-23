@@ -114,6 +114,11 @@ export class ChainGunManager implements Updateable {
     /** Runs after the mount swung and the fuze was set, so it tests the shot this tick actually fires. */
     private updateLineOfFire() {
         const chainGun = this.chainGun;
+        // Only a firing NPC mount has anything to hold; a player ship's flag feeds its weapons UI.
+        if (!chainGun.isFiring && !this.state.isPlayerShip) {
+            chainGun.lineOfFireBlocked = false;
+            return;
+        }
         const muzzleToDetonation = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed + this.state.radius;
         const solids = this.spaceManager.spatialIndex.selectPotentials(
             new Circle(

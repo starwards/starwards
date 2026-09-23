@@ -73,7 +73,8 @@ export class ChainGun extends Turret {
 
     /**
      * A friendly solid sits on this mount's firing line, so its next shell would detonate on it.
-     * Recomputed every tick; NPC gunnery holds fire while set, player fire is never gated.
+     * Recomputed every tick on player ships, and on NPC ships while the mount fires; NPC gunnery
+     * holds fire while set, player fire is never gated.
      * @see docs/design/mechanics/line-of-fire.md
      */
     @gameField('boolean')
