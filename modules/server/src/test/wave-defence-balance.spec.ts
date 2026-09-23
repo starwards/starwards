@@ -44,13 +44,20 @@ describe('wave-defence balance harness', () => {
         expect(result.defeated).toBe(false);
     });
 
-    // Skipped until it can pass: measured 2026-09-23, 0/16 seeds kill a wave-1 raider under every
-    // proxy (nearest-station, targeted-station, standoff-missiles; 16 seeds each, waves 1-4 at
-    // 60 Hz, with line of fire, obstacle avoidance and aggro in). Enable once >= 12/16 seeds do.
-    it.skip('wave 1: the GVTS proxy kills at least one raider (measured 0/16 seeds)', () => {
-        const result = runWaveDefence({ seed: 1, proxy: 'targeted-station', maxSimSeconds: WAVE_INTERVAL_SECONDS });
-        expect(result.raiders.filter((r) => r.wave === 1 && r.fate === 'killed').length).toBeGreaterThan(0);
-    });
+    // Measured 2026-09-23: the crewed standoff GVTS kills a wave-1 raider in 14/16 seeds (waves 1-2,
+    // 60 Hz, fighter capsule damage50 100); seed 1 kills at 324 s. Minutes of game time at 60 Hz.
+    it(
+        'wave 1: the crewed standoff GVTS kills at least one raider (seeded; 14/16 seeds measured)',
+        () => {
+            const result = runWaveDefence({
+                seed: 1,
+                proxy: 'standoff-missiles',
+                maxSimSeconds: WAVE_INTERVAL_SECONDS,
+            });
+            expect(result.raiders.filter((r) => r.wave === 1 && r.fate === 'killed').length).toBeGreaterThan(0);
+        },
+        10 * 60 * 1000,
+    );
 
     // Minutes of CPU per cell, so the committed report is regenerated on demand, not checked in CI.
     const regenerate = process.env.UPDATE_WAVE_BALANCE_REPORT ? it : it.skip;
