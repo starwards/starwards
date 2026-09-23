@@ -1,6 +1,7 @@
 import {
     AmmoType,
     IdleStrategy,
+    PowerLevel,
     Projectile,
     ShipState,
     SmartPilotMode,
@@ -42,6 +43,12 @@ const POST_HOLD_METERS = 1_000;
 const POST_RESUME_METERS = 2_000;
 /** `standoff-missiles` pilot: at this fraction of max speed it stops thrusting along its velocity (cruise). */
 const CRUISE_SPEED_FRACTION = 0.98;
+/** `standoff-missiles` engineer: thrusters drop to LOW below this fraction of the reactor's store... */
+const ENGINEER_THRUST_LOW_BELOW = 0.25;
+/** ...and return to NORMAL above this one. */
+const ENGINEER_THRUST_NORMAL_ABOVE = 0.5;
+/** `standoff-missiles` engineer: the reactor bursts to MAX while the store is low, until it is this hot (of 100). */
+const ENGINEER_REACTOR_BURST_HEAT = 50;
 /** A wave's arrival phase opens when its first raider comes this close to the station it targets. */
 const ARRIVAL_RADIUS_METERS = 40_000;
 
@@ -140,8 +147,8 @@ export type PlayerProxy =
      * The GVTS as a crewed player ship (no orders): it flies to a post {@link STANDOFF_METERS} beyond the
      * raider nearest the latest wave's target station, on the station-to-raider bearing, so the station is
      * never between them, with its weapons target and hull locked on the raider nearest it. Guns fire in the
-     * kill zone unless BLOCKED; tubes fire at that target within {@link MISSILE_ENGAGE_METERS}. Same raider
-     * filter as `targeted-station`.
+     * kill zone unless BLOCKED; tubes fire at that target within {@link MISSILE_ENGAGE_METERS}. An engineer
+     * runs the reactor (see `driveEngineer`). Same raider filter as `targeted-station`.
      */
     | 'standoff-missiles';
 
@@ -348,6 +355,42 @@ function driveCrew(
     }
 }
 
+/**
+ * See {@link PlayerProxy} `standoff-missiles`: the engineer, every tick. Reactor at NORMAL -- above it,
+ * it heats by what it generates, faster than the ship's coolant removes -- bursting to MAX while the
+ * store is low and the reactor still cool. Warp and docking shut down, coolant to each system in
+ * proportion to its heat, and thrusters dropped to LOW while the store is low, so the weapons and
+ * sensors keep their share.
+ */
+function driveEngineer(game: HeadlessGame) {
+    const state = game.shipManagers.get(PLAYER_SHIP_ID)?.state;
+    if (!state) {
+        return;
+    }
+    const { reactor } = state;
+    const store = reactor.energy / reactor.design.maxEnergy;
+    reactor.power =
+        store < ENGINEER_THRUST_LOW_BELOW && reactor.heat < ENGINEER_REACTOR_BURST_HEAT
+            ? PowerLevel.MAX
+            : PowerLevel.NORMAL;
+    if (state.warp) {
+        state.warp.power = PowerLevel.SHUTDOWN;
+    }
+    state.docking.power = PowerLevel.SHUTDOWN;
+    for (const thruster of state.thrusters) {
+        if (store < ENGINEER_THRUST_LOW_BELOW) {
+            thruster.power = PowerLevel.LOW;
+        } else if (store > ENGINEER_THRUST_NORMAL_ABOVE) {
+            thruster.power = PowerLevel.NORMAL;
+        }
+    }
+    const systems = state.systems();
+    const hottest = Math.max(...systems.map((system) => system.heat));
+    for (const system of systems) {
+        system.coolantFactor = hottest > 0 ? system.heat / hottest : 0;
+    }
+}
+
 /** See {@link PlayerProxy} `standoff-missiles`: the tubes, every tick, at the crew's weapons target. */
 function driveTubes(game: HeadlessGame, missilesInFlight: number, ammo: readonly AmmoType[]) {
     const player = game.api.getObject(PLAYER_SHIP_ID);
@@ -442,12 +485,7 @@ export function runWaveDefence({
         },
         onRaiderWrittenOff: (id, reason) => writeOffs.set(id, reason),
     });
-    // The crew has no engineer to keep the reactor solvent (5 energy/s against >100/s at full thrust),
-    // so it draws free energy like an NPC; see HeadlessGame.
-    game = HeadlessGame.start(map, seed, {
-        crewedPlayer: proxy === 'standoff-missiles',
-        labFreeEnergy: proxy === 'standoff-missiles',
-    });
+    game = HeadlessGame.start(map, seed, { crewedPlayer: proxy === 'standoff-missiles' });
     tapGvtsDamage(game, waves, raiders);
     const player = game.api.getShip(PLAYER_SHIP_ID);
     if (player) {
@@ -486,6 +524,7 @@ export function runWaveDefence({
         }
         if (proxy === 'standoff-missiles') {
             driveCrew(game, threatening, post, pilot, dt);
+            driveEngineer(game);
             driveTubes(game, missilesInFlight, missileAmmo);
         }
         const capsuleBefore = new Map([...live].map((id) => [id, raiders.get(id)?.state?.capsule.integrity ?? 1]));
