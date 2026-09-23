@@ -68,12 +68,32 @@ interface RaiderRecord {
     /** Its wave's arrival phase (arrival until the next wave spawns), while it lived. */
     readonly arrival: ArrivalGunnery;
     /** Aggro: seconds alive, and of those, seconds on its standing order (no held attacker). */
-    readonly attention: { aliveSeconds: number; missionSeconds: number; switches: number };
+    readonly attention: Attention;
     /** The raider's ship state, kept past its manager's removal so its capsule can be read once it is gone. */
     state?: ShipState;
+    /** Held attacker last tick, for flip/return edges. */
+    lastHeldId?: string | null;
 }
 
-/** One raider's exposure to fire during its wave's arrival phase. */
+/** Aggro: how a raider's attention moved between its standing order and the GVTS. */
+interface Attention {
+    aliveSeconds: number;
+    /** Seconds on its standing order (no held attacker). */
+    missionSeconds: number;
+    switches: number;
+    /** Times it turned on the GVTS, and times it went back to its order from the GVTS. */
+    flips: number;
+    returns: number;
+    firstFlipAt?: number;
+    /** Seconds alive since its first flip, and of those, seconds with the GVTS held. */
+    afterFirstFlipSeconds: number;
+    onGvtsSeconds: number;
+    /** GVTS blasts that landed on it while it held the GVTS, and GVTS distance integrated over those seconds. */
+    onGvtsHits: number;
+    onGvtsDistanceSeconds: number;
+}
+
+/** One raider's exposure to fire from its wave's arrival until it is gone. */
 interface ArrivalGunnery {
     seconds: number;
     /** Seconds within the GVTS chain gun's `maxShellRange`. */
@@ -332,7 +352,17 @@ export function runWaveDefence({
                     wave,
                     spawnedAt: now(),
                     state: game?.api.getShip(id)?.state,
-                    attention: { aliveSeconds: 0, missionSeconds: 0, switches: 0 },
+                    attention: {
+                        aliveSeconds: 0,
+                        missionSeconds: 0,
+                        switches: 0,
+                        flips: 0,
+                        returns: 0,
+                        afterFirstFlipSeconds: 0,
+                        onGvtsSeconds: 0,
+                        onGvtsHits: 0,
+                        onGvtsDistanceSeconds: 0,
+                    },
                     arrival: {
                         seconds: 0,
                         inRangeSeconds: 0,
@@ -347,7 +377,7 @@ export function runWaveDefence({
         onRaiderWrittenOff: (id, reason) => writeOffs.set(id, reason),
     });
     game = HeadlessGame.start(map, seed);
-    tapGvtsDamage(game, () => waves[waves.length - 1], raiders);
+    tapGvtsDamage(game, waves, raiders);
     const player = game.api.getShip(PLAYER_SHIP_ID);
     if (player) {
         player.state.idleStrategy = IdleStrategy.STAND_GROUND;
@@ -397,7 +427,7 @@ export function runWaveDefence({
                 }
             }
         }
-        sampleArrival(game, waves[waves.length - 1], raiders, live, capsuleBefore, blastOverlaps, dt);
+        sampleArrival(game, waves, raiders, live, capsuleBefore, blastOverlaps, dt);
         for (const id of live) {
             const record = raiders.get(id);
             if (!record) {
@@ -410,11 +440,7 @@ export function runWaveDefence({
                 }
                 record.state ??= game.api.getShip(id)?.state;
                 if (record.state) {
-                    record.attention.aliveSeconds += dt;
-                    if (record.state.threat.heldId === null) {
-                        record.attention.missionSeconds += dt;
-                    }
-                    record.attention.switches = record.state.threat.switches;
+                    trackAttention(record, record.state.threat.heldId, game, object.position, dt);
                 }
                 continue;
             }
@@ -443,38 +469,61 @@ export function runWaveDefence({
     };
 }
 
+/** Folds one tick of `heldId` into the raider's {@link Attention}. */
+function trackAttention(record: RaiderRecord, heldId: string | null, game: HeadlessGame, position: XY, dt: number) {
+    const attention = record.attention;
+    const previous = record.lastHeldId ?? null;
+    if (heldId === PLAYER_SHIP_ID && previous !== PLAYER_SHIP_ID) {
+        attention.flips++;
+        attention.firstFlipAt ??= game.seconds;
+    } else if (heldId === null && previous === PLAYER_SHIP_ID) {
+        attention.returns++;
+    }
+    record.lastHeldId = heldId;
+    attention.aliveSeconds += dt;
+    if (heldId === null) {
+        attention.missionSeconds += dt;
+    }
+    if (attention.firstFlipAt !== undefined) {
+        attention.afterFirstFlipSeconds += dt;
+    }
+    if (heldId === PLAYER_SHIP_ID) {
+        attention.onGvtsSeconds += dt;
+        const gvts = game.api.getObject(PLAYER_SHIP_ID);
+        attention.onGvtsDistanceSeconds += gvts ? XY.distance(gvts.position, position) * dt : 0;
+    }
+    attention.switches = record.state?.threat.switches ?? attention.switches;
+}
+
 /**
  * Observes GVTS-fired damage events by wrapping `SpaceManager.resolveObjectDamage`, which each ship's
- * damage manager drains once per tick: on stations into {@link WaveRecord.gvtsDamageOnStations}, on the
- * latest wave's raiders during its arrival phase into {@link ArrivalGunnery.gvtsDamageEvents}.
+ * damage manager drains once per tick: on stations into the latest {@link WaveRecord.gvtsDamageOnStations},
+ * on any raider whose wave has arrived into {@link ArrivalGunnery.gvtsDamageEvents}.
  * Pass-through: the damage itself is untouched.
  */
-function tapGvtsDamage(
-    game: HeadlessGame,
-    currentWave: () => WaveRecord | undefined,
-    raiders: ReadonlyMap<string, RaiderRecord>,
-) {
+function tapGvtsDamage(game: HeadlessGame, waves: readonly WaveRecord[], raiders: ReadonlyMap<string, RaiderRecord>) {
     tapDamage(game, (id, damage) => {
-        const wave = currentWave();
+        const wave = waves[waves.length - 1];
         if (!wave || damage.shipId !== PLAYER_SHIP_ID) {
             return;
         }
         const raider = raiders.get(id);
         if (STATIONS.some((s) => s.id === id)) {
             wave.gvtsDamageOnStations[id] = (wave.gvtsDamageOnStations[id] ?? 0) + damage.amount;
-        } else if (raider?.wave === wave.wave && wave.arrivedAt !== undefined) {
+        } else if (raider && waves[raider.wave - 1]?.arrivedAt !== undefined) {
             raider.arrival.gvtsDamageEvents++;
         }
     });
 }
 
 /**
- * Accumulates {@link ArrivalGunnery} for the latest wave's live raiders once that wave has arrived.
- * A wave's phase ends when the next one spawns, so only the latest wave is ever sampled.
+ * Accumulates {@link ArrivalGunnery} for every live raider whose wave has arrived (its first raider
+ * within {@link ARRIVAL_RADIUS_METERS} of the wave's target station), until the raider is gone --
+ * older waves' raiders included.
  */
 function sampleArrival(
     game: HeadlessGame,
-    wave: WaveRecord,
+    waves: readonly WaveRecord[],
     raiders: ReadonlyMap<string, RaiderRecord>,
     live: ReadonlySet<string>,
     capsuleBefore: ReadonlyMap<string, number>,
@@ -482,29 +531,33 @@ function sampleArrival(
     dt: number,
 ) {
     const gvts = game.api.getShip(PLAYER_SHIP_ID);
-    const station = STATIONS.find((s) => s.id === wave.targetStationId);
-    if (!gvts || !station) {
+    if (!gvts) {
         return;
     }
-    const waveRaiders = [...live].flatMap((id) => {
+    const tracked = [...live].flatMap((id) => {
         const record = raiders.get(id);
         const object = game.spaceManager.state.get(id);
         // A raider destroyed this tick still counts: the blast that breached its capsule landed on it.
-        return record?.wave === wave.wave && object ? [{ id, record, object }] : [];
+        return record && object ? [{ id, record, object }] : [];
     });
-    if (wave.arrivedAt === undefined) {
+    for (const wave of waves) {
+        const station = STATIONS.find((s) => s.id === wave.targetStationId);
         if (
-            !waveRaiders.some(
-                ({ object }) =>
-                    !object.destroyed && XY.distance(object.position, station.position) <= ARRIVAL_RADIUS_METERS,
+            wave.arrivedAt === undefined &&
+            station &&
+            tracked.some(
+                ({ record, object }) =>
+                    record.wave === wave.wave &&
+                    !object.destroyed &&
+                    XY.distance(object.position, station.position) <= ARRIVAL_RADIUS_METERS,
             )
         ) {
-            return;
+            wave.arrivedAt = game.seconds;
         }
-        wave.arrivedAt = game.seconds;
     }
-    const byId = new Map(waveRaiders.map((raider) => [raider.id, raider]));
-    for (const { id, record, object } of waveRaiders) {
+    const arrived = tracked.filter(({ record }) => waves[record.wave - 1]?.arrivedAt !== undefined);
+    const byId = new Map(arrived.map((raider) => [raider.id, raider]));
+    for (const { id, record, object } of arrived) {
         const arrival = record.arrival;
         if (!object.destroyed) {
             arrival.seconds += dt;
@@ -518,7 +571,7 @@ function sampleArrival(
     }
     for (const [blast, target] of blastOverlaps.next(
         game.spaceManager.state,
-        waveRaiders.map(({ object }) => object),
+        arrived.map(({ object }) => object),
     )) {
         const raider = byId.get(target.id);
         if (!raider) {
@@ -526,6 +579,9 @@ function sampleArrival(
         }
         if (blast.shipId === PLAYER_SHIP_ID) {
             raider.record.arrival.gvtsHits++;
+            if (raider.record.state?.threat.heldId === PLAYER_SHIP_ID) {
+                raider.record.attention.onGvtsHits++;
+            }
         }
         if (raider.record.state?.armor.numberOfHealthyPlates === 0) {
             raider.record.arrival.postStripHits++;
