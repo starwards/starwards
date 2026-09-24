@@ -19,7 +19,7 @@ export interface T0Params {
 }
 
 /**
- * Lab-only: the target's top speed is capped to the GVTS's own. Blast knock-back otherwise flings
+ * Calibration only, not a game config: the target's top speed is capped to the GVTS's own. Blast knock-back otherwise flings
  * the thrustless target to its 600 m/s flight-computer cap, out-running a 450 m/s GVTS, so the
  * rung would measure the chase instead of gunnery. Not a balance change -- no real map does this.
  */
@@ -58,7 +58,7 @@ export const training_t0: GameMap = createTrainingT0Map({ distance: 5000, bearin
 export function createTrainingT1Map(
     params: T0Params,
     targetModel: ShipModel = 'dragonfly-MK1',
-    /** Lab-only: the target attacks without its combat weave (`ShipState.labNoCombatWeave`). */
+    /** Calibration only, not a game config: the target attacks without its combat weave (`ShipState.labNoCombatWeave`). */
     noCombatWeave = false,
 ): GameMap {
     return {

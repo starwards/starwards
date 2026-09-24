@@ -17,8 +17,9 @@ import { tapDamage } from '../damage-tap';
  * `node -r ts-node/register/transpile-only run-t1-missile.ts --seeds 64 --ammo HiExpMissile --timeout 300 --out t1m.json`
  *
  * T1-missile: the GVTS fires tubes only at a dragonfly-MK1 busy attacking a friendly decoy 10-15 km
- * away. Odd seeds start with the decoy between them. Lab-only: every other ammo type is emptied and
- * `ammo` never runs out, so missiles-per-kill is measured past the real magazine.
+ * away. Odd seeds start with the decoy between them. Calibration only, not a game config: every
+ * other ammo type is emptied and `ammo` never runs out, so missiles-per-kill is measured past the
+ * real magazine.
  */
 function arg(name: string, fallback: string): string {
     const at = process.argv.indexOf(`--${name}`);
@@ -94,6 +95,7 @@ function runT1Missile(
     const dt = 1 / hz;
     const refill = gvts.state.magazine.getCount(ammo);
     while (game.seconds < timeoutSeconds) {
+        // Calibration only: unlimited ammo.
         gvts.state.magazine.setCount(ammo, refill);
         const targetObject = spaceManager.state.get(TRAINING_TARGET_ID);
         if (targetObject && !targetObject.destroyed) {

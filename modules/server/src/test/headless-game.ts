@@ -32,7 +32,8 @@ export const SERVER_TICK_HZ = 60;
  * Every ship gets an NPC manager -- including ones the scenario adds via `addPlayerSpaceship`,
  * so automation can fly a ship authored as crew-driven -- unless `crewedPlayer` is set: then
  * player ships get the player manager (smart pilot modes, energy, repair) and a harness drives them
- * as a crew would. Player ships stay non-expendable.
+ * as a crew would. Player ships stay non-expendable. Calibration only: without `crewedPlayer` a
+ * player ship flies on NPC automation, which draws no energy and aims with the NPC gunnery.
  *
  * {@link saveGame} and {@link HeadlessGame.restore} round-trip through the same `SavedGame` a
  * recording frame holds, so any frame is a branch point. The die is rebuilt from `seed` +

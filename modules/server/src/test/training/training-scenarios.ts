@@ -82,11 +82,11 @@ export const T1_ATTACKING_DRAGONFLY: TrainingScenario<T0Params> = {
     createMap: createTrainingT1Map,
 };
 
-/** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, lab-only, without its combat weave. */
+/** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, calibration only, without its combat weave. */
 const t1WithHull = (name: string, model: ShipModel, noCombatWeave = false): TrainingScenario<T0Params> => ({
     ...T1_ATTACKING_DRAGONFLY,
     name,
-    description: `GVTS vs one ${model} attacking it${noCombatWeave ? ' without its combat weave (lab-only)' : ''}, 2-8 km, any bearing`,
+    description: `GVTS vs one ${model} attacking it${noCombatWeave ? ' without its combat weave (calibration only)' : ''}, 2-8 km, any bearing`,
     createMap: (params) => createTrainingT1Map(params, model, noCombatWeave),
 });
 
