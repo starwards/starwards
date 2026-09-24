@@ -9,6 +9,7 @@ import {
     ShipManagerNpc,
     ShipManagerPc,
     ShipModel,
+    ShipState,
     SpaceManager,
     Spaceship,
     XY,
@@ -37,8 +38,9 @@ export const SERVER_TICK_HZ = 60;
  *
  * {@link saveGame} and {@link HeadlessGame.restore} round-trip through the same `SavedGame` a
  * recording frame holds, so any frame is a branch point. The die is rebuilt from `seed` +
- * elapsed seconds (its whole state); a map's own closure state (e.g. wave-defence's wave
- * counter) is not in the snapshot and restarts fresh.
+ * elapsed seconds (its whole state). Not in the snapshot, so not continued by a restore: a map's
+ * own closure state (e.g. wave-defence's wave counter), which restarts fresh, and each NPC's aggro
+ * (`ShipState.threat`, server-only), which is lost -- a restored raider has no aggro character.
  */
 export class HeadlessGame {
     readonly spaceManager = new SpaceManager();
@@ -95,9 +97,18 @@ export class HeadlessGame {
         return game;
     }
 
-    /** Resumes from a snapshot taken `seconds` into a run started with `seed`. Does not call `map.init`. */
-    static restore(saved: SavedGame, map: GameMap, seed: number, seconds: number) {
-        const game = new HeadlessGame(map, seed, seconds);
+    /**
+     * Resumes from a snapshot taken `seconds` into a run started with `seed` and the same
+     * `crewedPlayer`. Does not call `map.init`.
+     */
+    static restore(
+        saved: SavedGame,
+        map: GameMap,
+        seed: number,
+        seconds: number,
+        { crewedPlayer = false }: { crewedPlayer?: boolean } = {},
+    ) {
+        const game = new HeadlessGame(map, seed, seconds, crewedPlayer);
         game.spaceManager.insertBulk(saved.fragment.space);
         game.spaceManager.forceFlushEntities();
         for (const [id, shipState] of saved.fragment.ship) {
@@ -109,10 +120,7 @@ export class HeadlessGame {
             // closure rather than state -- so capture the saved order first and re-issue it.
             const { order, orderTargetId } = shipState;
             const orderPosition = XY.clone(shipState.orderPosition);
-            game.shipManagers.set(
-                id,
-                new ShipManagerNpc(spaceObject, shipState, game.spaceManager, game.die, game.shipManagers),
-            );
+            game.shipManagers.set(id, game.makeManager(spaceObject, shipState, !spaceObject.expendable));
             if (order === Order.ATTACK && orderTargetId) {
                 game.api.orderAttack(id, orderTargetId);
             } else if (order === Order.MOVE) {
@@ -180,11 +188,14 @@ export class HeadlessGame {
         spaceObject.expendable = !authoredAsPlayer;
         this.spaceManager.insert(spaceObject);
         const state = makeShipState(spaceObject.id, shipConfigurations[spaceObject.model as ShipModel]);
-        const manager =
-            authoredAsPlayer && this.crewedPlayer
-                ? new ShipManagerPc(spaceObject, state, this.spaceManager, this.die, this.shipManagers)
-                : new ShipManagerNpc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
+        const manager = this.makeManager(spaceObject, state, authoredAsPlayer);
         this.shipManagers.set(spaceObject.id, manager);
         return manager;
+    }
+
+    private makeManager(spaceObject: Spaceship, state: ShipState, playerShip: boolean) {
+        return playerShip && this.crewedPlayer
+            ? new ShipManagerPc(spaceObject, state, this.spaceManager, this.die, this.shipManagers)
+            : new ShipManagerNpc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
     }
 }
