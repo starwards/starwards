@@ -256,7 +256,7 @@ export class RepairManager implements Updateable {
     /**
      * A pending slot that becomes unavailable (e.g. undock) drops to `OFF` with a reason. A RUNNING
      * slot that loses its repair tier (e.g. undocking mid-run) is force-stopped outright — same
-     * all-or-nothing rule as a sustained energy shortfall — rather than left stalled or allowed to
+     * all-or-nothing rule as a sustained energy outage — rather than left stalled or allowed to
      * keep running off-tier. Deliberately checks only tier here (not full availability): a
      * `consumesEnergyCell` protocol's own cell is already spent the instant it starts, so a blanket
      * availability recheck would force-stop it on its very first tick.
@@ -343,23 +343,23 @@ export class RepairManager implements Updateable {
         }
         const modeStats = getModeStats(protocol, slot.mode);
         // A zero-draw protocol (e.g. reactorJumpStart, armorPlateRenewal) is runnable from true
-        // zero energy: it never draws. An operation is all-or-nothing, so any shortfall -- even a
-        // proportional brownout that grants most of the draw -- is a starved tick.
-        if (modeStats.energyDraw > 0 && this.energySource.drawEnergy(modeStats.energyDraw * deltaSeconds) < 1) {
-            // brief dip: no progress/heat this tick, but the run survives until the shortfall is
-            // sustained past the grace window (R3) — then it's still all-or-nothing
+        // zero energy: it never draws. Under a brownout every draw gets the same share, and the
+        // operation progresses (and heats) at that share.
+        const supply = modeStats.energyDraw > 0 ? this.energySource.drawEnergy(modeStats.energyDraw * deltaSeconds) : 1;
+        slot.energyStarved = supply < 1;
+        if (supply <= 0) {
+            // brief outage: no progress/heat this tick, but the run survives until the outage is
+            // sustained past the grace window (R3)
             slot.starvedSeconds += deltaSeconds;
-            slot.energyStarved = true;
             if (slot.starvedSeconds >= ENERGY_STARVATION_GRACE_SECONDS) {
                 this.forceOff(slot, protocol, `${protocol.name} was cancelled: insufficient reactor energy`);
             }
             return;
         }
         slot.starvedSeconds = 0;
-        slot.energyStarved = false;
         const duration = this.getDuration(protocol, slot.mode);
-        this.applyHeat(protocol, modeStats, duration, deltaSeconds);
-        slot.progress = Math.min(1, slot.progress + deltaSeconds / duration);
+        this.applyHeat(protocol, modeStats, duration, deltaSeconds * supply);
+        slot.progress = Math.min(1, slot.progress + (deltaSeconds * supply) / duration);
         if (slot.progress >= 1) {
             this.complete(slot, protocol);
         }
@@ -396,7 +396,7 @@ export class RepairManager implements Updateable {
     }
 
     /**
-     * All-or-nothing force-stop (sustained energy starvation, tier lost mid-run): reverts side
+     * All-or-nothing force-stop (sustained energy outage, tier lost mid-run): reverts side
      * effects and — like every other non-completion exit from RUNNING — refunds a spent energy
      * cell. `protocol` is `undefined` only for the defensive "catalog changed out from under a
      * RUNNING slot" case, which never refunds since it can't know whether one was ever spent.
