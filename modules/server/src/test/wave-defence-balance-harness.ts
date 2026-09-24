@@ -75,7 +75,7 @@ interface WaveRecord {
     arrivedAt?: number;
     /** Next wave's spawn, or run end. */
     endedAt: number;
-    /** Each station's `healthRatio` when this wave ended; 0 once destroyed. */
+    /** Each station's `healthRatio` (a mission-kill measure, not death) when this wave ended; 0 once destroyed. */
     stationHealth: Record<string, number>;
     /** Per station, summed `Damage.amount` of GVTS-fired damage events it received during this wave (friendly fire). */
     readonly gvtsDamageOnStations: Record<string, number>;
@@ -159,7 +159,7 @@ export interface RunResult {
     readonly simSeconds: number;
     readonly waves: WaveRecord[];
     readonly raiders: RaiderRecord[];
-    /** GVTS `healthRatio` at run end (1 = intact). */
+    /** GVTS `healthRatio` at run end (1 = intact, 0 = mission-killed; the player ship never dies). */
     readonly playerHealth: number;
 }
 
