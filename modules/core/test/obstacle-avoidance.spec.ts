@@ -96,4 +96,30 @@ describe('local obstacle avoidance', () => {
             shipConfigurations['dragonfly-MK1'].chainGuns[0][1].maxShellRange,
         );
     });
+    it('an MK1 moving to a point beside a station arrives instead of circling it', () => {
+        const spaceMgr = new SpaceManager();
+        const { obj: stationObj, mgr: stationMgr } = station(spaceMgr);
+        const raiderObj = new Spaceship().init('raider', Vec2.make(XY.zero), 'dragonfly-MK1', Faction.Raiders);
+        const raiderState = makeShipState(raiderObj.id, shipConfigurations['dragonfly-MK1']);
+        raiderState.isPlayerShip = false;
+        const raiderMgr = new ShipManagerNpc(raiderObj, raiderState, spaceMgr, new ShipDie(9));
+        spaceMgr.insert(raiderObj);
+        spaceMgr.forceFlushEntities();
+        // the far side of the station, inside the clearance avoidance keeps around its hull
+        const destination = { x: STATION_POSITION.x + stationObj.radius + 50, y: 0 };
+        spaceMgr.state.botOrderCommands.push({ ids: ['raider'], order: { type: 'move', position: destination } });
+
+        let closestSurfaceGap = Infinity;
+        let closestToDestination = Infinity;
+        for (const id of makeIterationsData(120, 120 * 20)) {
+            raiderMgr.update(id);
+            stationMgr.update(id);
+            spaceMgr.update(id);
+            const gap = XY.distance(raiderObj.position, stationObj.position) - stationObj.radius - raiderObj.radius;
+            closestSurfaceGap = Math.min(closestSurfaceGap, gap);
+            closestToDestination = Math.min(closestToDestination, XY.distance(raiderObj.position, destination));
+        }
+        expect(closestSurfaceGap, 'never touched the station').to.be.greaterThan(0);
+        expect(closestToDestination, 'reached its destination').to.be.lessThan(raiderObj.radius);
+    });
 });
