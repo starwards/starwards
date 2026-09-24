@@ -989,10 +989,18 @@ function collisionErrorMsg(object: SpaceObject, subject: SpaceObject, response: 
     )}. collision distance: ${XY.distance(response.a.pos, response.b.pos)}`;
 }
 
-/** A point as far as `waypoint`, on a bearing past it by the velocity's heading error toward it. */
-function overSteer(position: XY, velocity: XY, waypoint: XY): XY {
+/** Most an over-steer aims past its waypoint. */
+const MAX_OVERSTEER_DEGREES = 45;
+
+/**
+ * A point as far as `waypoint`, on a bearing past it by the velocity's heading error toward it, at
+ * most {@link MAX_OVERSTEER_DEGREES}, and short of 180 degrees from the heading: past that the
+ * shortest turn to the aim would swing away from the waypoint.
+ */
+export function overSteer(position: XY, velocity: XY, waypoint: XY): XY {
     const toWaypoint = XY.difference(waypoint, position);
     const desired = XY.angleOf(toWaypoint);
     const error = toDegreesDelta(desired - XY.angleOf(velocity));
-    return XY.add(position, XY.byLengthAndDirection(XY.lengthOf(toWaypoint), desired + error));
+    const overshoot = Math.sign(error) * Math.min(Math.abs(error), MAX_OVERSTEER_DEGREES, (180 - Math.abs(error)) / 2);
+    return XY.add(position, XY.byLengthAndDirection(XY.lengthOf(toWaypoint), desired + overshoot));
 }
