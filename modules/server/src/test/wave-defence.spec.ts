@@ -30,6 +30,7 @@ import {
     waitFor,
 } from '@starwards/core/internal';
 
+import { HeadlessGame } from './headless-game';
 import { makeDriver } from './driver';
 
 function makeMap(init: (game: GameApi) => void, update?: (deltaSeconds: number) => void): GameMap {
@@ -312,6 +313,22 @@ describe('wave_defence map (integration)', () => {
             expect(character?.missionWeight).toBeGreaterThanOrEqual(54);
             expect(character?.missionWeight).toBeLessThanOrEqual(66);
         }
+    });
+
+    it('draws aggro spawn noise per game, from the injected rng', () => {
+        // rngs that differ only in their first draw: the game's noise seed
+        const firstThenZero = (first: number) => {
+            let drawn = false;
+            return () => (drawn ? 0 : ((drawn = true), first));
+        };
+        const wave1Weights = (first: number) => {
+            const game = HeadlessGame.start(createWaveDefenceMap(firstThenZero(first)), 1);
+            return [...game.shipManagers.values()]
+                .map((manager) => manager.state.threat.character?.missionWeight)
+                .filter((weight) => weight !== undefined);
+        };
+        expect(wave1Weights(0.25)).toHaveLength(2);
+        expect(wave1Weights(0.25)).not.toEqual(wave1Weights(0.75));
     });
 
     it('re-issues orderAttack at the furthest surviving station when a wave ship loses its target', async () => {

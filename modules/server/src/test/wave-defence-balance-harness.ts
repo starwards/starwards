@@ -10,6 +10,7 @@ import {
     capToRange,
     isTargetInKillZone,
     moveToTarget,
+    mulberry32,
     rotateToTarget,
 } from '@starwards/core/internal';
 import {
@@ -51,18 +52,6 @@ const ENGINEER_THRUST_NORMAL_ABOVE = 0.5;
 const ENGINEER_REACTOR_BURST_HEAT = 50;
 /** A wave's arrival phase opens when its first raider comes this close to the station it targets. */
 const ARRIVAL_RADIUS_METERS = 40_000;
-
-/** Deterministic PRNG (mulberry32), so a seed replays the same waves. */
-function seededRng(seed: number): () => number {
-    let a = seed >>> 0;
-    return () => {
-        a = (a + 0x6d2b79f5) >>> 0;
-        let t = a;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
 
 interface WaveRecord {
     readonly wave: number;
@@ -438,7 +427,7 @@ export function runWaveDefence({
     const now = () => game?.seconds ?? 0;
     const writeOffs = new Map<string, WriteOffReason>();
     const derelicts = new Set<string>();
-    const map = createWaveDefenceMap(seededRng(seed), tuning, {
+    const map = createWaveDefenceMap(mulberry32(seed), tuning, {
         onWaveSpawned: (wave, shipIds, targetStationId) => {
             const previous = waves[waves.length - 1];
             if (previous && game) {

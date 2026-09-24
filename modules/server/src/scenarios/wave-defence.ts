@@ -373,6 +373,8 @@ export function createWaveDefenceMap(
 ): GameMap {
     let game: GameApi;
     let waveNumber = 0;
+    /** Per game, so each game's aggro noise differs; drawn once at init. */
+    let noiseSeed = 0;
     /** Every wave still holding at least one not-yet-gone raider; older waves are dropped once fully gone. */
     let liveWaves: { shipIds: string[] }[] = [];
     /** The most recently spawned wave's raider ids -- its clear-state alone drives `waveClearTimer` (waves may overlap; an older wave clearing late triggers nothing). */
@@ -476,10 +478,11 @@ export function createWaveDefenceMap(
             const shipApi = game.addNpcSpaceship(ship);
             shipApi.state.flightDoctrine = spec.flightDoctrine;
             if (spec.aggro) {
-                // Own stream per ship, so the noise never shifts the wave rng's later draws.
+                // Own stream per ship, seeded from the game's noise seed, so the noise never shifts
+                // the wave rng's later draws.
                 shipApi.state.threat.character = withSpawnNoise(
                     withMissionWeight(aggroCharacters[spec.aggro], missionWeightForHits(hitsToProvoke(spec.model))),
-                    mulberry32(mix(waveNumber, index)),
+                    mulberry32(mix(mix(noiseSeed, waveNumber), index)),
                 );
             }
             if (spec.targetPolicy.kind === 'station') {
@@ -506,6 +509,7 @@ export function createWaveDefenceMap(
         name: 'wave_defence',
         init: (g) => {
             game = g;
+            noiseSeed = Math.floor(rng() * 2 ** 32);
             game.addPlayerSpaceship(new Spaceship().init(PLAYER_SHIP_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas));
             for (const station of STATIONS) {
                 const stationApi = game.addNpcSpaceship(
