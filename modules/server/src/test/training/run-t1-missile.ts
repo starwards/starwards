@@ -9,9 +9,9 @@ import {
     TRAINING_TARGET_ID,
     createTrainingT1MissileMap,
 } from '../../scenarios/training';
+import { tapDamage, tapDerelicts } from '../damage-tap';
 
 import fc from 'fast-check';
-import { tapDamage } from '../damage-tap';
 
 /**
  * `node -r ts-node/register/transpile-only run-t1-missile.ts --seeds 64 --ammo HiExpMissile --timeout 300 --out t1m.json`
@@ -92,6 +92,7 @@ function runT1Missile(
     const decoyPosition = XY.clone(decoyObject?.position ?? XY.zero);
     const decoyRadius = decoyObject?.radius ?? 0;
     let killed = false;
+    tapDerelicts(game, (id) => (killed ||= id === TRAINING_TARGET_ID));
     const dt = 1 / hz;
     const refill = gvts.state.magazine.getCount(ammo);
     while (game.seconds < timeoutSeconds) {
@@ -135,7 +136,6 @@ function runT1Missile(
 
         const after = spaceManager.state.get(TRAINING_TARGET_ID);
         if (!after || after.destroyed) {
-            killed = target.state.capsule.broken;
             break;
         }
         targetLast = XY.clone(after.position);

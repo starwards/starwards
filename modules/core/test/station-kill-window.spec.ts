@@ -22,7 +22,8 @@ import { expect } from 'chai';
  * a step function, so these tests pin the broken-system count deterministically rather than
  * through a stochastic combat run.
  *
- * Death is a separate threshold: only a breached capsule kills (`damage-manager-death.spec.ts`).
+ * Death is a separate threshold: only internal damage kills (ADR-0004). How long it takes is pinned by
+ * the fighter half-life spec (`modules/server/src/test/training/fighter-half-life.ts`), not here.
  */
 function setUpStation(model: 'large-station' | 'chaingun-platform' | 'small-station') {
     const ship = new Spaceship().init('station', new Vec2(0, 0), model, Faction.Gravitas);
@@ -78,7 +79,7 @@ function runDeathCheck(spaceManager: SpaceManager, shipId: string, damageManager
 
 describe('station kill window (issue #2107)', () => {
     for (const model of ['large-station', 'chaingun-platform', 'small-station'] as const) {
-        it(`${model}: one broken system short of the ratio-0.6 threshold is not mission-killed, the next one is, and only a breached capsule kills it`, () => {
+        it(`${model}: one broken system short of the ratio-0.6 threshold is not mission-killed, the next one is, and a mission kill alone never kills it`, () => {
             const { state, spaceManager, damageManager } = setUpStation(model);
             const systems = state.systems();
             const ratio = shipConfigurations[model].properties.systemKillRatio;
@@ -108,17 +109,9 @@ describe('station kill window (issue #2107)', () => {
             breakSystem(damageManager, breakable[neededBroken - 1]);
             runDeathCheck(spaceManager, 'station', damageManager);
             expect(state.healthRatio, `${model} is mission-killed at ${neededBroken}/${systems.length}`).to.equal(0);
-            expect(
-                spaceManager.state.get('station')?.destroyed,
-                `${model} must survive a mission kill while its capsule holds`,
-            ).to.equal(false);
-
-            state.capsule.integrity = 0;
-            runDeathCheck(spaceManager, 'station', damageManager);
-            expect(
-                spaceManager.state.get('station')?.destroyed,
-                `${model} must die once its capsule is breached`,
-            ).to.equal(true);
+            expect(spaceManager.state.get('station')?.destroyed, `${model} must survive a mission kill`).to.equal(
+                false,
+            );
         });
     }
 

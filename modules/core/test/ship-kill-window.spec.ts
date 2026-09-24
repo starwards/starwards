@@ -22,7 +22,8 @@ import { expect } from 'chai';
  * threshold and its larger arc -- the margin `station-kill-window.spec.ts` holds stations to
  * ([#2192](https://github.com/starwards/starwards/issues/2192)).
  *
- * Death is a separate threshold: only a breached capsule kills (`damage-manager-death.spec.ts`).
+ * Death is a separate threshold: only internal damage kills (ADR-0004). How long it takes is pinned by
+ * the fighter half-life spec (`modules/server/src/test/training/fighter-half-life.ts`), not here.
  */
 function frontAndRear(model: keyof typeof shipConfigurations) {
     const state = makeShipState('probe', shipConfigurations[model]);
@@ -101,7 +102,7 @@ describe('ship kill window (issue #2192)', () => {
     }
 
     for (const model of ['dragonfly-MK1', 'gravitas'] as const) {
-        it(`${model}: is mission-killed once its larger arc is broken down to the threshold, and dies only when its capsule is breached`, () => {
+        it(`${model}: is mission-killed once its larger arc is broken down to the threshold, and a mission kill alone never kills it`, () => {
             const { front, rear } = frontAndRear(model);
             const largerArea = front >= rear ? ShipArea.front : ShipArea.rear;
             const { state, spaceManager, damageManager } = setUpShip(model);
@@ -126,17 +127,7 @@ describe('ship kill window (issue #2192)', () => {
             breakSystem(damageManager, breakable[needed - 1]);
             runDeathCheck(spaceManager, 'probe', damageManager);
             expect(state.healthRatio, `${model} is mission-killed at ${needed} broken`).to.equal(0);
-            expect(
-                spaceManager.state.get('probe')?.destroyed,
-                `${model} must survive a mission kill while its capsule holds`,
-            ).to.equal(false);
-
-            state.capsule.integrity = 0;
-            runDeathCheck(spaceManager, 'probe', damageManager);
-            expect(
-                spaceManager.state.get('probe')?.destroyed,
-                `${model} must die once its capsule is breached`,
-            ).to.equal(true);
+            expect(spaceManager.state.get('probe')?.destroyed, `${model} must survive a mission kill`).to.equal(false);
         });
     }
 });

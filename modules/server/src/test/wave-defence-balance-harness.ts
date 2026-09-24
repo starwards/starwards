@@ -21,11 +21,11 @@ import {
     waveBudget,
 } from '../scenarios/wave-defence';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
+import { tapDamage, tapDerelicts } from './damage-tap';
 
 import { BlastOverlaps } from './blast-overlaps';
 import { inGunRange } from './training/gunnery-metrics';
 import { median } from './training/analysis/metrics';
-import { tapDamage } from './damage-tap';
 
 const PLAYER_SHIP_ID = 'GVTS';
 /** A raider this close to the GVTS is engaged; further off, the proxy holds its guard station instead of chasing. */
@@ -88,7 +88,7 @@ interface RaiderRecord {
     readonly wave: number;
     readonly spawnedAt: number;
     goneAt?: number;
-    /** `killed`: its capsule was breached (combat death); otherwise the scenario's write-off rule that removed it. */
+    /** `killed`: died in combat (converted to a derelict with no write-off); otherwise the scenario's write-off rule that removed it. */
     fate?: 'killed' | WriteOffReason;
     /** Its wave's arrival phase (arrival until the next wave spawns), while it lived. */
     readonly arrival: ArrivalGunnery;
@@ -437,6 +437,7 @@ export function runWaveDefence({
     let game: HeadlessGame | undefined;
     const now = () => game?.seconds ?? 0;
     const writeOffs = new Map<string, WriteOffReason>();
+    const derelicts = new Set<string>();
     const map = createWaveDefenceMap(seededRng(seed), tuning, {
         onWaveSpawned: (wave, shipIds, targetStationId) => {
             const previous = waves[waves.length - 1];
@@ -487,6 +488,7 @@ export function runWaveDefence({
     });
     game = HeadlessGame.start(map, seed, { crewedPlayer: proxy === 'standoff-missiles' });
     tapGvtsDamage(game, waves, raiders);
+    tapDerelicts(game, (id) => derelicts.add(id));
     const player = game.api.getShip(PLAYER_SHIP_ID);
     if (player) {
         player.state.idleStrategy = IdleStrategy.STAND_GROUND;
@@ -558,10 +560,10 @@ export function runWaveDefence({
                 continue;
             }
             record.goneAt = game.seconds;
-            record.fate = writeOffs.get(id) ?? (record.state?.capsule.broken ? 'killed' : undefined);
+            record.fate = writeOffs.get(id) ?? (derelicts.has(id) ? 'killed' : undefined);
             if (!record.fate) {
-                // the scenario removes raiders only by capsule breach or a write-off rule
-                throw new Error(`raider ${id} left play with its capsule intact and no write-off`);
+                // the scenario removes raiders only by combat death or a write-off rule
+                throw new Error(`raider ${id} left play without dying and with no write-off`);
             }
             live.delete(id);
         }
@@ -728,7 +730,7 @@ export function sweepToMarkdown(cells: SweepCell[], maxSimSeconds: number, hz: n
         '- **Player proxy is crude**: GVTS on NPC automation, attacks nearest raider within 40 km of a station, else stands ground. No engineer, no repair, no human baseline -- numbers tune against this bot, not crews.',
     );
     lines.push(
-        "- `killed` = the raider's capsule was breached; otherwise the write-off rule that removed it (can't fight / out of play).",
+        "- `killed` = the raider died in combat (converted to a derelict with no write-off); otherwise the write-off rule that removed it (can't fight / out of play).",
     );
     lines.push('');
     lines.push('## Survival');

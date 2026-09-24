@@ -45,8 +45,8 @@ describe('wave-defence balance harness', () => {
     });
 
     // Measured 2026-09-24: the crewed standoff GVTS, with its engineer on the real reactor, kills a
-    // wave-1 raider in 8/16 seeds (waves 1-2, 60 Hz, fighter capsule damage50 100); seed 1 kills at
-    // 322 s. Minutes of game time at 60 Hz.
+    // wave-1 raider in 8/16 seeds (waves 1-2, 60 Hz); seed 1 kills at 322 s. Minutes of game time at
+    // 60 Hz. A kill is a combat death, however the kill path works, so this survives the capsule.
     it(
         'wave 1: the crewed standoff GVTS kills at least one raider (seeded; 8/16 seeds measured)',
         () => {
