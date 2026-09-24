@@ -15,11 +15,11 @@
  * `stationRadarWidgets`.
  */
 export const stationWidgets = [
-    'pilot-radar',
+    'helms-radar',
     'tactical-radar',
     'long-range-radar',
-    'relay-radar',
-    'pilot-stats',
+    'dradis-radar',
+    'helms-stats',
     'systems-status',
     'full-systems-status',
     'engineering-status',
@@ -44,7 +44,7 @@ export type StationWidget = (typeof stationWidgets)[number];
  * The radar widgets, in the order of preference used when a station holds more than one. A station
  * without any of these has no view of space at all.
  */
-export const stationRadarWidgets = ['tactical-radar', 'pilot-radar', 'long-range-radar', 'relay-radar'] as const;
+export const stationRadarWidgets = ['tactical-radar', 'helms-radar', 'long-range-radar', 'dradis-radar'] as const;
 
 export type StationRadarWidget = (typeof stationRadarWidgets)[number];
 
@@ -59,7 +59,7 @@ export function isRadarWidget(widget: StationWidget): widget is StationRadarWidg
  * always reads the full scope its widgets admit.
  */
 export const stationCommands = [
-    // pilot
+    // helms
     'rotation',
     'strafe',
     'boost',
@@ -97,7 +97,7 @@ export const stationCommands = [
     'pauseJobs',
     'prioritizeJob',
     'cancelJob',
-    // relay
+    // dradis
     'placeWaypoint',
     'editWaypoint',
     'moveWaypoint',

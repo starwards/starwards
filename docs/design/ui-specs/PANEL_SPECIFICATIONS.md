@@ -30,7 +30,7 @@ Interactive UI control panels using Tweakpane library.
 - Flat or single-level folders (e.g., "chainGun")
 
 **Variations:**
-- **Helm Properties:** energy, speed, heading, rotation, smart pilot modes
+- **Helms Properties:** energy, speed, heading, rotation, smart pilot modes
 - **Gun Properties:** ammo counts, loading status, fire state
 - **Design State Properties:** system configuration parameters
 
@@ -42,7 +42,7 @@ Interactive UI control panels using Tweakpane library.
 ```
 
 **Usage Contexts:**
-- `pilot.ts` → Helm controls
+- `pilot.ts` → Helms controls
 - `gun.ts` → Weapon controls
 - `design-state.ts` → Configuration editor
 

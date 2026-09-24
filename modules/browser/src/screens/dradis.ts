@@ -4,7 +4,7 @@ import { Driver, Status } from '@starwards/core';
 import { registerStationClient, runStationScreen } from './station-lifecycle';
 
 import ElementQueries from 'css-element-queries/src/ElementQueries';
-import { initRelayScreen } from './relay-screen';
+import { initDradisScreen } from './dradis-screen';
 
 ElementQueries.listen();
 
@@ -16,7 +16,7 @@ window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.r
 
 const requestedShipId = new URLSearchParams(window.location.search).get('ship') ?? '';
 const driver = new Driver(window.location).connect();
-const { statusTracker, getAssignedShipId } = registerStationClient(driver, 'relay', requestedShipId);
+const { statusTracker, getAssignedShipId } = registerStationClient(driver, 'dradis', requestedShipId);
 runStationScreen(driver, statusTracker, Status.SHIP_FOUND, async (container) =>
-    initRelayScreen(driver, container, await getAssignedShipId()),
+    initDradisScreen(driver, container, await getAssignedShipId()),
 );

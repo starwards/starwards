@@ -17,9 +17,11 @@ spec or plan.
 - **Audience:** Volunteer testers, never played this kind of game
 - **Goal includes:** Onboarding feedback (UX, learnability) in addition to gameplay
 - **Timeline:** Tight
-- **Out of scope here:** Navigator, **Relay** (cut for this session), dedicated
-  Repair station, Dock Master, GM-as-a-station — all the post-bridge / LARP-
-  only stations from MS3 PLAN.md
+- **Out of scope here:** **Astrogator** (off-bridge, long-games-only planning
+  role — cut for this session), dedicated Repair station, Dock Master,
+  GM-as-a-station — all the post-bridge / LARP-only stations from MS3
+  PLAN.md. The **Dradis** screen (formerly Relay) IS in scope this session —
+  Signal runs it alongside Signals, since this is a short bridge game
 - **"Hardwired for completeness" systems:** Some bridge mechanics are present so
   the experience feels whole, not because they are the focus of testing.
   Repair (LAN-party variant) is the canonical example.

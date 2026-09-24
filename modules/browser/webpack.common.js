@@ -7,9 +7,9 @@ module.exports = {
         gm: [path.resolve(__dirname, 'src', 'screens', 'gm.ts')],
         ship: [path.resolve(__dirname, 'src', 'screens', 'ship.ts')],
         weapons: [path.resolve(__dirname, 'src', 'screens', 'weapons.ts')],
-        pilot: [path.resolve(__dirname, 'src', 'screens', 'pilot.ts')],
+        helms: [path.resolve(__dirname, 'src', 'screens', 'helms.ts')],
         engineer: [path.resolve(__dirname, 'src', 'screens', 'engineer.ts')],
-        relay: [path.resolve(__dirname, 'src', 'screens', 'relay.ts')],
+        dradis: [path.resolve(__dirname, 'src', 'screens', 'dradis.ts')],
         signals: [path.resolve(__dirname, 'src', 'screens', 'signals.ts')],
         station: [path.resolve(__dirname, 'src', 'screens', 'station.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
@@ -60,9 +60,9 @@ module.exports = {
             chunks: ['weapons'],
         }),
         new HtmlWebpackPlugin({
-            filename: 'pilot.html',
+            filename: 'helms.html',
             template: path.resolve(__dirname, 'templates', 'station.html'),
-            chunks: ['pilot'],
+            chunks: ['helms'],
         }),
         new HtmlWebpackPlugin({
             filename: 'engineer.html',
@@ -70,9 +70,9 @@ module.exports = {
             chunks: ['engineer'],
         }),
         new HtmlWebpackPlugin({
-            filename: 'relay.html',
+            filename: 'dradis.html',
             template: path.resolve(__dirname, 'templates', 'station.html'),
-            chunks: ['relay'],
+            chunks: ['dradis'],
         }),
         new HtmlWebpackPlugin({
             filename: 'signals.html',

@@ -11,7 +11,7 @@ function wpTitle(title: string | undefined, id: string): string {
 }
 
 /**
- * Edit pane for the waypoints currently selected on the relay radar (a limited form of the
+ * Edit pane for the waypoints currently selected on the dradis radar (a limited form of the
  * GM tweak pane): one subsection per selected waypoint with rename, group (move to an
  * existing group or a newly typed one), color, exact position, focus (center the camera on
  * it) and delete.

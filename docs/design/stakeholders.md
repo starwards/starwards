@@ -14,5 +14,6 @@ Summary, for orientation while reading code:
 | Contributors | Clear entry points, documented codebase, responsive review. |
 
 Per-station needs: Pilot (flight, drift, autopilot) · Weapons (targeting, fire control, ammo) ·
-Engineer (power/heat/coolant, damage) · Signals (scan/hack/track) · Navigator (warp routing) ·
-Relay (comms, probes, route coordination).
+Engineer (power/heat/coolant, damage) · Signals (scan/hack/track) · Astrogator (warp-route
+planning, off-bridge, long games only) · Relay (comms, probes, route coordination on the
+Dradis screen — the long-game officer role; SIGINT covers it in a short bridge game).

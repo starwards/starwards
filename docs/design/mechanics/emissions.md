@@ -24,4 +24,4 @@ Ships emit detectable signatures based on their system activity. Higher power co
 - Should there be active vs passive radar modes? (active = better range but broadcasts position)
 - How granular should signature masking be? (per-system or aggregate?)
 
-This mechanic is not on the critical path for the first LARP event but would significantly deepen Signals and Navigator gameplay.
+This mechanic is not on the critical path for the first LARP event but would significantly deepen Signals and Astrogator gameplay.

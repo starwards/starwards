@@ -22,13 +22,13 @@ function hasStatusValue(panel: Locator, status: string): Promise<boolean> {
     }, status);
 }
 
-test.describe('Pilot Screen — energy starvation visibility', () => {
+test.describe('Helms Screen — energy starvation visibility', () => {
     const gameDriver = makeDriver(test);
 
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
-        await navigateToScreen(page, `/pilot.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
     });
 
     test.afterEach(async ({ page }) => {

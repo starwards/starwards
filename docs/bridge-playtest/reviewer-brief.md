@@ -43,7 +43,7 @@ Work plan M1–M5 ✓:
 
 ### Not in scope (cut 2026-08-01+; reports filed, not acted on)
 
-Physical/OSC surfaces (framework only) · per-plate armour rewrite, spare plates · reactive armour · finite coolant · scenario loading/editor (wave map is hand-written) · AI handicap (difficulty = weaker enemy hulls) · Relay/Navigator seats (Relay screen in lobby, not in session) · pilot waypoint visibility · morale, fleeing, ship explosions · internet play (LAN only) · macOS/Linux.
+Physical/OSC surfaces (framework only) · per-plate armour rewrite, spare plates · reactive armour · finite coolant · scenario loading/editor (wave map is hand-written) · AI handicap (difficulty = weaker enemy hulls) · Astrogator seat (off-bridge, long-games-only planning role — not in session; the Dradis screen itself IS in session, run by Signals) · pilot waypoint visibility · morale, fleeing, ship explosions · internet play (LAN only) · macOS/Linux.
 
 ## 3. Known — do not report
 

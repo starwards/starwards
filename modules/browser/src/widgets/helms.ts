@@ -5,21 +5,21 @@ import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
 import { readNumberProp } from '../property-wrappers';
 
-export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
-    class PilotComponent {
+export function helmsWidget(shipDriver: ShipDriver): DashboardWidget {
+    class HelmsComponent {
         constructor(container: WidgetContainer, _: unknown) {
-            drawPilotStats(container, shipDriver);
+            drawHelmsStats(container, shipDriver);
         }
     }
     return {
-        name: 'pilot',
+        name: 'helms',
         type: 'component',
-        component: PilotComponent,
+        component: HelmsComponent,
         defaultProps: {},
     };
 }
 
-export function drawPilotStats(container: WidgetContainer, shipDriver: ShipDriver) {
+export function drawHelmsStats(container: WidgetContainer, shipDriver: ShipDriver) {
     const panel = new PropertyPanel(container);
     container.on('destroy', () => {
         panel.destroy();

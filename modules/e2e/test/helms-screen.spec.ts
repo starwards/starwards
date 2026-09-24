@@ -8,11 +8,11 @@ const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
-test.describe('Pilot Screen', () => {
+test.describe('Helms Screen', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
-        await navigateToScreen(page, `/pilot.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
     });
 
     test.afterEach(async ({ page }) => {
@@ -20,8 +20,8 @@ test.describe('Pilot Screen', () => {
     });
 
     test('displays radar and syncs state correctly', async ({ page }) => {
-        // Verify pilot radar is visible
-        await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        // Verify helms radar is visible
+        await expect(page.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
 
         // Verify warp panel is visible
         await expect(page.locator('[data-id="Warp"]')).toBeVisible();

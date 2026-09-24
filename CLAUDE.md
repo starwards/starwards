@@ -35,7 +35,7 @@ node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 
 
 # UI Gallery (no server needed, just browser dev server)
 # http://localhost:3000/gallery.html
-# Scenes: ammo, armor, engineering-status, gm-radar, long-range-radar, pilot, tactical-radar, targeting, tubes-status, warp
+# Scenes: ammo, armor, engineering-status, gm-radar, helms, long-range-radar, tactical-radar, targeting, tubes-status, warp
 # (scene list lives in modules/browser/src/gallery/scenes/index.ts)
 # Direct link: http://localhost:3000/gallery.html?scene=tactical-radar
 
@@ -116,7 +116,7 @@ SpaceObject (in SpaceRoom) is source of truth. ShipRoom.state is a read-only mir
 
 Two systems — don't mix:
 
-- **Fixed stations** (weapons.ts, pilot.ts, engineer.ts): `wrapRootWidgetContainer` + `subContainer()`
+- **Fixed stations** (weapons.ts, helms.ts, engineer.ts): `wrapRootWidgetContainer` + `subContainer()`
 - **Customizable screens** (gm.ts, ship.ts): `Dashboard` (golden-layout wrapper)
 
 ### Color System
@@ -203,7 +203,7 @@ Filter on scan level. Type filters are legitimate only above `BASIC`, where the 
 | `room.send()` float values arrive as garbage (e.g. 0.25 → 1.08e-137) while ints and strings survive | `Packr.useBuffer()` in @colyseus/msgpackr swaps the module-level write buffer without refreshing the DataView floats are written through, and colyseus calls it from `getMessageBytes[JOIN_ROOM]` once the schema handshake outgrows the 8 KB packr buffer. `modules/core/src/serialization-buffers.ts` sizes that buffer up front to keep colyseus off the path; grow it there if the handshake ever exceeds it |
 | `tsc` dies with "JavaScript heap out of memory" on a build that worked minutes ago | Two copies of `zod` in the tree. Its v4 types are branded, so duplicates are incompatible identities and the compiler exhausts its heap comparing them instead of reporting a mismatch. `npm ls zod --all`; there must be no `modules/*/node_modules/zod`. Root `overrides` pins the version — see [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md#version-pins) |
 | `--update-snapshots` leaves the baseline untouched, so a real visual change looks like "my change is not rendering" | The flag's default mode is `changed`, which only rewrites snapshots whose comparison **failed**. The gallery tests pass with `maxDiffPixels` 200 (2000 for radar) and `threshold: 0.2` (`modules/e2e/test/visual/gallery.spec.ts`), so a change under those tolerances still passes and is never written. Use `--update-snapshots=all` to force a rewrite, then read the image diff |
-| Tweakpane pane click times out, `tp-rotv_c` div intercepts pointer events | Fixed-position panes (e.g. `drawPilotStats`) have unbounded height and later-appended DOM covers earlier panes. Create the pane that must receive clicks **last** so it stacks on top |
+| Tweakpane pane click times out, `tp-rotv_c` div intercepts pointer events | Fixed-position panes (e.g. `drawHelmsStats`) have unbounded height and later-appended DOM covers earlier panes. Create the pane that must receive clicks **last** so it stacks on top |
 
 ## CI Rules
 

@@ -11,7 +11,7 @@ const gameDriver = makeDriver(test);
 // No shipped hull actually omits a warp drive (demo-ship always has one), so these
 // tests simulate ShipDesign.warp: null (issue #2032) by nulling the field on an already
 // running ship, before the client connects - exercising the exact `state.warp === null`
-// path the Engineer/Pilot screens must survive.
+// path the Engineer/Helms screens must survive.
 test.describe('Warpless ship screens', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
@@ -32,10 +32,10 @@ test.describe('Warpless ship screens', () => {
         await expect(page.locator('[data-id="Warp"]')).toHaveCount(0);
     });
 
-    test('Pilot screen renders every other panel when the ship has no warp drive', async ({ page }) => {
-        await navigateToScreen(page, `/pilot.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+    test('Helms screen renders every other panel when the ship has no warp drive', async ({ page }) => {
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
 
-        await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
         await expect(page.locator('[data-id="Docking"]')).toBeVisible();
         await expect(page.locator('[data-id="Armor"]')).toBeVisible();
         await expect(page.locator('[data-id="Warp"]')).toHaveCount(0);

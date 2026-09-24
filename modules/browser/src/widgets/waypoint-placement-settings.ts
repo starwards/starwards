@@ -15,7 +15,7 @@ type PlacementSettingsPanel = {
 };
 
 /**
- * Settings for waypoints placed from the relay radar (client-side only): the group
+ * Settings for waypoints placed from the dradis radar (client-side only): the group
  * ("collection") they are created in — an existing one or a newly typed name — and their color.
  */
 export function drawPlacementSettings(

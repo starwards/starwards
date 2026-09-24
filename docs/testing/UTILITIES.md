@@ -43,7 +43,7 @@ Multi-Client Tests (modules/server/src/test/):
 
 E2E Tests (modules/e2e/test/):
   ├─ integration.spec.ts - Core workflows
-  ├─ pilot-screen.spec.ts / pilot-hotkeys.spec.ts - Helm UI & navigation
+  ├─ pilot-screen.spec.ts / pilot-hotkeys.spec.ts - Helms UI & navigation
   ├─ weapons-screen.spec.ts / weapons-hotkeys.spec.ts - Gunner UI & combat
   ├─ engineer-screen.spec.ts / engineer-hotkeys.spec.ts - Engineer UI & power systems
   ├─ gm-screen.spec.ts - GM view
