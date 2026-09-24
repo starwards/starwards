@@ -14,6 +14,7 @@ import {
     Spaceship,
     XY,
     makeShipState,
+    resetIds,
     shipConfigurations,
 } from '@starwards/core/internal';
 
@@ -90,7 +91,9 @@ export class HeadlessGame {
         this.die.update({ deltaSeconds: totalSeconds, deltaSecondsAvg: totalSeconds, totalSeconds });
     }
 
+    /** Starts a run from a fresh id sequence, so a seed replays the same run whatever ran before it in the process. */
     static start(map: GameMap, seed: number, { crewedPlayer = false }: { crewedPlayer?: boolean } = {}) {
+        resetIds();
         const game = new HeadlessGame(map, seed, 0, crewedPlayer);
         map.init(game.api);
         game.spaceManager.forceFlushEntities();
