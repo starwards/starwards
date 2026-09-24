@@ -2,8 +2,12 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { Store } from './store';
+import { Store, ingest } from './store';
+
+import { HeadlessGame } from '../../headless-game';
+import { HeadlessRecorder } from '../../headless-recorder';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
+import { training_t0 } from '../../../scenarios/training';
 
 jest.setTimeout(30_000);
 
@@ -61,5 +65,17 @@ describe('Store', () => {
         expect(stats.max).toBe(999);
         expect(stats.argmax).toBe(500);
         expect(stats.min).toBe(1);
+    });
+
+    it('ingest stores the recording header hz on the run row', async () => {
+        const game = HeadlessGame.start(training_t0, 1);
+        const recorder = new HeadlessRecorder(game, dir, 'hz', 0.1, undefined, 60);
+        await recorder.capture();
+        game.tick(0.1);
+        await recorder.capture(true);
+        const ingested = await ingest(path.join(dir, 'hz.duckdb'), recorder.filePath);
+        const rows = await ingested.all<{ hz: number | null }>('SELECT hz FROM run');
+        await ingested.close();
+        expect(rows).toEqual([{ hz: 60 }]);
     });
 });

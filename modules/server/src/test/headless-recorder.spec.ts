@@ -13,9 +13,8 @@ import { SavedGame } from '../serialization/game-state-protocol';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
 describe('HeadlessRecorder', () => {
-    // `runTraining` now always ingests its recording into a store for `analysis/checks.ts`
-    // (training-scenarios.ts), which costs more wall time than the bare sim tick loop this test
-    // used to wait on.
+    // `runTraining` ingests its recording into a store for `analysis/checks.ts`
+    // (training-scenarios.ts), which costs more wall time than the sim itself.
     it('records a training run whose frames resume into the same trajectory', async () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'headless-recorder-'));
         const result = await runTraining(T0_PLAY_DEAD_DRAGONFLY, {

@@ -129,7 +129,7 @@ export class Store {
         return rows as Array<{ t: number; num: number | null; str: string | null; bool: boolean | null }>;
     }
 
-    /** Delta-aware series between `t0` and `t1`, downsampled to at most `maxPoints` (last-value-wins per bucket). */
+    /** Delta-aware series between `t0` and `t1`, downsampled to at most `maxPoints` by keeping every `step`-th change point (the first of each run of `step`). */
     async series(
         runId: string,
         objectId: string,
@@ -259,7 +259,7 @@ export async function ingest(dbPath: string, recordingPath: string, roles: Roles
             header.intervalMs / 1000,
             header.seed ?? null,
             header.params !== undefined ? JSON.stringify(header.params) : null,
-            null, // hz -- not yet in RecordingHeader; see Forward compatibility
+            header.hz ?? null,
             1,
             frameCount,
             lastT,
