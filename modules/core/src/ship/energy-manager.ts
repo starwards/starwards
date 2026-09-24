@@ -37,6 +37,9 @@ export class EnergyManager implements EnergySource, Updateable {
             logWarn('probably an error: spending negative energy');
         }
         if (value <= 0) {
+            if (system) {
+                system.energyStarved = false;
+            }
             return 1;
         }
         if (this.supplyRatio === null) {

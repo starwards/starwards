@@ -55,6 +55,19 @@ describe('EnergyManager.drawEnergy', () => {
         expect(drawing.energyStarved).to.equal(false);
     });
 
+    it('clears energyStarved on a starved system that stops drawing', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.energy = 0;
+        const drawing = state.thrusters[0];
+        energyManager.drawEnergy(10, drawing);
+        expect(drawing.energyStarved).to.equal(true);
+
+        const granted = energyManager.drawEnergy(0, drawing);
+
+        expect(granted).to.equal(1);
+        expect(drawing.energyStarved).to.equal(false);
+    });
+
     it('does not mark an unrelated system energyStarved (no false positives)', () => {
         const { state, energyManager } = setUpEnergyManager();
         state.reactor.energy = 0;
