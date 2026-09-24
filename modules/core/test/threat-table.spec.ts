@@ -3,6 +3,7 @@ import {
     Faction,
     IdleStrategy,
     Order,
+    PROVOKING_HIT_DAMAGE,
     ShipDie,
     ShipManagerNpc,
     SpaceManager,
@@ -12,6 +13,7 @@ import {
     XY,
     aggroCharacters,
     makeShipState,
+    missionWeightForHits,
     shipConfigurations,
     withMissionWeight,
     withSpawnNoise,
@@ -119,6 +121,19 @@ describe('ThreatTable', () => {
         expect(withMissionWeight(aggroCharacters.Fixated, 60)).to.equal(aggroCharacters.Fixated);
     });
 
+    it('a mission worth 3 provoking hits holds through the 3rd and flips on the 4th (switch margin 1.25)', () => {
+        const table = new ThreatTable();
+        table.character = withMissionWeight(aggroCharacters.Brawler, missionWeightForHits(3));
+        for (let hit = 1; hit <= 3; hit++) {
+            table.add('a', PROVOKING_HIT_DAMAGE);
+            table.update(0.05, [], never);
+        }
+        expect(table.heldId).to.equal(null);
+        table.add('a', PROVOKING_HIT_DAMAGE);
+        table.update(0.05, [], never);
+        expect(table.heldId).to.equal('a');
+    });
+
     it('spawn noise stays within ±10% and leaves an infinite mission alone', () => {
         const noisy = withSpawnNoise(aggroCharacters.Brawler, () => 1);
         expect(noisy.missionWeight).to.be.closeTo(aggroCharacters.Brawler.missionWeight * 1.1, 1e-9);
@@ -156,7 +171,11 @@ describe('aggro on an NPC attacking a station', () => {
             for (const id of makeIterationsData(seconds, seconds * 20)) {
                 if (burst) {
                     // the GVTS's own blasts, landing on the raider: the real damage -> threat path
-                    const explosion = new Explosion().init(`gvts-blast-${blast++}`, Vec2.make(raider.obj.position), 20);
+                    const explosion = new Explosion().init(
+                        `gvts-blast-${blast++}`,
+                        Vec2.make(raider.obj.position),
+                        PROVOKING_HIT_DAMAGE,
+                    );
                     explosion.shipId = 'gvts';
                     explosion.damageType = 'HiExp';
                     spaceMgr.insert(explosion);

@@ -13,6 +13,7 @@ import {
     aggroCharacters,
     ammoTypes,
     makeId,
+    missionWeightForHits,
     mix,
     mulberry32,
     withMissionWeight,
@@ -197,10 +198,15 @@ function buildEscort(budget: number, hulls: HullTables): WaveShipSpec[] {
 }
 
 /**
- * Aggro `missionWeight` for the swarm hulls: a GVTS HiExp blast lands 20 on a dragonfly, so 60 flips
- * one at 60 x 1.25 = 75, about 4 blasts. Heavies keep the characters' 250 (about 16 blasts).
+ * Aggro `missionWeight` per hull class, in provoking hits (`missionWeightForHits`). With the 1.25
+ * switch margin, a swarm hull turns on its shooter after about 4 GVTS HiExp blasts, a heavy after
+ * about 16.
  */
-const SWARM_MISSION_WEIGHT: Partial<Record<ShipModel, number>> = { [MK1_MODEL]: 60, [MK2_MODEL]: 60 };
+const HITS_TO_PROVOKE = { swarm: 3, heavy: 12.5 } as const;
+
+function hitsToProvoke(model: ShipModel): number {
+    return model === MK1_MODEL || model === MK2_MODEL ? HITS_TO_PROVOKE.swarm : HITS_TO_PROVOKE.heavy;
+}
 
 const ARCHETYPE_CYCLE = ['gunline', 'harass', 'swarm', 'escort'] as const;
 type ArchetypeName = (typeof ARCHETYPE_CYCLE)[number];
@@ -472,10 +478,7 @@ export function createWaveDefenceMap(
             if (spec.aggro) {
                 // Own stream per ship, so the noise never shifts the wave rng's later draws.
                 shipApi.state.threat.character = withSpawnNoise(
-                    withMissionWeight(
-                        aggroCharacters[spec.aggro],
-                        SWARM_MISSION_WEIGHT[spec.model] ?? aggroCharacters[spec.aggro].missionWeight,
-                    ),
+                    withMissionWeight(aggroCharacters[spec.aggro], missionWeightForHits(hitsToProvoke(spec.model))),
                     mulberry32(mix(waveNumber, index)),
                 );
             }

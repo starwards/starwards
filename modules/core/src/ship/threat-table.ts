@@ -1,3 +1,5 @@
+import { ammoDesigns } from '../space/projectile';
+
 /**
  * An NPC's aggro character: how much damage it takes to pull it off its standing order, and how
  * long it holds a grudge. All weights are in `Damage.amount` units; the standing order ("the
@@ -19,12 +21,25 @@ export interface AggroCharacter {
 }
 
 /**
- * Calibrated so one full GVTS chain-gun burst flips a Brawler: a HiExp blast lands 20 damage on a
- * dragonfly-MK1, and one continuous burst at 2 km lands 23 of them (460). 250 flips at
- * 250 x (1 + 0.25) = 312.5, about 16 blasts. Hunter presence keeps the pin's ratio to the mission
- * (2/s against 30), scaled by the same factor.
+ * Threat one provoking hit credits: a chain-gun HiExp blast. Threat counts the warhead's amount
+ * before armor, so every hull registers the same per hit.
  */
-const MISSION_WEIGHT = 250;
+export const PROVOKING_HIT_DAMAGE = ammoDesigns.HiExpShell.explosion.damageFactor;
+
+/**
+ * `missionWeight` worth `hits` provoking hits. A challenger takes over past
+ * `hits x (1 + switchMargin)` of them.
+ */
+export function missionWeightForHits(hits: number): number {
+    return hits * PROVOKING_HIT_DAMAGE;
+}
+
+/**
+ * Calibrated so one full GVTS chain-gun burst flips a Brawler: one continuous burst at 2 km lands
+ * 23 HiExp blasts on a dragonfly-MK1, and 12.5 hits flip at 12.5 x (1 + 0.25), about 16 blasts.
+ * Hunter presence keeps the pin's ratio to the mission (2/s against 30), scaled by the same factor.
+ */
+const MISSION_WEIGHT = missionWeightForHits(12.5);
 
 export const aggroCharacters = {
     /** Never leaves its standing order. */
