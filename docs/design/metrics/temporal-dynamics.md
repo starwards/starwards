@@ -4,6 +4,11 @@ Measures how engagement distributes over time — across game phases and between
 stations. A game can have perfect dependency structure but still fail if
 everyone is idle at the same time.
 
+> The "(EE)" examples below use EmptyEpsilon's own station names (Relay,
+> Science, Helms). Starwards' equivalent of EE's `Relay→Captain` flow, in a
+> short bridge game, is `SIGINT→Captain` — SIGINT runs Signals and Dradis in
+> that format, with no separate Relay seat (see [`docs/GLOSSARY.md`](../../GLOSSARY.md)).
+
 ## Metric 13: Handoff Edges per Trigger
 
 Counts how many verbal handoff edges activate when a specific trigger fires.

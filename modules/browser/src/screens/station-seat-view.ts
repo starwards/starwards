@@ -9,7 +9,7 @@ type SeatView = 'assigned' | 'waiting';
  * `playerShipIds` empties (which `stopGame` does immediately), but deliberately leaves
  * `stationType` set — that's the GM's seat assignment, and it survives the stop so the seat can
  * auto-resolve a `shipId` again once a new game starts. So a stopped-but-claimed seat is seen here
- * as `shipId: ''`, `stationType: 'pilot'`, not both empty.
+ * as `shipId: ''`, `stationType: 'helms'`, not both empty.
  *
  * The waiting screen's Lobby breakout is therefore keyed on `stationType` alone: it's offered only
  * for a seat the GM never gave a role at all, not for one merely waiting on its next `shipId`.

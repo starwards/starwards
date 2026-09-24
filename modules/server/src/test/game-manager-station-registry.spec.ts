@@ -48,7 +48,7 @@ describe('GameManager station registry pruning', () => {
         // for this pure unit test — so `reconcileStationAssignments` doesn't itself clear the
         // assignment as invalid before the prune ever gets a chance to look at it.
         gm.state.playerShipIds.push('SOME-SHIP');
-        register(gm, 'CCC', 'pilot');
+        register(gm, 'CCC', 'helms');
         gm.state.stations.get('CCC')!.shipId = 'SOME-SHIP';
         disconnect(gm, 'CCC');
 

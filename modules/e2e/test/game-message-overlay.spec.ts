@@ -12,8 +12,8 @@ test.describe('Game message overlay', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
-        await navigateToScreen(page, `/pilot.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
-        await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await expect(page.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
     });
 
     test.afterEach(async ({ page }) => {
@@ -31,7 +31,7 @@ test.describe('Game message overlay', () => {
         await expect(messageEl).toBeVisible({ timeout: 10000 });
         await expect(messageEl).toHaveText('Defeat: every station was lost during wave 3.');
         // radar stays visible behind the banner — this is the paused end-state, not a broken screen
-        await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible();
+        await expect(page.locator('[data-id="Helms Radar"]')).toBeVisible();
 
         gameDriver.gameManager.scriptApi.setMessage('');
         await expect(messageEl).toBeHidden({ timeout: 10000 });

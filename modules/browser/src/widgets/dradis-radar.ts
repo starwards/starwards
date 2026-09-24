@@ -29,18 +29,18 @@ export type FollowController = {
     setFollow: (follow: boolean) => void;
 };
 
-type RelayRadar = {
+type DradisRadar = {
     root: CameraView;
     layers: Record<string, Container>;
     follow: FollowController;
 };
 
-export async function drawRelayRadar(
+export async function drawDradisRadar(
     spaceDriver: SpaceDriver,
     shipDriver: ShipDriver,
     container: WidgetContainer,
     zoomEvents?: EventEmitter<ZoomEvent>,
-): Promise<RelayRadar> {
+): Promise<DradisRadar> {
     const camera = new Camera();
     const root = new CameraView(camera);
 
@@ -55,7 +55,7 @@ export async function drawRelayRadar(
     });
 
     await root.initialize({ backgroundColor: radarFogOfWar }, container);
-    root.canvas.setAttribute('data-id', 'Relay Radar');
+    root.canvas.setAttribute('data-id', 'Dradis Radar');
     camera.setRange(container.height / 2, DEFAULT_RANGE);
     root.canvas.setAttribute('data-zoom', `${camera.zoom}`);
     root.events.on('screenChanged', () => root.canvas.setAttribute('data-zoom', `${camera.zoom}`));

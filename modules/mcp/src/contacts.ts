@@ -23,7 +23,7 @@ type Contact = {
     faction?: number;
     /** Degrees. The direction the contact is facing — the browser's direction indicator. */
     heading?: number;
-    /** Set on a contact the pilot radar draws pinned to the rim because it lies beyond radar reach. */
+    /** Set on a contact the helms radar draws pinned to the rim because it lies beyond radar reach. */
     beyondRadarRange?: boolean;
 };
 

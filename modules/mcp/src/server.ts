@@ -11,7 +11,7 @@ import {
 } from '@starwards/core/internal';
 import { InvalidCommandError, NotPermittedError, StationSession } from './sandbox/session';
 import { enabledStations, fetchStationsManifest } from './sandbox/manifest';
-import { pilotRadarRange, scanBeamStatus, widgetReaders } from './readers';
+import { helmsRadarRange, scanBeamStatus, widgetReaders } from './readers';
 
 import { CrewChannel } from './comms/channel';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -325,7 +325,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
                         position: { x: ownShip.position.x, y: ownShip.position.y },
                         heading: ownShip.angle,
                     },
-                    radarRange: s.widgets.includes('pilot-radar') ? pilotRadarRange(s) : undefined,
+                    radarRange: s.widgets.includes('helms-radar') ? helmsRadarRange(s) : undefined,
                     scanBeam: s.widgets.includes('long-range-radar') ? scanBeamStatus(s) : undefined,
                     total: contacts.length,
                     offset,

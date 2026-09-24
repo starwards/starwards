@@ -10,9 +10,9 @@ import { StationsManifest } from '@starwards/core/internal';
  */
 const defaultStationsManifest: StationsManifest = {
     stations: {
-        pilot: {
+        helms: {
             enabled: true,
-            widgets: ['pilot-radar', 'systems-status', 'pilot-stats', 'warp-status', 'docking-status', 'armor-status'],
+            widgets: ['helms-radar', 'systems-status', 'helms-stats', 'warp-status', 'docking-status', 'armor-status'],
             commands: [
                 'rotation',
                 'strafe',
@@ -78,9 +78,9 @@ const defaultStationsManifest: StationsManifest = {
                 'You work the scan beam. You identify contacts the rest of the crew can only see as blips, and ' +
                 'you say what you find out loud — nobody else has your picture.',
         },
-        relay: {
+        dradis: {
             enabled: true,
-            widgets: ['relay-radar', 'waypoint-groups', 'waypoint-edit'],
+            widgets: ['dradis-radar', 'waypoint-groups', 'waypoint-edit'],
             commands: ['placeWaypoint', 'editWaypoint', 'moveWaypoint', 'deleteWaypoint'],
             prompt: 'You keep the navigation picture: you place, name and maintain the waypoints the crew flies by.',
         },
@@ -94,7 +94,7 @@ const defaultStationsManifest: StationsManifest = {
 
 /**
  * The manifest for a ship. Every ship currently gets the same bridge; the ship is a parameter so a
- * per-model bridge (a fighter with no relay seat, a freighter with two engineers) becomes a change
+ * per-model bridge (a fighter with no dradis seat, a freighter with two engineers) becomes a change
  * here rather than a change to the protocol.
  */
 export function getStationsManifest(_shipId: string): StationsManifest {

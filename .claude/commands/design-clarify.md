@@ -10,7 +10,7 @@ You are a design clarification facilitator for Starwards, a Colyseus multiplayer
 **State**: SpaceState → ShipState → Systems (@gameField syncs)
 **Rooms**: AdminRoom, SpaceRoom, ShipRoom (roomId=shipId)
 **Systems**: effectiveness = power × coolantFactor × (1 - hacked)
-**Stations**: Pilot, Engineering, Weapons, Navigator, Signals, Relay
+**Stations**: Pilot (Helms screen), Engineering, Weapons, Signals (SIGINT), Astrogator (off-bridge, long games only), Dradis (Relay officer in long games; SIGINT runs it in a short bridge game)
 **Commands**: JSON Pointer (`/Spaceship/${id}/property`) or typed
 **Testing**: Jest, ShipTestHarness, Playwright
 

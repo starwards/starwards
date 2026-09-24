@@ -8,11 +8,11 @@ const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
-test.describe('Relay Screen', () => {
+test.describe('Dradis Screen', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
-        await navigateToScreen(page, `/relay.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, `/dradis.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
     });
 
     test.afterEach(async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe('Relay Screen', () => {
     }
 
     async function placeWaypoint(page: Page) {
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         await expect(radar).toBeVisible({ timeout: 10000 });
         // the hotkey help root is created at the end of input wiring — hotkeys are live after it appears
         await page.locator('#hotkey-help-root').waitFor({ state: 'attached', timeout: 10000 });
@@ -51,14 +51,14 @@ test.describe('Relay Screen', () => {
     }
 
     async function clickRadarCenter(page: Page) {
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     }
 
-    test('displays relay radar', async ({ page }) => {
-        await expect(page.locator('[data-id="Relay Radar"]')).toBeVisible({ timeout: 10000 });
+    test('displays dradis radar', async ({ page }) => {
+        await expect(page.locator('[data-id="Dradis Radar"]')).toBeVisible({ timeout: 10000 });
     });
 
     test('places waypoint when W is pressed and radar is clicked', async ({ page }) => {
@@ -66,7 +66,7 @@ test.describe('Relay Screen', () => {
     });
 
     test('a visible button arms waypoint placement, discoverable without the W hotkey', async ({ page }) => {
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         await expect(radar).toBeVisible({ timeout: 10000 });
         const settingsPane = page.locator('[data-id="New Waypoint"]');
         await expect(settingsPane).toBeVisible({ timeout: 10000 });
@@ -106,7 +106,7 @@ test.describe('Relay Screen', () => {
 
         // Re-selecting shows the current name in the input
         await page.keyboard.press('Escape');
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         await page.mouse.click(box.x + 20, box.y + box.height - 20); // empty corner clears selection
@@ -152,7 +152,7 @@ test.describe('Relay Screen', () => {
         await expect.poll(() => Math.round(serverWaypoints()[0]?.position.x ?? 0), { timeout: 3000 }).toBe(12345);
 
         await editPane.getByRole('button', { name: 'Focus' }).click();
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         await expect(radar).toHaveAttribute('data-following', 'false');
 
         // typing a group name unknown to the picker must not blow the list-constraint binding
@@ -161,7 +161,7 @@ test.describe('Relay Screen', () => {
 
     test('delete all removes every selected waypoint', async ({ page }) => {
         await placeWaypoint(page);
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -187,7 +187,7 @@ test.describe('Relay Screen', () => {
     test('groups pane renames, recolors, selects and deletes a whole group', async ({ page }) => {
         // two waypoints in the default group
         await placeWaypoint(page);
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         await page.keyboard.press('w');
@@ -254,7 +254,7 @@ test.describe('Relay Screen', () => {
         // focus glues the camera to the waypoint's position unless the camera copies it
         await editPane.getByRole('button', { name: 'Focus' }).click();
 
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -273,7 +273,7 @@ test.describe('Relay Screen', () => {
 
     test('radar selection still works after focusing on a group', async ({ page }) => {
         await placeWaypoint(page);
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -303,7 +303,7 @@ test.describe('Relay Screen', () => {
         const [wp] = serverWaypoints();
         const before = { x: wp.position.x, y: wp.position.y };
 
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -326,7 +326,7 @@ test.describe('Relay Screen', () => {
         const editPane = page.locator('[data-id="Edit Waypoint"]');
         await expect(editPane).toBeVisible();
 
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         const box = await radar.boundingBox();
         if (!box) throw new Error('Radar canvas not found');
         const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -364,7 +364,7 @@ test.describe('Relay Screen', () => {
     });
 
     test('placement mode stays armed for multiple waypoints until Escape', async ({ page }) => {
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         await expect(radar).toBeVisible({ timeout: 10000 });
         await page.locator('#hotkey-help-root').waitFor({ state: 'attached', timeout: 10000 });
         const badge = page.locator('[data-id="placement-armed"]');
@@ -400,7 +400,7 @@ test.describe('Relay Screen', () => {
         await expect(editPane).toBeHidden();
 
         // panning disengaged ship-follow; F re-engages it and re-centers on the ship
-        const radar = page.locator('[data-id="Relay Radar"]');
+        const radar = page.locator('[data-id="Dradis Radar"]');
         await expect(radar).toHaveAttribute('data-following', 'false');
         await page.keyboard.press('f');
         await expect(radar).toHaveAttribute('data-following', 'true');

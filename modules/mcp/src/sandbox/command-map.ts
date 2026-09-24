@@ -37,7 +37,7 @@ export type ValueKind = 'trigger' | 'toggle' | 'number' | 'burst';
 const waypointId = z.object({ id: z.string().describe('waypoint id') });
 
 export const commandBindings: Record<StationCommand, CommandBinding> = {
-    // --- pilot ---
+    // --- helms ---
     rotation: { kind: 'fixed', pointer: '/smartPilot/rotation', value: 'number' },
     strafe: { kind: 'fixed', pointer: '/smartPilot/maneuvering/y', value: 'number' },
     boost: { kind: 'fixed', pointer: '/smartPilot/maneuvering/x', value: 'number' },
@@ -88,7 +88,7 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     prioritizeJob: { kind: 'fixed', pointer: '/signals/prioritizeJobId', value: 'trigger' },
     cancelJob: { kind: 'fixed', pointer: '/signals/cancelJobId', value: 'trigger' },
 
-    // --- relay ---
+    // --- dradis ---
     placeWaypoint: {
         kind: 'space-command',
         cmdName: 'createWaypointOrder',

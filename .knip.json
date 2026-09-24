@@ -10,7 +10,7 @@
                 "src/screens/gm.ts",
                 "src/screens/ship.ts",
                 "src/screens/weapons.ts",
-                "src/screens/pilot.ts",
+                "src/screens/helms.ts",
                 "src/screens/engineer.ts",
                 "src/screens/index.tsx",
                 "src/screens/input.ts"

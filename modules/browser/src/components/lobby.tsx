@@ -156,11 +156,11 @@ function ShipOptions({ shipId }: { shipId: string }) {
                         Weapons
                     </Button>
                     <Button
-                        key={`pilot-${shipId}`}
+                        key={`helms-${shipId}`}
                         palette="primary"
-                        onClick={() => window.location.assign(`pilot.html?ship=${shipId}`)}
+                        onClick={() => window.location.assign(`helms.html?ship=${shipId}`)}
                     >
-                        Pilot
+                        Helms
                     </Button>
                     <Button
                         key={`engineer-${shipId}`}
@@ -177,11 +177,11 @@ function ShipOptions({ shipId }: { shipId: string }) {
                         Signals
                     </Button>
                     <Button
-                        key={`relay-${shipId}`}
+                        key={`dradis-${shipId}`}
                         palette="primary"
-                        onClick={() => window.location.assign(`relay.html?ship=${shipId}`)}
+                        onClick={() => window.location.assign(`dradis.html?ship=${shipId}`)}
                     >
-                        Relay
+                        Dradis
                     </Button>
                 </>
             }

@@ -96,10 +96,10 @@ describe('AdminRoom station registry', () => {
         });
 
         it('does not auto-assign a station when more than one slot is open for its type', async () => {
-            const a = await connectAdmin('roaming-relay');
-            await registerStation(a.client, a.room, 'DDD', 'relay');
+            const a = await connectAdmin('roaming-dradis');
+            await registerStation(a.client, a.room, 'DDD', 'dradis');
             await waitForServer(() => stationEntry('DDD')?.connected === true);
-            // both GVTS and GVTS2 have an open 'relay' slot: give the server a few more ticks
+            // both GVTS and GVTS2 have an open 'dradis' slot: give the server a few more ticks
             // to (not) auto-assign before asserting it stayed unassigned.
             await sleep(300);
             expect(stationEntry('DDD')?.shipId).toBe('');
@@ -107,7 +107,7 @@ describe('AdminRoom station registry', () => {
 
         it('rejects a registerStation for an id already connected under a different session', async () => {
             const owner = await connectAdmin('owner');
-            await registerStation(owner.client, owner.room, 'DUP', 'pilot');
+            await registerStation(owner.client, owner.room, 'DUP', 'helms');
             await waitForServer(() => stationEntry('DUP')?.connected === true);
 
             const impostor = await connectAdmin('impostor');
@@ -118,15 +118,15 @@ describe('AdminRoom station registry', () => {
             await registerStation(impostor.client, impostor.room, 'DUP', 'weapons');
             await waitForServer(() => rejections.includes('DUP'));
             // the original owner's registration is untouched by the rejected request
-            expect(stationEntry('DUP')).toMatchObject({ stationType: 'pilot', connected: true });
+            expect(stationEntry('DUP')).toMatchObject({ stationType: 'helms', connected: true });
         });
 
         it('retires the old station id when the same session registers under a new one (rename)', async () => {
             const renamer = await connectAdmin('renamer');
-            await registerStation(renamer.client, renamer.room, 'OLD', 'pilot', 'GVTS');
+            await registerStation(renamer.client, renamer.room, 'OLD', 'helms', 'GVTS');
             await waitForServer(() => stationEntry('OLD')?.shipId === 'GVTS');
 
-            await registerStation(renamer.client, renamer.room, 'NEW', 'pilot', 'GVTS');
+            await registerStation(renamer.client, renamer.room, 'NEW', 'helms', 'GVTS');
             await waitForServer(() => stationEntry('NEW')?.connected === true);
             await waitForServer(() => stationEntry('OLD')?.connected === false);
             // the retired entry's sticky assignment is untouched — only `connected` flips
@@ -136,15 +136,15 @@ describe('AdminRoom station registry', () => {
 
     it('auto-assigns the sole open slot for a station type', async () => {
         await startGame('weapons_multi_tube'); // single player ship: GVTS-2TUBE
-        const a = await connectAdmin('auto-pilot');
-        await registerStation(a.client, a.room, 'EEE', 'pilot');
+        const a = await connectAdmin('auto-helms');
+        await registerStation(a.client, a.room, 'EEE', 'helms');
         await waitForServer(() => stationEntry('EEE')?.shipId === 'GVTS-2TUBE');
     });
 
     it('keeps the registry across a stop/start cycle and re-validates the assignment', async () => {
         await startGame('weapons_no_tubes'); // single player ship: GVTS-0TUBE
         const a = await connectAdmin('sticky-station');
-        await registerStation(a.client, a.room, 'FFF', 'pilot', 'GVTS-0TUBE');
+        await registerStation(a.client, a.room, 'FFF', 'helms', 'GVTS-0TUBE');
         await waitForServer(() => stationEntry('FFF')?.shipId === 'GVTS-0TUBE');
 
         await supertest(driver.serverDriver.httpServer).post('/stop-game').send({}).expect(200);
@@ -172,7 +172,7 @@ describe('AdminRoom station registry', () => {
     it('reconnecting with the same station id keeps its assignment and flips connected', async () => {
         await startGame('weapons_multi_gun'); // single player ship: GVTS-3GUN
         const a = await connectAdmin('reconnecting');
-        await registerStation(a.client, a.room, 'GGG', 'pilot', 'GVTS-3GUN');
+        await registerStation(a.client, a.room, 'GGG', 'helms', 'GVTS-3GUN');
         await waitForServer(() => stationEntry('GGG')?.shipId === 'GVTS-3GUN');
 
         await a.room.leave(true);
@@ -180,7 +180,7 @@ describe('AdminRoom station registry', () => {
         expect(stationEntry('GGG')?.shipId).toBe('GVTS-3GUN');
 
         const b = await connectAdmin('reconnecting-again');
-        await registerStation(b.client, b.room, 'GGG', 'pilot', 'GVTS-3GUN');
+        await registerStation(b.client, b.room, 'GGG', 'helms', 'GVTS-3GUN');
         await waitForServer(() => stationEntry('GGG')?.connected === true);
         expect(stationEntry('GGG')?.shipId).toBe('GVTS-3GUN');
     });
@@ -207,14 +207,14 @@ describe('AdminRoom station registry', () => {
             await registerStation(gm.client, gm.room, 'GENERIC1', '');
             await waitForServer(() => stationEntry('GENERIC1')?.connected === true);
 
-            await assignStation(gm.client, gm.room, 'GENERIC1', 'GVTS', 'pilot');
+            await assignStation(gm.client, gm.room, 'GENERIC1', 'GVTS', 'helms');
             await waitForServer(() => stationEntry('GENERIC1')?.shipId === 'GVTS');
-            expect(stationEntry('GENERIC1')).toMatchObject({ shipId: 'GVTS', stationType: 'pilot' });
+            expect(stationEntry('GENERIC1')).toMatchObject({ shipId: 'GVTS', stationType: 'helms' });
         });
 
         it('moves an already-assigned station to a different ship and type', async () => {
             const gm = await connectAdmin('gm-mover');
-            await registerStation(gm.client, gm.room, 'MOVER', 'pilot', 'GVTS');
+            await registerStation(gm.client, gm.room, 'MOVER', 'helms', 'GVTS');
             await waitForServer(() => stationEntry('MOVER')?.shipId === 'GVTS');
 
             await assignStation(gm.client, gm.room, 'MOVER', 'GVTS2', 'weapons');
@@ -224,7 +224,7 @@ describe('AdminRoom station registry', () => {
 
         it('unassigns a station when sent empty shipId and stationType', async () => {
             const gm = await connectAdmin('gm-unassigner');
-            await registerStation(gm.client, gm.room, 'UNASSIGN', 'pilot', 'GVTS');
+            await registerStation(gm.client, gm.room, 'UNASSIGN', 'helms', 'GVTS');
             await waitForServer(() => stationEntry('UNASSIGN')?.shipId === 'GVTS');
 
             await assignStation(gm.client, gm.room, 'UNASSIGN', '', '');
@@ -237,7 +237,7 @@ describe('AdminRoom station registry', () => {
             await registerStation(gm.client, gm.room, 'BADSHIP', '');
             await waitForServer(() => stationEntry('BADSHIP')?.connected === true);
 
-            await assignStation(gm.client, gm.room, 'BADSHIP', 'NOT-A-SHIP-XYZ', 'pilot');
+            await assignStation(gm.client, gm.room, 'BADSHIP', 'NOT-A-SHIP-XYZ', 'helms');
             await sleep(300);
             expect(stationEntry('BADSHIP')?.shipId).toBe('');
         });
@@ -253,17 +253,17 @@ describe('AdminRoom station registry', () => {
         });
 
         it('evicts the current holder of a (ship, station type) slot when reassigned to another station', async () => {
-            // single-player-ship map: with no other open 'pilot' slot to auto-assign into, the
+            // single-player-ship map: with no other open 'helms' slot to auto-assign into, the
             // evicted station stays unassigned instead of the reconcile pass immediately
             // re-homing it elsewhere.
             await startGame('weapons_no_tubes');
             const gm = await connectAdmin('gm-evictor');
-            await registerStation(gm.client, gm.room, 'HOLDER', 'pilot', 'GVTS-0TUBE');
+            await registerStation(gm.client, gm.room, 'HOLDER', 'helms', 'GVTS-0TUBE');
             await waitForServer(() => stationEntry('HOLDER')?.shipId === 'GVTS-0TUBE');
             await registerStation(gm.client, gm.room, 'CHALLENGER', '');
             await waitForServer(() => stationEntry('CHALLENGER')?.connected === true);
 
-            await assignStation(gm.client, gm.room, 'CHALLENGER', 'GVTS-0TUBE', 'pilot');
+            await assignStation(gm.client, gm.room, 'CHALLENGER', 'GVTS-0TUBE', 'helms');
             await waitForServer(() => stationEntry('CHALLENGER')?.shipId === 'GVTS-0TUBE');
             expect(stationEntry('HOLDER')?.shipId).toBe('');
         });

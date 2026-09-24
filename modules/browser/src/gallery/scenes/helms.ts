@@ -3,12 +3,12 @@ import { SmartPilotMode, TargetedStatus, demoShip, makeShipState } from '@starwa
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
 import { createMockShipDriver } from '../mocks/ship-driver';
-import { drawPilotStats } from '../../widgets/pilot';
+import { drawHelmsStats } from '../../widgets/helms';
 
-export const pilotScenes: Record<string, Scene> = {
-    'pilot-dashboard-stationary': {
-        name: 'pilot-dashboard-stationary',
-        description: 'Pilot dashboard with ship at rest',
+export const helmsScenes: Record<string, Scene> = {
+    'helms-dashboard-stationary': {
+        name: 'helms-dashboard-stationary',
+        description: 'Helms dashboard with ship at rest',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', demoShip);
             ship.spaceship.velocity.x = 0;
@@ -24,13 +24,13 @@ export const pilotScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 500);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawPilotStats(mockContainer, mockShipDriver as never);
+            drawHelmsStats(mockContainer, mockShipDriver as never);
         },
     },
 
-    'pilot-dashboard-moving': {
-        name: 'pilot-dashboard-moving',
-        description: 'Pilot dashboard with ship in motion',
+    'helms-dashboard-moving': {
+        name: 'helms-dashboard-moving',
+        description: 'Helms dashboard with ship in motion',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', demoShip);
             ship.spaceship.velocity.x = 100;
@@ -48,13 +48,13 @@ export const pilotScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 500);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawPilotStats(mockContainer, mockShipDriver as never);
+            drawHelmsStats(mockContainer, mockShipDriver as never);
         },
     },
 
-    'pilot-dashboard-target-mode': {
-        name: 'pilot-dashboard-target-mode',
-        description: 'Pilot dashboard with TARGET mode active',
+    'helms-dashboard-target-mode': {
+        name: 'helms-dashboard-target-mode',
+        description: 'Helms dashboard with TARGET mode active',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', demoShip);
             ship.spaceship.velocity.x = 200;
@@ -71,7 +71,7 @@ export const pilotScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 500);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawPilotStats(mockContainer, mockShipDriver as never);
+            drawHelmsStats(mockContainer, mockShipDriver as never);
         },
     },
 };

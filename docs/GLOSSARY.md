@@ -18,13 +18,16 @@ explains a mechanic itself, so a mechanic never drifts out of sync between two p
 
 | Term | Meaning | Where it lives |
 |---|---|---|
-| Pilot | Station for ship movement/navigation | [`modules/browser/src/screens/pilot.ts`](../modules/browser/src/screens/pilot.ts) |
+| Pilot | Officer who flies the ship on the Helms screen | [`modules/browser/src/screens/pilot.ts`](../modules/browser/src/screens/pilot.ts) |
+| Helms | Screen name for ship movement/navigation controls (the officer who runs it is the Pilot; the code screen key is still `pilot`) | [`modules/browser/src/screens/pilot.ts`](../modules/browser/src/screens/pilot.ts) |
 | Weapons | Station for chain gun and tube (torpedo) control | [`modules/browser/src/screens/weapons.ts`](../modules/browser/src/screens/weapons.ts) |
 | Engineer | Station for reactor, thrusters, and system repair | [`modules/browser/src/screens/engineer.ts`](../modules/browser/src/screens/engineer.ts) |
 | GM | Game-master station: scenario control, GM radar, per-property tweak panel | [`modules/browser/src/screens/gm.ts`](../modules/browser/src/screens/gm.ts) |
-| Signals | Station for scanning/identifying contacts | [`modules/browser/src/screens/signals.ts`](../modules/browser/src/screens/signals.ts) |
-| Relay | Station relaying radar/comms between crew | [`modules/browser/src/screens/relay.ts`](../modules/browser/src/screens/relay.ts) |
-| Navigator | Specified crew position with no screen in the codebase — design-only | [`design/stations/navigator.md`](design/stations/navigator.md) |
+| SIGINT | Officer running the Signals station (aka Signals/Science); in a short bridge game also runs Dradis | [`modules/browser/src/screens/signals.ts`](../modules/browser/src/screens/signals.ts) |
+| Signals | Station for scanning/identifying contacts, run by SIGINT | [`modules/browser/src/screens/signals.ts`](../modules/browser/src/screens/signals.ts) |
+| Dradis | Screen name for the longest-range live picture (faction-wide field of view, strategic call-outs, points of interest, waypoints); code screen key is still `relay` | [`modules/browser/src/screens/relay.ts`](../modules/browser/src/screens/relay.ts) |
+| Relay | Now a role, not a screen: the long-game comms officer who runs Dradis (SIGINT runs Dradis instead in a short bridge game) | [`design/stations/relay.md`](design/stations/relay.md) |
+| Astrogator | Off-bridge, long-games-only, post-event role that plans warp-frequency routes; formerly called Navigator; no in-session screen | [`design/stations/astrogator.md`](design/stations/astrogator.md) |
 
 ## World & state
 

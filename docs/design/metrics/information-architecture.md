@@ -4,6 +4,11 @@ Measures how information is distributed across stations — the raw material
 for verbal communication. Tightly linked to the Information Lock and
 Asymmetric Readout comms-forcing patterns.
 
+> The "(EE)" tables below use EmptyEpsilon's own station names (Helms, Relay,
+> Science) as the baseline being measured — these are not Starwards' current
+> naming (Pilot officer on the Helms screen; Relay is now a role that runs
+> the Dradis screen; SIGINT runs Signals). See [`docs/GLOSSARY.md`](../../GLOSSARY.md).
+
 ## Metric 5: Exclusive Data Domains per Station
 
 Count information types visible at **exactly one** station.

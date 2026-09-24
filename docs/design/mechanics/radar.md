@@ -6,8 +6,8 @@
 
 Multiple radar types serve different stations:
 - **Tactical radar** (Weapons) — real-time contacts, target highlighting
-- **Dradis radar** (Relay) — alternative display with probe coverage
-- **Navigator radar** (Navigator) — warp topology overlay (designed, not built)
+- **Dradis radar** (the Dradis screen; run by SIGINT in a short bridge game, by the Relay officer in long games) — alternative display with probe coverage
+- **Astrogator radar** (Astrogator) — warp topology overlay (designed, not built)
 - **Long-range radar** (Signals) — extended range for intelligence (built; drives the Signals station's main radar view)
 
 A ship's vision is the union of its radar **sectors**. Each radar contributes one wedge — `direction` (ship-relative), `arc`, and a derived `range` — synced to clients so server and stations compute the same field of view. The demo ship carries an omnidirectional radar (arc pinned to 360°) plus a steerable "Lancet-20" scan beam (5°–90°) pointed from the Signals station (direction/arc sliders + hotkeys).

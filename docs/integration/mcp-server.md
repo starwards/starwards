@@ -137,7 +137,7 @@ channel is inaudible to the models.
 2. `npm run build:mcp`.
 3. One Discord text channel, a webhook on it, and a bot in the guild with Message Content on.
 4. One MCP client session per station, all pointed at the same game and the same channel, each told
-   which seat to take: `pilot`, `weapons`, `engineer`, `signals`, `relay`. The seat's
+   which seat to take: `helms`, `weapons`, `engineer`, `signals`, `dradis`. The seat's
    briefing comes back from `login` — that is what the manifest's `prompt` is for.
 5. A captain: either a human typing in the channel, or a session that never calls `login` and so has
    only `say` and `listen` — a fair model of an officer who commands through the crew.

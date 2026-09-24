@@ -6,13 +6,13 @@ Stations are crew positions on a ship. Each station provides a specific view of 
 
 | Station | Status | Crew Role | Primary Systems |
 |---------|--------|-----------|----------------|
-| [Pilot](pilot.md) | Done | Helmsman | Thrusters, maneuvering, autopilot |
+| [Pilot](pilot.md) | Done | Pilot | Thrusters, maneuvering, autopilot |
 | [Weapons](weapons.md) | Done | Gunner | ChainGun, torpedoes, targeting |
 | [Engineer](engineer.md) | Done | Engineer | Power, heat, coolant, repairs |
 | [GM](gm.md) | Partial | Game Master | Object lifecycle, NPC orders, tweaks |
 | [Signals](signals.md) | Partial | Intel Officer | Scan, hack, track jobs |
-| [Navigator](navigator.md) | Designed | Navigator | Warp topology, route plotting |
-| [Relay](relay.md) | Partial | Comms Officer | Probes, routes, waypoints |
+| [Astrogator](astrogator.md) | Designed | Astrogator | Warp topology, route plotting |
+| [Relay](relay.md) (Dradis screen) | Partial | Relay (long games; SIGINT runs it in short games) | Longest-range live picture, waypoints |
 
 ## Station Design Principles
 

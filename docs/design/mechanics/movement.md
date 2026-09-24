@@ -31,7 +31,7 @@ Basic warp works — multiplies base speed with charging mechanics and heat gene
 
 ### Warp Frequency Topology (Designed — [#1182](https://github.com/starwards/starwards/issues/1182))
 
-The major planned extension. Space has 10 warp frequencies (Alpha through Kappa), each with a procedurally generated efficiency landscape. Efficiency zones create "terrain" that the Navigator reads.
+The major planned extension. Space has 10 warp frequencies (Alpha through Kappa), each with a procedurally generated efficiency landscape. Efficiency zones create "terrain" that the Astrogator reads.
 
 **Key parameters:**
 - Speed modifier: 0.1x (poor zones) to 2.0x (excellent zones)
@@ -42,4 +42,4 @@ The major planned extension. Space has 10 warp frequencies (Alpha through Kappa)
 
 **Implementation needs:** Multi-octave simplex noise, threshold effects for "vein" appearance, A*-variant route optimizer, 100x100 grid sampling at 10 Hz.
 
-This mechanic creates the Navigator station's entire gameplay loop and is the critical-path blocker for three stations (Navigator, Relay, and indirectly Signals through crew composition).
+This mechanic creates the Astrogator station's entire gameplay loop and is the critical-path blocker for three stations (Astrogator, Relay, and indirectly Signals through crew composition).
