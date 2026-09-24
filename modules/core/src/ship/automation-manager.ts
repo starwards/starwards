@@ -860,12 +860,6 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Nearest live hostile-faction Spaceship inside the *ship's* range envelope
-     * (`FlightProfile.isReachable`), not one mount's bearing: a target merely unbearable right now
-     * is a legitimate pick, since both callers need the hull free to turn toward it. `excludeId`
-     * keeps an unreachable ATTACK-ordered primary from being picked back out as its own opportunity.
-     */
-    /**
      * Ticks the aggro threat table: decay, presence credit to every hostile in gun reach (proactive
      * characters only), and forgetting attackers that are gone.
      * @see starwards-design mechanics/npc-aggro-threat-table.md
@@ -876,37 +870,41 @@ export class AutomationManager implements Updateable {
         if (!character) {
             return;
         }
-        const reachable: string[] = [];
-        if (character.presenceRate > 0) {
-            const profile = this.getFlightProfile();
-            for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
-                if (
-                    !candidate.destroyed &&
-                    candidate.faction !== Faction.NONE &&
-                    candidate.faction !== this.state.faction &&
-                    profile.isReachable(XY.distance(candidate.position, this.state.position))
-                ) {
-                    reachable.push(candidate.id);
-                }
-            }
-        }
+        const reachable =
+            character.presenceRate > 0 ? [...this.hostilesInReach()].map(({ candidate }) => candidate.id) : [];
         threat.update(deltaSeconds, reachable, (attackerId) => {
             const attacker = this.spaceManager.state.get(attackerId);
             return !attacker || attacker.destroyed;
         });
     }
 
+    /**
+     * Nearest live hostile-faction Spaceship inside the *ship's* range envelope
+     * (`FlightProfile.isReachable`), not one mount's bearing: a target merely unbearable right now
+     * is a legitimate pick, since both callers need the hull free to turn toward it. `excludeId`
+     * keeps an unreachable ATTACK-ordered primary from being picked back out as its own opportunity.
+     */
     private findNearestHostileTarget(excludeId?: string): string | null {
         if (this.state.chainGuns.length === 0) {
             return null;
         }
-        const profile = this.getFlightProfile();
         let nearestId: string | null = null;
         let nearestDistance = Infinity;
+        for (const { candidate, distance } of this.hostilesInReach()) {
+            if (candidate.id !== excludeId && distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestId = candidate.id;
+            }
+        }
+        return nearestId;
+    }
+
+    /** Live hostile-faction Spaceships inside the ship's range envelope (`FlightProfile.isReachable`). */
+    private *hostilesInReach(): Generator<{ candidate: SpaceObject; distance: number }> {
+        const profile = this.getFlightProfile();
         for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
             if (
                 candidate.id === this.state.id ||
-                candidate.id === excludeId ||
                 candidate.destroyed ||
                 candidate.faction === Faction.NONE ||
                 candidate.faction === this.state.faction
@@ -914,12 +912,9 @@ export class AutomationManager implements Updateable {
                 continue;
             }
             const distance = XY.distance(candidate.position, this.state.position);
-            const reachable = profile.isReachable(distance);
-            if (reachable && distance < nearestDistance) {
-                nearestDistance = distance;
-                nearestId = candidate.id;
+            if (profile.isReachable(distance)) {
+                yield { candidate, distance };
             }
         }
-        return nearestId;
     }
 }
