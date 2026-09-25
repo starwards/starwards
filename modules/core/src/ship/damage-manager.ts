@@ -189,7 +189,7 @@ export class DamageManager {
     }
 
     private damageReactor(reactor: Reactor) {
-        reactor.effeciencyFactor -= 0.1;
+        reactor.effeciencyFactor = Math.max(0, reactor.effeciencyFactor - 0.1);
     }
 
     private damageSmartPilot(smartPilot: SmartPilot) {
