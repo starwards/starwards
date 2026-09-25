@@ -119,9 +119,9 @@ describe('spec §9 worked examples', () => {
         // amount of 60 x 1.5 spills into a stack of coin-flip rolls ... landing several defects
         // into one system ... Everything else in the section: untouched."
         it('vs breached section: several defects land in ONE picked system, others untouched', () => {
-            // ShipDie(2): pickSystem lands on the magazine and 3 of the 5 spillover rolls
+            // ShipDie(6): pickSystem lands on the magazine and 3 of the 5 spillover rolls
             // (90 walked in damage50=20 steps) succeed — all on the same victim
-            const { state, damageManager } = setUpLayeredShip(compositeOnly, new ShipDie(2));
+            const { state, damageManager } = setUpLayeredShip(compositeOnly, new ShipDie(6));
             breachLayer(state, 0);
             const damaged = damageManager.takeWeaponDamage(frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'));
             expect(damaged).to.equal(true);
@@ -130,6 +130,7 @@ describe('spec §9 worked examples', () => {
             expect(state.smartPilot.offsetFactor).to.equal(0);
             expect(state.warp!.damageFactor).to.equal(0);
             expect(state.warp!.velocityFactor).to.equal(1);
+            expect(state.capsule.integrity).to.equal(1);
         });
 
         // §9 / design intent: fighter-class plates are sized so a standard ArmPen missile

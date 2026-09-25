@@ -8,3 +8,13 @@ export function uniqueId(prefix: string) {
     uniqueIds[prefix] = (num + 1) % maxId;
     return prefix + num.toString();
 }
+
+/**
+ * Restarts every id sequence. Headless runs only: ids key die rolls, so a seeded run replays the
+ * same game only from the same id state. Never call it while objects from an earlier run live on.
+ */
+export function resetIds() {
+    for (const prefix of Object.keys(uniqueIds)) {
+        delete uniqueIds[prefix];
+    }
+}

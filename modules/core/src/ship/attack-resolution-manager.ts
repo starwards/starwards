@@ -87,6 +87,7 @@ export class AttackResolutionManager {
 
     resolveCollisionAttack(damage: Damage): ResolvedSystemHit[] {
         const hits: ResolvedSystemHit[] = [];
+        let worstCapsuleExposure = 0;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
             const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
@@ -96,6 +97,7 @@ export class AttackResolutionManager {
             const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
             if (areaUnarmoredHits) {
                 const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
+                worstCapsuleExposure = Math.max(worstCapsuleExposure, areaUnarmoredHits / platesInArea);
                 for (const system of this.state.systemsByAreas(hitArea) || []) {
                     if (system) {
                         hits.push({
@@ -107,6 +109,13 @@ export class AttackResolutionManager {
                 }
             }
             this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
+        }
+        if (worstCapsuleExposure > 0) {
+            hits.push({
+                system: this.state.capsule,
+                damage: { id: damage.id, amount: damage.amount },
+                percentageOfBrokenPlates: worstCapsuleExposure,
+            });
         }
         return hits;
     }
@@ -133,6 +142,13 @@ export class AttackResolutionManager {
                 exposure,
             })),
         );
+        // The capsule is the ship's core, behind both hit areas: one candidate at the worst
+        // exposure rather than one per area, so a hit spanning both areas doesn't count it twice.
+        const worstExposure = exposures.reduce((r, { exposure }) => Math.max(r, exposure), 0);
+        const [capsule] = this.filterSystemsByProfile([this.state.capsule], profile);
+        if (capsule && worstExposure > 0) {
+            candidates.push({ system: capsule, exposure: worstExposure });
+        }
         if (candidates.length === 0) {
             return [];
         }

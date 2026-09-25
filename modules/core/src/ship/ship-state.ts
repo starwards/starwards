@@ -6,6 +6,7 @@ import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
+import { Capsule } from './capsule';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
@@ -72,7 +73,11 @@ export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDo
 export type ShipPropertiesDesign = {
     modelName?: string;
     totalCoolant: number;
-    systemKillRatio: number; // ratio of broken systems to cause ship death. <=0 means death on first hit, >1 means can't be killed
+    /**
+     * Ratio of broken systems that mission-kills the ship (`ShipState.healthRatio` 0). Not death:
+     * only a breached `capsule` kills. <=0 mission-kills on the first hit, >1 never.
+     */
+    systemKillRatio: number;
 };
 
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
@@ -180,6 +185,10 @@ export class ShipState extends Schema implements Lockable {
 
     @gameField(Signals)
     signals!: Signals;
+
+    /** The ship's core hit-point counter; the ship is lost when it breaks. Not one of `systems()`. */
+    @gameField(Capsule)
+    capsule!: Capsule;
 
     @gameField(RepairQueue)
     repairQueue = new RepairQueue();
@@ -311,10 +320,9 @@ export class ShipState extends Schema implements Lockable {
     }
 
     /**
-     * Single 0..1 scalar summarising how much damage this ship can still absorb before it dies:
-     * 1 is fully intact, 0 is exactly the `systemKillRatio` threshold `DamageManager.update()`
-     * uses to convert an expendable ship to a derelict. Mirrors that threshold rather than
-     * duplicating it, so the two can never drift apart.
+     * Single 0..1 scalar summarising how much damage this ship can still absorb before it is
+     * mission-killed: 1 is fully intact, 0 is exactly `systemKillRatio` of its systems broken. A
+     * mission-killed ship is not dead; only a breached `capsule` kills (`DamageManager.update()`).
      */
     @range([0, 1])
     get healthRatio(): number {

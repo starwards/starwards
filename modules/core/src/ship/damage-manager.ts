@@ -1,4 +1,5 @@
 import { AttackDamage, AttackResolutionManager, ResolvedSystemHit } from './attack-resolution-manager';
+import { CAPSULE_DEFECT_STEP, Capsule } from './capsule';
 import { ChainGun, Damage, SmartPilot, SpaceManager, Spaceship, ammoTypes, capToRange, limitPercision } from '..';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { damageProfiles, isWeaponDamageType } from '../space/damage-profile';
@@ -53,17 +54,10 @@ export class DamageManager {
                 damagedInternals = this.takeCollisionDamage(damage) || damagedInternals;
             }
         }
-        if (damagedInternals && this.spaceObject.expendable) {
-            const { count, broken } = this.state
-                .systems()
-                .map((s) => s.broken)
-                .reduce((acc, curr) => ({ count: acc.count + 1, broken: curr ? acc.broken + 1 : acc.broken }), {
-                    count: 0,
-                    broken: 0,
-                });
-            if (count * this.state.design.systemKillRatio < broken) {
-                this.spaceManager.convertToDerelict(this.spaceObject.id);
-            }
+        // Only the capsule kills: broken systems alone (`systemKillRatio`, `healthRatio`) are a
+        // mission kill, never a derelict.
+        if (damagedInternals && this.spaceObject.expendable && this.state.capsule.broken) {
+            this.spaceManager.convertToDerelict(this.spaceObject.id);
         }
     }
 
@@ -141,7 +135,11 @@ export class DamageManager {
     }
 
     private applyDefect(system: ShipSystem, defectId: string) {
-        if (Thruster.isInstance(system)) {
+        if (Capsule.isInstance(system)) {
+            const integrity = system.integrity - CAPSULE_DEFECT_STEP;
+            // snap float residue (ten 0.1 steps leave ~1e-16) so the last defect breaches it
+            system.integrity = integrity < CAPSULE_DEFECT_STEP / 2 ? 0 : integrity;
+        } else if (Thruster.isInstance(system)) {
             this.damageThruster(system, defectId);
         } else if (system instanceof ChainGun) {
             this.damageChainGun(system, defectId);

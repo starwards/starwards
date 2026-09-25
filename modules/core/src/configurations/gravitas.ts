@@ -1,3 +1,4 @@
+import { FIGHTER_CAPSULE_DAMAGE50 } from './capsule-class';
 import { ShipDesign } from '../ship';
 
 export const gravitasArmor = {
@@ -181,6 +182,13 @@ export const gravitasManeuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the fighter base x2 (hull class). */
+export const gravitasCapsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: FIGHTER_CAPSULE_DAMAGE50 * 2,
+};
+
 export const gravitasSignals = {
     isInternal: false,
     isElectronics: true,
@@ -243,4 +251,5 @@ export const gravitas = {
     docking: gravitasDocking,
     maneuvering: gravitasManeuvering,
     signals: gravitasSignals,
+    capsule: gravitasCapsule,
 } satisfies ShipDesign;
