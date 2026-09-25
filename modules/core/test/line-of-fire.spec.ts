@@ -7,6 +7,7 @@ import {
     SpaceManager,
     Spaceship,
     Vec2,
+    XY,
     isLineOfFireBlocked,
     makeShipState,
     shipConfigurations,
@@ -142,5 +143,38 @@ describe('NPC gunnery and a friendly solid on the line', () => {
         const { shells, blockedTicks } = engage(false);
         expect(blockedTicks).to.equal(0);
         expect(shells).to.be.greaterThan(0);
+    });
+});
+
+describe('NPC tubes and a friendly solid on the launch line', () => {
+    /** An NPC gravitas launching its first tube, optionally with a friendly station 2.5 km down the launch line. */
+    function launch(withStation: boolean) {
+        const { spaceMgr, state, mgr } = shooter();
+        const [tube] = state.tubes;
+        tube.projectile = 'HiExpMissile';
+        tube.loadedProjectile = 'HiExpMissile';
+        tube.loading = 1;
+        tube.safetyLocked = false;
+        if (withStation) {
+            const at = XY.byLengthAndDirection(2500, tube.getGlobalBearing(state));
+            spaceMgr.insert(solid('station', at.x, at.y, Faction.Gravitas, 'small-station'));
+            spaceMgr.forceFlushEntities();
+        }
+        state.fireTubesCommand = true;
+        const [id] = makeIterationsData(0.05, 1);
+        mgr.update(id);
+        spaceMgr.update(id);
+        const launched = [...spaceMgr.state].some(
+            (object) => Projectile.isInstance(object) && object.shipId === 'shooter',
+        );
+        return { launched, blocked: tube.lineOfFireBlocked };
+    }
+
+    it('holds the launch while the station blocks the launch line', () => {
+        expect(launch(true)).to.deep.equal({ launched: false, blocked: true });
+    });
+
+    it('launches with the line clear (control)', () => {
+        expect(launch(false)).to.deep.equal({ launched: true, blocked: false });
     });
 });
