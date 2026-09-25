@@ -18,7 +18,7 @@ Ships obey Newton's laws. No artificial drag — velocity is maintained indefini
 
 ## Local Obstacle Avoidance (Done)
 
-Ruling 2026-09-22: homing rounds and NPC hulls steer around solids. This is local steering, not graph pathfinding ([#856](https://github.com/starwards/starwards/issues/856) stays parked).
+Ruling 2026-09-22: homing rounds and NPC hulls steer around solids. This is local steering, not graph pathfinding ([#856](https://github.com/starwards/starwards/issues/856) stays parked). It is the counterpart of [Line of Fire](line-of-fire.md), which covers ballistic rounds.
 
 `avoidObstacles` in `modules/core/src/logic/obstacle-avoidance.ts` looks 3 s of travel ahead (at least 1 km) along the path to the destination. The nearest ship, station or asteroid whose body cuts that corridor replaces the destination with the tangent point of the solid, inflated by both radii plus a clearance. The craft passes on the side the path already favours, and re-plans every tick.
 
