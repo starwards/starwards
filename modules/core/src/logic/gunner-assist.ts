@@ -106,7 +106,7 @@ export function isLineOfFireBlocked(
     solids: Iterable<SpaceObject>,
     targetId: string | null = null,
 ): boolean {
-    if (mount.projectile === 'None') {
+    if (mount.projectile === 'None' || ship.faction === Faction.NONE) {
         return false;
     }
     const shellRadius = ammoDesigns[mount.projectile].radius;
@@ -116,7 +116,6 @@ export function isLineOfFireBlocked(
         if (
             Spaceship.isInstance(solid) &&
             !solid.destroyed &&
-            ship.faction !== Faction.NONE &&
             solid.faction === ship.faction &&
             solid.id !== ship.id &&
             solid.id !== targetId &&
