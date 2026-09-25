@@ -93,6 +93,7 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
             model: 'dragonfly-MK1',
             flightDoctrine: FlightDoctrine.INTERCEPT,
             targetPolicy: { kind: 'station' },
+            aggro: 'Brawler',
         };
         for (const rng of [() => 0, () => 0.999, Math.random]) {
             expect(generateWaveSpecs(1, rng)).toEqual([wave1Spec, wave1Spec]);
@@ -153,6 +154,14 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
         expect(wave5.some((s) => s.model === 'predator' || s.model === 'glaive' || s.model === 'cataphract')).toBe(
             true,
         );
+    });
+
+    it('every raider in waves 1-10 carries an aggro character, the escort heavy included', () => {
+        for (let wave = 1; wave <= 10; wave++) {
+            for (const spec of generateWaveSpecs(wave, () => 0.5)) {
+                expect(spec.aggro).not.toBeNull();
+            }
+        }
     });
 
     it('A4: given the same rng seed, two independent calls produce identical specs', () => {
@@ -291,6 +300,34 @@ describe('wave_defence map (integration)', () => {
             expect(ship.state.order).toEqual(Order.ATTACK);
             expect(ship.state.orderTargetId).toEqual('station-large');
         }
+    });
+
+    it('gives wave-1 dragonflies the swarm aggro weight, 60 +-10%', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        for (const id of npcWaveIds()) {
+            const character = gameDriver.getShip(id).state.threat.character;
+            expect(character?.missionWeight).toBeGreaterThanOrEqual(54);
+            expect(character?.missionWeight).toBeLessThanOrEqual(66);
+        }
+    });
+
+    it('draws aggro spawn noise per game, from the injected rng', async () => {
+        // rngs that differ only in their first draw: the game's noise seed
+        const firstThenZero = (first: number) => {
+            let drawn = false;
+            return () => (drawn ? 0 : ((drawn = true), first));
+        };
+        const wave1Weights = async (first: number) => {
+            await gameDriver.gameManager.startGame(createWaveDefenceMap(firstThenZero(first)));
+            const weights = npcWaveIds().map((id) => gameDriver.getShip(id).state.threat.character?.missionWeight);
+            await gameDriver.gameManager.stopGame();
+            return weights;
+        };
+        const quarter = await wave1Weights(0.25);
+        const threeQuarters = await wave1Weights(0.75);
+        expect(quarter).toHaveLength(2);
+        expect(quarter).not.toEqual(threeQuarters);
     });
 
     it('re-issues orderAttack at the furthest surviving station when a wave ship loses its target', async () => {
