@@ -18,3 +18,17 @@ export function resetIds() {
         delete uniqueIds[prefix];
     }
 }
+
+/**
+ * Moves each id sequence past the ids in `ids` (an id is its prefix followed by its number), so
+ * sequences restarted or never started in this process don't hand out an id an object already has.
+ */
+export function reserveIds(ids: Iterable<string>) {
+    for (const id of ids) {
+        const match = /^(.*?)(\d+)$/.exec(id);
+        if (match) {
+            const [, prefix, num] = match;
+            uniqueIds[prefix] = Math.max(uniqueIds[prefix] || 0, (Number(num) + 1) % maxId);
+        }
+    }
+}

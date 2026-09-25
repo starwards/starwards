@@ -14,6 +14,7 @@ import {
     Spaceship,
     XY,
     makeShipState,
+    reserveIds,
     resetIds,
     shipConfigurations,
 } from '@starwards/core/internal';
@@ -102,7 +103,7 @@ export class HeadlessGame {
 
     /**
      * Resumes from a snapshot taken `seconds` into a run started with `seed` and the same
-     * `crewedPlayer`. Does not call `map.init`.
+     * `crewedPlayer`. Does not call `map.init`. New ids continue past every id in the snapshot.
      */
     static restore(
         saved: SavedGame,
@@ -114,6 +115,7 @@ export class HeadlessGame {
         const game = new HeadlessGame(map, seed, seconds, crewedPlayer);
         game.spaceManager.insertBulk(saved.fragment.space);
         game.spaceManager.forceFlushEntities();
+        reserveIds([...game.spaceManager.state].map((object) => object.id));
         for (const [id, shipState] of saved.fragment.ship) {
             const spaceObject = game.spaceManager.state.getShip(id);
             if (!spaceObject) {

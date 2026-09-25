@@ -1,6 +1,7 @@
-import { ShipManagerNpc, ShipManagerPc } from '@starwards/core/internal';
+import { ShipManagerNpc, ShipManagerPc, makeId, mulberry32, uniqueId } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, training_t0 } from '../scenarios/training';
 import { HeadlessGame } from './headless-game';
+import { createWaveDefenceMap } from '../scenarios/wave-defence';
 
 describe('HeadlessGame.start', () => {
     it('replays a seed identically after another run in the same process', () => {
@@ -29,5 +30,20 @@ describe('HeadlessGame.restore', () => {
 
         expect(resumed.api.getShip(TRAINING_PLAYER_ID)).toBeInstanceOf(ShipManagerPc);
         expect(resumed.api.getShip(TRAINING_TARGET_ID)).toBeInstanceOf(ShipManagerNpc);
+    });
+
+    it('issues new ids past every id in the snapshot, even after another run reset the sequence', () => {
+        const map = createWaveDefenceMap(mulberry32(1));
+        const game = HeadlessGame.start(map, 1);
+        game.tick(1);
+        const saved = game.saveGame();
+        HeadlessGame.start(training_t0, 2);
+
+        const resumed = HeadlessGame.restore(saved, map, 1, game.seconds);
+
+        const restoredIds = new Set([...resumed.spaceManager.state].map((o) => o.id));
+        for (const id of [makeId(), uniqueId('shell'), uniqueId('explosion')]) {
+            expect(restoredIds.has(id)).toBe(false);
+        }
     });
 });
