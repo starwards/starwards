@@ -64,6 +64,15 @@ export class DamageManager {
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
         this.spaceManager.registerHit(damage.shipId);
+        const attacker = damage.shipId ? this.spaceManager.state.get(damage.shipId) : undefined;
+        if (
+            attacker &&
+            Spaceship.isInstance(attacker) &&
+            attacker.id !== this.state.id &&
+            attacker.faction !== this.state.faction
+        ) {
+            this.state.threat.add(attacker.id, damage.amount);
+        }
         const { hits, damagedExternals, breachHit } = this.attackResolution.resolveWeaponAttack(damage);
         this.applyResolvedHits(hits);
         if (breachHit) {

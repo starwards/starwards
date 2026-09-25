@@ -19,6 +19,7 @@ import { ShipDirection } from './ship-direction';
 import { Signals } from './signals';
 import { SmartPilot } from './smart-pilot';
 import { Targeting } from './targeting';
+import { ThreatTable } from './threat-table';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
@@ -155,6 +156,16 @@ export class ShipState extends Schema implements Lockable {
 
     @gameField(Armor)
     armor!: Armor;
+
+    private _threat?: ThreatTable;
+    /**
+     * Server-only aggro state: who this NPC holds a grudge against, and its character. Not synced,
+     * and lazy because `Schema.clone()` builds instances without running field initializers, so a
+     * cloned state (ship conversion, snapshot restore) starts with no character and no grudges.
+     */
+    get threat(): ThreatTable {
+        return (this._threat ??= new ThreatTable());
+    }
 
     @gameField(Magazine)
     magazine!: Magazine;

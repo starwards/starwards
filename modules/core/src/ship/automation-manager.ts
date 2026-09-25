@@ -320,8 +320,7 @@ export class AutomationManager implements Updateable {
         return capToRange(-MAX_TRANSIT_HEADING_CONCESSION, MAX_TRANSIT_HEADING_CONCESSION, concession);
     }
 
-    private follow(fire: boolean, id: IterationData) {
-        const targetId = this.state.orderTargetId;
+    private follow(fire: boolean, id: IterationData, targetId = this.state.orderTargetId) {
         if (!targetId) {
             return true;
         }
@@ -483,6 +482,9 @@ export class AutomationManager implements Updateable {
         this.idleGiveWayThisTick = false;
         if (this.getAndApplyOrder()) {
             this.shipManager.cancelAllTasks();
+        }
+        if (!this.state.isPlayerShip) {
+            this.updateThreat(id.deltaSeconds);
         }
         // Resolved before chooseAndRunTask so goto()/idle steering can turn the hull toward a
         // held gunnery target this same tick, not one tick behind it.
@@ -657,6 +659,15 @@ export class AutomationManager implements Updateable {
             this.state.orderPosition.setValue(XY.zero);
             return false;
         }
+        const heldId = this.state.threat.heldId;
+        if (heldId) {
+            // Aggro overlay: engage the held attacker with the ATTACK behaviour, never touching the
+            // standing order, which resumes once the grudge fades.
+            if (this.follow(true, id, heldId)) {
+                this.state.threat.forget(heldId);
+            }
+            return false;
+        }
         if (this.state.order === Order.NONE) {
             return this.runAutoPilotRoutines(id, gunneryTarget);
         } else if (this.state.order === Order.MOVE) {
@@ -750,8 +761,10 @@ export class AutomationManager implements Updateable {
         if (!firingAllowed) {
             return null;
         }
-        if (this.state.order === Order.ATTACK && this.state.orderTargetId) {
-            const orderedTarget = this.spaceManager.state.get(this.state.orderTargetId) || null;
+        const primaryId =
+            this.state.threat.heldId ?? (this.state.order === Order.ATTACK ? this.state.orderTargetId : null);
+        if (primaryId) {
+            const orderedTarget = this.spaceManager.state.get(primaryId) || null;
             if (orderedTarget && !orderedTarget.destroyed) {
                 if (this.anyMountCanBearOn(orderedTarget)) {
                     this.gunneryTargetId = null;
@@ -830,6 +843,25 @@ export class AutomationManager implements Updateable {
     }
 
     /**
+     * Ticks the aggro threat table: decay, presence credit to every hostile in gun reach (proactive
+     * characters only), and forgetting attackers that are gone.
+     * @see starwards-design mechanics/npc-aggro-threat-table.md
+     */
+    private updateThreat(deltaSeconds: number) {
+        const threat = this.state.threat;
+        const character = threat.character;
+        if (!character) {
+            return;
+        }
+        const reachable =
+            character.presenceRate > 0 ? [...this.hostilesInReach()].map(({ candidate }) => candidate.id) : [];
+        threat.update(deltaSeconds, reachable, (attackerId) => {
+            const attacker = this.spaceManager.state.get(attackerId);
+            return !attacker || attacker.destroyed;
+        });
+    }
+
+    /**
      * Nearest live hostile-faction Spaceship inside the *ship's* range envelope
      * (`FlightProfile.isReachable`), not one mount's bearing: a target merely unbearable right now
      * is a legitimate pick, since both callers need the hull free to turn toward it. `excludeId`
@@ -839,13 +871,23 @@ export class AutomationManager implements Updateable {
         if (this.state.chainGuns.length === 0) {
             return null;
         }
-        const profile = this.getFlightProfile();
         let nearestId: string | null = null;
         let nearestDistance = Infinity;
+        for (const { candidate, distance } of this.hostilesInReach()) {
+            if (candidate.id !== excludeId && distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestId = candidate.id;
+            }
+        }
+        return nearestId;
+    }
+
+    /** Live hostile-faction Spaceships inside the ship's range envelope (`FlightProfile.isReachable`). */
+    private *hostilesInReach(): Generator<{ candidate: SpaceObject; distance: number }> {
+        const profile = this.getFlightProfile();
         for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
             if (
                 candidate.id === this.state.id ||
-                candidate.id === excludeId ||
                 candidate.destroyed ||
                 candidate.faction === Faction.NONE ||
                 candidate.faction === this.state.faction
@@ -853,12 +895,9 @@ export class AutomationManager implements Updateable {
                 continue;
             }
             const distance = XY.distance(candidate.position, this.state.position);
-            const reachable = profile.isReachable(distance);
-            if (reachable && distance < nearestDistance) {
-                nearestDistance = distance;
-                nearestId = candidate.id;
+            if (profile.isReachable(distance)) {
+                yield { candidate, distance };
             }
         }
-        return nearestId;
     }
 }
