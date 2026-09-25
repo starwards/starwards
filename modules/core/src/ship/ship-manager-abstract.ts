@@ -417,11 +417,6 @@ export abstract class ShipManager implements Updateable {
         );
     }
 
-    /** Another ship's state, from the manager map shared by every ship in the game (when one was provided). */
-    peerState(id: string): ShipState | undefined {
-        return this.ships?.get(id)?.state;
-    }
-
     protected calcTargetedStatus() {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
