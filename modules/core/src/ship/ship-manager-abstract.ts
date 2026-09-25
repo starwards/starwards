@@ -123,6 +123,8 @@ export function resetShipState(state: ShipState) {
     state.orderPosition.x = 0;
     state.orderPosition.y = 0;
     state.currentTask = '';
+    // aggro lives in the manager being built, which holds no grudge yet
+    state.aggroTargetId = '';
     state.smartPilot.maneuvering.x = 0;
     state.smartPilot.maneuvering.y = 0;
     state.smartPilot.rotation = 0;

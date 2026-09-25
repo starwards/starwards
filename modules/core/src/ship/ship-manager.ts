@@ -145,6 +145,7 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         if (heldId && heldEngagementEnded) {
             this.aggro.forget(heldId);
         }
+        this.state.aggroTargetId = this.aggro.heldId ?? '';
     }
 
     private handleManeuvering(deltaSeconds: number) {

@@ -5,7 +5,9 @@ import {
     Order,
     PROVOKING_HIT_DAMAGE,
     ShipDie,
+    ShipManager,
     ShipManagerNpc,
+    ShipManagerPc,
     SpaceManager,
     Spaceship,
     ThreatTable,
@@ -165,7 +167,15 @@ describe('aggro on an NPC attacking a station', () => {
         spaceMgr.insertBulk([station.obj, gvts.obj, raider.obj]);
         spaceMgr.forceFlushEntities();
         spaceMgr.state.botOrderCommands.push({ ids: ['raider'], order: { type: 'attack', targetId: 'station' } });
-        const managers = [station.mgr, gvts.mgr, raider.mgr];
+        const managers: ShipManager[] = [station.mgr, gvts.mgr, raider.mgr];
+        /** The raider handed to a crew, the way `GameManager.convertShipType` does it. */
+        const convertRaiderToPlayer = () => {
+            const state = raider.state.clone();
+            state.isPlayerShip = true;
+            const mgr = new ShipManagerPc(raider.obj, state, spaceMgr, new ShipDie(4));
+            managers[managers.indexOf(raider.mgr)] = mgr;
+            return { state, mgr };
+        };
         let blast = 0;
         const run = (seconds: number, burst: boolean) => {
             for (const id of makeIterationsData(seconds, seconds * 20)) {
@@ -186,22 +196,39 @@ describe('aggro on an NPC attacking a station', () => {
                 spaceMgr.update(id);
             }
         };
-        return { raider, run };
+        return { raider, run, convertRaiderToPlayer };
     }
 
     it('a Brawler hit by the GVTS turns on it without dropping its order, then returns to the station', () => {
         const { raider, run } = scene('Brawler');
         run(5, false);
         expect(raider.state.weaponsTarget.targetId).to.equal('station');
+        expect(raider.state.aggroTargetId, 'GM sees no aggro target on the standing order').to.equal('');
         run(1, true);
         run(1, false);
         expect(raider.mgr.aggroHeldId).to.equal('gvts');
+        expect(raider.state.aggroTargetId, 'GM sees the grudge').to.equal('gvts');
         expect(raider.state.weaponsTarget.targetId).to.equal('gvts');
         expect(raider.state.order).to.equal(Order.ATTACK);
         expect(raider.state.orderTargetId).to.equal('station');
         run(120, false);
         expect(raider.mgr.aggroHeldId).to.equal(null);
+        expect(raider.state.aggroTargetId, 'GM sees the grudge fade').to.equal('');
         expect(raider.state.weaponsTarget.targetId).to.equal('station');
+    });
+
+    it('a Brawler handed to a crew mid-grudge shows no aggro target and never turns on its attacker', () => {
+        const { raider, run, convertRaiderToPlayer } = scene('Brawler');
+        run(5, false);
+        run(1, true);
+        run(1, false);
+        expect(raider.state.aggroTargetId).to.equal('gvts');
+        const player = convertRaiderToPlayer();
+        player.mgr.setTarget('station');
+        run(1, true);
+        run(1, false);
+        expect(player.state.aggroTargetId).to.equal('');
+        expect(player.state.weaponsTarget.targetId).to.equal('station');
     });
 
     it('a Fixated raider never turns', () => {
@@ -210,6 +237,7 @@ describe('aggro on an NPC attacking a station', () => {
         run(1, true);
         run(1, false);
         expect(raider.mgr.aggroHeldId).to.equal(null);
+        expect(raider.state.aggroTargetId).to.equal('');
         expect(raider.state.weaponsTarget.targetId).to.equal('station');
     });
 });
