@@ -223,8 +223,9 @@ export class ChainGunManager implements Updateable {
                 (chainGun.projectile !== chainGun.loadedProjectile || !chainGun.loadAmmo)
             ) {
                 // unload
-                if (this.energyManager.trySpendEnergy(loadingEnergy, chainGun)) {
-                    chainGun.loading -= loadingDelta;
+                const supply = this.energyManager.drawEnergy(loadingEnergy, chainGun);
+                if (supply > 0) {
+                    chainGun.loading -= loadingDelta * supply;
                     if (chainGun.loading <= 0) {
                         chainGun.loading = 0;
                         this.state.magazine.setCount(
@@ -236,7 +237,8 @@ export class ChainGunManager implements Updateable {
                 }
             } else if (chainGun.projectile !== 'None' && chainGun.loadAmmo && chainGun.loading < 1 && !dontLoad) {
                 // load
-                if (this.energyManager.trySpendEnergy(loadingEnergy, chainGun)) {
+                const supply = this.energyManager.drawEnergy(loadingEnergy, chainGun);
+                if (supply > 0) {
                     if (chainGun.loading === 0) {
                         this.state.magazine.setCount(
                             chainGun.projectile,
@@ -246,7 +248,7 @@ export class ChainGunManager implements Updateable {
                         chainGun.loading += this.loadingRemainder;
                         this.loadingRemainder = 0;
                     }
-                    chainGun.loading += loadingDelta;
+                    chainGun.loading += loadingDelta * supply;
                     if (chainGun.loading >= 1) {
                         this.loadingRemainder = chainGun.loading - 1;
                         chainGun.loading = 1;

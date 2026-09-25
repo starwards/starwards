@@ -177,7 +177,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         }
     });
 
-    // NPC ships bypass energy management (trySpendEnergy always returns true),
+    // NPC ships bypass energy management (drawEnergy always grants in full),
     // so reactor power tests only apply to player ships.
     if (shipManagerCtor === ShipManagerPc) {
         it('reactor power level affects energy generation', () => {

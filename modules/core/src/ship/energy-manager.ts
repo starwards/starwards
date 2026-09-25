@@ -15,55 +15,72 @@ class EpmEntry {
 
 const SECONDS_IN_MINUTE = 60;
 
+/**
+ * Power distribution: when a tick's demand exceeds what the reactor holds, every draw that tick is
+ * scaled down by the same supply ratio -- the engineer's job is triage (power levels), not the
+ * order systems happen to ask in. A tick's ratio is set at its first draw, from the previous tick's
+ * total demand against the energy in store, so a draw that grows mid-tick can still come up short
+ * on what is left.
+ */
 export class EnergyManager implements EnergySource, Updateable {
     private epm = new Map<ShipSystem, EpmEntry>();
+    private demand = 0;
+    private lastDemand = 0;
+    private supplyRatio: number | null = null;
     constructor(
         private state: ShipState,
         private heatManager: HeatManager,
     ) {}
 
-    trySpendEnergy = (value: number, system?: ShipSystem): boolean => {
+    drawEnergy = (value: number, system?: ShipSystem): number => {
         if (value < 0) {
             logWarn('probably an error: spending negative energy');
         }
-        if (this.state.reactor.energy > value) {
+        if (value <= 0) {
             if (system) {
                 system.energyStarved = false;
-                if (!this.epm.has(system)) {
-                    this.epm.set(system, new EpmEntry());
-                }
-
-                const entry = this.epm.get(system)!;
-                entry.total = entry.total + value * SECONDS_IN_MINUTE;
             }
-            this.state.reactor.energy = this.state.reactor.energy - value;
-            // Systems idling at their default (NORMAL) power or below never generate heat from their
-            // own energy draw — an idle ship must be heat-stable at boot with nobody touching
-            // anything (#2121). Only running a system above NORMAL trades heat for extra output.
-            if (
-                system &&
-                system.power > PowerLevel.NORMAL &&
-                system.energyPerMinute > this.state.reactor.design.energyHeatEPMThreshold
-            ) {
-                this.heatManager.addHeat(value * this.state.reactor.design.energyHeat, system);
-            }
-            return true;
+            return 1;
         }
-        this.state.reactor.energy = 0;
+        if (this.supplyRatio === null) {
+            const store = this.state.reactor.energy;
+            this.supplyRatio = this.lastDemand > store ? store / this.lastDemand : 1;
+        }
+        this.demand += value;
+        const granted = Math.min(value * this.supplyRatio, this.state.reactor.energy);
+        this.state.reactor.energy = this.state.reactor.energy - granted;
+        const fraction = granted / value;
         if (system) {
-            system.energyStarved = true;
+            system.energyStarved = fraction < 1;
+            if (!this.epm.has(system)) {
+                this.epm.set(system, new EpmEntry());
+            }
+            const entry = this.epm.get(system)!;
+            entry.total = entry.total + granted * SECONDS_IN_MINUTE;
+            this.addPowerHeat(granted, system.energyPerMinute, system);
         }
-        return false;
+        return fraction;
     };
 
+    /**
+     * Systems idling at their default (NORMAL) power or below never generate heat from their own
+     * energy flow -- an idle ship must be heat-stable at boot with nobody touching anything
+     * (#2121). Only running a system above NORMAL trades heat for extra output.
+     */
+    private addPowerHeat(energy: number, energyPerMinute: number, system: ShipSystem) {
+        if (system.power > PowerLevel.NORMAL && energyPerMinute > this.state.reactor.design.energyHeatEPMThreshold) {
+            this.heatManager.addHeat(energy * this.state.reactor.design.energyHeat, system);
+        }
+    }
+
     update({ deltaSeconds }: IterationData) {
-        this.state.reactor.energy = capToRange(
-            0,
-            this.state.reactor.design.maxEnergy,
-            this.state.reactor.energy +
-                this.state.reactor.energyPerSecond * this.state.reactor.effectiveness * deltaSeconds,
-        );
-        // `trySpendEnergy` only flags the *drawing* system — a reactor sitting at zero with
+        const reactor = this.state.reactor;
+        const generated = reactor.energyPerSecond * reactor.effectiveness * deltaSeconds;
+        reactor.energy = capToRange(0, reactor.design.maxEnergy, reactor.energy + generated);
+        this.lastDemand = this.demand;
+        this.demand = 0;
+        this.supplyRatio = null;
+        // `drawEnergy` only flags the *drawing* system — a reactor sitting at zero with
         // nothing currently trying to draw from it would otherwise never get flagged itself, and
         // read as fully healthy on the Full Systems Status panel.
         this.state.reactor.energyStarved = this.state.reactor.energy <= 0;

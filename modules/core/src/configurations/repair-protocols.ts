@@ -391,9 +391,8 @@ function jumpStartReactor(state: ShipState): void {
  * reactor can't run the repair protocols that would fix it. Spends one of the ship's finite
  * `Reactor.energyCells` (restocked only while docked, see `ReactorCellManager`) to bootstrap just
  * enough efficiency and energy for normal repair protocols to progress. `energyDraw: 0` so it's
- * runnable from true zero energy — `RepairManager.tickRunning` skips the energy-spend check
- * entirely for a zero-draw protocol, since `EnergyManager.trySpendEnergy` would otherwise refuse
- * to spend even nothing out of an empty reactor.
+ * runnable from true zero energy — `RepairManager.tickRunning` never draws for a zero-draw
+ * protocol.
  *
  * Like `fireControlAlignment`, this already had no side effect pre-#2255, so R1's Dark mode is
  * still side-effect-free here — only its duration (a third of Responsive's) differs.

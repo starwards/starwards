@@ -64,17 +64,17 @@ export class RepairProtocolSlot extends Schema {
     progress = 0;
 
     /**
-     * Seconds of continuous energy shortfall so far while RUNNING (real time, not ticks — see
-     * `ENERGY_STARVATION_GRACE_SECONDS` in `repair-manager.ts`). A momentary dip from an unrelated
-     * consumer must not destroy a nearly-complete run; only a *sustained* shortfall aborts it.
+     * Seconds of continuous energy outage (nothing granted) so far while RUNNING (real time, not
+     * ticks — see `ENERGY_STARVATION_GRACE_SECONDS` in `repair-manager.ts`). A momentary outage must
+     * not destroy a nearly-complete run; only a *sustained* one aborts it. A partial grant keeps the
+     * run going at that share.
      */
     @gameField('float32') starvedSeconds = 0;
 
     /**
-     * True for every tick this slot's energy draw could not be covered while RUNNING, from the
-     * very first shortfall tick — not only once `starvedSeconds` crosses
-     * `ENERGY_STARVATION_GRACE_SECONDS` and the run actually aborts. Lets the repair-queue widget
-     * show *why* a running protocol's progress bar has stalled during the grace window.
+     * True for every tick this slot's energy draw was not fully covered while RUNNING: it progresses
+     * at the granted share, and stalls at none. Lets the repair-queue widget show *why* a running
+     * protocol's progress bar is slow or has stalled during the grace window.
      */
     @gameField('boolean') energyStarved = false;
 

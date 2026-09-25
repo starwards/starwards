@@ -58,7 +58,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
             this.internalProxy,
             this.die,
         );
-        this.internalProxy.trySpendEnergy = this.energyManager.trySpendEnergy;
+        this.internalProxy.drawEnergy = this.energyManager.drawEnergy;
     }
 
     public handleToggleSmartPilotManeuveringMode() {
@@ -115,7 +115,7 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
          * turn and thrust slower, same as a player ship's -- there is just no finite joule budget
          * underneath that degradation for a bot that cannot manage one.
          */
-        this.internalProxy.trySpendEnergy = () => true;
+        this.internalProxy.drawEnergy = () => 1;
         this.damageManager.onWeaponHit = (attackerId, amount) => this.aggro.noteHit(attackerId, amount);
     }
 
