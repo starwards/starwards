@@ -4,6 +4,7 @@ import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
 import { MockDie } from './ship-test-harness';
+import { PowerLevel } from '../src/ship/system';
 import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
 import { expect } from 'chai';
@@ -21,6 +22,9 @@ function setUpEnergyManager() {
     const energyManager = new EnergyManager(state, heatManager);
     return { state, energyManager };
 }
+
+const tick = (energyManager: EnergyManager, deltaSeconds: number) =>
+    energyManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: 0 });
 
 // Direct coverage of `trySpendEnergy` — `movement-manager.spec.ts` exercises the same flag only
 // indirectly, through a thruster's own energy draw.
@@ -94,5 +98,40 @@ describe('EnergyManager.update — reactor self-flag', () => {
 
         expect(state.reactor.energy).to.be.greaterThan(0);
         expect(state.reactor.energyStarved).to.equal(false);
+    });
+});
+
+// "Only running a system above NORMAL trades heat for extra output" holds for the reactor too:
+// its generated energy is its flow.
+describe('EnergyManager.update — reactor power heat', () => {
+    it('heats the reactor above NORMAL power by what it generates', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.MAX;
+        state.reactor.energy = 0;
+
+        tick(energyManager, 1);
+
+        const generated = state.reactor.design.energyPerSecond; // MAX: effectiveness 1
+        expect(state.reactor.heat).to.be.closeTo(generated * state.reactor.design.energyHeat, 1e-9);
+    });
+
+    it('does not heat the reactor at NORMAL power', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.NORMAL;
+        state.reactor.energy = 0;
+
+        tick(energyManager, 1);
+
+        expect(state.reactor.heat).to.equal(0);
+    });
+
+    it('does not heat the reactor below the flow threshold', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.MAX;
+        state.reactor.design.energyPerSecond = state.reactor.design.energyHeatEPMThreshold / 60 / 2;
+
+        tick(energyManager, 1);
+
+        expect(state.reactor.heat).to.equal(0);
     });
 });

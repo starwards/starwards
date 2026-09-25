@@ -37,15 +37,8 @@ export class EnergyManager implements EnergySource, Updateable {
                 entry.total = entry.total + value * SECONDS_IN_MINUTE;
             }
             this.state.reactor.energy = this.state.reactor.energy - value;
-            // Systems idling at their default (NORMAL) power or below never generate heat from their
-            // own energy draw — an idle ship must be heat-stable at boot with nobody touching
-            // anything (#2121). Only running a system above NORMAL trades heat for extra output.
-            if (
-                system &&
-                system.power > PowerLevel.NORMAL &&
-                system.energyPerMinute > this.state.reactor.design.energyHeatEPMThreshold
-            ) {
-                this.heatManager.addHeat(value * this.state.reactor.design.energyHeat, system);
+            if (system) {
+                this.addPowerHeat(value, system.energyPerMinute, system);
             }
             return true;
         }
@@ -56,13 +49,24 @@ export class EnergyManager implements EnergySource, Updateable {
         return false;
     };
 
+    /**
+     * Systems idling at their default (NORMAL) power or below never generate heat from their own
+     * energy flow -- an idle ship must be heat-stable at boot with nobody touching anything
+     * (#2121). Only running a system above NORMAL trades heat for extra output; for the reactor the
+     * flow is what it generates, for every other system what it draws.
+     */
+    private addPowerHeat(energy: number, energyPerMinute: number, system: ShipSystem) {
+        if (system.power > PowerLevel.NORMAL && energyPerMinute > this.state.reactor.design.energyHeatEPMThreshold) {
+            this.heatManager.addHeat(energy * this.state.reactor.design.energyHeat, system);
+        }
+    }
+
     update({ deltaSeconds }: IterationData) {
-        this.state.reactor.energy = capToRange(
-            0,
-            this.state.reactor.design.maxEnergy,
-            this.state.reactor.energy +
-                this.state.reactor.energyPerSecond * this.state.reactor.effectiveness * deltaSeconds,
-        );
+        const reactor = this.state.reactor;
+        const generated = reactor.energyPerSecond * reactor.effectiveness * deltaSeconds;
+        const generatedPerMinute = deltaSeconds > 0 ? (generated / deltaSeconds) * SECONDS_IN_MINUTE : 0;
+        this.addPowerHeat(generated, generatedPerMinute, reactor);
+        reactor.energy = capToRange(0, reactor.design.maxEnergy, reactor.energy + generated);
         // `trySpendEnergy` only flags the *drawing* system — a reactor sitting at zero with
         // nothing currently trying to draw from it would otherwise never get flagged itself, and
         // read as fully healthy on the Full Systems Status panel.

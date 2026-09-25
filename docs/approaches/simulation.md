@@ -94,7 +94,7 @@ Techniques used by the server-side simulation — collision and spatial indexing
 
 15. **Try-Spend Energy Pattern**
     - [`trySpendEnergy`](../../modules/core/src/ship/energy-manager.ts) returns boolean success
-    - Automatically generates heat for high-drain systems
+    - Systems above NORMAL power generate heat from their energy flow (the reactor from what it generates)
     - Energy threshold before heat generation
     - Prevents negative energy values
 
