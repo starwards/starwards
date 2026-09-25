@@ -20,7 +20,6 @@ import { ShipDirection } from './ship-direction';
 import { Signals } from './signals';
 import { SmartPilot } from './smart-pilot';
 import { Targeting } from './targeting';
-import { ThreatTable } from './threat-table';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
@@ -141,6 +140,13 @@ export class ShipState extends Schema implements Lockable {
     @gameField('string')
     currentTask = '';
 
+    /**
+     * Which attacker this NPC's aggro is currently steering it at, '' while it follows its standing
+     * order. Never set on player ships. A display mirror for the GM; logic never reads it back.
+     */
+    @gameField('string')
+    aggroTargetId = '';
+
     @gameField([Thruster])
     thrusters!: ArraySchema<Thruster>;
 
@@ -167,16 +173,6 @@ export class ShipState extends Schema implements Lockable {
      * measure what the weave costs the shooter. Server-only, not synced; unset in every real game.
      */
     labNoCombatWeave?: boolean;
-
-    private _threat?: ThreatTable;
-    /**
-     * Server-only aggro state: who this NPC holds a grudge against, and its character. Not synced,
-     * and lazy because `Schema.clone()` builds instances without running field initializers, so a
-     * cloned state (ship conversion, snapshot restore) starts with no character and no grudges.
-     */
-    get threat(): ThreatTable {
-        return (this._threat ??= new ThreatTable());
-    }
 
     @gameField(Magazine)
     magazine!: Magazine;

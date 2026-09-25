@@ -216,7 +216,7 @@ ship.velocity = parent.velocity.clone();
 | System | Location | Functions |
 |--------|----------|-----------|
 | HelmAssist | `logic/helm-assist.ts` | rotationFromTargetTurnSpeed, matchGlobalSpeed, matchLocalSpeed, moveToTarget, rotateToTarget |
-| GunnerAssist | `logic/gunner-assist.ts` | predictHitLocation, calcRangediff, getKillZoneRadiusRange, isTargetInKillZone, calcShellSecondsToLive, getShellAimVelocityCompensation, getShellExplosionLocation, getTargetLocationAtShellExplosion |
+| GunnerAssist | `logic/gunner-assist.ts` | predictHitLocation, calcRangediff, getKillZoneRadiusRange, isTargetInKillZone, calcShellSecondsToLive, getShellExplosionLocation, getTargetLocationAtShellExplosion |
 
 ## Performance
 

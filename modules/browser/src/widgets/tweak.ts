@@ -293,6 +293,10 @@ const singleSelectionDetails = async (
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
+        if (!isPlayerShip) {
+            const aggroTargetProp = readProp(shipDriver, `/aggroTargetId`);
+            addTextBlade(guiFolder, aggroTargetProp, { label: 'Aggro target', disabled: true }, cleanup);
+        }
 
         addTweakableRow(
             guiFolder,

@@ -135,6 +135,27 @@ test.describe('GM Screen', () => {
         await expect(healthInput).toHaveValue('100%');
     });
 
+    test("tweak panel shows an NPC's aggro target, and none for a player ship", async ({ page }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        await expect(tweakPanel.getByText('Current Task', { exact: true })).toBeVisible({ timeout: 5000 });
+        await expect(tweakPanel.getByText('Aggro target', { exact: true })).toHaveCount(0);
+
+        const [ship] = gameDriver.gameManager.spaceManager.state.getAll('Spaceship');
+        await gameDriver.gameManager.convertShipType(ship.id, false);
+
+        // an NPC on its standing order holds no grudge
+        const aggroLabel = tweakPanel.getByText('Aggro target', { exact: true });
+        await expect(aggroLabel).toBeVisible({ timeout: 5000 });
+        await expect(aggroLabel.locator('..').locator('input')).toHaveValue('');
+    });
+
     test('tweak panel Scan Levels folder offers UFO/BASIC/SNAPSHOT/FULL per faction', async ({ page }) => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });

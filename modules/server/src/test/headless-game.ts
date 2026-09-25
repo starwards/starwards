@@ -42,7 +42,7 @@ export const SERVER_TICK_HZ = 60;
  * recording frame holds, so any frame is a branch point. The die is rebuilt from `seed` +
  * elapsed seconds (its whole state). Not in the snapshot, so not continued by a restore: a map's
  * own closure state (e.g. wave-defence's wave counter), which restarts fresh, and each NPC's aggro
- * (`ShipState.threat`, server-only), which is lost -- a restored raider has no aggro character.
+ * (its manager's `AggroManager`, server-only), which is lost -- a restored raider has no aggro character.
  */
 export class HeadlessGame {
     readonly spaceManager = new SpaceManager();

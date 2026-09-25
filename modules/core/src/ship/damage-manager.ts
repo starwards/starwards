@@ -25,6 +25,11 @@ const MAX_SPILLOVER_ROLLS = 20;
 export class DamageManager {
     private applicationCounter = 0;
     private attackResolution: AttackResolutionManager;
+    /**
+     * Called for each weapon hit dealt by another faction's Spaceship, with the hit's amount before
+     * armor. Unset: nobody listens (player ships).
+     */
+    onWeaponHit: ((attackerId: string, amount: number) => void) | null = null;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -56,17 +61,24 @@ export class DamageManager {
         }
     }
 
-    public takeWeaponDamage(damage: AttackDamage): boolean {
-        this.spaceManager.registerHit(damage.shipId);
-        const attacker = damage.shipId ? this.spaceManager.state.get(damage.shipId) : undefined;
+    private notifyWeaponHit(damage: AttackDamage) {
+        if (!this.onWeaponHit || !damage.shipId) {
+            return;
+        }
+        const attacker = this.spaceManager.state.get(damage.shipId);
         if (
             attacker &&
             Spaceship.isInstance(attacker) &&
             attacker.id !== this.state.id &&
             attacker.faction !== this.state.faction
         ) {
-            this.state.threat.add(attacker.id, damage.amount);
+            this.onWeaponHit(attacker.id, damage.amount);
         }
+    }
+
+    public takeWeaponDamage(damage: AttackDamage): boolean {
+        this.spaceManager.registerHit(damage.shipId);
+        this.notifyWeaponHit(damage);
         const { hits, damagedExternals, breachHit } = this.attackResolution.resolveWeaponAttack(damage);
         this.applyResolvedHits(hits);
         if (breachHit) {

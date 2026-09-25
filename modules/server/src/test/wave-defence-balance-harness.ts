@@ -94,6 +94,7 @@ interface Attention {
     aliveSeconds: number;
     /** Seconds on its standing order (no held attacker). */
     missionSeconds: number;
+    /** Times its held attacker changed, returns to its order included. */
     switches: number;
     /** Times it turned on the GVTS, and times it went back to its order from the GVTS. */
     flips: number;
@@ -544,7 +545,7 @@ export function runWaveDefence({
                 }
                 record.state ??= game.api.getShip(id)?.state;
                 if (record.state) {
-                    trackAttention(record, record.state.threat.heldId, game, object.position, dt);
+                    trackAttention(record, record.state.aggroTargetId || null, game, object.position, dt);
                 }
                 continue;
             }
@@ -577,6 +578,9 @@ export function runWaveDefence({
 function trackAttention(record: RaiderRecord, heldId: string | null, game: HeadlessGame, position: XY, dt: number) {
     const attention = record.attention;
     const previous = record.lastHeldId ?? null;
+    if (heldId !== previous) {
+        attention.switches++;
+    }
     if (heldId === PLAYER_SHIP_ID && previous !== PLAYER_SHIP_ID) {
         attention.flips++;
         attention.firstFlipAt ??= game.seconds;
@@ -596,7 +600,6 @@ function trackAttention(record: RaiderRecord, heldId: string | null, game: Headl
         const gvts = game.api.getObject(PLAYER_SHIP_ID);
         attention.onGvtsDistanceSeconds += gvts ? XY.distance(gvts.position, position) * dt : 0;
     }
-    attention.switches = record.state?.threat.switches ?? attention.switches;
 }
 
 /**
@@ -683,7 +686,7 @@ function sampleArrival(
         }
         if (blast.shipId === PLAYER_SHIP_ID) {
             raider.record.arrival.gvtsHits++;
-            if (raider.record.state?.threat.heldId === PLAYER_SHIP_ID) {
+            if (raider.record.state?.aggroTargetId === PLAYER_SHIP_ID) {
                 raider.record.attention.onGvtsHits++;
             }
         }

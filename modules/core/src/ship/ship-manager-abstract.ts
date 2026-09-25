@@ -124,6 +124,8 @@ export function resetShipState(state: ShipState) {
     state.orderPosition.x = 0;
     state.orderPosition.y = 0;
     state.currentTask = '';
+    // aggro lives in the manager being built, which holds no grudge yet
+    state.aggroTargetId = '';
     state.smartPilot.maneuvering.x = 0;
     state.smartPilot.maneuvering.y = 0;
     state.smartPilot.rotation = 0;
@@ -318,7 +320,7 @@ export abstract class ShipManager implements Updateable {
         this.syncShipProperties();
         this.damageManager.update();
         this.heatManager.update(id);
-        this.automationManager.update(id);
+        this.updateAutomation(id);
 
         // mounts swing before anything reads where they point
         this.updateTurrets(id);
@@ -341,6 +343,11 @@ export abstract class ShipManager implements Updateable {
         this.reactorCellManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
+    }
+
+    /** Runs automation with no aggro overlay; `ShipManagerNpc` ticks its aggro around it. */
+    protected updateAutomation(id: IterationData) {
+        this.automationManager.update(id, null);
     }
 
     /**
