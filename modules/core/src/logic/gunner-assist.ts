@@ -68,10 +68,6 @@ export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
     return distance / Math.max(chainGun.design.bulletSpeed, 1);
 }
 
-export function getShellAimVelocityCompensation(ship: ShipState, chainGun: ChainGun): XY {
-    return XY.negate(XY.scale(ship.velocity, chainGun.shellSecondsToLive));
-}
-
 export function getShellExplosionLocation(ship: ShipState, chainGun: ChainGun): XY {
     const fireAngle = chainGun.getGlobalBearing(ship);
     const fireSource = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, fireAngle));
