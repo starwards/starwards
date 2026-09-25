@@ -1,6 +1,6 @@
 import { ChainGun, ShipState } from '../ship';
+import { Faction, SpaceObject, Spaceship, ammoDesigns, blastRadius } from '../space';
 import { RTuple2, addScale, degToRad, timeToIntercept } from './formulas';
-import { SpaceObject, blastRadius } from '../space';
 
 import { XY } from './xy';
 
@@ -90,4 +90,47 @@ function getShellDangerZoneRadius(chainGun: ChainGun): number {
 export function getTargetLocationAtShellExplosion(chainGun: ChainGun, target: SpaceObject) {
     const fireTime = chainGun.shellSecondsToLive;
     return addScale(target.position, target.velocity, fireTime);
+}
+
+/**
+ * Whether a friendly solid sits on `mount`'s firing line: the segment its next shell flies, from the
+ * muzzle to where the current fuze setting detonates it, widened by the shell's radius. Friendly means
+ * a live `Spaceship` of the shooter's faction (stations included), other than the shooter and
+ * `targetId`; neutral (`Faction.NONE`) is no faction, so a neutral shooter has no friends. Friendly
+ * fire stays -- this only tells the shooter.
+ * @see docs/design/mechanics/line-of-fire.md
+ */
+export function isLineOfFireBlocked(
+    ship: ShipState,
+    mount: ChainGun,
+    solids: Iterable<SpaceObject>,
+    targetId: string | null = null,
+): boolean {
+    if (mount.projectile === 'None' || ship.faction === Faction.NONE) {
+        return false;
+    }
+    const shellRadius = ammoDesigns[mount.projectile].radius;
+    const muzzle = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, mount.getGlobalBearing(ship)));
+    const detonation = getShellExplosionLocation(ship, mount);
+    for (const solid of solids) {
+        if (
+            Spaceship.isInstance(solid) &&
+            !solid.destroyed &&
+            solid.faction === ship.faction &&
+            solid.id !== ship.id &&
+            solid.id !== targetId &&
+            distanceToSegment(solid.position, muzzle, detonation) < solid.radius + shellRadius
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function distanceToSegment(point: XY, start: XY, end: XY): number {
+    const segment = XY.difference(end, start);
+    const lengthSquared = XY.dot(segment, segment);
+    const t =
+        lengthSquared > 0 ? Math.max(0, Math.min(1, XY.dot(XY.difference(point, start), segment) / lengthSquared)) : 0;
+    return XY.distance(point, addScale(start, segment, t));
 }

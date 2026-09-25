@@ -3,10 +3,12 @@ import * as os from 'node:os';
 
 import { AddressInfo, Socket } from 'net';
 
+import { AdminRoom } from '../admin/room';
 import { EventEmitter } from 'eventemitter3';
 import { GameManager } from '../admin/game-manager';
 import { SavedGame } from '../serialization/game-state-protocol';
 import { Server } from 'http';
+import { matchMaker } from '@colyseus/core';
 import path from 'path';
 import { server } from '../server';
 import { stringToSchema } from '../serialization/game-state-serialization';
@@ -43,7 +45,12 @@ function deepApproxEqual(a: unknown, b: unknown, tolerance = 1e-6): boolean {
     return false;
 }
 
-export function makeDriver() {
+/**
+ * `manualClock`: stop the admin room's wall-clock simulation interval, so the test's own
+ * `gameManager.update()` calls are the only thing advancing game time. Without it, every `await`
+ * lets real-time ticks run too, and a timing assertion drifts by however long the await took.
+ */
+export function makeDriver({ manualClock = false }: { manualClock?: boolean } = {}) {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
     let sockets: ReturnType<typeof makeSocketsControls> | null = null;
@@ -67,6 +74,9 @@ export function makeDriver() {
             recordingsDir,
         );
         sockets = makeSocketsControls(serverInfo.httpServer);
+        if (manualClock) {
+            matchMaker.getLocalRoomById(AdminRoom.id).setSimulationInterval();
+        }
     });
 
     afterEach(async () => {

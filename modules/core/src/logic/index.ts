@@ -4,6 +4,7 @@ export * from './field-of-view';
 export * from './formulas';
 export * from './hash';
 export * from './noise';
+export * from './obstacle-avoidance';
 export * from './prng';
 export * from './gunner-assist';
 export * from './helm-assist';

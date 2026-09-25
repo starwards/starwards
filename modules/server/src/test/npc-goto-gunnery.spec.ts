@@ -43,7 +43,7 @@ function makeMap(): GameMap {
 }
 
 describe('NPC given a go-to order past a hostile player ship', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
 
     it('opens fire on the PC ship it flies past', async () => {
         await gameDriver.gameManager.startGame(makeMap());
