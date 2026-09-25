@@ -150,9 +150,9 @@ describe('layered armor resolution walk', () => {
 
     it('exposure chains multiplicatively across layers', () => {
         // outer hardened half-broken (3 of 6 front plates), inner composite fully broken:
-        // single-scope exposure = 0.5 × 1 = 0.5. Tandem 360 (= 4 × smartPilot damage50 of 90)
-        // × factor 1 × 0.5 = 180 = 2 × damage50 → exactly 2 defect rolls, all succeeding with
-        // MockDie (expectedRoll 0) → smartPilot offset 0.02
+        // single-scope exposure = 0.5 × 1 = 0.5 of the hit. Tandem 350 × factor 1 × 0.5 = 175:
+        // one full smartPilot damage50 (90) step plus a partial one → 2 defect rolls, all
+        // succeeding with MockDie (expectedRoll 0) → smartPilot offset 0.02
         const { state, damageManager } = setUpLayeredShip(hardenedOverComposite);
         const plates = frontPlates(state);
         for (const [i, plate] of plates.entries()) {
@@ -161,7 +161,7 @@ describe('layered armor resolution walk', () => {
             }
             plate.layers[1].health = 0;
         }
-        const damaged = damageManager.takeWeaponDamage(frontDamage(360, 'Tandem', 'impact'));
+        const damaged = damageManager.takeWeaponDamage(frontDamage(350, 'Tandem', 'impact'));
         expect(damaged).to.equal(true);
         expect(state.smartPilot.offsetFactor).to.be.closeTo(0.02, 0.0001);
     });
