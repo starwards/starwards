@@ -148,14 +148,15 @@ export type Die = {
 };
 
 export interface EnergySource {
-    trySpendEnergy(value: number, system?: ShipSystem): boolean;
+    /** Draws `value` energy for `system`; returns the fraction granted (0..1) -- scale the effect by it. */
+    drawEnergy(value: number, system?: ShipSystem): number;
 }
 export interface HeatSink {
     addHeat(value: number, system: ShipSystem): void;
 }
 export abstract class ShipManager implements Updateable {
     protected readonly internalProxy = {
-        trySpendEnergy: (_: number, _2?: ShipSystem) => false,
+        drawEnergy: (_: number, _2?: ShipSystem) => 0,
         addHeat: (_: number, _2: ShipSystem) => undefined as void,
     };
     public weaponsTarget: SpaceObject | null = null;
@@ -388,11 +389,11 @@ export abstract class ShipManager implements Updateable {
     protected updateRadarSectors({ deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
-            radar.powered = this.internalProxy.trySpendEnergy(
+            radar.supply = this.internalProxy.drawEnergy(
                 radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
-            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index) : 0;
+            radar.areaFactor = radar.supply > 0 ? this.calcRadarAreaFactor(radar, index) : 0;
             sectors.push({
                 direction: toPositiveDegreesDelta(radar.getGlobalBearing(this.state)),
                 arc: radar.arc,

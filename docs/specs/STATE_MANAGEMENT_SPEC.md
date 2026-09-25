@@ -484,12 +484,12 @@ class EnergyManager implements Updateable {
         }
     }
     
-    trySpendEnergy(amount: number): boolean {
-        if (this.state.reactor.energy >= amount) {
-            this.state.reactor.energy -= amount;
-            return true;
-        }
-        return false;
+    // shortage: every draw this tick gets the same supply ratio
+    drawEnergy(amount: number): number {
+        this.demand += amount;
+        const granted = Math.min(amount * this.supplyRatio, this.state.reactor.energy);
+        this.state.reactor.energy -= granted;
+        return granted / amount; // fraction granted: scale the effect by it
     }
 }
 ```

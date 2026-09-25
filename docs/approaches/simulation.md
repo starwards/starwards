@@ -92,9 +92,10 @@ Techniques used by the server-side simulation — collision and spatial indexing
     - Even distribution when all factors zero
     - Overheat causes damage at [`MAX_SYSTEM_HEAT`](../../modules/core/src/ship/heat-manager.ts)
 
-15. **Try-Spend Energy Pattern**
-    - [`trySpendEnergy`](../../modules/core/src/ship/energy-manager.ts) returns boolean success
-    - Automatically generates heat for high-drain systems
+15. **Proportional Energy Draw**
+    - [`drawEnergy`](../../modules/core/src/ship/energy-manager.ts) returns the fraction granted (0..1); callers scale their effect by it
+    - Under shortage every draw in a tick gets the same supply ratio
+    - Systems above NORMAL power generate heat from their energy draw
     - Energy threshold before heat generation
     - Prevents negative energy values
 
