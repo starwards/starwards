@@ -22,8 +22,9 @@ import { expect } from 'chai';
  * threshold and its larger arc -- the margin `station-kill-window.spec.ts` holds stations to
  * ([#2192](https://github.com/starwards/starwards/issues/2192)).
  *
- * Death is a separate threshold: only internal damage kills (ADR-0004). How long it takes is pinned by
- * the fighter half-life spec (`modules/server/src/test/training/fighter-half-life.ts`), not here.
+ * Death is a separate threshold: only a breached `Capsule` kills (`damage-manager-death.spec.ts`).
+ * How long it takes is pinned by the fighter half-life spec
+ * (`modules/server/src/test/training/fighter-half-life.ts`), not here.
  */
 function frontAndRear(model: keyof typeof shipConfigurations) {
     const state = makeShipState('probe', shipConfigurations[model]);

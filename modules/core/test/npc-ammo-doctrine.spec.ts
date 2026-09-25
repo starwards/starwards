@@ -20,8 +20,8 @@ const SIM_SECONDS = 300;
 /**
  * A GVTS on an ATTACK order against a dragonfly-MK1 held in place (position and velocity reset
  * every tick, so blast knock-back can't carry it out of the fight; `freeze` would make it
- * invulnerable). Only internal damage kills (ADR-0004), so HiExp -- which penetrates internal
- * systems -- is the kill path; Frag only disables hull-mounted systems.
+ * invulnerable). Only a breached capsule kills, and the capsule is internal, so HiExp -- which
+ * penetrates internal systems -- is the kill path; Frag only disables hull-mounted systems.
  */
 function runPinnedDragonflyAttack() {
     const spaceMgr = new SpaceManager();

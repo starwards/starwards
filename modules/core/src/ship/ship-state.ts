@@ -75,7 +75,7 @@ export type ShipPropertiesDesign = {
     totalCoolant: number;
     /**
      * Ratio of broken systems that mission-kills the ship (`ShipState.healthRatio` 0). Not death:
-     * only internal damage kills (ADR-0004). <=0 mission-kills on the first hit, >1 never.
+     * only a breached `capsule` kills. <=0 mission-kills on the first hit, >1 never.
      */
     systemKillRatio: number;
 };
@@ -328,7 +328,7 @@ export class ShipState extends Schema implements Lockable {
     /**
      * Single 0..1 scalar summarising how much damage this ship can still absorb before it is
      * mission-killed: 1 is fully intact, 0 is exactly `systemKillRatio` of its systems broken. A
-     * mission-killed ship is not dead; only internal damage kills (`DamageManager.update()`).
+     * mission-killed ship is not dead; only a breached `capsule` kills (`DamageManager.update()`).
      */
     @range([0, 1])
     get healthRatio(): number {

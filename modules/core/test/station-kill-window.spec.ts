@@ -22,8 +22,9 @@ import { expect } from 'chai';
  * a step function, so these tests pin the broken-system count deterministically rather than
  * through a stochastic combat run.
  *
- * Death is a separate threshold: only internal damage kills (ADR-0004). How long it takes is pinned by
- * the fighter half-life spec (`modules/server/src/test/training/fighter-half-life.ts`), not here.
+ * Death is a separate threshold: only a breached `Capsule` kills (`damage-manager-death.spec.ts`).
+ * How long it takes is pinned by the fighter half-life spec
+ * (`modules/server/src/test/training/fighter-half-life.ts`), not here.
  */
 function setUpStation(model: 'large-station' | 'chaingun-platform' | 'small-station') {
     const ship = new Spaceship().init('station', new Vec2(0, 0), model, Faction.Gravitas);

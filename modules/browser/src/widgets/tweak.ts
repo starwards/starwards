@@ -206,8 +206,8 @@ const singleSelectionDetails = async (
         // Issue #2191: a single at-a-glance readout of how much damage this ship can still
         // absorb before it is mission-killed, so the GM doesn't have to inspect each system
         // separately and do head math to judge a fight's prospects. Thresholds are colored, not
-        // just the armor folder's plain "Healthy Plates" count. It does not track death: only
-        // internal damage kills (ADR-0004).
+        // just the armor folder's plain "Healthy Plates" count. It does not track death: only a
+        // breached capsule kills.
         const healthProp = readNumberProp(shipDriver, `/healthRatio`);
         addThresholdTextBlade(
             guiFolder,
