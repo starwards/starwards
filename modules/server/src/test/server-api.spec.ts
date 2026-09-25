@@ -4,7 +4,7 @@ import { makeDriver } from './driver';
 import supertest from 'supertest';
 
 describe('server-API', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
 
     it('convert player ship to NPC', async () => {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
@@ -89,15 +89,11 @@ describe('server-API', () => {
     });
 
     describe('save game functionality', () => {
-        // start a paused game, so that no change is made to the state while the test is running
         beforeEach(async () => {
             gameDriver.pauseGameCommand();
             await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
-            // the pause fix (#2022) keeps the loop running (draining commands, settling derived
-            // state like radar sectors) even at speed 0 — run two deltaSeconds=0 ticks up front
-            // (ShipState.spaceship mirrors the previous tick's radar sectors, so it needs one
-            // extra tick to catch up) so settling isn't racing the background simulation
-            // interval between the two saves
+            // settle derived state (radar sectors) before saving: ShipState.spaceship mirrors the
+            // previous tick's sectors, so it takes two ticks to catch up
             gameDriver.gameManager.update(0);
             gameDriver.gameManager.update(0);
         });

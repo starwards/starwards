@@ -19,7 +19,7 @@ async function fileExists(filePath: string) {
 }
 
 describe('snapshot-persistence', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
     let tmpDir: string;
     let snapshotFile: string;
 
@@ -40,11 +40,8 @@ describe('snapshot-persistence', () => {
     it('writeGameSnapshot writes a snapshot file for a running game', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        // the pause fix (#2022) keeps the loop running (settling derived state like radar
-        // sectors) even at speed 0 — run two deltaSeconds=0 ticks (ShipState.spaceship mirrors
-        // the previous tick's radar sectors, so it needs one extra tick to catch up) so the
-        // snapshot isn't racing the background simulation interval against the later
-        // live-state comparison
+        // settle derived state (radar sectors) before the snapshot: ShipState.spaceship mirrors
+        // the previous tick's sectors, so it takes two ticks to catch up
         gameDriver.gameManager.update(0);
         gameDriver.gameManager.update(0);
         expect(await writeGameSnapshot(gameDriver.gameManager, snapshotFile)).toBe(true);
