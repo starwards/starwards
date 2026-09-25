@@ -144,14 +144,18 @@ function createRealStationAttackScenario(dieRoll: number) {
     return { spaceMgr, raiderObj, raiderMgr, target, targetMgr };
 }
 
+/** Trailing window, in sim-seconds, the track-band hold is judged over. */
+const HOLD_WINDOW_SECONDS = 60;
+
 describe('ATTACK-ordered NPC orbit capture against a real large-station target (issue #2092)', () => {
     for (const dieRoll of [0, 0.3, 0.6, 0.99]) {
         it(`captures and holds within the chain-gun track band (die roll ${dieRoll})`, () => {
             const { spaceMgr, raiderMgr, raiderObj, target, targetMgr } = createRealStationAttackScenario(dieRoll);
 
             let closestApproach = Infinity;
-            let finalDistance = Infinity;
             let engagementSeconds = 0;
+            /** Distances over the trailing `HOLD_WINDOW_SECONDS` of the engagement. */
+            const recent: { t: number; d: number }[] = [];
             for (const id of makeIterationsData(10 * 60, 10 * 60 * 5)) {
                 raiderMgr.update(id);
                 targetMgr.update(id);
@@ -163,16 +167,23 @@ describe('ATTACK-ordered NPC orbit capture against a real large-station target (
                     break;
                 }
                 engagementSeconds += id.deltaSeconds;
-                finalDistance = XY.distance(target.position, raiderObj.position);
-                closestApproach = Math.min(closestApproach, finalDistance);
+                const distance = XY.distance(target.position, raiderObj.position);
+                closestApproach = Math.min(closestApproach, distance);
+                recent.push({ t: id.totalSeconds, d: distance });
+                while (recent[0].t < id.totalSeconds - HOLD_WINDOW_SECONDS) {
+                    recent.shift();
+                }
             }
+            // Averaged, not the last tick: the raider holds by oscillating on the band edge, so a
+            // single sample reads whichever side of 4,500 m the run happened to end on.
+            const meanRecentDistance = recent.reduce((sum, r) => sum + r.d, 0) / recent.length;
 
             expect(
                 engagementSeconds,
                 'raider never held the target long enough to be flying an orbit',
             ).to.be.greaterThan(60);
             expect(closestApproach, 'raider never got within its track band').to.be.lessThan(4_500);
-            expect(finalDistance, 'raider was not holding within its track band at the end of the engagement')
+            expect(meanRecentDistance, 'raider was not holding within its track band at the end of the engagement')
                 .to.be.lessThan(4_500)
                 .and.to.be.greaterThan(500);
         });
