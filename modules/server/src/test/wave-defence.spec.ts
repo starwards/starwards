@@ -248,7 +248,7 @@ describe('pickWaveTargetStationId', () => {
 });
 
 describe('wave_defence map (integration)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
 
     function npcWaveIds() {
         return [...gameDriver.shipManagers.keys()].filter(
@@ -479,7 +479,7 @@ describe('wave_defence map (integration)', () => {
 });
 
 describe('wave progression: incapacitated/out-of-play raiders and the hard wave timer (issue #2233)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
 
     function npcWaveIds() {
         return [...gameDriver.shipManagers.keys()].filter(
@@ -738,7 +738,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
  * ones.
  */
 describe('station radar power (issue #2084 design redirect)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
     const stationLargePosition = Vec2.make(stationPositionsById['station-large']);
 
     function spawnContact(position: Vec2) {
@@ -784,7 +784,7 @@ describe('station radar power (issue #2084 design redirect)', () => {
 });
 
 describe('weapon platforms always auto-engage (issue #2145)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
     const stationPlatformPosition = Vec2.make(stationPositionsById['station-platform']);
 
     it('station-platform opens fire on a raider inside its weapon envelope with no orderAttack given', async () => {
