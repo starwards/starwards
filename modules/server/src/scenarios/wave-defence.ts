@@ -441,9 +441,11 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
             if (spec.aggro) {
                 // Own stream per ship, seeded from the game's noise seed, so the noise never shifts
                 // the wave rng's later draws.
-                shipApi.state.threat.character = withSpawnNoise(
-                    withMissionWeight(aggroCharacters[spec.aggro], missionWeightForHits(hitsToProvoke(spec.model))),
-                    mulberry32(mix(mix(noiseSeed, waveNumber), index)),
+                shipApi.setAggroCharacter(
+                    withSpawnNoise(
+                        withMissionWeight(aggroCharacters[spec.aggro], missionWeightForHits(hitsToProvoke(spec.model))),
+                        mulberry32(mix(mix(noiseSeed, waveNumber), index)),
+                    ),
                 );
             }
             if (spec.targetPolicy.kind === 'station') {

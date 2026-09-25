@@ -10,6 +10,8 @@ import {
     vector2ShipDirections,
 } from '..';
 
+import { AggroCharacter } from './threat-table';
+import { AggroManager } from './aggro-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { EnergyManager } from './energy-manager';
 import { IterationData } from '../updateable';
@@ -91,6 +93,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
 }
 export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     readonly isPlayerShip = false;
+    private readonly aggro = new AggroManager();
 
     constructor(
         spaceObject: DeepReadonly<Spaceship>,
@@ -113,6 +116,35 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
          * underneath that degradation for a bot that cannot manage one.
          */
         this.internalProxy.trySpendEnergy = () => true;
+        this.damageManager.onWeaponHit = (attackerId, amount) => this.aggro.noteHit(attackerId, amount);
+    }
+
+    /** Sets how this NPC's aggro reacts to attackers; `null` keeps it on its standing order. */
+    setAggroCharacter(character: AggroCharacter | null) {
+        this.aggro.character = character;
+    }
+
+    /** This NPC's aggro character, `null` for none. */
+    get aggroCharacter() {
+        return this.aggro.character;
+    }
+
+    /** The attacker this NPC's aggro currently has it engage, `null` while on its standing order. */
+    get aggroHeldId() {
+        return this.aggro.heldId;
+    }
+
+    /** Ticks aggro before automation, so automation engages this tick's held attacker. */
+    protected updateAutomation(id: IterationData) {
+        this.aggro.update(id.deltaSeconds, this.automationManager.hostileIdsInReach(), (attackerId) => {
+            const attacker = this.spaceManager.state.get(attackerId);
+            return !attacker || attacker.destroyed;
+        });
+        const heldId = this.aggro.heldId;
+        const { heldEngagementEnded } = this.automationManager.update(id, heldId);
+        if (heldId && heldEngagementEnded) {
+            this.aggro.forget(heldId);
+        }
     }
 
     private handleManeuvering(deltaSeconds: number) {

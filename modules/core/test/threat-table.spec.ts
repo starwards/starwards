@@ -161,7 +161,7 @@ describe('aggro on an NPC attacking a station', () => {
         const station = make('station', { x: 0, y: 0 }, 'small-station', Faction.Gravitas, 1);
         const gvts = make('gvts', { x: 0, y: 6000 }, 'gravitas', Faction.Gravitas, 2);
         const raider = make('raider', { x: 3000, y: 0 }, 'dragonfly-MK1', Faction.Raiders, 3);
-        raider.state.threat.character = aggroCharacters[character];
+        raider.mgr.setAggroCharacter(aggroCharacters[character]);
         spaceMgr.insertBulk([station.obj, gvts.obj, raider.obj]);
         spaceMgr.forceFlushEntities();
         spaceMgr.state.botOrderCommands.push({ ids: ['raider'], order: { type: 'attack', targetId: 'station' } });
@@ -195,12 +195,12 @@ describe('aggro on an NPC attacking a station', () => {
         expect(raider.state.weaponsTarget.targetId).to.equal('station');
         run(1, true);
         run(1, false);
-        expect(raider.state.threat.heldId).to.equal('gvts');
+        expect(raider.mgr.aggroHeldId).to.equal('gvts');
         expect(raider.state.weaponsTarget.targetId).to.equal('gvts');
         expect(raider.state.order).to.equal(Order.ATTACK);
         expect(raider.state.orderTargetId).to.equal('station');
         run(120, false);
-        expect(raider.state.threat.heldId).to.equal(null);
+        expect(raider.mgr.aggroHeldId).to.equal(null);
         expect(raider.state.weaponsTarget.targetId).to.equal('station');
     });
 
@@ -209,7 +209,7 @@ describe('aggro on an NPC attacking a station', () => {
         run(5, false);
         run(1, true);
         run(1, false);
-        expect(raider.state.threat.heldId).to.equal(null);
+        expect(raider.mgr.aggroHeldId).to.equal(null);
         expect(raider.state.weaponsTarget.targetId).to.equal('station');
     });
 });

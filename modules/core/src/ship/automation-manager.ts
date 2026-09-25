@@ -1,7 +1,6 @@
 import { FlightDoctrine, MAX_TRANSIT_HEADING_CONCESSION } from './flight-doctrine';
 import { FlightProfile, believedBearingCommandFor, believedCanBearAt, makeFlightProfile } from './flight-profile';
 import { IdleStrategy, Order, ShipState } from './ship-state';
-import { IterationData, Updateable } from '../updateable';
 import {
     ManeuveringCommand,
     RTuple2,
@@ -22,6 +21,7 @@ import {
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
+import { IterationData } from '../updateable';
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { PowerLevel } from './system';
 import { ShipManager } from './ship-manager-abstract';
@@ -79,7 +79,7 @@ const MOUNT_SETTLED_EPSILON_DEGREES = 0.05;
 const COMBAT_WEAVE_AMPLITUDE_METERS = 400;
 const COMBAT_WEAVE_FREQUENCY_HZ = 0.08;
 
-export class AutomationManager implements Updateable {
+export class AutomationManager {
     private gunneryTargetId: string | null = null;
     private gunneryRescanCooldown = 0;
     /**
@@ -491,19 +491,27 @@ export class AutomationManager implements Updateable {
         }
     }
 
-    update(id: IterationData): void {
+    /**
+     * @param heldId the attacker the ship's aggro has it engage in place of its standing order, `null`
+     * while it follows the order. The caller ticks its aggro before this, so the choice is this tick's.
+     * @returns `heldEngagementEnded`: engaging `heldId` ended this tick (it is gone, or the ship has no
+     * guns), so the caller's aggro should forget it.
+     */
+    update(id: IterationData, heldId: string | null) {
         this.commandedHeadingThisTick = false;
         this.idleGiveWayThisTick = false;
         if (this.getAndApplyOrder()) {
             this.shipManager.cancelAllTasks();
         }
-        if (!this.state.isPlayerShip) {
-            this.updateThreat(id.deltaSeconds);
-        }
         // Resolved before chooseAndRunTask so goto()/idle steering can turn the hull toward a
         // held gunnery target this same tick, not one tick behind it.
-        const gunneryTarget = this.resolveGunneryTarget(id);
-        if (this.chooseAndRunTask(id, gunneryTarget)) {
+        const gunneryTarget = this.resolveGunneryTarget(id, heldId);
+        let heldEngagementEnded = false;
+        if (heldId) {
+            // Aggro overlay: engage the held attacker with the ATTACK behaviour, never touching the
+            // standing order, which resumes once the grudge fades.
+            heldEngagementEnded = this.follow(true, id, heldId);
+        } else if (this.chooseAndRunTask(id, gunneryTarget)) {
             const reacquiredTargetId =
                 !this.state.isPlayerShip && this.state.order === Order.ATTACK ? this.findNearestHostileTarget() : null;
             this.shipManager.cancelAllTasks();
@@ -534,6 +542,7 @@ export class AutomationManager implements Updateable {
             this.idleGiveWayEngaged = false;
         }
         this.manageHeat(id);
+        return { heldEngagementEnded };
     }
 
     /**
@@ -673,15 +682,6 @@ export class AutomationManager implements Updateable {
             this.state.orderPosition.setValue(XY.zero);
             return false;
         }
-        const heldId = this.state.threat.heldId;
-        if (heldId) {
-            // Aggro overlay: engage the held attacker with the ATTACK behaviour, never touching the
-            // standing order, which resumes once the grudge fades.
-            if (this.follow(true, id, heldId)) {
-                this.state.threat.forget(heldId);
-            }
-            return false;
-        }
         if (this.state.order === Order.NONE) {
             return this.runAutoPilotRoutines(id, gunneryTarget);
         } else if (this.state.order === Order.MOVE) {
@@ -763,7 +763,7 @@ export class AutomationManager implements Updateable {
      * `setTarget()` — the last is `follow()`'s, so gunnery never hijacks the weapons-target UI slot.
      * @see docs/SUBSYSTEMS.md#gunnery
      */
-    private resolveGunneryTarget(id: IterationData): SpaceObject | null {
+    private resolveGunneryTarget(id: IterationData, heldId: string | null): SpaceObject | null {
         // Ticked here, not in `resolveOpportunityTarget`, which the reachable-primary branch below
         // never reaches: freezing the clock while a primary is engaged would throttle
         // re-acquisition for a full interval the moment that primary dies.
@@ -775,8 +775,7 @@ export class AutomationManager implements Updateable {
         if (!firingAllowed) {
             return null;
         }
-        const primaryId =
-            this.state.threat.heldId ?? (this.state.order === Order.ATTACK ? this.state.orderTargetId : null);
+        const primaryId = heldId ?? (this.state.order === Order.ATTACK ? this.state.orderTargetId : null);
         if (primaryId) {
             const orderedTarget = this.spaceManager.state.get(primaryId) || null;
             if (orderedTarget && !orderedTarget.destroyed) {
@@ -857,25 +856,6 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Ticks the aggro threat table: decay, presence credit to every hostile in gun reach (proactive
-     * characters only), and forgetting attackers that are gone.
-     * @see starwards-design mechanics/npc-aggro-threat-table.md
-     */
-    private updateThreat(deltaSeconds: number) {
-        const threat = this.state.threat;
-        const character = threat.character;
-        if (!character) {
-            return;
-        }
-        const reachable =
-            character.presenceRate > 0 ? [...this.hostilesInReach()].map(({ candidate }) => candidate.id) : [];
-        threat.update(deltaSeconds, reachable, (attackerId) => {
-            const attacker = this.spaceManager.state.get(attackerId);
-            return !attacker || attacker.destroyed;
-        });
-    }
-
-    /**
      * Nearest live hostile-faction Spaceship inside the *ship's* range envelope
      * (`FlightProfile.isReachable`), not one mount's bearing: a target merely unbearable right now
      * is a legitimate pick, since both callers need the hull free to turn toward it. `excludeId`
@@ -894,6 +874,13 @@ export class AutomationManager implements Updateable {
             }
         }
         return nearestId;
+    }
+
+    /** Ids of live hostile-faction Spaceships inside the ship's range envelope, lazily. */
+    *hostileIdsInReach(): Generator<string> {
+        for (const { candidate } of this.hostilesInReach()) {
+            yield candidate.id;
+        }
     }
 
     /** Live hostile-faction Spaceships inside the ship's range envelope (`FlightProfile.isReachable`). */

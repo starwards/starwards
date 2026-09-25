@@ -21,6 +21,7 @@ import {
     Order,
     PowerLevel,
     SHADOW_TRACK_RANGE,
+    ShipManagerNpc,
     ShipModel,
     Spaceship,
     Vec2,
@@ -250,6 +251,12 @@ describe('pickWaveTargetStationId', () => {
 describe('wave_defence map (integration)', () => {
     const gameDriver = makeDriver({ manualClock: true });
 
+    function npcShip(id: string) {
+        const ship = gameDriver.getShip(id);
+        if (!(ship instanceof ShipManagerNpc)) throw new Error(`${id} is not an NPC`);
+        return ship;
+    }
+
     function npcWaveIds() {
         return [...gameDriver.shipManagers.keys()].filter(
             (id: string) => !STATIONS.some((s) => s.id === id) && id !== 'GVTS',
@@ -306,7 +313,7 @@ describe('wave_defence map (integration)', () => {
         const map = createWaveDefenceMap(() => 0);
         await gameDriver.gameManager.startGame(map);
         for (const id of npcWaveIds()) {
-            const character = gameDriver.getShip(id).state.threat.character;
+            const character = npcShip(id).aggroCharacter;
             expect(character?.missionWeight).toBeGreaterThanOrEqual(54);
             expect(character?.missionWeight).toBeLessThanOrEqual(66);
         }
@@ -320,7 +327,7 @@ describe('wave_defence map (integration)', () => {
         };
         const wave1Weights = async (first: number) => {
             await gameDriver.gameManager.startGame(createWaveDefenceMap(firstThenZero(first)));
-            const weights = npcWaveIds().map((id) => gameDriver.getShip(id).state.threat.character?.missionWeight);
+            const weights = npcWaveIds().map((id) => npcShip(id).aggroCharacter?.missionWeight);
             await gameDriver.gameManager.stopGame();
             return weights;
         };
