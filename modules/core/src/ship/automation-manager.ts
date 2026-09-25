@@ -7,6 +7,7 @@ import {
     RTuple2,
     SpaceManager,
     XY,
+    avoidObstacles,
     capToRange,
     isInRange,
     isTargetInKillZone,
@@ -187,6 +188,8 @@ export class AutomationManager implements Updateable {
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
         weave: { offset: XY; velocity: XY } = { offset: XY.zero, velocity: XY.zero },
+        /** The solid being closed on, never steered around. */
+        targetId: string | null = null,
     ) {
         const ship = this.state;
         const shipToTarget = XY.difference(targetPosition, ship.position);
@@ -212,10 +215,20 @@ export class AutomationManager implements Updateable {
             // zero-vector rule, the same "no claim" path a doctrine with no mounts already takes.
             requiredAcceleration = XY.zero;
         } else {
-            const wovenPosition = XY.add(targetPosition, weave.offset);
+            const closing = distanceToTarget >= trackRange[0];
+            // Only a closing move steers around solids: backing off inside the band reverses the thrust below.
+            const wovenPosition = closing
+                ? avoidObstacles(
+                      ship,
+                      XY.add(targetPosition, weave.offset),
+                      XY.lengthOf(ship.velocity),
+                      this.spaceManager.spatialIndex,
+                      [ship.id, targetId],
+                  )
+                : XY.add(targetPosition, weave.offset);
             maneuvering = moveToTarget(deltaSecondsAvg, ship, wovenPosition);
             requiredAcceleration = XY.difference(wovenPosition, ship.position);
-            if (distanceToTarget < trackRange[0]) {
+            if (!closing) {
                 maneuvering.boost = -maneuvering.boost;
                 maneuvering.strafe = -maneuvering.strafe;
                 requiredAcceleration = XY.negate(requiredAcceleration);
@@ -346,6 +359,7 @@ export class AutomationManager implements Updateable {
             profile.trackRange(),
             id,
             weave,
+            targetId,
         );
         return false;
     }
