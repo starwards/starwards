@@ -151,41 +151,6 @@ describe('EnergyManager.drawEnergy — proportional shortage', () => {
     });
 });
 
-// "Only running a system above NORMAL trades heat for extra output" holds for the reactor too:
-// its generated energy is its flow.
-describe('EnergyManager.update — reactor power heat', () => {
-    it('heats the reactor above NORMAL power by what it generates', () => {
-        const { state, energyManager } = setUpEnergyManager();
-        state.reactor.power = PowerLevel.MAX;
-        state.reactor.energy = 0;
-
-        tick(energyManager, 1);
-
-        const generated = state.reactor.design.energyPerSecond; // MAX: effectiveness 1
-        expect(state.reactor.heat).to.be.closeTo(generated * state.reactor.design.energyHeat, 1e-9);
-    });
-
-    it('does not heat the reactor at NORMAL power', () => {
-        const { state, energyManager } = setUpEnergyManager();
-        state.reactor.power = PowerLevel.NORMAL;
-        state.reactor.energy = 0;
-
-        tick(energyManager, 1);
-
-        expect(state.reactor.heat).to.equal(0);
-    });
-
-    it('does not heat the reactor below the flow threshold', () => {
-        const { state, energyManager } = setUpEnergyManager();
-        state.reactor.power = PowerLevel.MAX;
-        state.reactor.design.energyPerSecond = state.reactor.design.energyHeatEPMThreshold / 60 / 2;
-
-        tick(energyManager, 1);
-
-        expect(state.reactor.heat).to.equal(0);
-    });
-});
-
 // #2169 only flags the *drawing* system — a reactor sitting at zero with nothing currently trying
 // to draw from it never got flagged itself, and read as fully healthy on the Full Systems Status
 // panel even though it had nothing left to give.
@@ -218,5 +183,40 @@ describe('EnergyManager.update — reactor self-flag', () => {
 
         expect(state.reactor.energy).to.be.greaterThan(0);
         expect(state.reactor.energyStarved).to.equal(false);
+    });
+});
+
+// "Only running a system above NORMAL trades heat for extra output" holds for the reactor too:
+// its generated energy is its flow.
+describe('EnergyManager.update — reactor power heat', () => {
+    it('heats the reactor above NORMAL power by what it generates', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.MAX;
+        state.reactor.energy = 0;
+
+        tick(energyManager, 1);
+
+        const generated = state.reactor.design.energyPerSecond; // MAX: effectiveness 1
+        expect(state.reactor.heat).to.be.closeTo(generated * state.reactor.design.energyHeat, 1e-9);
+    });
+
+    it('does not heat the reactor at NORMAL power', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.NORMAL;
+        state.reactor.energy = 0;
+
+        tick(energyManager, 1);
+
+        expect(state.reactor.heat).to.equal(0);
+    });
+
+    it('does not heat the reactor below the flow threshold', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.MAX;
+        state.reactor.design.energyPerSecond = state.reactor.design.energyHeatEPMThreshold / 60 / 2;
+
+        tick(energyManager, 1);
+
+        expect(state.reactor.heat).to.equal(0);
     });
 });
