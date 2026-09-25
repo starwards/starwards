@@ -10,6 +10,7 @@ Mechanics are the underlying systems that the game simulates. A mechanic like "a
 | Damage model: armor × ammo profiles | Partial ([PR #1932](https://github.com/starwards/starwards/pull/1932) replanned around the spec) | [Damage Model Spec](damage-model-spec.md) |
 | Power, heat & coolant | Done | [Armor & Damage](armor-and-damage.md) |
 | Weapons (chaingun, torpedoes) | Done | [Armor & Damage](armor-and-damage.md) |
+| Local obstacle avoidance (homing rounds, NPC hulls) | Done | [Movement](movement.md#local-obstacle-avoidance-done) |
 | Scan levels & signals jobs | Partial | [Radar & Scanning](radar.md) |
 | Emissions & detection | Partial | [Emissions](emissions.md) |
 | Docking | Done | [Cargo & Docking](cargo-and-docking.md) |
