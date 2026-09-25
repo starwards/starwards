@@ -65,7 +65,8 @@ export class EnergyManager implements EnergySource, Updateable {
     /**
      * Systems idling at their default (NORMAL) power or below never generate heat from their own
      * energy flow -- an idle ship must be heat-stable at boot with nobody touching anything
-     * (#2121). Only running a system above NORMAL trades heat for extra output.
+     * (#2121). Only running a system above NORMAL trades heat for extra output; for the reactor the
+     * flow is what it generates, for every other system what it draws.
      */
     private addPowerHeat(energy: number, energyPerMinute: number, system: ShipSystem) {
         if (system.power > PowerLevel.NORMAL && energyPerMinute > this.state.reactor.design.energyHeatEPMThreshold) {
@@ -76,6 +77,8 @@ export class EnergyManager implements EnergySource, Updateable {
     update({ deltaSeconds }: IterationData) {
         const reactor = this.state.reactor;
         const generated = reactor.energyPerSecond * reactor.effectiveness * deltaSeconds;
+        const generatedPerMinute = deltaSeconds > 0 ? (generated / deltaSeconds) * SECONDS_IN_MINUTE : 0;
+        this.addPowerHeat(generated, generatedPerMinute, reactor);
         reactor.energy = capToRange(0, reactor.design.maxEnergy, reactor.energy + generated);
         this.lastDemand = this.demand;
         this.demand = 0;

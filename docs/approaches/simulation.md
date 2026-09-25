@@ -95,7 +95,7 @@ Techniques used by the server-side simulation — collision and spatial indexing
 15. **Proportional Energy Draw**
     - [`drawEnergy`](../../modules/core/src/ship/energy-manager.ts) returns the fraction granted (0..1); callers scale their effect by it
     - Under shortage every draw in a tick gets the same supply ratio
-    - Systems above NORMAL power generate heat from their energy draw
+    - Systems above NORMAL power generate heat from their energy flow (the reactor from what it generates)
     - Energy threshold before heat generation
     - Prevents negative energy values
 
