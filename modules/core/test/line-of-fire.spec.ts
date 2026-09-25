@@ -16,9 +16,9 @@ import { expect } from 'chai';
 import { makeIterationsData } from './ship-test-harness';
 
 /** A gravitas at the origin facing +x, its forward chain gun fuzed to detonate 5 km out. */
-function shooter() {
+function shooter(faction = Faction.Gravitas) {
     const spaceMgr = new SpaceManager();
-    const obj = new Spaceship().init('shooter', new Vec2(0, 0), 'gravitas', Faction.Gravitas);
+    const obj = new Spaceship().init('shooter', new Vec2(0, 0), 'gravitas', faction);
     const state = makeShipState(obj.id, shipConfigurations.gravitas);
     state.isPlayerShip = false;
     const mgr = new ShipManagerNpc(obj, state, spaceMgr, new ShipDie(1));
@@ -62,6 +62,12 @@ describe('isLineOfFireBlocked', () => {
         const friendlyTarget = solid('target', 2500, 0, Faction.Gravitas, 'dragonfly-MK1');
         expect(isLineOfFireBlocked(state, gun, [hostile, obj])).to.equal(false);
         expect(isLineOfFireBlocked(state, gun, [friendlyTarget], 'target')).to.equal(false);
+    });
+
+    it('treats neutral as no faction: a neutral hull never blocks a neutral shooter', () => {
+        const { state, gun } = shooter(Faction.NONE);
+        const station = solid('station', 2500, 0, Faction.NONE, 'small-station');
+        expect(isLineOfFireBlocked(state, gun, [station])).to.equal(false);
     });
 
     it('is clear with no projectile loaded', () => {

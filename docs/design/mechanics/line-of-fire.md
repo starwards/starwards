@@ -19,7 +19,7 @@ The firing line is the segment the next shell will travel, from the muzzle to it
 - End: `getShellExplosionLocation(ship, chainGun)`, the point where the current fuze setting detonates the shell.
 - Width: the shell's radius. A proximity fuze never arms on a friendly ship (see `SpaceManager` proximity-fuze handling in `modules/core/src/logic/space-manager.ts`), so only physical contact with the shell counts.
 
-A mount is **blocked** when that segment, widened by the shell radius, intersects the body circle of any **friendly solid**, meaning a non-destroyed `Spaceship` of the shooter's faction other than the shooter itself. Stations are included, since they are `Spaceship`s.
+A mount is **blocked** when that segment, widened by the shell radius, intersects the body circle of any **friendly solid**, meaning a non-destroyed `Spaceship` of the shooter's faction other than the shooter itself. Stations are included, since they are `Spaceship`s. Neutral (`Faction.NONE`) is no faction, as everywhere else in core, so a neutral shooter is never blocked.
 
 ## Scope
 

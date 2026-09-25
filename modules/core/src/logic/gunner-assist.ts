@@ -1,6 +1,6 @@
 import { ChainGun, ShipState } from '../ship';
+import { Faction, SpaceObject, Spaceship, ammoDesigns, blastRadius } from '../space';
 import { RTuple2, addScale, degToRad, timeToIntercept } from './formulas';
-import { SpaceObject, Spaceship, ammoDesigns, blastRadius } from '../space';
 
 import { XY } from './xy';
 
@@ -96,7 +96,8 @@ export function getTargetLocationAtShellExplosion(chainGun: ChainGun, target: Sp
  * Whether a friendly solid sits on `mount`'s firing line: the segment its next shell flies, from the
  * muzzle to where the current fuze setting detonates it, widened by the shell's radius. Friendly means
  * a live `Spaceship` of the shooter's faction (stations included), other than the shooter and
- * `targetId`. Friendly fire stays -- this only tells the shooter.
+ * `targetId`; neutral (`Faction.NONE`) is no faction, so a neutral shooter has no friends. Friendly
+ * fire stays -- this only tells the shooter.
  * @see docs/design/mechanics/line-of-fire.md
  */
 export function isLineOfFireBlocked(
@@ -115,6 +116,7 @@ export function isLineOfFireBlocked(
         if (
             Spaceship.isInstance(solid) &&
             !solid.destroyed &&
+            ship.faction !== Faction.NONE &&
             solid.faction === ship.faction &&
             solid.id !== ship.id &&
             solid.id !== targetId &&
