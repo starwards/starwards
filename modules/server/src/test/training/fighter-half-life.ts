@@ -12,8 +12,7 @@ import { trainingScenarios } from './training-scenarios';
  *
  * Pinned on seeds 1-64 at 60 Hz with a 300 s cap (the {@link timeToKill} loop, one fresh id
  * sequence per seed), which is the acceptance measurement. CI runs seeds 1-16: 16-seed blocks of
- * the pinning runs have half-lives from 0.7x to 1.15x the pin (T1-MK2's seeds 49-64 kill fewer than
- * half within the cap), hence the band.
+ * the pinning runs have half-lives from 0.7x to 1.45x the pin, hence the band.
  */
 const TOLERANCE = 0.5;
 const SEEDS = Array.from({ length: 16 }, (_, i) => i + 1);
