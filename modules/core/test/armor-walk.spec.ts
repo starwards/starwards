@@ -150,10 +150,13 @@ describe('layered armor resolution walk', () => {
 
     it('exposure chains multiplicatively across layers', () => {
         // outer hardened half-broken (3 of 6 front plates), inner composite fully broken:
-        // single-scope exposure = 0.5 × 1 = 0.5 of the hit. Tandem 350 × factor 1 × 0.5 = 175:
-        // one full smartPilot damage50 (90) step plus a partial one → 2 defect rolls, all
-        // succeeding with MockDie (expectedRoll 0) → smartPilot offset 0.02
+        // single-scope exposure = 0.5 × 1 = 0.5 of the hit. Tandem 3.5 × damage50 × factor 1 × 0.5
+        // = 1.75 smartPilot damage50 steps → 2 defect rolls, all succeeding with MockDie
+        // (expectedRoll 0) → smartPilot offset 0.02. The amount lands mid-step on purpose: the
+        // hit spans FRONT_ARC's 179.99°, so its exposure is a hair above 0.5, and an amount on a
+        // step boundary would flip the roll count.
         const { state, damageManager } = setUpLayeredShip(hardenedOverComposite);
+        const amount = 3.5 * state.smartPilot.design.damage50;
         const plates = frontPlates(state);
         for (const [i, plate] of plates.entries()) {
             if (i < 3) {
@@ -161,7 +164,7 @@ describe('layered armor resolution walk', () => {
             }
             plate.layers[1].health = 0;
         }
-        const damaged = damageManager.takeWeaponDamage(frontDamage(350, 'Tandem', 'impact'));
+        const damaged = damageManager.takeWeaponDamage(frontDamage(amount, 'Tandem', 'impact'));
         expect(damaged).to.equal(true);
         expect(state.smartPilot.offsetFactor).to.be.closeTo(0.02, 0.0001);
     });
