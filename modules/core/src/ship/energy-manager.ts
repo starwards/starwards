@@ -15,38 +15,51 @@ class EpmEntry {
 
 const SECONDS_IN_MINUTE = 60;
 
+/**
+ * Power distribution: when a tick's demand exceeds what the reactor holds, every draw that tick is
+ * scaled down by the same supply ratio -- the engineer's job is triage (power levels), not the
+ * order systems happen to ask in. A tick's ratio is set at its first draw, from the previous tick's
+ * total demand against the energy in store, so a draw that grows mid-tick can still come up short
+ * on what is left.
+ */
 export class EnergyManager implements EnergySource, Updateable {
     private epm = new Map<ShipSystem, EpmEntry>();
+    private demand = 0;
+    private lastDemand = 0;
+    private supplyRatio: number | null = null;
     constructor(
         private state: ShipState,
         private heatManager: HeatManager,
     ) {}
 
-    trySpendEnergy = (value: number, system?: ShipSystem): boolean => {
+    drawEnergy = (value: number, system?: ShipSystem): number => {
         if (value < 0) {
             logWarn('probably an error: spending negative energy');
         }
-        if (this.state.reactor.energy > value) {
+        if (value <= 0) {
             if (system) {
                 system.energyStarved = false;
-                if (!this.epm.has(system)) {
-                    this.epm.set(system, new EpmEntry());
-                }
-
-                const entry = this.epm.get(system)!;
-                entry.total = entry.total + value * SECONDS_IN_MINUTE;
             }
-            this.state.reactor.energy = this.state.reactor.energy - value;
-            if (system) {
-                this.addPowerHeat(value, system.energyPerMinute, system);
-            }
-            return true;
+            return 1;
         }
-        this.state.reactor.energy = 0;
+        if (this.supplyRatio === null) {
+            const store = this.state.reactor.energy;
+            this.supplyRatio = this.lastDemand > store ? store / this.lastDemand : 1;
+        }
+        this.demand += value;
+        const granted = Math.min(value * this.supplyRatio, this.state.reactor.energy);
+        this.state.reactor.energy = this.state.reactor.energy - granted;
+        const fraction = granted / value;
         if (system) {
-            system.energyStarved = true;
+            system.energyStarved = fraction < 1;
+            if (!this.epm.has(system)) {
+                this.epm.set(system, new EpmEntry());
+            }
+            const entry = this.epm.get(system)!;
+            entry.total = entry.total + granted * SECONDS_IN_MINUTE;
+            this.addPowerHeat(granted, system.energyPerMinute, system);
         }
-        return false;
+        return fraction;
     };
 
     /**
@@ -67,7 +80,10 @@ export class EnergyManager implements EnergySource, Updateable {
         const generatedPerMinute = deltaSeconds > 0 ? (generated / deltaSeconds) * SECONDS_IN_MINUTE : 0;
         this.addPowerHeat(generated, generatedPerMinute, reactor);
         reactor.energy = capToRange(0, reactor.design.maxEnergy, reactor.energy + generated);
-        // `trySpendEnergy` only flags the *drawing* system — a reactor sitting at zero with
+        this.lastDemand = this.demand;
+        this.demand = 0;
+        this.supplyRatio = null;
+        // `drawEnergy` only flags the *drawing* system — a reactor sitting at zero with
         // nothing currently trying to draw from it would otherwise never get flagged itself, and
         // read as fully healthy on the Full Systems Status panel.
         this.state.reactor.energyStarved = this.state.reactor.energy <= 0;

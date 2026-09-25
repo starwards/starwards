@@ -4,7 +4,7 @@ import { makeDriver } from './driver';
 import supertest from 'supertest';
 
 describe('pause (issue #2022)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
 
     it('keeps the loop running and totalSeconds frozen while paused, resuming once unpaused', async () => {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);

@@ -1,11 +1,15 @@
 import {
     AttackResolutionManager,
+    EPSILON,
     FRONT_ARC,
+    ShipDie,
     Spaceship,
     WeaponDamageType,
     damageProfiles,
     demoShip,
+    limitPercision,
     makeShipState,
+    shipConfigurations,
 } from '../src';
 
 import { ArmorLayerDesign } from '../src/ship/armor';
@@ -85,5 +89,39 @@ describe('AttackResolutionManager', () => {
         // a follow-up hit on the same, now-broken section reads as a breach hit
         const second = resolution.resolveWeaponAttack(frontDamage(50, 'HiExp', 'explosion'));
         expect(second.breachHit).to.equal(true);
+    });
+});
+
+describe('AttackResolutionManager: contact hits (#2270)', () => {
+    /** A dragonfly-MK1 with every plate broken, hit by one contact-fuzed round at the real contact arc. */
+    function strippedContactHit(damageType: WeaponDamageType, delivery: 'impact' | 'explosion') {
+        const state = makeShipState('mk1', shipConfigurations['dragonfly-MK1']);
+        for (const plate of state.armor.armorPlates) {
+            for (const layer of plate.layers) {
+                layer.health = 0;
+            }
+        }
+        const resolution = new AttackResolutionManager(state, new ShipDie(1));
+        // the arc resolveProjectileContactDamage hands a contact round
+        const damageSurfaceArc: [number, number] = [10, limitPercision(10 + EPSILON)];
+        return resolution.resolveWeaponAttack({
+            ...frontDamage(60, damageType, delivery),
+            damageSurfaceArc,
+        });
+    }
+
+    it('an impact through a stripped plate is fully exposed, not diluted by the area width', () => {
+        const { hits } = strippedContactHit('ArmPen', 'impact');
+        expect(hits.length).to.be.greaterThan(0);
+        for (const hit of hits) {
+            expect(hit.percentageOfBrokenPlates).to.be.closeTo(1, 1e-9);
+        }
+    });
+
+    it('a blast that touches one stripped plate is still weighted by its share of the area', () => {
+        const { hits } = strippedContactHit('HiExp', 'explosion');
+        for (const hit of hits.filter((h) => h.system.isInternal)) {
+            expect(hit.percentageOfBrokenPlates).to.be.lessThan(0.01);
+        }
     });
 });

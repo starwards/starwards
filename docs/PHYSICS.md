@@ -164,7 +164,7 @@ takeWeaponDamage(damage: AttackDamage) {
 - **block** — stops the walk; only already-broken sections leak inward
 - **engage** — plates erode (`damage.amount × plateFactor × chain`) and damage leaks through via `max(penetration, brokenLayerRatio)`
 
-Exposure chains multiplicatively across the stack; the final chain scales system damage for the area. Reactive layers (`singleUsePlates`) trigger on impact delivery only: one cell pops and defeats the whole hit (exposure measured pre-pop) unless the round fully penetrates (Tandem); explosions erode reactive cells like ordinary plates.
+Exposure chains multiplicatively across the stack; the final chain scales system damage for the area. Per-plate chains are averaged by the degrees of the hit on each plate: over the area's full width for a blast (it covers part of the area), over the hit's own width for an impact (a contact round is one point through the plate it struck, so a stripped plate exposes it fully). Reactive layers (`singleUsePlates`) trigger on impact delivery only: one cell pops and defeats the whole hit (exposure measured pre-pop) unless the round fully penetrates (Tandem); explosions erode reactive cells like ordinary plates.
 
 Resolved hits are applied through `damageSystem()`: the damage profile's `systemScope` picks targets (a single random system, all systems in the exposed area, or ship-wide electronics — decided during resolution), and each application is walked off in `damage50`-sized steps of probabilistic `@defectible` rolls (each capped at 50%) — no direct health subtraction on systems.
 
@@ -216,7 +216,7 @@ ship.velocity = parent.velocity.clone();
 | System | Location | Functions |
 |--------|----------|-----------|
 | HelmAssist | `logic/helm-assist.ts` | rotationFromTargetTurnSpeed, matchGlobalSpeed, matchLocalSpeed, moveToTarget, rotateToTarget |
-| GunnerAssist | `logic/gunner-assist.ts` | predictHitLocation, calcRangediff, getKillZoneRadiusRange, isTargetInKillZone, calcShellSecondsToLive, getShellAimVelocityCompensation, getShellExplosionLocation, getTargetLocationAtShellExplosion |
+| GunnerAssist | `logic/gunner-assist.ts` | predictHitLocation, calcRangediff, getKillZoneRadiusRange, isTargetInKillZone, calcShellSecondsToLive, getShellExplosionLocation, getTargetLocationAtShellExplosion |
 
 ## Performance
 

@@ -1,3 +1,4 @@
+import { AggroCharacter } from './ship/threat-table';
 import { DeepReadonly } from 'ts-essentials';
 import { ShipState } from './ship/ship-state';
 import { SpaceObject } from './space';
@@ -8,6 +9,8 @@ export interface NpcShipApi {
     readonly isPlayerShip: false;
     readonly state: ShipState;
     setTarget(id: string | null): void;
+    /** Sets how the ship's aggro reacts to attackers; `null` keeps it on its standing order. */
+    setAggroCharacter(character: AggroCharacter | null): void;
     readonly spaceObject: DeepReadonly<Spaceship>;
 }
 export interface PcShipApi {

@@ -174,8 +174,8 @@ export class AttackResolutionManager {
      * engaging layers erode (scaled by the chain so far and the plate's own share of the hit)
      * and leak inward through their exposure — max(penetration, broken) — chaining
      * multiplicatively down the stack. The area's final exposure is each plate's chain weighted
-     * by how many of the hit's degrees landed on it, averaged over the area's full angular
-     * width (including any of its plates outside this particular hit).
+     * by how many of the hit's degrees landed on it, averaged over the area's full angular width
+     * for a blast (including plates outside it) and over the hit's own width for an impact.
      *
      * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell across the
      * whole hit pops and the hit is defeated for that plate (exposure measured pre-pop) unless
@@ -215,7 +215,11 @@ export class AttackResolutionManager {
             const chain = this.walkPlateLayers(plate, damage, amount, cellBudget);
             exposureSum += chain * overlap;
         }
-        return { exposure: exposureSum / totalAreaDegrees, breachHit };
+        // A blast covers part of the area, so it is weighted by its share of the area's width. An
+        // impact is one round through the plate it struck: weighting a point hit by the area's
+        // width would dilute it to ~nothing (#2270).
+        const width = damage.delivery === 'explosion' ? totalAreaDegrees : hitSize;
+        return { exposure: exposureSum / width, breachHit };
     }
 
     /** walks a single plate's own layer stack, independent of every other plate in the hit */

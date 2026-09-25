@@ -5,7 +5,7 @@ import { makeDriver } from './driver';
 import supertest from 'supertest';
 
 describe('GameManager replay hooks (issue #2101)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
 
     it('exposes totalSeconds publicly', async () => {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);

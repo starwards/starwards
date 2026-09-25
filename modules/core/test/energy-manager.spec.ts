@@ -26,17 +26,17 @@ function setUpEnergyManager() {
 const tick = (energyManager: EnergyManager, deltaSeconds: number) =>
     energyManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: 0 });
 
-// Direct coverage of `trySpendEnergy` — `movement-manager.spec.ts` exercises the same flag only
+// Direct coverage of `drawEnergy` — `movement-manager.spec.ts` exercises the same flag only
 // indirectly, through a thruster's own energy draw.
-describe('EnergyManager.trySpendEnergy', () => {
+describe('EnergyManager.drawEnergy', () => {
     it('sets energyStarved on the drawing system when the reactor cannot cover the draw', () => {
         const { state, energyManager } = setUpEnergyManager();
         state.reactor.energy = 0;
         const drawing = state.thrusters[0];
 
-        const spent = energyManager.trySpendEnergy(10, drawing);
+        const granted = energyManager.drawEnergy(10, drawing);
 
-        expect(spent).to.equal(false);
+        expect(granted).to.equal(0);
         expect(drawing.energyStarved).to.equal(true);
     });
 
@@ -44,13 +44,27 @@ describe('EnergyManager.trySpendEnergy', () => {
         const { state, energyManager } = setUpEnergyManager();
         state.reactor.energy = 0;
         const drawing = state.thrusters[0];
-        energyManager.trySpendEnergy(10, drawing);
+        energyManager.drawEnergy(10, drawing);
         expect(drawing.energyStarved).to.equal(true);
 
         state.reactor.energy = state.reactor.design.maxEnergy;
-        const spent = energyManager.trySpendEnergy(10, drawing);
+        tick(energyManager, 0);
+        const granted = energyManager.drawEnergy(10, drawing);
 
-        expect(spent).to.equal(true);
+        expect(granted).to.equal(1);
+        expect(drawing.energyStarved).to.equal(false);
+    });
+
+    it('clears energyStarved on a starved system that stops drawing', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.energy = 0;
+        const drawing = state.thrusters[0];
+        energyManager.drawEnergy(10, drawing);
+        expect(drawing.energyStarved).to.equal(true);
+
+        const granted = energyManager.drawEnergy(0, drawing);
+
+        expect(granted).to.equal(1);
         expect(drawing.energyStarved).to.equal(false);
     });
 
@@ -60,9 +74,80 @@ describe('EnergyManager.trySpendEnergy', () => {
         const drawing = state.thrusters[0];
         const bystander = state.thrusters[1];
 
-        energyManager.trySpendEnergy(10, drawing);
+        energyManager.drawEnergy(10, drawing);
 
         expect(bystander.energyStarved).to.equal(false);
+    });
+});
+
+// Power distribution (docs/design/mechanics/armor-and-damage.md): if total demand exceeds supply,
+// all systems scale down proportionally — not first-come, first-served.
+describe('EnergyManager.drawEnergy — proportional shortage', () => {
+    function drawPair(firstIsSmall: boolean) {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.SHUTDOWN; // no income: the store is the whole supply
+        const [small, big] = [state.thrusters[0], state.thrusters[1]];
+        state.reactor.energy = 1_000;
+        // the tick that sets the demand: 10 + 90 against 1000 in store
+        energyManager.drawEnergy(10, small);
+        energyManager.drawEnergy(90, big);
+        state.reactor.energy = 50; // half of that demand is left
+        tick(energyManager, 0);
+        const grants = firstIsSmall
+            ? { small: energyManager.drawEnergy(10, small), big: energyManager.drawEnergy(90, big) }
+            : { big: energyManager.drawEnergy(90, big), small: energyManager.drawEnergy(10, small) };
+        return { state, grants, small, big };
+    }
+
+    it('grants every draw the same fraction when demand exceeds the store', () => {
+        const { grants, state } = drawPair(true);
+
+        expect(grants.small).to.be.closeTo(0.5, 1e-9);
+        expect(grants.big).to.be.closeTo(0.5, 1e-9);
+        expect(state.reactor.energy).to.be.closeTo(0, 1e-9);
+    });
+
+    it('grants the same fractions whichever system draws first', () => {
+        const smallFirst = drawPair(true).grants;
+        const bigFirst = drawPair(false).grants;
+
+        expect(bigFirst.small).to.be.closeTo(smallFirst.small, 1e-9);
+        expect(bigFirst.big).to.be.closeTo(smallFirst.big, 1e-9);
+    });
+
+    it('marks every scaled-down system energyStarved', () => {
+        const { small, big } = drawPair(true);
+
+        expect(small.energyStarved).to.equal(true);
+        expect(big.energyStarved).to.equal(true);
+    });
+
+    it('grants in full when the store covers the demand', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.energy = 1_000;
+        energyManager.drawEnergy(10, state.thrusters[0]);
+        tick(energyManager, 0);
+
+        expect(energyManager.drawEnergy(10, state.thrusters[0])).to.equal(1);
+        expect(state.thrusters[0].energyStarved).to.equal(false);
+    });
+
+    it('shares a dry reactor’s income across all draws at steady state', () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.power = PowerLevel.MAX;
+        state.reactor.energy = 0;
+        const dt = 1 / 60;
+        const income = state.reactor.energyPerSecond * dt; // 5/s at MAX
+        let small = 0;
+        let big = 0;
+        for (let i = 0; i < 120; i++) {
+            small = energyManager.drawEnergy(income, state.thrusters[0]);
+            big = energyManager.drawEnergy(3 * income, state.thrusters[1]);
+            tick(energyManager, dt);
+        }
+
+        expect(small).to.be.closeTo(0.25, 1e-6);
+        expect(big).to.be.closeTo(0.25, 1e-6);
     });
 });
 

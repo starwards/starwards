@@ -259,12 +259,12 @@ class EnergyManager implements Updateable {
         }
     }
     
-    trySpendEnergy(amount: number): boolean {
-        if (this.state.reactor.energy >= amount) {
-            this.state.reactor.energy -= amount;
-            return true;
-        }
-        return false;
+    // shortage: every draw this tick gets the same supply ratio
+    drawEnergy(amount: number): number {
+        this.demand += amount;
+        const granted = Math.min(amount * this.supplyRatio, this.state.reactor.energy);
+        this.state.reactor.energy -= granted;
+        return granted / amount; // fraction granted: scale the effect by it
     }
 }
 ```
@@ -520,7 +520,7 @@ export const mySystem = createWidget({
 # System Interaction Patterns
 
 ## Energy Consumption
-@pattern: try-spend
+@pattern: proportional-draw
 @manager: EnergyManager
 
 ```typescript
@@ -533,12 +533,9 @@ class WeaponsManager {
     fire() {
         const energyCost = this.state.chainGun.design.energyPerShot;
         
-        if (this.energyManager.trySpendEnergy(energyCost)) {
-            // Fire weapon
-            this.createProjectile();
-        } else {
-            console.warn('Insufficient energy');
-        }
+        const supply = this.energyManager.drawEnergy(energyCost);
+        // load at the granted fraction of full rate
+        this.state.chainGun.loading += this.loadingDelta * supply;
     }
 }
 ```

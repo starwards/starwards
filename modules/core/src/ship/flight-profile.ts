@@ -7,7 +7,7 @@ import {
     SHADOW_TRACK_RANGE,
     doctrineWeights,
 } from './flight-doctrine';
-import { RTuple2, XY, getShellAimVelocityCompensation, isInRange, solveShellIntercept, toDegreesDelta } from '../logic';
+import { RTuple2, XY, isInRange, solveShellIntercept, toDegreesDelta } from '../logic';
 import { ShipDirection, ShipDirections } from './ship-direction';
 
 import { ShipState, doctrineForOrder } from './ship-state';
@@ -73,15 +73,17 @@ export class FlightProfile {
     }
 
     /**
-     * Shell-lead offset added to the target's position. Velocity-dependent, so callers must keep
-     * gating it on `inRange`: applying it while closing re-creates issue #2083's runaway loop.
+     * Shell-lead offset added to the target's position: from the target to the same intercept point
+     * `aimAndFire` and {@link gunneryHullAngle} aim at, so both the target's motion and the ship's
+     * own (which every shell inherits) are led. Velocity-dependent, so callers must keep gating it
+     * on `inRange`: applying it while closing re-creates issue #2083's runaway loop.
      */
     leadCompensation(target: SpaceObject): XY {
         const mount = this.bestMount(target);
         if (!mount) {
             return XY.zero;
         }
-        return getShellAimVelocityCompensation(this.state, mount);
+        return XY.difference(solveShellIntercept(this.state, mount, target).aimPoint, target.position);
     }
 
     /**

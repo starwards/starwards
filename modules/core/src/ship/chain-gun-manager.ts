@@ -10,9 +10,10 @@ import {
     clusterWarheadModes,
 } from '../space';
 import { IterationData, Updateable } from '../updateable';
-import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
+import { SpaceManager, XY, calcShellSecondsToLive, capToRange, isLineOfFireBlocked, lerp } from '../logic';
 
 import { ChainGun } from './chain-gun';
+import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
 import { Iterator } from '../logic/iteration';
@@ -105,8 +106,40 @@ export class ChainGunManager implements Updateable {
 
     update({ deltaSeconds }: IterationData) {
         this.calcShellSecondsToLive();
+        this.updateLineOfFire();
         this.updateChainGun(deltaSeconds);
         this.fireChainGun();
+    }
+
+    /** Runs after the mount swung and the fuze was set, so it tests the shot this tick actually fires. */
+    private updateLineOfFire() {
+        const chainGun = this.chainGun;
+        // Only a firing NPC mount has anything to hold; a player ship's flag feeds its weapons UI.
+        if (!chainGun.isFiring && !this.state.isPlayerShip) {
+            chainGun.lineOfFireBlocked = false;
+            return;
+        }
+        const muzzleToDetonation = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed + this.state.radius;
+        const solids = this.spaceManager.spatialIndex.selectPotentials(
+            new Circle(
+                XY.clone(
+                    XY.add(
+                        this.state.position,
+                        XY.byLengthAndDirection(muzzleToDetonation / 2, chainGun.getGlobalBearing(this.state)),
+                    ),
+                ),
+                muzzleToDetonation / 2 + XY.lengthOf(this.state.velocity) * chainGun.shellSecondsToLive,
+            ),
+        );
+        chainGun.lineOfFireBlocked = isLineOfFireBlocked(
+            this.state,
+            chainGun,
+            solids,
+            this.state.weaponsTarget.targetId,
+        );
+        if (chainGun.lineOfFireBlocked && !this.state.isPlayerShip) {
+            chainGun.isFiring = false;
+        }
     }
 
     private calcShellSecondsToLive() {
@@ -190,8 +223,9 @@ export class ChainGunManager implements Updateable {
                 (chainGun.projectile !== chainGun.loadedProjectile || !chainGun.loadAmmo)
             ) {
                 // unload
-                if (this.energyManager.trySpendEnergy(loadingEnergy, chainGun)) {
-                    chainGun.loading -= loadingDelta;
+                const supply = this.energyManager.drawEnergy(loadingEnergy, chainGun);
+                if (supply > 0) {
+                    chainGun.loading -= loadingDelta * supply;
                     if (chainGun.loading <= 0) {
                         chainGun.loading = 0;
                         this.state.magazine.setCount(
@@ -203,7 +237,8 @@ export class ChainGunManager implements Updateable {
                 }
             } else if (chainGun.projectile !== 'None' && chainGun.loadAmmo && chainGun.loading < 1 && !dontLoad) {
                 // load
-                if (this.energyManager.trySpendEnergy(loadingEnergy, chainGun)) {
+                const supply = this.energyManager.drawEnergy(loadingEnergy, chainGun);
+                if (supply > 0) {
                     if (chainGun.loading === 0) {
                         this.state.magazine.setCount(
                             chainGun.projectile,
@@ -213,7 +248,7 @@ export class ChainGunManager implements Updateable {
                         chainGun.loading += this.loadingRemainder;
                         this.loadingRemainder = 0;
                     }
-                    chainGun.loading += loadingDelta;
+                    chainGun.loading += loadingDelta * supply;
                     if (chainGun.loading >= 1) {
                         this.loadingRemainder = chainGun.loading - 1;
                         chainGun.loading = 1;
