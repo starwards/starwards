@@ -48,7 +48,7 @@ export function getKillZoneRadiusRange(chainGun: ChainGun): RTuple2 {
     if (chainGun.projectile === 'None') {
         return [0, 1_000_000];
     }
-    const explosionRadius = blastRadius(ammoDesigns[chainGun.projectile]);
+    const explosionRadius = blastRadius(chainGun.projectile);
     return [shellExplosionDistance - 3.0 * explosionRadius, shellExplosionDistance + 3.0 * explosionRadius];
 }
 
@@ -68,10 +68,6 @@ export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
     return distance / Math.max(chainGun.design.bulletSpeed, 1);
 }
 
-export function getShellAimVelocityCompensation(ship: ShipState, chainGun: ChainGun): XY {
-    return XY.negate(XY.scale(ship.velocity, chainGun.shellSecondsToLive));
-}
-
 export function getShellExplosionLocation(ship: ShipState, chainGun: ChainGun): XY {
     const fireAngle = chainGun.getGlobalBearing(ship);
     const fireSource = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, fireAngle));
@@ -84,7 +80,7 @@ function getShellDangerZoneRadius(chainGun: ChainGun): number {
     if (chainGun.projectile === 'None') {
         return 0;
     }
-    const explosionRadius = blastRadius(ammoDesigns[chainGun.projectile]);
+    const explosionRadius = blastRadius(chainGun.projectile);
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
     const spreadDegrees = 3.0 * chainGun.design.bulletDegreesDeviation;
     const spread = Math.sin(degToRad * spreadDegrees) * shellExplosionDistance;
