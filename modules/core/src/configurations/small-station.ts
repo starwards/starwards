@@ -1,3 +1,4 @@
+import { FIGHTER_CAPSULE_DAMAGE50 } from './capsule-class';
 import { ShipDesign } from '../ship';
 
 export const smallStationArmor = {
@@ -123,6 +124,13 @@ export const smallStationManeuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the fighter base x4 (hull class). */
+export const smallStationCapsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: FIGHTER_CAPSULE_DAMAGE50 * 4,
+};
+
 export const smallStationSignals = {
     isInternal: false,
     isElectronics: true,
@@ -148,4 +156,5 @@ export const smallStation = {
     docking: smallStationDocking,
     maneuvering: smallStationManeuvering,
     signals: smallStationSignals,
+    capsule: smallStationCapsule,
 } satisfies ShipDesign;

@@ -1,5 +1,6 @@
 import { ANGLE_QUANTUM_DEGREES, degToRad } from '../logic/formulas';
 import { Armor, ArmorDesign, ArmorLayer, ArmorLayerDesign, ArmorPlate } from './armor';
+import { Capsule, CapsuleDesign } from './capsule';
 import { ChainGun, ChaingunDesign } from './chain-gun';
 import { Docking, DockingDesign } from './docking';
 import { Magazine, MagazineDesign } from './magazine';
@@ -87,6 +88,7 @@ export type ShipDesign = {
     docking: DockingDesign;
     maneuvering: ManeuveringDesign;
     signals: SignalsDesign;
+    capsule: CapsuleDesign;
 };
 
 function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
@@ -202,6 +204,12 @@ function makeReactor(design: ReactorDesign) {
     return reactor;
 }
 
+function makeCapsule(design: CapsuleDesign) {
+    const capsule = new Capsule();
+    capsule.design.assign(design);
+    return capsule;
+}
+
 function makeSignals(design: SignalsDesign) {
     const signals = new Signals();
     signals.design.assign(design);
@@ -241,6 +249,7 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.docking = makeDocking(design.docking);
     state.maneuvering = makeManeuvering(design.maneuvering);
     state.signals = makeSignals(design.signals);
+    state.capsule = makeCapsule(design.capsule);
     validateRepairCatalog(state, repairProtocols);
     return state;
 }

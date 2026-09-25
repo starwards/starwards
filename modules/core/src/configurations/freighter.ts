@@ -1,3 +1,4 @@
+import { FIGHTER_CAPSULE_DAMAGE50 } from './capsule-class';
 import { ShipDesign } from '../ship';
 
 export const freighterArmor = {
@@ -132,6 +133,13 @@ export const freighterManeuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the fighter base x3 (hull class). */
+export const freighterCapsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: FIGHTER_CAPSULE_DAMAGE50 * 3,
+};
+
 export const freighterSignals = {
     isInternal: false,
     isElectronics: true,
@@ -163,4 +171,5 @@ export const freighter = {
     docking: freighterDocking,
     maneuvering: freighterManeuvering,
     signals: freighterSignals,
+    capsule: freighterCapsule,
 } satisfies ShipDesign;

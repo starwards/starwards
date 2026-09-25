@@ -29,6 +29,7 @@ import { applyLockCommands, rehydrateLockRegistry } from '../lock-commands';
 import { AmmoManager } from './ammo-manager';
 import { Armor } from './armor';
 import { AutomationManager } from './automation-manager';
+import { Capsule } from './capsule';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { DockingManager } from './docking-manager';
@@ -136,7 +137,7 @@ function resetThruster(thruster: Thruster) {
     thruster.availableCapacity = 1.0;
 }
 export type ShipSystem =
-    ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking | Maneuvering | Signals;
+    ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking | Maneuvering | Signals | Capsule;
 
 export type Die = {
     getRoll: (id: string) => number;

@@ -14,25 +14,17 @@ import { ShipSystem } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
 
 /**
- * Issue #2107 (`systemKillRatio` stretch): the ~4-sim-minute kill window from the issue's ruling
- * turned out to be unreachable by this lever alone. A station's systems split 6-front/2-rear (plus
- * any chain guns, also front -- `ShipState.systemsByAreas`), and a raider pair holds one static
- * firing bearing once in range (`positionNearTarget`'s `matchGlobalSpeed` branch never repositions
- * mid-engagement), so only the systems in the arc the pair actually faces ever take damage --
- * headless measurement (see the PR body for the full sweep) showed that requiring one system more
- * than today's threshold (`systemKillRatio` >= 0.625, the next step up from 0.5's threshold) makes
- * the station permanently unkillable in a large fraction of realistic engagement bearings. Worse,
- * even *today's* threshold showed a real (~20-30%) chance of an effectively unbounded stall in the
- * same sweep, independent of this change -- a heavy-tailed defect-roll interaction pre-dating this
- * issue, out of scope here (would mean touching system `damage50` values, which the issue's
- * non-goals rule out).
+ * A station's mission-kill threshold (`healthRatio` 0) sits one system below its larger arc. Its
+ * systems split 6 front / 2 rear (plus front chain guns, `ShipState.systemsByAreas`), and raiders
+ * hold one firing bearing once in range, so only the faced arc takes damage; a threshold at or
+ * above that arc's size would make the mission kill unreachable from most bearings
+ * ([#2107](https://github.com/starwards/starwards/issues/2107)). `Math.floor(count * ratio) + 1` is
+ * a step function, so these tests pin the broken-system count deterministically rather than
+ * through a stochastic combat run.
  *
- * Given that, this change holds every station at its *current* broken-systems-to-kill threshold
- * (ratio 0.6, up from 0.5 -- `Math.floor(count * ratio) + 1` is a step function and both values
- * land in the same step for every station hull) rather than reaching for the requested ~0.8-0.95,
- * which would cross into the next step and introduce the stall regression above. These tests pin
- * that threshold deterministically (a broken-count formula, not a stochastic combat run) so it
- * can't regress silently in either direction.
+ * Death is a separate threshold: only a breached `Capsule` kills (`damage-manager-death.spec.ts`).
+ * How long it takes is pinned by the fighter half-life spec
+ * (`modules/server/src/test/training/fighter-half-life.ts`), not here.
  */
 function setUpStation(model: 'large-station' | 'chaingun-platform' | 'small-station') {
     const ship = new Spaceship().init('station', new Vec2(0, 0), model, Faction.Gravitas);
@@ -88,7 +80,7 @@ function runDeathCheck(spaceManager: SpaceManager, shipId: string, damageManager
 
 describe('station kill window (issue #2107)', () => {
     for (const model of ['large-station', 'chaingun-platform', 'small-station'] as const) {
-        it(`${model}: one broken system short of the ratio-0.6 threshold survives, the next one kills it`, () => {
+        it(`${model}: one broken system short of the ratio-0.6 threshold is not mission-killed, the next one is, and a mission kill alone never kills it`, () => {
             const { state, spaceManager, damageManager } = setUpStation(model);
             const systems = state.systems();
             const ratio = shipConfigurations[model].properties.systemKillRatio;
@@ -113,19 +105,19 @@ describe('station kill window (issue #2107)', () => {
                 `${model} must survive at ${neededBroken - 1}/${systems.length} broken`,
             ).to.equal(false);
 
+            expect(state.healthRatio, `${model} is not mission-killed one system short`).to.be.greaterThan(0);
+
             breakSystem(damageManager, breakable[neededBroken - 1]);
             runDeathCheck(spaceManager, 'station', damageManager);
-            expect(
-                spaceManager.state.get('station')?.destroyed,
-                `${model} must die at ${neededBroken}/${systems.length} broken`,
-            ).to.equal(true);
+            expect(state.healthRatio, `${model} is mission-killed at ${neededBroken}/${systems.length}`).to.equal(0);
+            expect(spaceManager.state.get('station')?.destroyed, `${model} must survive a mission kill`).to.equal(
+                false,
+            );
         });
     }
 
-    it('non-station hulls hold their tuned systemKillRatio (issue #2107 A2, retuned by issue #2192)', () => {
-        // dragonfly-MK1, dragonfly-MK2, gravitas, predator, freighter, and demo-ship were lowered by
-        // issue #2192 to restore a 1-system kill-threshold margin within their larger arc -- see
-        // ship-kill-window.spec.ts and the comments on each config's systemKillRatio.
+    it('non-station hulls hold their mission-kill systemKillRatio (#2107, #2192)', () => {
+        // each keeps a one-system margin within its larger arc -- see ship-kill-window.spec.ts
         expect(shipConfigurations['dragonfly-MK1'].properties.systemKillRatio).to.equal(0.45);
         expect(shipConfigurations['dragonfly-MK2'].properties.systemKillRatio).to.equal(0.4);
         expect(shipConfigurations['predator'].properties.systemKillRatio).to.equal(0.45);
@@ -136,7 +128,7 @@ describe('station kill window (issue #2107)', () => {
         expect(shipConfigurations['demo-ship'].properties.systemKillRatio).to.equal(0.45);
     });
 
-    it('the three station hulls share the new, measured-safe systemKillRatio (issue #2107)', () => {
+    it('the three station hulls share one mission-kill systemKillRatio (#2107)', () => {
         expect(shipConfigurations['large-station'].properties.systemKillRatio).to.equal(0.6);
         expect(shipConfigurations['chaingun-platform'].properties.systemKillRatio).to.equal(0.6);
         expect(shipConfigurations['small-station'].properties.systemKillRatio).to.equal(0.6);

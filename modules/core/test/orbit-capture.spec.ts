@@ -10,6 +10,7 @@ import {
     shipConfigurations,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
+import { ShipDie } from '../src/ship/ship-die';
 
 import { expect } from 'chai';
 
@@ -125,7 +126,9 @@ function createRealStationAttackScenario(dieRoll: number) {
     const spaceMgr = new SpaceManager();
 
     const target = new Spaceship().init('target', new Vec2(140_000, 0), 'large-station', Faction.Gravitas);
-    const targetDie = new MockDie();
+    // A real, seeded die: MockDie's roll 0 succeeds every defect roll, so the station's capsule
+    // would breach in ten hits whatever its damage50 and end the engagement before any orbit.
+    const targetDie = new ShipDie(1);
     const targetMgr = new ShipManagerNpc(target, makeShipState(target.id, largeStationConfig), spaceMgr, targetDie);
     spaceMgr.insert(target);
 

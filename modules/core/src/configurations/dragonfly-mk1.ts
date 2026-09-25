@@ -1,3 +1,4 @@
+import { FIGHTER_CAPSULE_DAMAGE50 } from './capsule-class';
 import { ShipDesign } from '../ship';
 
 export const dragonflyMK1Armor = {
@@ -177,6 +178,13 @@ export const dragonflyMK1Maneuvering = {
     damage50: 20,
 };
 
+/** The hull core: only its breach kills the ship. `damage50` = the fighter base x1 (hull class). */
+export const dragonflyMK1Capsule = {
+    isInternal: true,
+    isElectronics: false,
+    damage50: FIGHTER_CAPSULE_DAMAGE50,
+};
+
 export const dragonflyMK1Signals = {
     isInternal: false,
     isElectronics: true,
@@ -206,4 +214,5 @@ export const dragonflyMK1 = {
     docking: dragonflyMK1Docking,
     maneuvering: dragonflyMK1Maneuvering,
     signals: dragonflyMK1Signals,
+    capsule: dragonflyMK1Capsule,
 } satisfies ShipDesign;
