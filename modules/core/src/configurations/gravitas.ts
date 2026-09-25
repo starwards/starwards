@@ -86,7 +86,8 @@ export const gravitasReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
     isInternal: true,
     isElectronics: true,
-    energyPerSecond: 5,
+    // NORMAL (half output) covers the crew's sustained non-thrust combat draw (21.2/s, 8 seeds) with 20% headroom
+    energyPerSecond: 51,
     maxEnergy: 1_000,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,

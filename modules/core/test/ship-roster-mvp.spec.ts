@@ -108,7 +108,7 @@ const hulls: HullExpectation[] = [
         },
         targeting: { maxRange: 40_000, shortRange: 20_000 },
         radarRanges: [70_000, 50_000],
-        reactor: { perSecond: 5, max: 1_000 },
+        reactor: { perSecond: 51, max: 1_000 },
         signalsJobs: 9,
         warpSpeedPerLevel: 1_000,
         dockingDistance: 1_000,

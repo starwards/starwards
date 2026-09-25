@@ -277,6 +277,22 @@ describe('RepairManager', () => {
         expect(state.thrusters[0].power).to.equal(0); // side effect still applied, run still going
     });
 
+    it('progresses at the granted fraction through a sustained brownout, without a force-stop', () => {
+        const { state, heatManager } = setUpShip();
+        const repairManager = new RepairManager(state, { drawEnergy: () => 0.5 }, heatManager, testCatalog);
+        raise(state, 'fixMagazine');
+        tick(repairManager, 0.1); // promote to RUNNING
+        const promoted = slot(state, 'fixMagazine').progress;
+        for (let i = 0; i < 30; i++) {
+            tick(repairManager, 0.1); // 3 s, past ENERGY_STARVATION_GRACE_SECONDS
+        }
+
+        // fixMagazine takes 2 s at full supply; half supply for 3 s makes 0.75 of it
+        expect(slot(state, 'fixMagazine').priority).to.equal(RepairPriority.RUNNING);
+        expect(slot(state, 'fixMagazine').energyStarved).to.equal(true);
+        expect(slot(state, 'fixMagazine').progress - promoted).to.be.closeTo(0.75, 1e-6);
+    });
+
     it('flags the RUNNING slot energyStarved as soon as it stalls, before the grace window force-stops it', () => {
         const { state, repairManager } = setUpShip();
         raise(state, 'fixMagazine');

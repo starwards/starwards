@@ -175,19 +175,18 @@ export class MovementManager implements Updateable {
     }
 
     private handleWarpMovement(deltaSeconds: number) {
-        if (!this.state.warp) return;
-        if (
-            this.isWarpActive() &&
-            this.energyManager.trySpendEnergy(
-                this.state.warp.currentLevel *
-                    this.state.warp.effectiveness *
-                    this.state.warp.design.energyCostPerLevel,
-            )
-        ) {
+        if (!this.state.warp || !this.isWarpActive()) return;
+        const supply = this.energyManager.drawEnergy(
+            this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.energyCostPerLevel,
+        );
+        if (supply > 0) {
             const newSpeed =
-                this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.speedPerLevel;
+                this.state.warp.currentLevel *
+                this.state.warp.effectiveness *
+                this.state.warp.design.speedPerLevel *
+                supply;
             const newVelocity = XY.byLengthAndDirection(
-                this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
+                this.state.warp.currentLevel * this.state.warp.design.speedPerLevel * supply,
                 this.state.angle,
             );
             // penalty damage for existing velocity (in case of warp system malfunction)
@@ -276,14 +275,11 @@ export class MovementManager implements Updateable {
                 deltaSeconds *
                 this.state.maneuvering.effectiveness *
                 this.state.maneuvering.design.rotationCapacity;
-            if (
-                this.energyManager.trySpendEnergy(
-                    Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost,
-                    this.state.maneuvering,
-                )
-            ) {
-                speedToChange += enginePower * this.state.maneuvering.efficiency;
-            }
+            const supply = this.energyManager.drawEnergy(
+                Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost,
+                this.state.maneuvering,
+            );
+            speedToChange += enginePower * this.state.maneuvering.efficiency * supply;
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
             // Immediate sync so code later in the same tick reads the updated turnSpeed
             this.state.spaceship.turnSpeed = this.spaceObject.turnSpeed;
@@ -377,14 +373,9 @@ export class MovementManager implements Updateable {
                 const globalAngle = thruster.getGlobalBearing(this.state);
                 const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
                 const axisCapacity = thruster.design.capacity * thruster.effectiveness * deltaSeconds;
-                if (
-                    this.energyManager.trySpendEnergy(
-                        desiredAction * axisCapacity * thruster.design.energyCost,
-                        thruster,
-                    )
-                ) {
-                    thruster.active = desiredAction;
-                }
+                thruster.active =
+                    desiredAction *
+                    this.energyManager.drawEnergy(desiredAction * axisCapacity * thruster.design.energyCost, thruster);
                 if (this.state.afterBurner) {
                     const desiredAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
                     const afterBurnerCapacity =
@@ -405,16 +396,13 @@ export class MovementManager implements Updateable {
                 this.state.maneuvering.design.maxAfterBurnerFuel - this.state.maneuvering.afterBurnerFuel,
                 this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.maneuvering.effectiveness,
             );
-            if (
-                this.energyManager.trySpendEnergy(
-                    afterBurnerFuelDelta * this.state.maneuvering.design.afterBurnerEnergyCost,
-                    this.state.maneuvering,
-                )
-            ) {
-                this.state.maneuvering.afterBurnerFuel = limitPercisionHard(
-                    this.state.maneuvering.afterBurnerFuel + afterBurnerFuelDelta,
-                );
-            }
+            const supply = this.energyManager.drawEnergy(
+                afterBurnerFuelDelta * this.state.maneuvering.design.afterBurnerEnergyCost,
+                this.state.maneuvering,
+            );
+            this.state.maneuvering.afterBurnerFuel = limitPercisionHard(
+                this.state.maneuvering.afterBurnerFuel + afterBurnerFuelDelta * supply,
+            );
         }
     }
 

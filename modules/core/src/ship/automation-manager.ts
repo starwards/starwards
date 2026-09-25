@@ -1,12 +1,12 @@
 import { FlightDoctrine, MAX_TRANSIT_HEADING_CONCESSION } from './flight-doctrine';
 import { FlightProfile, believedBearingCommandFor, believedCanBearAt, makeFlightProfile } from './flight-profile';
 import { IdleStrategy, Order, ShipState } from './ship-state';
-import { IterationData, Updateable } from '../updateable';
 import {
     ManeuveringCommand,
     RTuple2,
     SpaceManager,
     XY,
+    avoidObstacles,
     capToRange,
     isInRange,
     isTargetInKillZone,
@@ -21,6 +21,7 @@ import {
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
+import { IterationData } from '../updateable';
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { PowerLevel } from './system';
 import { ShipManager } from './ship-manager-abstract';
@@ -78,7 +79,7 @@ const MOUNT_SETTLED_EPSILON_DEGREES = 0.05;
 const COMBAT_WEAVE_AMPLITUDE_METERS = 400;
 const COMBAT_WEAVE_FREQUENCY_HZ = 0.08;
 
-export class AutomationManager implements Updateable {
+export class AutomationManager {
     private gunneryTargetId: string | null = null;
     private gunneryRescanCooldown = 0;
     /**
@@ -187,6 +188,8 @@ export class AutomationManager implements Updateable {
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
         weave: { offset: XY; velocity: XY } = { offset: XY.zero, velocity: XY.zero },
+        /** The solid being closed on, never steered around. */
+        targetId: string | null = null,
     ) {
         const ship = this.state;
         const shipToTarget = XY.difference(targetPosition, ship.position);
@@ -212,10 +215,20 @@ export class AutomationManager implements Updateable {
             // zero-vector rule, the same "no claim" path a doctrine with no mounts already takes.
             requiredAcceleration = XY.zero;
         } else {
-            const wovenPosition = XY.add(targetPosition, weave.offset);
+            const closing = distanceToTarget >= trackRange[0];
+            // Only a closing move steers around solids: backing off inside the band reverses the thrust below.
+            const wovenPosition = closing
+                ? avoidObstacles(
+                      ship,
+                      XY.add(targetPosition, weave.offset),
+                      XY.lengthOf(ship.velocity),
+                      this.spaceManager.spatialIndex,
+                      [ship.id, targetId],
+                  )
+                : XY.add(targetPosition, weave.offset);
             maneuvering = moveToTarget(deltaSecondsAvg, ship, wovenPosition);
             requiredAcceleration = XY.difference(wovenPosition, ship.position);
-            if (distanceToTarget < trackRange[0]) {
+            if (!closing) {
                 maneuvering.boost = -maneuvering.boost;
                 maneuvering.strafe = -maneuvering.strafe;
                 requiredAcceleration = XY.negate(requiredAcceleration);
@@ -320,8 +333,7 @@ export class AutomationManager implements Updateable {
         return capToRange(-MAX_TRANSIT_HEADING_CONCESSION, MAX_TRANSIT_HEADING_CONCESSION, concession);
     }
 
-    private follow(fire: boolean, id: IterationData) {
-        const targetId = this.state.orderTargetId;
+    private follow(fire: boolean, id: IterationData, targetId = this.state.orderTargetId) {
         if (!targetId) {
             return true;
         }
@@ -346,6 +358,7 @@ export class AutomationManager implements Updateable {
             profile.trackRange(),
             id,
             weave,
+            targetId,
         );
         return false;
     }
@@ -478,7 +491,13 @@ export class AutomationManager implements Updateable {
         }
     }
 
-    update(id: IterationData): void {
+    /**
+     * @param heldId the attacker the ship's aggro has it engage in place of its standing order, `null`
+     * while it follows the order. The caller ticks its aggro before this, so the choice is this tick's.
+     * @returns `heldEngagementEnded`: engaging `heldId` ended this tick (it is gone, or the ship has no
+     * guns), so the caller's aggro should forget it.
+     */
+    update(id: IterationData, heldId: string | null) {
         this.commandedHeadingThisTick = false;
         this.idleGiveWayThisTick = false;
         if (this.getAndApplyOrder()) {
@@ -486,8 +505,13 @@ export class AutomationManager implements Updateable {
         }
         // Resolved before chooseAndRunTask so goto()/idle steering can turn the hull toward a
         // held gunnery target this same tick, not one tick behind it.
-        const gunneryTarget = this.resolveGunneryTarget(id);
-        if (this.chooseAndRunTask(id, gunneryTarget)) {
+        const gunneryTarget = this.resolveGunneryTarget(id, heldId);
+        let heldEngagementEnded = false;
+        if (heldId) {
+            // Aggro overlay: engage the held attacker with the ATTACK behaviour, never touching the
+            // standing order, which resumes once the grudge fades.
+            heldEngagementEnded = this.follow(true, id, heldId);
+        } else if (this.chooseAndRunTask(id, gunneryTarget)) {
             const reacquiredTargetId =
                 !this.state.isPlayerShip && this.state.order === Order.ATTACK ? this.findNearestHostileTarget() : null;
             this.shipManager.cancelAllTasks();
@@ -518,6 +542,7 @@ export class AutomationManager implements Updateable {
             this.idleGiveWayEngaged = false;
         }
         this.manageHeat(id);
+        return { heldEngagementEnded };
     }
 
     /**
@@ -738,7 +763,7 @@ export class AutomationManager implements Updateable {
      * `setTarget()` — the last is `follow()`'s, so gunnery never hijacks the weapons-target UI slot.
      * @see docs/SUBSYSTEMS.md#gunnery
      */
-    private resolveGunneryTarget(id: IterationData): SpaceObject | null {
+    private resolveGunneryTarget(id: IterationData, heldId: string | null): SpaceObject | null {
         // Ticked here, not in `resolveOpportunityTarget`, which the reachable-primary branch below
         // never reaches: freezing the clock while a primary is engaged would throttle
         // re-acquisition for a full interval the moment that primary dies.
@@ -750,8 +775,9 @@ export class AutomationManager implements Updateable {
         if (!firingAllowed) {
             return null;
         }
-        if (this.state.order === Order.ATTACK && this.state.orderTargetId) {
-            const orderedTarget = this.spaceManager.state.get(this.state.orderTargetId) || null;
+        const primaryId = heldId ?? (this.state.order === Order.ATTACK ? this.state.orderTargetId : null);
+        if (primaryId) {
+            const orderedTarget = this.spaceManager.state.get(primaryId) || null;
             if (orderedTarget && !orderedTarget.destroyed) {
                 if (this.anyMountCanBearOn(orderedTarget)) {
                     this.gunneryTargetId = null;
@@ -839,13 +865,30 @@ export class AutomationManager implements Updateable {
         if (this.state.chainGuns.length === 0) {
             return null;
         }
-        const profile = this.getFlightProfile();
         let nearestId: string | null = null;
         let nearestDistance = Infinity;
+        for (const { candidate, distance } of this.hostilesInReach()) {
+            if (candidate.id !== excludeId && distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestId = candidate.id;
+            }
+        }
+        return nearestId;
+    }
+
+    /** Ids of live hostile-faction Spaceships inside the ship's range envelope, lazily. */
+    *hostileIdsInReach(): Generator<string> {
+        for (const { candidate } of this.hostilesInReach()) {
+            yield candidate.id;
+        }
+    }
+
+    /** Live hostile-faction Spaceships inside the ship's range envelope (`FlightProfile.isReachable`). */
+    private *hostilesInReach(): Generator<{ candidate: SpaceObject; distance: number }> {
+        const profile = this.getFlightProfile();
         for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
             if (
                 candidate.id === this.state.id ||
-                candidate.id === excludeId ||
                 candidate.destroyed ||
                 candidate.faction === Faction.NONE ||
                 candidate.faction === this.state.faction
@@ -853,12 +896,9 @@ export class AutomationManager implements Updateable {
                 continue;
             }
             const distance = XY.distance(candidate.position, this.state.position);
-            const reachable = profile.isReachable(distance);
-            if (reachable && distance < nearestDistance) {
-                nearestDistance = distance;
-                nearestId = candidate.id;
+            if (profile.isReachable(distance)) {
+                yield { candidate, distance };
             }
         }
-        return nearestId;
     }
 }

@@ -1,6 +1,7 @@
 import {
     Asteroid,
     Nebula,
+    PowerLevel,
     ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
@@ -67,6 +68,7 @@ describe('MovementManager', () => {
     });
 
     it('marks a thruster energyStarved when it cannot draw the energy boost needs, so the reason is visible', () => {
+        shipMgr.state.reactor.power = PowerLevel.SHUTDOWN; // no income to share out
         shipMgr.state.reactor.energy = 0;
         shipMgr.state.smartPilot.maneuvering.x = 1; // boost commanded
 

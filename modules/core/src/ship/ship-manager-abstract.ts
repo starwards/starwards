@@ -124,6 +124,8 @@ export function resetShipState(state: ShipState) {
     state.orderPosition.x = 0;
     state.orderPosition.y = 0;
     state.currentTask = '';
+    // aggro lives in the manager being built, which holds no grudge yet
+    state.aggroTargetId = '';
     state.smartPilot.maneuvering.x = 0;
     state.smartPilot.maneuvering.y = 0;
     state.smartPilot.rotation = 0;
@@ -149,14 +151,15 @@ export type Die = {
 };
 
 export interface EnergySource {
-    trySpendEnergy(value: number, system?: ShipSystem): boolean;
+    /** Draws `value` energy for `system`; returns the fraction granted (0..1) -- scale the effect by it. */
+    drawEnergy(value: number, system?: ShipSystem): number;
 }
 export interface HeatSink {
     addHeat(value: number, system: ShipSystem): void;
 }
 export abstract class ShipManager implements Updateable {
     protected readonly internalProxy = {
-        trySpendEnergy: (_: number, _2?: ShipSystem) => false,
+        drawEnergy: (_: number, _2?: ShipSystem) => 0,
         addHeat: (_: number, _2: ShipSystem) => undefined as void,
     };
     public weaponsTarget: SpaceObject | null = null;
@@ -317,7 +320,7 @@ export abstract class ShipManager implements Updateable {
         this.syncShipProperties();
         this.damageManager.update();
         this.heatManager.update(id);
-        this.automationManager.update(id);
+        this.updateAutomation(id);
 
         // mounts swing before anything reads where they point
         this.updateTurrets(id);
@@ -340,6 +343,11 @@ export abstract class ShipManager implements Updateable {
         this.reactorCellManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
+    }
+
+    /** Runs automation with no aggro overlay; `ShipManagerNpc` ticks its aggro around it. */
+    protected updateAutomation(id: IterationData) {
+        this.automationManager.update(id, null);
     }
 
     /**
@@ -389,11 +397,11 @@ export abstract class ShipManager implements Updateable {
     protected updateRadarSectors({ deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
-            radar.powered = this.internalProxy.trySpendEnergy(
+            radar.supply = this.internalProxy.drawEnergy(
                 radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
-            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index) : 0;
+            radar.areaFactor = radar.supply > 0 ? this.calcRadarAreaFactor(radar, index) : 0;
             sectors.push({
                 direction: toPositiveDegreesDelta(radar.getGlobalBearing(this.state)),
                 arc: radar.arc,
