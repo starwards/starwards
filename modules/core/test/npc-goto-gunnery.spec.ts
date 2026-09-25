@@ -1,5 +1,6 @@
 import {
     ChaingunDesign,
+    Explosion,
     Faction,
     IdleStrategy,
     Order,
@@ -12,6 +13,9 @@ import {
     Spaceship,
     Vec2,
     XY,
+    blastRadius,
+    getShellExplosionLocation,
+    getTargetLocationAtShellExplosion,
     isTargetInKillZone,
     makeShipState,
     shipConfigurations,
@@ -137,7 +141,12 @@ type EngagementReport = {
     minBearingShortfall: number;
     /** The NPC's own speed at its closest approach — the quantity shell aim must compensate for. */
     speedAtClosestApproach: number;
+    /** Distinct shells the NPC launched over the whole run. */
     shotsFired: number;
+    /** Distinct explosions that ever physically overlapped the PC -- hits, as opposed to `killZoneTicks`' belief. */
+    blastHits: number;
+    /** Smallest distance, over in-envelope ticks, between where the first mount's shell would detonate and where the PC would be then. */
+    minPredictedMiss: number;
 };
 
 /**
@@ -165,8 +174,12 @@ function runEngagement(scenario: Scenario, simSeconds: number, iterationsPerSeco
         minBearingShortfall: Infinity,
         speedAtClosestApproach: 0,
         shotsFired: 0,
+        blastHits: 0,
+        minPredictedMiss: Infinity,
     };
 
+    const shells = new Set<string>();
+    const hits = new Set<string>();
     for (const id of makeIterationsData(simSeconds, simSeconds * iterationsPerSecond)) {
         npcMgr.update(id);
         pcMgr.update(id);
@@ -197,12 +210,32 @@ function runEngagement(scenario: Scenario, simSeconds: number, iterationsPerSeco
             if (guns.some((gun) => isTargetInKillZone(npcMgr.state, gun, scenario.pcObj))) {
                 report.killZoneTicks++;
             }
+            if (guns[0].projectile !== 'None') {
+                report.minPredictedMiss = Math.min(
+                    report.minPredictedMiss,
+                    XY.distance(
+                        getShellExplosionLocation(npcMgr.state, guns[0]),
+                        getTargetLocationAtShellExplosion(guns[0], scenario.pcObj),
+                    ),
+                );
+            }
         }
         if (guns.some((gun) => gun.isFiring)) {
             report.firingTicks++;
         }
-        report.shotsFired = [...spaceMgr.state.getAll('Projectile')].length;
+        for (const object of spaceMgr.state) {
+            if (object.type === 'Projectile') {
+                shells.add(object.id);
+            } else if (
+                Explosion.isInstance(object) &&
+                XY.distance(object.position, scenario.pcObj.position) < object.radius + scenario.pcObj.radius
+            ) {
+                hits.add(object.id);
+            }
+        }
     }
+    report.shotsFired = shells.size;
+    report.blastHits = hits.size;
     return report;
 }
 
@@ -211,11 +244,15 @@ const MIN_OPPORTUNITY_TICKS = 20;
 
 const SIM_SECONDS = 150;
 
+/** A transit speed at which a full-traverse mount's aim converges on a 1,500 m pass (measured: best predicted miss 0 m). */
+const CONVERGENT_TRANSIT_SPEED = 150;
+
 function describeReport(report: EngagementReport) {
     return (
         `opportunityTicks=${report.opportunityTicks}/${report.totalTicks}, ` +
         `bearableTicks=${report.bearableTicks}, killZoneTicks=${report.killZoneTicks}, ` +
-        `firingTicks=${report.firingTicks}, shotsFired=${report.shotsFired}, ` +
+        `firingTicks=${report.firingTicks}, shotsFired=${report.shotsFired}, blastHits=${report.blastHits}, ` +
+        `minPredictedMiss=${Math.round(report.minPredictedMiss)}m, ` +
         `minDistance=${Math.round(report.minDistance)}m, ` +
         `minBearingShortfall=${report.minBearingShortfall.toFixed(1)}deg, ` +
         `speedAtClosestApproach=${Math.round(report.speedAtClosestApproach)}m/s`
@@ -341,11 +378,37 @@ describe('NPC on a go-to order engaging hostiles of opportunity', function () {
         /**
          * The same MOVE order with the bearing constraint lifted, isolating the second gate. The
          * mount bears for the whole pass, so anything that fails here is the shot itself failing to
-         * converge: an NPC transiting at speed launches shells carrying its own velocity, and
+         * converge: an NPC transiting launches shells carrying its own velocity, and
          * `solveShellIntercept` has to solve aim point and time of flight together for the round to
-         * arrive where the target will be.
+         * arrive where the target will be. The transit is capped at 150 m/s -- a pass the aim can
+         * actually converge on -- so the shot exists, and must also land.
          */
-        it('under a MOVE order with a full-traverse mount: opens fire', () => {
+        it('under a MOVE order with a full-traverse mount, on a pass the aim converges on: opens fire and hits', () => {
+            const scenario = createScenario(
+                model,
+                heading,
+                pathLength,
+                interceptFraction,
+                lateralOffset,
+                fullTraverseVariant(model),
+            );
+            scenario.npcMgr.state.smartPilot.design.maxSpeed = CONVERGENT_TRANSIT_SPEED;
+            scenario.npcMgr.state.smartPilot.design.maxSpeedFromAfterBurner = CONVERGENT_TRANSIT_SPEED;
+            orderMoveTo(scenario.spaceMgr, scenario.npcObj.id, scenario.destination);
+            const report = runEngagement(scenario, SIM_SECONDS, iterationsPerSecond);
+
+            expect(report.opportunityTicks, describeReport(report)).to.be.greaterThan(MIN_OPPORTUNITY_TICKS);
+            expect(report.firingTicks, describeReport(report)).to.be.greaterThan(0);
+            expect(report.blastHits, describeReport(report)).to.be.greaterThan(0);
+        });
+
+        /**
+         * The full-speed (600 m/s) version of the pass above. The aim never converges: its best
+         * predicted miss stays wider than the blast the shell actually detonates into, so no shot
+         * exists and the kill-zone gate must hold fire. Pins the gate to the real (scaled) shell
+         * blast -- a gate sized off the unscaled design blast fired throughout this pass.
+         */
+        it('under a MOVE order with a full-traverse mount, on a pass the aim never converges on: holds fire', () => {
             const scenario = createScenario(
                 model,
                 heading,
@@ -356,9 +419,14 @@ describe('NPC on a go-to order engaging hostiles of opportunity', function () {
             );
             orderMoveTo(scenario.spaceMgr, scenario.npcObj.id, scenario.destination);
             const report = runEngagement(scenario, SIM_SECONDS, iterationsPerSecond);
+            const [gun] = scenario.npcMgr.state.chainGuns;
 
             expect(report.opportunityTicks, describeReport(report)).to.be.greaterThan(MIN_OPPORTUNITY_TICKS);
-            expect(report.firingTicks, describeReport(report)).to.be.greaterThan(0);
+            expect(gun.projectile, describeReport(report)).to.not.equal('None');
+            if (gun.projectile !== 'None') {
+                expect(report.minPredictedMiss, describeReport(report)).to.be.greaterThan(blastRadius(gun.projectile));
+            }
+            expect(report.firingTicks, describeReport(report)).to.equal(0);
         });
     });
 });

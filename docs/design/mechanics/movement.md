@@ -16,6 +16,15 @@ Ships obey Newton's laws. No artificial drag — velocity is maintained indefini
 
 **Drift recovery:** When thrusters are damaged, asymmetric thrust causes drift. Recovery is emergent gameplay — rotate ship to align working thrusters against drift direction.
 
+## Local Obstacle Avoidance (Done)
+
+Ruling 2026-09-22: homing rounds and NPC hulls steer around solids. This is local steering, not graph pathfinding ([#856](https://github.com/starwards/starwards/issues/856) stays parked). It is the counterpart of [Line of Fire](line-of-fire.md), which covers ballistic rounds.
+
+`avoidObstacles` in `modules/core/src/logic/obstacle-avoidance.ts` looks 3 s of travel ahead (at least 1 km) along the path to the destination. The nearest ship, station or asteroid whose body cuts that corridor replaces the destination with the tangent point of the solid, inflated by both radii plus a clearance. The craft passes on the side the path already favours, and re-plans every tick.
+
+- Homing rounds (`SpaceManager` guidance) ignore their target and their shooter. While dodging they over-rotate by the velocity's own heading error, capped at 45 degrees and short of turning away from the waypoint, because at top speed, thrust along the hull barely turns the velocity.
+- NPC hulls (`AutomationManager.positionNearTarget`) steer only while closing on the target, and never around the target itself. A MOVE to a point beside a solid still arrives: the solid stops counting once the ship has rounded to the destination's side.
+
 ## Warp Drive (Partial)
 
 Basic warp works — multiplies base speed with charging mechanics and heat generation.

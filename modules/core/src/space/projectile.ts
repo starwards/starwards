@@ -68,9 +68,20 @@ export type WarheadDesign = { damageType: WeaponDamageType } & (
       }
 );
 
-// how far a warhead's blast reaches; impact rounds have no blast
-export function blastRadius(warhead: WarheadDesign): number {
-    return warhead.delivery === 'explosion' ? warhead.explosion.secondsToLive * warhead.explosion.expansionSpeed : 0;
+/** Scale on the blast growth speed (and so the reach) of the explosion `ammo` detonates into. */
+export function blastSizeFactor(ammo: AmmoType): number {
+    return isShellAmmo(ammo) ? SHELL_BLAST_SIZE_FACTOR : 1;
+}
+
+/**
+ * How far the blast of the explosion `ammo` detonates into reaches; impact rounds have no blast.
+ * Includes {@link blastSizeFactor}, so gunnery's belief matches `makeExplosion`'s product.
+ */
+export function blastRadius(ammo: AmmoType): number {
+    const warhead: WarheadDesign = ammoDesigns[ammo];
+    return warhead.delivery === 'explosion'
+        ? warhead.explosion.secondsToLive * warhead.explosion.expansionSpeed * blastSizeFactor(ammo)
+        : 0;
 }
 
 export type ProjectileDesign = WarheadDesign & {
@@ -375,9 +386,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
         const explosion = new Explosion();
         explosion.assign(warhead.explosion);
         explosion.damageType = warhead.damageType;
-        if (isShellAmmo(this.model)) {
-            explosion.expansionSpeed *= SHELL_BLAST_SIZE_FACTOR;
-        }
+        explosion.expansionSpeed *= blastSizeFactor(this.model);
         return explosion;
     }
 

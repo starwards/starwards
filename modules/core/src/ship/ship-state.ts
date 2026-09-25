@@ -135,6 +135,13 @@ export class ShipState extends Schema implements Lockable {
     @gameField('string')
     currentTask = '';
 
+    /**
+     * Which attacker this NPC's aggro is currently steering it at, '' while it follows its standing
+     * order. Never set on player ships. A display mirror for the GM; logic never reads it back.
+     */
+    @gameField('string')
+    aggroTargetId = '';
+
     @gameField([Thruster])
     thrusters!: ArraySchema<Thruster>;
 

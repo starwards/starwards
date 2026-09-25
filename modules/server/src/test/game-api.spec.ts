@@ -8,7 +8,7 @@ function makeMap(init: (game: GameApi) => void, update?: (deltaSeconds: number) 
 }
 
 describe('GameApi (issue #2060)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ manualClock: true });
 
     it('picks up an orderAttack on the following tick, and ignores it for player ships', async () => {
         let attackerId = '';

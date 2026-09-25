@@ -169,7 +169,11 @@ export class GameManager {
             this.applyStationAssignment(arg);
         }
         this.state.assignStationCommands = [];
-        this.reconcileStationAssignments();
+        // `playerShipIds` is empty or mid-teardown/mid-creation outside RUNNING/REPLAY: reconciling
+        // against it would clear every sticky assignment. startGame/loadGame reconcile on entering RUNNING.
+        if (this.state.gameStatus === GameStatus.RUNNING || this.state.gameStatus === GameStatus.REPLAY) {
+            this.reconcileStationAssignments();
+        }
         this.pruneStaleStations();
     }
 
