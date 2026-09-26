@@ -168,6 +168,12 @@ export class ShipState extends Schema implements Lockable {
     @gameField(Armor)
     armor!: Armor;
 
+    /**
+     * Calibration only, not a game config. Switch for headless training rungs: `true` flies ATTACK without the combat weave, to
+     * measure what the weave costs the shooter. Server-only, not synced; unset in every real game.
+     */
+    labNoCombatWeave?: boolean;
+
     @gameField(Magazine)
     magazine!: Magazine;
 

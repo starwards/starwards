@@ -1,4 +1,4 @@
-import { EPSILON, capToRange, degToRad, lerp } from '../logic/formulas';
+import { EPSILON, atLeastThreshold, capToRange, degToRad, lerp } from '../logic/formulas';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
 
 import { commandable, gameField } from '../game-field';
@@ -255,8 +255,9 @@ export class Radar extends Turret {
      */
     public supply = 1;
 
+    /** Compared the way clients read the `float32` fields (see `atLeastThreshold`). */
     get broken() {
-        return super.broken || this.malfunctionRangeFactor >= 1 - this.design.rangeEaseFactor * 2;
+        return super.broken || atLeastThreshold(this.malfunctionRangeFactor, 1 - this.design.rangeEaseFactor * 2);
     }
 
     /**
