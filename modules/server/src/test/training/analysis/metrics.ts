@@ -5,16 +5,6 @@ import { Store } from './store';
  * (`extract.ts`, `checks.ts`, the report writers) calls, so no metric is defined twice.
  */
 
-/** Median of the finite values; `NaN` when there are none. */
-export function median(values: readonly number[]): number {
-    const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
-    if (!sorted.length) {
-        return NaN;
-    }
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
 export async function lastFrameT(store: Store, runId: string): Promise<number> {
     return (await store.all<{ t: number }>('SELECT max(t) AS t FROM frame WHERE run_id = ?', runId))[0]?.t ?? 0;
 }

@@ -36,3 +36,13 @@ export function gunneryFractions(samples: readonly GunnerySample[]) {
         killZoneFraction: count ? samples.filter((s) => s.inKillZone).length / count : NaN,
     };
 }
+
+/** Median of the finite values; `NaN` when there are none. */
+export function median(values: readonly number[]): number {
+    const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+    if (!sorted.length) {
+        return NaN;
+    }
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}

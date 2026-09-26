@@ -73,12 +73,9 @@ export const T0_PLAY_DEAD_DRAGONFLY: TrainingScenario<T0Params> = {
 };
 
 export const T1_ATTACKING_DRAGONFLY: TrainingScenario<T0Params> = {
+    ...T0_PLAY_DEAD_DRAGONFLY,
     name: 'T1',
     description: 'GVTS vs one dragonfly-MK1 attacking it, 2-8 km, any bearing',
-    params: fc.record({
-        distance: fc.integer({ min: 2000, max: 8000 }),
-        bearing: fc.integer({ min: 0, max: 359 }),
-    }),
     createMap: createTrainingT1Map,
 };
 

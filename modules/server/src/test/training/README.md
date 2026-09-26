@@ -8,6 +8,8 @@ Runs game maps with no Colyseus and no wall clock (`../headless-game.ts`), recor
 | `node -r ts-node/register/transpile-only run-t1-missile.ts --seeds 64 --ammo HiExpMissile`                     | T1-missile: tubes only, against a raider busy on a decoy.                                 |
 | `node -r ts-node/register/transpile-only run-wave-defence.ts --seed 1 --proxy standoff-missiles --max-sim 960` | One wave-defence run with a player proxy (`../wave-defence-balance-harness.ts`), as JSON. |
 
+Rungs: `T0` (a target that plays dead), `T1` (a dragonfly-MK1 attacking the GVTS), `T1-MK2` and `T1-predator` (heavier hulls attacking), `T1-noweave` (T1 without the target's combat weave).
+
 `fighter-half-life-*.spec.ts` pin the fighter half-life on T1 and T1-MK2, the parity target for removing the capsule (see `fighter-half-life.ts`).
 
 The server runs the built `@starwards/core` (`modules/core/cjs`). Run `npm run build:core` after a core change, or the harness measures the old core.

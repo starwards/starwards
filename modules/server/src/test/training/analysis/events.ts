@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { EVENTS_EXT, RecordedEvent } from '../../headless-recorder';
 import { RECORDING_EXT } from '../../../recording/game-recorder';
 import { Store } from './store';
-import { median } from './metrics';
+import { median } from '../gunnery-metrics';
 
 interface EventThresholds {
     /** Multiple of an object's median per-frame speed delta that counts as a `velocity_spike`. */

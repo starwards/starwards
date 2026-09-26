@@ -11,8 +11,8 @@ import {
 } from '@starwards/core/internal';
 import { newAsteroid, newShip } from './admin/map-helper';
 
-export { wave_defence } from './scenarios/wave-defence';
 export { training_t0, training_t1 } from './scenarios/training';
+export { wave_defence } from './scenarios/wave-defence';
 
 export const two_vs_one: GameMap = {
     name: 'two_vs_one',

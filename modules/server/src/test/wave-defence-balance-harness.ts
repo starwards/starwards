@@ -26,7 +26,7 @@ import { tapDamage, tapDerelicts } from './damage-tap';
 
 import { BlastOverlaps } from './blast-overlaps';
 import { inGunRange } from './training/gunnery-metrics';
-import { median } from './training/analysis/metrics';
+import { median } from './training/gunnery-metrics';
 
 const PLAYER_SHIP_ID = 'GVTS';
 /** A raider this close to the GVTS is engaged; further off, the proxy holds its guard station instead of chasing. */

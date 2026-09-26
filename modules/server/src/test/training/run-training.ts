@@ -15,7 +15,7 @@ import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } fr
 import { SERVER_TICK_HZ } from '../headless-game';
 import { fork } from 'child_process';
 import fs from 'fs';
-import { median } from './analysis/metrics';
+import { median } from './gunnery-metrics';
 import os from 'os';
 import path from 'path';
 
@@ -48,7 +48,7 @@ async function main() {
     const scenarioName = arg('scenario', 'T0');
     const scenario = trainingScenarios[scenarioName];
     if (!scenario) {
-        throw new Error(`unknown scenario ${scenarioName}`);
+        throw new Error(`unknown scenario ${scenarioName}; one of ${Object.keys(trainingScenarios).join(', ')}`);
     }
     const seedCount = Number(arg('seeds', '64'));
     const firstSeed = Number(arg('first-seed', '1'));
