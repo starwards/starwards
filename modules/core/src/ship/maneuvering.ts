@@ -1,8 +1,12 @@
 import { DesignState, SystemState, defectible } from './system';
 
+import { atMostThreshold } from '../logic/formulas';
 import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+
+/** Efficiency at or below which maneuvering is broken. */
+const MANEUVERING_BROKEN_EFFICIENCY = 0.2;
 
 export type ManeuveringDesign = {
     modelName?: string;
@@ -45,7 +49,8 @@ export class Maneuvering extends SystemState {
     @gameField('float32')
     efficiency = 1;
 
+    /** Compared the way clients read the `float32` field (see `atLeastThreshold`). */
     get broken() {
-        return this.efficiency <= 0.2;
+        return atMostThreshold(this.efficiency, MANEUVERING_BROKEN_EFFICIENCY);
     }
 }
