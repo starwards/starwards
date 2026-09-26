@@ -2,6 +2,7 @@ import { DesignState, SystemState, defectible } from './system';
 import { commandable, gameField } from '../game-field';
 
 import { AmmoType } from '../space/projectile';
+import { belowFloat32 } from '../logic/float32';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -103,8 +104,9 @@ export class Magazine extends SystemState {
     @gameField('float32')
     restockDurationSeconds = 150;
 
+    /** Compared as clients read both `float32` fields (see `belowFloat32`). */
     get broken() {
-        return this.capacity < this.design.capacityBrokenThreshold;
+        return belowFloat32(this.capacity, this.design.capacityBrokenThreshold);
     }
 
     getCount(m: AmmoType): number {

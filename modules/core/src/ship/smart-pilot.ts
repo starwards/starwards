@@ -2,6 +2,7 @@ import { DesignState, SystemState, defectible } from './system';
 import { commandable, gameField } from '../game-field';
 
 import { Vec2 } from '../space';
+import { atLeastFloat32 } from '../logic/float32';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -76,7 +77,8 @@ export class SmartPilot extends SystemState {
     @gameField('float32')
     offsetFactor = 0;
 
+    /** Compared as clients read both `float32` fields (see `atLeastFloat32`). */
     get broken(): boolean {
-        return this.offsetFactor >= this.design.offsetBrokenThreshold;
+        return atLeastFloat32(this.offsetFactor, this.design.offsetBrokenThreshold);
     }
 }
