@@ -5,6 +5,8 @@ import {
     OUT_OF_PLAY_SECONDS,
     STATIONS,
     WAVE_INTERVAL_SECONDS,
+    WaveDefenceTuning,
+    WaveShipSpec,
     createWaveDefenceMap,
     furthestStationId,
     generateWaveComposition,
@@ -12,8 +14,6 @@ import {
     pickWaveTargetStationId,
     sampleWaveSpawnCenter,
     waveBudget,
-    WaveDefenceTuning,
-    WaveShipSpec,
 } from '../scenarios/wave-defence';
 import {
     Faction,
