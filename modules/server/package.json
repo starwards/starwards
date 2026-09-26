@@ -15,7 +15,8 @@
         "build_watch": "tsc -p ./tsconfig.runtime.json --watch",
         "start": "node -r ts-node/register/transpile-only ./src/dev.ts",
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080",
-        "test": "jest"
+        "test": "jest",
+        "training": "node -r ts-node/register/transpile-only ./src/test/training/run-training.ts"
     },
     "dependencies": {
         "@colyseus/core": "^0.16.23",

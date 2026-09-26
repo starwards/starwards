@@ -17,12 +17,15 @@ import { expect } from 'chai';
 describe('AI pilot combat: evasive weave (issue #2146)', () => {
     afterEach(() => jest.restoreAllMocks());
 
-    it('produces real, oscillating cross-track displacement once pinned at max speed during a long approach', () => {
-        // Mirrors the wave-defence scenario's actual regime (spawn ~140km out, ATTACK ordered
-        // immediately): the ship saturates maxSpeed within ~2s and spends the rest of a long
-        // closing approach pinned there in the out-of-range branch (moveToTarget), full boost.
-        // That is exactly where a governor bug previously erased the weave outright -- see
-        // ship-manager.ts's `capMaxSpeed` (formerly a wholesale `smartPilot.maneuvering` overwrite).
+    /**
+     * Cross-track displacement of a dragonfly-MK1 on a long ATTACK approach. Mirrors the
+     * wave-defence scenario's actual regime (spawn ~140km out, ATTACK ordered immediately): the
+     * ship saturates maxSpeed within ~2s and spends the rest of a long closing approach pinned
+     * there in the out-of-range branch (moveToTarget), full boost. That is exactly where a governor
+     * bug previously erased the weave outright -- see ship-manager.ts's `capMaxSpeed` (formerly a
+     * wholesale `smartPilot.maneuvering` overwrite).
+     */
+    function crossTrackOnLongApproach(labNoCombatWeave: boolean) {
         const spaceMgr = new SpaceManager();
         const die = new MockDie();
         die.expectedRoll = 1;
@@ -30,6 +33,7 @@ describe('AI pilot combat: evasive weave (issue #2146)', () => {
         const attacker = new Spaceship().init('attacker', Vec2.make(XY.zero), 'dragonfly-MK1', Faction.Raiders);
         const attackerState = makeShipState(attacker.id, shipConfigurations['dragonfly-MK1']);
         attackerState.isPlayerShip = false;
+        attackerState.labNoCombatWeave = labNoCombatWeave;
         const attackerMgr = new ShipManagerNpc(attacker, attackerState, spaceMgr, die);
 
         const target = new Spaceship();
@@ -55,12 +59,23 @@ describe('AI pilot combat: evasive weave (issue #2146)', () => {
             spaceMgr.update(id);
             crossTrackSamples.push(attacker.position.y);
         }
+        return crossTrackSamples;
+    }
+
+    it('produces real, oscillating cross-track displacement once pinned at max speed during a long approach', () => {
+        const crossTrackSamples = crossTrackOnLongApproach(false);
 
         // real, substantial sideways motion in both directions (measured: roughly -90m to +825m
         // over this 20s window) -- not just a written command value that never reaches the physics
         // (the bug this regresses against, where the max-speed governor silently discarded it).
         expect(Math.max(...crossTrackSamples)).to.be.greaterThan(200);
         expect(Math.min(...crossTrackSamples)).to.be.lessThan(-20);
+    });
+
+    it('flies the same approach on the line of sight when labNoCombatWeave is set', () => {
+        const crossTrackSamples = crossTrackOnLongApproach(true);
+
+        expect(Math.max(...crossTrackSamples.map(Math.abs))).to.be.lessThan(5);
     });
 
     it('keeps a stable per-ship phase across the 3-second event-salt window (regression: an event roll re-rolls every 3s)', () => {

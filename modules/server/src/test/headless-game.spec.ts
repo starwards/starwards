@@ -1,9 +1,7 @@
 import { ShipManagerNpc, ShipManagerPc, makeId, mulberry32, uniqueId } from '@starwards/core/internal';
-import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
+import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, training_t1 } from '../scenarios/training';
 import { HeadlessGame } from './headless-game';
 import { createWaveDefenceMap } from '../scenarios/wave-defence';
-
-const training_t1 = createTrainingT1Map({ distance: 5000, bearing: 0 });
 
 describe('HeadlessGame.start', () => {
     it('replays a seed identically after another run in the same process', () => {

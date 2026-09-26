@@ -347,7 +347,10 @@ export class AutomationManager {
             // Only marks the UI-facing weapons-target slot; aiming and firing are `aimAndFire`'s,
             // uniformly for every NPC.
             this.shipManager.setTarget(targetId);
-            weave = this.combatWeave(id, target.position);
+            // `labNoCombatWeave` is calibration only, never set in a game.
+            if (!this.state.labNoCombatWeave) {
+                weave = this.combatWeave(id, target.position);
+            }
         }
         const profile = this.getFlightProfile();
         this.positionNearTarget(
