@@ -1,9 +1,16 @@
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
+import { EVENTS_EXT, RecordedEvent } from '../headless-recorder';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { IdleStrategy, Order, ShipModel, shipConfigurations } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID } from '../../scenarios/training';
 import { runTraining, trainingScenarios } from './training-scenarios';
 
+import { RECORDING_EXT } from '../../recording/game-recorder';
 import fc from 'fast-check';
+import { rmDirRetrying } from './analysis/__fixtures__/rm-retry';
 
 /** A rung's target two ticks into its seed-1 layout: the space manager takes the map's orders on the first, the ship on the second. */
 function targetOf(scenarioName: string) {
@@ -54,8 +61,8 @@ describe('training ladder', () => {
 describe('runTraining', () => {
     jest.setTimeout(30_000);
 
-    it('measures a T0 run that times out before the kill', () => {
-        const result = runTraining(trainingScenarios.T0, { seed: 1, timeoutSeconds: 5 });
+    it('measures a T0 run that times out before the kill', async () => {
+        const result = await runTraining(trainingScenarios.T0, { seed: 1, timeoutSeconds: 5 });
 
         expect(result).toMatchObject({ scenario: 'T0', seed: 1, killed: false, targetHealth: 1 });
         expect(result.seconds).toBeCloseTo(5, 1);
@@ -64,5 +71,46 @@ describe('runTraining', () => {
         expect(result.inRangeFraction).toBeLessThanOrEqual(1);
         expect(result.killZoneFraction).toBeGreaterThanOrEqual(0);
         expect(result.killZoneFraction).toBeLessThanOrEqual(1);
+    });
+
+    it('without a `recording` option still analyzes via a scratch recording, then cleans it up', async () => {
+        const metrics = await runTraining(trainingScenarios.T0, { seed: 1, timeoutSeconds: 5 });
+
+        expect(metrics.recording).toBeUndefined();
+        expect(metrics.frames).toBeUndefined();
+        expect(Array.isArray(metrics.failedChecks)).toBe(true);
+        // T0 seed 1 never kills in 5 s and never strips armor that fast either -- shouldn't crash
+        // or report a false failure for checks whose inputs (e.g. an `armor_stripped` event)
+        // don't exist yet.
+        expect(metrics.killed).toBe(false);
+    });
+
+    it('with a `recording` option keeps the recording and counts blast hits from its sidecar', async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sw-training-recording-'));
+        try {
+            const result = await runTraining(trainingScenarios.T0, {
+                seed: 1,
+                timeoutSeconds: 10,
+                recording: { dir, intervalSimSeconds: 1 },
+            });
+
+            expect(result.recording).toBe(path.join(dir, `T0_seed1${RECORDING_EXT}`));
+            const frameLines = fs.readFileSync(result.recording!, 'utf-8').trim().split('\n').slice(1);
+            expect(result.frames).toBe(frameLines.length);
+            const targetBlasts = new Set(
+                fs
+                    .readFileSync(result.recording!.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
+                    .split('\n')
+                    .filter((line) => line)
+                    .map((line) => JSON.parse(line) as RecordedEvent)
+                    .flatMap((e) =>
+                        e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID ? [e.explosionId] : [],
+                    ),
+            );
+            expect(targetBlasts.size).toBeGreaterThan(0);
+            expect(result.blastHits).toBe(targetBlasts.size);
+        } finally {
+            await rmDirRetrying(dir);
+        }
     });
 });
