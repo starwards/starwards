@@ -58,7 +58,7 @@ gameField(dt: DefinitionType): PropertyDecorator
 @gameField('uint16')  // 0 to 65535
 @gameField('int32')   // -2147483648 to 2147483647
 @gameField('uint32')  // 0 to 4294967295
-@gameField('float32') // 32-bit float (auto-rounds to 2 decimals)
+@gameField('float32') // 32-bit float on the wire
 @gameField('float64') // 64-bit float
 @gameField('string')  // UTF-8 string
 @gameField('boolean') // true/false
@@ -74,35 +74,19 @@ gameField(dt: DefinitionType): PropertyDecorator
 ## Behavior
 
 ### Float32 Precision
-@behavior: automatic-rounding
+@behavior: wire-encoding-only
 -> applies-to: float32 type only
 
 ```typescript
 @gameField('float32')
 speed: number = 0;
 
-// Automatically rounds to 2 decimal places
-// 1.23456 → 1.23
-// 0.999 → 1.00
+// No rounding on assignment: the server instance keeps the full double.
+// Clients and snapshots decode the float32 encoding (~7 significant digits),
+// so server and client values can differ in the low digits.
 ```
 
-**Implementation:**
-The primary implementation is `number2Digits` in `game-field.ts` (lines 223-259): it calls
-`type('float32')`, then wraps the Colyseus-created setter via `Object.defineProperty` to round
-before delegating. The `definition.descriptors[field].set` path (lines 244-258) is only a v2-compat
-fallback for when Colyseus does not create a setter.
-```typescript
-// From game-field.ts (number2Digits, lines 234-243)
-Object.defineProperty(target, field, {
-    get: colyseusDescriptor.get,
-    set(this: Schema, value: number) {
-        const rounded = Math.round(value * 1e2) / 1e2;
-        colyseusSetter.call(this, rounded);
-    },
-    enumerable: colyseusDescriptor.enumerable,
-    configurable: colyseusDescriptor.configurable,
-});
-```
+Compare server-side floats against thresholds with a tolerance, not `===`.
 
 ### Network Synchronization
 @pattern: delta-compression

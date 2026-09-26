@@ -903,7 +903,7 @@ afterEach(async () => {
 expect(value).toBeCloseTo(expected, 1);  // ±0.1
 expect(value).toBeCloseTo(expected, 2);  // ±0.01
 
-// Float32 precision: 2 decimals
+// Float32 precision: ~7 significant digits on clients
 // Recommended tolerance: 0.1-0.2
 
 // ❌ Exact comparison
