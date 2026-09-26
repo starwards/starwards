@@ -4,7 +4,7 @@ import * as path from 'node:path';
 
 import { EVENTS_EXT, HeadlessRecorder, RecordedEvent } from './headless-recorder';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { T1Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
+import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
 import { parseFrameLine, parseHeader } from '../recording/recording-format';
 
 import { RECORDING_EXT } from '../recording/game-recorder';
@@ -12,7 +12,7 @@ import { SavedGame } from '../serialization/game-state-protocol';
 import { XY } from '@starwards/core/internal';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
-const params: T1Params = { distance: 3000, bearing: 0 };
+const params: T0Params = { distance: 3000, bearing: 0 };
 const seed = 1;
 const timeoutSeconds = 20;
 
@@ -81,7 +81,7 @@ describe('HeadlessRecorder', () => {
         const expected = await stringToSchema(SavedGame, end.frame);
         const resumed = HeadlessGame.restore(
             saved,
-            createTrainingT1Map(header.params as T1Params),
+            createTrainingT1Map(header.params as T0Params),
             header.seed ?? 0,
             branch.t,
         );
