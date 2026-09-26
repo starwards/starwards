@@ -2,49 +2,77 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { EVENTS_EXT, RecordedEvent } from './headless-recorder';
+import { EVENTS_EXT, HeadlessRecorder, RecordedEvent } from './headless-recorder';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { T0_PLAY_DEAD_DRAGONFLY, runTraining } from './training/training-scenarios';
-import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT0Map } from '../scenarios/training';
+import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
 import { parseFrameLine, parseHeader } from '../recording/recording-format';
 
 import { RECORDING_EXT } from '../recording/game-recorder';
 import { SavedGame } from '../serialization/game-state-protocol';
+import { XY } from '@starwards/core/internal';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
+const params: T0Params = { distance: 3000, bearing: 0 };
+const seed = 1;
+const timeoutSeconds = 20;
+
 describe('HeadlessRecorder', () => {
-    // `runTraining` ingests its recording into a store for `analysis/checks.ts`
-    // (training-scenarios.ts), which costs more wall time than the sim itself.
+    let dir: string;
+    let recorder: HeadlessRecorder;
+    /** Ground truth from live state: the first tick each explosion overlaps the target. */
+    const targetOverlaps: { explosionId: string; t: number }[] = [];
+
+    beforeAll(async () => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'headless-recorder-'));
+        const game = HeadlessGame.start(createTrainingT1Map(params), seed);
+        recorder = new HeadlessRecorder(game, dir, `training_t1_seed${seed}`, 1, params, SERVER_TICK_HZ);
+        const seen = new Set<string>();
+        await recorder.capture();
+        while (game.seconds < timeoutSeconds) {
+            game.tick(1 / SERVER_TICK_HZ);
+            await recorder.capture();
+            const target = game.spaceManager.state.get(TRAINING_TARGET_ID);
+            if (!target || target.destroyed) {
+                break;
+            }
+            for (const explosion of game.spaceManager.state.getAll('Explosion')) {
+                if (
+                    !seen.has(explosion.id) &&
+                    !explosion.destroyed &&
+                    XY.distance(explosion.position, target.position) < explosion.radius + target.radius
+                ) {
+                    seen.add(explosion.id);
+                    targetOverlaps.push({ explosionId: explosion.id, t: game.seconds });
+                }
+            }
+        }
+        await recorder.capture(true);
+    }, 60_000);
+
+    afterAll(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    const readEvents = () =>
+        fs
+            .readFileSync(recorder.filePath.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
+            .split('\n')
+            .filter((line) => line)
+            .map((line) => JSON.parse(line) as RecordedEvent);
+
     it('records a training run whose frames resume into the same trajectory', async () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'headless-recorder-'));
-        const result = await runTraining(T0_PLAY_DEAD_DRAGONFLY, {
-            seed: 1,
-            timeoutSeconds: 20,
-            recording: { dir, intervalSimSeconds: 1 },
-        });
-        const [headerLine, ...frameLines] = fs
-            .readFileSync(result.recording ?? '', 'utf-8')
-            .trim()
-            .split('\n');
+        const [headerLine, ...frameLines] = fs.readFileSync(recorder.filePath, 'utf-8').trim().split('\n');
         const header = parseHeader(headerLine);
-        expect(header).toMatchObject({ mapName: 'training_t0', seed: 1, params: result.params, hz: SERVER_TICK_HZ });
+        expect(header).toMatchObject({ mapName: 'training_t1', seed, params, hz: SERVER_TICK_HZ });
         const frames = frameLines.map((line) => parseFrameLine(line)!);
-        expect(frames.length).toBe(result.frames);
+        expect(frames.length).toBe(recorder.frameCount);
 
         // isFiring edges land at tick resolution, between 1 s frames, alternating start/stop per mount.
-        const events = fs
-            .readFileSync(result.recording!.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
-            .trim()
-            .split('\n')
-            .map((line) => JSON.parse(line) as RecordedEvent);
-        const gvtsFire = events.filter(
+        const gvtsFire = readEvents().filter(
             (e) => e.kind !== 'blast_hit' && e.objectId === TRAINING_PLAYER_ID && e.mount === 0,
         );
         expect(gvtsFire[0]?.kind).toBe('fire_start');
         gvtsFire.forEach((e, i) => expect(e.kind).toBe(i % 2 ? 'fire_stop' : 'fire_start'));
-        expect(events.filter((e) => e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID).length).toBe(
-            result.blastHits,
-        );
         expect(gvtsFire.some((e) => Math.abs(e.t - Math.round(e.t)) > 1 / SERVER_TICK_HZ / 2)).toBe(true);
 
         const branch = frames.find((f) => f.t >= 10)!;
@@ -53,7 +81,7 @@ describe('HeadlessRecorder', () => {
         const expected = await stringToSchema(SavedGame, end.frame);
         const resumed = HeadlessGame.restore(
             saved,
-            createTrainingT0Map(header.params as never),
+            createTrainingT1Map(header.params as T0Params),
             header.seed ?? 0,
             branch.t,
         );
@@ -62,22 +90,19 @@ describe('HeadlessRecorder', () => {
         }
         // Not bit-exact: automation keeps private per-ship state (flight profile, gunnery latches)
         // that a SavedGame doesn't carry. Kept to 2 s: once blasts land, knock-back amplifies any
-        // difference chaotically (seed 1 drifts ~5 m by t=12, ~200 m by t=14 after a volley).
+        // difference chaotically.
         for (const id of [TRAINING_PLAYER_ID, TRAINING_TARGET_ID]) {
             const actual = resumed.api.getObject(id)!.position;
             const recorded = expected.fragment.space.get(id)!.position;
             expect(Math.hypot(actual.x - recorded.x, actual.y - recorded.y)).toBeLessThan(50);
         }
-        // DuckDB's Windows native file handle (the store `runTraining` builds internally) can lag
-        // its close callback, longest under full-suite load -- retry, then leave the temp dir to the
-        // OS rather than fail a resume test over cleanup.
-        for (let attempt = 0; attempt < 20; attempt++) {
-            try {
-                fs.rmSync(dir, { recursive: true, force: true });
-                break;
-            } catch {
-                await new Promise((resolve) => setTimeout(resolve, 150));
-            }
-        }
-    }, 60_000);
+    });
+
+    it("records each explosion's first overlap with a ship once, on the tick it begins", () => {
+        expect(targetOverlaps.length).toBeGreaterThan(0);
+        const hits = readEvents().flatMap((e) =>
+            e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID ? [{ explosionId: e.explosionId, t: e.t }] : [],
+        );
+        expect(hits).toEqual(targetOverlaps);
+    });
 });
