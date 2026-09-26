@@ -17,6 +17,11 @@ import {
 import { IterationData } from '../src/updateable';
 import { ShipDie } from '../src/ship/ship-die';
 
+/**
+ * Calibration only, never a balance number: at the default roll 0 every roll succeeds, so damage
+ * breaks systems (and the capsule) as fast as the rules allow. Fit for bounds and threshold tests,
+ * not for time-to-kill; engagement tests use a seeded `ShipDie`.
+ */
 export class MockDie {
     private _expectedRoll = 0;
     private _expectedDrift: ((id: string, t: number) => number) | null = null;
