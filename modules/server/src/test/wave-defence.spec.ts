@@ -1,5 +1,6 @@
 import {
     CANT_FIGHT_SECONDS,
+    DEFAULT_WAVE_TUNING,
     OUT_OF_PLAY_DISTANCE_METERS,
     OUT_OF_PLAY_SECONDS,
     STATIONS,
@@ -11,6 +12,8 @@ import {
     pickWaveTargetStationId,
     sampleWaveSpawnCenter,
     waveBudget,
+    WaveDefenceTuning,
+    WaveShipSpec,
 } from '../scenarios/wave-defence';
 import {
     Faction,
@@ -28,6 +31,7 @@ import {
     XY,
     ammoTypes,
     makeId,
+    mulberry32,
     waitFor,
 } from '@starwards/core/internal';
 
@@ -46,7 +50,9 @@ describe('waveBudget', () => {
     // 60). The formula is the named, load-bearing rule -- it is what governs budgets past wave 10
     // -- so this test pins waveBudget to Math.ceil(n ** 1.3 * 10) exactly, not the example table.
     it('matches Math.ceil(n ** 1.3 * 10) for waves 1-10', () => {
-        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(waveBudget)).toEqual([10, 25, 42, 61, 82, 103, 126, 150, 174, 200]);
+        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => waveBudget(n))).toEqual([
+            10, 25, 42, 61, 82, 103, 126, 150, 174, 200,
+        ]);
     });
 });
 
@@ -194,6 +200,142 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
                 expect(spent).toBeLessThanOrEqual(waveBudget(wave));
             }
         }
+    });
+});
+
+/** One wave as `count x model doctrine target aggro` lines, in spawn order of first appearance. */
+function waveSummary(specs: readonly WaveShipSpec[]): string[] {
+    const counts = new Map<string, number>();
+    for (const spec of specs) {
+        const key = `${spec.model} ${FlightDoctrine[spec.flightDoctrine]} ${spec.targetPolicy.kind} ${spec.aggro ?? '-'}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts].map(([key, count]) => `${count}x ${key}`);
+}
+
+describe('default wave tuning (characterisation)', () => {
+    // Pins what production spawns today, so the tuning levers are a behaviour-preserving refactor.
+    const PINNED: Record<number, Record<number, string[]>> = {
+        7: {
+            1: ['budget 10', '2x dragonfly-MK1 INTERCEPT station Brawler'],
+            2: ['budget 25', '1x dragonfly-MK2 SHADOW player Hunter', '3x dragonfly-MK1 INTERCEPT station Brawler'],
+            3: [
+                'budget 42',
+                '3x dragonfly-MK1 INTERCEPT station Brawler',
+                '3x dragonfly-MK2 INTERCEPT station Brawler',
+            ],
+            4: ['budget 61', '1x predator STANDOFF station Brawler', '6x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+            5: ['budget 82', '1x cataphract STANDOFF station Brawler', '1x predator STANDOFF station Brawler'],
+            6: ['budget 103', '6x dragonfly-MK2 SHADOW player Hunter', '11x dragonfly-MK1 INTERCEPT station Brawler'],
+            7: [
+                'budget 126',
+                '14x dragonfly-MK1 INTERCEPT station Brawler',
+                '7x dragonfly-MK2 INTERCEPT station Brawler',
+            ],
+            8: ['budget 150', '1x predator STANDOFF station Brawler', '24x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+            9: ['budget 174', '3x cataphract STANDOFF station Brawler', '4x dragonfly-MK1 STANDOFF station Brawler'],
+            10: ['budget 200', '12x dragonfly-MK2 SHADOW player Hunter', '20x dragonfly-MK1 INTERCEPT station Brawler'],
+            11: [
+                'budget 226',
+                '17x dragonfly-MK2 INTERCEPT station Brawler',
+                '18x dragonfly-MK1 INTERCEPT station Brawler',
+            ],
+            12: ['budget 253', '1x predator STANDOFF station Brawler', '44x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+            13: ['budget 281', '5x cataphract STANDOFF station Brawler', '1x predator STANDOFF station Brawler'],
+            14: ['budget 310', '19x dragonfly-MK2 SHADOW player Hunter', '31x dragonfly-MK1 INTERCEPT station Brawler'],
+            15: [
+                'budget 339',
+                '36x dragonfly-MK2 INTERCEPT station Brawler',
+                '10x dragonfly-MK1 INTERCEPT station Brawler',
+            ],
+            16: ['budget 368', '1x predator STANDOFF station Brawler', '67x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+        },
+        42: {
+            1: ['budget 10', '2x dragonfly-MK1 INTERCEPT station Brawler'],
+            2: ['budget 25', '1x dragonfly-MK2 SHADOW player Hunter', '3x dragonfly-MK1 INTERCEPT station Brawler'],
+            3: [
+                'budget 42',
+                '4x dragonfly-MK2 INTERCEPT station Brawler',
+                '2x dragonfly-MK1 INTERCEPT station Brawler',
+            ],
+            4: ['budget 61', '1x predator STANDOFF station Brawler', '6x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+            5: ['budget 82', '1x cataphract STANDOFF station Brawler', '1x predator STANDOFF station Brawler'],
+            6: ['budget 103', '6x dragonfly-MK2 SHADOW player Hunter', '11x dragonfly-MK1 INTERCEPT station Brawler'],
+            7: [
+                'budget 126',
+                '10x dragonfly-MK1 INTERCEPT station Brawler',
+                '9x dragonfly-MK2 INTERCEPT station Brawler',
+            ],
+            8: ['budget 150', '1x predator STANDOFF station Brawler', '24x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+            9: ['budget 174', '3x cataphract STANDOFF station Brawler', '4x dragonfly-MK1 STANDOFF station Brawler'],
+            10: ['budget 200', '12x dragonfly-MK2 SHADOW player Hunter', '20x dragonfly-MK1 INTERCEPT station Brawler'],
+            11: [
+                'budget 226',
+                '19x dragonfly-MK1 INTERCEPT station Brawler',
+                '16x dragonfly-MK2 INTERCEPT station Brawler',
+            ],
+            12: ['budget 253', '1x predator STANDOFF station Brawler', '44x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+            13: ['budget 281', '5x cataphract STANDOFF station Brawler', '1x predator STANDOFF station Brawler'],
+            14: ['budget 310', '19x dragonfly-MK2 SHADOW player Hunter', '31x dragonfly-MK1 INTERCEPT station Brawler'],
+            15: [
+                'budget 339',
+                '26x dragonfly-MK1 INTERCEPT station Brawler',
+                '26x dragonfly-MK2 INTERCEPT station Brawler',
+            ],
+            16: ['budget 368', '1x predator STANDOFF station Brawler', '67x dragonfly-MK1 SHADOW follow-heavy Brawler'],
+        },
+    };
+
+    it.each([7, 42])('waves 1-16 under mulberry32(%i): budget and composition', (seed) => {
+        const rng = mulberry32(seed);
+        const actual: Record<number, string[]> = {};
+        for (let wave = 1; wave <= 16; wave++) {
+            actual[wave] = [`budget ${waveBudget(wave)}`, ...waveSummary(generateWaveSpecs(wave, rng))];
+        }
+        expect(actual).toEqual(PINNED[seed]);
+    });
+});
+
+describe('wave tuning overrides', () => {
+    it('the default tuning passed explicitly spawns the same waves as the implicit default', () => {
+        for (let wave = 1; wave <= 16; wave++) {
+            expect(generateWaveSpecs(wave, mulberry32(3), DEFAULT_WAVE_TUNING)).toEqual(
+                generateWaveSpecs(wave, mulberry32(3)),
+            );
+        }
+    });
+
+    it('hullScores: halved heavy prices make wave 2 affordable as a gunline -- one cataphract, not a harass', () => {
+        const tuning: WaveDefenceTuning = {
+            ...DEFAULT_WAVE_TUNING,
+            hullScores: { ...DEFAULT_WAVE_TUNING.hullScores, cataphract: 25, glaive: 18, predator: 15 },
+        };
+        expect(generateWaveComposition(2, () => 0)).toEqual([
+            'dragonfly-MK2',
+            'dragonfly-MK1',
+            'dragonfly-MK1',
+            'dragonfly-MK1',
+        ]);
+        expect(generateWaveSpecs(2, () => 0, tuning)).toEqual([
+            {
+                model: 'cataphract',
+                flightDoctrine: FlightDoctrine.STANDOFF,
+                targetPolicy: { kind: 'station' },
+                aggro: 'Brawler',
+            },
+        ]);
+    });
+
+    it('budgetExponent: a steeper curve raises the budget and buys a bigger wave', () => {
+        const tuning: WaveDefenceTuning = { ...DEFAULT_WAVE_TUNING, budgetExponent: 1.5 };
+        expect(waveBudget(5, 1.5)).toBe(Math.ceil(5 ** 1.5 * 10));
+        // wave 5 is a gunline either way: 82 buys a cataphract and a predator, 112 two cataphracts and two MK1s
+        expect(generateWaveSpecs(5, () => 0, tuning).map((spec) => spec.model)).toEqual([
+            'cataphract',
+            'cataphract',
+            'dragonfly-MK1',
+            'dragonfly-MK1',
+        ]);
     });
 });
 
@@ -486,6 +628,8 @@ describe('wave_defence map (integration)', () => {
 });
 
 describe('wave progression: incapacitated/out-of-play raiders and the hard wave timer (issue #2233)', () => {
+    // Each test simulates minutes of game time at 1-20 Hz: ~2 s alone, past the 5 s default under a full parallel run.
+    jest.setTimeout(20_000);
     const gameDriver = makeDriver({ manualClock: true });
 
     function npcWaveIds() {
@@ -509,7 +653,10 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
     }
 
     it('converts a raider to a Derelict after its chain guns are broken for 30s continuously (not sooner), then the wave clears', async () => {
-        const map = createWaveDefenceMap(() => 0);
+        const writeOffs: [string, string][] = [];
+        const map = createWaveDefenceMap(() => 0, undefined, {
+            onRaiderWrittenOff: (id, reason) => writeOffs.push([id, reason]),
+        });
         await gameDriver.gameManager.startGame(map);
         gameDriver.gameManager.update(1 / 20);
         gameDriver.gameManager.update(1 / 20); // orders land
@@ -529,6 +676,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         gameDriver.gameManager.update(2); // crosses the 30s mark
         await waitForShipManagersGone(wave1Ids);
         expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(wave1Ids.length);
+        expect(writeOffs).toEqual(wave1Ids.map((id) => [id, 'cant-fight']));
 
         // the wave now reads as fully cleared -- the existing 15s clear delay still applies. The
         // crossing tick above already counted 2s toward it (raiders read as gone by its own end).
@@ -566,7 +714,10 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
     });
 
     it('converts a raider that recedes past 200km from every station for 60s continuously, but not one that is closing', async () => {
-        const map = createWaveDefenceMap(() => 0);
+        const writeOffs: [string, string][] = [];
+        const map = createWaveDefenceMap(() => 0, undefined, {
+            onRaiderWrittenOff: (id, reason) => writeOffs.push([id, reason]),
+        });
         await gameDriver.gameManager.startGame(map);
         gameDriver.gameManager.update(1 / 20);
         gameDriver.gameManager.update(1 / 20);
@@ -596,7 +747,57 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
 
         const derelicts = [...gameDriver.spaceManager.state.getAll('Derelict')];
         expect(derelicts).toHaveLength(1);
+        expect(writeOffs).toEqual([[recedingId, 'out-of-play']]);
         expect(gameDriver.getShip(closingId)).toBeDefined(); // never accumulated: distance kept decreasing
+    });
+
+    it('waveIntervalSeconds: an overridden interval spawns wave 2 at that interval, not before', async () => {
+        const map = createWaveDefenceMap(() => 0, { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds: 120 });
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+
+        const wave1Ids = npcWaveIds();
+        const pins = wave1Ids.map((id) => {
+            const obj = gameDriver.spaceManager.state.get(id)!;
+            return { obj, position: Vec2.make(obj.position) };
+        });
+        const pinInPlace = () => {
+            for (const { obj, position } of pins) {
+                obj.position = Vec2.make(position);
+                obj.velocity = Vec2.make({ x: 0, y: 0 });
+            }
+        };
+
+        for (let i = 0; i < 120 - 1; i++) {
+            pinInPlace();
+            gameDriver.gameManager.update(1);
+        }
+        expect(npcWaveIds()).toHaveLength(wave1Ids.length);
+
+        pinInPlace();
+        gameDriver.gameManager.update(2); // crosses 120 s
+        expect(npcWaveIds().length).toBeGreaterThan(wave1Ids.length);
+    });
+
+    it('onWaveSpawned reports each wave number, its ship ids and the station it targets', async () => {
+        const spawned: [number, readonly string[], string][] = [];
+        const map = createWaveDefenceMap(() => 0, undefined, {
+            onWaveSpawned: (wave, shipIds, targetStationId) => spawned.push([wave, shipIds, targetStationId]),
+        });
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+        const wave1Ids = npcWaveIds();
+        expect(spawned).toEqual([[1, wave1Ids, 'station-large']]);
+
+        for (let i = 0; i < WAVE_INTERVAL_SECONDS + 1; i++) {
+            gameDriver.gameManager.update(1);
+        }
+        expect(spawned.map(([wave, shipIds, target]) => [wave, shipIds.length, target])).toEqual([
+            [1, 2, 'station-large'],
+            [2, generateWaveSpecs(2, () => 0).length, 'station-platform'],
+        ]);
     });
 
     it('spawns wave 2 at exactly WAVE_INTERVAL_SECONDS with no wave-1 raider destroyed, not before; wave 1 stays alive and ordered', async () => {
