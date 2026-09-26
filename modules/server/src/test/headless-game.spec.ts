@@ -1,12 +1,14 @@
 import { ShipManagerNpc, ShipManagerPc, makeId, mulberry32, uniqueId } from '@starwards/core/internal';
-import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, training_t0 } from '../scenarios/training';
+import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
 import { HeadlessGame } from './headless-game';
 import { createWaveDefenceMap } from '../scenarios/wave-defence';
+
+const training_t1 = createTrainingT1Map({ distance: 5000, bearing: 0 });
 
 describe('HeadlessGame.start', () => {
     it('replays a seed identically after another run in the same process', () => {
         const run = () => {
-            const game = HeadlessGame.start(training_t0, 1);
+            const game = HeadlessGame.start(training_t1, 1);
             while (game.seconds < 30) {
                 game.tick(1 / 60);
             }
@@ -23,10 +25,10 @@ describe('HeadlessGame.start', () => {
 
 describe('HeadlessGame.restore', () => {
     it('restores a crewed run with the player ship on the player manager', () => {
-        const game = HeadlessGame.start(training_t0, 1, { crewedPlayer: true });
+        const game = HeadlessGame.start(training_t1, 1, { crewedPlayer: true });
         game.tick(0.1);
 
-        const resumed = HeadlessGame.restore(game.saveGame(), training_t0, 1, game.seconds, { crewedPlayer: true });
+        const resumed = HeadlessGame.restore(game.saveGame(), training_t1, 1, game.seconds, { crewedPlayer: true });
 
         expect(resumed.api.getShip(TRAINING_PLAYER_ID)).toBeInstanceOf(ShipManagerPc);
         expect(resumed.api.getShip(TRAINING_TARGET_ID)).toBeInstanceOf(ShipManagerNpc);
@@ -37,7 +39,7 @@ describe('HeadlessGame.restore', () => {
         const game = HeadlessGame.start(map, 1);
         game.tick(1);
         const saved = game.saveGame();
-        HeadlessGame.start(training_t0, 2);
+        HeadlessGame.start(training_t1, 2);
 
         const resumed = HeadlessGame.restore(saved, map, 1, game.seconds);
 

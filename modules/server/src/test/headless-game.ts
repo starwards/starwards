@@ -38,7 +38,7 @@ export const SERVER_TICK_HZ = 60;
  * as a crew would. Player ships stay non-expendable. Calibration only: without `crewedPlayer` a
  * player ship flies on NPC automation, which draws no energy and aims with the NPC gunnery.
  *
- * {@link saveGame} and {@link HeadlessGame.restore} round-trip through the same `SavedGame` a
+ * {@link HeadlessGame.saveGame} and {@link HeadlessGame.restore} round-trip through the same `SavedGame` a
  * recording frame holds, so any frame is a branch point. The die is rebuilt from `seed` +
  * elapsed seconds (its whole state). Not in the snapshot, so not continued by a restore: a map's
  * own closure state (e.g. wave-defence's wave counter), which restarts fresh, and each NPC's aggro
@@ -49,7 +49,6 @@ export class HeadlessGame {
     readonly shipManagers = new Map<string, ShipManager>();
     private readonly die: ShipDie;
     private speed = 1;
-    message = '';
 
     readonly api: GameApi = {
         getShip: (shipId) => this.shipManagers.get(shipId) as ShipApi | undefined,
@@ -77,16 +76,14 @@ export class HeadlessGame {
         setSpeed: (speed) => {
             this.speed = Math.max(0, Math.min(3, speed));
         },
-        setMessage: (message) => {
-            this.message = message;
-        },
+        setMessage: () => undefined,
     };
 
     private constructor(
         private readonly map: GameMap,
         readonly seed: number,
         private totalSeconds: number,
-        private readonly crewedPlayer = false,
+        private readonly crewedPlayer: boolean,
     ) {
         this.die = new ShipDie(seed);
         this.die.update({ deltaSeconds: totalSeconds, deltaSecondsAvg: totalSeconds, totalSeconds });
