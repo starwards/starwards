@@ -1,8 +1,7 @@
-import { EPSILON, capToRange, degToRad, lerp } from '../logic/formulas';
+import { EPSILON, atLeastThreshold, capToRange, degToRad, lerp } from '../logic/formulas';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
 
 import { commandable, gameField } from '../game-field';
-import { atLeastFloat32 } from '../logic/float32';
 import { defectible } from './system';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
@@ -70,15 +69,6 @@ export class RadarDesignState extends TurretDesignState implements RadarDesign {
      */
     get malfunctionArea() {
         return areaFromRadarRange(this.malfunctionRange, this.defaultArc);
-    }
-
-    /**
-     * the highest `malfunctionRangeFactor` can go, and the factor at which the radar is broken.
-     * Derived from the `float32` view of `rangeEaseFactor`, the only value clients have, so the
-     * server and every client derive the same threshold (see `atLeastFloat32`).
-     */
-    get maxMalfunctionRangeFactor() {
-        return 1 - Math.fround(this.rangeEaseFactor) * 2;
     }
 }
 
@@ -224,7 +214,7 @@ export class Radar extends Turret {
      * percent of the time in which the range is malfunctionRange
      */
     @defectible({ normal: 0, name: 'range fluctuation' })
-    @range((t: Radar) => [0, t.design.maxMalfunctionRangeFactor])
+    @range((t: Radar) => [0, 1 - t.design.rangeEaseFactor * 2])
     @gameField('float32')
     malfunctionRangeFactor = 0;
 
@@ -265,8 +255,9 @@ export class Radar extends Turret {
      */
     public supply = 1;
 
+    /** Compared the way clients read the `float32` fields (see `atLeastThreshold`). */
     get broken() {
-        return super.broken || atLeastFloat32(this.malfunctionRangeFactor, this.design.maxMalfunctionRangeFactor);
+        return super.broken || atLeastThreshold(this.malfunctionRangeFactor, 1 - this.design.rangeEaseFactor * 2);
     }
 
     /**

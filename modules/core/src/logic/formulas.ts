@@ -249,6 +249,33 @@ export function limitPercision(num: number) {
 }
 
 /**
+ * `value >= threshold` for synced `@gameField('float32')` values, such as a system's `broken`,
+ * read the same on the server as on every client and in every snapshot.
+ *
+ * The server holds such a field as a double. `@gameField('float32')` installs a 2-decimal rounding
+ * setter (`number2Digits`), but `@colyseus/schema` v3 never calls it. Clients and snapshots hold
+ * the field as float32, so a snapshot restore turns the server's design thresholds into float32
+ * too. An exact comparison flips whenever that rounding carries a value across its threshold. For
+ * example, `0.01` added sixty times is `0.6000000000000003` as a double but `0.6000000238` as a
+ * float32.
+ *
+ * Both operands therefore go through `limitPercision` (4 decimals). float32 is off by at most
+ * about 6e-8 relative, which is 1.1e-5 at 180 degrees. A double and its float32 can round to
+ * different 4-decimal values only when they sit that close to a rounding midpoint (`x.xxxx5`).
+ * Thresholds are design values with at most 4 decimals, so the nearest midpoints are 5e-5 away
+ * from them. A value near its threshold therefore rounds the same on both sides, and anything
+ * within 5e-5 of the threshold reaches it by design.
+ */
+export function atLeastThreshold(value: number, threshold: number) {
+    return limitPercision(value) >= limitPercision(threshold);
+}
+
+/** `value < threshold`, rounded the same way as `atLeastThreshold` so the server and clients agree. */
+export function belowThreshold(value: number, threshold: number) {
+    return limitPercision(value) < limitPercision(threshold);
+}
+
+/**
  * The smallest angular width (degrees) that survives `limitPercisionHard`'s rounding. Exported so
  * hull-radius validation (`ship/make-ship-state.ts`) can derive the angular-resolvability floor
  * from the same quantum instead of duplicating the literal.

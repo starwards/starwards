@@ -1,9 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
-import { capToRange, toDegreesDelta } from '../logic/formulas';
+import { atLeastThreshold, capToRange, toDegreesDelta } from '../logic/formulas';
 import { commandable, gameField } from '../game-field';
 
 import { ShipState } from './ship-state';
-import { atLeastFloat32 } from '../logic/float32';
 import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
@@ -208,9 +207,11 @@ export abstract class Turret extends SystemState {
         return this.design.turnSpeed * this.effectiveness * this.turnSpeedFactor;
     }
 
-    /** Compared as clients read both `float32` fields (see `atLeastFloat32`). */
+    /** Compared the way clients read both `float32` fields (see `atLeastThreshold`). */
     get broken(): boolean {
-        return this.design.maxBearingSkew > 0 && atLeastFloat32(Math.abs(this.bearingSkew), this.design.maxBearingSkew);
+        return (
+            this.design.maxBearingSkew > 0 && atLeastThreshold(Math.abs(this.bearingSkew), this.design.maxBearingSkew)
+        );
     }
 }
 
