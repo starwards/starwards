@@ -46,7 +46,9 @@ describe('waveBudget', () => {
     // 60). The formula is the named, load-bearing rule -- it is what governs budgets past wave 10
     // -- so this test pins waveBudget to Math.ceil(n ** 1.3 * 10) exactly, not the example table.
     it('matches Math.ceil(n ** 1.3 * 10) for waves 1-10', () => {
-        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(waveBudget)).toEqual([10, 25, 42, 61, 82, 103, 126, 150, 174, 200]);
+        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => waveBudget(n))).toEqual([
+            10, 25, 42, 61, 82, 103, 126, 150, 174, 200,
+        ]);
     });
 });
 
@@ -486,6 +488,8 @@ describe('wave_defence map (integration)', () => {
 });
 
 describe('wave progression: incapacitated/out-of-play raiders and the hard wave timer (issue #2233)', () => {
+    // Each test simulates minutes of game time at 1-20 Hz: ~2 s alone, past the 5 s default under a full parallel run.
+    jest.setTimeout(20_000);
     const gameDriver = makeDriver({ manualClock: true });
 
     function npcWaveIds() {
@@ -509,7 +513,10 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
     }
 
     it('converts a raider to a Derelict after its chain guns are broken for 30s continuously (not sooner), then the wave clears', async () => {
-        const map = createWaveDefenceMap(() => 0);
+        const writeOffs: [string, string][] = [];
+        const map = createWaveDefenceMap(() => 0, undefined, {
+            onRaiderWrittenOff: (id, reason) => writeOffs.push([id, reason]),
+        });
         await gameDriver.gameManager.startGame(map);
         gameDriver.gameManager.update(1 / 20);
         gameDriver.gameManager.update(1 / 20); // orders land
@@ -529,6 +536,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         gameDriver.gameManager.update(2); // crosses the 30s mark
         await waitForShipManagersGone(wave1Ids);
         expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(wave1Ids.length);
+        expect(writeOffs).toEqual(wave1Ids.map((id) => [id, 'cant-fight']));
 
         // the wave now reads as fully cleared -- the existing 15s clear delay still applies. The
         // crossing tick above already counted 2s toward it (raiders read as gone by its own end).
@@ -566,7 +574,10 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
     });
 
     it('converts a raider that recedes past 200km from every station for 60s continuously, but not one that is closing', async () => {
-        const map = createWaveDefenceMap(() => 0);
+        const writeOffs: [string, string][] = [];
+        const map = createWaveDefenceMap(() => 0, undefined, {
+            onRaiderWrittenOff: (id, reason) => writeOffs.push([id, reason]),
+        });
         await gameDriver.gameManager.startGame(map);
         gameDriver.gameManager.update(1 / 20);
         gameDriver.gameManager.update(1 / 20);
@@ -596,6 +607,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
 
         const derelicts = [...gameDriver.spaceManager.state.getAll('Derelict')];
         expect(derelicts).toHaveLength(1);
+        expect(writeOffs).toEqual([[recedingId, 'out-of-play']]);
         expect(gameDriver.getShip(closingId)).toBeDefined(); // never accumulated: distance kept decreasing
     });
 

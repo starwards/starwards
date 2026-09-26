@@ -4,6 +4,12 @@ export interface RecordingHeader {
     mapName: string;
     startedAt: string;
     intervalMs: number;
+    /** Headless runs only: the die seed, so any frame can be resumed deterministically (see `HeadlessGame.restore`). */
+    seed?: number;
+    /** Headless runs only: the generated scenario parameters this run was built from. */
+    params?: unknown;
+    /** Headless runs only: simulation ticks per sim-second. */
+    hz?: number;
 }
 
 interface RecordingFrameLine {

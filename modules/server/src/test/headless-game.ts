@@ -46,7 +46,7 @@ export const SERVER_TICK_HZ = 60;
  */
 export class HeadlessGame {
     readonly spaceManager = new SpaceManager();
-    private readonly shipManagers = new Map<string, ShipManager>();
+    readonly shipManagers = new Map<string, ShipManager>();
     private readonly die: ShipDie;
     private speed = 1;
 
@@ -81,7 +81,7 @@ export class HeadlessGame {
 
     private constructor(
         private readonly map: GameMap,
-        seed: number,
+        readonly seed: number,
         private totalSeconds: number,
         private readonly crewedPlayer: boolean,
     ) {
@@ -134,8 +134,16 @@ export class HeadlessGame {
         return game;
     }
 
+    get stopped() {
+        return this.speed === 0;
+    }
+
     get seconds() {
         return this.totalSeconds;
+    }
+
+    get mapName() {
+        return this.map.name;
     }
 
     /** Same shape as `GameManager.saveGame`: destroyed objects dropped, one `ShipState` per live ship. */

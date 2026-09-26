@@ -48,9 +48,25 @@ export const OUT_OF_PLAY_DISTANCE_METERS = 200_000;
 /** Hard ceiling on how long a wave can hold up progression: this many seconds after a wave spawns, the next one spawns regardless of the current wave's state (issue #2233). Waves may overlap. */
 export const WAVE_INTERVAL_SECONDS = 480;
 
+/** Hulls a wave may buy. */
+export type RaiderHull = 'dragonfly-MK1' | 'dragonfly-MK2' | 'predator' | 'glaive' | 'cataphract';
+
+/** Balance levers, overridable by the headless balance harness; production uses {@link DEFAULT_WAVE_TUNING}. */
+export interface WaveDefenceTuning {
+    readonly budgetExponent: number;
+    readonly hullScores: Readonly<Record<RaiderHull, number>>;
+    readonly waveIntervalSeconds: number;
+}
+
+export const DEFAULT_WAVE_TUNING: WaveDefenceTuning = {
+    budgetExponent: 1.3,
+    hullScores: { 'dragonfly-MK1': 5, 'dragonfly-MK2': 8, predator: 30, glaive: 35, cataphract: 50 },
+    waveIntervalSeconds: WAVE_INTERVAL_SECONDS,
+};
+
 /** Wave `n`'s points budget: 10, 25, 42, 60, 81, 105, 126, 148, 174, 200 for waves 1-10. */
-export function waveBudget(waveNumber: number): number {
-    return Math.ceil(waveNumber ** 1.3 * 10);
+export function waveBudget(waveNumber: number, exponent = DEFAULT_WAVE_TUNING.budgetExponent): number {
+    return Math.ceil(waveNumber ** exponent * 10);
 }
 
 /** Who a wave-defence raider is ordered to engage. */
@@ -66,27 +82,30 @@ export interface WaveShipSpec {
     readonly aggro: AggroCharacterName | null;
 }
 
-const HEAVIES_LARGEST_FIRST: readonly (readonly [ShipModel, number])[] = [
-    ['cataphract', 50],
-    ['glaive', 35],
-    ['predator', 30],
-];
-const CHEAPEST_HEAVY_SCORE = 30; // predator -- the anchor hull for Gunline and Escort
-const SWARM_HULL_SCORES: readonly (readonly [ShipModel, number])[] = [
-    ['dragonfly-MK1', 5],
-    ['dragonfly-MK2', 8],
-];
-const [MK1_MODEL, MK1_SCORE] = SWARM_HULL_SCORES[0];
-const [MK2_MODEL, MK2_SCORE] = SWARM_HULL_SCORES[1];
+const MK1_MODEL = 'dragonfly-MK1';
+const MK2_MODEL = 'dragonfly-MK2';
+
+/** Hull prices under one tuning. The predator is the anchor hull for Gunline and Escort. */
+function hullTables({ hullScores }: WaveDefenceTuning) {
+    const heavies = (['cataphract', 'glaive', 'predator'] as const)
+        .map((model): readonly [ShipModel, number] => [model, hullScores[model]])
+        .sort((a, b) => b[1] - a[1]);
+    const swarm: (readonly [ShipModel, number])[] = [
+        [MK1_MODEL, hullScores[MK1_MODEL]],
+        [MK2_MODEL, hullScores[MK2_MODEL]],
+    ];
+    return { heavies, swarm, predator: hullScores.predator, mk1: hullScores[MK1_MODEL], mk2: hullScores[MK2_MODEL] };
+}
+type HullTables = ReturnType<typeof hullTables>;
 
 /**
  * Fast, many, closes range: dragonfly-MK1/MK2 only, filled randomly until the budget runs out.
  */
-function buildSwarm(budget: number, rng: () => number): WaveShipSpec[] {
+function buildSwarm(budget: number, rng: () => number, hulls: HullTables): WaveShipSpec[] {
     let remaining = budget;
     const specs: WaveShipSpec[] = [];
     for (;;) {
-        const affordable = SWARM_HULL_SCORES.filter(([, score]) => score <= remaining);
+        const affordable = hulls.swarm.filter(([, score]) => score <= remaining);
         if (!affordable.length) {
             return specs;
         }
@@ -102,10 +121,10 @@ function buildSwarm(budget: number, rng: () => number): WaveShipSpec[] {
 }
 
 /** Few, heavy, sits at range: largest affordable hulls first, remainder in MK1s. */
-function buildGunline(budget: number): WaveShipSpec[] {
+function buildGunline(budget: number, hulls: HullTables): WaveShipSpec[] {
     let remaining = budget;
     const specs: WaveShipSpec[] = [];
-    for (const [model, score] of HEAVIES_LARGEST_FIRST) {
+    for (const [model, score] of hulls.heavies) {
         while (remaining >= score) {
             specs.push({
                 model,
@@ -116,47 +135,47 @@ function buildGunline(budget: number): WaveShipSpec[] {
             remaining -= score;
         }
     }
-    while (remaining >= MK1_SCORE) {
+    while (remaining >= hulls.mk1) {
         specs.push({
             model: MK1_MODEL,
             flightDoctrine: FlightDoctrine.STANDOFF,
             targetPolicy: { kind: 'station' },
             aggro: 'Brawler',
         });
-        remaining -= MK1_SCORE;
+        remaining -= hulls.mk1;
     }
     return specs;
 }
 
 /** Splits the crew's attention: half the budget in MK2s shadowing the player, the rest MK1s on the station. */
-function buildHarass(budget: number): WaveShipSpec[] {
+function buildHarass(budget: number, hulls: HullTables): WaveShipSpec[] {
     const half = Math.floor(budget / 2);
     const specs: WaveShipSpec[] = [];
     let remaining = half;
-    while (remaining >= MK2_SCORE) {
+    while (remaining >= hulls.mk2) {
         specs.push({
             model: MK2_MODEL,
             flightDoctrine: FlightDoctrine.SHADOW,
             targetPolicy: { kind: 'player' },
             aggro: 'Hunter',
         });
-        remaining -= MK2_SCORE;
+        remaining -= hulls.mk2;
     }
     let stationBudget = budget - half + remaining; // unspent half-budget rolls over
-    while (stationBudget >= MK1_SCORE) {
+    while (stationBudget >= hulls.mk1) {
         specs.push({
             model: MK1_MODEL,
             flightDoctrine: FlightDoctrine.INTERCEPT,
             targetPolicy: { kind: 'station' },
             aggro: 'Brawler',
         });
-        stationBudget -= MK1_SCORE;
+        stationBudget -= hulls.mk1;
     }
     return specs;
 }
 
 /** One heavy holding station, MK1s shadowing it -- the escorts fall back to the station if the heavy dies. */
-function buildEscort(budget: number): WaveShipSpec[] {
+function buildEscort(budget: number, hulls: HullTables): WaveShipSpec[] {
     const specs: WaveShipSpec[] = [
         {
             model: 'predator',
@@ -165,15 +184,15 @@ function buildEscort(budget: number): WaveShipSpec[] {
             aggro: 'Brawler',
         },
     ];
-    let remaining = budget - CHEAPEST_HEAVY_SCORE;
-    while (remaining >= MK1_SCORE) {
+    let remaining = budget - hulls.predator;
+    while (remaining >= hulls.mk1) {
         specs.push({
             model: MK1_MODEL,
             flightDoctrine: FlightDoctrine.SHADOW,
             targetPolicy: { kind: 'follow-heavy' },
             aggro: 'Brawler',
         });
-        remaining -= MK1_SCORE;
+        remaining -= hulls.mk1;
     }
     return specs;
 }
@@ -192,16 +211,16 @@ function hitsToProvoke(model: ShipModel): number {
 const ARCHETYPE_CYCLE = ['gunline', 'harass', 'swarm', 'escort'] as const;
 type ArchetypeName = (typeof ARCHETYPE_CYCLE)[number];
 
-function anchorAffordable(name: ArchetypeName, budget: number): boolean {
+function anchorAffordable(name: ArchetypeName, budget: number, hulls: HullTables): boolean {
     switch (name) {
         case 'gunline':
-            return budget >= CHEAPEST_HEAVY_SCORE;
+            return budget >= hulls.predator;
         case 'harass':
-            return Math.floor(budget / 2) >= MK2_SCORE;
+            return Math.floor(budget / 2) >= hulls.mk2;
         case 'swarm':
-            return budget >= MK1_SCORE;
+            return budget >= hulls.mk1;
         case 'escort':
-            return budget >= CHEAPEST_HEAVY_SCORE;
+            return budget >= hulls.predator;
     }
 }
 
@@ -211,15 +230,15 @@ function anchorAffordable(name: ArchetypeName, budget: number): boolean {
  * itself deterministic from `waveBudget`, so replaying from wave 2 up to `waveNumber` always
  * lands on the same archetype (issue #2241, A4).
  */
-function archetypeForWave(waveNumber: number): ArchetypeName {
+function archetypeForWave(waveNumber: number, tuning: WaveDefenceTuning, hulls: HullTables): ArchetypeName {
     let cursor = 0;
     let picked: ArchetypeName = ARCHETYPE_CYCLE[0];
     for (let n = 2; n <= waveNumber; n++) {
-        const budget = waveBudget(n);
+        const budget = waveBudget(n, tuning.budgetExponent);
         for (let attempts = 0; attempts < ARCHETYPE_CYCLE.length; attempts++) {
             picked = ARCHETYPE_CYCLE[cursor % ARCHETYPE_CYCLE.length];
             cursor++;
-            if (anchorAffordable(picked, budget)) {
+            if (anchorAffordable(picked, budget, hulls)) {
                 break;
             }
         }
@@ -231,7 +250,11 @@ function archetypeForWave(waveNumber: number): ArchetypeName {
  * Wave 1 is always Swarm and always exactly two dragonfly-MK1 (the tutorial wave, kept easy) --
  * wave 1's budget of 10 buys nothing else. Waves 2+ rotate through the authored archetypes.
  */
-export function generateWaveSpecs(waveNumber: number, rng: () => number = Math.random): WaveShipSpec[] {
+export function generateWaveSpecs(
+    waveNumber: number,
+    rng: () => number = Math.random,
+    tuning: WaveDefenceTuning = DEFAULT_WAVE_TUNING,
+): WaveShipSpec[] {
     if (waveNumber === 1) {
         const wave1Spec: WaveShipSpec = {
             model: MK1_MODEL,
@@ -241,16 +264,17 @@ export function generateWaveSpecs(waveNumber: number, rng: () => number = Math.r
         };
         return [wave1Spec, wave1Spec];
     }
-    const budget = waveBudget(waveNumber);
-    switch (archetypeForWave(waveNumber)) {
+    const hulls = hullTables(tuning);
+    const budget = waveBudget(waveNumber, tuning.budgetExponent);
+    switch (archetypeForWave(waveNumber, tuning, hulls)) {
         case 'gunline':
-            return buildGunline(budget);
+            return buildGunline(budget, hulls);
         case 'harass':
-            return buildHarass(budget);
+            return buildHarass(budget, hulls);
         case 'swarm':
-            return buildSwarm(budget, rng);
+            return buildSwarm(budget, rng, hulls);
         case 'escort':
-            return buildEscort(budget);
+            return buildEscort(budget, hulls);
     }
 }
 
@@ -328,12 +352,25 @@ const stationPositionsById: Readonly<Record<string, XY>> = Object.fromEntries(
 );
 const allStationPositions = STATIONS.map((station) => station.position);
 
+/** Why the scenario wrote a raider off (issue #2233). */
+export type WriteOffReason = 'cant-fight' | 'out-of-play';
+
+/** Observation hooks for headless harnesses; they never change play. */
+interface WaveDefenceHooks {
+    readonly onWaveSpawned?: (waveNumber: number, shipIds: readonly string[], targetStationId: string) => void;
+    readonly onRaiderWrittenOff?: (shipId: string, reason: WriteOffReason) => void;
+}
+
 /**
  * Endless wave-defence scenario: three friendly stations the crew must defend against
  * procedurally generated raider waves. `rng` is injectable for deterministic tests; production
  * play uses `Math.random`.
  */
-export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
+export function createWaveDefenceMap(
+    rng: () => number = Math.random,
+    tuning: WaveDefenceTuning = DEFAULT_WAVE_TUNING,
+    { onWaveSpawned, onRaiderWrittenOff }: WaveDefenceHooks = {},
+): GameMap {
     let game: GameApi;
     let waveNumber = 0;
     /** Per game, so each game's aggro noise differs; drawn once at init. */
@@ -395,6 +432,7 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
             if (seconds >= CANT_FIGHT_SECONDS) {
                 game.convertToDerelict(id);
                 forgetRaider(id);
+                onRaiderWrittenOff?.(id, 'cant-fight');
                 return;
             }
             cantFightSeconds.set(id, seconds);
@@ -416,6 +454,7 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
             if (seconds >= OUT_OF_PLAY_SECONDS) {
                 game.convertToDerelict(id);
                 forgetRaider(id);
+                onRaiderWrittenOff?.(id, 'out-of-play');
                 return;
             }
             outOfPlay.set(id, { seconds, lastMinDistance: minDistance });
@@ -432,7 +471,7 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
         const spawnCenter = sampleWaveSpawnCenter(stationPositionsById[targetId], allStationPositions, rng);
 
         let heavyId: string | undefined;
-        const shipIds = generateWaveSpecs(waveNumber, rng).map((spec, index) => {
+        const shipIds = generateWaveSpecs(waveNumber, rng, tuning).map((spec, index) => {
             const id = makeId();
             const jitter = XY.byLengthAndDirection(rng() * SPAWN_JITTER_METERS, rng() * 360);
             const ship = new Spaceship().init(id, Vec2.make(XY.add(spawnCenter, jitter)), spec.model, Faction.Raiders);
@@ -465,6 +504,7 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
         latestWaveShipIds = shipIds;
         waveClearTimer = null;
         secondsSinceLatestSpawn = 0;
+        onWaveSpawned?.(waveNumber, shipIds, targetId);
     }
 
     return {
@@ -541,7 +581,7 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
             secondsSinceLatestSpawn += deltaSeconds;
 
             const clearDelayHit = waveClearTimer !== null && waveClearTimer >= WAVE_CLEAR_DELAY_SECONDS;
-            const intervalHit = secondsSinceLatestSpawn >= WAVE_INTERVAL_SECONDS;
+            const intervalHit = secondsSinceLatestSpawn >= tuning.waveIntervalSeconds;
             if (clearDelayHit || intervalHit) {
                 spawnWave();
             }

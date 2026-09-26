@@ -32,6 +32,8 @@ function fakeSpaceManager(damages: Damage[]): { spaceManager: SpaceManager; call
             yield* damages.splice(0);
         },
         convertToDerelict: (id: string) => calls.convertToDerelict.push(id),
+        // no attacker resolves, so weapon damage feeds no aggro threat
+        state: { get: () => undefined },
         destroyObject: (id: string) => calls.destroyObject.push(id),
         registerHit: () => {
             /* not under test here */

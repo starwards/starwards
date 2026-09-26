@@ -10,9 +10,9 @@ import { trainingScenarios } from './training-scenarios';
  * kill path must reproduce before the capsule is removed. Nothing here reads the capsule, so these
  * specs are the parity check for its removal.
  *
- * Pinned on seeds 1-64 at 60 Hz with a 300 s cap (the {@link timeToKill} loop, one fresh id
- * sequence per seed), which is the acceptance measurement. CI runs seeds 1-16: 16-seed blocks of
- * the pinning runs have half-lives from 0.7x to 1.45x the pin, hence the band.
+ * Pinned on seeds 1-64 at 60 Hz (`npm --prefix modules/server run training -- --scenario T1 --seeds 64`),
+ * which is the acceptance measurement. CI runs seeds 1-16: 16-seed blocks of the pinning runs have
+ * half-lives from 0.7x to 1.45x the pin, hence the band.
  */
 const TOLERANCE = 0.5;
 const SEEDS = Array.from({ length: 16 }, (_, i) => i + 1);
