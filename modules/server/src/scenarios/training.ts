@@ -1,6 +1,6 @@
 import { Faction, GameMap, ShipModel, Spaceship, Vec2, XY } from '@starwards/core/internal';
 
-const TRAINING_PLAYER_ID = 'GVTS';
+export const TRAINING_PLAYER_ID = 'GVTS';
 export const TRAINING_TARGET_ID = 'target';
 
 /** T1 layout: GVTS at the origin, the target at `distance` metres on `bearing` degrees. */
