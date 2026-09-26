@@ -275,6 +275,11 @@ export function belowThreshold(value: number, threshold: number) {
     return limitPercision(value) < limitPercision(threshold);
 }
 
+/** `value <= threshold`, rounded the same way as `atLeastThreshold` so the server and clients agree. */
+export function atMostThreshold(value: number, threshold: number) {
+    return limitPercision(value) <= limitPercision(threshold);
+}
+
 /**
  * The smallest angular width (degrees) that survives `limitPercisionHard`'s rounding. Exported so
  * hull-radius validation (`ship/make-ship-state.ts`) can derive the angular-resolvability floor

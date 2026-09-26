@@ -12,6 +12,14 @@ describe('Maneuvering.broken', () => {
         expect(maneuvering.broken).to.equal(true);
     });
 
+    it('is intact one limitPercision quantum above the threshold', () => {
+        const maneuvering = new Maneuvering();
+        maneuvering.efficiency = 0.2001;
+        expect(maneuvering.broken).to.equal(false);
+        maneuvering.efficiency = Math.fround(0.2001);
+        expect(maneuvering.broken).to.equal(false);
+    });
+
     it('is intact one step above the threshold', () => {
         const maneuvering = new Maneuvering();
         maneuvering.efficiency = Math.fround(0.3);
