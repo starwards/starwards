@@ -11,9 +11,14 @@ export interface GunnerySample {
 /** Pure over one snapshot of `ship` and `target`. */
 export function sampleGunnery(ship: ShipState, target: SpaceObject): GunnerySample {
     return {
-        inRange: XY.distance(target.position, ship.position) <= ship.chainGuns[0].design.maxShellRange,
+        inRange: inGunRange(ship, target),
         inKillZone: isTargetInKillZone(ship, ship.chainGuns[0], target),
     };
+}
+
+/** `target` within `ship`'s first chain gun's `maxShellRange`. */
+export function inGunRange(ship: ShipState, target: { readonly position: XY }): boolean {
+    return XY.distance(target.position, ship.position) <= ship.chainGuns[0].design.maxShellRange;
 }
 
 /** Fractions in range and in the kill zone -- what the bot believed; `NaN` when there are no samples. */
