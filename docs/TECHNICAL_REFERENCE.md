@@ -16,7 +16,7 @@ last_verified: 2026-06-13
 Syntax, accepted types and stacking order: [`specs/DECORATORS_SPEC.md`](specs/DECORATORS_SPEC.md).
 What it costs on the wire:
 
-- `float32` values round to 2 decimals
+- `float32` is a wire type: the server keeps the assigned double; clients and snapshots hold its float32 encoding (~7 significant digits)
 - Any change triggers a network sync; updates are batched per patch
 - Delta compression sends only changed properties — 90-98% bandwidth reduction
 

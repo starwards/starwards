@@ -178,7 +178,7 @@ await waitForPropertyFloatValue(page, 'heading', newAngle);
 
 ### Float Precision
 ```typescript
-@gameField('float32') speed = 123.456789;  // Rounds to 123.46
+@gameField('float32') speed = 123.456789;  // server keeps the double; clients receive float32 (≈123.45679)
 expect(value).toBeCloseTo(expected, 1);    // Use tolerance in tests
 ```
 

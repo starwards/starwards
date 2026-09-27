@@ -134,9 +134,6 @@ describe('game-field lock-guard installation (Colyseus internals contract)', () 
         return metadata?.[SCHEMA_DESCRIPTORS_KEY]?.[field]?.set;
     }
 
-    // 'boolean' (not 'float32'): float32 gameFields go through `number2Digits`, an unrelated
-    // setter wrapper for rounding, which would also make the descriptors differ and defeat the
-    // point of this check.
     class PlainField extends Schema {
         @type('boolean')
         value = false;

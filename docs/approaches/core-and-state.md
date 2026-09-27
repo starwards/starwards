@@ -6,7 +6,6 @@ How game state is declared, synchronised, introspected and constructed — the t
 
 1. **Colyseus Schema with Custom Decorator**
     - [`@gameField`](../../modules/core/src/game-field.ts) decorator wraps Colyseus `@type`
-    - Automatic float32 rounding to 2 decimals for bandwidth optimization
     - Runtime serialization with TypeScript type safety
 
 2. **JSON Pointer Command System**
