@@ -64,18 +64,19 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 **MANDATORY:** Check for relevant skills before ANY task. Use the Skill tool to invoke them.
 
-| Skill                    | Trigger                                                                                                                    |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `starwards-autonomous`   | Running as autonomous agent on agent-ready issues                                                                          |
-| `starwards-workflow`     | Start of conversation - master index                                                                                       |
-| `starwards-tdd`          | "Add X", "Implement Y", "Create Z"                                                                                         |
-| `starwards-debugging`    | "Fix bug", "X is broken", "Not working"                                                                                    |
-| `starwards-verification` | "Is it done?", "Does it work?"                                                                                             |
-| `starwards-monorepo`     | Build fails, import errors                                                                                                 |
-| `starwards-colyseus`     | State not syncing, @gameField issues                                                                                       |
-| `starwards-ci-debugging` | GitHub Actions CI failures                                                                                                 |
-| `starwards-station-ui`   | Station screen layout, widgets, input wiring, color system                                                                 |
-| `osc-controllers`        | Open Stage Control layouts/custom modules, Node-RED OSC bridge, tablet controllers, Playwright tests driving O-S-C widgets |
+| Skill                          | Trigger                                                                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `starwards-autonomous`         | Running as autonomous agent on agent-ready issues                                                                          |
+| `starwards-workflow`           | Start of conversation - master index                                                                                       |
+| `starwards-tdd`                | "Add X", "Implement Y", "Create Z"                                                                                         |
+| `starwards-debugging`          | "Fix bug", "X is broken", "Not working"                                                                                    |
+| `starwards-verification`       | "Is it done?", "Does it work?"                                                                                             |
+| `starwards-monorepo`           | Build fails, import errors                                                                                                 |
+| `starwards-colyseus`           | State not syncing, @gameField issues                                                                                       |
+| `starwards-ci-debugging`       | GitHub Actions CI failures                                                                                                 |
+| `starwards-station-ui`         | Station screen layout, widgets, input wiring, color system                                                                 |
+| `osc-controllers`              | Open Stage Control layouts/custom modules, Node-RED OSC bridge, tablet controllers, Playwright tests driving O-S-C widgets |
+| `starwards-recording-analysis` | Why a headless training run behaved as it did: failed checks, events, series from its recording                            |
 
 ## Custom Commands
 
