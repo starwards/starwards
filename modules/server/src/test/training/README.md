@@ -11,15 +11,17 @@ Rungs: `T0` (a target that plays dead), `T1` (a dragonfly-MK1 attacking the GVTS
 
 `fighter-half-life-*.spec.ts` pin the fighter half-life on T1 and T1-MK2 (see `fighter-half-life.ts`).
 
+`../wave-defence-balance-harness.ts` runs `wave_defence` under a `WaveDefenceTuning` with a player proxy flying the GVTS, and tabulates a sweep of tunings as markdown (`sweepToMarkdown`); `../wave-defence-balance.spec.ts` drives it.
+
 The server runs the built `@starwards/core` (`modules/core/cjs`). Run `npm run build:core` after a core change, or the harness measures the old core.
 
 ## Calibration only
 
 These flags and caps exist only to isolate one variable in a measurement. No game map sets them, and a number measured with one of them on is not a balance number for play.
 
-| Flag or cap                                            | Where                                           | Why                                                                                                                          |
-| ------------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| T0 target speed capped to the GVTS's 450 m/s           | `scenarios/training.ts`, `T0_TARGET_MAX_SPEED`  | Blast knock-back would otherwise fling the thrustless target out of reach, so T0 would measure the chase instead of gunnery. |
-| `noweave`: the target attacks without its combat weave | `ShipState.labNoCombatWeave`, rung `T1-noweave` | Measures what the weave costs the shooter.                                                                                   |
-| `MockDie`: every roll succeeds at roll 0               | `modules/core/test/ship-test-harness.ts`        | Bounds and threshold unit tests only. Time-to-kill runs use a seeded `ShipDie`.                                              |
-| The GVTS on NPC automation (every rung)                | `HeadlessGame` without `crewedPlayer`           | Draws no energy and aims with NPC gunnery. `crewedPlayer` runs the real player ship.                                         |
+| Flag or cap                                                                           | Where                                           | Why                                                                                                                                       |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| T0 target speed capped to the GVTS's 450 m/s                                          | `scenarios/training.ts`, `T0_TARGET_MAX_SPEED`  | Blast knock-back would otherwise fling the thrustless target out of reach, so T0 would measure the chase instead of gunnery.              |
+| `noweave`: the target attacks without its combat weave                                | `ShipState.labNoCombatWeave`, rung `T1-noweave` | Measures what the weave costs the shooter.                                                                                                |
+| `MockDie`: every roll succeeds at roll 0                                              | `modules/core/test/ship-test-harness.ts`        | Bounds and threshold unit tests only. Time-to-kill runs use a seeded `ShipDie`.                                                           |
+| The GVTS on NPC automation (every rung, and the wave-defence `nearest-station` proxy) | `HeadlessGame` without `crewedPlayer`           | Draws no energy and aims with NPC gunnery. The crewed wave-defence proxy (`standoff-missiles`, `crewedPlayer`) runs the real player ship. |
