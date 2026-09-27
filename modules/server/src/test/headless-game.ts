@@ -134,6 +134,11 @@ export class HeadlessGame {
         return game;
     }
 
+    /** The map paused the game (`setSpeed(0)` or `stopGame`), e.g. wave-defence on defeat: ticks no longer advance it. */
+    get stopped() {
+        return this.speed === 0;
+    }
+
     get seconds() {
         return this.totalSeconds;
     }

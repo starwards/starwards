@@ -1,4 +1,8 @@
-import { GameMap, ShipModel, XY } from '@starwards/core/internal';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
+import { GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import {
@@ -8,7 +12,12 @@ import {
     createTrainingT0Map,
     createTrainingT1Map,
 } from '../../scenarios/training';
+import { ingest, storePathFor } from './analysis/store';
 
+import { HeadlessRecorder } from '../headless-recorder';
+import { computeChecks } from './analysis/checks';
+import { computeEvents } from './analysis/events';
+import { extractMetrics } from './analysis/extract';
 import fc from 'fast-check';
 
 export interface TrainingResult {
@@ -35,7 +44,15 @@ export interface TrainingResult {
     readonly inRangeFraction: number;
     /** Fraction of sim-time the GVTS's current aim would put a shell's danger zone on the target. */
     readonly killZoneFraction: number;
+    /** Distinct explosions that ever overlapped the target (recorder sidecar, tick-exact). */
+    readonly blastHits: number;
     readonly hz: number;
+    /** Names of `analysis/checks.ts` checks that failed on this run's store. */
+    readonly failedChecks: readonly string[];
+    /** The persisted `.swr.jsonl`, when the run was asked to keep one. */
+    readonly recording?: string;
+    /** Frames in the persisted recording. */
+    readonly frames?: number;
     readonly wallSeconds: number;
 }
 
@@ -80,78 +97,139 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'T1-noweave': t1WithHull('T1-noweave', 'dragonfly-MK1', true) as TrainingScenario<never>,
 };
 
+/**
+ * Frame interval of the scratch recording made when the caller doesn't persist one. Per-tick frames
+ * at 60 Hz cost ~66x the run's wall time to record and ingest; `extract.ts`'s frame-based metrics
+ * (`armorStrippedAt`, `meanDistance`) drop to this resolution, while fire time (events) and the
+ * end state (the forced final frame) stay exact.
+ */
+const SCRATCH_INTERVAL_SECONDS = 1;
+
 export interface TrainingRunOptions {
     readonly seed: number;
     readonly timeoutSeconds: number;
     readonly hz?: number;
+    /** Omit to skip persisting the recording -- the run still records to a scratch dir so
+     * `extract.ts` has a store to read, but that scratch recording is deleted before returning. */
+    readonly recording?: { readonly dir: string; readonly intervalSimSeconds: number };
 }
 
 /**
- * One run: `seed` drives both the fast-check layout sample and the die. Ends at the kill or at
- * `timeoutSeconds`; every metric is sampled once per tick.
+ * One run: `seed` drives both the fast-check layout sample and the die. `TrainingResult`'s
+ * scalars are computed by `analysis/extract.ts` from a recording -- there is exactly one
+ * implementation of these metrics, not one inline and one in the analysis CLI. When the caller
+ * doesn't ask for a persisted recording, the run still records (at `SCRATCH_INTERVAL_SECONDS`)
+ * into a scratch directory that is deleted before returning.
  */
-export function runTraining<P>(
+export async function runTraining<P>(
     scenario: TrainingScenario<P>,
-    { seed, timeoutSeconds, hz = SERVER_TICK_HZ }: TrainingRunOptions,
-): TrainingResult {
+    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording }: TrainingRunOptions,
+): Promise<TrainingResult> {
     const started = Date.now();
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
     const game = HeadlessGame.start(scenario.createMap(params), seed);
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
-    const gvtsObject = game.api.getObject(TRAINING_PLAYER_ID);
-    const targetStart = game.api.getObject(TRAINING_TARGET_ID)?.position;
-    if (!gvts || !gvtsObject || !targetStart) {
-        throw new Error(`${scenario.name}: GVTS or target missing`);
+    if (!gvts) {
+        throw new Error('GVTS missing');
     }
-    const { magazine } = gvts.state;
-    const shells = () => magazine.count_HiExpShell + magazine.count_ArmPenShell + magazine.count_FragShell;
-    const startShells = shells();
-    const spawn = XY.clone(targetStart);
     const dt = 1 / hz;
+
+    const scratchDir = recording?.dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'starwards-training-'));
+    const intervalSimSeconds = recording?.intervalSimSeconds ?? SCRATCH_INTERVAL_SECONDS;
+    const recorder = new HeadlessRecorder(
+        game,
+        scratchDir,
+        `${scenario.name}_seed${seed}`,
+        intervalSimSeconds,
+        params,
+        hz,
+    );
+
+    // Per-tick samples of what the bot believed (in range, in kill zone): neither is in the
+    // recording, so `extract.ts` cannot compute them.
     const gunnery: GunnerySample[] = [];
-    let armorStrippedAt: number | null = null;
-    let secondsFiring = 0;
-    let distanceSum = 0;
-    let targetHealth = 1;
-    let targetDrift = 0;
-    let killed = false;
+    await recorder.capture();
     while (game.seconds < timeoutSeconds) {
         game.tick(dt);
-        const target = game.spaceManager.state.get(TRAINING_TARGET_ID);
+        await recorder.capture();
+        const target = game.api.getObject(TRAINING_TARGET_ID);
         if (!target || target.destroyed) {
-            killed = true;
-            targetHealth = 0;
             break;
         }
-        const targetShip = game.api.getShip(TRAINING_TARGET_ID);
-        if (targetShip) {
-            targetHealth = targetShip.state.healthRatio;
-            if (armorStrippedAt === null && targetShip.state.armor.armorPlates.every((p) => p.healthRatio <= 0)) {
-                armorStrippedAt = game.seconds;
-            }
+        const targetObject = game.spaceManager.state.get(TRAINING_TARGET_ID);
+        if (targetObject) {
+            gunnery.push(sampleGunnery(gvts.state, targetObject));
         }
-        if (gvts.state.chainGuns.some((g) => g.isFiring)) {
-            secondsFiring += dt;
-        }
-        distanceSum += XY.distance(target.position, gvtsObject.position);
-        targetDrift = XY.distance(target.position, spawn);
-        gunnery.push(sampleGunnery(gvts.state, target));
     }
+    await recorder.capture(true);
+
+    const dbPath = storePathFor(recorder.filePath);
+    const store = await ingest(dbPath, recorder.filePath, { player: TRAINING_PLAYER_ID, target: TRAINING_TARGET_ID });
+    await computeEvents(store, recorder.filePath);
+    const checkResults = await computeChecks(store, recorder.filePath);
+    const failedChecks = checkResults.filter((c) => c.status === 'fail').map((c) => c.name);
+    const metrics = await extractMetrics(store, recorder.filePath, {
+        playerId: TRAINING_PLAYER_ID,
+        targetId: TRAINING_TARGET_ID,
+    });
+    await store.close();
+
+    const wallSeconds = (Date.now() - started) / 1000;
+    if (recording) {
+        return {
+            scenario: scenario.name,
+            seed,
+            params,
+            ...metrics,
+            ...gunneryFractions(gunnery),
+            hz,
+            failedChecks,
+            recording: recorder.filePath,
+            frames: recorder.frameCount,
+            wallSeconds,
+        };
+    }
+    await deleteScratchDir(scratchDir);
     return {
         scenario: scenario.name,
         seed,
         params,
-        killed,
-        seconds: game.seconds,
-        armorStrippedAt,
-        targetHealth,
-        shellsFired: startShells - shells(),
-        secondsFiring,
-        meanDistance: gunnery.length ? distanceSum / gunnery.length : NaN,
-        targetDrift,
-        gvtsSpeed: XY.lengthOf(gvtsObject.velocity),
+        ...metrics,
         ...gunneryFractions(gunnery),
         hz,
-        wallSeconds: (Date.now() - started) / 1000,
+        failedChecks,
+        wallSeconds,
     };
+}
+
+/** Scratch dirs still held open when their run finished; swept once more at process exit. */
+const undeletedScratchDirs = new Set<string>();
+
+/**
+ * Cleanup of the scratch recording+store when the caller didn't ask to keep one. DuckDB's Windows
+ * native file handle can lag its `close()` callback (see analysis/store.spec.ts), so a few retries
+ * absorb that without failing the run. A dir still busy after them is swept again at process exit,
+ * once every DuckDB instance is gone -- Windows never reclaims `%TEMP%` on its own.
+ */
+async function deleteScratchDir(dir: string): Promise<void> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+            fs.rmSync(dir, { recursive: true, force: true });
+            return;
+        } catch {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+    }
+    if (!undeletedScratchDirs.size) {
+        process.once('exit', () => {
+            for (const pending of undeletedScratchDirs) {
+                try {
+                    fs.rmSync(pending, { recursive: true, force: true });
+                } catch {
+                    // still locked by another process; nothing more to do at exit
+                }
+            }
+        });
+    }
+    undeletedScratchDirs.add(dir);
 }

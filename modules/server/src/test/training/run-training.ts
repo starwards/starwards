@@ -1,10 +1,14 @@
 /**
- * Runs a training rung across seeds on every logical CPU and prints a markdown report.
+ * Runs a training scenario across seeds on every logical CPU, recording each run, and prints a
+ * markdown report.
  *
  *   npm --prefix modules/server run training -- \
- *     --scenario T0 --seeds 64 --first-seed 1 --timeout 300 --hz 60 --out <dir>
+ *     --scenario T0 --seeds 64 --timeout 300 --interval 1 --hz 60 --out <dir>
  *
- * The report also lands in `<dir>/<scenario>-report.md`.
+ * `--interval 0` disables persisting the recording (each run still records to a scratch dir so
+ * `analysis/checks.ts` has a store to run against -- see `training-scenarios.ts`). Persisted
+ * recordings land in `<dir>/<scenario>_seed<N>.swr.jsonl`, the report in
+ * `<dir>/<scenario>-report.md`. The report's "failed checks" column is always populated.
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';
 
@@ -28,8 +32,13 @@ function arg(name: string, fallback: string) {
 
 if (process.send) {
     process.on('message', (job: WorkerJob) => {
-        const results = job.seeds.map((seed) => runTraining(trainingScenarios[job.scenario], { seed, ...job.options }));
-        process.send?.(results, () => process.exit(0));
+        void (async () => {
+            const results: TrainingResult[] = [];
+            for (const seed of job.seeds) {
+                results.push(await runTraining(trainingScenarios[job.scenario], { seed, ...job.options }));
+            }
+            process.send?.(results, () => process.exit(0));
+        })();
     });
 } else {
     void main();
@@ -43,11 +52,15 @@ async function main() {
     }
     const seedCount = Number(arg('seeds', '64'));
     const firstSeed = Number(arg('first-seed', '1'));
-    const options: WorkerJob['options'] = {
-        timeoutSeconds: Number(arg('timeout', '300')),
-        hz: Number(arg('hz', String(SERVER_TICK_HZ))),
-    };
+    const timeoutSeconds = Number(arg('timeout', '300'));
+    const interval = Number(arg('interval', '1'));
+    const hz = Number(arg('hz', String(SERVER_TICK_HZ)));
     const outDir = path.resolve(arg('out', path.join(os.tmpdir(), 'starwards-training')));
+    const options: WorkerJob['options'] = {
+        timeoutSeconds,
+        hz,
+        recording: interval > 0 ? { dir: outDir, intervalSimSeconds: interval } : undefined,
+    };
     const workers = Math.min(os.cpus().length, seedCount);
     const shards: number[][] = Array.from({ length: workers }, () => []);
     for (let i = 0; i < seedCount; i++) {
@@ -88,22 +101,26 @@ function toMarkdown(
     const killed = results.filter((r) => r.killed);
     const ttk = killed.map((r) => r.seconds).sort((a, b) => a - b);
     const pct = (p: number) => (ttk.length ? ttk[Math.min(ttk.length - 1, Math.floor(ttk.length * p))] : NaN);
+    const recording = options.recording
+        ? `recording every ${options.recording.intervalSimSeconds} sim-s`
+        : 'not recorded';
     return [
         `# Training ${results[0]?.scenario ?? ''}: ${description}`,
         '',
-        `Timeout ${options.timeoutSeconds} sim-s, ${options.hz} Hz, ${results.length} seeds on ${workers} workers, ${f(wallSeconds)} s wall.`,
+        `Timeout ${options.timeoutSeconds} sim-s, ${options.hz} Hz, ${results.length} seeds on ${workers} workers, ${f(wallSeconds)} s wall, ${recording}.`,
         '',
         `- Kill rate: **${killed.length}/${results.length}**`,
         `- TTK sim-s (killed): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,
         `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
         `- Any system damage (health < 1): ${results.filter((r) => r.targetHealth < 1).length}/${results.length}`,
         `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
+        `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}`,
         '',
-        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | in range | in kill zone | mean dist m | target drift m | GVTS speed end | wall s |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| seed | params | killed | sim-s | armor stripped at | target health | shells | s firing | in range | in kill zone | blast hits | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
-                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${f(r.wallSeconds, 1)} |`,
+                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,
         ),
         '',
     ].join('\n');

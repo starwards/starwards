@@ -21,6 +21,28 @@ describe('HeadlessGame.start', () => {
     });
 });
 
+describe('HeadlessGame.stopped', () => {
+    it('reads false while the game runs and true once the map pauses it, as wave-defence does on defeat', () => {
+        let pause = () => undefined as void;
+        const game = HeadlessGame.start(
+            {
+                name: 'pausing-map',
+                init: (api) => {
+                    pause = () => api.setSpeed(0);
+                },
+            },
+            1,
+        );
+        game.tick(1);
+        expect(game.stopped).toBe(false);
+
+        pause();
+        game.tick(1);
+        expect(game.stopped).toBe(true);
+        expect(game.seconds).toBe(1);
+    });
+});
+
 describe('HeadlessGame.restore', () => {
     it('restores a crewed run with the player ship on the player manager', () => {
         const game = HeadlessGame.start(training_t1, 1, { crewedPlayer: true });
