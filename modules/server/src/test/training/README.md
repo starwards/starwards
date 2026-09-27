@@ -13,6 +13,8 @@ Rungs: `T0` (a target that plays dead), `T1` (a dragonfly-MK1 attacking the GVTS
 
 `../wave-defence-balance-harness.ts` runs `wave_defence` under a `WaveDefenceTuning` with a player proxy flying the GVTS, and tabulates a sweep of tunings as markdown (`sweepToMarkdown`); `../wave-defence-balance.spec.ts` drives it.
 
+How to run a balance check end to end: skill `starwards-balance-check`.
+
 The server runs the built `@starwards/core` (`modules/core/cjs`). Run `npm run build:core` after a core change, or the harness measures the old core.
 
 ## Calibration only
