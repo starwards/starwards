@@ -20,6 +20,7 @@ import {
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
+import { decodedCopy } from '../serialization/game-state-serialization';
 
 /**
  * The live server's tick rate: `AdminRoom` calls `setSimulationInterval` without a delay, so
@@ -109,11 +110,12 @@ export class HeadlessGame {
         seconds: number,
         { crewedPlayer = false }: { crewedPlayer?: boolean } = {},
     ) {
+        const { fragment } = decodedCopy(SavedGame, saved);
         const game = new HeadlessGame(map, seed, seconds, crewedPlayer);
-        game.spaceManager.insertBulk(saved.fragment.space);
+        game.spaceManager.insertBulk(fragment.space);
         game.spaceManager.forceFlushEntities();
         reserveIds([...game.spaceManager.state].map((object) => object.id));
-        for (const [id, shipState] of saved.fragment.ship) {
+        for (const [id, shipState] of fragment.ship) {
             const spaceObject = game.spaceManager.state.getShip(id);
             if (!spaceObject) {
                 continue;
