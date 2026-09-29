@@ -93,7 +93,7 @@ test.describe('Readout skin', () => {
         expect(await input.isChecked()).toBe(!before);
     });
 
-    test('pane ids render in the title bar and segmented bars are masked', async ({ page }) => {
+    test('pane ids render in the title bar and segmented bars keep a solid fill', async ({ page }) => {
         await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         const tubes = page.locator('[data-id="Tubes Status"]');
         await expect(tubes).toBeVisible({ timeout: 10000 });
@@ -102,12 +102,77 @@ test.describe('Readout skin', () => {
         const systems = page.locator('[data-id="Systems Status"] > .tp-rotv_b');
         expect(await systems.evaluate((el) => getComputedStyle(el, '::after').content)).toBe('"WPN-06"');
 
-        const fill = tubes.locator('[data-segmented] .tp-sldv_k').first();
-        await expect(fill).toBeAttached();
-        const mask = await fill.evaluate((el) => {
-            const style = getComputedStyle(el, '::before');
-            return style.maskImage || style.webkitMaskImage;
+        const segmented = tubes.locator('[data-segmented]').first();
+        await expect(segmented).toBeAttached();
+        const styles = await segmented.evaluate((el) => {
+            const fill = getComputedStyle(el.querySelector('.tp-sldv_k')!, '::before');
+            const track = getComputedStyle(el.querySelector('.tp-sldv_t')!);
+            return {
+                fillMask: fill.maskImage || fill.webkitMaskImage || 'none',
+                trackBackground: track.backgroundImage,
+            };
         });
-        expect(mask).toContain('repeating-linear-gradient');
+        expect(styles.fillMask).toBe('none');
+        expect(styles.trackBackground).toContain('repeating-linear-gradient');
+    });
+
+    test('helms panes carry their ids in the title bar', async ({ page }) => {
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        for (const [title, id] of [
+            ['Flight', 'HLM-01'],
+            ['Modes', 'HLM-02'],
+            ['Command', 'HLM-03'],
+            ['Fuel', 'HLM-04'],
+        ]) {
+            const bar = page.locator(`[data-id="${title}"] > .tp-rotv_b`);
+            await expect(bar).toBeVisible({ timeout: 10000 });
+            expect(await bar.evaluate((el) => getComputedStyle(el, '::after').content)).toBe(`"${id}"`);
+        }
+    });
+
+    test('a signed command bar fills from its centre tick toward the value', async ({ page }) => {
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        const row = page.locator('[data-id="Command"] [data-bipolar]').filter({ hasText: 'strafe' });
+        await expect(row).toBeVisible({ timeout: 10000 });
+        const fillEdges = () =>
+            row.locator('.tp-sldv_t').evaluate((track) => {
+                const fill = getComputedStyle(track, '::before');
+                const half = track.clientWidth / 2;
+                return {
+                    left: (parseFloat(fill.left) - half) / half,
+                    right: (parseFloat(fill.left) + parseFloat(fill.width) - half) / half,
+                    tick: parseFloat(getComputedStyle(track, '::after').left) / track.clientWidth,
+                };
+            });
+        const ship = gameDriver.getShip(shipId);
+
+        ship.state.smartPilot.maneuvering.y = 0.5;
+        await expect.poll(async () => (await fillEdges()).right, { timeout: 5000 }).toBeCloseTo(0.5, 1);
+        const positive = await fillEdges();
+        expect(positive.left).toBeCloseTo(0, 1);
+        expect(positive.tick).toBeCloseTo(0.5, 1);
+
+        ship.state.smartPilot.maneuvering.y = -0.5;
+        await expect.poll(async () => (await fillEdges()).left, { timeout: 5000 }).toBeCloseTo(-0.5, 1);
+        expect((await fillEdges()).right).toBeCloseTo(0, 1);
+    });
+
+    test('a level bar on a display station spans its pane', async ({ page }) => {
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        const fuel = page.locator('[data-id="Fuel"]');
+        await expect(fuel).toBeVisible({ timeout: 10000 });
+        const widths = await fuel.evaluate((pane) => {
+            const content = pane.querySelector('.tp-rotv_c')!;
+            const style = getComputedStyle(content);
+            const inner = content.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            return {
+                inner,
+                bars: [...pane.querySelectorAll('.tp-sldv_t')].map((el) => el.getBoundingClientRect().width),
+            };
+        });
+        expect(widths.bars).toHaveLength(2);
+        for (const bar of widths.bars) {
+            expect(bar).toBeGreaterThanOrEqual(widths.inner * 0.8);
+        }
     });
 });

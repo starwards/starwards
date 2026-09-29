@@ -31,7 +31,7 @@ test.describe('Helms Screen', () => {
         if (!spaceShip) throw new Error('ship not found in space');
 
         spaceShip.angle = 90;
-        await waitForPropertyFloatValue(page, 'heading', 90, undefined, 5);
+        await waitForPropertyFloatValue(page, 'HDG °', 90, 'Flight', 5);
 
         // Note: Speed test removed - physics simulation overwrites velocity immediately
         // Heading works because angle is set directly without physics interference
