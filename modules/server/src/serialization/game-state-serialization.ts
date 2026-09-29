@@ -15,6 +15,19 @@ export async function schemaToString(fragment: Schema) {
 }
 type Constructor<T extends Schema> = new (...args: never[]) => T;
 
+/**
+ * A copy of `source` built by decoding it, so every instance runs its constructor. A game must
+ * resume from such a copy: `Schema.clone()` skips constructors, leaving each non-`@gameField`
+ * field (`Explosion.hitObjectIds`, `SpaceObjectBase.collisionDamage`, ...) undefined. Encodes
+ * a `clone()` of `source`, since only a clone is encodable whatever `source` is: a decoded
+ * tree recorded no changes to encode, and a live one belongs to its room's encoder.
+ */
+export function decodedCopy<T extends Schema>(ctor: Constructor<T>, source: T) {
+    const copy = new ctor();
+    new Decoder(copy).decode(new Encoder(source.clone()).encodeAll());
+    return copy;
+}
+
 export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, serialized: string) {
     return await stringToSchemaObject(new ctor(), serialized);
 }

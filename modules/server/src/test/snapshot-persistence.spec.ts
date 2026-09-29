@@ -66,6 +66,23 @@ describe('snapshot-persistence', () => {
         await gameDriver.assertSameState(content);
     });
 
+    it('loadGame resumes straight from saveGame, without a serialize round-trip', async () => {
+        gameDriver.pauseGameCommand();
+        const map = (await import('../maps')).test_map_1;
+        await gameDriver.gameManager.startGame(map);
+        const saved = gameDriver.gameManager.saveGame();
+        await gameDriver.gameManager.stopGame();
+
+        await gameDriver.gameManager.loadGame(saved!, map);
+
+        const ships = [...gameDriver.spaceManager.state.getAll('Spaceship')];
+        expect(ships).not.toHaveLength(0);
+        for (const ship of ships) {
+            expect(ship.isCorporal).toBe(true);
+            expect(ship.collisionDamage).toEqual(expect.any(Number));
+        }
+    });
+
     it('restoreGameSnapshot returns false when snapshot file does not exist', async () => {
         expect(await restoreGameSnapshot(gameDriver.gameManager, snapshotFile)).toBe(false);
         expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
