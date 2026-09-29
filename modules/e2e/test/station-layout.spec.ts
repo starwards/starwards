@@ -32,7 +32,9 @@ async function waitForSettledLayout(page: Page) {
                     [...document.querySelectorAll('.tp-rotv[data-id], [data-id="Armor"], [data-id="Damage Report"]')]
                         .map((el) => {
                             const r = el.getBoundingClientRect();
-                            return [el.getAttribute('data-id'), r.x, r.y, r.width, r.height].join();
+                            return [el.getAttribute('data-id'), r.x, r.y, r.width, r.height]
+                                .map((v) => (typeof v === 'number' ? Math.round(v) : v))
+                                .join();
                         })
                         .join('|'),
                 );

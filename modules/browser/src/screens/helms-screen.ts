@@ -24,7 +24,7 @@ export async function initHelmsScreen(
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawHelmsRadar(spaceDriver, shipDriver, container);
-    const grid = stationGrid(container, { left: 262, right: 250 });
+    const grid = stationGrid(container, { left: 262, right: 300 });
     await drawStationObservationMode(grid.center(), driver);
     const teardownInput = wireInput(shipDriver);
     drawHelmsStats(grid.left({ scroll: true }), shipDriver);
