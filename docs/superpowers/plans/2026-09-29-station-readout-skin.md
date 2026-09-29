@@ -16,7 +16,8 @@
 - `modules/browser/src/panel/blades.ts` public API unchanged (no new blade options, no signature changes).
 - Every visual difference between screens is CSS, keyed on `<body>` attributes. No per-screen style logic in TS.
 - Tweakpane-produced DOM unchanged; `data-id` on panes unchanged.
-- DRADIS and GM keep full mouse/keyboard behaviour. GM information density must not drop.
+- DRADIS and GM keep full mouse/keyboard behaviour: no skin rule may block their pointer events. GM information density must not drop.
+- Display stations keep only their existing hotkeys; no new input paths.
 - Station target resolution 1024×768. Min text 11px; station values 16–30px.
 - Palette (exact): ground `#03080b`, frame `#143a42`, accent `#5fe3f0`, title `#7fe7f2`, label `#52aebb`, value `#e6fcff`, caution `#ffb000`, warning `#ff3b30`.
 - Faces: Chakra Petch (labels/titles, caps, letter-spaced), Share Tech Mono (values), bundled via `@fontsource`, no network fonts.
@@ -129,17 +130,7 @@ Adopt tokens and faces: title as a pane title, entries in value mono, caution en
 - [ ] **Step 1:** Implement; run `engineer-screen.spec.ts` → PASS.
 - [ ] **Step 2:** Commit `feat(browser): damage report uses readout skin`.
 
-### Task 7: Writable-controls audit
-
-**Files:**
-- Read: `modules/browser/src/screens/signals-screen.ts`, `weapons-screen.ts`, `modules/browser/src/input/**`, `docker/osc/**` and Node-RED flows
-- Output: a section appended to the spec under "Writable controls audit"
-
-For each: Signals scan-beam bearing and arc, jobs paused, Prioritize Target, job Cancel; Weapons tube safety lock, cluster warhead — record the hotkey/gamepad/OSC path that replaces the panel control, or "none". Do not change code.
-- [ ] **Step 1:** Audit and write the table.
-- [ ] **Step 2:** Commit `docs(design): writable panel controls audit`.
-
-### Task 8: Baselines, full verification, GM density check
+### Task 7: Baselines, full verification, GM density check
 
 **Files:**
 - Modify: `modules/e2e/test/visual/gallery.spec.ts-snapshots/**`
@@ -151,4 +142,4 @@ For each: Signals scan-beam bearing and arc, jobs paused, Prioritize Target, job
 
 ## Order and parallelism
 
-Task 1 → Task 2 → Task 3 (same CSS file, sequential). Task 4, 5, 6, 7 can start after Task 2 (4 after 3 if it touches `station-screens.ts`). Task 8 last.
+Task 1 → Task 2 → Task 3 (same CSS file, sequential). Tasks 4, 5, 6 can start after Task 3. Task 7 last.

@@ -68,7 +68,7 @@ The React/Arwes `damage-report.tsx` adopts the same tokens and faces (caution te
 
 ### 7. Writable blades on display stations
 
-The six writable panel controls on display stations (Signals scan-beam sliders, jobs-paused checkbox, Prioritize Target and job Cancel buttons; Weapons tube safety lock and cluster warhead) become inert through `data-input="none"`. Their state still arrives through controllers/hotkeys. Verify each has a controller/hotkey path; list any that do not in the PR instead of silently losing the function.
+The six writable panel controls on display stations (Signals scan-beam sliders, jobs-paused checkbox, Prioritize Target and job Cancel buttons; Weapons tube safety lock and cluster warhead) become inert through `data-input="none"`. Only existing hotkeys remain; adding input paths is out of scope. `data-input="none"` never applies to DRADIS or GM, whose mouse events stay untouched.
 
 ## Testing
 
