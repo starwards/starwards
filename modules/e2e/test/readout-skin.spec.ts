@@ -48,6 +48,16 @@ test.describe('Readout skin', () => {
         expect(okBackground).toBe('rgb(3, 8, 11)');
     });
 
+    test('threshold readout values stay visible while OK', async ({ page }) => {
+        await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        const panel = page.locator('[data-id="Reactor"]');
+        await expect(panel).toBeVisible({ timeout: 10000 });
+        const input = panel.getByText('energy level', { exact: true }).locator('..').locator('input');
+        await expect(input).toHaveValue(/[0-9]/);
+        const color = await input.evaluate((el) => getComputedStyle(el).color);
+        expect(color).not.toBe('rgba(0, 0, 0, 0)');
+    });
+
     test('an over-long repair-queue value is truncated inside its row', async ({ page }) => {
         await navigateToScreen(page, `/engineer.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         const panel = page.locator('[data-id="Repair Queue"]');

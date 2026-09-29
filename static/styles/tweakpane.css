@@ -319,12 +319,12 @@ body[data-input='none'] .tp-sldv_k::after {
 :root [data-status='OK'] {
     background: var(--sw-ground);
 }
-:root .tp-rotv[data-status='OK'] {
+:root .tp-rotv[data-status='OK']:not(.readout) {
     --tp-input-foreground-color: transparent;
     --tp-monitor-foreground-color: transparent;
     box-shadow: inset 0 0 0 1px #122b30;
 }
-:root .tp-rotv[data-status='OK'] input {
+:root .tp-rotv[data-status='OK']:not(.readout) input {
     color: transparent;
     text-shadow: none;
 }

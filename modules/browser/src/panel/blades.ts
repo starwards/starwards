@@ -166,7 +166,7 @@ export function addThresholdTextBlade(
 ) {
     const { warnBelow, errorAt = model.range[0], ...textParams } = params;
     const blade = addTextBlade(guiFolder, model, textParams, cleanup);
-    blade.element.classList.add('tp-rotv');
+    blade.element.classList.add('tp-rotv', 'readout'); // value stays visible in every status
     const applyTheme = () => {
         const value = model.getValue();
         blade.element.dataset.status =
