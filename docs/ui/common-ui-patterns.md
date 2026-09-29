@@ -29,7 +29,7 @@ Shared architecture, panel/radar/input code patterns, and cross-screen technical
 
 ### Container System
 - **Root Container**: Full-screen wrapper (`#wrapper`)
-- **Positioned Containers**: Absolute positioning with VPos/HPos (TOP/MIDDLE/BOTTOM, LEFT/MIDDLE/RIGHT)
+- **Station Grid**: `stationGrid(root, { left, right })` — left/center/right columns of stacked, non-overlapping slots
 - **Dashboard**: GoldenLayout for draggable/resizable panels (Ship and GM screens)
 
 ### Data Flow
@@ -117,11 +117,12 @@ const layer = new ObjectsLayer(
 const container = wrapRootWidgetContainer($('#wrapper'));
 ```
 
-#### Sub-Containers
+#### Station Grid
 ```typescript
-container.subContainer(VPos.TOP, HPos.LEFT);     // Top-left
-container.subContainer(VPos.MIDDLE, HPos.RIGHT); // Middle-right
-container.subContainer(VPos.BOTTOM, HPos.MIDDLE); // Bottom-center
+const grid = stationGrid(container, { left: 262, right: 250 }); // column widths in px
+grid.left({ scroll: true });              // left column; scrolls when too short
+grid.center({ bottom: true, width: 200 }); // center column, pinned to bottom
+grid.right();                             // right column
 ```
 
 ### Input Handling

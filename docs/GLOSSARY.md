@@ -74,7 +74,7 @@ explains a mechanic itself, so a mechanic never drifts out of sync between two p
 | `@range` | Decorator constraining a numeric field's value range (static or dynamic) | [`modules/core/src/range.ts`](../modules/core/src/range.ts) |
 | `@defectible` | Decorator tagging a `SystemState` field as damage-report/GM-tweak-panel visible | [`modules/core/src/ship/system.ts`](../modules/core/src/ship/system.ts) |
 | Colyseus Monitor | `@colyseus/monitor` dashboard mounted at `/colyseus-monitor` for room inspection | [`modules/server/src/server.ts`](../modules/server/src/server.ts) |
-| Dashboard vs fixed station layout | `Dashboard` (golden-layout, customizable screens) vs `wrapRootWidgetContainer`/`subContainer` (fixed-grid stations) — the two layout systems don't mix | [`modules/browser/src/widgets/dashboard.ts`](../modules/browser/src/widgets/dashboard.ts), [`modules/browser/src/container.ts`](../modules/browser/src/container.ts) |
+| Dashboard vs fixed station layout | `Dashboard` (golden-layout, customizable screens) vs `wrapRootWidgetContainer`/`stationGrid` (fixed three-column stations) — the two layout systems don't mix | [`modules/browser/src/widgets/dashboard.ts`](../modules/browser/src/widgets/dashboard.ts), [`modules/browser/src/container.ts`](../modules/browser/src/container.ts) |
 
 ## UI terms
 
