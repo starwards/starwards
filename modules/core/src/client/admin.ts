@@ -100,8 +100,6 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
             }
             return (await response.json()) as RecordingInfo | null;
         },
-        startReplay: (name: string): undefined =>
-            void fetch(endpoint + '/start-replay', { ...requestInfo, body: JSON.stringify({ name }) }),
     };
 };
 

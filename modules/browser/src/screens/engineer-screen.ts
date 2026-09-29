@@ -24,7 +24,6 @@ import { drawDamageReport } from '../widgets/damage-report';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { drawRepairQueue } from '../widgets/repair-queue';
-import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
@@ -45,7 +44,6 @@ export async function initEngineerScreen(
     await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
     drawDamageReport(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver);
     drawRepairQueue(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver, false);
-    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     return teardownInput;
 }
 

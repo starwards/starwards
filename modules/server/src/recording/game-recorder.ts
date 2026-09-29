@@ -194,7 +194,7 @@ export class GameRecorder {
  * rather than decoding them: every frame line carries a multi-KB encoded snapshot, and only
  * the tail's timestamp is needed.
  */
-export async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
+async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
     const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
     const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
     let header: RecordingHeader | null = null;

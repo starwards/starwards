@@ -67,7 +67,7 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
     // actually live; the status change to GAME_RUNNING re-runs this whole function anyway, at
     // which point the space room exists.
     const gameStatus = await driver.getGameStatus();
-    const gameIsLive = gameStatus === GameStatus.RUNNING || gameStatus === GameStatus.REPLAY;
+    const gameIsLive = gameStatus === GameStatus.RUNNING;
     const gmWidgets = gameIsLive ? new GmWidgets(driver) : null;
 
     // Its own row rather than a third tab: the GM has to see what the game is doing without

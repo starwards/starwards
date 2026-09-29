@@ -2,21 +2,14 @@ import { AdminDriver, Driver, StationRegistration, VERSION } from '@starwards/co
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
 import { beginStationRegistrationWithRetry, getOrCreateStationId } from '../station-identity';
-import {
-    useAdminDriver,
-    useCanStartGame,
-    useIsGameRunning,
-    useIsRecording,
-    useIsReplaying,
-    usePlayerShips,
-} from '../react/hooks';
+import { useAdminDriver, useCanStartGame, useIsGameRunning, useIsRecording, usePlayerShips } from '../react/hooks';
 
 import { AnimatorGeneralProvider } from './arwes-compat';
 import { BleepsProvider } from './arwes-compat';
 import { NetworkInfoPanel } from './network-info-panel';
 import { REVIEWER_GUIDE_URL } from '../lobby-links';
 import React from 'react';
-import { ReplayMenu } from './replay-menu';
+import { RecordingsMenu } from './recordings-menu';
 import WebFont from 'webfontloader';
 
 /**
@@ -66,10 +59,7 @@ const bleepsSettings = {
 };
 const generalAnimator = { duration: { enter: 200, exit: 200 } };
 
-/**
- * The station links. Offered during a replay too — watching a recorded session from a bridge
- * station is the point of a replay, and the server drops those stations' commands while it runs.
- */
+/** The station links. */
 const StationsMenu = (p: Props) => {
     const ships = usePlayerShips(p.driver);
     return (
@@ -195,7 +185,6 @@ function ShipOptions({ shipId }: { shipId: string }) {
 
 export const Lobby = (p: Props) => {
     const isGameRunning = useIsGameRunning(p.driver);
-    const isReplaying = useIsReplaying(p.driver);
     const canStartGame = useCanStartGame(p.driver);
     const adminDriver = useAdminDriver(p.driver);
     return (
@@ -211,15 +200,7 @@ export const Lobby = (p: Props) => {
                         <StationIdBadge driver={p.driver} adminDriver={adminDriver} />
                         <h1 data-id="title">Starwards</h1>
                         {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
-                        {isReplaying && adminDriver && (
-                            <pre key="Replaying">
-                                <div data-id="replaying-note">Replaying</div>
-                                <Button palette="error" onClick={adminDriver.stopGame}>
-                                    <div data-id="stop replay">Stop</div>
-                                </Button>
-                            </pre>
-                        )}
-                        {(isGameRunning || isReplaying) && adminDriver && <StationsMenu driver={p.driver} />}
+                        {isGameRunning && adminDriver && <StationsMenu driver={p.driver} />}
                         {canStartGame && adminDriver && (
                             <pre key="2V1 game">
                                 <LoadGame adminDriver={adminDriver} />
@@ -234,7 +215,7 @@ export const Lobby = (p: Props) => {
                                 <Button palette="success" onClick={() => adminDriver.startGame('wave_defence')}>
                                     <div data-id="wave defence game">Wave Defence</div>
                                 </Button>
-                                <ReplayMenu adminDriver={adminDriver} />
+                                <RecordingsMenu adminDriver={adminDriver} />
                             </pre>
                         )}
                         <NetworkInfoPanel driver={p.driver} />

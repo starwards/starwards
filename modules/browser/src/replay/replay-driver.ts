@@ -39,7 +39,7 @@ export class ReplayDriver extends Driver {
     }
 
     override getGameStatus() {
-        return Promise.resolve(GameStatus.REPLAY);
+        return Promise.resolve(GameStatus.RUNNING);
     }
 
     override getAdminDriver(): Promise<AdminDriver> {

@@ -14,13 +14,6 @@ describe('computeSeatView', () => {
         });
     });
 
-    it('shows the assigned screen while watching a replay too', () => {
-        expect(computeSeatView('GVTS', 'pilot', GameStatus.REPLAY)).toEqual({
-            view: 'assigned',
-            showBreakout: false,
-        });
-    });
-
     it('falls back to waiting, without breakout, when assigned but the game is stopped', () => {
         expect(computeSeatView('GVTS', 'pilot', GameStatus.STOPPED)).toEqual({
             view: 'waiting',

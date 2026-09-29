@@ -41,7 +41,7 @@ export class ReplaySession {
         const animating = this.interpolate && next && now - this.appliedAt > 33;
         if (!changed && !animating) return true;
         if (changed) {
-            this.applyFrame(frame, index);
+            this.applyFrame(frame);
             this.appliedIndex = index;
         }
         this.applySpace(frame, next, t, index);
@@ -49,7 +49,7 @@ export class ReplaySession {
         return true;
     }
 
-    private applyFrame(frame: SavedGame, index: number) {
+    private applyFrame(frame: SavedGame) {
         const shipIds: string[] = [];
         const playerShipIds: string[] = [];
         for (const [id, ship] of frame.fragment.ship) {
@@ -63,11 +63,9 @@ export class ReplaySession {
             room.apply(ship);
         }
         const admin = new AdminState();
-        admin.gameStatus = GameStatus.REPLAY;
+        admin.gameStatus = GameStatus.RUNNING;
         admin.shipIds.push(...shipIds);
         admin.playerShipIds.push(...playerShipIds);
-        admin.replayPosition = this.source.timeOf(index);
-        admin.replayDuration = this.source.duration;
         this.admin.apply(admin);
     }
 
