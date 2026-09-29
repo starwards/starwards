@@ -31,8 +31,12 @@ export function registerStationClient(
 export type ScreenContainer = ReturnType<typeof wrapRootWidgetContainer>;
 export type ScreenTeardown = (() => void) | void;
 
-/** Display-only stations take no pointer input; see `body[data-input='none']` in tweakpane.css. */
-export function setDisplayOnly(displayOnly: boolean) {
+/**
+ * Display-only stations take no pointer input; see `body[data-input='none']` in tweakpane.css.
+ * `station` scopes per-station pane ids (`body[data-station]`), since panes share titles across stations.
+ */
+export function setDisplayOnly(displayOnly: boolean, station: string) {
+    document.body.dataset.station = station;
     if (displayOnly) {
         document.body.dataset.input = 'none';
     } else {

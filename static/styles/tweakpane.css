@@ -437,3 +437,90 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     left: 2px;
     background: var(--sw-dim);
 }
+
+/* pane ids: a small mono tag at the right of the pane title bar. Station-scoped because Systems Status and Warp repeat across stations. */
+:root .tp-rotv_b::after {
+    flex: none;
+    margin-left: var(--sw-gap);
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-label);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    color: var(--sw-frame);
+}
+:root body[data-station='helms'] [data-id='Systems Status'] > .tp-rotv_b::after {
+    content: 'HLM-07';
+}
+:root body[data-station='helms'] [data-id='Properties'] > .tp-rotv_b::after {
+    content: 'HLM-01';
+}
+:root body[data-station='helms'] [data-id='Reactor'] > .tp-rotv_b::after {
+    content: 'HLM-04';
+}
+:root body[data-station='helms'] [data-id='Warp'] > .tp-rotv_b::after {
+    content: 'HLM-05';
+}
+:root body[data-station='helms'] [data-id='Docking'] > .tp-rotv_b::after {
+    content: 'HLM-06';
+}
+:root body[data-station='weapons'] [data-id='Tubes Status'] > .tp-rotv_b::after {
+    content: 'WPN-02';
+}
+:root body[data-station='weapons'] [data-id='Ammunition'] > .tp-rotv_b::after {
+    content: 'WPN-03';
+}
+:root body[data-station='weapons'] [data-id='Chain Gun'] > .tp-rotv_b::after {
+    content: 'WPN-04';
+}
+:root body[data-station='weapons'] [data-id='Targeting'] > .tp-rotv_b::after {
+    content: 'WPN-05';
+}
+:root body[data-station='weapons'] [data-id='Systems Status'] > .tp-rotv_b::after {
+    content: 'WPN-06';
+}
+:root body[data-station='engineer'] [data-id='Engineering Status'] > .tp-rotv_b::after {
+    content: 'ENG-01';
+}
+:root body[data-station='engineer'] [data-id='Warp'] > .tp-rotv_b::after {
+    content: 'ENG-02';
+}
+:root body[data-station='engineer'] [data-id='Full Systems Status'] > .tp-rotv_b::after {
+    content: 'ENG-04';
+}
+:root body[data-station='engineer'] [data-id='Repair Queue'] > .tp-rotv_b::after {
+    content: 'ENG-05';
+}
+:root body[data-station='signals'] [data-id='Scan Beam'] > .tp-rotv_b::after {
+    content: 'SIG-01';
+}
+:root body[data-station='signals'] [data-id='Signals Jobs'] > .tp-rotv_b::after {
+    content: 'SIG-02';
+}
+:root body[data-station='signals'] [data-id='Target'] > .tp-rotv_b::after {
+    content: 'SIG-03';
+}
+:root body[data-station='signals'] [data-id='Systems Status'] > .tp-rotv_b::after {
+    content: 'SIG-04';
+}
+:root body[data-station='dradis'] [data-id='New Waypoint'] > .tp-rotv_b::after {
+    content: 'DRD-01';
+}
+:root body[data-station='dradis'] [data-id='Layers'] > .tp-rotv_b::after {
+    content: 'DRD-02';
+}
+:root body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_b::after {
+    content: 'DRD-03';
+}
+:root body[data-station='dradis'] [data-id='Edit Waypoint'] > .tp-rotv_b::after {
+    content: 'DRD-04';
+}
+
+/* segmented bars: discrete cells instead of a continuous fill; opted in with data-segmented on the row */
+:root [data-segmented] .tp-sldv_t {
+    border-color: transparent;
+    background: repeating-linear-gradient(90deg, #12343b 0 8px, transparent 8px 10px);
+}
+:root [data-segmented] .tp-sldv_k::before {
+    -webkit-mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+    mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+}

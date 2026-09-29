@@ -92,4 +92,22 @@ test.describe('Readout skin', () => {
         await box.click();
         expect(await input.isChecked()).toBe(!before);
     });
+
+    test('pane ids render in the title bar and segmented bars are masked', async ({ page }) => {
+        await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        const tubes = page.locator('[data-id="Tubes Status"]');
+        await expect(tubes).toBeVisible({ timeout: 10000 });
+        const paneId = await tubes.locator('> .tp-rotv_b').evaluate((el) => getComputedStyle(el, '::after').content);
+        expect(paneId).toBe('"WPN-02"');
+        const systems = page.locator('[data-id="Systems Status"] > .tp-rotv_b');
+        expect(await systems.evaluate((el) => getComputedStyle(el, '::after').content)).toBe('"WPN-06"');
+
+        const fill = tubes.locator('[data-segmented] .tp-sldv_k').first();
+        await expect(fill).toBeAttached();
+        const mask = await fill.evaluate((el) => {
+            const style = getComputedStyle(el, '::before');
+            return style.maskImage || style.webkitMaskImage;
+        });
+        expect(mask).toContain('repeating-linear-gradient');
+    });
 });

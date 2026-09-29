@@ -25,7 +25,7 @@ export async function initDradisScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(false);
+    setDisplayOnly(false, 'dradis');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 

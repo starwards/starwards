@@ -25,7 +25,7 @@ export async function initSignalsScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'signals');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 

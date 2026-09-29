@@ -32,7 +32,7 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
         const loadedProjectile = readProp(shipDriver, `/tubes/${tube.index}/loadedProjectile`);
         addTextBlade(tubeFolder, loadedProjectile, { label: 'ammo loaded', disabled: true }, panelCleanup.add);
         const loading = readNumberProp(shipDriver, `/tubes/${tube.index}/loading`);
-        addBarBlade(tubeFolder, loading, { label: 'loading' }, panelCleanup.add);
+        addBarBlade(tubeFolder, loading, { label: 'loading' }, panelCleanup.add).element.dataset.segmented = '';
         addInputBlade(
             tubeFolder,
             readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),

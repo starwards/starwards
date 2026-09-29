@@ -21,7 +21,7 @@ export async function initWeaponsScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'weapons');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 10000 });

@@ -20,7 +20,7 @@ export async function initHelmsScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'helms');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawHelmsRadar(spaceDriver, shipDriver, container);

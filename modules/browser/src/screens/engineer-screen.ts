@@ -33,7 +33,7 @@ export async function initEngineerScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'engineer');
     container.getElement().css('background-color', toCss(radarFogOfWar));
     const shipDriver = await driver.getShipDriver(shipId);
     const teardownInput = wireInput(shipDriver);

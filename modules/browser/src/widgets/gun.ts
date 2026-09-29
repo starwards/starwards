@@ -31,7 +31,7 @@ export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver
             readNumberProp(shipDriver, `/chainGuns/${index}/loading`),
             { label: 'loading' },
             panelCleanup.add,
-        );
+        ).element.dataset.segmented = '';
         addInputBlade(
             gunPane,
             readProp(shipDriver, `/chainGuns/${index}/loadAmmo`),
