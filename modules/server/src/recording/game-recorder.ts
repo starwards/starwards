@@ -2,10 +2,15 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 
-import { RecordingHeader, encodeFrameLine, encodeHeader, parseFrameLine, parseHeader } from './recording-format';
-
+import {
+    RecordingHeader,
+    createLogger,
+    encodeFrameLine,
+    encodeHeader,
+    parseFrameLine,
+    parseHeader,
+} from '@starwards/core/internal';
 import { GameManager } from '../admin/game-manager';
-import { createLogger } from '@starwards/core/internal';
 import { createReadStream } from 'node:fs';
 import { schemaToString } from '../serialization/game-state-serialization';
 

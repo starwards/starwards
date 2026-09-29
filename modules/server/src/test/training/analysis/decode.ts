@@ -2,9 +2,8 @@ import * as fs from 'node:fs';
 import * as readline from 'node:readline';
 
 import { Metadata, Schema } from '@colyseus/schema';
-import { RecordingHeader, parseFrameLine, parseHeader } from '../../../recording/recording-format';
+import { RecordingHeader, SavedGame, parseFrameLine, parseHeader } from '@starwards/core/internal';
 
-import { SavedGame } from '../../../serialization/game-state-protocol';
 import { stringToSchema } from '../../../serialization/game-state-serialization';
 
 /** One leaf value flattened out of a decoded frame. Exactly one of `num`/`str`/`bool` is set. */

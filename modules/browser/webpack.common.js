@@ -5,6 +5,7 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 module.exports = {
     entry: {
         gm: [path.resolve(__dirname, 'src', 'screens', 'gm.ts')],
+        player: [path.resolve(__dirname, 'src', 'screens', 'player.ts')],
         ship: [path.resolve(__dirname, 'src', 'screens', 'ship.ts')],
         weapons: [path.resolve(__dirname, 'src', 'screens', 'weapons.ts')],
         helms: [path.resolve(__dirname, 'src', 'screens', 'helms.ts')],
@@ -88,6 +89,11 @@ module.exports = {
             filename: 'gm.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),
             chunks: ['gm'],
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'player.html',
+            template: path.resolve(__dirname, 'templates', 'player.html'),
+            chunks: ['player'],
         }),
         new HtmlWebpackPlugin({
             filename: 'index.html',

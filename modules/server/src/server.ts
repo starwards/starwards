@@ -3,7 +3,7 @@ import * as maps from './maps';
 import * as path from 'path';
 
 import { GameRecorder, RecordingConflictError, isRecordingName } from './recording/game-recorder';
-import { GameStatus, createLogger } from '@starwards/core/internal';
+import { GameStatus, SavedGame, createLogger } from '@starwards/core/internal';
 import { NextFunction, Request, Response } from 'express';
 import { Server, matchMaker } from '@colyseus/core';
 import { schemaToString, stringToSchema } from './serialization/game-state-serialization';
@@ -13,7 +13,6 @@ import { AdminRoom } from './admin/room';
 import { CleanLocalPresence } from './clean-local-presence';
 import { GameManager } from './admin/game-manager';
 import { ReplayPlayer } from './recording/replay-player';
-import { SavedGame } from './serialization/game-state-protocol';
 import { ShipRoom } from './ship/room';
 import { SpaceRoom } from './space/room';
 import { WebSocketTransport } from '@colyseus/ws-transport';

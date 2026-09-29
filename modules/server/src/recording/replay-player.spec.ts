@@ -2,11 +2,19 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { Asteroid, GameStatus, Vec2, XY, makeId, waitFor } from '@starwards/core/internal';
-import { encodeFrameLine, encodeHeader } from './recording-format';
+import {
+    Asteroid,
+    GameStatus,
+    SavedGame,
+    Vec2,
+    XY,
+    encodeFrameLine,
+    encodeHeader,
+    makeId,
+    waitFor,
+} from '@starwards/core/internal';
 
 import { ReplayPlayer } from './replay-player';
-import { SavedGame } from '../serialization/game-state-protocol';
 import { makeDriver } from '../test/driver';
 import { schemaToString } from '../serialization/game-state-serialization';
 

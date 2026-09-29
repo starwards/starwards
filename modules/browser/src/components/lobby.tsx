@@ -268,6 +268,13 @@ export const Lobby = (p: Props) => {
                             >
                                 Widgets Gallery
                             </Button>
+                            <Button
+                                key="player"
+                                palette="secondary"
+                                onClick={() => window.location.assign('player.html')}
+                            >
+                                Recording Player
+                            </Button>
                         </pre>
                     </div>
                     <div

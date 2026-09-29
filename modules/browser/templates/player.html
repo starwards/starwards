@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Starwards Recording Player</title>
+        <link type="text/css" rel="stylesheet" href="styles/index.css" />
+        <style>
+            html,
+            body {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #0f0f0f;
+                color: #ddd;
+                font-family: sans-serif;
+            }
+            #player {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+            .player-main {
+                flex: 1 1 auto;
+                display: flex;
+                min-height: 0;
+            }
+            .player-stage {
+                flex: 1 1 auto;
+                min-width: 0;
+                position: relative;
+                overflow: hidden;
+            }
+            .player-side {
+                flex: 0 0 280px;
+                overflow-y: auto;
+                background: #1a1a1a;
+                border-left: 1px solid #333;
+                padding: 8px;
+                font-size: 12px;
+            }
+            .player-side h3 {
+                margin: 8px 0 4px;
+                font-size: 13px;
+            }
+            .player-side pre {
+                margin: 0;
+                white-space: pre-wrap;
+                word-break: break-all;
+                font-size: 11px;
+            }
+            .player-side .hint {
+                color: #888;
+            }
+            .player-side .row {
+                display: block;
+                width: 100%;
+                text-align: left;
+                background: none;
+                border: 0;
+                color: inherit;
+                padding: 2px 4px;
+                cursor: pointer;
+            }
+            .player-side .row:hover,
+            .player-side .row.selected {
+                background: #2a3a44;
+            }
+            /* the transport bar is a first-class part of the layout, always visible under the stage */
+            .player-bar {
+                flex: 0 0 auto;
+                background: #161616;
+                border-top: 1px solid #333;
+                padding: 6px 12px 8px;
+            }
+            .player-scrubber {
+                --progress: 0%;
+                width: 100%;
+                height: 18px;
+                margin: 0 0 4px;
+                cursor: pointer;
+                accent-color: #00d7ff;
+            }
+            .player-controls {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .player-controls button,
+            .player-controls select {
+                background: #262626;
+                color: #ddd;
+                border: 1px solid #444;
+                border-radius: 4px;
+                min-width: 34px;
+                height: 30px;
+                font-size: 15px;
+                cursor: pointer;
+            }
+            .player-controls button.toggle.on {
+                background: #00465a;
+                border-color: #00d7ff;
+            }
+            .player-time {
+                font-variant-numeric: tabular-nums;
+                min-width: 110px;
+            }
+            .player-title {
+                margin-left: auto;
+                color: #888;
+                font-size: 12px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .player-empty {
+                margin: 20vh auto 0;
+                max-width: 480px;
+                padding: 32px;
+                text-align: center;
+                border: 2px dashed #444;
+                border-radius: 8px;
+            }
+            .player-error {
+                color: #ff6666;
+            }
+            @media (max-width: 700px) {
+                .player-side {
+                    display: none;
+                }
+                .player-title {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="player"></div>
+    </body>
+</html>

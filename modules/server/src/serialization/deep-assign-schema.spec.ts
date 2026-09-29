@@ -1,8 +1,6 @@
 import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 
-import { SavedGame } from './game-state-protocol';
-import { Vec2 } from '@starwards/core/internal';
-import { deepAssignSchema } from './deep-assign-schema';
+import { SavedGame, Vec2, deepAssignSchema } from '@starwards/core/internal';
 import { makeDriver } from '../test/driver';
 
 describe('deepAssignSchema', () => {

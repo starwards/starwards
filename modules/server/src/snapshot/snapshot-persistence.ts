@@ -2,11 +2,10 @@ import * as fs from 'node:fs/promises';
 import * as maps from '../maps';
 import * as path from 'node:path';
 
+import { SavedGame, createLogger } from '@starwards/core/internal';
 import { schemaToString, stringToSchema } from '../serialization/game-state-serialization';
 
 import { GameManager } from '../admin/game-manager';
-import { SavedGame } from '../serialization/game-state-protocol';
-import { createLogger } from '@starwards/core/internal';
 
 const { info: logInfo, error: logError } = createLogger('server:snapshot');
 

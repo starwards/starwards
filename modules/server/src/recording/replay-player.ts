@@ -1,11 +1,17 @@
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 
-import { GameMap, GameStatus, createLogger } from '@starwards/core/internal';
-import { RecordingHeader, parseFrameLine, parseHeader } from './recording-format';
+import {
+    GameMap,
+    GameStatus,
+    RecordingHeader,
+    SavedGame,
+    createLogger,
+    parseFrameLine,
+    parseHeader,
+} from '@starwards/core/internal';
 
 import { GameManager } from '../admin/game-manager';
-import { SavedGame } from '../serialization/game-state-protocol';
 import { createReadStream } from 'node:fs';
 import { stringToSchema } from '../serialization/game-state-serialization';
 import { summarizeRecording } from './game-recorder';

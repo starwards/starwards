@@ -1,12 +1,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { encodeFrameLine, encodeHeader } from '../recording/recording-format';
-
+import { Spaceship, encodeFrameLine, encodeHeader } from '@starwards/core/internal';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
 import { RECORDING_EXT } from '../recording/game-recorder';
-import { Spaceship } from '@starwards/core/internal';
 import { schemaToString } from '../serialization/game-state-serialization';
 
 /** A state edge observed at tick resolution, written to the `.events.jsonl` sidecar. */

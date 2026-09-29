@@ -1,4 +1,4 @@
-import { encodeFrameLine, encodeHeader, parseFrameLine, parseHeader } from './recording-format';
+import { encodeFrameLine, encodeHeader, parseFrameLine, parseHeader } from '../src';
 
 describe('recording-format', () => {
     it('encodes and parses a header round-trip', () => {

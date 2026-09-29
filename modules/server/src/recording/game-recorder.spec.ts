@@ -3,9 +3,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { GameRecorder, RecordingConflictError } from './game-recorder';
+import { parseFrameLine, waitFor } from '@starwards/core/internal';
 import { makeDriver } from '../test/driver';
-import { parseFrameLine } from './recording-format';
-import { waitFor } from '@starwards/core/internal';
 
 async function readLines(filePath: string): Promise<string[]> {
     const content = await fs.readFile(filePath, 'utf-8');

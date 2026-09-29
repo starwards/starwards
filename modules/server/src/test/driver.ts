@@ -6,7 +6,7 @@ import { AddressInfo, Socket } from 'net';
 import { AdminRoom } from '../admin/room';
 import { EventEmitter } from 'eventemitter3';
 import { GameManager } from '../admin/game-manager';
-import { SavedGame } from '../serialization/game-state-protocol';
+import { SavedGame } from '@starwards/core/internal';
 import { Server } from 'http';
 import { matchMaker } from '@colyseus/core';
 import path from 'path';

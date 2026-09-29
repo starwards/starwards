@@ -1,6 +1,5 @@
-import { Asteroid, GameStatus, Vec2 } from '@starwards/core/internal';
+import { Asteroid, GameStatus, SavedGame, Vec2 } from '@starwards/core/internal';
 
-import { SavedGame } from '../serialization/game-state-protocol';
 import { makeDriver } from './driver';
 import supertest from 'supertest';
 

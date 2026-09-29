@@ -4,6 +4,7 @@ import {
     GameApi,
     GameMap,
     GameStatus,
+    SavedGame,
     ShipApi,
     ShipDie,
     ShipManager,
@@ -16,6 +17,7 @@ import {
     Vec2,
     XY,
     createLogger,
+    deepAssignSchema,
     isAssignableSeat,
     isSlotTaken,
     makeId,
@@ -26,9 +28,7 @@ import {
     waitFor,
 } from '@starwards/core/internal';
 
-import { SavedGame } from '../serialization/game-state-protocol';
 import { decodedCopy } from '../serialization/game-state-serialization';
-import { deepAssignSchema } from '../serialization/deep-assign-schema';
 import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
 
