@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Readout kit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#020507}
+.scr{position:relative;background:#03080b radial-gradient(ellipse at 50% 40%,#061319 0%,#03080b 70%);color:#e6fcff;font-family:'Chakra Petch',sans-serif;overflow:hidden}
+.scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.p{position:relative;border:1px solid #143a42;background:rgba(4,14,18,.92);padding:8px 12px 12px}
+.p::before,.p::after{content:"";position:absolute;width:10px;height:10px;border-color:#5fe3f0;border-style:solid}
+.p::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.p::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.pt{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px;letter-spacing:.2em;color:#7fe7f2;border-bottom:1px solid #143a42;padding-bottom:5px;margin-bottom:6px}
+.pt small{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.05em;color:#2f7480;font-weight:400}
+.r{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:8px;padding:3px 0}
+.l{font-weight:600;font-size:13px;letter-spacing:.1em;color:#52aebb;text-transform:uppercase}
+.v{font-family:'Share Tech Mono',monospace;font-size:20px;color:#e6fcff;text-shadow:0 0 6px rgba(120,235,250,.35)}
+.v.big{font-size:34px}
+.u{font-size:12px;color:#52aebb;margin-left:3px}
+.mode{font-family:'Share Tech Mono',monospace;font-size:17px;color:#7fe7f2}
+.bar{position:relative;height:10px;border:1px solid #1f5963;background:repeating-linear-gradient(90deg,transparent 0 9.5%,#12343b 9.5% 10%)}
+.bar>i{position:absolute;top:1px;bottom:1px;left:1px;background:#5fe3f0;box-shadow:0 0 6px rgba(95,227,240,.6)}
+.bar.bi>i{left:auto}
+.bar.bi::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#7fe7f2}
+.bar.cau>i{background:#ffb000;box-shadow:0 0 6px rgba(255,176,0,.6)}
+.seg{display:flex;gap:3px}
+.seg>i{flex:1;height:12px;background:#0d262c;border:1px solid #143a42}
+.seg>i.on{background:#5fe3f0;border-color:#5fe3f0;box-shadow:0 0 5px rgba(95,227,240,.5)}
+.ann{font-weight:700;font-size:12px;letter-spacing:.14em;padding:5px 6px;border:1px solid #1a3439;color:#2a555c;text-align:center;text-transform:uppercase}
+.ann.on{border-color:#5fe3f0;color:#5fe3f0;text-shadow:0 0 6px rgba(95,227,240,.6);box-shadow:inset 0 0 8px rgba(95,227,240,.15)}
+.ann.cau{background:#ffb000;border-color:#ffb000;color:#120a00}
+.ann.wrn{background:#ff3b30;border-color:#ff3b30;color:#140000}
+.h{font-weight:700;font-size:12px;letter-spacing:.24em;color:#2f7480;margin:0 0 8px}
+.sw{height:34px;border:1px solid #143a42}
+.cap{font-family:'Share Tech Mono',monospace;font-size:12px;color:#52aebb;margin-top:4px}
+.mx{display:grid;grid-template-columns:1fr 64px 64px 64px;gap:3px 4px;align-items:center}
+.mx .n{font-size:14px;font-weight:600;letter-spacing:.06em;color:#9cdfe8}
+.mx .hd{font-size:11px;letter-spacing:.16em;color:#2f7480;text-align:center}
+.mx .c{height:20px;border:1px solid #122b30}
+.map{display:grid;grid-template-columns:1fr 20px 1.2fr;gap:6px 6px;align-items:center;font-size:13px}
+.map .a{color:#52aebb;letter-spacing:.06em}
+.map .b{color:#e6fcff;letter-spacing:.06em}
+.map .ar{color:#2f7480;font-family:'Share Tech Mono',monospace}
+</style>
+</helmet>
+<div class="scr" style="width: 1024px; height: 768px; box-sizing: border-box; padding: 24px; display: grid; grid-template-columns: 300px 1fr 300px; gap: 20px">
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div>
+<p class="h">PALETTE — COLOR IS MEANING</p>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div><div class="sw" style="background: #03080b"></div><div class="cap">GROUND</div></div>
+<div><div class="sw" style="background: #143a42"></div><div class="cap">FRAME</div></div>
+<div><div class="sw" style="background: #52aebb"></div><div class="cap">LABEL</div></div>
+<div><div class="sw" style="background: #e6fcff"></div><div class="cap">VALUE</div></div>
+<div><div class="sw" style="background: #ffb000"></div><div class="cap">CAUTION</div></div>
+<div><div class="sw" style="background: #ff3b30"></div><div class="cap">WARNING</div></div>
+</div>
+</div>
+<div>
+<p class="h">TYPE — TWO FACES, FOUR SIZES</p>
+<div class="v big">948.6<span class="u">MJ</span></div>
+<div class="v">W770HZ</div>
+<div class="pt" style="border: 0; margin: 4px 0 0">PANEL TITLE <small>WPN-01</small></div>
+<div class="l">FIELD LABEL</div>
+</div>
+<div>
+<p class="h">ANNUNCIATORS — DARK WHEN NORMAL</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+<div class="ann">OFF</div>
+<div class="ann on">ENGAGED</div>
+<div class="ann cau">CAUTION</div>
+<div class="ann wrn">FAULT</div>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<p class="h" style="margin: 0">PANEL ANATOMY</p>
+<div class="p">
+<div class="pt">CHAIN GUN <small>WPN-04</small></div>
+<div class="r"><span class="l">Projectile</span><span class="mode">HI-EXP SHELL</span></div>
+<div class="r"><span class="l">Rate of fire</span><span class="v">100<span class="u">%</span></span></div>
+<div class="bar" style="margin: 2px 0 8px"><i style="width: 99%"></i></div>
+<div class="r"><span class="l">Load</span><span class="v">7/10</span></div>
+<div class="seg" style="margin-bottom: 8px"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+<div class="ann on">AUTO LOAD</div>
+<div class="ann">SAFE</div>
+<div class="ann">FIRING</div>
+</div>
+</div>
+<p class="h" style="margin: 8px 0 0">BARS AND TAPES</p>
+<div class="p">
+<div class="r"><span class="l">Energy — unipolar</span><span class="v">948<span class="u">MJ</span></span></div>
+<div class="bar"><i style="width: 94%"></i></div>
+<div class="r" style="margin-top: 6px"><span class="l">Strafe — bipolar</span><span class="v">-0.32</span></div>
+<div class="bar bi"><i style="right: 50%; width: 16%"></i></div>
+<div class="r" style="margin-top: 6px"><span class="l">Heat — in caution</span><span class="v" style="color: #ffb000">82<span class="u">%</span></span></div>
+<div class="bar cau"><i style="width: 82%"></i></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<p class="h" style="margin: 0">SYSTEMS MATRIX — ONLY FAULTS LIGHT UP</p>
+<div class="p">
+<div class="mx">
+<span></span><span class="hd">STAT</span><span class="hd">PWR</span><span class="hd">HEAT</span>
+<span class="n">SMART PILOT</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">WARP</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">THRUSTER 3</span><span class="c"></span><span class="c"></span><span class="ann cau" style="padding: 2px">HOT</span>
+<span class="n">RADAR</span><span class="ann wrn" style="padding: 2px">BRKN</span><span class="c"></span><span class="c"></span>
+<span class="n">MAGAZINE</span><span class="c"></span><span class="ann cau" style="padding: 2px">LOW</span><span class="c"></span>
+</div>
+</div>
+<p class="h" style="margin: 8px 0 0">TWEAKPANE → READOUT</p>
+<div class="map">
+<span class="a">Slider</span><span class="ar">→</span><span class="b">Bar + value</span>
+<span class="a">Checkbox</span><span class="ar">→</span><span class="b">Annunciator</span>
+<span class="a">Dropdown</span><span class="ar">→</span><span class="b">Mode text</span>
+<span class="a">Green OK chip</span><span class="ar">→</span><span class="b">Empty cell</span>
+<span class="a">Progress fill</span><span class="ar">→</span><span class="b">Segments</span>
+<span class="a">Button</span><span class="ar">→</span><span class="b">Removed</span>
+<span class="a">Collapse arrow</span><span class="ar">→</span><span class="b">Removed</span>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

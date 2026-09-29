@@ -2,7 +2,7 @@ import { Driver, ShipDriver } from '@starwards/core';
 import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig, shipInputConfig } from '../input/input-config';
 import { HPos, VPos } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
-import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { readWriteNumberProp, writeProp } from '../property-wrappers';
 
 import { drawArmorStatus } from '../widgets/armor';
@@ -20,6 +20,7 @@ export async function initHelmsScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
+    setDisplayOnly(true);
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawHelmsRadar(spaceDriver, shipDriver, container);

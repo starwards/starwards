@@ -2,6 +2,25 @@
 /* Industrial Sci-Fi cyan theme - matches docs/reference/color-design-system.html */
 /* Status colors should match modules/browser/src/colors.ts status.* values */
 
+@font-face {
+    font-family: 'Chakra Petch';
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/fontsource/chakra-petch-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Chakra Petch';
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/fontsource/chakra-petch-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Share Tech Mono';
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/fontsource/share-tech-mono-latin-400-normal.woff2') format('woff2');
+}
+
 :root {
     /* Base: dark with slight cyan tint */
     --tp-base-background-color: hsla(180, 10%, 8%, 1);
@@ -43,6 +62,34 @@
     --tp-element-border-radius: 2px;
     --tp-blade-spacing: 4px;
     --tp-blade-unit-size: 20px;
+    /* station readout skin tokens; colours must match `status`/palette in modules/browser/src/colors.ts */
+    --sw-ground: #03080b;
+    --sw-frame: #143a42;
+    --sw-accent: #5fe3f0;
+    --sw-title: #7fe7f2;
+    --sw-label: #52aebb;
+    --sw-value: #e6fcff;
+    --sw-caution: #ffb000;
+    --sw-warning: #ff3b30;
+    --sw-font-label: 'Chakra Petch', sans-serif;
+    --sw-font-value: 'Share Tech Mono', monospace;
+    --sw-fs-label: 12px;
+    --sw-fs-value: 22px;
+    --sw-fs-title: 13px;
+    --sw-gap: 8px;
+    --sw-pad: 10px;
+}
+
+body[data-density='compact'] {
+    --sw-fs-label: 11px;
+    --sw-fs-value: 16px;
+    --sw-fs-title: 12px;
+    --sw-gap: 4px;
+    --sw-pad: 6px;
+}
+
+body[data-input='none'] .tp-rotv {
+    pointer-events: none;
 }
 
 :root [data-status='OK'] {

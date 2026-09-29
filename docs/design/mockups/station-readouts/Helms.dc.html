@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Helms station</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#020507}
+.scr{position:relative;background:#03080b radial-gradient(ellipse at 50% 45%,#061319 0%,#03080b 70%);color:#e6fcff;font-family:'Chakra Petch',sans-serif;overflow:hidden}
+.scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.p{position:relative;border:1px solid #143a42;background:rgba(4,14,18,.92);padding:8px 12px 10px}
+.p::before,.p::after{content:"";position:absolute;width:10px;height:10px;border-color:#5fe3f0;border-style:solid}
+.p::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.p::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.pt{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px;letter-spacing:.2em;color:#7fe7f2;border-bottom:1px solid #143a42;padding-bottom:5px;margin-bottom:6px}
+.pt small{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.05em;color:#2f7480;font-weight:400}
+.r{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:8px;padding:2px 0}
+.l{font-weight:600;font-size:13px;letter-spacing:.1em;color:#52aebb;text-transform:uppercase}
+.v{font-family:'Share Tech Mono',monospace;font-size:18px;color:#e6fcff;text-shadow:0 0 6px rgba(120,235,250,.35)}
+.u{font-size:12px;color:#52aebb;margin-left:3px}
+.mode{font-family:'Share Tech Mono',monospace;font-size:16px;color:#7fe7f2}
+.bar{position:relative;height:8px;border:1px solid #1f5963;background:repeating-linear-gradient(90deg,transparent 0 9.5%,#12343b 9.5% 10%)}
+.bar>i{position:absolute;top:1px;bottom:1px;left:1px;background:#5fe3f0;box-shadow:0 0 6px rgba(95,227,240,.6)}
+.bar.bi>i{left:auto}
+.bar.bi::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#7fe7f2}
+.ann{font-weight:700;font-size:11px;letter-spacing:.12em;padding:4px 4px;border:1px solid #1a3439;color:#2a555c;text-align:center;text-transform:uppercase}
+.ann.on{border-color:#5fe3f0;color:#5fe3f0;text-shadow:0 0 6px rgba(95,227,240,.6)}
+.ann.cau{background:#ffb000;border-color:#ffb000;color:#120a00}
+.big3{display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px;text-align:center}
+.big3 .v{font-size:30px;display:block}
+.big3 .l{font-size:11px}
+.cmd{display:grid;grid-template-columns:78px 1fr 50px;gap:8px;align-items:center;padding:3px 0}
+.cmd .v{font-size:15px;text-align:right}
+.mx{display:grid;grid-template-columns:1fr 42px 42px 42px;gap:3px;align-items:center}
+.mx .n{font-size:13px;font-weight:600;letter-spacing:.05em;color:#9cdfe8}
+.mx .hd{font-size:10px;letter-spacing:.14em;color:#2f7480;text-align:center}
+.mx .c{height:16px;border:1px solid #122b30}
+.hdr{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:13px;color:#2f7480;letter-spacing:.1em}
+</style>
+</helmet>
+<div class="scr" style="width: 1024px; height: 768px; box-sizing: border-box; padding: 14px; display: grid; grid-template-columns: 262px 1fr 250px; gap: 14px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">FLIGHT <small>HLM-01</small></div>
+<div class="big3">
+<div><span class="v">047</span><span class="l">HDG °</span></div>
+<div><span class="v">0.04</span><span class="l">SPD M/S</span></div>
+<div><span class="v">0.0</span><span class="l">TURN °/S</span></div>
+</div>
+</div>
+<div class="p">
+<div class="pt">MODES <small>HLM-02</small></div>
+<div class="r"><span class="l">Rotation</span><span class="mode">VELOCITY</span></div>
+<div class="r"><span class="l">Maneuver</span><span class="mode">VELOCITY</span></div>
+<div class="r"><span class="l">Target</span><span class="mode">NONE</span></div>
+</div>
+<div class="p">
+<div class="pt">COMMAND <small>HLM-03</small></div>
+<div class="cmd"><span class="l">Rotate</span><div class="bar bi"><i style="right: 50%; width: 0%"></i></div><span class="v">0.00</span></div>
+<div class="cmd"><span class="l">Strafe</span><div class="bar bi"><i style="left: 50%; width: 12%"></i></div><span class="v">0.24</span></div>
+<div class="cmd"><span class="l">Boost</span><div class="bar bi"><i style="right: 50%; width: 8%"></i></div><span class="v">-0.16</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-top: 8px">
+<div class="ann">BURNER</div><div class="ann on">ANTI-DRIFT</div><div class="ann">BRAKES</div>
+</div>
+</div>
+<div class="p" style="flex-grow: 1">
+<div class="pt">FUEL <small>HLM-04</small></div>
+<div class="r"><span class="l">Energy</span><span class="v">948<span class="u">MJ</span></span></div>
+<div class="bar"><i style="width: 94%"></i></div>
+<div class="r" style="margin-top: 6px"><span class="l">Afterburner</span><span class="v">5000</span></div>
+<div class="bar"><i style="width: 99%"></i></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div class="hdr"><span>NAV · 5 KM</span><span>SHIP GVTS</span></div>
+<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #0e2a30">
+<svg width="440" height="440" viewBox="0 0 440 440" aria-label="Helms radar placeholder">
+<g fill="none" stroke="#123a42" stroke-width="1">
+<circle cx="220" cy="220" r="210"></circle><circle cx="220" cy="220" r="160"></circle><circle cx="220" cy="220" r="110"></circle><circle cx="220" cy="220" r="55"></circle>
+</g>
+<g stroke="#2f7480" stroke-width="1">
+<line x1="220" y1="6" x2="220" y2="22"></line><line x1="434" y1="220" x2="418" y2="220"></line><line x1="220" y1="434" x2="220" y2="418"></line><line x1="6" y1="220" x2="22" y2="220"></line>
+</g>
+<polygon points="220,212 214,226 226,226" fill="#5fe3f0"></polygon>
+<polygon points="300,90 294,102 306,102" fill="none" stroke="#e6fcff"></polygon>
+<polygon points="150,320 144,332 156,332" fill="none" stroke="#6a5cff"></polygon>
+<text x="220" y="252" fill="#2f7480" font-family="Share Tech Mono" font-size="12" text-anchor="middle">RADAR — PIXIJS, UNCHANGED</text>
+</svg>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">WARP <small>HLM-05</small></div>
+<div class="r"><span class="l">Level</span><span class="v">0<span class="u">/ 0</span></span></div>
+<div class="r"><span class="l">Frequency</span><span class="v">W770HZ</span></div>
+<div class="r"><span class="l">Calibration</span><span class="v">100<span class="u">%</span></span></div>
+<div class="bar"><i style="width: 99%"></i></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 8px">
+<div class="ann">JAMMED</div><div class="ann">CALIB</div>
+</div>
+</div>
+<div class="p">
+<div class="pt">DOCKING <small>HLM-06</small></div>
+<div class="r"><span class="l">Mode</span><span class="mode">UNDOCKED</span></div>
+<div class="r"><span class="l">Target</span><span class="mode">—</span></div>
+<div class="r"><span class="l">Nearest</span><span class="mode">—</span></div>
+</div>
+<div class="p" style="flex-grow: 1">
+<div class="pt">SYSTEMS <small>HLM-07</small></div>
+<div class="mx">
+<span></span><span class="hd">STAT</span><span class="hd">PWR</span><span class="hd">HEAT</span>
+<span class="n">SMART PILOT</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">WARP</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">MANEUVER</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">THRUST 0</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">THRUST 1</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">THRUST 2</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">THRUST 3</span><span class="c"></span><span class="c"></span><span class="ann cau" style="padding: 1px">HOT</span>
+<span class="n">THRUST 4</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">THRUST 5</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">RADAR</span><span class="c"></span><span class="c"></span><span class="c"></span>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

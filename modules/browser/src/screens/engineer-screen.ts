@@ -8,7 +8,7 @@ import {
     repairProtocols,
 } from '@starwards/core';
 import { HPos, VPos } from '../container';
-import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import {
     getRepairProtocolHotkey,
     getRepairProtocolLowerHotkey,
@@ -33,6 +33,7 @@ export async function initEngineerScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
+    setDisplayOnly(true);
     container.getElement().css('background-color', toCss(radarFogOfWar));
     const shipDriver = await driver.getShipDriver(shipId);
     const teardownInput = wireInput(shipDriver);

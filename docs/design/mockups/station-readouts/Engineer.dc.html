@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Engineer station</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#020507}
+.scr{position:relative;background:#03080b radial-gradient(ellipse at 50% 45%,#061319 0%,#03080b 70%);color:#e6fcff;font-family:'Chakra Petch',sans-serif;overflow:hidden}
+.scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.p{position:relative;border:1px solid #143a42;background:rgba(4,14,18,.92);padding:8px 12px 10px}
+.p::before,.p::after{content:"";position:absolute;width:10px;height:10px;border-color:#5fe3f0;border-style:solid}
+.p::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.p::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.pt{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px;letter-spacing:.2em;color:#7fe7f2;border-bottom:1px solid #143a42;padding-bottom:5px;margin-bottom:6px}
+.pt small{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.05em;color:#2f7480;font-weight:400}
+.r{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:8px;padding:2px 0}
+.l{font-weight:600;font-size:13px;letter-spacing:.1em;color:#52aebb;text-transform:uppercase}
+.v{font-family:'Share Tech Mono',monospace;font-size:18px;color:#e6fcff;text-shadow:0 0 6px rgba(120,235,250,.35)}
+.v.big{font-size:30px}
+.u{font-size:12px;color:#52aebb;margin-left:3px}
+.mode{font-family:'Share Tech Mono',monospace;font-size:16px;color:#7fe7f2}
+.bar{position:relative;height:8px;border:1px solid #1f5963;background:repeating-linear-gradient(90deg,transparent 0 9.5%,#12343b 9.5% 10%)}
+.bar>i{position:absolute;top:1px;bottom:1px;left:1px;background:#5fe3f0;box-shadow:0 0 6px rgba(95,227,240,.6)}
+.bar.cau>i{background:#ffb000;box-shadow:0 0 6px rgba(255,176,0,.6)}
+.bar.wrn>i{background:#ff3b30}
+.seg{display:flex;gap:3px}
+.seg>i{flex:1;height:12px;background:#0d262c;border:1px solid #143a42}
+.seg>i.on{background:#5fe3f0;border-color:#5fe3f0;box-shadow:0 0 5px rgba(95,227,240,.5)}
+.ann{font-weight:700;font-size:11px;letter-spacing:.12em;padding:3px 4px;border:1px solid #1a3439;color:#2a555c;text-align:center;text-transform:uppercase}
+.ann.on{border-color:#5fe3f0;color:#5fe3f0}
+.ann.cau{background:#ffb000;border-color:#ffb000;color:#120a00}
+.ann.wrn{background:#ff3b30;border-color:#ff3b30;color:#140000}
+.fs{display:grid;grid-template-columns:132px 58px 1fr 1fr 1fr 50px;gap:4px 10px;align-items:center}
+.fs .hd{font-size:10px;letter-spacing:.16em;color:#2f7480}
+.fs .n{font-size:13px;font-weight:600;letter-spacing:.05em;color:#9cdfe8}
+.fs .v{font-size:15px}
+.fs .cell{display:flex;flex-direction:column;gap:2px}
+.fs .rule{grid-column:1 / -1;height:1px;background:#0f262b}
+.q{display:grid;grid-template-columns:26px 1fr 40px;gap:8px;align-items:baseline;padding:3px 0;border-bottom:1px solid #0f262b}
+.q .k{font-family:'Share Tech Mono',monospace;font-size:13px;color:#2f7480}
+.q .t{font-size:13px;font-weight:600;letter-spacing:.04em;color:#9cdfe8}
+.q .s{font-family:'Share Tech Mono',monospace;font-size:13px;color:#52aebb;text-align:right}
+</style>
+</helmet>
+<div class="scr" style="width: 1024px; height: 768px; box-sizing: border-box; padding: 14px; display: grid; grid-template-columns: 240px 1fr 250px; gap: 14px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">POWER PLANT <small>ENG-01</small></div>
+<div class="r"><span class="l">Energy</span><span class="v big">1000<span class="u">MJ</span></span></div>
+<div class="bar"><i style="width: 99%"></i></div>
+<div class="r" style="margin-top: 8px"><span class="l">Cells</span><span class="v">2/2</span></div>
+<div class="seg"><i class="on"></i><i class="on"></i></div>
+<div class="r" style="margin-top: 8px"><span class="l">Afterburner fuel</span><span class="v">5000</span></div>
+<div class="bar"><i style="width: 99%"></i></div>
+<div class="r" style="margin-top: 8px"><span class="l">Hull</span><span class="mode">INTACT</span></div>
+</div>
+<div class="p">
+<div class="pt">WARP <small>ENG-02</small></div>
+<div class="r"><span class="l">Level</span><span class="v big">0<span class="u">/ 0</span></span></div>
+<div class="r"><span class="l">Frequency</span><span class="v">W770HZ</span></div>
+<div class="r"><span class="l">Designated</span><span class="v">W770HZ</span></div>
+<div class="r"><span class="l">Calibration</span><span class="v">100<span class="u">%</span></span></div>
+<div class="bar"><i style="width: 99%"></i></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 8px">
+<div class="ann">JAMMED</div><div class="ann">CALIB</div>
+</div>
+</div>
+<div class="p" style="flex-grow: 1">
+<div class="pt">DAMAGE <small>ENG-03</small></div>
+<div style="font-family: 'Share Tech Mono', monospace; font-size: 14px; line-height: 1.5; color: #ffb000">RADAR 2 — PRIMARY COIL FAILED</div>
+<div style="font-family: 'Share Tech Mono', monospace; font-size: 14px; line-height: 1.5; color: #52aebb">THRUSTER 3 — HEAT ABOVE NOMINAL</div>
+</div>
+</div>
+
+<div class="p">
+<div class="pt">SYSTEMS <small>ENG-04 · 17 SYS · 2 ALERT</small></div>
+<div class="fs">
+<span class="hd">SYSTEM</span><span class="hd">STAT</span><span class="hd">POWER</span><span class="hd">HEAT</span><span class="hd">COOLANT</span><span class="hd">EFF</span>
+<span class="rule"></span>
+<span class="n">REACTOR</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">SMART PILOT</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">MAGAZINE</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">WARP</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">DOCKING</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">MANEUVERING</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">SIGNALS</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="rule"></span>
+<span class="n">THRUSTER 0</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">THRUSTER 1</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">THRUSTER 2</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n" style="color: #ffb000">THRUSTER 3</span><span class="ann cau">HOT</span><div class="bar"><i style="width: 75%"></i></div><div class="bar cau"><i style="width: 82%"></i></div><div class="bar"><i style="width: 60%"></i></div><span class="v" style="color: #ffb000">0.80</span>
+<span class="n">THRUSTER 4</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">THRUSTER 5</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="rule"></span>
+<span class="n">TUBE 0</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">TUBE 1</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n">CHAIN GUN</span><span></span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v">1.00</span>
+<span class="n" style="color: #ff3b30">RADAR 2</span><span class="ann wrn">BRKN</span><div class="bar"><i style="width: 50%"></i></div><div class="bar"><i style="width: 4%"></i></div><div class="bar"><i style="width: 0%"></i></div><span class="v" style="color: #ff3b30">0.00</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p" style="flex-grow: 1">
+<div class="pt">REPAIR QUEUE <small>ENG-05</small></div>
+<div class="r"><span class="l">Active</span><span class="mode">RADAR 2</span></div>
+<div class="r"><span class="l">Remaining</span><span class="v">00:22</span></div>
+<div class="bar" style="margin-bottom: 10px"><i style="width: 51%"></i></div>
+<div class="q"><span class="k">01</span><span class="t">Actuator recalibration</span><span class="s">45s</span></div>
+<div class="q"><span class="k">02</span><span class="t">Thrust-line purge</span><span class="s">60s</span></div>
+<div class="q"><span class="k">03</span><span class="t">Feed-system overhaul</span><span class="s">60s</span></div>
+<div class="q"><span class="k">04</span><span class="t">Sensor-array degauss</span><span class="s">30s</span></div>
+<div class="q"><span class="k">05</span><span class="t">Radar traverse servo</span><span class="s">30s</span></div>
+<div class="q"><span class="k">06</span><span class="t">Signal-processor retune</span><span class="s">30s</span></div>
+<div class="q"><span class="k">07</span><span class="t">Power-train reset</span><span class="s">90s</span></div>
+<div class="q"><span class="k">08</span><span class="t">Containment tuning</span><span class="s">75s</span></div>
+<div class="q"><span class="k">09</span><span class="t">Fire-control alignment</span><span class="s">45s</span></div>
+<div class="q"><span class="k">10</span><span class="t">Launcher servo</span><span class="s">45s</span></div>
+<div class="q"><span class="k">11</span><span class="t">Reactor jump-start</span><span class="s">10s</span></div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

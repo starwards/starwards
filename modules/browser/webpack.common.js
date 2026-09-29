@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
@@ -49,6 +50,22 @@ module.exports = {
         ],
     },
     plugins: [
+        new CopyWebpackPlugin({
+            patterns: [
+                {
+                    from: require.resolve('@fontsource/chakra-petch/files/chakra-petch-latin-400-normal.woff2'),
+                    to: 'fonts/fontsource/[name][ext]',
+                },
+                {
+                    from: require.resolve('@fontsource/chakra-petch/files/chakra-petch-latin-600-normal.woff2'),
+                    to: 'fonts/fontsource/[name][ext]',
+                },
+                {
+                    from: require.resolve('@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2'),
+                    to: 'fonts/fontsource/[name][ext]',
+                },
+            ],
+        }),
         new HtmlWebpackPlugin({
             filename: 'ship.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),
