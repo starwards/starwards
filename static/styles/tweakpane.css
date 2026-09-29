@@ -328,6 +328,16 @@ body[data-input='none'] .tp-sldv_k::after {
     color: transparent;
     text-shadow: none;
 }
+:root .tp-rotv.sw-bar[data-status='OK'] {
+    --tp-input-foreground-color: var(--sw-value);
+    --tp-monitor-foreground-color: var(--sw-value);
+    background: transparent;
+    box-shadow: none;
+}
+:root .tp-rotv.sw-bar[data-status='OK'] input {
+    color: var(--sw-value);
+    text-shadow: var(--sw-glow);
+}
 :root [data-status='WARN'] {
     background: var(--sw-caution);
     --tp-input-foreground-color: var(--sw-on-caution);
@@ -460,10 +470,16 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root body[data-station='helms'] [data-id='Systems Status'] > .tp-rotv_b::after {
     content: 'HLM-07';
 }
-:root body[data-station='helms'] [data-id='Properties'] > .tp-rotv_b::after {
+:root body[data-station='helms'] [data-id='Flight'] > .tp-rotv_b::after {
     content: 'HLM-01';
 }
-:root body[data-station='helms'] [data-id='Reactor'] > .tp-rotv_b::after {
+:root body[data-station='helms'] [data-id='Modes'] > .tp-rotv_b::after {
+    content: 'HLM-02';
+}
+:root body[data-station='helms'] [data-id='Command'] > .tp-rotv_b::after {
+    content: 'HLM-03';
+}
+:root body[data-station='helms'] [data-id='Fuel'] > .tp-rotv_b::after {
     content: 'HLM-04';
 }
 :root body[data-station='helms'] [data-id='Warp'] > .tp-rotv_b::after {
@@ -524,14 +540,10 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     content: 'DRD-04';
 }
 
-/* segmented bars: discrete cells instead of a continuous fill; opted in with data-segmented on the row */
+/* segmented bars: the track shows discrete cells behind a solid fill; opted in with data-segmented on the row */
 :root [data-segmented] .tp-sldv_t {
     border-color: transparent;
     background: repeating-linear-gradient(90deg, #12343b 0 8px, transparent 8px 10px);
-}
-:root [data-segmented] .tp-sldv_k::before {
-    -webkit-mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
-    mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
 }
 
 /* system tables: narrow status cells leave the label column its room */
@@ -593,15 +605,144 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child
     flex: 0 0 44px;
     width: auto;
 }
-:root body[data-station] [data-id='Properties'] .tp-sldtxtv_t {
-    flex-basis: 72px;
-}
 :root body[data-station] .tp-sldtxtv_s {
     flex: 1 1 0;
     min-width: 0;
 }
 :root body[data-station] .tp-lstv_s {
     font-size: calc(var(--sw-fs-value) - 3px);
+}
+
+/* level bars on a display station: label and number share a line, the bar spans the pane underneath */
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 64px;
+    align-items: baseline;
+    row-gap: 2px;
+    height: auto;
+    padding-bottom: var(--sw-gap);
+}
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) > .tp-lblv_v,
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) .tp-sldtxtv {
+    display: contents;
+}
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) > .tp-lblv_l {
+    grid-area: 1 / 1;
+}
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) .tp-sldtxtv_t {
+    grid-area: 1 / 2;
+    flex: none;
+    width: auto;
+    min-width: 0;
+}
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) .tp-sldtxtv_s {
+    grid-area: 2 / 1 / 3 / -1;
+}
+
+/* signed bars: label | bar | number on one line; the fill grows from the centre tick toward the value (--sw-bar-value, -1..1) */
+:root .tp-lblv[data-bipolar] {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr) 54px;
+    column-gap: var(--sw-gap);
+    align-items: center;
+}
+:root .tp-lblv[data-bipolar] > .tp-lblv_v,
+:root .tp-lblv[data-bipolar] .tp-sldtxtv {
+    display: contents;
+}
+:root .tp-lblv[data-bipolar] .tp-sldtxtv_s {
+    grid-column: 2;
+}
+:root .tp-lblv[data-bipolar] .tp-txtv_i {
+    font-size: calc(var(--sw-fs-value) - 2px);
+}
+:root .tp-lblv[data-bipolar] .tp-sldtxtv_t {
+    grid-column: 3;
+    flex: none;
+    width: auto;
+    min-width: 0;
+}
+:root [data-bipolar] .tp-sldv_k::before {
+    display: none;
+}
+:root [data-bipolar] .tp-sldv_t::before {
+    display: block;
+    inset: 1px auto 1px auto;
+    height: auto;
+    margin: 0;
+    border-radius: 0;
+    left: calc(50% - max(0, -1 * var(--sw-bar-value, 0)) * 50%);
+    width: calc(max(var(--sw-bar-value, 0), -1 * var(--sw-bar-value, 0)) * 50%);
+    background: var(--sw-accent);
+    box-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+:root [data-bipolar] .tp-sldv_t::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -3px;
+    bottom: -3px;
+    width: 1px;
+    background: var(--sw-title);
+}
+
+/* flight: the three headline numbers side by side, caption under each */
+:root [data-id='Flight'] > .tp-rotv_c {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sw-pad);
+}
+:root [data-id='Flight'] .tp-lblv {
+    flex-direction: column-reverse;
+    padding: 0;
+    text-align: center;
+}
+:root [data-id='Flight'] .tp-lblv_l {
+    width: 100%;
+    padding: 0;
+    font-size: calc(var(--sw-fs-label) - 1px);
+}
+:root [data-id='Flight'] .tp-lblv_v {
+    width: 100%;
+}
+:root [data-id='Flight'] .tp-txtv_i {
+    font-size: 26px;
+    text-align: center;
+}
+
+/* command: level bars above a row of annunciators that light while engaged */
+:root [data-id='Command'] > .tp-rotv_c {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 4px;
+}
+:root [data-id='Command'] > .tp-rotv_c > .tp-lblv[data-bipolar] {
+    grid-column: 1 / -1;
+}
+:root [data-id='Command'] .tp-lblv:has(.tp-ckbv) {
+    margin-top: var(--sw-gap);
+    padding: 3px 0;
+    justify-content: center;
+    border: 1px solid #1a3439;
+}
+:root [data-id='Command'] .tp-lblv:has(.tp-ckbv) > .tp-lblv_v {
+    display: none;
+}
+:root [data-id='Command'] .tp-lblv:has(.tp-ckbv) > .tp-lblv_l {
+    flex: 0 1 auto;
+    width: auto;
+    padding: 0;
+    color: var(--sw-dim);
+    font-weight: 700;
+    font-size: calc(var(--sw-fs-label) - 1px);
+    letter-spacing: 0.08em;
+}
+:root [data-id='Command'] .tp-lblv:has(.tp-ckbv_i[data-checked='true']) {
+    border-color: var(--sw-accent);
+}
+:root [data-id='Command'] .tp-lblv:has(.tp-ckbv_i[data-checked='true']) > .tp-lblv_l {
+    color: var(--sw-accent);
+    text-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
 }
 
 /* off-screen but still rendered, so the row stays in the accessibility tree and drivable by tests */
