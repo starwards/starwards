@@ -19,8 +19,6 @@ export const selectionColor = 0x00ffff; // Pure cyan
 
 export const radarVisibleBg = 0x0a0a0a; // --bg-primary
 export const radarFogOfWar = 0x1a1a1a; // --bg-tertiary
-/** DRADIS grid, finest to coarsest: dim minor lines up to the label colour, then amber for the coarsest. */
-export const gridColors = [0x0c2a31, 0x0e3038, 0x1b5560, 0x123a42, 0x2f7480, status.caution];
 
 // ============================================================================
 // Radar-Specific Colors
@@ -44,6 +42,9 @@ export const radar = {
     derelictTint: 0x3a3a3a, // Darker than unknownTint - an inert hulk, not just unidentified
     nebulaTint: 0xff66cc, // Pink - a visible optical hazard, not a faction-colored contact
 };
+
+/** DRADIS grid, finest to coarsest, brightening with each level; the coarsest is amber. */
+export const gridColors = [0x0c2a31, 0x0e3038, radar.ringLine, 0x1b5560, radar.rangeLabel, status.caution];
 
 // ============================================================================
 // HSL Palette (Industrial Sci-Fi Theme - Pure Cyan/Orange)
