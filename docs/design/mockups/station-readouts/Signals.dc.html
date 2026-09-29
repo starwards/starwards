@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Signals station</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#020507}
+.scr{position:relative;background:#03080b radial-gradient(ellipse at 50% 45%,#061319 0%,#03080b 70%);color:#e6fcff;font-family:'Chakra Petch',sans-serif;overflow:hidden}
+.scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.p{position:relative;border:1px solid #143a42;background:rgba(4,14,18,.92);padding:8px 12px 10px}
+.p::before,.p::after{content:"";position:absolute;width:10px;height:10px;border-color:#5fe3f0;border-style:solid}
+.p::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.p::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.pt{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px;letter-spacing:.2em;color:#7fe7f2;border-bottom:1px solid #143a42;padding-bottom:5px;margin-bottom:6px}
+.pt small{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.05em;color:#2f7480;font-weight:400}
+.r{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:8px;padding:2px 0}
+.l{font-weight:600;font-size:13px;letter-spacing:.1em;color:#52aebb;text-transform:uppercase}
+.v{font-family:'Share Tech Mono',monospace;font-size:18px;color:#e6fcff;text-shadow:0 0 6px rgba(120,235,250,.35)}
+.v.big{font-size:30px}
+.u{font-size:12px;color:#52aebb;margin-left:3px}
+.mode{font-family:'Share Tech Mono',monospace;font-size:16px;color:#7fe7f2}
+.bar{position:relative;height:8px;border:1px solid #1f5963;background:repeating-linear-gradient(90deg,transparent 0 9.5%,#12343b 9.5% 10%)}
+.bar>i{position:absolute;top:1px;bottom:1px;left:1px;background:#5fe3f0;box-shadow:0 0 6px rgba(95,227,240,.6)}
+.seg{display:flex;gap:3px}
+.seg>i{flex:1;height:10px;background:#0d262c;border:1px solid #143a42}
+.seg>i.on{background:#5fe3f0;border-color:#5fe3f0;box-shadow:0 0 5px rgba(95,227,240,.5)}
+.ann{font-weight:700;font-size:11px;letter-spacing:.12em;padding:4px 4px;border:1px solid #1a3439;color:#2a555c;text-align:center;text-transform:uppercase}
+.ann.on{border-color:#5fe3f0;color:#5fe3f0;text-shadow:0 0 6px rgba(95,227,240,.6)}
+.ann.cau{background:#ffb000;border-color:#ffb000;color:#120a00}
+.job{padding:5px 0;border-bottom:1px solid #0f262b}
+.job .hd{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:baseline;margin-bottom:3px}
+.job .t{font-size:13px;font-weight:600;letter-spacing:.05em;color:#9cdfe8}
+.job .s{font-family:'Share Tech Mono',monospace;font-size:13px;color:#52aebb}
+.mx{display:grid;grid-template-columns:1fr 42px 42px 42px;gap:3px;align-items:center}
+.mx .n{font-size:13px;font-weight:600;letter-spacing:.05em;color:#9cdfe8}
+.mx .hd{font-size:10px;letter-spacing:.14em;color:#2f7480;text-align:center}
+.mx .c{height:16px;border:1px solid #122b30}
+.hdr{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:13px;color:#2f7480;letter-spacing:.1em}
+</style>
+</helmet>
+<div class="scr" style="width: 1024px; height: 768px; box-sizing: border-box; padding: 14px; display: grid; grid-template-columns: 250px 1fr 256px; gap: 14px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">SCAN BEAM <small>SIG-01</small></div>
+<div class="r"><span class="l">Bearing</span><span class="v big">000<span class="u">°</span></span></div>
+<div class="r"><span class="l">Arc</span><span class="v">20<span class="u">°</span></span></div>
+<div class="bar"><i style="width: 11%"></i></div>
+<div class="r" style="margin-top: 6px"><span class="l">Range</span><span class="v">38<span class="u">KM</span></span></div>
+<div class="bar"><i style="width: 76%"></i></div>
+</div>
+<div class="p" style="flex-grow: 1">
+<div class="pt">JOBS <small>SIG-02</small></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 6px">
+<div class="ann">PAUSED</div><div class="ann on">PRIORITY TGT</div>
+</div>
+<div class="job"><div class="hd"><span class="t">SCAN · CONTACT 08</span><span class="s">62%</span></div><div class="bar"><i style="width: 62%"></i></div></div>
+<div class="job"><div class="hd"><span class="t">SCAN · CONTACT 16</span><span class="s">18%</span></div><div class="bar"><i style="width: 18%"></i></div></div>
+<div class="job"><div class="hd"><span class="t">HACK · E-301 WARP</span><span class="s">QUEUED</span></div><div class="bar"><i style="width: 0%"></i></div></div>
+<div class="job"><div class="hd"><span class="t">SCAN · CONTACT 03</span><span class="s">QUEUED</span></div><div class="bar"><i style="width: 0%"></i></div></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div class="hdr"><span>LONG RANGE · 50 KM</span><span>SHIP GVTS</span></div>
+<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #0e2a30">
+<svg width="440" height="440" viewBox="0 0 440 440" aria-label="Long-range radar placeholder">
+<g fill="none" stroke="#123a42" stroke-width="1">
+<circle cx="220" cy="220" r="210"></circle><circle cx="220" cy="220" r="168"></circle><circle cx="220" cy="220" r="126"></circle><circle cx="220" cy="220" r="84"></circle><circle cx="220" cy="220" r="42"></circle>
+</g>
+<g fill="#2f7480" font-family="Share Tech Mono" font-size="10" text-anchor="middle">
+<text x="220" y="56">40</text><text x="220" y="98">30</text><text x="220" y="140">20</text><text x="220" y="182">10</text>
+</g>
+<path d="M220 220 L193 31 A190 190 0 0 1 247 31 Z" fill="rgba(95,227,240,.08)" stroke="#5fe3f0" stroke-width="1"></path>
+<g stroke="#e6fcff" fill="none" stroke-width="1.5">
+<rect x="212" y="70" width="8" height="8"></rect>
+<rect x="230" y="118" width="8" height="8"></rect>
+</g>
+<rect x="208" y="66" width="16" height="16" fill="none" stroke="#ffb000" stroke-width="1"></rect>
+<g fill="#2f7480">
+<circle cx="120" cy="300" r="2.5"></circle><circle cx="330" cy="150" r="2.5"></circle><circle cx="300" cy="340" r="2.5"></circle>
+</g>
+<polygon points="220,212 214,226 226,226" fill="#5fe3f0"></polygon>
+<text x="220" y="252" fill="#2f7480" font-family="Share Tech Mono" font-size="12" text-anchor="middle">RADAR — PIXIJS</text>
+</svg>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">CONTACT <small>SIG-03</small></div>
+<div class="r"><span class="l">Track</span><span class="v big">08</span></div>
+<div class="r"><span class="l">Type</span><span class="mode">SHIP</span></div>
+<div class="r"><span class="l">Faction</span><span class="mode" style="color: #ffb000">UNKNOWN</span></div>
+<div class="r"><span class="l">Distance</span><span class="v">37.4<span class="u">KM</span></span></div>
+<div class="r"><span class="l">Bearing</span><span class="v">358<span class="u">°</span></span></div>
+<div class="r" style="margin-top: 4px"><span class="l">Scan level</span><span class="mode">BASIC</span></div>
+<div class="seg"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+</div>
+<div class="p" style="flex-grow: 1">
+<div class="pt">SYSTEMS <small>SIG-04</small></div>
+<div class="mx">
+<span></span><span class="hd">STAT</span><span class="hd">PWR</span><span class="hd">HEAT</span>
+<span class="n">SIGNALS</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">RADAR 1</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">RADAR 2</span><span class="c"></span><span class="ann cau" style="padding: 1px">LOW</span><span class="c"></span>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

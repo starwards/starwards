@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DRADIS station</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#020507}
+.scr{position:relative;background:#03080b;color:#e6fcff;font-family:'Chakra Petch',sans-serif;overflow:hidden}
+.scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.p{position:relative;border:1px solid #143a42;background:rgba(4,14,18,.94);padding:8px 12px 10px}
+.p::before,.p::after{content:"";position:absolute;width:10px;height:10px;border-color:#5fe3f0;border-style:solid}
+.p::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.p::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.pt{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px;letter-spacing:.2em;color:#7fe7f2;border-bottom:1px solid #143a42;padding-bottom:5px;margin-bottom:8px}
+.pt small{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.05em;color:#2f7480;font-weight:400}
+.l{font-weight:600;font-size:12px;letter-spacing:.12em;color:#52aebb;text-transform:uppercase;display:block;margin-bottom:4px}
+.in{width:100%;box-sizing:border-box;background:#071a1f;border:1px solid #2f7480;border-bottom:2px solid #5fe3f0;color:#e6fcff;font-family:'Share Tech Mono',monospace;font-size:16px;padding:6px 8px;outline:none}
+.in:focus{border-color:#7fe7f2;box-shadow:0 0 0 2px rgba(95,227,240,.25)}
+.btn{display:block;width:100%;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:14px;letter-spacing:.18em;padding:10px;background:#5fe3f0;color:#02161a;border:1px solid #5fe3f0;cursor:pointer;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.btn:hover{background:#9af1f8}
+.btn.ghost{background:transparent;color:#5fe3f0}
+.btn.ghost:hover{background:rgba(95,227,240,.12)}
+.sws{display:flex;gap:6px}
+.sw{width:28px;height:28px;border:1px solid #2f7480;cursor:pointer;padding:0}
+.sw.sel{outline:2px solid #e6fcff;outline-offset:2px}
+.tg{display:grid;grid-template-columns:1fr 40px;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #0f262b;cursor:pointer}
+.tg span{font-size:13px;font-weight:600;letter-spacing:.06em;color:#9cdfe8}
+.tg input{appearance:none;width:40px;height:18px;margin:0;border:1px solid #2f7480;background:#071a1f;position:relative;cursor:pointer}
+.tg input::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;background:#2f7480}
+.tg input:checked{background:rgba(95,227,240,.2);border-color:#5fe3f0}
+.tg input:checked::after{left:24px;background:#5fe3f0}
+.grp{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;width:100%;padding:7px 8px;margin-bottom:4px;background:transparent;border:1px solid #143a42;color:#9cdfe8;font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;text-align:left;cursor:pointer}
+.grp:hover{border-color:#2f7480;background:rgba(95,227,240,.06)}
+.grp.sel{border-color:#5fe3f0;color:#e6fcff}
+.grp i{width:10px;height:10px}
+.grp small{font-family:'Share Tech Mono',monospace;color:#52aebb;font-size:12px}
+.hint{font-family:'Share Tech Mono',monospace;font-size:12px;color:#2f7480;margin-top:6px}
+</style>
+</helmet>
+<div class="scr" style="width: 1024px; height: 768px; position: relative">
+
+<svg width="1024" height="768" viewBox="0 0 1024 768" style="position: absolute; inset: 0" aria-label="DRADIS map placeholder">
+<defs>
+<pattern id="g" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#0f2e35" stroke-width="1"></path></pattern>
+<pattern id="G" width="256" height="256" patternUnits="userSpaceOnUse"><path d="M256 0H0V256" fill="none" stroke="#1b4c55" stroke-width="1"></path></pattern>
+</defs>
+<rect width="1024" height="768" fill="url(#g)"></rect>
+<rect width="1024" height="768" fill="url(#G)"></rect>
+<line x1="512" y1="0" x2="512" y2="768" stroke="#ff7a1a" stroke-opacity=".5"></line>
+<line x1="0" y1="384" x2="1024" y2="384" stroke="#ff7a1a" stroke-opacity=".5"></line>
+<g font-family="Share Tech Mono" font-size="11" fill="#2f7480"><text x="262" y="378">C-3</text><text x="518" y="378">D-4</text><text x="774" y="378">E-4</text></g>
+<polyline points="512,384 610,300 700,320 780,240" fill="none" stroke="#5fe3f0" stroke-dasharray="6 4"></polyline>
+<g fill="none" stroke="#5fe3f0" stroke-width="1.5"><rect x="604" y="294" width="12" height="12" transform="rotate(45 610 300)"></rect><rect x="694" y="314" width="12" height="12" transform="rotate(45 700 320)"></rect><rect x="774" y="234" width="12" height="12" transform="rotate(45 780 240)"></rect></g>
+<g font-family="Share Tech Mono" font-size="11" fill="#5fe3f0"><text x="622" y="298">RT-1</text><text x="712" y="318">RT-2</text><text x="792" y="238">RT-3</text></g>
+<g fill="none" stroke="#e6fcff" stroke-width="1.5"><polygon points="560,330 554,342 566,342"></polygon><polygon points="470,420 464,432 476,432"></polygon><polygon points="545,455 539,467 551,467"></polygon></g>
+<g fill="none" stroke="#6a5cff" stroke-width="1.5"><polygon points="430,350 424,362 436,362"></polygon><polygon points="520,520 514,532 526,532"></polygon></g>
+<circle cx="512" cy="384" r="14" fill="none" stroke="#5fe3f0"></circle>
+<polygon points="512,376 506,390 518,390" fill="#5fe3f0"></polygon>
+<g stroke="#e6fcff" stroke-width="1"><line x1="352" y1="560" x2="352" y2="580"></line><line x1="342" y1="570" x2="362" y2="570"></line></g>
+<text x="366" y="566" font-family="Share Tech Mono" font-size="11" fill="#e6fcff">+12.4, -8.7 KM</text>
+</svg>
+
+<div style="position: absolute; left: 14px; top: 14px; width: 240px; display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">NEW WAYPOINT <small>DRD-01</small></div>
+<label class="l" for="wp-group">Group</label>
+<input id="wp-group" class="in" type="text" value="route">
+<span class="l" style="margin-top: 10px">Color</span>
+<div class="sws" style="margin-bottom: 12px">
+<button class="sw sel" style="background: #5fe3f0" aria-label="Cyan"></button>
+<button class="sw" style="background: #e6fcff" aria-label="White"></button>
+<button class="sw" style="background: #ffb000" aria-label="Amber"></button>
+<button class="sw" style="background: #ff3b30" aria-label="Red"></button>
+<button class="sw" style="background: #6a5cff" aria-label="Violet"></button>
+</div>
+<button class="btn">PLACE WAYPOINT</button>
+<div class="hint">CLICK MAP TO DROP · ESC CANCELS</div>
+</div>
+</div>
+
+<div style="position: absolute; right: 14px; top: 14px; width: 240px; display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">LAYERS <small>DRD-02</small></div>
+<label class="tg"><span>GRID</span><input type="checkbox" checked></label>
+<label class="tg"><span>OBJECTS</span><input type="checkbox" checked></label>
+<label class="tg"><span>WAYPOINTS · COLLECTION 1</span><input type="checkbox"></label>
+<label class="tg" style="border-bottom: 0"><span>WAYPOINTS · ROUTE</span><input type="checkbox" checked></label>
+</div>
+</div>
+
+<div style="position: absolute; right: 14px; bottom: 14px; width: 240px">
+<div class="p">
+<div class="pt">GROUPS <small>DRD-03</small></div>
+<button class="grp sel"><i style="background: #5fe3f0"></i><span>ROUTE</span><small>3 WP</small></button>
+<button class="grp"><i style="background: #e6fcff"></i><span>COLLECTION 1</span><small>5 WP</small></button>
+<button class="btn ghost" style="margin-top: 6px">DELETE GROUP</button>
+</div>
+</div>
+
+<div style="position: absolute; left: 14px; bottom: 14px; font-family: 'Share Tech Mono', monospace; font-size: 13px; color: #2f7480; letter-spacing: .1em">DRADIS · 1 CELL = 2 KM · SHIP GVTS</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
