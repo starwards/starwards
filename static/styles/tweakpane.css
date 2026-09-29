@@ -1,5 +1,5 @@
 /* use https://cocopon.github.io/tweakpane/theming/ */
-/* Industrial Sci-Fi cyan theme - matches docs/reference/color-design-system.html */
+/* Glass-cockpit readout skin. Palette: docs/superpowers/specs/2026-09-29-station-readout-skin-design.md */
 /* Status colors should match modules/browser/src/colors.ts status.* values */
 
 @font-face {
@@ -22,55 +22,20 @@
 }
 
 :root {
-    /* Base: dark with slight cyan tint */
-    --tp-base-background-color: hsla(180, 10%, 8%, 1);
-    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
-
-    /* Buttons: cyan tinted */
-    --tp-button-background-color: hsla(180, 50%, 70%, 1);
-    --tp-button-background-color-active: hsla(180, 60%, 85%, 1);
-    --tp-button-background-color-focus: hsla(180, 55%, 80%, 1);
-    --tp-button-background-color-hover: hsla(180, 55%, 75%, 1);
-    --tp-button-foreground-color: hsla(180, 10%, 8%, 1);
-
-    /* Containers: cyan accent background */
-    --tp-container-background-color: hsla(180, 100%, 50%, 0.08);
-    --tp-container-background-color-active: hsla(180, 100%, 50%, 0.2);
-    --tp-container-background-color-focus: hsla(180, 100%, 50%, 0.15);
-    --tp-container-background-color-hover: hsla(180, 100%, 50%, 0.12);
-    --tp-container-foreground-color: hsla(180, 50%, 70%, 1);
-
-    /* Groove */
-    --tp-groove-foreground-color: hsla(180, 100%, 50%, 0.15);
-
-    /* Inputs: darker cyan tinted */
-    --tp-input-background-color: hsla(180, 100%, 50%, 0.08);
-    --tp-input-background-color-active: hsla(180, 100%, 50%, 0.2);
-    --tp-input-background-color-focus: hsla(180, 100%, 50%, 0.15);
-    --tp-input-background-color-hover: hsla(180, 100%, 50%, 0.12);
-    --tp-input-foreground-color: hsla(180, 70%, 70%, 1);
-
-    /* Labels/monitors: dimmer cyan */
-    --tp-label-foreground-color: hsla(180, 40%, 50%, 1);
-    --tp-monitor-background-color: hsla(180, 20%, 5%, 1);
-    --tp-monitor-foreground-color: hsla(180, 40%, 50%, 1);
-
-    /* the following variables are not officially supported by tweakpane themes: */
-    --tp-font-family: Roboto Mono, Source Code Pro, Menlo, Courier, monospace;
-    --tp-base-border-radius: 6px;
-    --tp-container-horizontal-padding: 4px;
-    --tp-element-border-radius: 2px;
-    --tp-blade-spacing: 4px;
-    --tp-blade-unit-size: 20px;
     /* station readout skin tokens; colours must match `status`/palette in modules/browser/src/colors.ts */
     --sw-ground: #03080b;
+    --sw-glass: rgba(4, 14, 18, 0.92);
     --sw-frame: #143a42;
     --sw-accent: #5fe3f0;
     --sw-title: #7fe7f2;
     --sw-label: #52aebb;
     --sw-value: #e6fcff;
+    --sw-dim: #2f7480;
     --sw-caution: #ffb000;
     --sw-warning: #ff3b30;
+    --sw-on-caution: #120a00;
+    --sw-on-warning: #140000;
+    --sw-glow: 0 0 6px rgba(120, 235, 250, 0.35);
     --sw-font-label: 'Chakra Petch', sans-serif;
     --sw-font-value: 'Share Tech Mono', monospace;
     --sw-fs-label: 12px;
@@ -86,42 +51,376 @@ body[data-density='compact'] {
     --sw-fs-title: 12px;
     --sw-gap: 4px;
     --sw-pad: 6px;
+    --tp-blade-value-width: 55%;
+}
+
+/* Tweakpane theme variables. Declared on body so the size and spacing tokens above resolve per density. */
+body {
+    --tp-base-background-color: var(--sw-glass);
+    --tp-base-shadow-color: transparent;
+    --tp-base-border-radius: 0;
+    --tp-base-font-family: var(--sw-font-label);
+    --tp-blade-border-radius: 0;
+    --tp-container-horizontal-padding: var(--sw-pad);
+    --tp-container-vertical-padding: var(--sw-gap);
+    --tp-container-unit-spacing: 2px;
+    --tp-container-unit-size: calc(var(--sw-fs-value) + 6px);
+    --tp-container-background-color: transparent;
+    --tp-container-background-color-hover: transparent;
+    --tp-container-background-color-focus: transparent;
+    --tp-container-background-color-active: transparent;
+    --tp-container-foreground-color: var(--sw-title);
+    --tp-groove-foreground-color: var(--sw-frame);
+    --tp-label-foreground-color: var(--sw-label);
+    --tp-input-background-color: transparent;
+    --tp-input-background-color-hover: rgba(95, 227, 240, 0.06);
+    --tp-input-background-color-focus: rgba(95, 227, 240, 0.06);
+    --tp-input-background-color-active: rgba(95, 227, 240, 0.1);
+    --tp-input-foreground-color: var(--sw-value);
+    --tp-monitor-background-color: transparent;
+    --tp-monitor-foreground-color: var(--sw-value);
+    --tp-button-background-color: var(--sw-accent);
+    --tp-button-background-color-hover: #9af1f8;
+    --tp-button-background-color-focus: #9af1f8;
+    --tp-button-background-color-active: var(--sw-value);
+    --tp-button-foreground-color: #02161a;
 }
 
 body[data-input='none'] .tp-rotv {
     pointer-events: none;
 }
 
-:root [data-status='OK'] {
-    --tp-base-background-color: hsl(123, 61%, 18%);
-}
-:root [data-status='WARN'] {
-    --tp-base-background-color: hsl(52, 61%, 18%, 1);
-}
-:root [data-status='ERROR'] {
-    --tp-base-background-color: hsl(0, 69%, 17%, 1);
+/* faint scanlines over every station screen; never intercepts the pointer */
+body[data-surface='station']::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
 }
 
 /* from https://github.com/amir-arad/tweakpane-table */
-:root .tp-lblv_v {
+:root .tp-lblv_v:has(> .tp-tablev),
+:root .tp-rowcv .tp-lblv_v {
     min-width: fit-content; /* don't cut off cells */
 }
 :root .tp-grlv_g {
     width: 160px; /* cut off monitor cell */
 }
 
-/* non-interactive "bar" display for read-only values within a range (see addBarCellToRow):
-   reuses the slider view but hides the drag handle and fills the track so it reads as a
-   solid level bar rather than a draggable control */
-.sw-bar .tp-sldv.tp-v-disabled {
+/* pane: glass ground, hairline frame, bracketed accent corners, no rounding */
+:root .tp-rotv {
+    position: relative;
+    font-size: var(--sw-fs-label);
+    font-weight: 600;
+}
+:root .tp-rotv:not([data-status]):not(.heat) {
+    border: 1px solid var(--sw-frame);
+    box-shadow: none;
+}
+:root .tp-rotv:not([data-status]):not(.heat)::before,
+:root .tp-rotv:not([data-status]):not(.heat)::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 0 solid var(--sw-accent);
+    pointer-events: none;
+    z-index: 1;
+}
+:root .tp-rotv:not([data-status]):not(.heat)::before {
+    top: -1px;
+    left: -1px;
+    border-width: 2px 0 0 2px;
+}
+:root .tp-rotv:not([data-status]):not(.heat)::after {
+    bottom: -1px;
+    right: -1px;
+    border-width: 0 2px 2px 0;
+}
+
+/* pane and folder titles */
+:root .tp-rotv_b,
+:root .tp-fldv_b {
+    display: flex;
+    align-items: center;
+    height: auto;
+    min-height: calc(var(--sw-fs-title) + 10px);
+    line-height: 1.2;
+    padding-left: var(--sw-pad);
+    padding-right: var(--sw-pad);
+    text-align: left;
+    color: var(--sw-title);
+    font-size: var(--sw-fs-title);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--sw-frame);
+}
+:root .tp-rotv_t,
+:root .tp-fldv_t {
+    flex: 1;
+    min-width: 0;
+    padding-left: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+:root .tp-rotv_m,
+:root .tp-fldv_m {
+    position: static;
+    flex: none;
+    margin: 0 0 0 var(--sw-gap);
+    background: linear-gradient(
+        to left,
+        var(--sw-accent),
+        var(--sw-accent) 2px,
+        transparent 2px,
+        transparent 4px,
+        var(--sw-accent) 4px
+    );
+}
+:root .tp-fldv > .tp-fldv_b {
+    font-size: var(--sw-fs-label);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--sw-label);
+    border-bottom-color: transparent;
+}
+
+/* label / value rows */
+:root .tp-lblv_l {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    hyphens: none;
+    padding-right: var(--sw-gap);
+    color: var(--sw-label);
+    font-size: var(--sw-fs-label);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+:root .tp-txtv_i,
+:root .tp-sglv_i,
+:root .tp-mllv_i,
+:root .tp-lstv_s {
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-value);
+    font-weight: 400;
+    text-align: right;
+    text-shadow: var(--sw-glow);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+:root .tp-txtv_i,
+:root .tp-sglv_i {
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* read-only readouts are not dimmed: dimming reads as "disabled control", not as data */
+:root .tp-lblv.tp-v-disabled .tp-lblv_l,
+:root .tp-txtv_i:disabled,
+:root .tp-lstv_s:disabled,
+:root .tp-ckbv.tp-v-disabled .tp-ckbv_w,
+:root .tp-sglv.tp-v-disabled .tp-sglv_i,
+:root .tp-mllv.tp-v-disabled .tp-mllv_i {
     opacity: 1;
 }
-.sw-bar .tp-sldv_t {
-    cursor: default;
+
+/* list: plain mode text; the arrow is an interactive affordance only */
+:root .tp-lstv_s {
+    background: transparent;
+    color: var(--sw-title);
+    padding: 0 18px 0 0;
+    font-weight: 400;
 }
-.sw-bar .tp-sldv_k::after {
+:root .tp-lstv_m {
+    color: var(--sw-accent);
+}
+
+/* bars: tick-mark track, glowing fill, no knob for read-only levels */
+:root .tp-sldv_t {
+    height: calc(var(--sw-fs-label) - 2px);
+    margin: 0;
+    border: 1px solid #1f5963;
+    background: repeating-linear-gradient(90deg, transparent 0 9.5%, #12343b 9.5% 10%);
+}
+:root .tp-sldv_t::before {
     display: none;
 }
-.sw-bar .tp-sldv_k::before {
-    height: 100%;
+:root .tp-sldv_k::before {
+    inset: 1px 0 1px 1px;
+    height: auto;
+    margin: 0;
+    border-radius: 0;
+    background: var(--sw-accent);
+    box-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+:root .tp-sldv_k::after {
+    width: 4px;
+    height: auto;
+    inset: -2px -2px -2px auto;
+    margin: 0;
+    border-radius: 0;
+    background: var(--sw-value);
+}
+:root .tp-sldv.tp-v-disabled,
+:root .sw-bar .tp-sldv.tp-v-disabled {
+    opacity: 1;
+}
+:root .sw-bar .tp-sldv_t {
+    cursor: default;
+}
+:root .sw-bar .tp-sldv_k::after,
+:root .tp-sldv.tp-v-disabled .tp-sldv_k::after,
+body[data-input='none'] .tp-sldv_k::after {
+    display: none;
+}
+
+/* checkbox: annunciator, dark until true */
+:root .tp-ckbv_w {
+    width: calc(var(--sw-fs-value) + 14px);
+    height: calc(var(--sw-fs-label) + 8px);
+    border: 1px solid #1a3439;
+    background: transparent;
+}
+:root .tp-ckbv_w svg {
+    display: none;
+}
+:root .tp-ckbv_i:checked + .tp-ckbv_w,
+:root .tp-ckbv_i[data-checked='true'] + .tp-ckbv_w {
+    border-color: var(--sw-accent);
+    background: rgba(95, 227, 240, 0.18);
+    box-shadow:
+        inset 0 0 8px rgba(95, 227, 240, 0.25),
+        0 0 6px rgba(95, 227, 240, 0.35);
+}
+:root .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w {
+    border-color: #1a3439;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* status cells: dark when normal, amber or red when not */
+:root [data-status='OK'] {
+    background: var(--sw-ground);
+}
+:root .tp-rotv[data-status='OK'] {
+    --tp-input-foreground-color: transparent;
+    --tp-monitor-foreground-color: transparent;
+    box-shadow: inset 0 0 0 1px #122b30;
+}
+:root .tp-rotv[data-status='OK'] input {
+    color: transparent;
+    text-shadow: none;
+}
+:root [data-status='WARN'] {
+    background: var(--sw-caution);
+    --tp-input-foreground-color: var(--sw-on-caution);
+    --tp-monitor-foreground-color: var(--sw-on-caution);
+    --tp-label-foreground-color: var(--sw-on-caution);
+}
+:root [data-status='ERROR'] {
+    background: var(--sw-warning);
+    --tp-input-foreground-color: var(--sw-on-warning);
+    --tp-monitor-foreground-color: var(--sw-on-warning);
+    --tp-label-foreground-color: var(--sw-on-warning);
+}
+[data-status='WARN'] input,
+[data-status='WARN'] .tp-lblv_l {
+    color: var(--sw-on-caution);
+    text-shadow: none;
+}
+[data-status='ERROR'] input,
+[data-status='ERROR'] .tp-lblv_l {
+    color: var(--sw-on-warning);
+    text-shadow: none;
+}
+
+/* display-only stations: nothing that looks clickable */
+body[data-input='none'] .tp-rotv_m,
+body[data-input='none'] .tp-fldv_m,
+body[data-input='none'] .tp-lstv_m,
+body[data-input='none'] .tp-txtv_k {
+    display: none;
+}
+/* buttons collapse to nothing but stay in the DOM and accessibility tree, so tests can still drive them */
+body[data-input='none'] .tp-btnv,
+body[data-input='none'] .tp-lblv:has(.tp-btnv) {
+    height: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+body[data-input='none'] .tp-lstv_s {
+    padding-right: 0;
+}
+
+/* interactive screens (DRADIS, GM): visible affordances */
+body:not([data-input='none']) .tp-btnv_b {
+    padding: 0 var(--sw-pad);
+    font-family: var(--sw-font-label);
+    font-size: var(--sw-fs-label);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-radius: 0;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+body:not([data-input='none']) .tp-txtv_i:not(:disabled),
+body:not([data-input='none']) .tp-lstv_s {
+    background: #071a1f;
+    border: 1px solid var(--sw-dim);
+    border-bottom: 2px solid var(--sw-accent);
+    padding-left: 6px;
+    padding-right: 6px;
+}
+body:not([data-input='none']) .tp-lstv_s {
+    padding-right: 20px;
+}
+body:not([data-input='none']) .tp-txtv_i:not(:disabled):focus,
+body:not([data-input='none']) .tp-lstv_s:focus {
+    border-color: var(--sw-title);
+    box-shadow: 0 0 0 2px rgba(95, 227, 240, 0.25);
+}
+body:not([data-input='none']) .tp-ckbv_w {
+    width: 40px;
+    height: 18px;
+    border-color: var(--sw-dim);
+    background: #071a1f;
+    box-shadow: none;
+}
+body:not([data-input='none']) .tp-ckbv_w::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--sw-dim);
+}
+body:not([data-input='none']) .tp-ckbv_i:checked + .tp-ckbv_w,
+body:not([data-input='none']) .tp-ckbv_i[data-checked='true'] + .tp-ckbv_w {
+    background: rgba(95, 227, 240, 0.2);
+    box-shadow: none;
+}
+body:not([data-input='none']) .tp-ckbv_i:checked + .tp-ckbv_w::after,
+body:not([data-input='none']) .tp-ckbv_i[data-checked='true'] + .tp-ckbv_w::after {
+    left: 24px;
+    background: var(--sw-accent);
+}
+body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w {
+    border-color: var(--sw-dim);
+    background: #071a1f;
+}
+body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::after {
+    left: 2px;
+    background: var(--sw-dim);
 }
