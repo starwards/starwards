@@ -27,6 +27,7 @@ import {
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
+import { decodedCopy } from '../serialization/game-state-serialization';
 import { deepAssignSchema } from '../serialization/deep-assign-schema';
 import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
@@ -328,6 +329,7 @@ export class GameManager {
     }
 
     public async loadGame(source: SavedGame, map: GameMap) {
+        const { fragment } = decodedCopy(SavedGame, source);
         await waitFor(
             async () => {
                 if (this.state.gameStatus !== GameStatus.STOPPED) {
@@ -341,12 +343,12 @@ export class GameManager {
         this.state.gameStatus = GameStatus.STARTING;
         this.map = map;
         this.spaceManager = new SpaceManager();
-        this.spaceManager.insertBulk(source.fragment.space);
+        this.spaceManager.insertBulk(fragment.space);
         this.spaceManager.forceFlushEntities();
         await matchMaker.createRoom('space', { manager: this.spaceManager });
         await this.waitForRoom({ name: 'space' });
-        for (const [id, shipState] of source.fragment.ship) {
-            const so = source.fragment.space.getShip(id);
+        for (const [id, shipState] of fragment.ship) {
+            const so = fragment.space.getShip(id);
             if (so) {
                 this.initShipManagerAndRoom(so, shipState, shipState.isPlayerShip);
             }

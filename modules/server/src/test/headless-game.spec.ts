@@ -1,6 +1,7 @@
+import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import { ShipManagerNpc, ShipManagerPc, makeId, mulberry32, uniqueId } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, training_t1 } from '../scenarios/training';
-import { HeadlessGame } from './headless-game';
+import { SavedGame } from '../serialization/game-state-protocol';
 import { createWaveDefenceMap } from '../scenarios/wave-defence';
 
 describe('HeadlessGame.start', () => {
@@ -52,6 +53,30 @@ describe('HeadlessGame.restore', () => {
 
         expect(resumed.api.getShip(TRAINING_PLAYER_ID)).toBeInstanceOf(ShipManagerPc);
         expect(resumed.api.getShip(TRAINING_TARGET_ID)).toBeInstanceOf(ShipManagerNpc);
+    });
+
+    it('resumes a live explosion straight from saveGame, without a serialize round-trip', () => {
+        const game = HeadlessGame.start(training_t1, 1);
+        // snapshot the tick before a live blast first lands on a hull
+        let saved: SavedGame | undefined;
+        let savedSeconds = 0;
+        for (let i = 0; i < 60 * SERVER_TICK_HZ && !saved; i++) {
+            const unhit = [...game.spaceManager.state.getAll('Explosion')].filter((e) => e.hitObjectIds.size === 0);
+            const before = unhit.length ? game.saveGame() : undefined;
+            const beforeSeconds = game.seconds;
+            game.tick(1 / SERVER_TICK_HZ);
+            if (unhit.some((e) => e.hitObjectIds.size > 0)) {
+                saved = before;
+                savedSeconds = beforeSeconds;
+            }
+        }
+        if (!saved) {
+            throw new Error('no blast hit a hull within a minute');
+        }
+
+        const resumed = HeadlessGame.restore(saved, training_t1, 1, savedSeconds);
+
+        expect(() => resumed.tick(1 / SERVER_TICK_HZ)).not.toThrow();
     });
 
     it('issues new ids past every id in the snapshot, even after another run reset the sequence', () => {
