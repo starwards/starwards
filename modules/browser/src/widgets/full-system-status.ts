@@ -33,10 +33,10 @@ const fitDefectLabelWidth = 52;
 const defaultWidths = { status: '60px', power: '60px', epm: '60px', heat: '60px', coolant: '120px', hacked: '60px' };
 const fitWidths = { status: '30px', power: '38px', epm: '34px', heat: '30px', coolant: '56px', hacked: '30px' };
 
-/** A few letters per word, enough for an engineer to tell one defect from another in a narrow cell. */
+/** Three letters per word for one or two words, initials for longer names: short enough to never truncate. */
 function abbreviateDefect(name: string) {
     const words = name.split(' ').filter((w) => w !== 'of');
-    return words.length === 1 ? words[0].slice(0, 7) : words.map((w) => w.slice(0, 3)).join(' ');
+    return words.length > 2 ? words.map((w) => w[0]).join('') : words.map((w) => w.slice(0, 3)).join(' ');
 }
 
 /**
