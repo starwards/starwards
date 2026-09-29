@@ -28,7 +28,7 @@ export function registerStationClient(
     };
 }
 
-export type StationName = 'helms' | 'weapons' | 'engineer' | 'signals' | 'dradis';
+type StationName = 'helms' | 'weapons' | 'engineer' | 'signals' | 'dradis';
 
 export type ScreenContainer = ReturnType<typeof wrapRootWidgetContainer>;
 export type ScreenTeardown = (() => void) | void;

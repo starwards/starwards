@@ -113,7 +113,7 @@ body[data-surface='station']::after {
     width: 100%;
     background: rgba(95, 227, 240, 0.04);
 }
-:root .tp-grlv_g polyline {
+:root body[data-station] .tp-grlv_g polyline {
     stroke: var(--sw-accent);
     stroke-width: 1.5px;
 }
@@ -204,12 +204,11 @@ body[data-surface='station']::after {
     text-overflow: ellipsis;
     white-space: nowrap;
     hyphens: none;
-    padding-left: 0;
     padding-right: var(--sw-gap);
     color: var(--sw-label);
     font-size: var(--sw-fs-label);
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 :root .tp-txtv_i,
@@ -392,7 +391,7 @@ body:not([data-input='none']) .tp-btnv_b {
     font-family: var(--sw-font-label);
     font-size: var(--sw-fs-label);
     font-weight: 700;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     border-radius: 0;
     clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
@@ -619,13 +618,39 @@ body[data-station='dradis'] {
     --tp-blade-value-width: 50%;
 }
 /* inset so a trace at the top of its range still shows */
-:root .tp-grlv_g {
+:root body[data-station] .tp-grlv_g {
     box-sizing: border-box;
     padding: 3px 0;
+}
+/* station labels: tight spacing and no left inset leave the value column its room */
+:root body[data-station] .tp-lblv_l {
+    padding-left: 0;
+    letter-spacing: 0.02em;
 }
 body[data-station='weapons'] {
     --tp-blade-value-width: 45%;
 }
 body[data-station='dradis'] .tp-txtv_i {
     font-size: calc(var(--sw-fs-value) - 3px);
+}
+
+/* full systems table: defect lines carry short labels in the value font's place */
+:root body[data-station] [data-id='Full Systems Status'] {
+    --tp-container-unit-size: 18px;
+}
+:root body[data-station] .sw-defect-row > .tp-lblv_l {
+    flex: 0 0 auto;
+}
+:root body[data-station] .sw-defect-label input {
+    font-family: var(--sw-font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-align: left;
+    text-shadow: none;
+    text-transform: uppercase;
+    color: var(--sw-label);
+}
+body[data-station='dradis'] .tp-btnv_b {
+    letter-spacing: 0.03em;
 }

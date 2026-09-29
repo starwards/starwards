@@ -1,5 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 import { makeDriver } from './driver';
 import { maps } from '@starwards/server';
@@ -20,6 +21,30 @@ const viewports = [
 const intersects = (a: Box, b: Box) =>
     a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
+/** Panes appear asynchronously; wait until their boxes stop changing for three consecutive looks. */
+async function waitForSettledLayout(page: Page) {
+    let previous = '';
+    let stableLooks = 0;
+    await expect
+        .poll(
+            async () => {
+                const current = await page.evaluate(() =>
+                    [...document.querySelectorAll('.tp-rotv[data-id], [data-id="Armor"], [data-id="Damage Report"]')]
+                        .map((el) => {
+                            const r = el.getBoundingClientRect();
+                            return [el.getAttribute('data-id'), r.x, r.y, r.width, r.height].join();
+                        })
+                        .join('|'),
+                );
+                stableLooks = current === previous ? stableLooks + 1 : 0;
+                previous = current;
+                return stableLooks;
+            },
+            { intervals: [300], timeout: 10000 },
+        )
+        .toBeGreaterThanOrEqual(3);
+}
+
 test.describe('Station layout', () => {
     test.beforeEach(async () => {
         await gameDriver.gameManager.startGame(single_ship);
@@ -38,8 +63,7 @@ test.describe('Station layout', () => {
                 await page.setViewportSize(viewport);
                 await navigateToScreen(page, `/${station}.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
                 await expect(page.locator('.tp-rotv[data-id]').first()).toBeVisible({ timeout: 10000 });
-                // panes fill in asynchronously; let the layout settle
-                await page.waitForTimeout(1500);
+                await waitForSettledLayout(page);
                 const boxes = await page.evaluate((): Box[] => {
                     const topLevel = (el: Element) => !el.parentElement?.closest('.tp-rotv');
                     return [...document.querySelectorAll('[data-id]')]
@@ -91,7 +115,7 @@ test.describe('Station layout', () => {
             await page.setViewportSize({ width: 1024, height: 768 });
             await navigateToScreen(page, `/${station}.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
             await expect(page.locator('.tp-rotv[data-id]').first()).toBeVisible({ timeout: 10000 });
-            await page.waitForTimeout(1500);
+            await waitForSettledLayout(page);
             const hidden = await page.evaluate((): string[] => {
                 const problems: string[] = [];
                 const panes = [...document.querySelectorAll('.tp-rotv[data-id]')].filter(

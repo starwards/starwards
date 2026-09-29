@@ -56,7 +56,6 @@ export async function initSignalsScreen(
     if (scanBeam) {
         drawScanBeamControls(scanBeamSlot, shipDriver, scanBeam.pointer);
     }
-    // drawn last so its buttons stack above earlier fixed-position panes
     drawSignalsJobs(jobsSlot, shipDriver, spaceDriver, stationTarget);
     return wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
 }

@@ -7,33 +7,10 @@ type EventType = 'resize' | 'destroy';
 export type WidgetContainer = ReturnType<typeof wrapWidgetContainer>;
 type Size = { width: number; height: number };
 
-export enum HPos {
-    LEFT,
-    MIDDLE,
-    RIGHT,
-}
-export enum VPos {
-    TOP,
-    MIDDLE,
-    BOTTOM,
-}
-
 export function wrapRootWidgetContainer(element: JQuery<HTMLElement>) {
-    const wContainer = wrapWidgetContainer(element);
-    return {
-        ...wContainer,
-        subContainer(v: VPos, h: HPos): WidgetContainer {
-            const divElement = $(
-                `<div style="position: absolute; ${vPos(v)} ${hPos(h)} transform: translate(${trans(h)}, ${trans(
-                    v,
-                )});" />'`,
-            );
-            element.append(divElement);
-            return wrapWidgetContainer(divElement);
-        },
-    };
+    return wrapWidgetContainer(element);
 }
-export const GRID_MARGIN = 14;
+const GRID_MARGIN = 14;
 const GRID_GAP = 12;
 
 type SlotOptions = {
@@ -126,24 +103,4 @@ function wrapWidgetContainer(element: JQuery<HTMLElement>) {
             return element;
         },
     };
-}
-
-function vPos(v: VPos) {
-    if (v === VPos.TOP) {
-        return `top:0;`;
-    } else if (v === VPos.MIDDLE) {
-        return `top:50%;`;
-    } else return `bottom:0;`;
-}
-function trans(v: VPos | HPos) {
-    if (v === VPos.MIDDLE || v === HPos.MIDDLE) {
-        return `-50%`;
-    } else return `0`;
-}
-function hPos(v: HPos) {
-    if (v === HPos.LEFT) {
-        return `left:0;`;
-    } else if (v === HPos.MIDDLE) {
-        return `left:50%;`;
-    } else return `right:0;`;
 }

@@ -43,6 +43,7 @@ export function createPane(params: { title?: string; container?: HTMLElement }):
 function configSliderBlade(params: Partial<SliderBladeParams>, range: RTuple2, getValue: () => number | undefined) {
     return {
         parse: (v: number) => String(v),
+        format: (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2)),
         ...params,
         view: 'slider',
         min: range[0],
