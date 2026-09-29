@@ -1,6 +1,6 @@
 import { Graphics, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, Spaceship, degToRad } from '@starwards/core';
-import { green, radarFogOfWar, radarVisibleBg, selectionColor, white } from '../colors';
+import { green, radar as radarColors, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
 import $ from 'jquery';
@@ -122,8 +122,8 @@ export async function drawLongRangeRadar(
         circleMask.clear();
         circleMask
             .circle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor)
-            .fill({ color: 0xff0000, alpha: 1 })
-            .stroke({ width: 2, color: 0xff0000, alpha: 1 });
+            .fill({ color: radarColors.mask, alpha: 1 })
+            .stroke({ width: 2, color: radarColors.mask, alpha: 1 });
     }
     drawMask();
     container.on('resize', drawMask);
@@ -163,7 +163,9 @@ export async function drawLongRangeRadar(
             beamGraphics.moveTo(center.x, center.y);
             beamGraphics.arc(center.x, center.y, radiusPixels, fromAngle, toAngle);
             beamGraphics.lineTo(center.x, center.y);
-            beamGraphics.stroke({ width: 1, color: selectionColor, alpha: 0.6 });
+            beamGraphics
+                .fill({ color: radarColors.scanWedge, alpha: 0.12 })
+                .stroke({ width: 1, color: radarColors.scanWedge, alpha: 0.8 });
         }
     }
 
@@ -185,8 +187,8 @@ export async function drawLongRangeRadar(
         root,
         {
             width: 2,
-            color: 0xaaffaa,
-            alpha: 0.1,
+            color: radarColors.ringLine,
+            alpha: 0.6,
         },
         1000,
         state.range,
@@ -222,11 +224,10 @@ export async function drawLongRangeRadar(
         new TextStyle({
             fontFamily: 'Bebas',
             fontSize: 16,
-            fill: white,
+            fill: radarColors.rangeLabel,
             align: 'right',
         }),
     );
-    zoomText.alpha = 0.7;
     root.stage.addChild(zoomText);
 
     function updateZoomTextPosition() {

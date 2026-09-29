@@ -2,7 +2,7 @@ import { Container, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, XY, calcArcAngle, degToRad } from '@starwards/core';
 import { aggregate, readProp } from '../property-wrappers';
 import { azimuthCircle, speedLines } from '../radar/tactical-radar-layers';
-import { green, radarFogOfWar, radarVisibleBg } from '../colors';
+import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
@@ -86,8 +86,8 @@ export async function drawHelmsRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         root,
         {
             width: 2,
-            color: 0xaaffaa,
-            alpha: 0.1,
+            color: radar.ringLine,
+            alpha: 0.6,
         },
         1000,
         p.range,
@@ -158,25 +158,25 @@ export async function drawHelmsRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
             overallMask
                 .moveTo(...XY.tuple(coneCorner))
                 .arc(...XY.tuple(coneCorner), radius, degToRad * (-90 - arcAngle / 2), degToRad * (-90 + arcAngle / 2))
-                .fill({ color: 0xff0000, alpha: 1 })
-                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
+                .fill({ color: radar.mask, alpha: 1 })
+                .stroke({ width: 2, color: radar.mask, alpha: 1 });
             camera.setRange(((sizeFactor - sizeFactorGrace) * container.height) / 2, p.range);
             allElements.x = -root.renderer.width / 2;
             allElements.scale = { x: 2, y: 2 };
             contentMask
                 .circle(...XY.tuple(coneCorner), radius * sizeFactor)
-                .fill({ color: 0xff0000, alpha: 1 })
-                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
+                .fill({ color: radar.mask, alpha: 1 })
+                .stroke({ width: 2, color: radar.mask, alpha: 1 });
         } else {
             // circle shape
             overallMask
                 .circle(root.renderer.width / 2, root.renderer.height / 2, root.radius)
-                .fill({ color: 0xff0000, alpha: 1 })
-                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
+                .fill({ color: radar.mask, alpha: 1 })
+                .stroke({ width: 2, color: radar.mask, alpha: 1 });
             contentMask
                 .circle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor)
-                .fill({ color: 0xff0000, alpha: 1 })
-                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
+                .fill({ color: radar.mask, alpha: 1 })
+                .stroke({ width: 2, color: radar.mask, alpha: 1 });
             allElements.x = 0;
             allElements.scale = { x: 1, y: 1 };
             camera.setRange(

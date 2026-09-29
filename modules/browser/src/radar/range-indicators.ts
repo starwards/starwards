@@ -2,7 +2,7 @@ import { Container, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
-import { white } from '../colors';
+import { radar } from '../colors';
 
 const TEXT_MARGIN = 5;
 export class RangeIndicators {
@@ -58,11 +58,10 @@ export class RangeIndicators {
             const radius = this.parent.metersToPixles(circleSize);
             this.rangeIndicators
                 .circle(this.parent.renderer.width / 2, this.parent.renderer.height / 2, radius)
-                .stroke({ width: 2, color: white, alpha: 0.1 });
+                .stroke({ width: 1, color: radar.ringLine, alpha: 1 });
             const text = textsIterator.next().value;
             text.text = Math.round(circleSize).toString() + 'M';
-            text.style.fill = white;
-            text.alpha = 0.1;
+            text.style.fill = radar.rangeLabel;
             text.x = this.parent.renderer.width / 2 - text.width / 2;
             text.y = this.parent.renderer.height / 2 - text.height - radius - TEXT_MARGIN;
         }
