@@ -53,9 +53,9 @@ test.describe('Helms Screen — energy starvation visibility', () => {
         // the JS property, not the HTML attribute — a `[value=...]` CSS/XPath selector can't see it
         await expect.poll(() => hasStatusValue(systemsPanel, 'STARVED'), { timeout: 5000 }).toBe(true);
 
-        const reactorPanel = page.locator('[data-id="Reactor"]');
-        await expect(reactorPanel).toBeVisible();
-        const energyLabel = reactorPanel.getByText('energy level', { exact: true });
+        const fuelPanel = page.locator('[data-id="Fuel"]');
+        await expect(fuelPanel).toBeVisible();
+        const energyLabel = fuelPanel.getByText('energy', { exact: true });
         await expect(energyLabel.locator('..')).toHaveAttribute('data-status', 'ERROR');
     });
 
@@ -65,8 +65,8 @@ test.describe('Helms Screen — energy starvation visibility', () => {
 
         expect(await hasStatusValue(systemsPanel, 'STARVED')).toBe(false);
 
-        const reactorPanel = page.locator('[data-id="Reactor"]');
-        const energyLabel = reactorPanel.getByText('energy level', { exact: true });
+        const fuelPanel = page.locator('[data-id="Fuel"]');
+        const energyLabel = fuelPanel.getByText('energy', { exact: true });
         await expect(energyLabel.locator('..')).toHaveAttribute('data-status', 'OK');
     });
 });

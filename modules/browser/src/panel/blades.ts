@@ -139,6 +139,32 @@ export function addBarBlade(
     return blade;
 }
 
+/**
+ * Add a non-interactive bar blade for a signed range: like `addBarBlade`, but the fill grows from
+ * a centre tick toward the value (left when negative, right when positive). The row carries
+ * `data-bipolar` and a `--sw-bar-value` custom property (-1..1, 0 at the centre) that
+ * tweakpane.css turns into the fill.
+ */
+export function addBipolarBarBlade(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = addBarBlade(guiFolder, model, params, cleanup);
+    const extent = Math.max(model.range[1], -model.range[0]);
+    const applyValue = () => {
+        const value = model.getValue();
+        if (value !== undefined && extent > 0) {
+            blade.element.style.setProperty('--sw-bar-value', String(Math.max(-1, Math.min(1, value / extent))));
+        }
+    };
+    blade.element.dataset.bipolar = '';
+    cleanup(model.onChange(applyValue));
+    applyValue();
+    return blade;
+}
+
 export function addTextBlade<T>(
     guiFolder: FolderApi,
     model: Model<T>,
@@ -166,15 +192,29 @@ export function addThresholdTextBlade(
 ) {
     const { warnBelow, errorAt = model.range[0], ...textParams } = params;
     const blade = addTextBlade(guiFolder, model, textParams, cleanup);
-    blade.element.classList.add('tp-rotv', 'readout'); // value stays visible in every status
+    applyThresholdTheme(blade.element, model, warnBelow, errorAt, cleanup);
+    return blade;
+}
+
+/**
+ * Themes a row by where the live value sits against `warnBelow`/`errorAt` (see
+ * `addThresholdTextBlade`): use it on a bar row whose level must visibly alarm as it runs low.
+ */
+export function applyThresholdTheme(
+    element: HTMLElement,
+    model: NumericModel,
+    warnBelow: number,
+    errorAt: number,
+    cleanup: (d: Destructor) => void,
+) {
+    element.classList.add('tp-rotv', 'readout'); // value stays visible in every status
     const applyTheme = () => {
         const value = model.getValue();
-        blade.element.dataset.status =
+        element.dataset.status =
             value === undefined ? '' : value <= errorAt ? 'ERROR' : value < warnBelow ? 'WARN' : 'OK';
     };
     cleanup(model.onChange(applyTheme));
     applyTheme();
-    return blade;
 }
 
 export function addEnumListBlade(
