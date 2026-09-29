@@ -26,6 +26,11 @@ export class ReplayRoom<S extends Schema> {
 
     readonly onStateChange = Object.assign((cb: () => void) => this.listeners.add(cb), {
         once: (cb: () => void) => {
+            if (this.started) {
+                // like a room that already received its first state
+                queueMicrotask(cb);
+                return;
+            }
             const wrapped = () => {
                 this.listeners.delete(wrapped);
                 cb();
@@ -38,9 +43,17 @@ export class ReplayRoom<S extends Schema> {
         // read-only
     }
 
-    /** make the room's state equal `frame`, emitting the changes as a server would */
-    apply(frame: S) {
+    onMessage() {
+        // the server never speaks here
+    }
+
+    /**
+     * make the room's state equal `frame`, emitting the changes as a server would.
+     * `adjust` may alter the local copy before it is published (e.g. to interpolate); it never touches `frame`.
+     */
+    apply(frame: S, adjust?: (source: S) => void) {
         deepAssignSchema(this.source, frame);
+        adjust?.(this.source);
         const patch = this.started ? this.encoder.encode() : this.encoder.encodeAll();
         this.started = true;
         this.encoder.discardChanges();

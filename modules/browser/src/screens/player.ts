@@ -1,21 +1,33 @@
-import { AlphaFilter, Graphics, UPDATE_PRIORITY } from 'pixi.js';
-import { Faction, Projectile, SpaceObject, createLogger } from '@starwards/core';
+import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import { PLAYBACK_RATES, ReplayClock } from '../replay/replay-clock';
-import { blue, radarVisibleBg, red, white, yellow } from '../colors';
-import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
 import $ from 'jquery';
-import { Camera } from '../radar/camera';
-import { CameraView } from '../radar/camera-view';
-import { GridLayer } from '../radar/grid-layer';
-import { InteractiveLayer } from '../radar/interactive-layer';
-import { InteractiveLayerCommands } from '../radar/interactive-layer-commands';
-import { ObjectsLayer } from '../radar/blips/objects-layer';
-import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
+import { GmWidgets } from '../widgets/gm';
 import { RecordingSource } from '../replay/recording-source';
-import { ReplaySpaceDriver } from '../replay/replay-space-driver';
-import { SelectionContainer } from '../radar/selection-container';
-import { wrapRootWidgetContainer } from '../container';
+import { ReplayDriver } from '../replay/replay-driver';
+import { ReplaySession } from '../replay/replay-session';
+import { ammoWidget } from '../widgets/ammo';
+import { armorWidget } from '../widgets/armor';
+import { createLogger } from '@starwards/core';
+import { damageReportWidget } from '../widgets/damage-report';
+import { designStateWidget } from '../widgets/design-state';
+import { dockingWidget } from '../widgets/docking';
+import { engineeringStatusWidget } from '../widgets/enginering-status';
+import { fullSystemsStatusWidget } from '../widgets/full-system-status';
+import { gunWidget } from '../widgets/gun';
+import { helmsRadarWidget } from '../widgets/helms-radar';
+import { helmsWidget } from '../widgets/helms';
+import { longRangeRadarWidget } from '../widgets/long-range-radar';
+import { monitorWidget } from '../widgets/monitor';
+import { radarWidget } from '../widgets/radar';
+import { repairQueueWidget } from '../widgets/repair-queue';
+import { systemsStatusWidget } from '../widgets/system-status';
+import { tacticalRadarWidget } from '../widgets/tactical-radar';
+import { targetInfoWidget } from '../widgets/target-info';
+import { targetRadarWidget } from '../widgets/target-radar';
+import { targetingWidget } from '../widgets/targeting';
+import { tubesStatusWidget } from '../widgets/tubes-status';
+import { warpWidget } from '../widgets/warp';
 
 const { error: logError } = createLogger('screen:player');
 
@@ -25,17 +37,6 @@ function formatTime(seconds: number) {
     const m = Math.floor((s % 3600) / 60);
     const pad = (n: number) => n.toString().padStart(2, '0');
     return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`;
-}
-
-function factionColor(faction: Faction) {
-    switch (faction) {
-        case Faction.Gravitas:
-            return red;
-        case Faction.Raiders:
-            return blue;
-        default:
-            return yellow;
-    }
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, string> = {}, text?: string) {
@@ -65,144 +66,140 @@ function showEmptyState(root: HTMLElement, onFile: (name: string, text: string) 
     root.append(zone);
 }
 
+function buildUi(root: HTMLElement, source: RecordingSource) {
+    root.replaceChildren();
+    // golden-layout fills the stage; `#menuContainer`/`#layoutContainer` get their geometry from index.css
+    const stage = el('div', { class: 'player-stage', 'data-id': 'player stage' });
+    stage.append(el('ul', { id: 'menuContainer' }), el('div', { id: 'layoutContainer' }));
+
+    const bar = el('div', { class: 'player-bar', 'data-id': 'transport' });
+    const scrubber = el('input', {
+        type: 'range',
+        min: '0',
+        max: `${source.duration}`,
+        step: 'any',
+        value: '0',
+        class: 'player-scrubber',
+        'data-id': 'scrubber',
+        'aria-label': 'timeline',
+    });
+    const controls = el('div', { class: 'player-controls' });
+    const button = (id: string, label: string, title: string) =>
+        el('button', { type: 'button', 'data-id': id, title, 'aria-label': title }, label);
+    const play = button('play', '▶', 'Play/Pause (space)');
+    const back = button('step back', '⏮', 'Previous frame (,)');
+    const fwd = button('step forward', '⏭', 'Next frame (.)');
+    const time = el('span', { class: 'player-time', 'data-id': 'time' }, '00:00');
+    const rate = el('select', { 'data-id': 'rate', title: 'Playback speed (J/L)' });
+    for (const r of PLAYBACK_RATES) {
+        const option = el('option', { value: `${r}` }, `${r}×`);
+        if (r === 1) option.setAttribute('selected', '');
+        rate.append(option);
+    }
+    const interpBtn = button('interpolate', '≈', 'Smooth motion between frames');
+    interpBtn.classList.add('toggle', 'on');
+    const title = el('span', { class: 'player-title', 'data-id': 'recording title' });
+    title.textContent = `${source.name} · ${source.header.mapName}`;
+    controls.append(play, back, fwd, time, rate, interpBtn, title);
+    bar.append(scrubber, controls);
+    root.append(stage, bar);
+    return { stage, scrubber, play, back, fwd, time, rate, interpBtn };
+}
+
 class Player {
     private clock: ReplayClock;
-    private replay: ReplaySpaceDriver;
-    private selection = new SelectionContainer();
-    private camera = new Camera();
-    private follow = false;
-    private interpolate = true;
-    private ui!: ReturnType<typeof Player.buildUi>;
-    private inspectorSignature = '';
-    private detailViews = new Map<SpaceObject, HTMLElement>();
+    private session: ReplaySession;
+    private driver: ReplayDriver;
+    private ui!: ReturnType<typeof buildUi>;
 
     constructor(
         private root: HTMLElement,
         private source: RecordingSource,
     ) {
         this.clock = new ReplayClock(source.duration);
-        this.replay = new ReplaySpaceDriver(source);
-        this.camera.setZoom(0.05);
-    }
-
-    static buildUi(root: HTMLElement, source: RecordingSource) {
-        root.replaceChildren();
-        const stage = el('div', { class: 'player-stage', 'data-id': 'player stage' });
-        const side = el('aside', { class: 'player-side', 'data-id': 'inspector' });
-        const main = el('div', { class: 'player-main' });
-        main.append(stage, side);
-
-        const bar = el('div', { class: 'player-bar', 'data-id': 'transport' });
-        const scrubber = el('input', {
-            type: 'range',
-            min: '0',
-            max: `${source.duration}`,
-            step: 'any',
-            value: '0',
-            class: 'player-scrubber',
-            'data-id': 'scrubber',
-            'aria-label': 'timeline',
-        });
-        const controls = el('div', { class: 'player-controls' });
-        const button = (id: string, label: string, title: string) =>
-            el('button', { type: 'button', 'data-id': id, title, 'aria-label': title }, label);
-        const play = button('play', '▶', 'Play/Pause (space)');
-        const back = button('step back', '⏮', 'Previous frame (,)');
-        const fwd = button('step forward', '⏭', 'Next frame (.)');
-        const time = el('span', { class: 'player-time', 'data-id': 'time' }, '00:00');
-        const rate = el('select', { 'data-id': 'rate', title: 'Playback speed (J/L)' });
-        for (const r of PLAYBACK_RATES) {
-            const option = el('option', { value: `${r}` }, `${r}×`);
-            if (r === 1) option.setAttribute('selected', '');
-            rate.append(option);
-        }
-        const followBtn = button('follow', '◎', 'Follow selection (F)');
-        followBtn.classList.add('toggle');
-        const interpBtn = button('interpolate', '≈', 'Smooth motion between frames');
-        interpBtn.classList.add('toggle', 'on');
-        const title = el('span', { class: 'player-title', 'data-id': 'recording title' });
-        title.textContent = `${source.name} · ${source.header.mapName}`;
-        controls.append(play, back, fwd, time, rate, followBtn, interpBtn, title);
-        bar.append(scrubber, controls);
-        root.append(main, bar);
-        return { stage, side, scrubber, play, back, fwd, time, rate, followBtn, interpBtn };
+        this.session = new ReplaySession(source);
+        this.driver = new ReplayDriver(this.session);
     }
 
     async start() {
-        this.ui = Player.buildUi(this.root, this.source);
-        await this.initRadar();
+        this.ui = buildUi(this.root, this.source);
+        // the first frame has to be in the rooms before any driver is made
+        await this.source.load(0);
+        this.session.update(0);
         this.bindControls();
-        this.source.onFrameLoaded = () => this.render();
+        this.source.onFrameLoaded = () => this.session.update(this.clock.position);
         this.clock.events.on('change', () => this.render());
         this.render();
+        await this.initDashboard();
     }
 
-    private async initRadar() {
-        const { stage } = this.ui;
-        const container = wrapRootWidgetContainer($(stage));
-        const root = new CameraView(this.camera);
-        await root.initialize({ backgroundColor: radarVisibleBg }, container);
-        root.canvas.setAttribute('data-id', 'GM Radar');
-        stage.addEventListener(
-            'wheel',
-            (e) => {
-                e.preventDefault();
-                this.camera.changeZoom(-e.deltaY);
+    private async initDashboard() {
+        const { driver } = this;
+        const wrapperEl = $(this.ui.stage);
+        const spaceDriver = await driver.getSpaceDriver();
+        const gmWidgets = new GmWidgets(driver, true);
+        const dashboard = new Dashboard(
+            {
+                content: [
+                    {
+                        content: [
+                            { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 75, isClosable: false },
+                            { ...getGoldenLayoutItemConfig(gmWidgets.tweak), width: 25, isClosable: false },
+                        ],
+                        isClosable: false,
+                        title: '',
+                        type: 'row' as const,
+                    },
+                ],
             },
-            { passive: false },
+            wrapperEl.find('#layoutContainer'),
+            wrapperEl.find('#menuContainer'),
         );
-        root.events.on('screenChanged', () => root.canvas.setAttribute('data-zoom', `${this.camera.zoom}`));
+        dashboard.registerWidget(gmWidgets.radar);
+        dashboard.registerWidget(gmWidgets.tweak);
+        dashboard.setup();
 
-        const spaceDriver = this.replay.driver;
-        this.selection.init(spaceDriver);
-        root.addLayer(new GridLayer(root).renderRoot);
-
-        const rangeFilter = new RadarRangeFilter(spaceDriver);
-        root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
-        for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
-            const fov = new Graphics();
-            fov.filters = [new AlphaFilter({ alpha: 0.1 })];
-            root.addLayer(fov);
-            root.ticker.add(
-                () => {
-                    fov.clear();
-                    for (const f of rangeFilter.fieldsOfView()) {
-                        if (f.object.faction === faction) {
-                            f.draw(root, fov);
-                            fov.fill({ color: factionColor(faction), alpha: 1 });
-                        }
-                    }
-                },
-                null,
-                UPDATE_PRIORITY.LOW,
-            );
-        }
-        const color = (s: SpaceObject) => (Projectile.isInstance(s) ? white : factionColor(s.faction));
-        root.addLayer(new ObjectsLayer(root, spaceDriver, 64, color, tacticalDrawFunctions, this.selection).renderRoot);
-        root.addLayer(
-            new ObjectsLayer(root, spaceDriver, 32, (w) => w.color, tacticalDrawWaypoints, this.selection).renderRoot,
-        );
-        root.addLayer(
-            new InteractiveLayer(root, spaceDriver, this.selection, new InteractiveLayerCommands(), true).renderRoot,
-        );
-        // the recording is applied before layers read the state on each tick
-        root.ticker.add(() => this.frame(), null, UPDATE_PRIORITY.HIGH);
-        this.selection.events.on('changed', () => this.renderInspector());
-    }
-
-    private frame() {
-        if (!this.replay.update(this.clock.position, this.interpolate)) return;
-        for (const [object, view] of this.detailViews) {
-            view.textContent = JSON.stringify(object.toJSON(), null, 1);
-        }
-        if (this.follow) {
-            const selected = this.selection.getSingle();
-            if (selected) this.camera.set(selected.position);
-        }
+        // constantly scan for new ships and add widgets for them
+        void (async () => {
+            for await (const shipId of driver.getUniqueShipIds()) {
+                const shipDriver = await driver.getShipDriver(shipId);
+                dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, shipId + ' radar');
+                dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
+                dashboard.registerWidget(helmsRadarWidget(spaceDriver, shipDriver), {}, shipId + ' helms radar');
+                dashboard.registerWidget(helmsWidget(shipDriver), {}, shipId + ' helm');
+                dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
+                dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, shipId + ' design state');
+                dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, shipId + ' target radar');
+                dashboard.registerWidget(monitorWidget(shipDriver), {}, shipId + ' monitor');
+                dashboard.registerWidget(damageReportWidget(shipDriver), {}, shipId + ' damage report');
+                dashboard.registerWidget(repairQueueWidget(shipDriver), {}, shipId + ' repair queue');
+                dashboard.registerWidget(armorWidget(shipDriver), {}, shipId + ' armor');
+                dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
+                dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
+                dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
+                dashboard.registerWidget(fullSystemsStatusWidget(shipDriver), {}, shipId + ' systems (full)');
+                dashboard.registerWidget(engineeringStatusWidget(shipDriver), {}, shipId + ' engineering status');
+                dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
+                if (shipDriver.state.warp) {
+                    dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
+                }
+                dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, shipId + ' docking');
+                dashboard.registerWidget(
+                    targetInfoWidget(spaceDriver, shipDriver, driver),
+                    {},
+                    shipId + ' target info',
+                );
+                dashboard.registerWidget(
+                    longRangeRadarWidget(spaceDriver, shipDriver),
+                    {},
+                    shipId + ' long range radar',
+                );
+            }
+        })().catch(logError);
     }
 
     private bindControls() {
-        const { play, back, fwd, rate, scrubber, followBtn, interpBtn } = this.ui;
+        const { play, back, fwd, rate, scrubber, interpBtn } = this.ui;
         const step = (dir: number) => {
             this.clock.pause();
             const i = this.source.indexAt(this.clock.position);
@@ -215,14 +212,9 @@ class Player {
         fwd.addEventListener('click', () => step(1));
         rate.addEventListener('change', () => this.clock.setRate(Number(rate.value)));
         scrubber.addEventListener('input', () => this.clock.seek(Number(scrubber.value)));
-        const toggleFollow = () => {
-            this.follow = !this.follow;
-            followBtn.classList.toggle('on', this.follow);
-        };
-        followBtn.addEventListener('click', toggleFollow);
         interpBtn.addEventListener('click', () => {
-            this.interpolate = !this.interpolate;
-            interpBtn.classList.toggle('on', this.interpolate);
+            this.session.interpolate = !this.session.interpolate;
+            interpBtn.classList.toggle('on', this.session.interpolate);
         });
         const changeRate = (dir: number) => {
             const i = PLAYBACK_RATES.findIndex((r) => r === this.clock.rate);
@@ -233,7 +225,8 @@ class Player {
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             const target = e.target as HTMLElement;
-            if (target.tagName === 'SELECT') return;
+            // widgets own their text fields and selects
+            if (['SELECT', 'INPUT', 'TEXTAREA'].includes(target.tagName) && target !== scrubber) return;
             const inScrubber = target === scrubber;
             switch (e.key) {
                 case ' ':
@@ -268,17 +261,12 @@ class Player {
                 case 'End':
                     this.clock.seek(this.source.duration);
                     break;
-                case 'f':
-                    toggleFollow();
-                    break;
-                case 'Escape':
-                    this.selection.clear();
-                    break;
             }
         });
     }
 
     private render() {
+        this.session.update(this.clock.position);
         const { play, time, scrubber } = this.ui;
         play.textContent = this.clock.playing ? '⏸' : this.clock.ended ? '↺' : '▶';
         time.textContent = `${formatTime(this.clock.position)} / ${formatTime(this.source.duration)}`;
@@ -286,46 +274,6 @@ class Player {
             scrubber.value = `${this.clock.position}`;
         }
         scrubber.style.setProperty('--progress', `${(this.clock.position / (this.source.duration || 1)) * 100}%`);
-        this.renderInspector();
-    }
-
-    private renderInspector() {
-        const { side } = this.ui;
-        const selected = [...this.selection.selectedItems];
-        const objects = [...this.replay.state];
-        const signature = `${objects.map((o) => o.id).join()}|${selected.map((o) => o.id).join()}`;
-        if (signature === this.inspectorSignature) return;
-        this.inspectorSignature = signature;
-        side.replaceChildren();
-        this.detailViews.clear();
-
-        const details = el('section', { class: 'player-details', 'data-id': 'selection details' });
-        if (selected.length === 0) {
-            details.append(el('p', { class: 'hint' }, 'Click an object to inspect it.'));
-        }
-        for (const object of selected.slice(0, 3)) {
-            details.append(el('h3', {}, `${object.type} ${object.id}`));
-            const pre = el('pre');
-            pre.textContent = JSON.stringify(object.toJSON(), null, 1);
-            this.detailViews.set(object, pre);
-            details.append(pre);
-        }
-        if (selected.length > 3) details.append(el('p', { class: 'hint' }, `+${selected.length - 3} more selected`));
-
-        const list = el('section', { class: 'player-list', 'data-id': 'object list' });
-        list.append(el('h3', {}, `Objects (${objects.length})`));
-        const sorted = objects.sort((a, b) => a.type.localeCompare(b.type) || a.id.localeCompare(b.id));
-        for (const object of sorted.slice(0, 300)) {
-            const row = el('button', { type: 'button', class: 'row', 'data-id': `object ${object.id}` });
-            row.textContent = `${object.type} ${object.id}`;
-            if (this.selection.has(object)) row.classList.add('selected');
-            row.addEventListener('click', () => {
-                this.selection.set([object]);
-                this.camera.set(object.position);
-            });
-            list.append(row);
-        }
-        side.append(details, list);
     }
 }
 

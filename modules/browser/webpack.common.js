@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
@@ -50,6 +51,8 @@ module.exports = {
         ],
     },
     plugins: [
+        // the recording player runs @colyseus/schema's Encoder in the browser, which allocates Node Buffers
+        new webpack.ProvidePlugin({ Buffer: ['buffer', 'Buffer'] }),
         new HtmlWebpackPlugin({
             filename: 'ship.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),

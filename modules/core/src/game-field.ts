@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/unbound-method */
 import 'reflect-metadata';
 // sizes the shared encode buffers; imported here because every schema definition imports this module
 import './serialization-buffers';

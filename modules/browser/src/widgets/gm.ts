@@ -30,7 +30,8 @@ export class GmWidgets {
     private viewFilter = propertyStub(TypeFilter.ALL);
     public selectionContainer = new SelectionContainer(this.viewFilter);
     public interactiveLayerCommands = new InteractiveLayerCommands();
-    constructor(driver: Driver) {
+    /** @param readOnly the radar only selects and pans: no dragging objects, no orders */
+    constructor(driver: Driver, readOnly = false) {
         this.tweak = tweakWidget(driver, this.selectionContainer);
         this.create = createWidget(this.interactiveLayerCommands);
         void driver.getSpaceDriver().then((spaceDriver) => this.selectionContainer.init(spaceDriver));
@@ -69,6 +70,7 @@ export class GmWidgets {
                     spaceDriver,
                     selectionContainer,
                     interactiveLayerCommands,
+                    readOnly,
                 );
                 const getFactionColor = (faction: Faction) => {
                     switch (faction) {

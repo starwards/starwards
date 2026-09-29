@@ -4,7 +4,10 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Starwards Recording Player</title>
+        <link type="text/css" rel="stylesheet" href="styles/goldenlayout-base.css" />
+        <link type="text/css" rel="stylesheet" href="styles/goldenlayout-dark-theme.css" />
         <link type="text/css" rel="stylesheet" href="styles/index.css" />
+        <link type="text/css" rel="stylesheet" href="styles/tweakpane.css" />
         <style>
             html,
             body {
@@ -21,51 +24,21 @@
                 flex-direction: column;
                 height: 100%;
             }
-            .player-main {
-                flex: 1 1 auto;
-                display: flex;
-                min-height: 0;
-            }
             .player-stage {
                 flex: 1 1 auto;
-                min-width: 0;
+                min-height: 0;
                 position: relative;
                 overflow: hidden;
             }
-            .player-side {
-                flex: 0 0 280px;
-                overflow-y: auto;
-                background: #1a1a1a;
-                border-left: 1px solid #333;
-                padding: 8px;
-                font-size: 12px;
-            }
-            .player-side h3 {
-                margin: 8px 0 4px;
-                font-size: 13px;
-            }
-            .player-side pre {
-                margin: 0;
-                white-space: pre-wrap;
-                word-break: break-all;
-                font-size: 11px;
-            }
-            .player-side .hint {
-                color: #888;
-            }
-            .player-side .row {
-                display: block;
-                width: 100%;
-                text-align: left;
-                background: none;
-                border: 0;
-                color: inherit;
-                padding: 2px 4px;
-                cursor: pointer;
-            }
-            .player-side .row:hover,
-            .player-side .row.selected {
-                background: #2a3a44;
+            /* the recording is read-only: value editors stay visible but can't be operated */
+            .player-stage .tp-sldv,
+            .player-stage .tp-txtv_i,
+            .player-stage .tp-lstv,
+            .player-stage .tp-ckbv,
+            .player-stage .tp-btnv_b,
+            .player-stage .tp-cswv,
+            .player-stage .tp-p2dv {
+                pointer-events: none;
             }
             /* the transport bar is a first-class part of the layout, always visible under the stage */
             .player-bar {
@@ -126,9 +99,6 @@
                 color: #ff6666;
             }
             @media (max-width: 700px) {
-                .player-side {
-                    display: none;
-                }
                 .player-title {
                     display: none;
                 }

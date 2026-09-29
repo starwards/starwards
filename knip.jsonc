@@ -42,6 +42,10 @@
         "modules/server": {
             "entry": ["src/prod.ts"]
         },
+        "modules/browser": {
+            // webpack ProvidePlugin polyfill (webpack.common.js), referenced by name only
+            "ignoreDependencies": ["buffer"]
+        },
         "modules/mcp": {
             "entry": ["src/cli.ts"]
         }

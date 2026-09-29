@@ -1,4 +1,14 @@
-import { ReplayRoom, SpaceDriver, SpaceState, Spaceship } from '../src';
+import {
+    AdminState,
+    ReplayRoom,
+    ShipDriver,
+    ShipState,
+    SpaceDriver,
+    SpaceState,
+    Spaceship,
+    demoShip,
+    makeShipState,
+} from '../src';
 import { expect } from 'chai';
 
 function frame(ships: Record<string, number>) {
@@ -35,5 +45,33 @@ describe('ReplayRoom', () => {
         room.apply(frame({ s1: 0, s2: 5 }));
         expect(driver.state.get('s2')?.position.x).to.equal(5);
         expect(events.some((e) => e.startsWith('add') && e.includes('s2'))).to.equal(true);
+    });
+
+    it('drives a real ShipDriver, whose state starts out empty', async () => {
+        const room = new ReplayRoom(ShipState);
+        const driverPromise = ShipDriver(room as never);
+        const first = makeShipState('a', demoShip);
+        room.apply(first);
+        const driver = await driverPromise;
+        expect(driver.state.id).to.equal('a');
+        const heard: unknown[] = [];
+        (driver.events.on.bind(driver.events) as (name: string, cb: (e: { value: unknown }) => void) => void)(
+            '/spaceship/position/x',
+            (e) => heard.push(e.value),
+        );
+
+        const second = makeShipState('a', demoShip);
+        second.spaceship.position.x = 42;
+        room.apply(second);
+        expect(driver.state.spaceship.position.x).to.equal(42);
+        expect(heard).to.include(42);
+    });
+
+    it('accepts admin state', () => {
+        const room = new ReplayRoom(AdminState);
+        const admin = new AdminState();
+        admin.shipIds.push('a');
+        room.apply(admin);
+        expect(room.state.shipIds.length).to.equal(1);
     });
 });

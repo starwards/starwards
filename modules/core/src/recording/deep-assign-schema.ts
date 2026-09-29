@@ -35,10 +35,13 @@ function assignField(target: Record<string, unknown>, source: Record<string, unk
         return;
     }
     if ('array' in type) {
+        // a freshly constructed schema may not have created its collections yet
+        target[name] ??= new ArraySchema();
         reconcileArray(target[name] as ArraySchema<unknown>, sourceValue as ArraySchema<unknown>, type.array);
         return;
     }
     if ('map' in type) {
+        target[name] ??= new MapSchema();
         reconcileMap(target[name] as MapSchema, sourceValue as MapSchema, type.map);
         return;
     }

@@ -45,6 +45,7 @@
         "xstate": "^5.32.4"
     },
     "devDependencies": {
+        "buffer": "^6.0.3",
         "esbuild": "^0.25.12"
     }
 }
