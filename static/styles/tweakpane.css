@@ -51,7 +51,7 @@ body[data-density='compact'] {
     --sw-fs-title: 12px;
     --sw-gap: 4px;
     --sw-pad: 6px;
-    --tp-blade-value-width: 55%;
+    --tp-blade-value-width: 46%;
 }
 
 /* Tweakpane theme variables. Declared on body so the size and spacing tokens above resolve per density. */
@@ -332,14 +332,27 @@ body[data-input='none'] .tp-sldv_k::after {
     --tp-label-foreground-color: var(--sw-on-warning);
 }
 [data-status='WARN'] input,
+[data-status='WARN'] .tp-lstv_s,
 [data-status='WARN'] .tp-lblv_l {
     color: var(--sw-on-caution);
     text-shadow: none;
 }
 [data-status='ERROR'] input,
+[data-status='ERROR'] .tp-lstv_s,
 [data-status='ERROR'] .tp-lblv_l {
     color: var(--sw-on-warning);
     text-shadow: none;
+}
+
+/* compact density (GM): labels must stay readable in narrow panes */
+:root body[data-density='compact'] .tp-lblv_l {
+    letter-spacing: 0.02em;
+    padding-right: 4px;
+}
+
+body[data-density='compact']:not([data-input='none']) .tp-btnv_b {
+    letter-spacing: 0.04em;
+    padding: 0 4px;
 }
 
 /* display-only stations: nothing that looks clickable */

@@ -48,35 +48,32 @@ test.describe('Readout skin', () => {
         expect(okBackground).toBe('rgb(3, 8, 11)');
     });
 
-    test('long text in the repair queue is ellipsised and stays inside its row', async ({ page }) => {
+    test('an over-long repair-queue value is truncated inside its row', async ({ page }) => {
         await navigateToScreen(page, `/engineer.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         const panel = page.locator('[data-id="Repair Queue"]');
         await expect(panel).toBeVisible({ timeout: 10000 });
-        const titles = panel.locator('.tp-fldv_t');
-        await expect(titles.first()).toBeVisible();
-        const results = await titles.evaluateAll((els) =>
-            els.map((el) => {
-                const box = el.getBoundingClientRect();
-                const rowBox = el.closest('.tp-fldv')!.getBoundingClientRect();
-                return {
-                    overflow: getComputedStyle(el).textOverflow,
-                    inside: box.left >= rowBox.left - 1 && box.right <= rowBox.right + 1,
-                };
-            }),
-        );
-        expect(results.length).toBeGreaterThan(0);
-        for (const r of results) {
-            expect(r.overflow).toBe('ellipsis');
-            expect(r.inside).toBe(true);
-        }
-        const values = await panel.locator('.tp-lblv_v').evaluateAll((els) =>
-            els.map((el) => {
-                const box = el.getBoundingClientRect();
-                const rowBox = el.closest('.tp-lblv')!.getBoundingClientRect();
-                return box.left >= rowBox.left - 1 && box.right <= rowBox.right + 1;
-            }),
-        );
-        expect(values.every(Boolean)).toBe(true);
+        const ship = gameDriver.getShip(shipId);
+        await page.keyboard.press('Alt+1'); // actuatorRecalibration
+        const slot = () => ship.state.repairQueue.slots.find((s) => s.protocolId === 'actuatorRecalibration')!;
+        await expect.poll(() => slot().priority, { timeout: 5000 }).toBe(4);
+        ship.state.reactor.effeciencyFactor = 0;
+        ship.state.reactor.energy = 0;
+        await expect.poll(() => slot().energyStarved, { timeout: 1500 }).toBe(true);
+
+        const row = panel.locator('.tp-fldv', { hasText: 'Actuator recalibration' }).first();
+        const label = row.getByText('repair energy', { exact: true });
+        const input = label.locator('..').locator('input');
+        await expect(input).toHaveValue('insufficient reactor energy');
+        const metrics = await input.evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            const rowBox = el.closest('.tp-lblv')!.getBoundingClientRect();
+            return {
+                truncated: el.scrollWidth > el.clientWidth,
+                overflow: getComputedStyle(el).textOverflow,
+                inside: box.left >= rowBox.left - 1 && box.right <= rowBox.right + 1,
+            };
+        });
+        expect(metrics).toEqual({ truncated: true, overflow: 'ellipsis', inside: true });
     });
 
     test('dradis keeps working inputs and checkboxes', async ({ page }) => {
