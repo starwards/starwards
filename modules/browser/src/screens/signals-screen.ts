@@ -1,6 +1,6 @@
 import { Driver, Radar, ShipDriver, SpaceDriver, scanCycleTargets } from '@starwards/core';
-import { HPos, VPos, WidgetContainer } from '../container';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
+import { WidgetContainer, stationGrid } from '../container';
 import { addSliderBlade, createWidgetPane } from '../panel';
 
 import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
@@ -42,19 +42,22 @@ export async function initSignalsScreen(
     );
     radar.addLayer(new SignalsJobsLayer(radar, spaceDriver, shipDriver).renderRoot);
 
-    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
-    drawTargetInfo(container.subContainer(VPos.MIDDLE, HPos.RIGHT), driver, spaceDriver, shipDriver, stationTarget);
+    const grid = stationGrid(container, { left: 250, right: 256 });
+    await drawStationObservationMode(grid.center(), driver);
     const radarSystems = shipDriver.systems.filter((s) => Radar.isInstance(s.state));
-    drawSystemsStatus(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver, radarSystems);
+    const scanBeamSlot = grid.left();
+    const jobsSlot = grid.left({ scroll: true });
+    drawTargetInfo(grid.right(), driver, spaceDriver, shipDriver, stationTarget);
+    drawSystemsStatus(grid.right({ scroll: true }), shipDriver, radarSystems, true);
     // the scan beam is the ship's steerable radar — the one whose arc has room to trade for reach
     const scanBeam = radarSystems.find(
         (s) => Radar.isInstance(s.state) && s.state.design.minArc < s.state.design.maxArc,
     );
     if (scanBeam) {
-        drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver, scanBeam.pointer);
+        drawScanBeamControls(scanBeamSlot, shipDriver, scanBeam.pointer);
     }
     // drawn last so its buttons stack above earlier fixed-position panes
-    drawSignalsJobs(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, spaceDriver, stationTarget);
+    drawSignalsJobs(jobsSlot, shipDriver, spaceDriver, stationTarget);
     return wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
 }
 

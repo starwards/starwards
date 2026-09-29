@@ -7,7 +7,6 @@ import {
     repairCommands,
     repairProtocols,
 } from '@starwards/core';
-import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import {
     getRepairProtocolHotkey,
@@ -27,6 +26,7 @@ import { drawRepairQueue } from '../widgets/repair-queue';
 import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { stationGrid } from '../container';
 
 export async function initEngineerScreen(
     driver: Driver,
@@ -38,15 +38,17 @@ export async function initEngineerScreen(
     const shipDriver = await driver.getShipDriver(shipId);
     const teardownInput = wireInput(shipDriver);
 
-    drawEngineeringStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
+    const grid = stationGrid(container, { left: 240, right: 250 });
+    await drawStationObservationMode(grid.center(), driver);
+    drawEngineeringStatus(grid.left({ scroll: true }), shipDriver);
     if (shipDriver.state.warp) {
-        drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
+        drawWarpStatus(grid.left(), shipDriver);
     }
-    drawFullSystemsStatus(container.subContainer(VPos.MIDDLE, HPos.MIDDLE), shipDriver, shipDriver.systems);
-    await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
-    drawDamageReport(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver);
-    drawRepairQueue(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver, false);
-    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
+    const armorSlot = grid.left({ width: 200 });
+    drawFullSystemsStatus(grid.center({ fill: true, scroll: true }), shipDriver, shipDriver.systems, true);
+    drawDamageReport(grid.right(), shipDriver);
+    drawRepairQueue(grid.right({ scroll: true }), shipDriver, false);
+    await drawArmorStatus(armorSlot, shipDriver, 200);
     return teardownInput;
 }
 

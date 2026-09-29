@@ -1,5 +1,4 @@
 import { Driver, ShipDriver } from '@starwards/core';
-import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
@@ -14,6 +13,7 @@ import { drawTubesStatus } from '../widgets/tubes-status';
 import { isWeaponsSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
+import { stationGrid } from '../container';
 import { wireTubeHotkeys } from '../input/tube-hotkeys';
 
 export async function initWeaponsScreen(
@@ -25,17 +25,19 @@ export async function initWeaponsScreen(
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 10000 });
-    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
+    const grid = stationGrid(container, { left: 272, right: 256 });
+    await drawStationObservationMode(grid.center(), driver);
     const teardownInput = wireInput(shipDriver);
+    drawTubesStatus(grid.left(), shipDriver);
+    drawAmmoStatus(grid.left({ scroll: true }), shipDriver);
+    drawTargetingStatus(grid.right(), shipDriver);
+    drawGunStatus(grid.right(), shipDriver);
     drawSystemsStatus(
-        container.subContainer(VPos.TOP, HPos.RIGHT),
+        grid.right({ scroll: true }),
         shipDriver,
         shipDriver.systems.filter((s) => isWeaponsSystem(s.pointer)),
+        true,
     );
-    drawTubesStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
-    drawAmmoStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
-    drawTargetingStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
-    drawGunStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver);
     return teardownInput;
 }
 
