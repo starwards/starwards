@@ -1,4 +1,5 @@
 import {
+    Destructor,
     RepairPriority,
     RepairProtocolMode,
     RepairProtocolStats,
@@ -7,7 +8,7 @@ import {
     repairCommands,
     repairProtocols,
 } from '@starwards/core';
-import { addBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
+import { Model, addBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readNumberProp, readProp } from '../property-wrappers';
 import {
     getRepairProtocolHotkey,
@@ -137,12 +138,16 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
         // RepairProtocolSlot.mode) — getRepairProtocolModeHotkey (and this row) only exist for a
         // field-tier protocol, the one kind that actually has two modes to show or toggle between.
         if (getRepairProtocolModeHotkey(slot.protocolId)) {
-            addTextBlade(
+            const modeBlade = addTextBlade(
                 row,
                 readProp<RepairProtocolMode>(shipDriver, `/repairQueue/slots/${index}/mode`),
                 { label: 'mode', format: formatMode },
                 panelCleanup.add,
             );
+            if (!interactive) {
+                // the details line already prices the current mode; this row would cost a line per slot
+                modeBlade.element.classList.add('sw-visually-hidden');
+            }
             if (interactive) {
                 addButton(
                     row,
@@ -161,18 +166,20 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
         // during the grace window before a sustained shortfall force-stops the run
         // (RepairProtocolSlot.refusalReason only appears *after* that), this is the only visible
         // explanation for a progress bar that has stalled.
-        addTextBlade(
+        const energyStarved = readProp<boolean>(shipDriver, `/repairQueue/slots/${index}/energyStarved`);
+        const energyBlade = addTextBlade(
             row,
-            readProp<boolean>(shipDriver, `/repairQueue/slots/${index}/energyStarved`),
+            energyStarved,
             { label: 'repair energy', format: (starved: boolean) => (starved ? 'insufficient reactor energy' : '') },
             panelCleanup.add,
         );
-        addTextBlade(
-            row,
-            readProp<string>(shipDriver, `/repairQueue/slots/${index}/refusalReason`),
-            { label: 'notice' },
-            panelCleanup.add,
-        );
+        const refusalReason = readProp<string>(shipDriver, `/repairQueue/slots/${index}/refusalReason`);
+        const noticeBlade = addTextBlade(row, refusalReason, { label: 'notice' }, panelCleanup.add);
+        if (!interactive) {
+            // a display station has no room for two rows that are blank until something goes wrong
+            hideWhile(energyBlade.element, energyStarved, (starved) => !starved, panelCleanup.add);
+            hideWhile(noticeBlade.element, refusalReason, (reason) => !reason, panelCleanup.add);
+        }
         if (interactive) {
             addButton(
                 row,
@@ -196,4 +203,15 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
             );
         }
     });
+}
+
+function hideWhile<T>(
+    element: HTMLElement,
+    model: Model<T>,
+    isBlank: (value: T | undefined) => boolean,
+    cleanup: (d: Destructor) => void,
+) {
+    const apply = () => element.classList.toggle('sw-visually-hidden', isBlank(model.getValue()));
+    cleanup(model.onChange(apply));
+    apply();
 }

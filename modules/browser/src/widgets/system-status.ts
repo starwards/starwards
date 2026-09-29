@@ -24,7 +24,7 @@ export function systemsStatusWidget(shipDriver: ShipDriver): DashboardWidget {
 
 const totalWidth = 370;
 const defaultCellWidth = 50;
-const fitCellWidth = 38;
+const fitCellWidth = 26;
 /** `fit`: take the container's width instead of imposing one, with narrower cells. */
 export function drawSystemsStatus(
     container: WidgetContainer,

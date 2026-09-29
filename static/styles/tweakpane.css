@@ -39,10 +39,11 @@
     --sw-font-label: 'Chakra Petch', sans-serif;
     --sw-font-value: 'Share Tech Mono', monospace;
     --sw-fs-label: 12px;
-    --sw-fs-value: 22px;
+    --sw-fs-value: 17px;
     --sw-fs-title: 13px;
-    --sw-gap: 8px;
+    --sw-gap: 6px;
     --sw-pad: 10px;
+    --tp-blade-value-width: 42%;
 }
 
 body[data-density='compact'] {
@@ -107,6 +108,14 @@ body[data-surface='station']::after {
 }
 :root .tp-grlv_g {
     width: 160px; /* cut off monitor cell */
+}
+:root body[data-station] .tp-lblv_v > .tp-grlv > .tp-grlv_g {
+    width: 100%;
+    background: rgba(95, 227, 240, 0.04);
+}
+:root .tp-grlv_g polyline {
+    stroke: var(--sw-accent);
+    stroke-width: 1.5px;
 }
 
 /* pane: glass ground, hairline frame, bracketed accent corners, no rounding */
@@ -195,11 +204,12 @@ body[data-surface='station']::after {
     text-overflow: ellipsis;
     white-space: nowrap;
     hyphens: none;
+    padding-left: 0;
     padding-right: var(--sw-gap);
     color: var(--sw-label);
     font-size: var(--sw-fs-label);
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
 }
 :root .tp-txtv_i,
@@ -523,4 +533,79 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root [data-segmented] .tp-sldv_k::before {
     -webkit-mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
     mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+}
+
+/* system tables: narrow status cells leave the label column its room */
+:root body[data-station] [data-id='Systems Status'] .tp-lblv_l,
+:root body[data-station] [data-id='Full Systems Status'] .tp-lblv_l {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding-right: 2px;
+}
+
+/* repair queue on a display station: one line of values under each slot name */
+body[data-input='none'] [data-id='Repair Queue'] {
+    --tp-container-unit-size: 18px;
+    --tp-container-vertical-padding: 1px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b {
+    min-height: 18px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c {
+    display: flex;
+    align-items: center;
+    column-gap: var(--sw-gap);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:has(.tp-sldv) {
+    flex: 0 0 76px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child(2) {
+    flex: 0 0 40px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lblv_l {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lblv_v {
+    width: 100%;
+    min-width: 0;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child input {
+    text-align: left;
+}
+
+/* full systems table: bars carry the value, the digits would only crowd the row */
+:root body[data-station] [data-id='Full Systems Status'] .tp-sldtxtv_t {
+    display: none;
+}
+
+/* station sliders: the number beside a bar keeps room for its digits */
+:root body[data-station] .tp-sldtxtv_t {
+    flex: 0 0 66px;
+    width: auto;
+}
+:root body[data-station] .tp-sldtxtv_s {
+    flex: 1 1 0;
+    min-width: 0;
+}
+:root body[data-station] .tp-lstv_s {
+    font-size: calc(var(--sw-fs-value) - 2px);
+}
+
+/* off-screen but still rendered, so the row stays in the accessibility tree and drivable by tests */
+.sw-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
 }

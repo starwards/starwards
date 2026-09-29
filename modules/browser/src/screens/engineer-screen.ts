@@ -38,7 +38,7 @@ export async function initEngineerScreen(
     const shipDriver = await driver.getShipDriver(shipId);
     const teardownInput = wireInput(shipDriver);
 
-    const grid = stationGrid(container, { left: 240, right: 250 });
+    const grid = stationGrid(container, { left: 252, right: 250 });
     await drawStationObservationMode(grid.center(), driver);
     drawEngineeringStatus(grid.left({ scroll: true }), shipDriver);
     if (shipDriver.state.warp) {

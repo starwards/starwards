@@ -85,4 +85,40 @@ test.describe('Station layout', () => {
             });
         }
     }
+    for (const station of stations) {
+        test(`${station} shows all its content at 1024x768`, async ({ page }) => {
+            setupPageErrorHandlers(page);
+            await page.setViewportSize({ width: 1024, height: 768 });
+            await navigateToScreen(page, `/${station}.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+            await expect(page.locator('.tp-rotv[data-id]').first()).toBeVisible({ timeout: 10000 });
+            await page.waitForTimeout(1500);
+            const hidden = await page.evaluate((): string[] => {
+                const problems: string[] = [];
+                const panes = [...document.querySelectorAll('.tp-rotv[data-id]')].filter(
+                    (el) => !el.parentElement?.closest('.tp-rotv'),
+                );
+                for (const pane of panes) {
+                    const id = pane.getAttribute('data-id');
+                    const full = pane.getBoundingClientRect();
+                    if (full.width === 0 || full.height === 0) continue;
+                    if (pane.scrollHeight > pane.clientHeight + 1) problems.push(`${id}: content taller than pane`);
+                    if (pane.scrollWidth > pane.clientWidth + 1) problems.push(`${id}: content wider than pane`);
+                    for (let a = pane.parentElement; a && a.id !== 'wrapper'; a = a.parentElement) {
+                        const { overflowX, overflowY } = getComputedStyle(a);
+                        if (overflowX === 'visible' && overflowY === 'visible') continue;
+                        const c = a.getBoundingClientRect();
+                        if (full.bottom > c.bottom + 1) problems.push(`${id}: cut off at the bottom of its slot`);
+                        if (full.right > c.right + 1) problems.push(`${id}: cut off at the right of its slot`);
+                    }
+                    for (const label of pane.querySelectorAll('.tp-lblv_l')) {
+                        if (label.clientWidth > 1 && label.scrollWidth > label.clientWidth + 1) {
+                            problems.push(`${id}: label "${label.textContent}" truncated`);
+                        }
+                    }
+                }
+                return problems;
+            });
+            expect(hidden).toEqual([]);
+        });
+    }
 });
