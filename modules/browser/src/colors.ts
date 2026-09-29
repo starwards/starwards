@@ -9,6 +9,12 @@ export const red = 0xd53434;
 export const blue = 0x404fc9;
 export const yellow = 0xe2b640;
 export const green = 0x34d534;
+/** Station readout status colours; keep in sync with `--sw-*` in static/styles/tweakpane.css. */
+export const status = {
+    ok: 0x03080b,
+    caution: 0xffb000,
+    warning: 0xff3b30,
+};
 export const selectionColor = 0x00ffff; // Pure cyan
 
 export const radarVisibleBg = 0x0a0a0a; // --bg-primary
