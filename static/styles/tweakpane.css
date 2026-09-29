@@ -392,7 +392,7 @@ body:not([data-input='none']) .tp-btnv_b {
     font-family: var(--sw-font-label);
     font-size: var(--sw-fs-label);
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     border-radius: 0;
     clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
@@ -543,7 +543,7 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     padding-right: 2px;
 }
 
-/* repair queue on a display station: one line of values under each slot name */
+/* repair queue on a display station: a slot is its name, then one line of details and priority; the bar joins only while a repair runs */
 body[data-input='none'] [data-id='Repair Queue'] {
     --tp-container-unit-size: 18px;
     --tp-container-vertical-padding: 1px;
@@ -552,20 +552,17 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b {
     min-height: 18px;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     column-gap: var(--sw-gap);
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv {
-    flex: 1 1 0;
     min-width: 0;
     padding: 0;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:has(.tp-sldv) {
-    flex: 0 0 76px;
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child(2) {
-    flex: 0 0 40px;
+    grid-column: 1 / -1;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lblv_l {
     position: absolute;
@@ -581,6 +578,10 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lbl
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child input {
     text-align: left;
+    font-size: 12px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child(2) {
+    width: 56px;
 }
 
 /* full systems table: bars carry the value, the digits would only crowd the row */
@@ -590,15 +591,18 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-chi
 
 /* station sliders: the number beside a bar keeps room for its digits */
 :root body[data-station] .tp-sldtxtv_t {
-    flex: 0 0 66px;
+    flex: 0 0 44px;
     width: auto;
+}
+:root body[data-station] [data-id='Properties'] .tp-sldtxtv_t {
+    flex-basis: 72px;
 }
 :root body[data-station] .tp-sldtxtv_s {
     flex: 1 1 0;
     min-width: 0;
 }
 :root body[data-station] .tp-lstv_s {
-    font-size: calc(var(--sw-fs-value) - 2px);
+    font-size: calc(var(--sw-fs-value) - 3px);
 }
 
 /* off-screen but still rendered, so the row stays in the accessibility tree and drivable by tests */
@@ -608,4 +612,20 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-chi
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
+}
+
+/* a hex colour needs more room than most values */
+body[data-station='dradis'] {
+    --tp-blade-value-width: 50%;
+}
+/* inset so a trace at the top of its range still shows */
+:root .tp-grlv_g {
+    box-sizing: border-box;
+    padding: 3px 0;
+}
+body[data-station='weapons'] {
+    --tp-blade-value-width: 45%;
+}
+body[data-station='dradis'] .tp-txtv_i {
+    font-size: calc(var(--sw-fs-value) - 3px);
 }

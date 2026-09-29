@@ -110,6 +110,16 @@ test.describe('Station layout', () => {
                         if (full.bottom > c.bottom + 1) problems.push(`${id}: cut off at the bottom of its slot`);
                         if (full.right > c.right + 1) problems.push(`${id}: cut off at the right of its slot`);
                     }
+                    for (const value of pane.querySelectorAll('input, select')) {
+                        if (
+                            value.clientWidth > 1 &&
+                            getComputedStyle(value).color !== 'rgba(0, 0, 0, 0)' &&
+                            value.scrollWidth > value.clientWidth + 1
+                        ) {
+                            const text = value instanceof HTMLInputElement ? value.value : value.textContent;
+                            problems.push(`${id}: value "${text}" truncated`);
+                        }
+                    }
                     for (const label of pane.querySelectorAll('.tp-lblv_l')) {
                         if (label.clientWidth > 1 && label.scrollWidth > label.clientWidth + 1) {
                             problems.push(`${id}: label "${label.textContent}" truncated`);

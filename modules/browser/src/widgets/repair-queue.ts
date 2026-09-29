@@ -157,12 +157,17 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
                 );
             }
         }
-        addBarBlade(
+        const progress = readNumberProp(shipDriver, `/repairQueue/slots/${index}/progress`);
+        const progressBlade = addBarBlade(
             row,
-            readNumberProp(shipDriver, `/repairQueue/slots/${index}/progress`),
+            progress,
             { label: 'progress', format: (p: number) => `${Math.round(p * 100)}%` },
             panelCleanup.add,
         );
+        if (!interactive) {
+            // an idle slot's empty bar says nothing, and the line it would take is needed by the other slots
+            hideWhile(progressBlade.element, progress, (p) => !p, panelCleanup.add);
+        }
         // during the grace window before a sustained shortfall force-stops the run
         // (RepairProtocolSlot.refusalReason only appears *after* that), this is the only visible
         // explanation for a progress bar that has stalled.

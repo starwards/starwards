@@ -90,6 +90,7 @@ export class PropertyPanel implements Panel {
         if (range[1] === 1) {
             options.step = 0.01;
         }
+        options.format = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2));
         const guiController = this.addInput(guiFolder, viewModel, name, getValue, options);
         if (setValue) {
             guiController.on('change', (ev) => setValue(ev.value));
