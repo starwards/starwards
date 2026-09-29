@@ -6,19 +6,19 @@
     font-family: 'Chakra Petch';
     font-weight: 400;
     font-display: swap;
-    src: url('../fonts/chakra-petch-latin-400-normal.woff2') format('woff2');
+    src: url('../fonts/fontsource/chakra-petch-latin-400-normal.woff2') format('woff2');
 }
 @font-face {
     font-family: 'Chakra Petch';
     font-weight: 600;
     font-display: swap;
-    src: url('../fonts/chakra-petch-latin-600-normal.woff2') format('woff2');
+    src: url('../fonts/fontsource/chakra-petch-latin-600-normal.woff2') format('woff2');
 }
 @font-face {
     font-family: 'Share Tech Mono';
     font-weight: 400;
     font-display: swap;
-    src: url('../fonts/share-tech-mono-latin-400-normal.woff2') format('woff2');
+    src: url('../fonts/fontsource/share-tech-mono-latin-400-normal.woff2') format('woff2');
 }
 
 :root {

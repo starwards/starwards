@@ -1,5 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 import { makeDriver } from './driver';
 import { maps } from '@starwards/server';
@@ -9,7 +10,7 @@ const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
 const pane = '.tp-rotv';
-const pointerEvents = (page: import('@playwright/test').Page) =>
+const pointerEvents = (page: Page) =>
     page
         .locator(pane)
         .first()
@@ -57,5 +58,11 @@ test.describe('Station input mode', () => {
         await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         await expect(page.locator(pane).first()).toBeVisible({ timeout: 10000 });
         expect(remote).toEqual([]);
+        await page.evaluate(() => document.fonts.ready);
+        for (const face of ['Share Tech Mono', 'Chakra Petch']) {
+            const loaded = await page.evaluate(async (f) => (await document.fonts.load(`16px "${f}"`)).length, face);
+            expect(loaded).toBeGreaterThan(0);
+            expect(await page.evaluate((f) => document.fonts.check(`16px "${f}"`), face)).toBe(true);
+        }
     });
 });
