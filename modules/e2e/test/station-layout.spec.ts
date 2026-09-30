@@ -21,10 +21,15 @@ const viewports = [
 const intersects = (a: Box, b: Box) =>
     a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
-/** Panes appear asynchronously; wait until their boxes stop changing for three consecutive looks. */
+/**
+ * Panes appear asynchronously; wait until their boxes have stayed put for a full second of wall-clock time.
+ * Stability is measured in time, not in number of looks: a full-viewport software-rendered radar can leave
+ * the page main thread so busy that a single look takes seconds, and three looks would never fit.
+ */
 async function waitForSettledLayout(page: Page) {
+    const stableForMs = 1000;
     let previous = '';
-    let stableLooks = 0;
+    let stableSince = 0;
     await expect
         .poll(
             async () => {
@@ -38,13 +43,14 @@ async function waitForSettledLayout(page: Page) {
                         })
                         .join('|'),
                 );
-                stableLooks = current === previous ? stableLooks + 1 : 0;
+                const now = Date.now();
+                if (current !== previous) stableSince = now;
                 previous = current;
-                return stableLooks;
+                return now - stableSince;
             },
-            { intervals: [300], timeout: 10000 },
+            { intervals: [300], timeout: 25000 },
         )
-        .toBeGreaterThanOrEqual(3);
+        .toBeGreaterThanOrEqual(stableForMs);
 }
 
 test.describe('Station layout', () => {
