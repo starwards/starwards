@@ -63,7 +63,7 @@ test.describe('GM game controls widget', () => {
         await expect(() => {
             expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
         }).toPass({ timeout: 5000 });
-        expect((await download).suggestedFilename()).toMatch(/.swr.jsonl$/);
+        expect((await download).suggestedFilename()).toMatch(/\.sgr$/);
         const file = await (await download).path();
         expect(fs.readFileSync(file, 'utf8')).toContain('starwards-recording');
         // the saved-recording readout is a text blade, so its content lives in an input value

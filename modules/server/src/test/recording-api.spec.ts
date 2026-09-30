@@ -78,10 +78,8 @@ describe('recording HTTP API (issue #2101)', () => {
         const res = await supertest(gameDriver.httpServer).get(`/recordings/${name}`).expect(200);
         expect(res.text.split('\n')[0]).toContain('starwards-recording');
 
-        await supertest(gameDriver.httpServer)
-            .get('/recordings/no-such-recording.swr.jsonl')
-            .expect(HTTP_NOT_FOUND_STATUS);
-        for (const bad of ['notes.txt', '.swr.jsonl', '..%2F..%2Fetc%2Fpasswd']) {
+        await supertest(gameDriver.httpServer).get('/recordings/no-such-recording.sgr').expect(HTTP_NOT_FOUND_STATUS);
+        for (const bad of ['notes.txt', '.sgr', '..%2F..%2Fetc%2Fpasswd']) {
             await supertest(gameDriver.httpServer).get(`/recordings/${bad}`).expect(HTTP_BAD_REQUEST_STATUS);
         }
     });

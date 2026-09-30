@@ -24,7 +24,7 @@ export interface RecordingSummary {
     frameCount: number;
 }
 
-export const RECORDING_EXT = '.swr.jsonl';
+export const RECORDING_EXT = '.sgr';
 
 /** True for a plain recording file name — no directory part, correct extension. */
 export function isRecordingName(name: string): boolean {

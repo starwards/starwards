@@ -91,7 +91,7 @@ function flattenPrimitive(type: string, value: unknown, path: string, objectId: 
 }
 
 /**
- * Reads a `.swr.jsonl` recording and yields each frame fully flattened (not delta-encoded --
+ * Reads a `.sgr` recording and yields each frame fully flattened (not delta-encoded --
  * that happens on ingest into the store). A truncated final line is dropped, not thrown.
  */
 export async function* decodeRecording(filePath: string): AsyncGenerator<DecodedFrame, void, void> {

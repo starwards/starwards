@@ -49,7 +49,7 @@ export interface TrainingResult {
     readonly hz: number;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
-    /** The persisted `.swr.jsonl`, when the run was asked to keep one. */
+    /** The persisted `.sgr`, when the run was asked to keep one. */
     readonly recording?: string;
     /** Frames in the persisted recording. */
     readonly frames?: number;

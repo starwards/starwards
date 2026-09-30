@@ -23,6 +23,7 @@ import { radarWidget } from '../widgets/radar';
 import { repairQueueWidget } from '../widgets/repair-queue';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
+import { takeRecording } from '../replay/recording-handoff';
 import { targetInfoWidget } from '../widgets/target-info';
 import { targetRadarWidget } from '../widgets/target-radar';
 import { targetingWidget } from '../widgets/targeting';
@@ -50,8 +51,8 @@ function showEmptyState(root: HTMLElement, onFile: (name: string, text: string) 
     root.replaceChildren();
     const zone = el('div', { class: 'player-empty', 'data-id': 'drop zone' });
     zone.append(el('h1', {}, 'Recording player'));
-    zone.append(el('p', {}, 'Drop a .swr.jsonl recording here, or choose one.'));
-    const input = el('input', { type: 'file', accept: '.jsonl,.swr.jsonl', 'data-id': 'file input' });
+    zone.append(el('p', {}, 'Drop a .sgr recording here, or choose one.'));
+    const input = el('input', { type: 'file', accept: '.sgr', 'data-id': 'file input' });
     zone.append(input);
     if (message) zone.append(el('p', { class: 'player-error', 'data-id': 'load error' }, message));
     const load = async (file: File | undefined) => {
@@ -290,7 +291,16 @@ function startPlayer(root: HTMLElement) {
         }
     };
     showEmptyState(root, open);
-    const src = new URLSearchParams(window.location.search).get('src');
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('handoff')) {
+        takeRecording()
+            .then((recording) => {
+                if (!recording) throw new Error('no recording was handed over');
+                open(recording.name, recording.text);
+            })
+            .catch((e) => showEmptyState(root, open, `Failed to open the dropped recording: ${String(e)}`));
+    }
+    const src = params.get('src');
     if (src) {
         fetch(src)
             .then((r) => r.text())

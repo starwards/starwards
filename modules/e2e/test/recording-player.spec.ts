@@ -41,7 +41,7 @@ test('plays a recording read-only, with the timeline as the primary control', as
     await navigateToScreen(page, '/player.html', { baseURL: gameDriver.baseURL });
 
     await page.locator('[data-id="file input"]').setInputFiles({
-        name: 'test.swr.jsonl',
+        name: 'test.sgr',
         mimeType: 'application/x-ndjson',
         buffer: Buffer.from(recording),
     });

@@ -29,7 +29,7 @@ export type RecordedEvent =
 export const EVENTS_EXT = '.events.jsonl';
 
 /**
- * Writes a {@link HeadlessGame} run in the server's recording format (`.swr.jsonl`), one frame
+ * Writes a {@link HeadlessGame} run in the server's recording format (`.sgr`), one frame
  * every `intervalSimSeconds` of game time -- not wall time, since a headless run is far faster
  * than realtime. The file replays in the GM replay UI and every frame is a `SavedGame` a run can
  * be branched from via `HeadlessGame.restore`.

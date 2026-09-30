@@ -14,7 +14,7 @@ export const observationModeScenes: Record<string, Scene> = {
                 position: 134,
                 held: false,
                 label: 'REC',
-                mode: 'two_vs_one_1754651000000.swr.jsonl',
+                mode: 'two_vs_one_1754651000000.sgr',
             });
         },
     },

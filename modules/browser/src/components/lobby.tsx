@@ -11,6 +11,7 @@ import { REVIEWER_GUIDE_URL } from '../lobby-links';
 import React from 'react';
 import { RecordingsMenu } from './recordings-menu';
 import WebFont from 'webfontloader';
+import { stashRecording } from '../replay/recording-handoff';
 
 /**
  * Shows this device's persistent station registry id (assigned by `getOrCreateStationId`, not
@@ -183,7 +184,45 @@ function ShipOptions({ shipId }: { shipId: string }) {
     );
 }
 
+/** A recording file dropped anywhere on the lobby plays in the recording player. */
+function useDropRecording() {
+    const [dragging, setDragging] = React.useState(false);
+    React.useEffect(() => {
+        const hasFile = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files');
+        const onDragOver = (e: DragEvent) => {
+            if (!hasFile(e)) return;
+            e.preventDefault();
+            setDragging(true);
+        };
+        const onDragLeave = (e: DragEvent) => {
+            // leaving the window, not moving between elements
+            if (!e.relatedTarget) setDragging(false);
+        };
+        const onDrop = (e: DragEvent) => {
+            if (!hasFile(e)) return;
+            e.preventDefault();
+            setDragging(false);
+            const file = e.dataTransfer?.files[0];
+            if (!file) return;
+            void file
+                .text()
+                .then((text) => stashRecording({ name: file.name, text }))
+                .then(() => window.location.assign('player.html?handoff'));
+        };
+        window.addEventListener('dragover', onDragOver);
+        window.addEventListener('dragleave', onDragLeave);
+        window.addEventListener('drop', onDrop);
+        return () => {
+            window.removeEventListener('dragover', onDragOver);
+            window.removeEventListener('dragleave', onDragLeave);
+            window.removeEventListener('drop', onDrop);
+        };
+    }, []);
+    return dragging;
+}
+
 export const Lobby = (p: Props) => {
+    const dragging = useDropRecording();
     const isGameRunning = useIsGameRunning(p.driver);
     const canStartGame = useCanStartGame(p.driver);
     const adminDriver = useAdminDriver(p.driver);
@@ -196,6 +235,25 @@ export const Lobby = (p: Props) => {
                 bleepsSettings={bleepsSettings}
             >
                 <AnimatorGeneralProvider animator={generalAnimator}>
+                    {dragging && (
+                        <div
+                            data-id="drop overlay"
+                            style={{
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 1000,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '4px dashed #00d7ff',
+                                background: 'rgba(0, 0, 0, 0.7)',
+                                fontSize: 32,
+                                pointerEvents: 'none',
+                            }}
+                        >
+                            Drop a recording to play it
+                        </div>
+                    )}
                     <div style={{ padding: 20, textAlign: 'center' }}>
                         <StationIdBadge driver={p.driver} adminDriver={adminDriver} />
                         <h1 data-id="title">Starwards</h1>
@@ -254,7 +312,7 @@ export const Lobby = (p: Props) => {
                                 palette="secondary"
                                 onClick={() => window.location.assign('player.html')}
                             >
-                                Recording Player
+                                Recording Player (or drop a file here)
                             </Button>
                         </pre>
                     </div>
