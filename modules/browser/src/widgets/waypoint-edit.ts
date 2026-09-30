@@ -89,14 +89,19 @@ export function drawWaypointEdit(
                 );
             }
 
-            addButton(folder, () => focus(wp.position), { label: 'Focus', title: 'Focus' }, currentSession.add);
+            addButton(
+                folder,
+                () => focus(wp.position),
+                { label: 'Focus', title: 'Focus' },
+                currentSession.add,
+            ).element.classList.add('sw-ghost');
 
             addButton(
                 folder,
                 () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: [wp.id] }),
                 { label: 'Delete', title: 'Delete' },
                 currentSession.add,
-            );
+            ).element.classList.add('sw-ghost');
         }
 
         if (waypoints.length > 1) {
@@ -105,7 +110,7 @@ export function drawWaypointEdit(
                 () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: waypoints.map((w) => w.id) }),
                 { label: `${waypoints.length} waypoints`, title: 'Delete all' },
                 currentSession.add,
-            );
+            ).element.classList.add('sw-ghost');
         }
     }
 

@@ -1,9 +1,44 @@
+import { Destructor, SpaceDriver } from '@starwards/core';
 import { addButton, addColorBlade, createWidgetPane } from '../panel';
 
 import EventEmitter from 'eventemitter3';
-import { SpaceDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
 import { addGroupComboBlade } from './waypoint-group-picker';
+
+const SWATCHES = [
+    { name: 'Cyan', color: 0x5fe3f0 },
+    { name: 'White', color: 0xffffff },
+    { name: 'Amber', color: 0xffb000 },
+    { name: 'Red', color: 0xff3b30 },
+    { name: 'Violet', color: 0x6a5cff },
+];
+
+function addSwatchRow(
+    before: { element: HTMLElement },
+    model: { getValue: () => number; setValue: (v: number) => void; onChange: (cb: () => unknown) => Destructor },
+    cleanup: (d: Destructor) => void,
+) {
+    const row = document.createElement('div');
+    row.className = 'sw-swatches';
+    const buttons = SWATCHES.map(({ name, color }) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'sw-swatch';
+        button.title = name;
+        button.setAttribute('aria-label', name);
+        button.style.background = `#${color.toString(16).padStart(6, '0')}`;
+        button.addEventListener('click', () => model.setValue(color));
+        row.append(button);
+        return { button, color };
+    });
+    const sync = () => {
+        for (const { button, color } of buttons) button.setAttribute('aria-pressed', `${model.getValue() === color}`);
+    };
+    sync();
+    cleanup(model.onChange(sync));
+    before.element.before(row);
+    cleanup(() => row.remove());
+}
 
 type PlacementSettings = {
     collection: string;
@@ -42,7 +77,13 @@ export function drawPlacementSettings(
 
     addGroupComboBlade(pane, model('collection'), 'group', spaceDriver, shipId, cleanup.add);
     addColorBlade(pane, model('color'), { label: 'color' }, cleanup.add);
-    addButton(pane, togglePlacement, { label: '', title: 'Place Waypoint' }, cleanup.add);
+    const placeButton = addButton(pane, togglePlacement, { label: '', title: 'Place Waypoint' }, cleanup.add);
+    addSwatchRow(placeButton, model('color'), cleanup.add);
+    const hint = document.createElement('div');
+    hint.className = 'sw-hint';
+    hint.textContent = 'CLICK MAP TO DROP · ESC CANCELS';
+    placeButton.element.after(hint);
+    cleanup.add(() => hint.remove());
 
     return { getSettings: () => ({ ...settings }) };
 }
