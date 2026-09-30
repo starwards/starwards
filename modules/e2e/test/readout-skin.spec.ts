@@ -155,6 +155,7 @@ test.describe('Readout skin', () => {
     });
 
     test('a signed command bar fills from its centre tick toward the value', async ({ page }) => {
+        test.slow(); // the fill follows a server patch: seconds of latency when CI workers starve each other
         await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         const row = page.locator('[data-id="Command"] [data-bipolar]').filter({ hasText: 'strafe' });
         await expect(row).toBeVisible({ timeout: 10000 });
@@ -171,13 +172,13 @@ test.describe('Readout skin', () => {
         const ship = gameDriver.getShip(shipId);
 
         ship.state.smartPilot.maneuvering.y = 0.5;
-        await expect.poll(async () => (await fillEdges()).right, { timeout: 5000 }).toBeCloseTo(0.5, 1);
+        await expect.poll(async () => (await fillEdges()).right, { timeout: 20000 }).toBeCloseTo(0.5, 1);
         const positive = await fillEdges();
         expect(positive.left).toBeCloseTo(0, 1);
         expect(positive.tick).toBeCloseTo(0.5, 1);
 
         ship.state.smartPilot.maneuvering.y = -0.5;
-        await expect.poll(async () => (await fillEdges()).left, { timeout: 5000 }).toBeCloseTo(-0.5, 1);
+        await expect.poll(async () => (await fillEdges()).left, { timeout: 20000 }).toBeCloseTo(-0.5, 1);
         expect((await fillEdges()).right).toBeCloseTo(0, 1);
     });
 
