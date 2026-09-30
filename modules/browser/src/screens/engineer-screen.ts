@@ -40,13 +40,13 @@ export async function initEngineerScreen(
 
     const grid = stationGrid(container, { left: 252, right: 250 });
     await drawStationObservationMode(grid.center(), driver);
-    drawEngineeringStatus(grid.left({ scroll: true }), shipDriver);
+    drawEngineeringStatus(grid.left(), shipDriver);
     if (shipDriver.state.warp) {
         drawWarpStatus(grid.left(), shipDriver);
     }
-    const armorSlot = grid.left({ width: 200 });
+    drawDamageReport(grid.left({ scroll: true }), shipDriver);
+    const armorSlot = grid.left({ width: 200, bottom: true });
     drawFullSystemsStatus(grid.center({ fill: true, scroll: true }), shipDriver, shipDriver.systems, true);
-    drawDamageReport(grid.right(), shipDriver);
     drawRepairQueue(grid.right({ scroll: true }), shipDriver, false);
     await drawArmorStatus(armorSlot, shipDriver, 200);
     return teardownInput;

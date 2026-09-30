@@ -54,20 +54,19 @@ test.describe('Engineer Screen', () => {
 
     test('displays all panels and syncs state correctly', async ({ page }) => {
         // Verify all expected panels are visible
-        await expect(page.locator('[data-id="Engineering Status"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-id="Power Plant"]')).toBeVisible({ timeout: 10000 });
         await expect(page.locator('[data-id="Warp"]')).toBeVisible();
         await expect(page.locator('[data-id="Armor"]')).toBeVisible();
-        await expect(page.locator('[data-id="Full Systems Status"]')).toBeVisible();
+        await expect(page.locator('[data-id="Systems"]')).toBeVisible();
 
         // Verify warp state syncs: set known value and check UI
-        // Note: Energy uses addGraph() which has no input element, so we test warp level instead
         const ship = gameDriver.getShip(shipId);
         ship.state.warp!.currentLevel = 3;
-        await waitForPropertyValue(page, 'Actual LVL', (v) => Math.abs(parseFloat(v) - 3) < 0.5, 'Warp');
+        await waitForPropertyValue(page, 'level', (v) => Math.abs(parseFloat(v) - 3) < 0.5, 'Warp');
     });
 
     test('coolant and defectible readouts render as non-interactive bars, not draggable sliders', async ({ page }) => {
-        const fullStatusPanel = page.locator('[data-id="Full Systems Status"]');
+        const fullStatusPanel = page.locator('[data-id="Systems"]');
         await expect(fullStatusPanel).toBeVisible({ timeout: 10000 });
         await expectNonInteractiveBar(fullStatusPanel.locator('.sw-bar').first());
     });
@@ -86,14 +85,14 @@ test.describe('Engineer Screen', () => {
 
         const row = protocolRow(repairQueuePanel, 'Sensor-array degauss');
         await expect(row).toBeVisible();
-        await expect(row).toContainText('ALT+4');
-        await expect(row).toContainText('ALT+SHIFT+4');
         // exactly one button: the folder's own collapse/expand toggle — no raise/lower buttons on
         // the engineer screen, hotkeys only (issue #2247)
         await expect(row.locator('button')).toHaveCount(1);
         expect(await rowValue(row, 'priority')).toBe('OFF');
-        expect(await rowValue(row, 'details')).toContain('field');
-        expect(await rowValue(row, 'details')).toContain('30s');
+        const details = await rowValue(row, 'details');
+        expect(details).toContain('ALT+4');
+        expect(details).toContain('field');
+        await expect(row.locator('> .tp-fldv_b')).toHaveAttribute('data-time', '30s');
 
         const ship = gameDriver.getShip(shipId);
         expect(ship.state.repairQueue.slots.every((s) => s.priority === RepairPriority.OFF)).toBe(true);
@@ -105,7 +104,7 @@ test.describe('Engineer Screen', () => {
         const ship = gameDriver.getShip(shipId);
         ship.state.radars[0].malfunctionRangeFactor = 0.5;
 
-        const damageReportPanel = page.locator('[data-id="Damage Report"]');
+        const damageReportPanel = page.locator('[data-id="Damage"]');
         await expect(damageReportPanel).toBeVisible({ timeout: 10000 });
         await expect(damageReportPanel).toContainText('range fluctuation');
 
@@ -249,9 +248,9 @@ test.describe('Engineer Screen', () => {
 
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        const engineeringStatusPanel = page.locator('[data-id="Engineering Status"]');
+        const engineeringStatusPanel = page.locator('[data-id="Power Plant"]');
         await expect(engineeringStatusPanel).toBeVisible({ timeout: 10000 });
-        await waitForPropertyValue(page, 'energy cells', (v) => v === '1/2', 'Engineering Status');
+        await waitForPropertyValue(page, 'cells', (v) => v === '1/2', 'Power Plant');
 
         const row = protocolRow(repairQueuePanel, 'Reactor jump-start');
         // reactorJumpStart is the 13th catalog entry -> alt+e
@@ -265,6 +264,6 @@ test.describe('Engineer Screen', () => {
         // only asserts the jump-start itself landed a meaningful recovery — not an exact value.
         await expect.poll(() => ship.state.reactor.energy, { timeout: 5000 }).toBeGreaterThan(250);
         await expect.poll(() => ship.state.reactor.energyCells, { timeout: 5000 }).toBe(0);
-        await waitForPropertyValue(page, 'energy cells', (v) => v === '0/2', 'Engineering Status');
+        await waitForPropertyValue(page, 'cells', (v) => v === '0/2', 'Power Plant');
     });
 });

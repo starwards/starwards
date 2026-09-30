@@ -26,8 +26,8 @@ test.describe('Warpless ship screens', () => {
     test('Engineer screen renders every other panel when the ship has no warp drive', async ({ page }) => {
         await navigateToScreen(page, `/engineer.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
 
-        await expect(page.locator('[data-id="Engineering Status"]')).toBeVisible({ timeout: 10000 });
-        await expect(page.locator('[data-id="Full Systems Status"]')).toBeVisible();
+        await expect(page.locator('[data-id="Power Plant"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-id="Systems"]')).toBeVisible();
         await expect(page.locator('[data-id="Armor"]')).toBeVisible();
         await expect(page.locator('[data-id="Warp"]')).toHaveCount(0);
     });

@@ -23,42 +23,40 @@ The Engineer screen provides detailed system management, power distribution, and
 
 ## Functional Elements
 
-### 1. Engineering Status Panel (Top-Left)
-- **Widget**: `drawEngineeringStatus()` - Tweakpane panel
+### 1. Power Plant Panel (Top-Left, ENG-01)
+- **Widget**: `drawEngineeringStatus()` - Tweakpane panel titled "Power Plant"
 - **Properties**:
-  - `hull`: Shows "OK" or "DAMAGED" (bound to `/hullDamaged`)
-  - `energy`: Graph of reactor energy over time
-  - `after-burner fuel`: Graph of afterburner fuel over time
-- **Features**:
-  - Graphs show history (Tweakpane graph blade)
-- **Data Source**: `/hullDamaged`, `/reactor/energy`, `/maneuvering/afterBurnerFuel`
+  - `energy`: large value over a left-filled bar; the row turns amber then red as the reactor runs low
+  - `cells`: "n/max" over a segmented counter, one segment per energy cell
+  - `afterburner fuel`: value over a left-filled bar
+  - `hull`: "INTACT" or "DAMAGED" (bound to `/hullDamaged`)
+- **Data Source**: `/reactor/energy`, `/reactor/energyCells`, `/maneuvering/afterBurnerFuel`, `/hullDamaged`
 
-### 2. Full Systems Status Panel (Center)
-- **Widget**: `drawFullSystemsStatus()` - Large table with all ship systems
-- **Width**: 600px fixed
+### 2. Systems Panel (Center, ENG-04)
+- **Widget**: `drawFullSystemsStatus(..., fit = true)` - Table with all ship systems, filling the centre column (the GM and legacy ship screens keep the wide "Full Systems Status" table)
 - **Table Headers**:
-  - Status (60px): OK/DAMAGED/DISABLED
-  - Power (60px): SHUTDOWN/LOW/MID/HIGH/MAX
-  - EPM (60px): Energy Per Minute consumption
-  - Heat (60px): Current heat level
-  - Coolant (120px): Coolant factor slider (0-100%)
-  - Hacked (60px): OK/COMPROMISED/DISABLED
+  - Stat: names only a fault (BRKN, DMG, STRV, HOT); dark while all is well
+  - Power: bar (SHUTDOWN..MAX)
+  - EPM: Energy Per Minute consumption
+  - Heat: bar, amber from half of the maximum, red at the maximum
+  - Coolant: bar (coolant factor, 0-100%)
+  - Eff: effectiveness (0 when broken, otherwise power x hack level), amber below normal power
 - **Systems Listed**: All ship systems from `shipDriver.systems`
   - Reactor, Maneuvering, Thrusters (multiple), Tubes (multiple)
   - Radar, Smart Pilot, Warp, Docking, Magazine, Chain Gun
-- **Sub-rows**: Each system has expandable defectibles row showing individual component health
-- **Visual**: Color-coded by status (OK=green, WARN=yellow, ERROR=red)
+- **Sub-rows**: Each system with defectibles has one line of labelled defect bars under it
+- **Visual**: Fault cells are amber (WARN) or red (ERROR)
 - **Interactions**: Coolant sliders are always adjustable
 - **Data Source**: All `/systems/*/power`, `/systems/*/heat`, `/systems/*/coolantFactor`, `/systems/*/hacked`, `/systems/*/broken`, defectibles
 
-### 3. Warp Status Panel (Middle-Left)
-- **Widget**: `drawWarpStatus()` - Same as Pilot screen
+### 3. Warp Panel (Middle-Left, ENG-02)
+- **Widget**: `drawWarpStatus()` - Same as Pilot screen (HLM-05)
 - **Additional Engineer Controls**:
   - `[` / `]` keys: Adjust standby frequency
   - `\` key: Trigger frequency change command
 - **Data Source**: `/warp/*` (same as Pilot)
 
-### 4. Armor Status (Bottom-Left)
+### 4. Damage (Left, ENG-03) and Armor Status (Bottom-Left)
 - **Widget**: `drawArmorStatus()` - Same as Pilot screen
 - **Size**: 200px minimum
 - **Data Source**: `/armor/*` (same as Pilot)
@@ -66,15 +64,15 @@ The Engineer screen provides detailed system management, power distribution, and
 ## User Workflows
 
 ### Primary Workflow: Power Management
-1. Monitor **Full Systems Status** table for system power levels
+1. Monitor the **Systems** table for system power levels
 2. Identify critical systems needing power boost
 3. Press number keys (**1-0, A-L**) to increase system power by 0.25 levels
 4. Press corresponding lower row (**Q-P, Z-M**) to decrease power
-5. Watch **energy** graph to ensure reactor can support power draw
+5. Watch the **energy** bar to ensure reactor can support power draw
 6. Observe **EPM** column to see energy consumption rate
 
 ### Secondary Workflow: Coolant Allocation
-1. Monitor **Heat** column in Full Systems Status
+1. Monitor the **Heat** column in Systems
 2. Identify overheating systems (yellow/red)
 3. Press **Shift + number key** to increase coolant to system
 4. Press **Shift + lower row** to decrease coolant
@@ -90,11 +88,11 @@ The Engineer screen provides detailed system management, power distribution, and
 
 ### Quaternary Workflow: Warp Frequency Management
 1. Monitor **Warp Status** panel
-2. Check if **Proximity Jam** is active
-3. Use `[` or `]` to change **Designated FRQ**
+2. Check if the **JAMMED** lamp is lit
+3. Use `[` or `]` to change **Designated**
 4. Press `\` to trigger frequency change
 5. Wait for **Calibration** to complete
-6. Verify **Actual FRQ** matches **Designated FRQ**
+6. Verify **Frequency** matches **Designated**
 
 ## Current Pain Points
 
