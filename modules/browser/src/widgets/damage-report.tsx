@@ -60,7 +60,7 @@ function AllReports({ driver }: { driver: ShipDriver }) {
     const brokenSystems = getBrokenSystems(driver.systems);
     return (
         <div className="sw-damage">
-            <div className="sw-damage__title">Damage Report</div>
+            <div className="sw-damage__title">Damage</div>
             {brokenSystems.map((s) => (
                 <SystemOfflineReport key={s.pointer} name={s.name} />
             ))}
@@ -100,7 +100,7 @@ export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
 export function drawDamageReport(container: WidgetContainer, shipDriver: ShipDriver) {
     const { component, defaultProps } = damageReportWidget(shipDriver);
     const parent = container.getElement();
-    parent.attr('data-id', 'Damage Report');
+    parent.attr('data-id', 'Damage');
     const mountPoint = document.createElement('div');
     parent.append(mountPoint);
     const root = createRoot(mountPoint);

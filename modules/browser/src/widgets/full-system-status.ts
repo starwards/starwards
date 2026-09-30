@@ -23,15 +23,18 @@ export function fullSystemsStatusWidget(shipDriver: ShipDriver): DashboardWidget
     };
 }
 
+type System = ShipDriver['systems'][number];
+type Tone = 'WARN' | 'ERROR' | undefined;
+
 const totalWidth = 600;
 const defaultDefectibleWidth = 80;
 const defaultSystemNameWidth = 130;
-const fitSystemNameWidth = 112;
+const fitSystemNameWidth = 96;
 const fitDefectBarWidth = 40;
 const fitDefectLabelWidth = 52;
 
 const defaultWidths = { status: '60px', power: '60px', epm: '60px', heat: '60px', coolant: '120px', hacked: '60px' };
-const fitWidths = { status: '30px', power: '38px', epm: '34px', heat: '30px', coolant: '56px', hacked: '30px' };
+const fitWidths = { status: '38px', power: '52px', epm: '34px', heat: '52px', coolant: '52px', eff: '40px' };
 
 /** Three letters per word for one or two words, initials for longer names: short enough to never truncate. */
 function abbreviateDefect(name: string) {
@@ -40,8 +43,8 @@ function abbreviateDefect(name: string) {
 }
 
 /**
- * `fit`: take the container's width instead of imposing one, and fold each system into a status row
- * plus, when it has defects, one short line of labelled defect bars.
+ * `fit`: the engineer station's Systems pane (see `drawSystemsTable`). Otherwise the wide table
+ * with one row of labelled defect bars under each system, for the GM and the legacy ship screen.
  */
 export function drawFullSystemsStatus(
     container: WidgetContainer,
@@ -49,48 +52,48 @@ export function drawFullSystemsStatus(
     systems = shipDriver.systems,
     fit = false,
 ) {
-    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Full Systems Status');
-    if (!fit) {
-        container.getElement().width(`${totalWidth}px`);
+    if (fit) {
+        drawSystemsTable(container, shipDriver, systems);
+        return;
     }
-    const w = fit ? fitWidths : defaultWidths;
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Full Systems Status');
+    container.getElement().width(`${totalWidth}px`);
+    const w = defaultWidths;
     const defectibleWidth = `${defaultDefectibleWidth}px`;
-    const systemNameWidth = fit ? fitSystemNameWidth : defaultSystemNameWidth;
     pane.registerPlugin(TweakpaneTablePlugin);
     pane.addBlade({
         view: 'tableHead',
         label: '',
         headers: [
-            { label: fit ? 'Stat' : 'Status', width: w.status },
-            { label: fit ? 'Pwr' : 'Power', width: w.power },
+            { label: 'Status', width: w.status },
+            { label: 'Power', width: w.power },
             { label: 'EPM', width: w.epm },
             { label: 'Heat', width: w.heat },
-            { label: fit ? 'Cool' : 'Coolant', width: w.coolant },
-            { label: fit ? 'Hack' : 'Hacked', width: w.hacked },
+            { label: 'Coolant', width: w.coolant },
+            { label: 'Hacked', width: w.hacked },
         ],
     });
     for (const system of systems) {
-        const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
-        const energyStarvedProp = readProp(shipDriver, `${system.pointer}/energyStarved`);
-        const defectiblesProps = system.defectibles.map(defectReadProp(shipDriver));
-        const statusChangeProps = [brokenProp, energyStarvedProp, ...defectiblesProps];
-        const prop = aggregate(statusChangeProps, system.getStatus);
+        const statusProps = statusChangeProps(shipDriver, system);
         const standardRowApi = pane.addBlade({
             view: 'tableRow',
             label: system.state.name,
         }) as RowApi;
 
-        const statusCell = addTextCellToRow(standardRowApi, prop, { width: w.status }, panelCleanup.add);
+        const statusCell = addTextCellToRow(
+            standardRowApi,
+            aggregate(statusProps, system.getStatus),
+            { width: w.status },
+            panelCleanup.add,
+        );
         statusCell.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
         const applyThemeByStatus = () => (statusCell.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
-        const detachApplyThemeByStatus = abstractOnChange(statusChangeProps, system.getStatus, applyThemeByStatus);
-        panelCleanup.add(detachApplyThemeByStatus);
-
+        panelCleanup.add(abstractOnChange(statusProps, system.getStatus, applyThemeByStatus));
         applyThemeByStatus();
         addTextCellToRow(
             standardRowApi,
             readProp<number>(shipDriver, `${system.pointer}/power`),
-            { format: (p: PowerLevel) => (fit ? fitPowerLabel(p) : PowerLevel[p]), width: w.power },
+            { format: (p: PowerLevel) => PowerLevel[p], width: w.power },
             panelCleanup.add,
         );
         addTextCellToRow(
@@ -114,14 +117,10 @@ export function drawFullSystemsStatus(
         addTextCellToRow(
             standardRowApi,
             readProp<number>(shipDriver, `${system.pointer}/hacked`),
-            { format: (p: HackLevel) => (fit && p === HackLevel.OK ? '' : HackLevel[p]), width: w.hacked },
+            { format: (p: HackLevel) => HackLevel[p], width: w.hacked },
             panelCleanup.add,
         );
 
-        if (fit) {
-            addFitDefectRow(pane, shipDriver, system, panelCleanup.add);
-            continue;
-        }
         const defectiblesRowApi = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;
         for (const d of system.defectibles) {
             const defectibleProp = readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`);
@@ -131,16 +130,144 @@ export function drawFullSystemsStatus(
         pane.addBlade({ view: 'separator' });
     }
     container.getElement().find('.tp-lblv_v').css('min-width', 'fit-content');
-    container.getElement().find('.tp-lblv_l').css('min-width', `${systemNameWidth}px`);
+    container.getElement().find('.tp-lblv_l').css('min-width', `${defaultSystemNameWidth}px`);
+}
+
+function statusChangeProps(shipDriver: ShipDriver, system: System) {
+    return [
+        readProp(shipDriver, `${system.pointer}/broken`),
+        readProp(shipDriver, `${system.pointer}/energyStarved`),
+        ...system.defectibles.map(defectReadProp(shipDriver)),
+    ];
+}
+
+/** What the STAT cell says: the worst fault first (broken, then defect or starvation, then heat); nothing while all is well. */
+function faultOf(system: System): { text: string; tone: Tone } {
+    const status = system.getStatus();
+    if (status === 'DISABLED') {
+        return { text: 'BRKN', tone: 'ERROR' };
+    }
+    if (status === 'STARVED') {
+        return { text: 'STRV', tone: 'WARN' };
+    }
+    if (status !== 'OK') {
+        return { text: 'DMG', tone: 'WARN' };
+    }
+    const heat = system.getHeatStatus();
+    if (heat === 'OK') {
+        return { text: '', tone: undefined };
+    }
+    return { text: 'HOT', tone: heat === 'OVERHEAT' ? 'ERROR' : 'WARN' };
+}
+
+function heatTone(system: System): Tone {
+    const heat = system.getHeatStatus();
+    if (heat === 'OK') {
+        return undefined;
+    }
+    return heat === 'OVERHEAT' ? 'ERROR' : 'WARN';
+}
+
+/** Marks a bar cell so its fill turns amber or red (`data-tint`, see tweakpane.css). */
+function applyTint(element: HTMLElement, tone: Tone) {
+    if (tone) {
+        element.dataset.tint = tone;
+    } else {
+        delete element.dataset.tint;
+    }
+}
+
+/**
+ * The engineer station's Systems pane: SYSTEM | STAT | POWER | EPM | HEAT | COOLANT | EFF, each
+ * level a bar and STAT naming only a fault. A system's defects follow as one line of labelled
+ * bars, because the repair queue cannot be aimed without them.
+ */
+function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, systems: System[]) {
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Systems');
+    const w = fitWidths;
+    pane.registerPlugin(TweakpaneTablePlugin);
+    pane.addBlade({
+        view: 'tableHead',
+        label: 'System',
+        headers: [
+            { label: 'Stat', width: w.status },
+            { label: 'Power', width: w.power },
+            { label: 'EPM', width: w.epm },
+            { label: 'Heat', width: w.heat },
+            { label: 'Coolant', width: w.coolant },
+            { label: 'Eff', width: w.eff },
+        ],
+    });
+    for (const system of systems) {
+        const pointer = system.pointer;
+        const heatProp = readProp<number>(shipDriver, `${pointer}/heat`);
+        const row = pane.addBlade({ view: 'tableRow', label: system.state.name }) as RowApi;
+
+        const faultProps = [...statusChangeProps(shipDriver, system), heatProp];
+        const statCell = addTextCellToRow(
+            row,
+            aggregate(faultProps, () => faultOf(system).text),
+            { width: w.status },
+            panelCleanup.add,
+        );
+        statCell.element.classList.add('tp-rotv'); // lets data-status theme the cell, see tweakpane.css
+        const applyFault = () => (statCell.element.dataset.status = faultOf(system).tone ?? 'OK'); // dark while nothing is wrong
+        panelCleanup.add(abstractOnChange(faultProps, () => `${faultOf(system).tone}`, applyFault));
+        applyFault();
+
+        addBarCellToRow(row, readNumberProp(shipDriver, `${pointer}/power`), { width: w.power }, panelCleanup.add);
+        addTextCellToRow(
+            row,
+            readProp<number>(shipDriver, `${pointer}/energyPerMinute`),
+            { format: (epm: number) => `${Math.round(epm)}`, width: w.epm },
+            panelCleanup.add,
+        );
+        const heatCell = addBarCellToRow(
+            row,
+            readNumberProp(shipDriver, `${pointer}/heat`),
+            { width: w.heat },
+            panelCleanup.add,
+        );
+        const applyHeatTint = () => applyTint(heatCell.element, heatTone(system));
+        panelCleanup.add(abstractOnChange([heatProp], () => heatTone(system), applyHeatTint));
+        applyHeatTint();
+        addBarCellToRow(
+            row,
+            readNumberProp(shipDriver, `${pointer}/coolantFactor`),
+            { width: w.coolant },
+            panelCleanup.add,
+        );
+
+        const effProps = [
+            readProp(shipDriver, `${pointer}/broken`),
+            readProp(shipDriver, `${pointer}/power`),
+            readProp(shipDriver, `${pointer}/hacked`),
+        ];
+        const effCell = addTextCellToRow(
+            row,
+            aggregate(effProps, () => system.state.effectiveness),
+            { format: (e: number) => e.toFixed(2), width: w.eff },
+            panelCleanup.add,
+        );
+        const effTone = (): Tone => {
+            const effectiveness = system.state.effectiveness;
+            if (effectiveness <= 0) {
+                return 'ERROR';
+            }
+            return effectiveness < Number(PowerLevel.NORMAL) ? 'WARN' : undefined;
+        };
+        const applyEffTone = () => applyTint(effCell.element, effTone());
+        panelCleanup.add(abstractOnChange(effProps, effTone, applyEffTone));
+        applyEffTone();
+
+        addFitDefectRow(pane, shipDriver, system, panelCleanup.add);
+    }
+    container.getElement().find('.tp-lblv_v').css('min-width', 'fit-content');
+    container.getElement().find('.tp-lblv_l').css('min-width', `${fitSystemNameWidth}px`);
 }
 
 /** One line under a system: its first defect names the row, the rest follow as label + bar pairs. */
-function addFitDefectRow(
-    pane: Pane,
-    shipDriver: ShipDriver,
-    system: ShipDriver['systems'][number],
-    cleanup: (d: Destructor) => void,
-) {
+function addFitDefectRow(pane: Pane, shipDriver: ShipDriver, system: System, cleanup: (d: Destructor) => void) {
     if (system.defectibles.length === 0) {
         return;
     }
@@ -162,10 +289,4 @@ function addFitDefectRow(
         );
         bar.element.title = d.name;
     });
-}
-
-/** Normal power is the expected state, so it reads as an empty (dark) cell; only departures are spelled out. */
-function fitPowerLabel(p: PowerLevel) {
-    if (p === PowerLevel.NORMAL) return '';
-    return p === PowerLevel.SHUTDOWN ? 'OFF' : PowerLevel[p];
 }

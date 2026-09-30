@@ -8,7 +8,7 @@ import {
     SliderBladeParams,
     TextBladeParams,
 } from 'tweakpane';
-import { BladeController, ButtonParams, NumberMonitorParams, View } from '@tweakpane/core';
+import { BladeController, ButtonParams, View } from '@tweakpane/core';
 import { Destructor, RTuple2 } from '@starwards/core';
 
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
@@ -276,12 +276,29 @@ export function addInlineBarBlade(
 }
 
 /**
- * Add a segmented level row: no label and no number, just ten cells in the track behind a solid
+ * Add a segmented level row: no label and no number, just cells in the track behind a solid
  * fill (`data-segmented`, see tweakpane.css). For counters that read as progress, not as a value.
+ * `segments` is the number of cells (ten by default) — pass a counter's maximum for a counter of items.
  */
-export function addSegmentedBarBlade(guiFolder: FolderApi, model: NumericModel, cleanup: (d: Destructor) => void) {
+export function addSegmentedBarBlade(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    cleanup: (d: Destructor) => void,
+    segments = 10,
+) {
     const blade = addBarBlade(guiFolder, model, {}, cleanup);
     blade.element.dataset.segmented = '';
+    blade.element.style.setProperty('--sw-segments', String(Math.max(1, segments)));
+    return blade;
+}
+
+/**
+ * Add a bare level row: just a left-filled track spanning the pane, no label and no number
+ * (`data-bare`, see tweakpane.css). For a bar whose meaning the rows around it already state.
+ */
+export function addBareBarBlade(guiFolder: FolderApi, model: NumericModel, cleanup: (d: Destructor) => void) {
+    const blade = addBarBlade(guiFolder, model, {}, cleanup);
+    blade.element.dataset.bare = '';
     return blade;
 }
 
@@ -360,32 +377,6 @@ export function addButton(
         button.dispose();
     });
     return button;
-}
-
-export function addGraph(
-    guiFolder: FolderApi,
-    model: NumericModel,
-    params: { label: string } & Partial<NumberMonitorParams>,
-    cleanup: (d: Destructor) => void,
-) {
-    const graph = guiFolder.addBinding(
-        {
-            get value() {
-                return model.getValue();
-            },
-        },
-        'value',
-        {
-            ...params,
-            readonly: true,
-            view: 'graph',
-            min: model.range[0],
-            max: model.range[1],
-        },
-    );
-    cleanup(() => {
-        graph.dispose();
-    });
 }
 
 type InputBladeParams = { label: string } & Record<string, unknown>;

@@ -50,7 +50,6 @@ Server ShipState/SpaceState
 #### Property Display
 - **Read-Only Text**: `addTextBlade()` - Shows string/number values
 - **Slider**: `addSliderBlade()` - Shows numeric value with range
-- **Graph**: `addGraph()` - Shows value history over time
 - **Checkbox**: `addInputBlade()` - Boolean toggle
 - **Dropdown**: `addListBlade()` - Enum selection
 - **Ring**: `addConfig()` - Circular value (deprecated)
