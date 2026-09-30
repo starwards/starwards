@@ -704,7 +704,7 @@ body[data-input='none']
 /* signed bars: label | bar | number on one line; the fill grows from the centre tick toward the value (--sw-bar-value, -1..1) */
 :root .tp-lblv[data-bipolar] {
     display: grid;
-    grid-template-columns: 54px minmax(0, 1fr) 54px;
+    grid-template-columns: 72px minmax(0, 1fr) 54px;
     column-gap: var(--sw-gap);
     align-items: center;
 }
