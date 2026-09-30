@@ -146,7 +146,9 @@ export async function server(
             return;
         }
         res.type('text/plain');
-        res.sendFile(path.resolve(recordingsDir, name), (err) => {
+        // `root`, not a joined path: express refuses any path with a hidden segment, and the default
+        // recordings directory is `.recordings`
+        res.sendFile(name, { root: recordingsDir }, (err) => {
             if (err && !res.headersSent) res.sendStatus(HTTP_NOT_FOUND_STATUS);
         });
     });
