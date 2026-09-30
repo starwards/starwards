@@ -143,7 +143,7 @@ test.describe('Engineer Screen', () => {
 
         // radarTraverseServoAlignment is the 5th catalog entry -> ctrl+alt+5 toggles its mode
         await page.keyboard.press('Control+Alt+5');
-        expect(await rowValue(row, 'mode')).toBe('DARK');
+        await waitForRowValue(row, 'mode', (v) => v === 'DARK', 5000);
 
         await page.keyboard.press('Alt+5'); // raise priority
         await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);

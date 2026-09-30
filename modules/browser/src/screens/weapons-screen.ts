@@ -1,6 +1,6 @@
 import { Driver, ShipDriver } from '@starwards/core';
 import { HPos, VPos } from '../container';
-import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import { InputManager } from '../input/input-manager';
@@ -20,6 +20,7 @@ export async function initWeaponsScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
+    setDisplayOnly(true);
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 10000 });

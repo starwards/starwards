@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Weapons station</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#020507}
+.scr{position:relative;background:#03080b radial-gradient(ellipse at 50% 45%,#061319 0%,#03080b 70%);color:#e6fcff;font-family:'Chakra Petch',sans-serif;overflow:hidden}
+.scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.p{position:relative;border:1px solid #143a42;background:rgba(4,14,18,.92);padding:8px 12px 10px}
+.p::before,.p::after{content:"";position:absolute;width:10px;height:10px;border-color:#5fe3f0;border-style:solid}
+.p::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.p::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.pt{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px;letter-spacing:.2em;color:#7fe7f2;border-bottom:1px solid #143a42;padding-bottom:5px;margin-bottom:6px}
+.pt small{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.05em;color:#2f7480;font-weight:400}
+.sub{font-weight:700;font-size:12px;letter-spacing:.2em;color:#2f7480;margin:6px 0 2px}
+.r{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:8px;padding:2px 0}
+.l{font-weight:600;font-size:13px;letter-spacing:.1em;color:#52aebb;text-transform:uppercase}
+.v{font-family:'Share Tech Mono',monospace;font-size:18px;color:#e6fcff;text-shadow:0 0 6px rgba(120,235,250,.35)}
+.v.big{font-size:28px}
+.u{font-size:12px;color:#52aebb;margin-left:3px}
+.mode{font-family:'Share Tech Mono',monospace;font-size:16px;color:#7fe7f2}
+.bar{position:relative;height:8px;border:1px solid #1f5963;background:repeating-linear-gradient(90deg,transparent 0 9.5%,#12343b 9.5% 10%)}
+.bar>i{position:absolute;top:1px;bottom:1px;left:1px;background:#5fe3f0;box-shadow:0 0 6px rgba(95,227,240,.6)}
+.bar.cau>i{background:#ffb000}
+.seg{display:flex;gap:3px}
+.seg>i{flex:1;height:10px;background:#0d262c;border:1px solid #143a42}
+.seg>i.on{background:#5fe3f0;border-color:#5fe3f0;box-shadow:0 0 5px rgba(95,227,240,.5)}
+.ann{font-weight:700;font-size:11px;letter-spacing:.12em;padding:4px 4px;border:1px solid #1a3439;color:#2a555c;text-align:center;text-transform:uppercase}
+.ann.on{border-color:#5fe3f0;color:#5fe3f0;text-shadow:0 0 6px rgba(95,227,240,.6)}
+.ann.cau{background:#ffb000;border-color:#ffb000;color:#120a00}
+.ann.wrn{background:#ff3b30;border-color:#ff3b30;color:#140000}
+.am{display:grid;grid-template-columns:1fr 70px 60px;gap:6px;align-items:center;padding:2px 0}
+.am .v{font-size:16px;text-align:right}
+.mx{display:grid;grid-template-columns:1fr 46px 46px 46px;gap:3px;align-items:center}
+.mx .n{font-size:13px;font-weight:600;letter-spacing:.05em;color:#9cdfe8}
+.mx .hd{font-size:10px;letter-spacing:.14em;color:#2f7480;text-align:center}
+.mx .c{height:18px;border:1px solid #122b30}
+.hdr{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:13px;color:#2f7480;letter-spacing:.1em}
+</style>
+</helmet>
+<div class="scr" style="width: 1024px; height: 768px; box-sizing: border-box; padding: 14px; display: grid; grid-template-columns: 272px 1fr 256px; gap: 14px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">TUBES <small>WPN-02</small></div>
+<div class="sub">T0 · STBD</div>
+<div class="r"><span class="l">Loaded</span><span class="mode">HI-EXP MSL</span></div>
+<div class="r"><span class="l">Warhead</span><span class="mode">FRAG</span></div>
+<div class="seg" style="margin: 4px 0 6px"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px">
+<div class="ann on">READY</div><div class="ann cau">SAFE</div><div class="ann on">AUTO</div>
+</div>
+<div class="sub" style="margin-top: 10px">T1 · PORT</div>
+<div class="r"><span class="l">Loading</span><span class="mode">ARM-PEN MSL</span></div>
+<div class="seg" style="margin: 4px 0 6px"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px">
+<div class="ann">READY</div><div class="ann">SAFE</div><div class="ann on">AUTO</div>
+</div>
+</div>
+<div class="p" style="flex-grow: 1">
+<div class="pt">MAGAZINE <small>WPN-03</small></div>
+<div class="r"><span class="l">Restock</span><span class="mode">IDLE</span></div>
+<div class="sub">SHELLS 30MM</div>
+<div class="am"><span class="l">Hi-exp</span><div class="bar"><i style="width: 99%"></i></div><span class="v">3599</span></div>
+<div class="am"><span class="l">Arm-pen</span><div class="bar"><i style="width: 100%"></i></div><span class="v">1800</span></div>
+<div class="am"><span class="l">Frag</span><div class="bar"><i style="width: 100%"></i></div><span class="v">3000</span></div>
+<div class="sub">MISSILES</div>
+<div class="am"><span class="l">Hi-exp</span><div class="bar"><i style="width: 83%"></i></div><span class="v">10/12</span></div>
+<div class="am"><span class="l">Arm-pen</span><div class="bar"><i style="width: 100%"></i></div><span class="v">20/20</span></div>
+<div class="am"><span class="l">Frag</span><div class="bar"><i style="width: 100%"></i></div><span class="v">8/8</span></div>
+<div class="am"><span class="l">Cluster</span><div class="bar cau"><i style="width: 25%"></i></div><span class="v" style="color: #ffb000">1/4</span></div>
+<div class="am"><span class="l">Tandem</span><div class="bar"><i style="width: 100%"></i></div><span class="v">4/4</span></div>
+<div class="am"><span class="l">Elec</span><div class="bar"><i style="width: 100%"></i></div><span class="v">6/6</span></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div class="hdr"><span>TACTICAL · 5 KM</span><span>SHIP GVTS</span></div>
+<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #0e2a30">
+<svg width="420" height="420" viewBox="0 0 420 420" aria-label="Tactical radar placeholder">
+<g fill="none" stroke="#123a42" stroke-width="1">
+<circle cx="210" cy="210" r="200"></circle><circle cx="210" cy="210" r="150"></circle><circle cx="210" cy="210" r="100"></circle><circle cx="210" cy="210" r="50"></circle>
+<line x1="10" y1="210" x2="410" y2="210"></line><line x1="210" y1="10" x2="210" y2="410"></line>
+</g>
+<path d="M210 210 L150 25 A200 200 0 0 1 270 25 Z" fill="rgba(95,227,240,.06)" stroke="#2f7480"></path>
+<circle cx="210" cy="60" r="8" fill="none" stroke="#ff7a1a" stroke-width="2"></circle>
+<polygon points="210,203 205,215 215,215" fill="#5fe3f0"></polygon>
+<text x="210" y="240" fill="#2f7480" font-family="Share Tech Mono" font-size="12" text-anchor="middle">RADAR — PIXIJS, UNCHANGED</text>
+</svg>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div class="p">
+<div class="pt">TARGET <small>WPN-05</small></div>
+<div class="r"><span class="l">Track</span><span class="v big">E-301</span></div>
+<div class="r"><span class="l">Hits</span><span class="v">3</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-top: 6px">
+<div class="ann">SHIPS</div><div class="ann on">ENEMY</div><div class="ann">SHORT</div>
+</div>
+</div>
+<div class="p">
+<div class="pt">CHAIN GUN <small>WPN-04</small></div>
+<div class="r"><span class="l">Loaded</span><span class="mode">HI-EXP SHELL</span></div>
+<div class="seg" style="margin: 4px 0 6px"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px">
+<div class="ann on">AUTO LOAD</div><div class="ann">FIRING</div>
+</div>
+</div>
+<div class="p" style="flex-grow: 1">
+<div class="pt">SYSTEMS <small>WPN-06</small></div>
+<div class="mx">
+<span></span><span class="hd">STAT</span><span class="hd">PWR</span><span class="hd">HEAT</span>
+<span class="n">MAGAZINE</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">TUBE 0</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">TUBE 1</span><span class="c"></span><span class="c"></span><span class="ann cau" style="padding: 1px">HOT</span>
+<span class="n">CHAIN GUN</span><span class="c"></span><span class="c"></span><span class="c"></span>
+<span class="n">RADAR</span><span class="c"></span><span class="c"></span><span class="c"></span>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

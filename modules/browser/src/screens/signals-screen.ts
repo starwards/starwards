@@ -1,6 +1,6 @@
 import { Driver, Radar, ShipDriver, SpaceDriver, scanCycleTargets } from '@starwards/core';
 import { HPos, VPos, WidgetContainer } from '../container';
-import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { addSliderBlade, createWidgetPane } from '../panel';
 
 import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
@@ -24,6 +24,7 @@ export async function initSignalsScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
+    setDisplayOnly(true);
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 

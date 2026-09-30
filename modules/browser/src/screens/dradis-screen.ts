@@ -1,7 +1,7 @@
 import { Driver, Waypoint, XY } from '@starwards/core';
 import { FollowController, drawDradisRadar } from '../widgets/dradis-radar';
 import { HPos, VPos } from '../container';
-import { ScreenContainer, ScreenTeardown } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 
 import { CameraView } from '../radar/camera-view';
 import EventEmitter from 'eventemitter3';
@@ -24,6 +24,7 @@ export async function initDradisScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
+    setDisplayOnly(false);
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 

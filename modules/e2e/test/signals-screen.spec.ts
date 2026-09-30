@@ -226,7 +226,7 @@ test.describe('Signals Screen', () => {
         await expect(panel.getByText(`SCAN ${queuedJob.targetId}`)).toBeVisible({ timeout: 10000 });
         // render order is always active row first, then queued rows: with one of each, the
         // second Cancel button belongs to the queued row
-        await panel.getByRole('button', { name: 'Cancel' }).nth(1).click();
+        await panel.getByRole('button', { name: 'Cancel' }).nth(1).dispatchEvent('click');
 
         // the target stays visible, so a fresh job for it re-queues at the end (by design — see
         // signals-job-manager's updateScanJobs) — assert the cancelled job's own id is gone,
@@ -338,7 +338,7 @@ test.describe('Signals Screen', () => {
         // the checkbox input itself is positioned off-screen by Tweakpane's styling; its
         // clickable wrapper is the parent element. Anchoring on role="checkbox" (a stable
         // web-platform selector) instead of a Tweakpane class name survives internal DOM changes
-        await panel.getByRole('checkbox').locator('..').click();
+        await panel.getByRole('checkbox').locator('..').dispatchEvent('click');
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
             (ship) => ship.state.signals.jobsPaused,

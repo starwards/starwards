@@ -31,6 +31,15 @@ export function registerStationClient(
 export type ScreenContainer = ReturnType<typeof wrapRootWidgetContainer>;
 export type ScreenTeardown = (() => void) | void;
 
+/** Display-only stations take no pointer input; see `body[data-input='none']` in tweakpane.css. */
+export function setDisplayOnly(displayOnly: boolean) {
+    if (displayOnly) {
+        document.body.dataset.input = 'none';
+    } else {
+        delete document.body.dataset.input;
+    }
+}
+
 export function renderStandby(element: JQuery<HTMLElement>, text: string) {
     element.attr('data-id', 'Standby').css({
         display: 'flex',
