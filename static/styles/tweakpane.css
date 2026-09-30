@@ -700,14 +700,22 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
 :root [data-id='Flight'] .tp-lblv_l {
     width: 100%;
     padding: 0;
-    font-size: calc(var(--sw-fs-label) - 1px);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--sw-label);
 }
 :root [data-id='Flight'] .tp-lblv_v {
     width: 100%;
 }
-:root [data-id='Flight'] .tp-txtv_i {
-    font-size: 26px;
+:root [data-id='Flight'] .tp-lblv_v .tp-txtv_i {
+    height: auto;
+    font-family: var(--sw-font-value);
+    font-size: 30px;
+    line-height: 1.2;
     text-align: center;
+}
+:root body[data-density='compact'] [data-id='Flight'] .tp-lblv_v .tp-txtv_i {
+    font-size: 22px;
 }
 
 /* command: level bars above a row of annunciators that light while engaged */
@@ -794,4 +802,9 @@ body[data-station='dradis'] .tp-txtv_i {
 }
 body[data-station='dradis'] .tp-btnv_b {
     letter-spacing: 0.03em;
+}
+
+/* panes stacked in one grid slot keep their natural height and are spaced by the slot's gap */
+.station-slot > * {
+    flex: none;
 }
