@@ -29,7 +29,7 @@ async function waitForSettledLayout(page: Page) {
         .poll(
             async () => {
                 const current = await page.evaluate(() =>
-                    [...document.querySelectorAll('.tp-rotv[data-id], [data-id="Armor"], [data-id="Damage Report"]')]
+                    [...document.querySelectorAll('.tp-rotv[data-id], [data-id="Armor"], [data-id="Damage"]')]
                         .map((el) => {
                             const r = el.getBoundingClientRect();
                             return [el.getAttribute('data-id'), r.x, r.y, r.width, r.height].join();
@@ -70,7 +70,7 @@ test.describe('Station layout', () => {
                         .filter((el) => {
                             const id = el.getAttribute('data-id');
                             const isPane = el.classList.contains('tp-rotv');
-                            return (isPane || id === 'Damage Report' || id === 'Armor') && topLevel(el);
+                            return (isPane || id === 'Damage' || id === 'Armor') && topLevel(el);
                         })
                         .map((el) => {
                             // a pane inside a scrolling slot only occupies the part of itself the slot shows

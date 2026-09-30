@@ -109,14 +109,6 @@ body[data-surface='station']::after {
 :root .tp-grlv_g {
     width: 160px; /* cut off monitor cell */
 }
-:root body[data-station] .tp-lblv_v > .tp-grlv > .tp-grlv_g {
-    width: 100%;
-    background: rgba(95, 227, 240, 0.04);
-}
-:root body[data-station] .tp-grlv_g polyline {
-    stroke: var(--sw-accent);
-    stroke-width: 1.5px;
-}
 
 /* pane: glass ground, hairline frame, bracketed accent corners, no rounding */
 :root .tp-rotv {
@@ -503,13 +495,13 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root body[data-station='weapons'] [data-id='Systems'] > .tp-rotv_b::after {
     content: 'WPN-06';
 }
-:root body[data-station='engineer'] [data-id='Engineering Status'] > .tp-rotv_b::after {
+:root body[data-station='engineer'] [data-id='Power Plant'] > .tp-rotv_b::after {
     content: 'ENG-01';
 }
 :root body[data-station='engineer'] [data-id='Warp'] > .tp-rotv_b::after {
     content: 'ENG-02';
 }
-:root body[data-station='engineer'] [data-id='Full Systems Status'] > .tp-rotv_b::after {
+:root body[data-station='engineer'] [data-id='Systems'] > .tp-rotv_b::after {
     content: 'ENG-04';
 }
 :root body[data-station='engineer'] [data-id='Repair Queue'] > .tp-rotv_b::after {
@@ -544,12 +536,17 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root [data-segmented] .tp-sldv_t {
     border-color: transparent;
     height: 10px;
-    background: repeating-linear-gradient(90deg, #12343b 0 calc(10% - 3px), transparent calc(10% - 3px) 10%);
+    background: repeating-linear-gradient(
+        90deg,
+        #12343b 0 calc(100% / var(--sw-segments, 10) - 3px),
+        transparent calc(100% / var(--sw-segments, 10) - 3px) calc(100% / var(--sw-segments, 10))
+    );
 }
 :root [data-segmented] .tp-sldv_k::before {
     inset: 0;
 }
-:root [data-segmented] .tp-sldtxtv_t {
+:root [data-segmented] .tp-sldtxtv_t,
+:root [data-bare] .tp-sldtxtv_t {
     display: none;
 }
 
@@ -561,13 +558,43 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     padding-right: 2px;
 }
 
-/* repair queue on a display station: a slot is its name, then one line of details and priority; the bar joins only while a repair runs */
+/* repair queue on a display station: the active repair on top, then per slot a line of number, name and run time, and a dim line of details and priority; the bar joins only while a repair runs */
+[data-id='Repair Queue'] > .tp-rotv_c {
+    counter-reset: sw-slot;
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv-nol {
+    margin-bottom: var(--sw-pad);
+}
 body[data-input='none'] [data-id='Repair Queue'] {
     --tp-container-unit-size: 18px;
     --tp-container-vertical-padding: 1px;
 }
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
+    counter-increment: sw-slot;
+}
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b {
     min-height: 18px;
+    gap: var(--sw-pad);
+    border-bottom-color: transparent;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::before {
+    content: counter(sw-slot, decimal-leading-zero);
+    flex: none;
+    font-family: var(--sw-font-value);
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--sw-dim);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::after {
+    content: attr(data-time);
+    flex: none;
+    font-family: var(--sw-font-label);
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--sw-label);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
+    border-bottom: 1px solid #0f262b;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c {
     display: grid;
@@ -596,15 +623,42 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lbl
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child input {
     text-align: left;
-    font-size: 12px;
+    font-size: 11px;
+    color: var(--sw-dim);
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child(2) {
-    width: 56px;
+    width: 72px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority] input {
+    font-size: 12px;
+    color: var(--sw-dim);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority]:not([data-priority='OFF']) input {
+    color: var(--sw-accent);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority='RUNNING'] input {
+    color: var(--sw-caution);
 }
 
-/* full systems table: bars carry the value, the digits would only crowd the row */
-:root body[data-station] [data-id='Full Systems Status'] .tp-sldtxtv_t {
+/* systems tables: bars carry the value, the digits would only crowd the row */
+:root body[data-station] [data-id='Full Systems Status'] .tp-sldtxtv_t,
+:root body[data-station='engineer'] [data-id='Systems'] .tp-sldtxtv_t {
     display: none;
+}
+/* a table bar turns amber or red with its system's heat or effectiveness */
+:root [data-tint='WARN'] .tp-sldv_k::before {
+    background: var(--sw-caution);
+    box-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
+}
+:root [data-tint='ERROR'] .tp-sldv_k::before {
+    background: var(--sw-warning);
+    box-shadow: none;
+}
+:root [data-tint='WARN'] input {
+    color: var(--sw-caution);
+}
+:root [data-tint='ERROR'] input {
+    color: var(--sw-warning);
 }
 
 /* station sliders: the number beside a bar keeps room for its digits */
@@ -623,26 +677,36 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child
 /* level bars on a display station: label and number share a line, the bar spans the pane underneath */
 body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 64px;
+    grid-template-columns: minmax(0, 1fr) var(--sw-bar-num, 64px);
     align-items: baseline;
     row-gap: 2px;
     height: auto;
     padding-bottom: var(--sw-gap);
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) > .tp-lblv_v,
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) .tp-sldtxtv {
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    > .tp-lblv_v,
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    .tp-sldtxtv {
     display: contents;
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) > .tp-lblv_l {
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    > .tp-lblv_l {
     grid-area: 1 / 1;
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) .tp-sldtxtv_t {
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    .tp-sldtxtv_t {
     grid-area: 1 / 2;
     flex: none;
     width: auto;
     min-width: 0;
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) .tp-sldtxtv_s {
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    .tp-sldtxtv_s {
     grid-area: 2 / 1 / 3 / -1;
 }
 
@@ -822,6 +886,11 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
     text-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
 }
 
+/* a headline level: the number is bigger, so its column is too */
+:root .tp-lblv.sw-bar.sw-big {
+    --sw-bar-num: 100px;
+}
+
 /* a headline value: bigger, and it takes the room its label leaves */
 :root .sw-big > .tp-lblv_l {
     flex: 0 0 auto;
@@ -903,11 +972,6 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
 body[data-station='dradis'] {
     --tp-blade-value-width: 50%;
 }
-/* inset so a trace at the top of its range still shows */
-:root body[data-station] .tp-grlv_g {
-    box-sizing: border-box;
-    padding: 3px 0;
-}
 /* station labels: tight spacing and no left inset leave the value column its room */
 :root body[data-station] .tp-lblv_l {
     padding-left: 0;
@@ -921,7 +985,8 @@ body[data-station='dradis'] .tp-txtv_i {
 }
 
 /* full systems table: defect lines carry short labels in the value font's place */
-:root body[data-station] [data-id='Full Systems Status'] {
+:root body[data-station] [data-id='Full Systems Status'],
+:root body[data-station='engineer'] [data-id='Systems'] {
     --tp-container-unit-size: 18px;
 }
 :root body[data-station] .sw-defect-row > .tp-lblv_l {
@@ -1011,4 +1076,32 @@ body[data-station='dradis'] .tp-btnv_b {
 /* panes stacked in one grid slot keep their natural height and are spaced by the slot's gap */
 .station-slot > * {
     flex: none;
+}
+
+/* systems table on the engineer station: numbers are secondary to the bars, so they stay small */
+:root body[data-station='engineer'] [data-id='Systems'] .tp-txtv_i {
+    font-size: 13px;
+}
+:root body[data-station='engineer'] [data-id='Systems'] .sw-defect-label .tp-txtv_i {
+    font-size: 11px;
+}
+
+/* repair queue slots: a name, not a heading */
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_t {
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    color: var(--sw-value);
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv > .tp-lblv_l {
+    flex: 0 0 auto;
+    width: auto;
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv > .tp-lblv_v {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv .tp-txtv_i {
+    font-size: 14px;
 }
