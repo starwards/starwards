@@ -30,8 +30,8 @@ const totalWidth = 600;
 const defaultDefectibleWidth = 80;
 const defaultSystemNameWidth = 130;
 const fitSystemNameWidth = 96;
-const fitDefectBarWidth = 32;
-const fitDefectLabelWidth = 54;
+const fitDefectBarWidth = 28;
+const fitDefectLabelWidth = 56;
 
 const defaultWidths = { status: '60px', power: '60px', epm: '60px', heat: '60px', coolant: '120px', hacked: '60px' };
 const fitWidths = { status: '38px', power: '52px', epm: '34px', heat: '52px', coolant: '52px', eff: '40px' };
