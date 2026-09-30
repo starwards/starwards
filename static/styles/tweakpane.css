@@ -500,10 +500,10 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root body[data-station='signals'] [data-id='Scan Beam'] > .tp-rotv_b::after {
     content: 'SIG-01';
 }
-:root body[data-station='signals'] [data-id='Signals Jobs'] > .tp-rotv_b::after {
+:root body[data-station='signals'] [data-id='Jobs'] > .tp-rotv_b::after {
     content: 'SIG-02';
 }
-:root body[data-station='signals'] [data-id='Target'] > .tp-rotv_b::after {
+:root body[data-station='signals'] [data-id='Contact'] > .tp-rotv_b::after {
     content: 'SIG-03';
 }
 :root body[data-station='signals'] [data-id='Systems'] > .tp-rotv_b::after {
@@ -1111,4 +1111,31 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_t {
 }
 [data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv .tp-txtv_i {
     font-size: 14px;
+}
+
+/* a state named in words that needs attention (an unknown faction) reads amber */
+:root .sw-mode[data-tone='caution'] .tp-txtv_i {
+    color: var(--sw-caution);
+}
+
+/* job rows: the title takes the room, the percentage or QUEUED sits at the right */
+:root .tp-lblv.sw-job {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--sw-gap);
+    align-items: baseline;
+    margin-top: var(--sw-gap);
+}
+:root .tp-lblv.sw-job > .tp-lblv_l {
+    width: auto;
+    letter-spacing: 0.05em;
+}
+:root .tp-lblv.sw-job > .tp-lblv_v {
+    width: auto;
+    min-width: 0;
+}
+:root .tp-lblv.sw-job .tp-txtv_i {
+    width: 7ch;
+    text-align: right;
+    color: var(--sw-label);
 }
