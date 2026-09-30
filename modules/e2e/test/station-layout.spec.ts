@@ -104,6 +104,11 @@ test.describe('Station layout', () => {
                 for (const [i, a] of boxes.entries()) {
                     for (const b of boxes.slice(i + 1)) {
                         expect(intersects(a, b), `${a.id} overlaps ${b.id}`).toBe(false);
+                        const sharesColumn = a.x < b.x + b.width && b.x < a.x + a.width;
+                        const gap = a.y < b.y ? b.y - (a.y + a.height) : a.y - (b.y + b.height);
+                        if (sharesColumn) {
+                            expect(gap, `${a.id} and ${b.id} are stacked with no gap`).toBeGreaterThanOrEqual(10);
+                        }
                     }
                 }
             });
