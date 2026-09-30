@@ -22,7 +22,7 @@ async function waitForRadarReady(page: Page) {
 async function cycleToShipContact(page: Page, maxAttempts = 5) {
     for (let i = 0; i < maxAttempts; i++) {
         await page.keyboard.press(']');
-        if ((await getPropertyValue(page, 'Type', 'Target')) === 'Spaceship') {
+        if ((await getPropertyValue(page, 'Type', 'Contact')) === 'Spaceship') {
             return;
         }
     }
@@ -43,7 +43,7 @@ test.describe('Signals Screen - Target Info panel', () => {
     // R1: the panel sits at the top of the right column, matching the Signals artboard.
     test('sits at the top of the right column', async ({ page }) => {
         await waitForRadarReady(page);
-        const panel = page.locator('[data-id="Target"]');
+        const panel = page.locator('[data-id="Contact"]');
         await expect(panel).toBeVisible();
 
         const viewport = page.viewportSize();

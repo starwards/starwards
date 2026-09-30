@@ -135,8 +135,8 @@ Every raider in this scenario wears plain composite plating. ArmPen eats it twic
 **Screen**
 - Long-range radar (50 km default; presets 5–250 km) with scan-job order markers.
 - Middle-right: **Target info** (type, faction, distance, bearing). Top-right: radar systems.
-- Bottom-right: **Scan Beam** sliders (direction, arc).
-- Bottom-left: **Signals Jobs** — active scan (progress, cancel), queue in order (position, *paused*, **Prioritize Target**). Dormant standing orders counted, not listed.
+- Bottom-right: **Scan Beam** readout (bearing, arc, range; steered by hotkeys).
+- Bottom-left: **Jobs** — PAUSED and PRIORITY TGT annunciators, then the active scan (percent, bar) and the queue in order (QUEUED). Prioritize/cancel by hotkey. Dormant standing orders counted, not listed.
 
 **Keys**
 

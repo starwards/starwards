@@ -123,10 +123,10 @@ test.describe('Signals Screen', () => {
         );
     });
 
-    // --- Signals Jobs panel: the station's view of the top of the job queue ---
+    // --- Jobs panel: the station's view of the top of the job queue ---
 
-    test('signals jobs panel shows the auto-created scan job for a new contact', async ({ page }) => {
-        const panel = page.locator('[data-id="Signals Jobs"]');
+    test('jobs panel shows the auto-created scan job for a new contact', async ({ page }) => {
+        const panel = page.locator('[data-id="Jobs"]');
         await expect(panel).toBeVisible({ timeout: 10000 });
 
         // a fresh contact in radar range gets an auto scan job, surfaced as the top of the queue
@@ -144,8 +144,8 @@ test.describe('Signals Screen', () => {
         const [rock] = gameDriver.gameManager.spaceManager.state.getAll('Asteroid');
         // bare id, not "Asteroid <id>": the contact is still UFO, and a job label must not
         // classify what the player has not scanned
-        await expect(panel.getByText(`SCAN ${rock.id}`)).toBeVisible({ timeout: 10000 });
-        await expect(panel.getByText('progress')).toBeVisible();
+        await expect(panel.getByText(`SCAN · ${rock.id}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.locator('.tp-lblv.sw-job input')).toHaveValue(/%$/);
     });
 
     // --- Target cycle: which contacts the ] / [ keys reach ---
@@ -167,14 +167,14 @@ test.describe('Signals Screen', () => {
         // the keypress until the cycle has something to land on
         await expect(async () => {
             await page.keyboard.press(']');
-            expect(await getPropertyValue(page, 'Distance', 'Target')).not.toEqual('—');
+            expect(await getPropertyValue(page, 'Distance', 'Contact')).not.toEqual('—');
         }).toPass({ timeout: 10_000 });
         // …and landing on it must not classify it — the rock is still UFO
-        expect(await getPropertyValue(page, 'Type', 'Target')).toEqual('UFO');
+        expect(await getPropertyValue(page, 'Type', 'Contact')).toEqual('UFO');
     });
 
     test('lists every queued job as a row, not only the in-progress job', async ({ page }) => {
-        const panel = page.locator('[data-id="Signals Jobs"]');
+        const panel = page.locator('[data-id="Jobs"]');
         await expect(panel).toBeVisible({ timeout: 10000 });
 
         // three contacts in range: one gets the working slot, the other two queue behind it
@@ -194,20 +194,22 @@ test.describe('Signals Screen', () => {
         expect(active).toBeTruthy();
         expect(queued).toHaveLength(2);
 
-        await expect(panel.getByText(`SCAN ${active!.targetId}`)).toBeVisible({ timeout: 10000 });
-        await expect(panel.getByText('progress')).toBeVisible();
+        await expect(panel.getByText(`SCAN · ${active!.targetId}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.locator('.tp-lblv.sw-job input').first()).toHaveValue(/%$/);
         for (const [i, job] of queued.entries()) {
-            const row = panel.getByText(`SCAN ${job.targetId}`);
+            const row = panel.getByText(`SCAN · ${job.targetId}`);
             await expect(row).toBeVisible({ timeout: 10000 });
             const value = row.locator('..').locator('input');
-            await expect(value).toHaveValue(new RegExp(`QUEUED #${i + 1}`));
+            await expect(value).toHaveValue('QUEUED');
+            // rows follow queue order, after the active job's row
+            await expect(panel.locator('.tp-lblv.sw-job').nth(i + 1)).toContainText(job.targetId);
         }
 
         await page.screenshot({ path: 'test-results/screenshots/signals-jobs-queue.png' });
     });
 
     test('cancel on a queued row removes that job without disturbing the in-progress job', async ({ page }) => {
-        const panel = page.locator('[data-id="Signals Jobs"]');
+        const panel = page.locator('[data-id="Jobs"]');
         await expect(panel).toBeVisible({ timeout: 10000 });
 
         gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push(
@@ -223,7 +225,7 @@ test.describe('Signals Screen', () => {
         const active = jobsBefore.find((j) => j.status === JobStatus.IN_PROGRESS)!;
         const queuedJob = jobsBefore.find((j) => j.status === JobStatus.QUEUED)!;
 
-        await expect(panel.getByText(`SCAN ${queuedJob.targetId}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.getByText(`SCAN · ${queuedJob.targetId}`)).toBeVisible({ timeout: 10000 });
         // render order is always active row first, then queued rows: with one of each, the
         // second Cancel button belongs to the queued row
         await panel.getByRole('button', { name: 'Cancel' }).nth(1).dispatchEvent('click');
@@ -256,7 +258,7 @@ test.describe('Signals Screen', () => {
 
         await expect(async () => {
             await page.keyboard.press(']');
-            expect(await getPropertyValue(page, 'Distance', 'Target')).not.toEqual('—');
+            expect(await getPropertyValue(page, 'Distance', 'Contact')).not.toEqual('—');
         }).toPass({ timeout: 10_000 });
 
         await page.keyboard.press('p');
@@ -282,7 +284,7 @@ test.describe('Signals Screen', () => {
 
         await expect(async () => {
             await page.keyboard.press(']');
-            expect(await getPropertyValue(page, 'Distance', 'Target')).not.toEqual('—');
+            expect(await getPropertyValue(page, 'Distance', 'Contact')).not.toEqual('—');
         }).toPass({ timeout: 10_000 });
 
         await page.keyboard.press('x');
@@ -321,7 +323,7 @@ test.describe('Signals Screen', () => {
     });
 
     test('paused toggle halts job progress via /signals/jobsPaused', async ({ page }) => {
-        const panel = page.locator('[data-id="Signals Jobs"]');
+        const panel = page.locator('[data-id="Jobs"]');
         await expect(panel).toBeVisible({ timeout: 10000 });
 
         gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push({
@@ -338,7 +340,7 @@ test.describe('Signals Screen', () => {
         // the checkbox input itself is positioned off-screen by Tweakpane's styling; its
         // clickable wrapper is the parent element. Anchoring on role="checkbox" (a stable
         // web-platform selector) instead of a Tweakpane class name survives internal DOM changes
-        await panel.getByRole('checkbox').locator('..').dispatchEvent('click');
+        await panel.getByRole('checkbox').first().locator('..').dispatchEvent('click'); // PAUSED is the first annunciator
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
             (ship) => ship.state.signals.jobsPaused,
