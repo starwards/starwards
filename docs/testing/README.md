@@ -109,7 +109,7 @@ const panel = page.getByRole('button', { name: /Targeting/ });
 
 ```typescript
 // ✓ Test panel exists
-await expect(page.locator('[data-id="Tubes Status"]')).toBeVisible();
+await expect(page.locator('[data-id="Tubes"]')).toBeVisible();
 
 // ✓ Test properties via helpers
 const value = await getPropertyValue(page, 'auto load', 'Tube 0');

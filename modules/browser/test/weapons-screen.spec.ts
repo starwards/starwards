@@ -6,6 +6,7 @@ jest.mock('../src/container', () => ({
 
 jest.mock('../src/screens/station-lifecycle', () => ({ setDisplayOnly: jest.fn() }));
 jest.mock('../src/widgets/tactical-radar', () => ({ drawTacticalRadar: jest.fn() }));
+jest.mock('../src/widgets/radar-header', () => ({ drawRadarHeader: jest.fn() }));
 jest.mock('../src/widgets/observation-mode', () => ({ drawStationObservationMode: jest.fn() }));
 jest.mock('../src/widgets/system-status', () => ({ drawSystemsStatus: jest.fn() }));
 jest.mock('../src/widgets/tubes-status', () => ({ drawTubesStatus: jest.fn() }));

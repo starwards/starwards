@@ -1,11 +1,12 @@
 import { ShipDriver, SmartPilotMode, TargetedStatus } from '@starwards/core';
 import {
+    addAnnunciatorBlade,
     addBarBlade,
     addBipolarBarBlade,
-    addInputBlade,
     addTextBlade,
     applyThresholdTheme,
     createWidgetPane,
+    setAnnunciatorColumns,
 } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
@@ -93,8 +94,9 @@ function drawCommand(container: WidgetContainer, shipDriver: ShipDriver) {
             const value = getValue();
             return value === undefined ? undefined : value > 0;
         };
-        addInputBlade(pane, { onChange, getValue: engaged }, { label }, cleanup.add);
+        addAnnunciatorBlade(pane, { onChange, getValue: engaged }, { label }, cleanup.add);
     }
+    setAnnunciatorColumns(pane, 3);
 }
 
 function drawFuel(container: WidgetContainer, shipDriver: ShipDriver) {
@@ -106,7 +108,7 @@ function drawFuel(container: WidgetContainer, shipDriver: ShipDriver) {
         { label: 'energy', format: (e: number) => Math.round(e).toString() },
         cleanup.add,
     );
-    // a healthy-looking Systems Status panel doesn't explain why boost/thrusters do nothing when
+    // a healthy-looking Systems panel doesn't explain why boost/thrusters do nothing when
     // the reactor is nearly dry — this makes the shortfall itself obvious, right where the pilot looks.
     // A starved reactor rarely sits at a literal 0 — it's fighting a constant tiny recharge
     // against constant draw — so ERROR needs a "critically low" band, not an exact-zero check

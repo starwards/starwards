@@ -64,7 +64,7 @@ test.describe('Signals Screen', () => {
     });
 
     test('systems status panel lists the radar systems', async ({ page }) => {
-        const statusPanel = page.locator('[data-id="Systems Status"]');
+        const statusPanel = page.locator('[data-id="Systems"]');
         await expect(statusPanel).toBeVisible({ timeout: 10000 });
         // one row per radar system (the ship carries an omni radar and a scan beam)
         await expect(statusPanel.getByText('Radar')).toHaveCount(2);

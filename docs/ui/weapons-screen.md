@@ -25,31 +25,29 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 
 ### 1. Tactical Radar (Center/Main)
 - **Widget**: `drawTacticalRadar()` - PixiJS-based radar
-- **Range**: Fixed 5000m
+- **Range**: Fixed 10000m; a header strip above it reads `TACTICAL · 10 KM` and `SHIP <id>`
 - **Features**:
   - Circular radar with fog-of-war
   - Field-of-view based on faction radar range
   - Azimuth circle with degree markings
   - Crosshairs for chain gun (if equipped)
   - Speed lines showing target velocity
-  - Range indicators (5 rings at 1000m intervals)
+  - Range indicators (5 rings at 2000m intervals)
   - Blips: all detected objects rendered in green (no per-faction coloring); projectiles and this ship's own shells rendered in the radar shell tint (orange, `0xff6600`)
   - Visual target highlighting
 - **Data Source**: SpaceDriver (all space objects), ShipDriver (own ship, chain gun)
 - **Interactions**: Read-only display, shows currently selected target
 
-### 2. Tubes Status Panel (Top-Left)
-- **Widget**: `drawTubesStatus()` - Tweakpane folders
-- **Per Tube Display** (Tube 0, Tube 1, etc.):
-  - `ammo to use`: Projectile type selected (text, read-only)
-  - `ammo loaded`: Currently loaded projectile (text, read-only)
-  - `loading`: Load progress slider (0-1, read-only)
-  - `safety locked`: Toggle for that tube's fire safety (checkbox) — locked by default; auto-locks the instant the tube fires
-  - `auto load`: Toggle for automatic reloading (checkbox)
+### 2. Tubes Panel (Top-Left)
+- **Widget**: `drawTubesStatus()` - pane `Tubes`, one sub-header per tube (`T0 · STBD`: index and the direction the tube is fitted to)
+- **Per Tube Display**:
+  - `Loaded` / `Loading`: the loaded projectile, or the one being loaded while empty (upper-case mode text, e.g. `HI-EXP MSL`); a `Next` row appears only while the selected ammo differs from it
+  - `Warhead`: cluster warhead mode, only on tubes that can load cluster munitions
+  - segmented loading counter (ten cells, solid fill, no number)
+  - annunciators `READY` (a projectile is loaded), `SAFE` (safety locked; lit amber — toggling it stays possible on the GM screen), `AUTO` (auto load)
 - **Features**:
-  - Each tube in separate folder (expanded by default)
-  - Separators between tubes
-  - Auto-load and safety can be toggled per tube
+  - Each tube under its own sub-header
+  - Auto-load and safety can be toggled per tube from the keyboard
 - **Keyboard**:
   - `C` key: Toggle auto-load on Tube 0
   - `V` key: Change projectile type on Tube 0
@@ -57,33 +55,30 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
   - `X` key: Fire — ship-level command that launches every tube that is simultaneously loaded, unlocked, and able to bear; each tube that fires re-locks its own safety immediately
 - **Data Source**: `/tubes/[index]/projectile`, `/tubes/[index]/loadedProjectile`, `/tubes/[index]/loading`, `/tubes/[index]/loadAmmo`, `/tubes/[index]/safetyLocked`, `/fireTubesCommand`
 
-### 3. Ammunition Panel (Middle-Left)
-- **Widget**: `drawAmmoStatus()` - Tweakpane panel
-- **Projectile Types Shown**:
-  - For each projectile type in `ammoTypes`:
-    - Display name (e.g., "cannon shell", "blast cannon shell", "missile")
-    - Count format: `{current} / {max}`
+### 3. Magazine Panel (Middle-Left)
+- **Widget**: `drawAmmoStatus()` - pane `Magazine`
+- **Rows**: `Restock` (`IDLE` / `RESTOCKING`), then a `Shells <caliber>` and a `Missiles` sub-header; per ammo type: short name, small left-filled bar (against the design's full stock), count
+- **Count format**: bare count for large stocks (shells); `{current}/{max}` otherwise, where max is what the magazine can still hold after damage
+- **Caution**: bar and count turn amber at a quarter of the stock or less
 - **Data Source**: `/magazine/count_{type}`, `/magazine/max_{type}`, `/magazine/capacity`
-- **Visual**: Text labels with current/max counts
 - **Updates**: Real-time as ammunition is fired and reloaded
 
-### 4. Systems Status Panel (Top-Right)
-- **Widget**: `drawSystemsStatus()` - Compact table
+### 4. Systems Panel (Top-Right)
+- **Widget**: `drawSystemsStatus()` - Compact table, pane `Systems`
 - **Systems Shown**:
   - All tubes (`/tubes/*`)
   - Chain gun (`/chainGun`)
   - Magazine (`/magazine`)
   - Radar (`/radar`)
-- **Columns**: Status, Power, Heat, Hacked
+- **Columns**: STAT, PWR, HEAT, HACK (a hacked system is a fault the other columns do not show)
 - **Data Source**: Filtered systems from `shipDriver.systems`
 
-### 5. Targeting Panel (Middle-Right)
-- **Widget**: `drawTargetingStatus()` - Tweakpane panel
+### 5. Target Panel (Middle-Right)
+- **Widget**: `drawTargetingStatus()` - pane `Target`
 - **Properties**:
-  - `target`: ID of current target (text, read-only)
-  - `Ship Only`: Toggle to filter for ships only (checkbox)
-  - `Enemy Only`: Toggle to filter for enemies only (checkbox)
-  - `Short Range`: Toggle to filter for close targets (checkbox)
+  - `Track`: ID of current target, large (`—` when none)
+  - `Hits`: hits landed
+  - annunciators `SHIPS`, `ENEMY`, `SHORT`: the ship-only, enemy-only and short-range filters (lit when on, read-only)
 - **Keyboard Controls**:
   - `]` key: Next target
   - `[` key: Previous target
@@ -97,18 +92,18 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 ## User Workflows
 
 ### Primary Workflow: Target and Fire
-1. Use **Targeting Panel** filters to narrow down targets (ship only, enemy only, short range)
+1. Use **Target Panel** filters to narrow down targets (ship only, enemy only, short range)
 2. Press `]` or `[` to cycle through valid targets
 3. Check **Tactical Radar** to verify target position and range
-4. Ensure **Tubes Status** shows loaded ammunition
+4. Ensure **Tubes** shows loaded ammunition
 5. Unlock the tubes to fire with their dedicated safety key (`1`, `2`, `3`, `4`)
 6. Press `X` to fire — every loaded, unlocked tube launches at once, then re-locks itself
-7. Watch **Ammunition Panel** to track remaining ammo
+7. Watch **Magazine Panel** to track remaining ammo
 8. Wait for a tube to reload (monitor loading slider) and re-unlock it before firing again
 
 ### Secondary Workflow: Ammunition Management
-1. Monitor **Ammunition Panel** for ammo counts
-2. Check **Tubes Status → ammo to use** for current selection
+1. Monitor **Magazine Panel** for ammo counts
+2. Check **Tubes → Loaded / Next** for current selection
 3. Press `V` to cycle through available projectile types
 4. Ensure **auto load** is enabled for automatic reloading
 5. Coordinate with engineering to ensure magazine has power
@@ -123,7 +118,7 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 
 1. **Projectile Selection Hidden**: `V` key cycles projectile but no visual feedback of available types
 2. **No Target Info**: Target ID shown but no type, faction, distance, or health
-3. **Radar Range Fixed**: 5000m range may be too close or too far depending on situation
+3. **Radar Range Fixed**: 10000m range may be too close or too far depending on situation
 4. **No Fire Solution**: No lead indicator or time-to-target calculation
 5. **Tube Cooldown**: Loading time shown but no estimated time to ready
 6. **No Ammo Warnings**: No alert when running low on specific ammo type

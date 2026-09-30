@@ -127,7 +127,7 @@ page.getByText('Tube 0').first()
 page.getByRole('button', { name: /Tube 0/ })
 
 // ✅✅ Best - semantic & stable
-page.locator('[data-id="Tubes Status"]')
+page.locator('[data-id="Tubes"]')
 ```
 
 **Fix infrastructure, not symptoms**:
