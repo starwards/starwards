@@ -8,7 +8,7 @@ import { maps } from '@starwards/server';
 const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 
-// #2136: a depleted reactor silently zeroes thrust/repairs while the Systems Status panel stays
+// #2136: a depleted reactor silently zeroes thrust/repairs while the Systems panel stays
 // green — the crew has no way to tell "nothing is happening" apart from "everything is fine".
 
 /**
@@ -38,7 +38,7 @@ test.describe('Helms Screen — energy starvation visibility', () => {
     test('a depleted reactor marks a starved thruster and warns on the energy readout, instead of reading green', async ({
         page,
     }) => {
-        const systemsPanel = page.locator('[data-id="Systems Status"]');
+        const systemsPanel = page.locator('[data-id="Systems"]');
         await expect(systemsPanel).toBeVisible({ timeout: 10000 });
 
         const ship = gameDriver.getShip(shipId);
@@ -60,7 +60,7 @@ test.describe('Helms Screen — energy starvation visibility', () => {
     });
 
     test('a healthy reactor reads OK on the energy readout and marks no system starved', async ({ page }) => {
-        const systemsPanel = page.locator('[data-id="Systems Status"]');
+        const systemsPanel = page.locator('[data-id="Systems"]');
         await expect(systemsPanel).toBeVisible({ timeout: 10000 });
 
         expect(await hasStatusValue(systemsPanel, 'STARVED')).toBe(false);

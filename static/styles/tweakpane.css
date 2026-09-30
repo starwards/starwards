@@ -457,7 +457,7 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     background: var(--sw-dim);
 }
 
-/* pane ids: a small mono tag at the right of the pane title bar. Station-scoped because Systems Status and Warp repeat across stations. */
+/* pane ids: a small mono tag at the right of the pane title bar. Station-scoped because Systems and Warp repeat across stations. */
 :root .tp-rotv_b::after {
     flex: none;
     margin-left: var(--sw-gap);
@@ -467,7 +467,7 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     letter-spacing: 0.1em;
     color: var(--sw-frame);
 }
-:root body[data-station='helms'] [data-id='Systems Status'] > .tp-rotv_b::after {
+:root body[data-station='helms'] [data-id='Systems'] > .tp-rotv_b::after {
     content: 'HLM-07';
 }
 :root body[data-station='helms'] [data-id='Flight'] > .tp-rotv_b::after {
@@ -488,19 +488,19 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root body[data-station='helms'] [data-id='Docking'] > .tp-rotv_b::after {
     content: 'HLM-06';
 }
-:root body[data-station='weapons'] [data-id='Tubes Status'] > .tp-rotv_b::after {
+:root body[data-station='weapons'] [data-id='Tubes'] > .tp-rotv_b::after {
     content: 'WPN-02';
 }
-:root body[data-station='weapons'] [data-id='Ammunition'] > .tp-rotv_b::after {
+:root body[data-station='weapons'] [data-id='Magazine'] > .tp-rotv_b::after {
     content: 'WPN-03';
 }
 :root body[data-station='weapons'] [data-id='Chain Gun'] > .tp-rotv_b::after {
     content: 'WPN-04';
 }
-:root body[data-station='weapons'] [data-id='Targeting'] > .tp-rotv_b::after {
+:root body[data-station='weapons'] [data-id='Target'] > .tp-rotv_b::after {
     content: 'WPN-05';
 }
-:root body[data-station='weapons'] [data-id='Systems Status'] > .tp-rotv_b::after {
+:root body[data-station='weapons'] [data-id='Systems'] > .tp-rotv_b::after {
     content: 'WPN-06';
 }
 :root body[data-station='engineer'] [data-id='Engineering Status'] > .tp-rotv_b::after {
@@ -524,7 +524,7 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root body[data-station='signals'] [data-id='Target'] > .tp-rotv_b::after {
     content: 'SIG-03';
 }
-:root body[data-station='signals'] [data-id='Systems Status'] > .tp-rotv_b::after {
+:root body[data-station='signals'] [data-id='Systems'] > .tp-rotv_b::after {
     content: 'SIG-04';
 }
 :root body[data-station='dradis'] [data-id='New Waypoint'] > .tp-rotv_b::after {
@@ -543,11 +543,18 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 /* segmented bars: the track shows discrete cells behind a solid fill; opted in with data-segmented on the row */
 :root [data-segmented] .tp-sldv_t {
     border-color: transparent;
-    background: repeating-linear-gradient(90deg, #12343b 0 8px, transparent 8px 10px);
+    height: 10px;
+    background: repeating-linear-gradient(90deg, #12343b 0 calc(10% - 3px), transparent calc(10% - 3px) 10%);
+}
+:root [data-segmented] .tp-sldv_k::before {
+    inset: 0;
+}
+:root [data-segmented] .tp-sldtxtv_t {
+    display: none;
 }
 
 /* system tables: narrow status cells leave the label column its room */
-:root body[data-station] [data-id='Systems Status'] .tp-lblv_l,
+:root body[data-station] [data-id='Systems'] .tp-lblv_l,
 :root body[data-station] [data-id='Full Systems Status'] .tp-lblv_l {
     font-size: 11px;
     letter-spacing: 0.02em;
@@ -614,7 +621,7 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child
 }
 
 /* level bars on a display station: label and number share a line, the bar spans the pane underneath */
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) {
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 64px;
     align-items: baseline;
@@ -622,20 +629,20 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
     height: auto;
     padding-bottom: var(--sw-gap);
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) > .tp-lblv_v,
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) .tp-sldtxtv {
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) > .tp-lblv_v,
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) .tp-sldtxtv {
     display: contents;
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) > .tp-lblv_l {
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) > .tp-lblv_l {
     grid-area: 1 / 1;
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) .tp-sldtxtv_t {
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) .tp-sldtxtv_t {
     grid-area: 1 / 2;
     flex: none;
     width: auto;
     min-width: 0;
 }
-body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-id='Repair Queue'] *) .tp-sldtxtv_s {
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) .tp-sldtxtv_s {
     grid-area: 2 / 1 / 3 / -1;
 }
 
@@ -718,39 +725,160 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
     font-size: 22px;
 }
 
-/* command: level bars above a row of annunciators that light while engaged */
-:root [data-id='Command'] > .tp-rotv_c {
+/* annunciators: a lamp with its name inside, dark until true. Rows opt in with .sw-ann; their container lays them out with .sw-ann-grid. */
+:root .sw-ann-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--sw-ann-cols, 3), minmax(0, 1fr));
     column-gap: 4px;
 }
-:root [data-id='Command'] > .tp-rotv_c > .tp-lblv[data-bipolar] {
+:root .sw-ann-grid > :not(.sw-ann) {
     grid-column: 1 / -1;
 }
-:root [data-id='Command'] .tp-lblv:has(.tp-ckbv) {
+:root .tp-lblv.sw-ann {
+    position: relative;
     margin-top: var(--sw-gap);
     padding: 3px 0;
     justify-content: center;
     border: 1px solid #1a3439;
 }
-:root [data-id='Command'] .tp-lblv:has(.tp-ckbv) > .tp-lblv_v {
-    display: none;
+/* the checkbox stays the row's hit area, laid invisibly over the lamp */
+:root .sw-ann > .tp-lblv_v {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: 100%;
+    opacity: 0;
 }
-:root [data-id='Command'] .tp-lblv:has(.tp-ckbv) > .tp-lblv_l {
+:root .sw-ann .tp-ckbv,
+:root .sw-ann .tp-ckbv_l,
+:root .sw-ann .tp-ckbv_w {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+:root .sw-ann > .tp-lblv_l {
+    pointer-events: none;
     flex: 0 1 auto;
     width: auto;
     padding: 0;
-    color: var(--sw-dim);
+    color: #2a555c;
     font-weight: 700;
     font-size: calc(var(--sw-fs-label) - 1px);
     letter-spacing: 0.08em;
 }
-:root [data-id='Command'] .tp-lblv:has(.tp-ckbv_i[data-checked='true']) {
+:root .sw-ann:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) {
     border-color: var(--sw-accent);
 }
-:root [data-id='Command'] .tp-lblv:has(.tp-ckbv_i[data-checked='true']) > .tp-lblv_l {
+:root .sw-ann:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) > .tp-lblv_l {
     color: var(--sw-accent);
     text-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+:root .sw-ann[data-tone='caution']:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) {
+    border-color: var(--sw-caution);
+    background: var(--sw-caution);
+}
+:root .sw-ann[data-tone='caution']:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) > .tp-lblv_l {
+    color: var(--sw-on-caution);
+    text-shadow: none;
+}
+
+/* sub-headers: a small dim caption grouping rows inside a pane */
+:root .tp-fldv.sw-sub > .tp-fldv_b {
+    min-height: 0;
+    padding: 0 var(--sw-pad);
+    font-size: var(--sw-fs-label);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--sw-dim);
+}
+:root .tp-fldv.sw-sub > .tp-fldv_c {
+    padding-left: 0;
+    padding-right: 0;
+}
+:root .tp-fldv.sw-sub {
+    margin-top: var(--sw-gap);
+}
+
+/* mode text: a state named in words, in the value font but quieter than a number */
+:root .sw-mode .tp-txtv_i,
+:root .sw-mode .tp-lstv_s {
+    font-size: calc(var(--sw-fs-value) - 1px);
+    color: var(--sw-title);
+    text-transform: uppercase;
+}
+
+/* an active state named in words (restocking) stays legible: only cells that report faults go dark when OK */
+:root .tp-rotv.sw-mode[data-status='OK'] {
+    background: transparent;
+    box-shadow: none;
+}
+:root .tp-rotv.sw-mode[data-status='OK'] input {
+    color: var(--sw-accent);
+    text-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+
+/* a headline value: bigger, and it takes the room its label leaves */
+:root .sw-big > .tp-lblv_l {
+    flex: 0 0 auto;
+    width: auto;
+}
+:root .sw-big > .tp-lblv_v {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+}
+:root .sw-big .tp-txtv_i {
+    height: auto;
+    font-size: 28px;
+    line-height: 1.2;
+}
+
+/* inline level rows: label, small left-filled bar, count on one line; caution turns bar and count amber */
+:root .tp-lblv[data-inline] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 70px 60px;
+    column-gap: var(--sw-gap);
+    align-items: center;
+}
+:root .tp-lblv[data-inline] > .tp-lblv_v,
+:root .tp-lblv[data-inline] .tp-sldtxtv {
+    display: contents;
+}
+:root .tp-lblv[data-inline] .tp-sldtxtv_s {
+    grid-column: 2;
+}
+:root .tp-lblv[data-inline] .tp-sldtxtv_t {
+    grid-column: 3;
+    flex: none;
+    width: auto;
+    min-width: 0;
+}
+:root .tp-lblv[data-inline] .tp-txtv_i {
+    font-size: calc(var(--sw-fs-value) - 1px);
+}
+:root [data-inline][data-status='WARN'] {
+    background: transparent;
+    --tp-label-foreground-color: var(--sw-label);
+}
+:root [data-inline][data-status='WARN'] .tp-lblv_l {
+    color: var(--sw-label);
+}
+:root [data-inline][data-status='WARN'] input {
+    color: var(--sw-caution);
+}
+:root [data-inline][data-status='WARN'] .tp-sldv_k::before {
+    background: var(--sw-caution);
+    box-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
+}
+
+/* radar header: what the radar shows, and whose it is */
+.sw-radar-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--sw-font-value);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--sw-dim);
 }
 
 /* off-screen but still rendered, so the row stays in the accessibility tree and drivable by tests */
