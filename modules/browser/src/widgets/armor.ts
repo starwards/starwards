@@ -47,6 +47,10 @@ export async function drawArmorStatus(
         const root = new Application();
         await root.init({ backgroundColor: radarVisibleBg, preserveDrawingBuffer: true });
         root.canvas.setAttribute('data-id', 'Armor');
+        // Opaque WebGL canvases are compositor overlay candidates; an opaque armor canvas stacked over the
+        // (also opaque) radar canvas gets a transparent 200x200 hole punched through the radar, mirrored
+        // vertically. Any opacity below 1 keeps it an ordinary composited layer.
+        root.canvas.style.opacity = '0.999';
         container.on('resize', () => {
             root.renderer.resize(size(), size());
         });
