@@ -11,6 +11,7 @@ import { WaypointGroupLayers } from '../radar/waypoint-group-layers';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
 
+import { drawMapCaption } from '../widgets/map-caption';
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
 import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
@@ -31,7 +32,12 @@ export async function initDradisScreen(
 
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    const { root: radarView, layers, follow } = await drawDradisRadar(spaceDriver, shipDriver, container, zoomEvents);
+    const {
+        root: radarView,
+        layers,
+        follow,
+        cellSize,
+    } = await drawDradisRadar(spaceDriver, shipDriver, container, zoomEvents);
     container.getElement().on('contextmenu', (e) => e.preventDefault());
 
     const grid = stationGrid(container, { left: 240, right: 240 });
@@ -40,6 +46,7 @@ export async function initDradisScreen(
     const editSlot = grid.left({ scroll: true });
     const layersSlot = grid.right({ scroll: true });
     const groupsSlot = grid.right({ bottom: true });
+    drawMapCaption(grid.left({ bottom: true }), radarView, cellSize, shipId);
 
     const waypointSelection = new SelectionContainer().init(spaceDriver);
     const layersPanel = new RadarLayersPanel(layersSlot);

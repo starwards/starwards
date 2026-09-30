@@ -23,10 +23,19 @@ export class GridLayer {
         return this.stage;
     }
 
+    /** World-unit side of the smallest grid cell drawn at the current zoom. */
+    get cellSize() {
+        return miniSectorSize * Math.pow(scaleFactor, this.minMagnitude);
+    }
+
+    private get minMagnitude() {
+        return Math.max(0, Math.floor(Math.abs(Math.log10(this.parent.camera.zoom))));
+    }
+
     private drawSectorGrid() {
         this.gridLines.clear();
-        const minMagnitude = Math.max(0, Math.floor(Math.abs(Math.log10(this.parent.camera.zoom))));
-        const minGridCellSize = miniSectorSize * Math.pow(scaleFactor, minMagnitude);
+        const minMagnitude = this.minMagnitude;
+        const minGridCellSize = this.cellSize;
         const topLeft = this.parent.screenToWorld(XY.zero);
         const bottomRight = this.parent.screenToWorld({
             x: this.parent.renderer.width,
