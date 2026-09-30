@@ -24,7 +24,7 @@ test.describe('Readout skin', () => {
 
     test('status cells light up amber/red and return to dark', async ({ page }) => {
         await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
-        const panel = page.locator('[data-id="Systems Status"]');
+        const panel = page.locator('[data-id="Systems"]');
         await expect(panel).toBeVisible({ timeout: 10000 });
         const background = (status: string) =>
             panel
@@ -95,11 +95,11 @@ test.describe('Readout skin', () => {
 
     test('pane ids render in the title bar and segmented bars keep a solid fill', async ({ page }) => {
         await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
-        const tubes = page.locator('[data-id="Tubes Status"]');
+        const tubes = page.locator('[data-id="Tubes"]');
         await expect(tubes).toBeVisible({ timeout: 10000 });
         const paneId = await tubes.locator('> .tp-rotv_b').evaluate((el) => getComputedStyle(el, '::after').content);
         expect(paneId).toBe('"WPN-02"');
-        const systems = page.locator('[data-id="Systems Status"] > .tp-rotv_b');
+        const systems = page.locator('[data-id="Systems"] > .tp-rotv_b');
         expect(await systems.evaluate((el) => getComputedStyle(el, '::after').content)).toBe('"WPN-06"');
 
         const segmented = tubes.locator('[data-segmented]').first();
@@ -114,6 +114,20 @@ test.describe('Readout skin', () => {
         });
         expect(styles.fillMask).toBe('none');
         expect(styles.trackBackground).toContain('repeating-linear-gradient');
+    });
+
+    test('an annunciator on an interactive screen still toggles its writable state', async ({ page }) => {
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await navigateToScreen(page, `/ship.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await page
+            .getByText('tubes', { exact: true })
+            .dragTo(page.locator('body'), { targetPosition: { x: 900, y: 300 } });
+        const safe = page.locator('[data-id="Tubes"] .sw-ann[data-tone="caution"]').first();
+        await expect(safe).toBeVisible({ timeout: 10000 });
+        const tube = () => gameDriver.getShip(shipId).state.tubes.at(0);
+        expect(tube().safetyLocked).toBe(true);
+        await safe.click();
+        await expect.poll(() => tube().safetyLocked, { timeout: 4000 }).toBe(false);
     });
 
     test('helms panes carry their ids in the title bar', async ({ page }) => {

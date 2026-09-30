@@ -91,6 +91,7 @@ export {
     SmartPilotMode,
     TargetedStatus,
     WarpFrequency,
+    getDirectionConfigFromAngle,
     isRestockingAmmo,
     isRestockingEnergyCells,
     makeShipState,

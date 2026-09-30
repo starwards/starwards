@@ -1,4 +1,4 @@
-import { addInputBlade, addTextBlade, createWidgetPane } from '../panel';
+import { addAnnunciatorBlade, addTextBlade, createWidgetPane, setAnnunciatorColumns } from '../panel';
 
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
@@ -19,22 +19,24 @@ export function targetingWidget(shipDriver: ShipDriver): DashboardWidget {
     };
 }
 export function drawTargetingStatus(container: WidgetContainer, shipDriver: ShipDriver) {
-    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Targeting');
-    addTextBlade(pane, readProp(shipDriver, '/weaponsTarget/targetId'), { label: 'target' }, panelCleanup.add);
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Target');
+    const track = addTextBlade(
+        pane,
+        readProp<string | null>(shipDriver, '/weaponsTarget/targetId'),
+        { label: 'Track', format: (id: string | null) => id || '—' },
+        panelCleanup.add,
+    );
+    track.element.classList.add('sw-big');
     // real field path (not a ShipState delegate getter) -- wireEvents() only emits change events
     // for literal @gameField paths, so a derived-getter pointer would never live-update (see /speed).
-    addTextBlade(
-        pane,
-        readProp<number>(shipDriver, '/spaceship/hitsLanded'),
-        { label: 'hits landed' },
-        panelCleanup.add,
-    );
-    addInputBlade(pane, readProp(shipDriver, '/weaponsTarget/shipOnly'), { label: 'Ship Only' }, panelCleanup.add);
-    addInputBlade(pane, readProp(shipDriver, '/weaponsTarget/enemyOnly'), { label: 'Enemy Only' }, panelCleanup.add);
-    addInputBlade(
+    addTextBlade(pane, readProp<number>(shipDriver, '/spaceship/hitsLanded'), { label: 'Hits' }, panelCleanup.add);
+    addAnnunciatorBlade(pane, readProp(shipDriver, '/weaponsTarget/shipOnly'), { label: 'Ships' }, panelCleanup.add);
+    addAnnunciatorBlade(pane, readProp(shipDriver, '/weaponsTarget/enemyOnly'), { label: 'Enemy' }, panelCleanup.add);
+    addAnnunciatorBlade(
         pane,
         readProp(shipDriver, '/weaponsTarget/shortRangeOnly'),
-        { label: 'Short Range' },
+        { label: 'Short' },
         panelCleanup.add,
     );
+    setAnnunciatorColumns(pane, 3);
 }
