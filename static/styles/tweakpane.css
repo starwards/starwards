@@ -1076,6 +1076,22 @@ body[data-station='dradis'] .tp-btnv_b {
 :root body[data-station='engineer'] [data-id='Systems'] .sw-defect-label .tp-txtv_i {
     font-size: 11px;
 }
+/* the engineer's Systems pane packs a defect line under every system; EPM and EFF digits sit centred under their headers */
+:root body[data-station='engineer'] [data-id='Systems'] {
+    --tp-container-unit-spacing: 1px;
+}
+:root body[data-station='engineer'] [data-id='Systems'] .tp-sldtxtv_s {
+    margin-top: 4px;
+}
+:root
+    body[data-station='engineer']
+    [data-id='Systems']
+    .tp-lblv:not(.sw-defect-row)
+    > .tp-lblv_v
+    .tp-rowcv:is(:nth-child(3), :nth-child(6))
+    .tp-txtv_i {
+    text-align: center;
+}
 
 /* repair queue slots: a name, not a heading */
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_t {
