@@ -1139,3 +1139,84 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_t {
     text-align: right;
     color: var(--sw-label);
 }
+
+/* interactive affordances: ghost (outlined) secondary buttons, colour swatches, hint line, map caption */
+body:not([data-input='none']) .sw-ghost .tp-btnv_b {
+    background: transparent;
+    color: var(--sw-accent);
+    border: 1px solid var(--sw-accent);
+}
+body:not([data-input='none']) .sw-ghost .tp-btnv_b:hover,
+body:not([data-input='none']) .sw-ghost .tp-btnv_b:focus-visible {
+    background: rgba(95, 227, 240, 0.12);
+}
+.sw-swatches {
+    display: flex;
+    gap: var(--sw-gap);
+    padding: 0 var(--sw-pad);
+    margin-top: var(--sw-gap);
+}
+.sw-swatch {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--sw-dim);
+    border-radius: 0;
+    cursor: pointer;
+}
+.sw-swatch[aria-pressed='true'] {
+    outline: 2px solid var(--sw-value);
+    outline-offset: 2px;
+}
+.sw-hint {
+    padding: 0 var(--sw-pad);
+    margin-top: var(--sw-gap);
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-label);
+    color: var(--sw-dim);
+}
+.sw-map-caption {
+    font-family: var(--sw-font-value);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--sw-dim);
+    white-space: nowrap;
+}
+
+/* dradis groups: each folder title is a selectable row — colour dot, name, waypoint count */
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv {
+    margin-bottom: 4px;
+    border: 1px solid var(--sw-frame);
+}
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv:hover {
+    border-color: var(--sw-dim);
+}
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv[data-selected='true'] {
+    border-color: var(--sw-accent);
+}
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv[data-selected='true'] > .tp-fldv_b {
+    color: var(--sw-value);
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b {
+    gap: 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b::before {
+    content: '';
+    flex: none;
+    width: 10px;
+    height: 10px;
+    background: var(--sw-dot, var(--sw-value));
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b::after {
+    content: attr(data-count);
+    order: 2;
+    font-family: var(--sw-font-value);
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--sw-label);
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b > .tp-fldv_m {
+    order: 3;
+}
