@@ -1220,3 +1220,14 @@ body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b::after {
 body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b > .tp-fldv_m {
     order: 3;
 }
+
+/* a named ammo type can outgrow tweakpane's fixed 160px value column: the value takes the room its label leaves */
+:root [data-id='Chain Gun'] .sw-mode > .tp-lblv_l {
+    flex: 0 0 auto;
+    width: auto;
+}
+:root [data-id='Chain Gun'] .sw-mode > .tp-lblv_v {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+}
