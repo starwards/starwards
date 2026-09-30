@@ -39,7 +39,7 @@ export function stationGrid(root: ReturnType<typeof wrapRootWidgetContainer>, wi
         element.append(col);
         return (options: SlotOptions = {}) => {
             const slot = $(
-                `<div style="pointer-events: auto; min-height: 0; overflow-x: ${options.scroll ? 'hidden' : 'visible'}; overflow-y: ${
+                `<div class="station-slot" style="pointer-events: auto; min-height: 0; display: flex; flex-direction: column; gap: ${GRID_GAP}px; overflow-x: ${options.scroll ? 'hidden' : 'visible'}; overflow-y: ${
                     options.scroll ? 'auto' : 'visible'
                 }; scrollbar-width: none; flex: 0 ${options.scroll ? '1' : '0'} auto; ${
                     options.bottom ? 'margin-top: auto;' : ''
