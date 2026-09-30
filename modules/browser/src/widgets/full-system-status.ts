@@ -30,16 +30,32 @@ const totalWidth = 600;
 const defaultDefectibleWidth = 80;
 const defaultSystemNameWidth = 130;
 const fitSystemNameWidth = 96;
-const fitDefectBarWidth = 40;
-const fitDefectLabelWidth = 52;
+const fitDefectBarWidth = 32;
+const fitDefectLabelWidth = 54;
 
 const defaultWidths = { status: '60px', power: '60px', epm: '60px', heat: '60px', coolant: '120px', hacked: '60px' };
 const fitWidths = { status: '38px', power: '52px', epm: '34px', heat: '52px', coolant: '52px', eff: '40px' };
 
-/** A few letters per word, enough for an engineer to tell one defect from another in a narrow cell. */
-function abbreviateDefect(name: string) {
-    const words = name.split(' ').filter((w) => w !== 'of');
-    return words.length === 1 ? words[0].slice(0, 7) : words.map((w) => w.slice(0, 3)).join(' ');
+/** Short readable label per defect name; a name not listed here is shown in full. */
+const defectShortLabels: Record<string, string> = {
+    efficiency: 'EFF',
+    effeciency: 'EFF',
+    offset: 'OFFSET',
+    capacity: 'CAP',
+    velocity: 'VEL',
+    damage: 'DMG',
+    range: 'RANGE',
+    'job success': 'JOB OK',
+    'job speed': 'JOB SPD',
+    'bearing skew': 'SKEW',
+    'rate of fire': 'ROF',
+    'range fluctuation': 'RNG FLUX',
+    'turn speed': 'TURN',
+    'traverse limit': 'TRAV',
+};
+
+function shortDefectLabel(name: string) {
+    return defectShortLabels[name] ?? name.toUpperCase();
 }
 
 /**
@@ -188,14 +204,14 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
     pane.registerPlugin(TweakpaneTablePlugin);
     pane.addBlade({
         view: 'tableHead',
-        label: 'System',
+        label: 'SYSTEM',
         headers: [
-            { label: 'Stat', width: w.status },
-            { label: 'Power', width: w.power },
+            { label: 'STAT', width: w.status },
+            { label: 'PWR', width: w.power },
             { label: 'EPM', width: w.epm },
-            { label: 'Heat', width: w.heat },
-            { label: 'Coolant', width: w.coolant },
-            { label: 'Eff', width: w.eff },
+            { label: 'HEAT', width: w.heat },
+            { label: 'COOL', width: w.coolant },
+            { label: 'EFF', width: w.eff },
         ],
     });
     for (const system of systems) {
@@ -246,15 +262,14 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
         const effCell = addTextCellToRow(
             row,
             aggregate(effProps, () => system.state.effectiveness),
-            { format: (e: number) => e.toFixed(2), width: w.eff },
+            { format: (e: number) => `${Math.round((e / Number(PowerLevel.NORMAL)) * 100)}%`, width: w.eff },
             panelCleanup.add,
         );
         const effTone = (): Tone => {
-            const effectiveness = system.state.effectiveness;
-            if (effectiveness <= 0) {
+            if (system.state.broken || system.state.hacked === HackLevel.DISABLED) {
                 return 'ERROR';
             }
-            return effectiveness < Number(PowerLevel.NORMAL) ? 'WARN' : undefined;
+            return system.state.hacked < HackLevel.OK ? 'WARN' : undefined;
         };
         const applyEffTone = () => applyTint(effCell.element, effTone());
         panelCleanup.add(abstractOnChange(effProps, effTone, applyEffTone));
@@ -266,21 +281,17 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
     container.getElement().find('.tp-lblv_l').css('min-width', `${fitSystemNameWidth}px`);
 }
 
-/** One line under a system: its first defect names the row, the rest follow as label + bar pairs. */
+/** One line under a system: an empty name column, then label + bar pairs on a fixed grid. */
 function addFitDefectRow(pane: Pane, shipDriver: ShipDriver, system: System, cleanup: (d: Destructor) => void) {
     if (system.defectibles.length === 0) {
         return;
     }
     const row = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;
     row.element.classList.add('sw-defect-row');
-    system.defectibles.forEach((d, index) => {
-        const label = abbreviateDefect(d.name);
-        if (index === 0) {
-            row.element.querySelector('.tp-lblv_l')?.replaceChildren(label);
-        } else {
-            const labelCell = row.addCell({ ...configTextBlade({}, () => label), width: `${fitDefectLabelWidth}px` });
-            labelCell.element.classList.add('sw-defect-label');
-        }
+    for (const d of system.defectibles) {
+        const label = shortDefectLabel(d.name);
+        const labelCell = row.addCell({ ...configTextBlade({}, () => label), width: `${fitDefectLabelWidth}px` });
+        labelCell.element.classList.add('sw-defect-label');
         const bar = addBarCellToRow(
             row,
             readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`),
@@ -288,5 +299,5 @@ function addFitDefectRow(pane: Pane, shipDriver: ShipDriver, system: System, cle
             cleanup,
         );
         bar.element.title = d.name;
-    });
+    }
 }
