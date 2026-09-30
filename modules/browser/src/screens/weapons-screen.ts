@@ -5,6 +5,7 @@ import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '
 import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
 import { drawGunStatus } from '../widgets/gun';
+import { drawRadarHeader } from '../widgets/radar-header';
 import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
@@ -16,6 +17,8 @@ import { shipInputConfig } from '../input/input-config';
 import { stationGrid } from '../container';
 import { wireTubeHotkeys } from '../input/tube-hotkeys';
 
+const radarRange = 10000;
+
 export async function initWeaponsScreen(
     driver: Driver,
     container: ScreenContainer,
@@ -24,8 +27,9 @@ export async function initWeaponsScreen(
     setDisplayOnly(true, 'weapons');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
-    await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 10000 });
+    await drawTacticalRadar(spaceDriver, shipDriver, container, { range: radarRange });
     const grid = stationGrid(container, { left: 272, right: 256 });
+    drawRadarHeader(grid.center({ fill: true }), `TACTICAL · ${radarRange / 1000} KM`, `SHIP ${shipId}`);
     await drawStationObservationMode(grid.center(), driver);
     const teardownInput = wireInput(shipDriver);
     drawTubesStatus(grid.left(), shipDriver);

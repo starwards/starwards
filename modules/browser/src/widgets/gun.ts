@@ -1,43 +1,38 @@
-import { PropertyPanel, createWidgetPane } from '../panel';
-import { addBarBlade, addInputBlade, addTextBlade } from '../panel/blades';
+import {
+    PropertyPanel,
+    addAnnunciatorBlade,
+    addSegmentedBarBlade,
+    addSubheader,
+    createWidgetPane,
+    setAnnunciatorColumns,
+} from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
+import { addMountAmmoRows } from './mount-readout';
 
 export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Chain Gun');
     const mounts = shipDriver.state.chainGuns;
     for (const index of mounts.keys()) {
-        const gunPane = mounts.length > 1 ? pane.addFolder({ title: `Chain Gun ${index}`, expanded: true }) : pane;
-        if (mounts.length > 1) {
-            panelCleanup.add(() => gunPane.dispose());
-        }
-        addTextBlade(
-            gunPane,
-            readProp(shipDriver, `/chainGuns/${index}/projectile`),
-            { label: 'projectile' },
-            panelCleanup.add,
-        );
-        addTextBlade(
-            gunPane,
-            readProp(shipDriver, `/chainGuns/${index}/loadedProjectile`),
-            { label: 'loaded projectile' },
-            panelCleanup.add,
-        );
-        addBarBlade(
-            gunPane,
-            readNumberProp(shipDriver, `/chainGuns/${index}/loading`),
-            { label: 'loading' },
-            panelCleanup.add,
-        ).element.dataset.segmented = '';
-        addInputBlade(
+        const gunPane = mounts.length > 1 ? addSubheader(pane, `Chain Gun ${index}`, panelCleanup.add) : pane;
+        addMountAmmoRows(gunPane, shipDriver, `/chainGuns/${index}`, panelCleanup);
+        addSegmentedBarBlade(gunPane, readNumberProp(shipDriver, `/chainGuns/${index}/loading`), panelCleanup.add);
+        addAnnunciatorBlade(
             gunPane,
             readProp(shipDriver, `/chainGuns/${index}/loadAmmo`),
-            { label: 'auto load' },
+            { label: 'Auto load' },
             panelCleanup.add,
         );
+        addAnnunciatorBlade(
+            gunPane,
+            readProp(shipDriver, `/chainGuns/${index}/isFiring`),
+            { label: 'Firing' },
+            panelCleanup.add,
+        );
+        setAnnunciatorColumns(gunPane, 2);
     }
 }
 

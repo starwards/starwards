@@ -32,7 +32,7 @@ export function drawSystemsStatus(
     systems = shipDriver.systems,
     fit = false,
 ) {
-    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Systems Status');
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Systems');
     if (!fit) {
         container.getElement().width(`${totalWidth}px`);
     }
@@ -42,10 +42,10 @@ export function drawSystemsStatus(
         view: 'tableHead',
         label: '',
         headers: [
-            { label: 'Status', width: `${cellWidth}px` },
-            { label: 'Power', width: `${cellWidth}px` },
-            { label: 'Heat', width: `${cellWidth}px` },
-            { label: 'Hacked', width: `${cellWidth}px` },
+            { label: 'STAT', width: `${cellWidth}px` },
+            { label: 'PWR', width: `${cellWidth}px` },
+            { label: 'HEAT', width: `${cellWidth}px` },
+            { label: 'HACK', width: `${cellWidth}px` },
         ],
     });
     for (const system of systems) {

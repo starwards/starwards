@@ -217,6 +217,74 @@ export function applyThresholdTheme(
     applyTheme();
 }
 
+/**
+ * Add a labelled annunciator: a boolean shown as a lamp with its name inside, dark until true.
+ * `tone: 'caution'` lights it amber instead of cyan, for states that mean "attention" rather than
+ * "active". On an interactive screen the lamp is still the row's checkbox, laid invisibly over it,
+ * so a writable model stays clickable. Lay a row of them out with `setAnnunciatorColumns`.
+ */
+export function addAnnunciatorBlade(
+    guiFolder: FolderApi,
+    model: Model<boolean>,
+    params: { label: string; tone?: 'caution' },
+    cleanup: (d: Destructor) => void,
+) {
+    const input = addInputBlade(guiFolder, model, { label: params.label }, cleanup);
+    input.element.classList.add('sw-ann');
+    if (params.tone) {
+        input.element.dataset.tone = params.tone;
+    }
+    return input;
+}
+
+/**
+ * Lay the annunciators of a pane or folder out in `columns` equal columns; every other row in it
+ * spans the full width. The container carries `sw-ann-grid` and `--sw-ann-cols` (see tweakpane.css).
+ */
+export function setAnnunciatorColumns(container: FolderApi, columns: number) {
+    const content = container.element.querySelector<HTMLElement>(':scope > .tp-rotv_c, :scope > .tp-fldv_c');
+    if (content) {
+        content.classList.add('sw-ann-grid');
+        content.style.setProperty('--sw-ann-cols', String(columns));
+    }
+}
+
+/**
+ * Add a sub-header inside a pane: a titled folder styled as a small dim caption (see `.sw-sub`
+ * in tweakpane.css), for grouping rows under a name such as a tube or an ammo family.
+ */
+export function addSubheader(guiFolder: FolderApi, title: string, cleanup: (d: Destructor) => void) {
+    const folder = guiFolder.addFolder({ title, expanded: true });
+    folder.element.classList.add('sw-sub');
+    cleanup(() => folder.dispose());
+    return folder;
+}
+
+/**
+ * Add an inline level row: label, a small left-filled bar, then the value, on one line
+ * (`data-inline`, see tweakpane.css). Read-only, like `addBarBlade`.
+ */
+export function addInlineBarBlade(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = addBarBlade(guiFolder, model, params, cleanup);
+    blade.element.dataset.inline = '';
+    return blade;
+}
+
+/**
+ * Add a segmented level row: no label and no number, just ten cells in the track behind a solid
+ * fill (`data-segmented`, see tweakpane.css). For counters that read as progress, not as a value.
+ */
+export function addSegmentedBarBlade(guiFolder: FolderApi, model: NumericModel, cleanup: (d: Destructor) => void) {
+    const blade = addBarBlade(guiFolder, model, {}, cleanup);
+    blade.element.dataset.segmented = '';
+    return blade;
+}
+
 export function addEnumListBlade(
     guiFolder: FolderApi,
     model: Model<number>,
