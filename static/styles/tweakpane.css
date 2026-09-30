@@ -591,6 +591,7 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::after {
     font-family: var(--sw-font-label);
     font-weight: 600;
     letter-spacing: 0;
+    text-transform: none;
     color: var(--sw-label);
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {

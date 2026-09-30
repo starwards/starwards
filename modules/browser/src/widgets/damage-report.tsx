@@ -60,7 +60,7 @@ function AllReports({ driver }: { driver: ShipDriver }) {
     const brokenSystems = getBrokenSystems(driver.systems);
     return (
         <div className="sw-damage">
-            <div className="sw-damage__title">Damage Report</div>
+            <div className="sw-damage__title">Damage</div>
             {brokenSystems.map((s) => (
                 <SystemOfflineReport key={s.pointer} name={s.name} />
             ))}
