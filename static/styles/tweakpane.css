@@ -730,9 +730,14 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
     display: grid;
     grid-template-columns: repeat(var(--sw-ann-cols, 3), minmax(0, 1fr));
     column-gap: 4px;
+    padding-left: var(--sw-pad);
+    padding-right: var(--sw-pad);
 }
+/* ordinary rows carry their own side padding, so they cancel the grid's and keep the pane's full width */
 :root .sw-ann-grid > :not(.sw-ann) {
     grid-column: 1 / -1;
+    margin-left: calc(-1 * var(--sw-pad));
+    margin-right: calc(-1 * var(--sw-pad));
 }
 :root .tp-lblv.sw-ann {
     position: relative;
@@ -791,7 +796,7 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
     letter-spacing: 0.2em;
     color: var(--sw-dim);
 }
-:root .tp-fldv.sw-sub > .tp-fldv_c {
+:root .tp-fldv.sw-sub > .tp-fldv_c:not(.sw-ann-grid) {
     padding-left: 0;
     padding-right: 0;
 }
@@ -852,6 +857,10 @@ body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-
     flex: none;
     width: auto;
     min-width: 0;
+}
+:root .tp-lblv[data-inline][data-status='OK'] {
+    background: transparent;
+    box-shadow: none;
 }
 :root .tp-lblv[data-inline] .tp-txtv_i {
     font-size: calc(var(--sw-fs-value) - 1px);

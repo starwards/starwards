@@ -134,17 +134,18 @@ test.describe('Weapons hotkeys', () => {
     // --- Cluster warhead mode has no dedicated hotkey — alt+1 visits both warhead
     // modes as extra stops in the same ammo cycle when it reaches ClusterMissile (#2261) ---
 
+    // hotkeys send true on keydown and false on keyup; a zero-length press can land both in one server tick and be lost, so hold the key
     test('alt+1 key: cycles both cluster warhead modes before moving past ClusterMissile', async ({ page }) => {
         let projectile: string | undefined;
         for (let i = 0; i < 8 && projectile !== 'ClusterMissile'; i++) {
-            await page.keyboard.press('Alt+1');
+            await page.keyboard.press('Alt+1', { delay: 100 });
             await page.waitForTimeout(150);
             projectile = gameDriver.getShip(shipId).state.tubes.at(0)?.projectile;
         }
         expect(projectile).toBe('ClusterMissile');
         expect(gameDriver.getShip(shipId).state.tubes.at(0)?.clusterWarhead).toBe('Frag');
 
-        await page.keyboard.press('Alt+1');
+        await page.keyboard.press('Alt+1', { delay: 100 });
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
             (ship) => ship.state.tubes.at(0)?.clusterWarhead === 'ArmPen',
@@ -152,7 +153,7 @@ test.describe('Weapons hotkeys', () => {
         );
         expect(gameDriver.getShip(shipId).state.tubes.at(0)?.projectile).toBe('ClusterMissile');
 
-        await page.keyboard.press('Alt+1');
+        await page.keyboard.press('Alt+1', { delay: 100 });
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
             (ship) => ship.state.tubes.at(0)?.projectile !== 'ClusterMissile',
