@@ -8,8 +8,8 @@ warp frequency.
 
 | Region | Widget | Notes |
 |---|---|---|
-| Top-left | `engineeringStatus` | reactor energy graph, after-burner fuel graph, hull status |
-| Middle-left | `warpStatus` | actual/designated warp level, jam indicator, actual/designated frequency, calibration |
+| Top-left | `engineeringStatus` | Power Plant: reactor energy bar, energy cells, afterburner fuel bar, hull status |
+| Middle-left | `warpStatus` | warp level, actual/designated frequency, calibration, jam and calibration lamps |
 | Middle-middle | `fullSystemsStatus` | per-system table: status / power / EPM / heat / coolant slider / hacked, plus per-defectible row |
 | Bottom-left | `armorStatus` | dragonfly armor SVG, plate-health colored red→green |
 

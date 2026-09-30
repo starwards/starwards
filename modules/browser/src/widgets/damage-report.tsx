@@ -149,7 +149,7 @@ export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
 export function drawDamageReport(container: WidgetContainer, shipDriver: ShipDriver) {
     const { component, defaultProps } = damageReportWidget(shipDriver);
     const parent = container.getElement();
-    parent.attr('data-id', 'Damage Report');
+    parent.attr('data-id', 'Damage');
     const mountPoint = document.createElement('div');
     parent.append(mountPoint);
     const root = createRoot(mountPoint);
