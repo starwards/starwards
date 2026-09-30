@@ -141,6 +141,38 @@ test.describe('Station layout', () => {
                         if (full.bottom > c.bottom + 1) problems.push(`${id}: cut off at the bottom of its slot`);
                         if (full.right > c.right + 1) problems.push(`${id}: cut off at the right of its slot`);
                     }
+                    const paneStyle = getComputedStyle(pane);
+                    const contentRight =
+                        full.right - parseFloat(paneStyle.paddingRight) - parseFloat(paneStyle.borderRightWidth);
+                    for (const el of pane.querySelectorAll('*')) {
+                        const r = el.getBoundingClientRect();
+                        if (r.width === 0 || r.height === 0 || getComputedStyle(el).display === 'none') continue;
+                        if (r.right > contentRight + 1) {
+                            const name = el.classList.contains('sw-ann')
+                                ? `annunciator "${el.textContent}"`
+                                : `${el.tagName.toLowerCase()}.${el.className}`;
+                            problems.push(`${id}: ${name} extends past the pane content box`);
+                        }
+                    }
+                    // annunciators sit in the same content column as the bars and share their row in equal cells
+                    const pad = parseFloat(paneStyle.getPropertyValue('--sw-pad'));
+                    const rows = new Map<Element, number[]>();
+                    for (const ann of pane.querySelectorAll('.sw-ann')) {
+                        const r = ann.getBoundingClientRect();
+                        if (r.width === 0) continue;
+                        if (r.left < full.left + pad - 1 || r.right > full.right - pad + 1) {
+                            problems.push(`${id}: annunciator "${ann.textContent}" is outside the pane content box`);
+                        }
+                        rows.set(ann.parentElement as Element, [
+                            ...(rows.get(ann.parentElement as Element) ?? []),
+                            r.width,
+                        ]);
+                    }
+                    for (const widths of rows.values()) {
+                        if (Math.max(...widths) - Math.min(...widths) > 1) {
+                            problems.push(`${id}: annunciators in one row have unequal widths ${widths.join()}`);
+                        }
+                    }
                     for (const value of pane.querySelectorAll('input, select')) {
                         if (
                             value.clientWidth > 1 &&
