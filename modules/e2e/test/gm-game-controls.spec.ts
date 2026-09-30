@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import { Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 
@@ -56,10 +57,15 @@ test.describe('GM game controls widget', () => {
         await expect(page.locator('[data-id="observation-mode"]')).toBeVisible();
 
         await page.waitForTimeout(2500); // a couple of frames past frame 0
+        // ending the recording hands the file to the GM's browser
+        const download = page.waitForEvent('download');
         await controls.locator('button.tp-btnv_b', { hasText: 'Stop Recording' }).click();
         await expect(() => {
             expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
         }).toPass({ timeout: 5000 });
+        expect((await download).suggestedFilename()).toMatch(/.swr.jsonl$/);
+        const file = await (await download).path();
+        expect(fs.readFileSync(file, 'utf8')).toContain('starwards-recording');
         // the saved-recording readout is a text blade, so its content lives in an input value
         const lastSaved = controls.locator('.tp-lblv', { hasText: 'last saved' }).locator('input');
         await expect(lastSaved).toHaveValue(/frames/, { timeout: 10000 });

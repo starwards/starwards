@@ -20,6 +20,17 @@ function clock(seconds: number) {
     return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 }
 
+/** Hands the finished recording to the GM's browser, so the file to play back is never out of reach. */
+function downloadRecording(name: string) {
+    const link = document.createElement('a');
+    link.href = `recordings/${encodeURIComponent(name)}`;
+    link.download = name;
+    link.dataset.id = 'recording download';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+}
+
 /**
  * The GM's controls for a live game: rate and recording. Rate control is `AdminState.speed`,
  * which scales every subsystem's `deltaSeconds`.
@@ -43,6 +54,7 @@ export function drawGameControls(container: WidgetContainer, adminDriver: AdminD
     const speed = readWriteNumberProp(adminDriver, '/speed');
     const isRecording = readProp<boolean>(adminDriver, '/isRecordingGame');
     const recordingSeconds = readProp<number>(adminDriver, '/recordingSeconds');
+    const recordingName = readProp<string>(adminDriver, '/recordingName');
 
     for (const { label, rate } of RATES) {
         addButton(pane, () => speed.setValue(rate), { label, title: label }, cleanup.add);
@@ -94,6 +106,20 @@ export function drawGameControls(container: WidgetContainer, adminDriver: AdminD
         { label: 'last saved' },
         cleanup.add,
     );
+
+    // a recording ends by the GM's button or by stopping the game: either way the file is downloaded
+    let recordingFile = '';
+    const onRecordingChange = () => {
+        if (isRecording.getValue()) {
+            recordingFile = recordingName.getValue() || recordingFile;
+        } else if (recordingFile) {
+            downloadRecording(recordingFile);
+            recordingFile = '';
+        }
+    };
+    cleanup.add(isRecording.onChange(onRecordingChange));
+    cleanup.add(recordingName.onChange(onRecordingChange));
+    onRecordingChange();
 
     const updateRecordTitle = () => {
         recordButton.title = isRecording.getValue() ? 'Stop Recording' : 'Record';
