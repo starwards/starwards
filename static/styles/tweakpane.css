@@ -485,7 +485,7 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
 :root body[data-station='weapons'] [data-id='Systems'] > .tp-rotv_b::after {
     content: 'WPN-06';
 }
-:root body[data-station='engineer'] [data-id='Power Plant'] > .tp-rotv_b::after {
+:root body[data-station='engineer'] [data-id='Reactor'] > .tp-rotv_b::after {
     content: 'ENG-01';
 }
 :root body[data-station='engineer'] [data-id='Warp'] > .tp-rotv_b::after {

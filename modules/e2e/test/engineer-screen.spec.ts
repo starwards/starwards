@@ -54,7 +54,7 @@ test.describe('Engineer Screen', () => {
 
     test('displays all panels and syncs state correctly', async ({ page }) => {
         // Verify all expected panels are visible
-        await expect(page.locator('[data-id="Power Plant"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-id="Reactor"]')).toBeVisible({ timeout: 10000 });
         await expect(page.locator('[data-id="Warp"]')).toBeVisible();
         await expect(page.locator('[data-id="Armor"]')).toBeVisible();
         await expect(page.locator('[data-id="Systems"]')).toBeVisible();
@@ -248,9 +248,9 @@ test.describe('Engineer Screen', () => {
 
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        const engineeringStatusPanel = page.locator('[data-id="Power Plant"]');
+        const engineeringStatusPanel = page.locator('[data-id="Reactor"]');
         await expect(engineeringStatusPanel).toBeVisible({ timeout: 10000 });
-        await waitForPropertyValue(page, 'cells', (v) => v === '1/2', 'Power Plant');
+        await waitForPropertyValue(page, 'cells', (v) => v === '1/2', 'Reactor');
 
         const row = protocolRow(repairQueuePanel, 'Reactor jump-start');
         // reactorJumpStart is the 13th catalog entry -> alt+e
@@ -264,6 +264,6 @@ test.describe('Engineer Screen', () => {
         // only asserts the jump-start itself landed a meaningful recovery — not an exact value.
         await expect.poll(() => ship.state.reactor.energy, { timeout: 5000 }).toBeGreaterThan(250);
         await expect.poll(() => ship.state.reactor.energyCells, { timeout: 5000 }).toBe(0);
-        await waitForPropertyValue(page, 'cells', (v) => v === '0/2', 'Power Plant');
+        await waitForPropertyValue(page, 'cells', (v) => v === '0/2', 'Reactor');
     });
 });

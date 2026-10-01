@@ -6,12 +6,12 @@ warp frequency.
 
 ## Widgets on screen
 
-| Region | Widget | Notes |
-|---|---|---|
-| Top-left | `engineeringStatus` | Power Plant: reactor energy bar, energy cells, afterburner fuel bar, hull status |
-| Middle-left | `warpStatus` | warp level, actual/designated frequency, calibration, jam and calibration lamps |
+| Region        | Widget              | Notes                                                                                            |
+| ------------- | ------------------- | ------------------------------------------------------------------------------------------------ |
+| Top-left      | `engineeringStatus` | Reactor: energy bar, energy cells, afterburner fuel bar, hull status                             |
+| Middle-left   | `warpStatus`        | warp level, actual/designated frequency, calibration, jam and calibration lamps                  |
 | Middle-middle | `fullSystemsStatus` | per-system table: status / power / EPM / heat / coolant slider / hacked, plus per-defectible row |
-| Bottom-left | `armorStatus` | dragonfly armor SVG, plate-health colored red→green |
+| Bottom-left   | `armorStatus`       | dragonfly armor SVG, plate-health colored red→green                                              |
 
 Background is set to `radarFogOfWar` (dark) per `engineer.ts`.
 
@@ -35,10 +35,10 @@ visible in the source code on this screen.
 
 On the same input manager, whenever the ship has a warp drive:
 
-| Action | Key |
-|---|---|
-| Warp Frequency down / up | `[` / `]` |
-| Change Frequency (commit standby → current) | `\` |
+| Action                                      | Key       |
+| ------------------------------------------- | --------- |
+| Warp Frequency down / up                    | `[` / `]` |
+| Change Frequency (commit standby → current) | `\`       |
 
 The warp frequency control sets `/warp/standbyFrequency` within
 `[0, WarpFrequency.WARP_FREQUENCY_COUNT - 1]`. Actual frequency change happens
@@ -60,12 +60,12 @@ on the `Change Frequency` command.
 
 ## Open MS3 tickets that could touch this station
 
-| Ticket | Status | Title | Engineer relevance |
-|---|---|---|---|
-| #1233 | ✅ closed (PR #1974) | broken status in damage report widget | `damage-report.tsx` now renders broken systems via `getBrokenSystems`; `fullSystemsStatus` already showed `broken` via `statusChangeProps` |
-| #968 | open | Armor adjustments | armor is now layered continuous per-plate/per-layer health (`ArmorPlate`/`ArmorLayer` in `armor.ts`, PR #1932) — would change `armorStatus` rendering |
-| #788 | open | QA armor behavior | testing/validation only |
-| #1239 | open | composition vs inheritance refactor | architectural; no direct UI change but flagged as high risk in MS3 PLAN |
+| Ticket | Status               | Title                                 | Engineer relevance                                                                                                                                    |
+| ------ | -------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #1233  | ✅ closed (PR #1974) | broken status in damage report widget | `damage-report.tsx` now renders broken systems via `getBrokenSystems`; `fullSystemsStatus` already showed `broken` via `statusChangeProps`            |
+| #968   | open                 | Armor adjustments                     | armor is now layered continuous per-plate/per-layer health (`ArmorPlate`/`ArmorLayer` in `armor.ts`, PR #1932) — would change `armorStatus` rendering |
+| #788   | open                 | QA armor behavior                     | testing/validation only                                                                                                                               |
+| #1239  | open                 | composition vs inheritance refactor   | architectural; no direct UI change but flagged as high risk in MS3 PLAN                                                                               |
 
 ## Factually-verifiable gaps (not opinions)
 

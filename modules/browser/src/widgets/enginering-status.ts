@@ -25,7 +25,7 @@ export function engineeringStatusWidget(shipDriver: ShipDriver): DashboardWidget
  * trace over time would only add history the pane has no room to read.
  */
 export function drawEngineeringStatus(container: WidgetContainer, shipDriver: ShipDriver) {
-    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Power Plant');
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Reactor');
 
     const energy = readNumberProp(shipDriver, `/reactor/energy`);
     const energyBar = addBarBlade(

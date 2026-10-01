@@ -24,9 +24,9 @@ The Engineer screen provides detailed system management, power distribution, and
 
 ## Functional Elements
 
-### 1. Power Plant Panel (Top-Left, ENG-01)
+### 1. Reactor Panel (Top-Left, ENG-01)
 
-- **Widget**: `drawEngineeringStatus()` - Tweakpane panel titled "Power Plant"
+- **Widget**: `drawEngineeringStatus()` - Tweakpane panel titled "Reactor"
 - **Properties**:
     - `energy`: large value over a left-filled bar; the row turns amber then red as the reactor runs low
     - `cells`: "n/max" over a segmented counter, one segment per energy cell
