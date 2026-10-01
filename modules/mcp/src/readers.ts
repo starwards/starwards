@@ -98,6 +98,9 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
         const ship = s.shipDriver.state;
         return {
             energy: ship.reactor?.energy,
+            maxEnergy: ship.reactor?.design.maxEnergy,
+            energyCells: ship.reactor?.energyCells,
+            maxEnergyCells: ship.reactor?.design.maxEnergyCells,
             afterBurnerFuel: ship.maneuvering?.afterBurnerFuel,
             hullDamaged: ship.hullDamaged,
         };
