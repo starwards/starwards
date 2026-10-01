@@ -91,6 +91,7 @@ export const stationCommands = [
     'warpFrequency',
     'changeFrequency',
     'cycleRepairPriority',
+    'toggleRepairProtocolMode',
     // signals
     'beamDirection',
     'beamArc',
