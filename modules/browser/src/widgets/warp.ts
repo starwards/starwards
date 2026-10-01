@@ -1,6 +1,6 @@
 import { ShipDriver, WarpFrequency } from '@starwards/core';
-import { addBarBlade, addTextBlade, createWidgetPane } from '../panel';
-import { readNumberProp, readProp } from '../property-wrappers';
+import { addAnnunciatorBlade, addBarBlade, addTextBlade, createWidgetPane, setAnnunciatorColumns } from '../panel';
+import { aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
@@ -19,33 +19,51 @@ export function warpWidget(shipDriver: ShipDriver): DashboardWidget {
     };
 }
 
+const formatLevel = (level: number | undefined) => String(Number((level ?? 0).toFixed(1)));
+const formatFrequency = (p: WarpFrequency) => WarpFrequency[p];
+
 export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Warp');
-    addBarBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual LVL' }, panelCleanup.add);
-    addBarBlade(pane, readNumberProp(shipDriver, '/warp/desiredLevel'), { label: 'Designated LVL' }, panelCleanup.add);
-    const jammedProp = readProp(shipDriver, '/warp/jammed');
-    const jamBlade = addTextBlade(
+    const currentLevel = readNumberProp(shipDriver, '/warp/currentLevel');
+    const desiredLevel = readNumberProp(shipDriver, '/warp/desiredLevel');
+    addTextBlade(
         pane,
-        jammedProp,
-        { label: 'Proximity Jam', format: (j) => (j ? 'JAMMED' : 'CLEAR') },
+        aggregate(
+            [currentLevel, desiredLevel],
+            () => `${formatLevel(currentLevel.getValue())} / ${formatLevel(desiredLevel.getValue())}`,
+        ),
+        { label: 'level' },
         panelCleanup.add,
-    );
-    jamBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
-    const applyThemeToJammed = () => (jamBlade.element.dataset.status = shipDriver.state.warp?.jammed ? 'WARN' : ''); // this will change tweakpane theme for this folder, see tweakpane.css
-    panelCleanup.add(jammedProp.onChange(applyThemeToJammed));
-    applyThemeToJammed();
-
+    ).element.classList.add('sw-big');
     addTextBlade(
         pane,
         readProp<WarpFrequency>(shipDriver, '/warp/currentFrequency'),
-        { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Actual FRQ' },
+        { format: formatFrequency, label: 'frequency' },
         panelCleanup.add,
     );
     addTextBlade(
         pane,
         readProp<WarpFrequency>(shipDriver, '/warp/standbyFrequency'),
-        { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Designated FRQ' },
+        { format: formatFrequency, label: 'designated' },
         panelCleanup.add,
     );
-    addBarBlade(pane, readNumberProp(shipDriver, '/warp/frequencyChange'), { label: 'Calibration' }, panelCleanup.add);
+    addBarBlade(
+        pane,
+        readNumberProp(shipDriver, '/warp/frequencyChange'),
+        { label: 'calibration', format: (c: number) => `${Math.round(c * 100)}%` },
+        panelCleanup.add,
+    );
+    addAnnunciatorBlade(
+        pane,
+        readProp<boolean>(shipDriver, '/warp/jammed'),
+        { label: 'Jammed', tone: 'caution' },
+        panelCleanup.add,
+    );
+    addAnnunciatorBlade(
+        pane,
+        readProp<boolean>(shipDriver, '/warp/changingFrequency'),
+        { label: 'Calib' },
+        panelCleanup.add,
+    );
+    setAnnunciatorColumns(pane, 2);
 }

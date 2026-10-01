@@ -1,5 +1,5 @@
 /* use https://cocopon.github.io/tweakpane/theming/ */
-/* Industrial Sci-Fi cyan theme - matches docs/reference/color-design-system.html */
+/* Glass-cockpit readout skin. Palette: docs/superpowers/specs/2026-09-29-station-readout-skin-design.md */
 /* Status colors should match modules/browser/src/colors.ts status.* values */
 
 @font-face {
@@ -22,62 +22,28 @@
 }
 
 :root {
-    /* Base: dark with slight cyan tint */
-    --tp-base-background-color: hsla(180, 10%, 8%, 1);
-    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
-
-    /* Buttons: cyan tinted */
-    --tp-button-background-color: hsla(180, 50%, 70%, 1);
-    --tp-button-background-color-active: hsla(180, 60%, 85%, 1);
-    --tp-button-background-color-focus: hsla(180, 55%, 80%, 1);
-    --tp-button-background-color-hover: hsla(180, 55%, 75%, 1);
-    --tp-button-foreground-color: hsla(180, 10%, 8%, 1);
-
-    /* Containers: cyan accent background */
-    --tp-container-background-color: hsla(180, 100%, 50%, 0.08);
-    --tp-container-background-color-active: hsla(180, 100%, 50%, 0.2);
-    --tp-container-background-color-focus: hsla(180, 100%, 50%, 0.15);
-    --tp-container-background-color-hover: hsla(180, 100%, 50%, 0.12);
-    --tp-container-foreground-color: hsla(180, 50%, 70%, 1);
-
-    /* Groove */
-    --tp-groove-foreground-color: hsla(180, 100%, 50%, 0.15);
-
-    /* Inputs: darker cyan tinted */
-    --tp-input-background-color: hsla(180, 100%, 50%, 0.08);
-    --tp-input-background-color-active: hsla(180, 100%, 50%, 0.2);
-    --tp-input-background-color-focus: hsla(180, 100%, 50%, 0.15);
-    --tp-input-background-color-hover: hsla(180, 100%, 50%, 0.12);
-    --tp-input-foreground-color: hsla(180, 70%, 70%, 1);
-
-    /* Labels/monitors: dimmer cyan */
-    --tp-label-foreground-color: hsla(180, 40%, 50%, 1);
-    --tp-monitor-background-color: hsla(180, 20%, 5%, 1);
-    --tp-monitor-foreground-color: hsla(180, 40%, 50%, 1);
-
-    /* the following variables are not officially supported by tweakpane themes: */
-    --tp-font-family: Roboto Mono, Source Code Pro, Menlo, Courier, monospace;
-    --tp-base-border-radius: 6px;
-    --tp-container-horizontal-padding: 4px;
-    --tp-element-border-radius: 2px;
-    --tp-blade-spacing: 4px;
-    --tp-blade-unit-size: 20px;
     /* station readout skin tokens; colours must match `status`/palette in modules/browser/src/colors.ts */
     --sw-ground: #03080b;
+    --sw-glass: rgba(4, 14, 18, 0.92);
     --sw-frame: #143a42;
     --sw-accent: #5fe3f0;
     --sw-title: #7fe7f2;
     --sw-label: #52aebb;
     --sw-value: #e6fcff;
+    --sw-dim: #2f7480;
     --sw-caution: #ffb000;
     --sw-warning: #ff3b30;
+    --sw-on-caution: #120a00;
+    --sw-on-warning: #140000;
+    --sw-glow: 0 0 6px rgba(120, 235, 250, 0.35);
     --sw-font-label: 'Chakra Petch', sans-serif;
     --sw-font-value: 'Share Tech Mono', monospace;
     --sw-fs-label: 12px;
-    --sw-fs-value: 22px;
+    --sw-fs-value: 17px;
     --sw-fs-title: 13px;
-    --sw-gap: 8px;
+    --sw-gap: 6px;
     --sw-pad: 10px;
+    --tp-blade-value-width: 42%;
 }
 
 body[data-density='compact'] {
@@ -86,42 +52,1182 @@ body[data-density='compact'] {
     --sw-fs-title: 12px;
     --sw-gap: 4px;
     --sw-pad: 6px;
+    --tp-blade-value-width: 46%;
+}
+
+/* Tweakpane theme variables. Declared on body so the size and spacing tokens above resolve per density. */
+body {
+    --tp-base-background-color: var(--sw-glass);
+    --tp-base-shadow-color: transparent;
+    --tp-base-border-radius: 0;
+    --tp-base-font-family: var(--sw-font-label);
+    --tp-blade-border-radius: 0;
+    --tp-container-horizontal-padding: var(--sw-pad);
+    --tp-container-vertical-padding: var(--sw-gap);
+    --tp-container-unit-spacing: 2px;
+    --tp-container-unit-size: calc(var(--sw-fs-value) + 6px);
+    --tp-container-background-color: transparent;
+    --tp-container-background-color-hover: transparent;
+    --tp-container-background-color-focus: transparent;
+    --tp-container-background-color-active: transparent;
+    --tp-container-foreground-color: var(--sw-title);
+    --tp-groove-foreground-color: var(--sw-frame);
+    --tp-label-foreground-color: var(--sw-label);
+    --tp-input-background-color: transparent;
+    --tp-input-background-color-hover: rgba(95, 227, 240, 0.06);
+    --tp-input-background-color-focus: rgba(95, 227, 240, 0.06);
+    --tp-input-background-color-active: rgba(95, 227, 240, 0.1);
+    --tp-input-foreground-color: var(--sw-value);
+    --tp-monitor-background-color: transparent;
+    --tp-monitor-foreground-color: var(--sw-value);
+    --tp-button-background-color: var(--sw-accent);
+    --tp-button-background-color-hover: #9af1f8;
+    --tp-button-background-color-focus: #9af1f8;
+    --tp-button-background-color-active: var(--sw-value);
+    --tp-button-foreground-color: #02161a;
 }
 
 body[data-input='none'] .tp-rotv {
     pointer-events: none;
 }
 
-:root [data-status='OK'] {
-    --tp-base-background-color: hsl(123, 61%, 18%);
-}
-:root [data-status='WARN'] {
-    --tp-base-background-color: hsl(52, 61%, 18%, 1);
-}
-:root [data-status='ERROR'] {
-    --tp-base-background-color: hsl(0, 69%, 17%, 1);
+/* faint scanlines over every station screen; never intercepts the pointer */
+body[data-surface='station']::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
 }
 
 /* from https://github.com/amir-arad/tweakpane-table */
-:root .tp-lblv_v {
+:root .tp-lblv_v:has(> .tp-tablev),
+:root .tp-rowcv .tp-lblv_v {
     min-width: fit-content; /* don't cut off cells */
 }
 :root .tp-grlv_g {
     width: 160px; /* cut off monitor cell */
 }
 
-/* non-interactive "bar" display for read-only values within a range (see addBarCellToRow):
-   reuses the slider view but hides the drag handle and fills the track so it reads as a
-   solid level bar rather than a draggable control */
-.sw-bar .tp-sldv.tp-v-disabled {
+/* pane: glass ground, hairline frame, bracketed accent corners, no rounding */
+:root .tp-rotv {
+    position: relative;
+    font-size: var(--sw-fs-label);
+    font-weight: 600;
+}
+:root .tp-rotv:not([data-status]):not(.heat) {
+    border: 1px solid var(--sw-frame);
+    box-shadow: none;
+}
+:root .tp-rotv:not([data-status]):not(.heat)::before,
+:root .tp-rotv:not([data-status]):not(.heat)::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 0 solid var(--sw-accent);
+    pointer-events: none;
+    z-index: 1;
+}
+:root .tp-rotv:not([data-status]):not(.heat)::before {
+    top: -1px;
+    left: -1px;
+    border-width: 2px 0 0 2px;
+}
+:root .tp-rotv:not([data-status]):not(.heat)::after {
+    bottom: -1px;
+    right: -1px;
+    border-width: 0 2px 2px 0;
+}
+
+/* pane and folder titles */
+:root .tp-rotv_b,
+:root .tp-fldv_b {
+    display: flex;
+    align-items: center;
+    height: auto;
+    min-height: calc(var(--sw-fs-title) + 10px);
+    line-height: 1.2;
+    padding-left: var(--sw-pad);
+    padding-right: var(--sw-pad);
+    text-align: left;
+    color: var(--sw-title);
+    font-size: var(--sw-fs-title);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--sw-frame);
+}
+:root .tp-rotv_t,
+:root .tp-fldv_t {
+    flex: 1;
+    min-width: 0;
+    padding-left: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+:root .tp-rotv_m,
+:root .tp-fldv_m {
+    position: static;
+    flex: none;
+    margin: 0 0 0 var(--sw-gap);
+    background: linear-gradient(
+        to left,
+        var(--sw-accent),
+        var(--sw-accent) 2px,
+        transparent 2px,
+        transparent 4px,
+        var(--sw-accent) 4px
+    );
+}
+:root .tp-fldv > .tp-fldv_b {
+    font-size: var(--sw-fs-label);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--sw-label);
+    border-bottom-color: transparent;
+}
+
+/* label / value rows */
+:root .tp-lblv_l {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    hyphens: none;
+    padding-right: var(--sw-gap);
+    color: var(--sw-label);
+    font-size: var(--sw-fs-label);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+:root .tp-txtv_i,
+:root .tp-sglv_i,
+:root .tp-mllv_i,
+:root .tp-lstv_s {
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-value);
+    font-weight: 400;
+    text-align: right;
+    text-shadow: var(--sw-glow);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+:root .tp-txtv_i,
+:root .tp-sglv_i {
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* read-only readouts are not dimmed: dimming reads as "disabled control", not as data */
+:root .tp-lblv.tp-v-disabled .tp-lblv_l,
+:root .tp-txtv_i:disabled,
+:root .tp-lstv_s:disabled,
+:root .tp-ckbv.tp-v-disabled .tp-ckbv_w,
+:root .tp-sglv.tp-v-disabled .tp-sglv_i,
+:root .tp-mllv.tp-v-disabled .tp-mllv_i {
     opacity: 1;
 }
-.sw-bar .tp-sldv_t {
-    cursor: default;
+
+/* list: plain mode text; the arrow is an interactive affordance only */
+:root .tp-lstv_s {
+    background: transparent;
+    color: var(--sw-title);
+    padding: 0 18px 0 0;
+    font-weight: 400;
 }
-.sw-bar .tp-sldv_k::after {
+:root .tp-lstv_m {
+    color: var(--sw-accent);
+}
+
+/* bars: tick-mark track, glowing fill, no knob for read-only levels */
+:root .tp-sldv_t {
+    height: calc(var(--sw-fs-label) - 2px);
+    margin: 0;
+    border: 1px solid #1f5963;
+    background: repeating-linear-gradient(90deg, transparent 0 9.5%, #12343b 9.5% 10%);
+}
+:root .tp-sldv_t::before {
     display: none;
 }
-.sw-bar .tp-sldv_k::before {
+:root .tp-sldv_k::before {
+    inset: 1px 0 1px 1px;
+    height: auto;
+    margin: 0;
+    border-radius: 0;
+    background: var(--sw-accent);
+    box-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+:root .tp-sldv_k::after {
+    width: 4px;
+    height: auto;
+    inset: -2px -2px -2px auto;
+    margin: 0;
+    border-radius: 0;
+    background: var(--sw-value);
+}
+:root .tp-sldv.tp-v-disabled,
+:root .sw-bar .tp-sldv.tp-v-disabled {
+    opacity: 1;
+}
+:root .sw-bar .tp-sldv_t {
+    cursor: default;
+}
+:root .sw-bar .tp-sldv_k::after,
+:root .tp-sldv.tp-v-disabled .tp-sldv_k::after,
+body[data-input='none'] .tp-sldv_k::after {
+    display: none;
+}
+
+/* checkbox: annunciator, dark until true */
+:root .tp-ckbv_w {
+    width: calc(var(--sw-fs-value) + 14px);
+    height: calc(var(--sw-fs-label) + 8px);
+    border: 1px solid #1a3439;
+    background: transparent;
+}
+:root .tp-ckbv_w svg {
+    display: none;
+}
+:root .tp-ckbv_i:checked + .tp-ckbv_w,
+:root .tp-ckbv_i[data-checked='true'] + .tp-ckbv_w {
+    border-color: var(--sw-accent);
+    background: rgba(95, 227, 240, 0.18);
+    box-shadow:
+        inset 0 0 8px rgba(95, 227, 240, 0.25),
+        0 0 6px rgba(95, 227, 240, 0.35);
+}
+:root .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w {
+    border-color: #1a3439;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* status cells: dark when normal, amber or red when not */
+:root [data-status='OK'] {
+    background: var(--sw-ground);
+}
+:root .tp-rotv[data-status='OK']:not(.readout) {
+    --tp-input-foreground-color: transparent;
+    --tp-monitor-foreground-color: transparent;
+    box-shadow: inset 0 0 0 1px #122b30;
+}
+:root .tp-rotv[data-status='OK']:not(.readout) input {
+    color: transparent;
+    text-shadow: none;
+}
+:root [data-status='WARN'] {
+    background: var(--sw-caution);
+    --tp-input-foreground-color: var(--sw-on-caution);
+    --tp-monitor-foreground-color: var(--sw-on-caution);
+    --tp-label-foreground-color: var(--sw-on-caution);
+}
+:root [data-status='ERROR'] {
+    background: var(--sw-warning);
+    --tp-input-foreground-color: var(--sw-on-warning);
+    --tp-monitor-foreground-color: var(--sw-on-warning);
+    --tp-label-foreground-color: var(--sw-on-warning);
+}
+[data-status='WARN'] input,
+[data-status='WARN'] .tp-lstv_s,
+[data-status='WARN'] .tp-lblv_l {
+    color: var(--sw-on-caution);
+    text-shadow: none;
+}
+[data-status='ERROR'] input,
+[data-status='ERROR'] .tp-lstv_s,
+[data-status='ERROR'] .tp-lblv_l {
+    color: var(--sw-on-warning);
+    text-shadow: none;
+}
+
+/* compact density (GM): labels must stay readable in narrow panes */
+:root body[data-density='compact'] .tp-lblv_l {
+    letter-spacing: 0.02em;
+    padding-right: 4px;
+}
+
+body[data-density='compact']:not([data-input='none']) .tp-btnv_b {
+    letter-spacing: 0.04em;
+    padding: 0 4px;
+}
+
+/* display-only stations: nothing that looks clickable */
+body[data-input='none'] .tp-rotv_m,
+body[data-input='none'] .tp-fldv_m,
+body[data-input='none'] .tp-lstv_m,
+body[data-input='none'] .tp-txtv_k {
+    display: none;
+}
+/* buttons collapse to nothing but stay in the DOM and accessibility tree, so tests can still drive them */
+body[data-input='none'] .tp-btnv,
+body[data-input='none'] .tp-lblv:has(.tp-btnv) {
+    height: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+body[data-input='none'] .tp-lstv_s {
+    padding-right: 0;
+}
+
+/* interactive screens (DRADIS, GM): visible affordances */
+body:not([data-input='none']) .tp-btnv_b {
+    padding: 0 var(--sw-pad);
+    font-family: var(--sw-font-label);
+    font-size: var(--sw-fs-label);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-radius: 0;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+body:not([data-input='none']) .tp-txtv_i:not(:disabled),
+body:not([data-input='none']) .tp-lstv_s {
+    background: #071a1f;
+    border: 1px solid var(--sw-dim);
+    border-bottom: 2px solid var(--sw-accent);
+    padding-left: 6px;
+    padding-right: 6px;
+}
+body:not([data-input='none']) .tp-lstv_s {
+    padding-right: 20px;
+}
+body:not([data-input='none']) .tp-txtv_i:not(:disabled):focus,
+body:not([data-input='none']) .tp-lstv_s:focus {
+    border-color: var(--sw-title);
+    box-shadow: 0 0 0 2px rgba(95, 227, 240, 0.25);
+}
+body:not([data-input='none']) .tp-ckbv_w {
+    width: 40px;
+    height: 18px;
+    border-color: var(--sw-dim);
+    background: #071a1f;
+    box-shadow: none;
+}
+body:not([data-input='none']) .tp-ckbv_w::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--sw-dim);
+}
+body:not([data-input='none']) .tp-ckbv_i:checked + .tp-ckbv_w,
+body:not([data-input='none']) .tp-ckbv_i[data-checked='true'] + .tp-ckbv_w {
+    background: rgba(95, 227, 240, 0.2);
+    box-shadow: none;
+}
+body:not([data-input='none']) .tp-ckbv_i:checked + .tp-ckbv_w::after,
+body:not([data-input='none']) .tp-ckbv_i[data-checked='true'] + .tp-ckbv_w::after {
+    left: 24px;
+    background: var(--sw-accent);
+}
+body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w {
+    border-color: var(--sw-dim);
+    background: #071a1f;
+}
+body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::after {
+    left: 2px;
+    background: var(--sw-dim);
+}
+
+/* pane ids: a small mono tag at the right of the pane title bar. Station-scoped because Systems and Warp repeat across stations. */
+:root .tp-rotv_b::after {
+    flex: none;
+    margin-left: var(--sw-gap);
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-label);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    color: var(--sw-frame);
+}
+:root body[data-station='helms'] [data-id='Systems'] > .tp-rotv_b::after {
+    content: 'HLM-07';
+}
+:root body[data-station='helms'] [data-id='Flight'] > .tp-rotv_b::after {
+    content: 'HLM-01';
+}
+:root body[data-station='helms'] [data-id='Modes'] > .tp-rotv_b::after {
+    content: 'HLM-02';
+}
+:root body[data-station='helms'] [data-id='Command'] > .tp-rotv_b::after {
+    content: 'HLM-03';
+}
+:root body[data-station='helms'] [data-id='Fuel'] > .tp-rotv_b::after {
+    content: 'HLM-04';
+}
+:root body[data-station='helms'] [data-id='Warp'] > .tp-rotv_b::after {
+    content: 'HLM-05';
+}
+:root body[data-station='helms'] [data-id='Docking'] > .tp-rotv_b::after {
+    content: 'HLM-06';
+}
+:root body[data-station='weapons'] [data-id='Tubes'] > .tp-rotv_b::after {
+    content: 'WPN-02';
+}
+:root body[data-station='weapons'] [data-id='Magazine'] > .tp-rotv_b::after {
+    content: 'WPN-03';
+}
+:root body[data-station='weapons'] [data-id='Chain Gun'] > .tp-rotv_b::after {
+    content: 'WPN-04';
+}
+:root body[data-station='weapons'] [data-id='Target'] > .tp-rotv_b::after {
+    content: 'WPN-05';
+}
+:root body[data-station='weapons'] [data-id='Systems'] > .tp-rotv_b::after {
+    content: 'WPN-06';
+}
+:root body[data-station='engineer'] [data-id='Reactor'] > .tp-rotv_b::after {
+    content: 'ENG-01';
+}
+:root body[data-station='engineer'] [data-id='Warp'] > .tp-rotv_b::after {
+    content: 'ENG-02';
+}
+:root body[data-station='engineer'] [data-id='Systems'] > .tp-rotv_b::after {
+    content: 'ENG-04';
+}
+:root body[data-station='engineer'] [data-id='Repair Queue'] > .tp-rotv_b::after {
+    content: 'ENG-05';
+}
+:root body[data-station='signals'] [data-id='Scan Beam'] > .tp-rotv_b::after {
+    content: 'SIG-01';
+}
+:root body[data-station='signals'] [data-id='Jobs'] > .tp-rotv_b::after {
+    content: 'SIG-02';
+}
+:root body[data-station='signals'] [data-id='Contact'] > .tp-rotv_b::after {
+    content: 'SIG-03';
+}
+:root body[data-station='signals'] [data-id='Systems'] > .tp-rotv_b::after {
+    content: 'SIG-04';
+}
+:root body[data-station='dradis'] [data-id='New Waypoint'] > .tp-rotv_b::after {
+    content: 'DRD-01';
+}
+:root body[data-station='dradis'] [data-id='Layers'] > .tp-rotv_b::after {
+    content: 'DRD-02';
+}
+:root body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_b::after {
+    content: 'DRD-03';
+}
+:root body[data-station='dradis'] [data-id='Edit Waypoint'] > .tp-rotv_b::after {
+    content: 'DRD-04';
+}
+
+/* segmented bars: the track shows discrete cells behind a solid fill; opted in with data-segmented on the row */
+:root [data-segmented] .tp-sldv_t {
+    border-color: transparent;
+    height: 10px;
+    background: repeating-linear-gradient(
+        90deg,
+        #12343b 0 calc(100% / var(--sw-segments, 10) - 3px),
+        transparent calc(100% / var(--sw-segments, 10) - 3px) calc(100% / var(--sw-segments, 10))
+    );
+}
+:root [data-segmented] .tp-sldv_k::before {
+    inset: 0;
+}
+:root [data-segmented] .tp-sldtxtv_t,
+:root [data-bare] .tp-sldtxtv_t {
+    display: none;
+}
+
+/* system tables: narrow status cells leave the label column its room */
+:root body[data-station] [data-id='Systems'] .tp-lblv_l,
+:root body[data-station] [data-id='Full Systems Status'] .tp-lblv_l {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding-right: 2px;
+}
+
+/* repair queue on a display station: the active repair on top, then per slot a line of number, name and run time, and a dim line of details and priority; the bar joins only while a repair runs */
+[data-id='Repair Queue'] > .tp-rotv_c {
+    counter-reset: sw-slot;
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv-nol {
+    margin-bottom: var(--sw-pad);
+}
+body[data-input='none'] [data-id='Repair Queue'] {
+    --tp-container-unit-size: 18px;
+    --tp-container-vertical-padding: 1px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
+    counter-increment: sw-slot;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b {
+    min-height: 18px;
+    gap: var(--sw-pad);
+    border-bottom-color: transparent;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::before {
+    content: counter(sw-slot, decimal-leading-zero);
+    flex: none;
+    font-family: var(--sw-font-value);
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--sw-dim);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::after {
+    content: attr(data-time);
+    flex: none;
+    font-family: var(--sw-font-label);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--sw-label);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
+    border-bottom: 1px solid #0f262b;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--sw-gap);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv {
+    min-width: 0;
+    padding: 0;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:has(.tp-sldv) {
+    grid-column: 1 / -1;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lblv_l {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lblv_v {
+    width: 100%;
+    min-width: 0;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child input {
+    text-align: left;
+    font-size: 11px;
+    color: var(--sw-dim);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child(2) {
+    width: 72px;
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority] input {
+    font-size: 12px;
+    color: var(--sw-dim);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority]:not([data-priority='OFF']) input {
+    color: var(--sw-accent);
+}
+body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority='RUNNING'] input {
+    color: var(--sw-caution);
+}
+
+/* systems tables: bars carry the value, the digits would only crowd the row */
+:root body[data-station] [data-id='Full Systems Status'] .tp-sldtxtv_t,
+:root body[data-station='engineer'] [data-id='Systems'] .tp-sldtxtv_t {
+    display: none;
+}
+/* a table bar turns amber or red with its system's heat or effectiveness */
+:root [data-tint='WARN'] .tp-sldv_k::before {
+    background: var(--sw-caution);
+    box-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
+}
+:root [data-tint='ERROR'] .tp-sldv_k::before {
+    background: var(--sw-warning);
+    box-shadow: none;
+}
+:root [data-tint='WARN'] input {
+    color: var(--sw-caution);
+}
+:root [data-tint='ERROR'] input {
+    color: var(--sw-warning);
+}
+
+/* station sliders: the number beside a bar keeps room for its digits */
+:root body[data-station] .tp-sldtxtv_t {
+    flex: 0 0 44px;
+    width: auto;
+}
+:root body[data-station] .tp-sldtxtv_s {
+    flex: 1 1 0;
+    min-width: 0;
+}
+:root body[data-station] .tp-lstv_s {
+    font-size: calc(var(--sw-fs-value) - 3px);
+}
+
+/* level bars on a display station: label and number share a line, the bar spans the pane underneath */
+body[data-input='none'] .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--sw-bar-num, 64px);
+    align-items: baseline;
+    row-gap: 2px;
+    height: auto;
+    padding-bottom: var(--sw-gap);
+}
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    > .tp-lblv_v,
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    .tp-sldtxtv {
+    display: contents;
+}
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    > .tp-lblv_l {
+    grid-area: 1 / 1;
+}
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    .tp-sldtxtv_t {
+    grid-area: 1 / 2;
+    flex: none;
+    width: auto;
+    min-width: 0;
+}
+body[data-input='none']
+    .tp-lblv.sw-bar:not(.tp-lblv-nol, [data-bipolar], [data-inline], [data-id='Repair Queue'] *)
+    .tp-sldtxtv_s {
+    grid-area: 2 / 1 / 3 / -1;
+}
+
+/* signed bars: label | bar | number on one line; the fill grows from the centre tick toward the value (--sw-bar-value, -1..1) */
+:root .tp-lblv[data-bipolar] {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 54px;
+    column-gap: var(--sw-gap);
+    align-items: center;
+}
+:root .tp-lblv[data-bipolar] > .tp-lblv_v,
+:root .tp-lblv[data-bipolar] .tp-sldtxtv {
+    display: contents;
+}
+:root .tp-lblv[data-bipolar] .tp-sldtxtv_s {
+    grid-column: 2;
+}
+:root .tp-lblv[data-bipolar] .tp-txtv_i {
+    font-size: calc(var(--sw-fs-value) - 2px);
+}
+:root .tp-lblv[data-bipolar] .tp-sldtxtv_t {
+    grid-column: 3;
+    flex: none;
+    width: auto;
+    min-width: 0;
+}
+:root [data-bipolar] .tp-sldv_k::before {
+    display: none;
+}
+:root [data-bipolar] .tp-sldv_t::before {
+    display: block;
+    inset: 1px auto 1px auto;
+    height: auto;
+    margin: 0;
+    border-radius: 0;
+    left: calc(50% - max(0, -1 * var(--sw-bar-value, 0)) * 50%);
+    width: calc(max(var(--sw-bar-value, 0), -1 * var(--sw-bar-value, 0)) * 50%);
+    background: var(--sw-accent);
+    box-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+:root [data-bipolar] .tp-sldv_t::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -3px;
+    bottom: -3px;
+    width: 1px;
+    background: var(--sw-title);
+}
+
+/* flight: the three headline numbers side by side, caption under each */
+:root [data-id='Flight'] > .tp-rotv_c {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sw-pad);
+}
+:root [data-id='Flight'] .tp-lblv {
+    flex-direction: column-reverse;
+    padding: 0;
+    text-align: center;
+}
+:root [data-id='Flight'] .tp-lblv_l {
+    width: 100%;
+    padding: 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--sw-label);
+}
+:root [data-id='Flight'] .tp-lblv_v {
+    width: 100%;
+}
+:root [data-id='Flight'] .tp-lblv_v .tp-txtv_i {
+    height: auto;
+    font-family: var(--sw-font-value);
+    font-size: 30px;
+    line-height: 1.2;
+    text-align: center;
+}
+:root body[data-density='compact'] [data-id='Flight'] .tp-lblv_v .tp-txtv_i {
+    font-size: 22px;
+}
+
+/* annunciators: a lamp with its name inside, dark until true. Rows opt in with .sw-ann; their container lays them out with .sw-ann-grid. */
+:root .sw-ann-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--sw-ann-cols, 3), minmax(0, 1fr));
+    column-gap: 4px;
+    padding-left: var(--sw-pad);
+    padding-right: var(--sw-pad);
+}
+/* ordinary rows carry their own side padding, so they cancel the grid's and keep the pane's full width */
+:root .sw-ann-grid > :not(.sw-ann) {
+    grid-column: 1 / -1;
+    margin-left: calc(-1 * var(--sw-pad));
+    margin-right: calc(-1 * var(--sw-pad));
+}
+:root .tp-lblv.sw-ann {
+    position: relative;
+    margin-top: var(--sw-gap);
+    padding: 3px 0;
+    justify-content: center;
+    border: 1px solid #1a3439;
+}
+/* the checkbox stays the row's hit area, laid invisibly over the lamp */
+:root .sw-ann > .tp-lblv_v {
+    position: absolute;
+    inset: 0;
+    width: auto;
     height: 100%;
+    opacity: 0;
+}
+:root .sw-ann .tp-ckbv,
+:root .sw-ann .tp-ckbv_l,
+:root .sw-ann .tp-ckbv_w {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+:root .sw-ann > .tp-lblv_l {
+    pointer-events: none;
+    flex: 0 1 auto;
+    width: auto;
+    padding: 0;
+    color: #2a555c;
+    font-weight: 700;
+    font-size: calc(var(--sw-fs-label) - 1px);
+    letter-spacing: 0.08em;
+}
+:root .sw-ann:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) {
+    border-color: var(--sw-accent);
+}
+:root .sw-ann:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) > .tp-lblv_l {
+    color: var(--sw-accent);
+    text-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+:root .sw-ann[data-tone='caution']:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) {
+    border-color: var(--sw-caution);
+    background: var(--sw-caution);
+}
+:root .sw-ann[data-tone='caution']:has(.tp-ckbv_i:checked, .tp-ckbv_i[data-checked='true']) > .tp-lblv_l {
+    color: var(--sw-on-caution);
+    text-shadow: none;
+}
+
+/* sub-headers: a small dim caption grouping rows inside a pane */
+:root .tp-fldv.sw-sub > .tp-fldv_b {
+    min-height: 0;
+    padding: 0 var(--sw-pad);
+    font-size: var(--sw-fs-label);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--sw-dim);
+}
+:root .tp-fldv.sw-sub > .tp-fldv_c:not(.sw-ann-grid) {
+    padding-left: 0;
+    padding-right: 0;
+}
+:root .tp-fldv.sw-sub {
+    margin-top: var(--sw-gap);
+}
+
+/* mode text: a state named in words, in the value font but quieter than a number */
+:root .sw-mode .tp-txtv_i,
+:root .sw-mode .tp-lstv_s {
+    font-size: calc(var(--sw-fs-value) - 1px);
+    color: var(--sw-title);
+    text-transform: uppercase;
+}
+
+/* an active state named in words (restocking) stays legible: only cells that report faults go dark when OK */
+:root .tp-rotv.sw-mode[data-status='OK'] {
+    background: transparent;
+    box-shadow: none;
+}
+:root .tp-rotv.sw-mode[data-status='OK'] input {
+    color: var(--sw-accent);
+    text-shadow: 0 0 6px rgba(95, 227, 240, 0.6);
+}
+
+/* a headline level: the number is bigger, so its column is too */
+:root .tp-lblv.sw-bar.sw-big {
+    --sw-bar-num: 100px;
+}
+
+/* a headline value: bigger, and it takes the room its label leaves */
+:root .sw-big > .tp-lblv_l {
+    flex: 0 0 auto;
+    width: auto;
+}
+:root .sw-big > .tp-lblv_v {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+}
+:root .sw-big .tp-txtv_i {
+    height: auto;
+    font-size: 28px;
+    line-height: 1.2;
+}
+
+/* inline level rows: label, small left-filled bar, count on one line; caution turns bar and count amber */
+:root .tp-lblv[data-inline] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 70px 60px;
+    column-gap: var(--sw-gap);
+    align-items: center;
+}
+:root .tp-lblv[data-inline] > .tp-lblv_v,
+:root .tp-lblv[data-inline] .tp-sldtxtv {
+    display: contents;
+}
+:root .tp-lblv[data-inline] .tp-sldtxtv_s {
+    grid-column: 2;
+}
+:root .tp-lblv[data-inline] .tp-sldtxtv_t {
+    grid-column: 3;
+    flex: none;
+    width: auto;
+    min-width: 0;
+}
+:root .tp-lblv[data-inline][data-status='OK'] {
+    background: transparent;
+    box-shadow: none;
+}
+:root .tp-lblv[data-inline] .tp-txtv_i {
+    font-size: calc(var(--sw-fs-value) - 1px);
+}
+:root [data-inline][data-status='WARN'] {
+    background: transparent;
+    --tp-label-foreground-color: var(--sw-label);
+}
+:root [data-inline][data-status='WARN'] .tp-lblv_l {
+    color: var(--sw-label);
+}
+:root [data-inline][data-status='WARN'] input {
+    color: var(--sw-caution);
+}
+:root [data-inline][data-status='WARN'] .tp-sldv_k::before {
+    background: var(--sw-caution);
+    box-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
+}
+
+/* radar header: what the radar shows, and whose it is */
+.sw-radar-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--sw-font-value);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--sw-dim);
+}
+
+/* off-screen but still rendered, so the row stays in the accessibility tree and drivable by tests */
+.sw-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+/* a hex colour needs more room than most values */
+body[data-station='dradis'] {
+    --tp-blade-value-width: 50%;
+}
+/* station labels: tight spacing and no left inset leave the value column its room */
+:root body[data-station] .tp-lblv_l {
+    padding-left: 0;
+    letter-spacing: 0.02em;
+}
+body[data-station='weapons'] {
+    --tp-blade-value-width: 45%;
+}
+body[data-station='dradis'] .tp-txtv_i {
+    font-size: calc(var(--sw-fs-value) - 3px);
+}
+
+/* full systems table: defect lines carry short labels in the value font's place */
+:root body[data-station] [data-id='Full Systems Status'],
+:root body[data-station='engineer'] [data-id='Systems'] {
+    --tp-container-unit-size: 18px;
+}
+:root body[data-station] .sw-defect-row > .tp-lblv_l {
+    flex: 0 0 auto;
+}
+:root body[data-station] .sw-defect-label input {
+    font-family: var(--sw-font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-align: left;
+    text-shadow: none;
+    text-transform: uppercase;
+    color: var(--sw-label);
+}
+body[data-station='dradis'] .tp-btnv_b {
+    letter-spacing: 0.03em;
+}
+
+/* damage report: React pane in the same frame / bracket / title language as the tweakpane panes */
+:root .sw-damage {
+    position: relative;
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: 0 var(--sw-pad) var(--sw-gap);
+    background: var(--sw-glass);
+    border: 1px solid var(--sw-frame);
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-value);
+    line-height: 1.3;
+}
+:root .sw-damage::before,
+:root .sw-damage::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 0 solid var(--sw-accent);
+    pointer-events: none;
+}
+:root .sw-damage::before {
+    top: -1px;
+    left: -1px;
+    border-width: 2px 0 0 2px;
+}
+:root .sw-damage::after {
+    bottom: -1px;
+    right: -1px;
+    border-width: 0 2px 2px 0;
+}
+:root .sw-damage__title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: calc(var(--sw-fs-title) + 10px);
+    margin: 0 calc(-1 * var(--sw-pad)) var(--sw-gap);
+    padding: 0 var(--sw-pad);
+    color: var(--sw-title);
+    font-family: var(--sw-font-label);
+    font-size: var(--sw-fs-title);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--sw-frame);
+}
+:root body[data-station='engineer'] .sw-damage__title::after {
+    content: 'ENG-03';
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-label);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--sw-frame);
+}
+:root .sw-damage__entry {
+    padding: 1px 0;
+    color: var(--sw-label);
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+:root .sw-damage__entry--caution {
+    color: var(--sw-caution);
+}
+:root .sw-damage__entry--warning {
+    color: var(--sw-warning);
+}
+
+/* panes stacked in one grid slot keep their natural height and are spaced by the slot's gap */
+.station-slot > * {
+    flex: none;
+}
+
+/* systems table on the engineer station: numbers are secondary to the bars, so they stay small */
+:root body[data-station='engineer'] [data-id='Systems'] .tp-txtv_i {
+    font-size: 13px;
+}
+:root body[data-station='engineer'] [data-id='Systems'] .sw-defect-label .tp-txtv_i {
+    font-size: 11px;
+}
+/* the engineer's Systems pane packs a defect line under every system; EPM, EFF and HACK text sit centred under their headers */
+:root body[data-station='engineer'] [data-id='Systems'] {
+    --tp-container-unit-spacing: 1px;
+}
+:root body[data-station='engineer'] [data-id='Systems'] .tp-sldtxtv_s {
+    margin-top: 4px;
+}
+:root
+    body[data-station='engineer']
+    [data-id='Systems']
+    .tp-lblv:not(.sw-defect-row)
+    > .tp-lblv_v
+    .tp-rowcv:is(:nth-child(3), :nth-child(6), :nth-child(7))
+    .tp-txtv_i {
+    text-align: center;
+}
+
+/* repair queue slots: a name, not a heading */
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_t {
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    color: var(--sw-value);
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv > .tp-lblv_l {
+    flex: 0 0 auto;
+    width: auto;
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv > .tp-lblv_v {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+}
+[data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv .tp-txtv_i {
+    font-size: 14px;
+}
+
+/* a state named in words that needs attention (an unknown faction) reads amber */
+:root .sw-mode[data-tone='caution'] .tp-txtv_i {
+    color: var(--sw-caution);
+}
+
+/* job rows: the title takes the room, the percentage or QUEUED sits at the right */
+:root .tp-lblv.sw-job {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--sw-gap);
+    align-items: baseline;
+    margin-top: var(--sw-gap);
+}
+:root .tp-lblv.sw-job > .tp-lblv_l {
+    width: auto;
+    letter-spacing: 0.05em;
+}
+:root .tp-lblv.sw-job > .tp-lblv_v {
+    width: auto;
+    min-width: 0;
+}
+:root .tp-lblv.sw-job .tp-txtv_i {
+    width: 7ch;
+    text-align: right;
+    color: var(--sw-label);
+}
+
+/* interactive affordances: ghost (outlined) secondary buttons, colour swatches, hint line, map caption */
+body:not([data-input='none']) .sw-ghost .tp-btnv_b {
+    background: transparent;
+    color: var(--sw-accent);
+    border: 1px solid var(--sw-accent);
+}
+body:not([data-input='none']) .sw-ghost .tp-btnv_b:hover,
+body:not([data-input='none']) .sw-ghost .tp-btnv_b:focus-visible {
+    background: rgba(95, 227, 240, 0.12);
+}
+.sw-swatches {
+    display: flex;
+    gap: var(--sw-gap);
+    padding: 0 var(--sw-pad);
+    margin-top: var(--sw-gap);
+}
+.sw-swatch {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--sw-dim);
+    border-radius: 0;
+    cursor: pointer;
+}
+.sw-swatch[aria-pressed='true'] {
+    outline: 2px solid var(--sw-value);
+    outline-offset: 2px;
+}
+.sw-hint {
+    padding: 0 var(--sw-pad);
+    margin-top: var(--sw-gap);
+    font-family: var(--sw-font-value);
+    font-size: var(--sw-fs-label);
+    color: var(--sw-dim);
+}
+.sw-map-caption {
+    font-family: var(--sw-font-value);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--sw-dim);
+    white-space: nowrap;
+}
+
+/* dradis groups: each folder title is a selectable row — colour dot, name, waypoint count */
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv {
+    margin-bottom: 4px;
+    border: 1px solid var(--sw-frame);
+}
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv:hover {
+    border-color: var(--sw-dim);
+}
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv[data-selected='true'] {
+    border-color: var(--sw-accent);
+}
+body[data-station='dradis'] [data-id='Groups'] > .tp-rotv_c > .tp-fldv[data-selected='true'] > .tp-fldv_b {
+    color: var(--sw-value);
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b {
+    gap: 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b::before {
+    content: '';
+    flex: none;
+    width: 10px;
+    height: 10px;
+    background: var(--sw-dot, var(--sw-value));
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b::after {
+    content: attr(data-count);
+    order: 2;
+    font-family: var(--sw-font-value);
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--sw-label);
+}
+body[data-station='dradis'] [data-id='Groups'] .tp-fldv > .tp-fldv_b > .tp-fldv_m {
+    order: 3;
+}
+
+/* a named ammo type can outgrow tweakpane's fixed 160px value column: the value takes the room its label leaves */
+:root [data-id='Chain Gun'] .sw-mode > .tp-lblv_l {
+    flex: 0 0 auto;
+    width: auto;
+}
+:root [data-id='Chain Gun'] .sw-mode > .tp-lblv_v {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
 }

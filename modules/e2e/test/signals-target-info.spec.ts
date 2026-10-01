@@ -22,7 +22,7 @@ async function waitForRadarReady(page: Page) {
 async function cycleToShipContact(page: Page, maxAttempts = 5) {
     for (let i = 0; i < maxAttempts; i++) {
         await page.keyboard.press(']');
-        if ((await getPropertyValue(page, 'Type', 'Target')) === 'Spaceship') {
+        if ((await getPropertyValue(page, 'Type', 'Contact')) === 'Spaceship') {
             return;
         }
     }
@@ -40,11 +40,10 @@ test.describe('Signals Screen - Target Info panel', () => {
         await cleanupPageState(page);
     });
 
-    // R1: the panel used to sit top-left; it must now sit on the right, vertically centered
-    // in its column — matching the precedent set by targeting-status/warp-status/repair-queue.
-    test('sits on the right, vertically centered in its column', async ({ page }) => {
+    // R1: the panel sits at the top of the right column, matching the Signals artboard.
+    test('sits at the top of the right column', async ({ page }) => {
         await waitForRadarReady(page);
-        const panel = page.locator('[data-id="Target"]');
+        const panel = page.locator('[data-id="Contact"]');
         await expect(panel).toBeVisible();
 
         const viewport = page.viewportSize();
@@ -54,9 +53,8 @@ test.describe('Signals Screen - Target Info panel', () => {
 
         // right-aligned: panel's right edge sits near the viewport's right edge
         expect(viewport.width - (box.x + box.width)).toBeLessThan(20);
-        // vertically centered: panel's vertical center sits near the viewport's vertical center
-        const panelCenterY = box.y + box.height / 2;
-        expect(Math.abs(panelCenterY - viewport.height / 2)).toBeLessThan(viewport.height * 0.15);
+        // top of the column: panel's top edge sits near the viewport's top edge
+        expect(box.y).toBeLessThan(30);
     });
 
     // R2: at full scan of a ship contact, the panel must show a directional armor layout and

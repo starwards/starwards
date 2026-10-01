@@ -59,8 +59,8 @@ export async function drawTacticalRadar(
         circleMask.clear();
         circleMask
             .circle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor)
-            .fill({ color: 0xff0000, alpha: 1 })
-            .stroke({ width: 2, color: 0xff0000, alpha: 1 });
+            .fill({ color: radar.mask, alpha: 1 })
+            .stroke({ width: 2, color: radar.mask, alpha: 1 });
     }
     drawMask();
     container.on('resize', drawMask);
@@ -87,8 +87,8 @@ export async function drawTacticalRadar(
         root,
         {
             width: 2,
-            color: 0xaaffaa,
-            alpha: 0.1,
+            color: radar.ringLine,
+            alpha: 0.6,
         },
         1000,
         p.range,

@@ -1,7 +1,5 @@
 import { Driver, Radar, ShipDriver, SpaceDriver, scanCycleTargets } from '@starwards/core';
-import { HPos, VPos, WidgetContainer } from '../container';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
-import { addSliderBlade, createWidgetPane } from '../panel';
 
 import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
 import { readWriteNumberProp, readWriteProp } from '../property-wrappers';
@@ -11,11 +9,14 @@ import { InputManager } from '../input/input-manager';
 import { SelectionContainer } from '../radar/selection-container';
 import { SignalsJobsLayer } from '../radar/signals-jobs-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
+import { drawRadarHeader } from '../widgets/radar-header';
+import { drawScanBeam } from '../widgets/scan-beam';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
+import { stationGrid } from '../container';
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
@@ -24,47 +25,41 @@ export async function initSignalsScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'signals');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 
     const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
+    const radarRange = 50_000;
     const radar = await drawLongRangeRadar(
         spaceDriver,
         shipDriver,
         container,
-        { range: 50_000 },
+        { range: radarRange },
         zoomEvents,
         stationTarget,
     );
     radar.addLayer(new SignalsJobsLayer(radar, spaceDriver, shipDriver).renderRoot);
 
-    drawTargetInfo(container.subContainer(VPos.MIDDLE, HPos.RIGHT), driver, spaceDriver, shipDriver, stationTarget);
+    const grid = stationGrid(container, { left: 250, right: 256 });
+    drawRadarHeader(grid.center({ fill: true }), `LONG RANGE · ${radarRange / 1000} KM`, `SHIP ${shipId}`);
     const radarSystems = shipDriver.systems.filter((s) => Radar.isInstance(s.state));
-    drawSystemsStatus(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver, radarSystems);
+    const stationSystems = [...shipDriver.systems.filter((s) => s.pointer === '/signals'), ...radarSystems];
+    const scanBeamSlot = grid.left();
+    const jobsSlot = grid.left({ scroll: true });
+    drawTargetInfo(grid.right(), driver, spaceDriver, shipDriver, stationTarget);
+    drawSystemsStatus(grid.right({ scroll: true }), shipDriver, stationSystems, true);
     // the scan beam is the ship's steerable radar — the one whose arc has room to trade for reach
     const scanBeam = radarSystems.find(
         (s) => Radar.isInstance(s.state) && s.state.design.minArc < s.state.design.maxArc,
     );
-    if (scanBeam) {
-        drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver, scanBeam.pointer);
+    if (scanBeam && Radar.isInstance(scanBeam.state)) {
+        drawScanBeam(scanBeamSlot, shipDriver, scanBeam.state, scanBeam.pointer);
     }
-    // drawn last so its buttons stack above earlier fixed-position panes
-    drawSignalsJobs(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, spaceDriver, stationTarget);
+    drawSignalsJobs(jobsSlot, shipDriver, spaceDriver, stationTarget);
     return wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
-}
-
-function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver, beamPointer: string) {
-    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Scan Beam');
-    addSliderBlade(
-        pane,
-        readWriteNumberProp(shipDriver, `${beamPointer}/bearingCommand`),
-        { label: 'direction' },
-        panelCleanup.add,
-    );
-    addSliderBlade(pane, readWriteNumberProp(shipDriver, `${beamPointer}/arc`), { label: 'arc' }, panelCleanup.add);
 }
 
 function wireInput(

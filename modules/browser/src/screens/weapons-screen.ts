@@ -1,11 +1,11 @@
 import { Driver, ShipDriver } from '@starwards/core';
-import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
 import { drawGunStatus } from '../widgets/gun';
+import { drawRadarHeader } from '../widgets/radar-header';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
@@ -13,27 +13,33 @@ import { drawTubesStatus } from '../widgets/tubes-status';
 import { isWeaponsSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
+import { stationGrid } from '../container';
 import { wireTubeHotkeys } from '../input/tube-hotkeys';
+
+const radarRange = 10000;
 
 export async function initWeaponsScreen(
     driver: Driver,
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'weapons');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
-    await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 10000 });
+    await drawTacticalRadar(spaceDriver, shipDriver, container, { range: radarRange });
+    const grid = stationGrid(container, { left: 272, right: 256 });
+    drawRadarHeader(grid.center({ fill: true }), `TACTICAL · ${radarRange / 1000} KM`, `SHIP ${shipId}`);
     const teardownInput = wireInput(shipDriver);
+    drawTubesStatus(grid.left(), shipDriver);
+    drawAmmoStatus(grid.left({ scroll: true }), shipDriver);
+    drawTargetingStatus(grid.right(), shipDriver);
+    drawGunStatus(grid.right(), shipDriver);
     drawSystemsStatus(
-        container.subContainer(VPos.TOP, HPos.RIGHT),
+        grid.right({ scroll: true }),
         shipDriver,
         shipDriver.systems.filter((s) => isWeaponsSystem(s.pointer)),
+        true,
     );
-    drawTubesStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
-    drawAmmoStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
-    drawTargetingStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
-    drawGunStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver);
     return teardownInput;
 }
 

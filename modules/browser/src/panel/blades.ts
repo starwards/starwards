@@ -8,7 +8,7 @@ import {
     SliderBladeParams,
     TextBladeParams,
 } from 'tweakpane';
-import { BladeController, ButtonParams, NumberMonitorParams, View } from '@tweakpane/core';
+import { BladeController, ButtonParams, View } from '@tweakpane/core';
 import { Destructor, RTuple2 } from '@starwards/core';
 
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
@@ -43,6 +43,7 @@ export function createPane(params: { title?: string; container?: HTMLElement }):
 function configSliderBlade(params: Partial<SliderBladeParams>, range: RTuple2, getValue: () => number | undefined) {
     return {
         parse: (v: number) => String(v),
+        format: (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2)),
         ...params,
         view: 'slider',
         min: range[0],
@@ -138,6 +139,32 @@ export function addBarBlade(
     return blade;
 }
 
+/**
+ * Add a non-interactive bar blade for a signed range: like `addBarBlade`, but the fill grows from
+ * a centre tick toward the value (left when negative, right when positive). The row carries
+ * `data-bipolar` and a `--sw-bar-value` custom property (-1..1, 0 at the centre) that
+ * tweakpane.css turns into the fill.
+ */
+export function addBipolarBarBlade(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = addBarBlade(guiFolder, model, params, cleanup);
+    const extent = Math.max(model.range[1], -model.range[0]);
+    const applyValue = () => {
+        const value = model.getValue();
+        if (value !== undefined && extent > 0) {
+            blade.element.style.setProperty('--sw-bar-value', String(Math.max(-1, Math.min(1, value / extent))));
+        }
+    };
+    blade.element.dataset.bipolar = '';
+    cleanup(model.onChange(applyValue));
+    applyValue();
+    return blade;
+}
+
 export function addTextBlade<T>(
     guiFolder: FolderApi,
     model: Model<T>,
@@ -165,14 +192,113 @@ export function addThresholdTextBlade(
 ) {
     const { warnBelow, errorAt = model.range[0], ...textParams } = params;
     const blade = addTextBlade(guiFolder, model, textParams, cleanup);
-    blade.element.classList.add('tp-rotv');
+    applyThresholdTheme(blade.element, model, warnBelow, errorAt, cleanup);
+    return blade;
+}
+
+/**
+ * Themes a row by where the live value sits against `warnBelow`/`errorAt` (see
+ * `addThresholdTextBlade`): use it on a bar row whose level must visibly alarm as it runs low.
+ */
+export function applyThresholdTheme(
+    element: HTMLElement,
+    model: NumericModel,
+    warnBelow: number,
+    errorAt: number,
+    cleanup: (d: Destructor) => void,
+) {
+    element.classList.add('tp-rotv', 'readout'); // value stays visible in every status
     const applyTheme = () => {
         const value = model.getValue();
-        blade.element.dataset.status =
+        element.dataset.status =
             value === undefined ? '' : value <= errorAt ? 'ERROR' : value < warnBelow ? 'WARN' : 'OK';
     };
     cleanup(model.onChange(applyTheme));
     applyTheme();
+}
+
+/**
+ * Add a labelled annunciator: a boolean shown as a lamp with its name inside, dark until true.
+ * `tone: 'caution'` lights it amber instead of cyan, for states that mean "attention" rather than
+ * "active". On an interactive screen the lamp is still the row's checkbox, laid invisibly over it,
+ * so a writable model stays clickable. Lay a row of them out with `setAnnunciatorColumns`.
+ */
+export function addAnnunciatorBlade(
+    guiFolder: FolderApi,
+    model: Model<boolean>,
+    params: { label: string; tone?: 'caution' },
+    cleanup: (d: Destructor) => void,
+) {
+    const input = addInputBlade(guiFolder, model, { label: params.label }, cleanup);
+    input.element.classList.add('sw-ann');
+    if (params.tone) {
+        input.element.dataset.tone = params.tone;
+    }
+    return input;
+}
+
+/**
+ * Lay the annunciators of a pane or folder out in `columns` equal columns; every other row in it
+ * spans the full width. The container carries `sw-ann-grid` and `--sw-ann-cols` (see tweakpane.css).
+ */
+export function setAnnunciatorColumns(container: FolderApi, columns: number) {
+    const content = container.element.querySelector<HTMLElement>(':scope > .tp-rotv_c, :scope > .tp-fldv_c');
+    if (content) {
+        content.classList.add('sw-ann-grid');
+        content.style.setProperty('--sw-ann-cols', String(columns));
+    }
+}
+
+/**
+ * Add a sub-header inside a pane: a titled folder styled as a small dim caption (see `.sw-sub`
+ * in tweakpane.css), for grouping rows under a name such as a tube or an ammo family.
+ */
+export function addSubheader(guiFolder: FolderApi, title: string, cleanup: (d: Destructor) => void) {
+    const folder = guiFolder.addFolder({ title, expanded: true });
+    folder.element.classList.add('sw-sub');
+    cleanup(() => folder.dispose());
+    return folder;
+}
+
+/**
+ * Add an inline level row: label, a small left-filled bar, then the value, on one line
+ * (`data-inline`, see tweakpane.css). Read-only, like `addBarBlade`.
+ */
+export function addInlineBarBlade(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = addBarBlade(guiFolder, model, params, cleanup);
+    blade.element.dataset.inline = '';
+    return blade;
+}
+
+/**
+ * Add a segmented level row: no label and no number, just cells in the track behind a solid
+ * fill (`data-segmented`, see tweakpane.css). For counters that read as progress, not as a value.
+ * `segments` is the number of cells (ten by default) — pass a counter's maximum for a counter of items.
+ */
+export function addSegmentedBarBlade(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    cleanup: (d: Destructor) => void,
+    segments = 10,
+) {
+    const blade = addBarBlade(guiFolder, model, {}, cleanup);
+    blade.element.dataset.segmented = '';
+    blade.element.style.setProperty('--sw-segments', String(Math.max(1, segments)));
+    return blade;
+}
+
+/**
+ * Add a bare level row: just a left-filled track spanning the pane, no label and no number
+ * (`data-bare`, see tweakpane.css). For a bar whose meaning the rows around it already state.
+ */
+export function addBareBarBlade(guiFolder: FolderApi, model: NumericModel, cleanup: (d: Destructor) => void) {
+    const blade = addBarBlade(guiFolder, model, {}, cleanup);
+    blade.element.dataset.bare = '';
     return blade;
 }
 
@@ -251,32 +377,6 @@ export function addButton(
         button.dispose();
     });
     return button;
-}
-
-export function addGraph(
-    guiFolder: FolderApi,
-    model: NumericModel,
-    params: { label: string } & Partial<NumberMonitorParams>,
-    cleanup: (d: Destructor) => void,
-) {
-    const graph = guiFolder.addBinding(
-        {
-            get value() {
-                return model.getValue();
-            },
-        },
-        'value',
-        {
-            ...params,
-            readonly: true,
-            view: 'graph',
-            min: model.range[0],
-            max: model.range[1],
-        },
-    );
-    cleanup(() => {
-        graph.dispose();
-    });
 }
 
 type InputBladeParams = { label: string } & Record<string, unknown>;

@@ -88,13 +88,12 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 ### 5. Warp Status Panel (Middle-Right)
 - **Widget**: `drawWarpStatus()` - Tweakpane panel
 - **Properties**:
-  - `Actual LVL`: Current warp level (slider, read-only)
-  - `Designated LVL`: Desired warp level (slider, read-only)
-  - `Proximity Jam`: Jammed status (text, color-coded WARN)
-  - `Actual FRQ`: Current frequency (text)
-  - `Designated FRQ`: Standby frequency (text)
-  - `Calibration`: Frequency change progress (slider)
-- **Data Source**: `/warp/currentLevel`, `/warp/desiredLevel`, `/warp/jammed`, `/warp/currentFrequency`, `/warp/standbyFrequency`, `/warp/frequencyChange`
+  - `level`: "current / designated" warp level (large text)
+  - `frequency`: Current frequency (text)
+  - `designated`: Standby frequency (text)
+  - `calibration`: Frequency change progress (percentage over a bar)
+  - `JAMMED` and `CALIB` lamps: proximity jam (amber) and frequency change in progress
+- **Data Source**: `/warp/currentLevel`, `/warp/desiredLevel`, `/warp/jammed`, `/warp/changingFrequency`, `/warp/currentFrequency`, `/warp/standbyFrequency`, `/warp/frequencyChange`
 
 ### 6. Docking Status Panel (Bottom-Right)
 - **Widget**: `drawDockingStatus()` - Tweakpane panel

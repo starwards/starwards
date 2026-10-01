@@ -18,20 +18,25 @@ Build and modify station screens (weapons, pilot, engineer, etc.) for Starwards.
 
 There are TWO layout systems. Don't mix them.
 
-### Fixed stations (weapons.ts, pilot.ts, engineer.ts)
-Use `wrapRootWidgetContainer` + `subContainer(VPos, HPos)` grid.
-No golden-layout. No jQuery layout containers.
+### Fixed stations (weapons.ts, helms.ts, engineer.ts, signals.ts, dradis.ts)
+Use `wrapRootWidgetContainer` + `stationGrid()` (`modules/browser/src/container.ts`).
+No golden-layout.
 
 ```ts
-import { HPos, VPos, wrapRootWidgetContainer } from '../container';
+import { stationGrid, wrapRootWidgetContainer } from '../container';
 const container = wrapRootWidgetContainer($('#wrapper'));
 
-// Place widgets in a 3x3 grid (TOP/MIDDLE/BOTTOM × LEFT/MIDDLE/RIGHT)
-drawMyWidget(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
-await drawRadar(spaceDriver, shipDriver, container); // radar fills remaining space
+await drawRadar(spaceDriver, shipDriver, container); // radar fills the whole container
+const grid = stationGrid(container, { left: 262, right: 250 }); // column widths in px
+drawMyWidget(grid.left({ scroll: true }), shipDriver);
+drawOtherWidget(grid.center({ bottom: true, width: 200 }), shipDriver);
+drawMoreWidgets(grid.right(), shipDriver);
 ```
 
-Grid positions are absolute-positioned divs with CSS transforms. The radar/main widget typically takes the full container; sub-widgets overlay in corners.
+`stationGrid` overlays three columns (left, center, right) on the root container. Each call to `grid.<column>(options)` returns a widget container stacked top to bottom in that column; slots never overlap. Slot options: `scroll` (the one slot that scrolls when the column is too short), `width` (exact px), `bottom` (push to the column's bottom edge), `fill` (stretch across the column; the default for left/right). Slots appear in request order, independent of draw order.
+
+### Readout skin
+Stations share one Tweakpane skin, styled entirely in `static/styles/tweakpane.css`. `setDisplayOnly(displayOnly, station)` in `screens/station-lifecycle.ts` sets `body[data-input]` (`none` for display-only stations; unset for dradis and GM, which keep pointer interaction) and `body[data-station]` (scopes per-station pane ids); `body[data-density='compact']` (set by `templates/sidebar.html`, i.e. gm.html and ship.html) switches to the dense variant. Visual differences between stations are CSS-only: key selectors off these body attributes rather than adding per-station code. Status cells use `data-status` (`OK`/`WARN`/`ERROR`); a value readout that must stay visible when OK carries the `readout` class.
 
 ### Customizable screens (gm.ts, ship.ts)  
 Use `Dashboard` (golden-layout v1 wrapper). Do NOT touch this for station work.

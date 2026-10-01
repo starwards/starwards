@@ -19,16 +19,22 @@ export const selectionColor = 0x00ffff; // Pure cyan
 
 export const radarVisibleBg = 0x0a0a0a; // --bg-primary
 export const radarFogOfWar = 0x1a1a1a; // --bg-tertiary
-export const gridColors = [0x00ffff, 0x00cccc, 0x009999, 0x006666, 0x003333, 0xff6600]; // Cyan scale + orange
 
 // ============================================================================
 // Radar-Specific Colors
 // ============================================================================
 export const radar = {
-    speedLine: 0x00ffff, // Pure cyan
-    targetSpeedLine: 0x00cccc, // Dimmer cyan
+    ringLine: 0x123a42, // Readout frame colour - thin dim range rings and anchor dots
+    rangeLabel: 0x2f7480, // Dim range labels
+    bearingLabel: 0x52aebb, // Readout label colour
+    ownShip: 0x5fe3f0, // Readout accent cyan
+    scanWedge: 0x5fe3f0, // Translucent fill and accent edge of the steerable scan wedge
+    lockBox: status.caution, // Amber box on the tracked target
+    mask: 0xffffff, // Never visible - only the shape of a mask matters
+    speedLine: 0x5fe3f0, // Readout accent cyan
+    targetSpeedLine: 0x52aebb, // Readout label colour
     collisionOutline: 0x4ce73c, // Green (danger indicator)
-    azimuthTint: 0x00ffff, // Pure cyan
+    azimuthTint: 0x52aebb, // Readout label colour - bearing ring labels
     shellTint: 0xff6600, // Orange (secondary)
     deflectionTint: 0x00aaff, // Cyan-blue
     unknownTint: 0x666666, // Dim gray for UFO/unscanned objects
@@ -36,6 +42,9 @@ export const radar = {
     derelictTint: 0x3a3a3a, // Darker than unknownTint - an inert hulk, not just unidentified
     nebulaTint: 0xff66cc, // Pink - a visible optical hazard, not a faction-colored contact
 };
+
+/** DRADIS grid, finest to coarsest, brightening with each level; the coarsest is amber. */
+export const gridColors = [0x0c2a31, 0x0e3038, radar.ringLine, 0x1b5560, radar.rangeLabel, status.caution];
 
 // ============================================================================
 // HSL Palette (Industrial Sci-Fi Theme - Pure Cyan/Orange)

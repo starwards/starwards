@@ -1,11 +1,8 @@
-import { ArwesThemeProvider, StylesBaseline, Text } from '../components/arwes-compat';
-import React, { Component, useEffect, useRef } from 'react';
+import React, { Component, useEffect } from 'react';
 import { defectReadProp, useProperties } from '../react/hooks';
 
-import { BleepsProvider } from '../components/arwes-compat';
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
-import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
 import { createMachine } from 'xstate';
 import { createRoot } from 'react-dom/client';
@@ -13,21 +10,7 @@ import { getBrokenSystems } from './damage-report-logic';
 import { readProp } from '../property-wrappers';
 import { useMachine } from '@xstate/react';
 
-WebFont.load({
-    custom: {
-        families: ['Electrolize', 'Titillium Web'],
-    },
-});
-const audioSettings = { common: { volume: 0.25 } };
-const playersSettings = {
-    object: { src: ['/sound/click.mp3'] },
-    type: { src: ['/sound/typing.mp3'], loop: true },
-};
-const bleepsSettings = {
-    object: { player: 'object' },
-    type: { player: 'type' },
-};
-const duration = { enter: 2 * 1000, exit: 1000 };
+const duration = { exit: 1000 };
 
 const disappearMachine = createMachine({
     id: 'disappear',
@@ -60,70 +43,38 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
         return null;
     }
     return (
-        <>
-            <Text>
-                --------------------------
-                <br />
-                <b>{name} :</b> {status}
-            </Text>
-            <br />
-        </>
+        <div className="sw-damage__entry sw-damage__entry--caution">
+            {name} — {status}
+        </div>
     );
 }
 function SystemOfflineReport({ name }: { name: string }) {
-    return (
-        <>
-            <Text>
-                --------------------------
-                <br />
-                <b>{name} :</b> OFFLINE
-            </Text>
-            <br />
-        </>
-    );
+    return <div className="sw-damage__entry sw-damage__entry--warning">{name} — OFFLINE</div>;
 }
 
 function AllReports({ driver }: { driver: ShipDriver }) {
-    const divRef = useRef<null | HTMLDivElement>(null);
     const defectsState = useProperties(driver.systems.flatMap((s) => s.defectibles).map(defectReadProp(driver))).sort(
         (a, b) => a.alertTime - b.alertTime,
     );
     useProperties(driver.systems.map((s) => readProp<boolean>(driver, `${s.pointer}/broken`)));
     const brokenSystems = getBrokenSystems(driver.systems);
     return (
-        <>
-            <>
-                <Text>
-                    <h1>Damage Report</h1>
-                </Text>
-                <br />
-            </>
+        <div className="sw-damage">
+            <div className="sw-damage__title">Damage</div>
             {brokenSystems.map((s) => (
                 <SystemOfflineReport key={s.pointer} name={s.name} />
             ))}
             {defectsState.map((d) => (
                 <SystemStatusReport key={d.pointer} name={d.name} status={d.status} isOk={d.isOk} />
             ))}
-            <div ref={divRef} />
-        </>
+        </div>
     );
 }
 
 export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
     class DamageReport extends Component {
         render() {
-            return (
-                <ArwesThemeProvider>
-                    <StylesBaseline styles={{ body: { fontFamily: 'Electrolize' } }} />
-                    <BleepsProvider
-                        audioSettings={audioSettings}
-                        playersSettings={playersSettings}
-                        bleepsSettings={bleepsSettings}
-                    >
-                        <AllReports driver={shipDriver} />
-                    </BleepsProvider>
-                </ArwesThemeProvider>
-            );
+            return <AllReports driver={shipDriver} />;
         }
     }
 
@@ -137,7 +88,7 @@ export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
 
 /**
  * Mounts the damage report into a fixed-grid station container (`wrapRootWidgetContainer` +
- * `subContainer`, e.g. `screens/engineer.ts`) rather than a golden-layout `Dashboard` — the two
+ * `stationGrid`, e.g. `screens/engineer.ts`) rather than a golden-layout `Dashboard` — the two
  * layout systems don't mix (see CLAUDE.md), so this bypasses `Dashboard.registerWidget` and
  * renders the same React component directly into the container.
  *
@@ -149,7 +100,7 @@ export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
 export function drawDamageReport(container: WidgetContainer, shipDriver: ShipDriver) {
     const { component, defaultProps } = damageReportWidget(shipDriver);
     const parent = container.getElement();
-    parent.attr('data-id', 'Damage Report');
+    parent.attr('data-id', 'Damage');
     const mountPoint = document.createElement('div');
     parent.append(mountPoint);
     const root = createRoot(mountPoint);

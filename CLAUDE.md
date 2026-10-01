@@ -118,7 +118,7 @@ SpaceObject (in SpaceRoom) is source of truth. ShipRoom.state is a read-only mir
 
 Two systems — don't mix:
 
-- **Fixed stations** (weapons.ts, helms.ts, engineer.ts): `wrapRootWidgetContainer` + `subContainer()`
+- **Fixed stations** (weapons.ts, helms.ts, engineer.ts): `wrapRootWidgetContainer` + `stationGrid()` (three columns of non-overlapping slots)
 - **Customizable screens** (gm.ts, ship.ts): `Dashboard` (golden-layout wrapper)
 
 ### Color System

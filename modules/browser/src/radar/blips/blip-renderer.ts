@@ -206,7 +206,7 @@ const BREACH_FLASH_SCALE = 0.4;
 class CircleRenderer implements BlipRenderer<SpaceObject> {
     private shellCircle = new Graphics();
     private breachFlash = new Graphics();
-    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
     constructor(
         stage: Container,
         private blipSize: number,
@@ -235,7 +235,7 @@ class CircleRenderer implements BlipRenderer<SpaceObject> {
  */
 class NebulaRenderer implements BlipRenderer<Nebula> {
     private shellCircle = new Graphics();
-    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
     constructor(
         stage: Container,
         private blipSize: number,
@@ -253,7 +253,7 @@ class NebulaRenderer implements BlipRenderer<Nebula> {
     }
 }
 class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
-    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
     private fighterSprite = blipSprite(shipBlipTexture('tactical', this.spaceObject.model), this.blipSize, white);
     private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
@@ -292,7 +292,7 @@ class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
     }
 }
 class TacticalDerelictRenderer implements BlipRenderer<Derelict> {
-    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
     private fighterSprite = blipSprite(shipBlipTexture('tactical', this.spaceObject.model), this.blipSize, white);
     private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
@@ -331,7 +331,7 @@ class TacticalDerelictRenderer implements BlipRenderer<Derelict> {
     }
 }
 class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
-    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
     private iconSprite = blipSprite('tactical_waypoint', this.blipSize, white);
     private text = renderText(this.blipSize / 2, [], white);
 

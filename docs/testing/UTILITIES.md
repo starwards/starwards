@@ -240,7 +240,7 @@ const headingValue = await getPropertyValue(page, 'heading');
 console.log(headingValue); // "45.2"
 
 // Get value from specific panel (scoped search - prevents strict mode violations)
-const warpLevel = await getPropertyValue(page, 'Designated LVL', 'Warp');
+const warpLevel = await getPropertyValue(page, 'calibration', 'Warp');
 const reactorPower = await getPropertyValue(page, 'power', 'Reactor');
 ```
 
@@ -298,7 +298,7 @@ await waitForPropertyValue(
 // Wait for value in specific panel
 await waitForPropertyValue(
     page,
-    'Designated LVL',
+    'calibration',
     (value) => parseFloat(value) > 0,
     'Warp'
 );
@@ -322,7 +322,7 @@ await waitForPropertyFloatValue(page, 'heading', 90);
 await waitForPropertyFloatValue(page, 'speed', 100, undefined, 5);
 
 // Wait for value in specific panel
-await waitForPropertyFloatValue(page, 'Designated LVL', 5, 'Warp');
+await waitForPropertyFloatValue(page, 'calibration', 5, 'Warp');
 
 // With custom tolerance and timeout
 await waitForPropertyFloatValue(page, 'energy', 1000, undefined, 0.1, 5000);

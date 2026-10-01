@@ -33,6 +33,8 @@ type DradisRadar = {
     root: CameraView;
     layers: Record<string, Container>;
     follow: FollowController;
+    /** World-unit side of the smallest grid cell drawn at the current zoom. */
+    cellSize: () => number;
 };
 
 export async function drawDradisRadar(
@@ -107,6 +109,7 @@ export async function drawDradisRadar(
 
     return {
         root,
+        cellSize: () => grid.cellSize,
         follow: {
             isFollowing: () => following,
             setFollow: (follow: boolean) => {

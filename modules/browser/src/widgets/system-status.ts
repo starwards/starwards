@@ -23,19 +23,29 @@ export function systemsStatusWidget(shipDriver: ShipDriver): DashboardWidget {
 }
 
 const totalWidth = 370;
-const cellWidth = 50;
-export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDriver, systems = shipDriver.systems) {
-    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Systems Status');
-    container.getElement().width(`${totalWidth}px`);
+const defaultCellWidth = 50;
+const fitCellWidth = 26;
+/** `fit`: take the container's width instead of imposing one, with narrower cells. */
+export function drawSystemsStatus(
+    container: WidgetContainer,
+    shipDriver: ShipDriver,
+    systems = shipDriver.systems,
+    fit = false,
+) {
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Systems');
+    if (!fit) {
+        container.getElement().width(`${totalWidth}px`);
+    }
+    const cellWidth = fit ? fitCellWidth : defaultCellWidth;
     pane.registerPlugin(TweakpaneTablePlugin);
     pane.addBlade({
         view: 'tableHead',
         label: '',
         headers: [
-            { label: 'Status', width: `${cellWidth}px` },
-            { label: 'Power', width: `${cellWidth}px` },
-            { label: 'Heat', width: `${cellWidth}px` },
-            { label: 'Hacked', width: `${cellWidth}px` },
+            { label: 'STAT', width: `${cellWidth}px` },
+            { label: 'PWR', width: `${cellWidth}px` },
+            { label: 'HEAT', width: `${cellWidth}px` },
+            { label: 'HACK', width: `${cellWidth}px` },
         ],
     });
     for (const system of systems) {
@@ -47,15 +57,23 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
         const energyStarvedProp = readProp(shipDriver, `${system.pointer}/energyStarved`);
         const defectibleProps = [brokenProp, energyStarvedProp, ...system.defectibles.map(defectReadProp(shipDriver))];
-        addStatusBlade(standardRowApi, aggregate(defectibleProps, system.getStatus), (p) => p, panelCleanup, {
-            OK: 'OK',
-            STARVED: 'WARN',
-            DAMAGED: 'WARN',
-            DAMAGED_STARVED: 'WARN',
-            DISABLED: 'ERROR',
-        });
+        addStatusBlade(
+            cellWidth,
+            standardRowApi,
+            aggregate(defectibleProps, system.getStatus),
+            (p) => p,
+            panelCleanup,
+            {
+                OK: 'OK',
+                STARVED: 'WARN',
+                DAMAGED: 'WARN',
+                DAMAGED_STARVED: 'WARN',
+                DISABLED: 'ERROR',
+            },
+        );
 
         addStatusBlade(
+            cellWidth,
             standardRowApi,
             readProp<PowerLevel>(shipDriver, `${system.pointer}/power`),
             (p: PowerLevel) => PowerLevel[p],
@@ -70,6 +88,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
         );
 
         addStatusBlade(
+            cellWidth,
             standardRowApi,
             aggregate([readProp<number>(shipDriver, `${system.pointer}/heat`)], system.getHeatStatus),
             system.getHeatStatus,
@@ -82,6 +101,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
         );
 
         addStatusBlade(
+            cellWidth,
             standardRowApi,
             readProp<HackLevel>(shipDriver, `${system.pointer}/hacked`),
             (p: HackLevel) => HackLevel[p],
@@ -95,6 +115,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
     }
 }
 function addStatusBlade<T extends string | number>(
+    cellWidth: number,
     standardRowApi: RowApi,
     prop: Model<T>,
     format: (p: T) => string,

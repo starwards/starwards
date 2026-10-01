@@ -1,6 +1,5 @@
 import { Driver, Waypoint, XY } from '@starwards/core';
 import { FollowController, drawDradisRadar } from '../widgets/dradis-radar';
-import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 
 import { CameraView } from '../radar/camera-view';
@@ -12,10 +11,12 @@ import { WaypointGroupLayers } from '../radar/waypoint-group-layers';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
 
+import { drawMapCaption } from '../widgets/map-caption';
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { drawWaypointGroups } from '../widgets/waypoint-groups';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { stationGrid } from '../container';
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
@@ -24,39 +25,40 @@ export async function initDradisScreen(
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(false);
+    setDisplayOnly(false, 'dradis');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    const { root: radarView, layers, follow } = await drawDradisRadar(spaceDriver, shipDriver, container, zoomEvents);
+    const {
+        root: radarView,
+        layers,
+        follow,
+        cellSize,
+    } = await drawDradisRadar(spaceDriver, shipDriver, container, zoomEvents);
     container.getElement().on('contextmenu', (e) => e.preventDefault());
 
+    const grid = stationGrid(container, { left: 240, right: 240 });
+    const placementSlot = grid.left();
+    const editSlot = grid.left({ scroll: true });
+    const layersSlot = grid.right({ scroll: true });
+    const groupsSlot = grid.right({ bottom: true });
+    drawMapCaption(grid.left({ bottom: true }), radarView, cellSize, shipId);
+
     const waypointSelection = new SelectionContainer().init(spaceDriver);
-    const layersPanel = new RadarLayersPanel(container.subContainer(VPos.TOP, HPos.RIGHT));
+    const layersPanel = new RadarLayersPanel(layersSlot);
     for (const [name, layer] of Object.entries(layers)) {
         layersPanel.addLayer(name, layer);
     }
     const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);
-    const placementSettings = drawPlacementSettings(
-        container.subContainer(VPos.TOP, HPos.LEFT),
-        spaceDriver,
-        shipId,
-        () => waypointLayer.toggle(),
-    );
+    const placementSettings = drawPlacementSettings(placementSlot, spaceDriver, shipId, () => waypointLayer.toggle());
     waypointLayer.getSettings = placementSettings.getSettings;
     const focus = (position: XY) => {
         follow.setFollow(false);
         radarView.camera.set(position);
     };
-    const groupsPanel = drawWaypointGroups(
-        container.subContainer(VPos.BOTTOM, HPos.RIGHT),
-        spaceDriver,
-        shipId,
-        waypointSelection,
-        focus,
-    );
+    const groupsPanel = drawWaypointGroups(groupsSlot, spaceDriver, shipId, waypointSelection, focus);
     new WaypointGroupLayers(
         radarView,
         spaceDriver,
@@ -91,7 +93,7 @@ export async function initDradisScreen(
     radarView.addLayer(selectionLayer.renderRoot);
     radarView.addLayer(waypointLayer.renderRoot);
 
-    drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection, focus);
+    drawWaypointEdit(editSlot, spaceDriver, shipId, waypointSelection, focus);
     return wireInput(radarView, follow, zoomEvents, waypointLayer);
 }
 

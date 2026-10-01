@@ -3,8 +3,9 @@ import { QUEUE_MARKERS_SHOWN, jobIndicators } from './signals-jobs-indicators';
 import { ShipDriver, SpaceDriver } from '@starwards/core';
 
 import { CameraView } from './camera-view';
+import { status } from '../colors';
 
-const indicatorColor = 0xff6600; // secondary orange
+const indicatorColor = status.caution;
 const ringRadius = 22; // just outside a 32px blip
 const markerRadius = 16;
 

@@ -1,9 +1,17 @@
-import { PropertyPanel, addThresholdTextBlade, createWidgetPane } from '../panel';
-import { ShipDriver, SmartPilotMode } from '@starwards/core';
+import { ShipDriver, SmartPilotMode, TargetedStatus } from '@starwards/core';
+import {
+    addAnnunciatorBlade,
+    addBarBlade,
+    addBipolarBarBlade,
+    addTextBlade,
+    applyThresholdTheme,
+    createWidgetPane,
+    setAnnunciatorColumns,
+} from '../panel';
+import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
-import { readNumberProp } from '../property-wrappers';
 
 export function helmsWidget(shipDriver: ShipDriver): DashboardWidget {
     class HelmsComponent {
@@ -20,49 +28,95 @@ export function helmsWidget(shipDriver: ShipDriver): DashboardWidget {
 }
 
 export function drawHelmsStats(container: WidgetContainer, shipDriver: ShipDriver) {
-    const panel = new PropertyPanel(container);
-    container.on('destroy', () => {
-        panel.destroy();
-    });
+    drawFlight(container, shipDriver);
+    drawModes(container, shipDriver);
+    drawCommand(container, shipDriver);
+    drawFuel(container, shipDriver);
+}
 
+function drawFlight(container: WidgetContainer, shipDriver: ShipDriver) {
+    const { pane, cleanup } = createWidgetPane(container, 'Flight');
+    addTextBlade(
+        pane,
+        readNumberProp(shipDriver, `/spaceship/angle`),
+        { label: 'HDG °', format: (a: number) => String(Math.round(a)).padStart(3, '0') },
+        cleanup.add,
+    );
+    addTextBlade(
+        pane,
+        readNumberProp(shipDriver, `/speed`),
+        { label: 'SPD m/s', format: (v: number) => v.toFixed(2) },
+        cleanup.add,
+    );
+    addTextBlade(
+        pane,
+        readNumberProp(shipDriver, `/spaceship/turnSpeed`),
+        { label: 'TURN °/s', format: (v: number) => v.toFixed(1) },
+        cleanup.add,
+    );
+}
+
+function drawModes(container: WidgetContainer, shipDriver: ShipDriver) {
+    const { pane, cleanup } = createWidgetPane(container, 'Modes');
+    const modeFormat = (m: SmartPilotMode) => SmartPilotMode[m];
+    addTextBlade(
+        pane,
+        readProp<SmartPilotMode>(shipDriver, '/smartPilot/rotationMode'),
+        { label: 'rotation', format: modeFormat },
+        cleanup.add,
+    );
+    addTextBlade(
+        pane,
+        readProp<SmartPilotMode>(shipDriver, '/smartPilot/maneuveringMode'),
+        { label: 'maneuver', format: modeFormat },
+        cleanup.add,
+    );
+    addTextBlade(
+        pane,
+        readProp<TargetedStatus>(shipDriver, '/targeted'),
+        { label: 'target', format: (t: TargetedStatus) => TargetedStatus[t] },
+        cleanup.add,
+    );
+}
+
+function drawCommand(container: WidgetContainer, shipDriver: ShipDriver) {
+    const { pane, cleanup } = createWidgetPane(container, 'Command');
+    addBipolarBarBlade(pane, readNumberProp(shipDriver, '/smartPilot/rotation'), { label: 'rotate' }, cleanup.add);
+    addBipolarBarBlade(pane, readNumberProp(shipDriver, '/smartPilot/maneuvering/y'), { label: 'strafe' }, cleanup.add);
+    addBipolarBarBlade(pane, readNumberProp(shipDriver, '/smartPilot/maneuvering/x'), { label: 'boost' }, cleanup.add);
+    for (const [label, pointer] of [
+        ['burner', '/afterBurnerCommand'],
+        ['anti-drift', '/antiDrift'],
+        ['brakes', '/breaks'],
+    ] as const) {
+        const { getValue, onChange } = readNumberProp(shipDriver, pointer);
+        const engaged = () => {
+            const value = getValue();
+            return value === undefined ? undefined : value > 0;
+        };
+        addAnnunciatorBlade(pane, { onChange, getValue: engaged }, { label }, cleanup.add);
+    }
+    setAnnunciatorColumns(pane, 3);
+}
+
+function drawFuel(container: WidgetContainer, shipDriver: ShipDriver) {
+    const { pane, cleanup } = createWidgetPane(container, 'Fuel');
     const energy = readNumberProp(shipDriver, `/reactor/energy`);
-    panel.addProperty('energy', energy);
-    panel.addProperty('afterBurnerFuel', readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`));
-
-    panel.addProperty('heading', readNumberProp(shipDriver, `/spaceship/angle`));
-    panel.addProperty('speed', readNumberProp(shipDriver, `/speed`));
-    panel.addProperty('turn speed', readNumberProp(shipDriver, `/spaceship/turnSpeed`));
-
-    panel.addText('rotationMode', { getValue: () => SmartPilotMode[shipDriver.state.smartPilot.rotationMode] });
-    panel.addProperty('rotationCommand', readNumberProp(shipDriver, `/smartPilot/rotation`));
-    panel.addProperty('rotation', readNumberProp(shipDriver, `/rotation`));
-    panel.addText('maneuveringMode', {
-        getValue: () => SmartPilotMode[shipDriver.state.smartPilot.maneuveringMode],
-    });
-    panel.addProperty('strafeCommand', readNumberProp(shipDriver, '/smartPilot/maneuvering/y'));
-    panel.addProperty('boostCommand', readNumberProp(shipDriver, '/smartPilot/maneuvering/x'));
-    panel.addProperty('strafe', readNumberProp(shipDriver, `/strafe`));
-    panel.addProperty('boost', readNumberProp(shipDriver, `/boost`));
-
-    panel.addProperty('afterBurner', readNumberProp(shipDriver, `/afterBurnerCommand`));
-    panel.addProperty('antiDrift', readNumberProp(shipDriver, `/antiDrift`));
-    panel.addProperty('breaks', readNumberProp(shipDriver, `/breaks`));
-    panel.addText('targeted', { getValue: () => String(shipDriver.state.targeted) });
-
-    // a healthy-looking Systems Status panel doesn't explain why boost/thrusters do nothing when
-    // the reactor is nearly dry — this makes the shortfall itself obvious, right where the pilot looks
-    const { pane: reactorPane, cleanup: reactorCleanup } = createWidgetPane(container, 'Reactor');
-    addThresholdTextBlade(
-        reactorPane,
+    const energyBar = addBarBlade(
+        pane,
         energy,
-        {
-            label: 'energy level',
-            format: (e: number) => Math.round(e).toString(),
-            // a starved reactor rarely sits at a literal 0 — it's fighting a constant tiny recharge
-            // against constant draw — so ERROR needs a "critically low" band, not an exact-zero check
-            warnBelow: energy.range[1] * 0.25,
-            errorAt: energy.range[1] * 0.05,
-        },
-        reactorCleanup.add,
+        { label: 'energy', format: (e: number) => Math.round(e).toString() },
+        cleanup.add,
+    );
+    // a healthy-looking Systems panel doesn't explain why boost/thrusters do nothing when
+    // the reactor is nearly dry — this makes the shortfall itself obvious, right where the pilot looks.
+    // A starved reactor rarely sits at a literal 0 — it's fighting a constant tiny recharge
+    // against constant draw — so ERROR needs a "critically low" band, not an exact-zero check
+    applyThresholdTheme(energyBar.element, energy, energy.range[1] * 0.25, energy.range[1] * 0.05, cleanup.add);
+    addBarBlade(
+        pane,
+        readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`),
+        { label: 'afterburner', format: (f: number) => Math.round(f).toString() },
+        cleanup.add,
     );
 }

@@ -120,6 +120,8 @@ test.describe('GM station assignment', () => {
         page,
         browser,
     }) => {
+        // two live pages with full-viewport software-rendered radars, and each reassignment builds a new one
+        test.slow();
         const stationContext = await browser.newContext();
         const stationPage = await stationContext.newPage();
         setupPageErrorHandlers(stationPage);
@@ -141,7 +143,7 @@ test.describe('GM station assignment', () => {
         await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
         await row.locator('[data-id="Station Roster Type"]').selectOption('helms');
 
-        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
+        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 25000 });
         await expect
             .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
             .toBe('GVTS');
@@ -151,7 +153,7 @@ test.describe('GM station assignment', () => {
         await expect
             .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
             .toBe('GVTS2');
-        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
+        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 25000 });
 
         await stationContext.close();
     });

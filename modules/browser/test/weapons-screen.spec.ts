@@ -1,7 +1,12 @@
 import { Driver, ShipDriver, SpaceDriver } from '@starwards/core';
 
+jest.mock('../src/container', () => ({
+    stationGrid: () => ({ left: () => ({}), right: () => ({}), center: () => ({}) }),
+}));
+
 jest.mock('../src/screens/station-lifecycle', () => ({ setDisplayOnly: jest.fn() }));
 jest.mock('../src/widgets/tactical-radar', () => ({ drawTacticalRadar: jest.fn() }));
+jest.mock('../src/widgets/radar-header', () => ({ drawRadarHeader: jest.fn() }));
 jest.mock('../src/widgets/system-status', () => ({ drawSystemsStatus: jest.fn() }));
 jest.mock('../src/widgets/tubes-status', () => ({ drawTubesStatus: jest.fn() }));
 jest.mock('../src/widgets/ammo', () => ({ drawAmmoStatus: jest.fn() }));
@@ -29,11 +34,7 @@ import { drawTacticalRadar } from '../src/widgets/tactical-radar';
 import { initWeaponsScreen } from '../src/screens/weapons-screen';
 
 function fakeContainer(): Parameters<typeof initWeaponsScreen>[1] {
-    const container: { subContainer: () => unknown; on: () => unknown } = {
-        subContainer: jest.fn(() => container),
-        on: jest.fn(),
-    };
-    return container as unknown as Parameters<typeof initWeaponsScreen>[1];
+    return {} as unknown as Parameters<typeof initWeaponsScreen>[1];
 }
 
 function fakeDriver(shipDriver: ShipDriver, spaceDriver: SpaceDriver) {

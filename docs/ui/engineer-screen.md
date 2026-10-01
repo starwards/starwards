@@ -2,11 +2,11 @@
 audience: agent
 depth: deep
 source_of_truth:
-  - modules/browser/src/screens/engineer.ts
+    - modules/browser/src/screens/engineer.ts
 related:
-  - ../UI_SPECIFICATION.md
-  - ../ui/common-ui-patterns.md
-  - ../design/stations/engineer.md
+    - ../UI_SPECIFICATION.md
+    - ../ui/common-ui-patterns.md
+    - ../design/stations/engineer.md
 last_verified: 2026-08-18
 ---
 
@@ -15,50 +15,54 @@ last_verified: 2026-08-18
 Implementation inventory for the Engineer screen: mounted widgets, source files, data bindings, and known pain points. For design intent and build status, see [`../design/stations/engineer.md`](../design/stations/engineer.md). For shared widget/panel patterns, see [`common-ui-patterns.md`](common-ui-patterns.md).
 
 **File**: `modules/browser/src/screens/engineer.ts`
-**URL**: `/engineer.html?ship={shipId}` (optional `?station=ID` to pin this tab's registry id). `?ship=` is a self-assignment *request* the server validates against the station registry (issue #2131) — the screen binds to whatever ship its own registry entry resolves to, which may differ (auto-assigned, or standby if rejected). See [`../testing/README.md`](../testing/README.md) and `modules/core/src/stations/`.
+**URL**: `/engineer.html?ship={shipId}` (optional `?station=ID` to pin this tab's registry id). `?ship=` is a self-assignment _request_ the server validates against the station registry (issue #2131) — the screen binds to whatever ship its own registry entry resolves to, which may differ (auto-assigned, or standby if rejected). See [`../testing/README.md`](../testing/README.md) and `modules/core/src/stations/`.
 **Role**: Engineering officer - power and coolant management
 
 ## Overview
+
 The Engineer screen provides detailed system management, power distribution, and coolant allocation. Primary focus on keeping systems operational and balanced. It is the ship's single engineering seat — always in full control of power, coolant, damage control and warp frequency.
 
 ## Functional Elements
 
-### 1. Engineering Status Panel (Top-Left)
-- **Widget**: `drawEngineeringStatus()` - Tweakpane panel
-- **Properties**:
-  - `hull`: Shows "OK" or "DAMAGED" (bound to `/hullDamaged`)
-  - `energy`: Graph of reactor energy over time
-  - `after-burner fuel`: Graph of afterburner fuel over time
-- **Features**:
-  - Graphs show history (Tweakpane graph blade)
-- **Data Source**: `/hullDamaged`, `/reactor/energy`, `/maneuvering/afterBurnerFuel`
+### 1. Reactor Panel (Top-Left, ENG-01)
 
-### 2. Full Systems Status Panel (Center)
-- **Widget**: `drawFullSystemsStatus()` - Large table with all ship systems
-- **Width**: 600px fixed
+- **Widget**: `drawEngineeringStatus()` - Tweakpane panel titled "Reactor"
+- **Properties**:
+    - `energy`: large value over a left-filled bar; the row turns amber then red as the reactor runs low
+    - `cells`: "n/max" over a segmented counter, one segment per energy cell
+    - `afterburner fuel`: value over a left-filled bar
+    - `hull`: "INTACT" or "DAMAGED" (bound to `/hullDamaged`)
+- **Data Source**: `/reactor/energy`, `/reactor/energyCells`, `/maneuvering/afterBurnerFuel`, `/hullDamaged`
+
+### 2. Systems Panel (Center, ENG-04)
+
+- **Widget**: `drawFullSystemsStatus(..., fit = true)` - Table with all ship systems, filling the centre column (the GM and legacy ship screens keep the wide "Full Systems Status" table)
 - **Table Headers**:
-  - Status (60px): OK/DAMAGED/DISABLED
-  - Power (60px): SHUTDOWN/LOW/MID/HIGH/MAX
-  - EPM (60px): Energy Per Minute consumption
-  - Heat (60px): Current heat level
-  - Coolant (120px): Coolant factor slider (0-100%)
-  - Hacked (60px): OK/COMPROMISED/DISABLED
+    - Stat: names only a fault (BRKN, DMG, STRV, HOT); dark while all is well
+    - Power: bar (SHUTDOWN..MAX)
+    - EPM: Energy Per Minute consumption
+    - Heat: bar, amber from half of the maximum, red at the maximum
+    - Coolant: bar (coolant factor, 0-100%)
+    - EFF: effectiveness as a percentage of normal power (normal 100%, maximum 200%, broken 0%); red when broken
+    - Hack: names only a hack (CMP compromised amber, DIS disabled red); dark while OK
 - **Systems Listed**: All ship systems from `shipDriver.systems`
-  - Reactor, Maneuvering, Thrusters (multiple), Tubes (multiple)
-  - Radar, Smart Pilot, Warp, Docking, Magazine, Chain Gun
-- **Sub-rows**: Each system has expandable defectibles row showing individual component health
-- **Visual**: Color-coded by status (OK=green, WARN=yellow, ERROR=red)
+    - Reactor, Maneuvering, Thrusters (multiple), Tubes (multiple)
+    - Radar, Smart Pilot, Warp, Docking, Magazine, Chain Gun
+- **Sub-rows**: Each system with defectibles has one line of labelled defect bars under it
+- **Visual**: Fault cells are amber (WARN) or red (ERROR)
 - **Interactions**: Coolant sliders are always adjustable
 - **Data Source**: All `/systems/*/power`, `/systems/*/heat`, `/systems/*/coolantFactor`, `/systems/*/hacked`, `/systems/*/broken`, defectibles
 
-### 3. Warp Status Panel (Middle-Left)
-- **Widget**: `drawWarpStatus()` - Same as Pilot screen
+### 3. Warp Panel (Middle-Left, ENG-02)
+
+- **Widget**: `drawWarpStatus()` - Same as Pilot screen (HLM-05)
 - **Additional Engineer Controls**:
-  - `[` / `]` keys: Adjust standby frequency
-  - `\` key: Trigger frequency change command
+    - `[` / `]` keys: Adjust standby frequency
+    - `\` key: Trigger frequency change command
 - **Data Source**: `/warp/*` (same as Pilot)
 
-### 4. Armor Status (Bottom-Left)
+### 4. Damage (Left, ENG-03) and Armor Status (Bottom-Left)
+
 - **Widget**: `drawArmorStatus()` - Same as Pilot screen
 - **Size**: 200px minimum
 - **Data Source**: `/armor/*` (same as Pilot)
@@ -66,15 +70,17 @@ The Engineer screen provides detailed system management, power distribution, and
 ## User Workflows
 
 ### Primary Workflow: Power Management
-1. Monitor **Full Systems Status** table for system power levels
+
+1. Monitor the **Systems** table for system power levels
 2. Identify critical systems needing power boost
 3. Press number keys (**1-0, A-L**) to increase system power by 0.25 levels
 4. Press corresponding lower row (**Q-P, Z-M**) to decrease power
-5. Watch **energy** graph to ensure reactor can support power draw
+5. Watch the **energy** bar to ensure reactor can support power draw
 6. Observe **EPM** column to see energy consumption rate
 
 ### Secondary Workflow: Coolant Allocation
-1. Monitor **Heat** column in Full Systems Status
+
+1. Monitor the **Heat** column in Systems
 2. Identify overheating systems (yellow/red)
 3. Press **Shift + number key** to increase coolant to system
 4. Press **Shift + lower row** to decrease coolant
@@ -82,6 +88,7 @@ The Engineer screen provides detailed system management, power distribution, and
 6. Watch **Heat** drop as coolant is applied
 
 ### Tertiary Workflow: Damage Response
+
 1. Monitor **Status** column for DAMAGED/DISABLED systems
 2. Check **defectibles** sub-row to see which components are broken
 3. Reduce power to disabled systems to save energy
@@ -89,12 +96,13 @@ The Engineer screen provides detailed system management, power distribution, and
 5. Report to captain which systems are offline
 
 ### Quaternary Workflow: Warp Frequency Management
+
 1. Monitor **Warp Status** panel
-2. Check if **Proximity Jam** is active
-3. Use `[` or `]` to change **Designated FRQ**
+2. Check if the **JAMMED** lamp is lit
+3. Use `[` or `]` to change **Designated**
 4. Press `\` to trigger frequency change
 5. Wait for **Calibration** to complete
-6. Verify **Actual FRQ** matches **Designated FRQ**
+6. Verify **Frequency** matches **Designated**
 
 ## Current Pain Points
 
@@ -111,6 +119,7 @@ The Engineer screen provides detailed system management, power distribution, and
 ## Data Dependencies
 
 ### Real-time State (High Frequency)
+
 - All system power levels (user-adjustable)
 - All system heat levels (physics-based)
 - All system coolant factors (user-adjustable)
@@ -118,16 +127,19 @@ The Engineer screen provides detailed system management, power distribution, and
 - Afterburner fuel (usage-based)
 
 ### Real-time State (Medium Frequency)
+
 - System status (OK/DAMAGED/DISABLED) - changes on damage
 - Energy Per Minute calculations - derived from power levels
 - Hacked status - changes when a system is compromised
 - Defectibles health - changes on damage to components
 
 ### Low Frequency / Event-driven
+
 - Warp frequency changes
 - System broken status
 
 ### State Requirements
+
 - `ShipState.systems()`: All systems array
 - `System.power`: PowerLevel enum (0-4)
 - `System.heat`: Float32

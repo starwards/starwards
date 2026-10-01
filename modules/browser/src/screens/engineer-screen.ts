@@ -7,7 +7,6 @@ import {
     repairCommands,
     repairProtocols,
 } from '@starwards/core';
-import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import {
     getRepairProtocolHotkey,
@@ -26,25 +25,28 @@ import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { drawRepairQueue } from '../widgets/repair-queue';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { stationGrid } from '../container';
 
 export async function initEngineerScreen(
     driver: Driver,
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'engineer');
     container.getElement().css('background-color', toCss(radarFogOfWar));
     const shipDriver = await driver.getShipDriver(shipId);
     const teardownInput = wireInput(shipDriver);
 
-    drawEngineeringStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
+    const grid = stationGrid(container, { left: 252, right: 250 });
+    drawEngineeringStatus(grid.left(), shipDriver);
     if (shipDriver.state.warp) {
-        drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
+        drawWarpStatus(grid.left(), shipDriver);
     }
-    drawFullSystemsStatus(container.subContainer(VPos.MIDDLE, HPos.MIDDLE), shipDriver, shipDriver.systems);
-    await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
-    drawDamageReport(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver);
-    drawRepairQueue(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver, false);
+    drawDamageReport(grid.left({ scroll: true }), shipDriver);
+    const armorSlot = grid.left({ width: 200, bottom: true });
+    drawFullSystemsStatus(grid.center({ fill: true, scroll: true }), shipDriver, shipDriver.systems, true);
+    drawRepairQueue(grid.right({ scroll: true }), shipDriver, false);
+    await drawArmorStatus(armorSlot, shipDriver, 200);
     return teardownInput;
 }
 

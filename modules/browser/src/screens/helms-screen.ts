@@ -1,6 +1,5 @@
 import { Driver, ShipDriver } from '@starwards/core';
 import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig, shipInputConfig } from '../input/input-config';
-import { HPos, VPos } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { readWriteNumberProp, writeProp } from '../property-wrappers';
@@ -13,28 +12,32 @@ import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
 import { isHelmsSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { stationGrid } from '../container';
 
 export async function initHelmsScreen(
     driver: Driver,
     container: ScreenContainer,
     shipId: string,
 ): Promise<ScreenTeardown> {
-    setDisplayOnly(true);
+    setDisplayOnly(true, 'helms');
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawHelmsRadar(spaceDriver, shipDriver, container);
+    const grid = stationGrid(container, { left: 262, right: 300 });
     const teardownInput = wireInput(shipDriver);
+    drawHelmsStats(grid.left({ scroll: true }), shipDriver);
+    const armorSlot = grid.center({ bottom: true, width: 200 });
+    if (shipDriver.state.warp) {
+        drawWarpStatus(grid.right(), shipDriver);
+    }
+    drawDockingStatus(grid.right(), spaceDriver, shipDriver);
     drawSystemsStatus(
-        container.subContainer(VPos.TOP, HPos.RIGHT),
+        grid.right({ scroll: true }),
         shipDriver,
         shipDriver.systems.filter((s) => isHelmsSystem(s.pointer)),
+        true,
     );
-    drawHelmsStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
-    if (shipDriver.state.warp) {
-        drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
-    }
-    drawDockingStatus(container.subContainer(VPos.BOTTOM, HPos.RIGHT), spaceDriver, shipDriver);
-    await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
+    await drawArmorStatus(armorSlot, shipDriver, 200);
     return teardownInput;
 }
 

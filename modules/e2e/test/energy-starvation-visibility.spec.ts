@@ -8,7 +8,7 @@ import { maps } from '@starwards/server';
 const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 
-// #2136: a depleted reactor silently zeroes thrust/repairs while the Systems Status panel stays
+// #2136: a depleted reactor silently zeroes thrust/repairs while the Systems panel stays
 // green — the crew has no way to tell "nothing is happening" apart from "everything is fine".
 
 /**
@@ -38,7 +38,7 @@ test.describe('Helms Screen — energy starvation visibility', () => {
     test('a depleted reactor marks a starved thruster and warns on the energy readout, instead of reading green', async ({
         page,
     }) => {
-        const systemsPanel = page.locator('[data-id="Systems Status"]');
+        const systemsPanel = page.locator('[data-id="Systems"]');
         await expect(systemsPanel).toBeVisible({ timeout: 10000 });
 
         const ship = gameDriver.getShip(shipId);
@@ -53,20 +53,20 @@ test.describe('Helms Screen — energy starvation visibility', () => {
         // the JS property, not the HTML attribute — a `[value=...]` CSS/XPath selector can't see it
         await expect.poll(() => hasStatusValue(systemsPanel, 'STARVED'), { timeout: 5000 }).toBe(true);
 
-        const reactorPanel = page.locator('[data-id="Reactor"]');
-        await expect(reactorPanel).toBeVisible();
-        const energyLabel = reactorPanel.getByText('energy level', { exact: true });
+        const fuelPanel = page.locator('[data-id="Fuel"]');
+        await expect(fuelPanel).toBeVisible();
+        const energyLabel = fuelPanel.getByText('energy', { exact: true });
         await expect(energyLabel.locator('..')).toHaveAttribute('data-status', 'ERROR');
     });
 
     test('a healthy reactor reads OK on the energy readout and marks no system starved', async ({ page }) => {
-        const systemsPanel = page.locator('[data-id="Systems Status"]');
+        const systemsPanel = page.locator('[data-id="Systems"]');
         await expect(systemsPanel).toBeVisible({ timeout: 10000 });
 
         expect(await hasStatusValue(systemsPanel, 'STARVED')).toBe(false);
 
-        const reactorPanel = page.locator('[data-id="Reactor"]');
-        const energyLabel = reactorPanel.getByText('energy level', { exact: true });
+        const fuelPanel = page.locator('[data-id="Fuel"]');
+        const energyLabel = fuelPanel.getByText('energy', { exact: true });
         await expect(energyLabel.locator('..')).toHaveAttribute('data-status', 'OK');
     });
 });
