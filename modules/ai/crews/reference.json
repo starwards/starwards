@@ -1,0 +1,7 @@
+{
+    "name": "reference",
+    "seats": [
+        { "station": "helms", "policy": "reference" },
+        { "station": "weapons", "policy": "reference" }
+    ]
+}

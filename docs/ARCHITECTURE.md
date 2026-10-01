@@ -34,6 +34,7 @@ Browser ←──WS──→ Server(Colyseus) ←──WS──→ Node-RED
 | browser | webpack | `dist/` | PixiJS + React UI |
 | node-red | rollup+tsc | `dist/` | Integration nodes |
 | mcp | tsc | `dist/` | MCP server: LLM station client |
+| ai | ts-node | - | Station brains and their headless training harness |
 | e2e | playwright | - | E2E tests |
 
 **Build order:** core → (server, browser, node-red, mcp in parallel)

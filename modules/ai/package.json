@@ -4,7 +4,12 @@
     "private": true,
     "license": "SEE LICENSE IN LICENSE.md",
     "description": "Station brains that play Starwards, and the harness that trains them in the headless game",
-    "scripts": {},
+    "scripts": {
+        "train": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/train.ts",
+        "decisions": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/decisions.ts",
+        "reask": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/reask.ts",
+        "crew": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts"
+    },
     "dependencies": {
         "@starwards/core": "0.5.1",
         "@starwards/mcp": "0.5.1",
