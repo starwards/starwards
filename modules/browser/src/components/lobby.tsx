@@ -11,7 +11,7 @@ import { REVIEWER_GUIDE_URL } from '../lobby-links';
 import React from 'react';
 import { RecordingsMenu } from './recordings-menu';
 import WebFont from 'webfontloader';
-import { stashRecording } from '../replay/recording-handoff';
+import { installFileDrop } from '../drop-file';
 
 /**
  * Shows this device's persistent station registry id (assigned by `getOrCreateStationId`, not
@@ -184,48 +184,21 @@ function ShipOptions({ shipId }: { shipId: string }) {
     );
 }
 
-/** A recording file dropped anywhere on the lobby plays in the recording player. */
-function useDropRecording() {
+/** A recording or saved game dropped anywhere on the lobby (see `installFileDrop`). */
+function useDropFile(adminDriver: AdminDriver | null) {
     const [dragging, setDragging] = React.useState(false);
-    React.useEffect(() => {
-        const hasFile = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files');
-        const onDragOver = (e: DragEvent) => {
-            if (!hasFile(e)) return;
-            e.preventDefault();
-            setDragging(true);
-        };
-        const onDragLeave = (e: DragEvent) => {
-            // leaving the window, not moving between elements
-            if (!e.relatedTarget) setDragging(false);
-        };
-        const onDrop = (e: DragEvent) => {
-            if (!hasFile(e)) return;
-            e.preventDefault();
-            setDragging(false);
-            const file = e.dataTransfer?.files[0];
-            if (!file) return;
-            void file
-                .text()
-                .then((text) => stashRecording({ name: file.name, text }))
-                .then(() => window.location.assign('player.html?handoff'));
-        };
-        window.addEventListener('dragover', onDragOver);
-        window.addEventListener('dragleave', onDragLeave);
-        window.addEventListener('drop', onDrop);
-        return () => {
-            window.removeEventListener('dragover', onDragOver);
-            window.removeEventListener('dragleave', onDragLeave);
-            window.removeEventListener('drop', onDrop);
-        };
-    }, []);
-    return dragging;
+    const [notice, setNotice] = React.useState('');
+    const latest = React.useRef(adminDriver);
+    latest.current = adminDriver;
+    React.useEffect(() => installFileDrop(() => latest.current, { setDragging, setNotice }), []);
+    return { dragging, notice };
 }
 
 export const Lobby = (p: Props) => {
-    const dragging = useDropRecording();
     const isGameRunning = useIsGameRunning(p.driver);
     const canStartGame = useCanStartGame(p.driver);
     const adminDriver = useAdminDriver(p.driver);
+    const { dragging, notice } = useDropFile(adminDriver);
     return (
         <ArwesThemeProvider>
             <StylesBaseline styles={{ body: { fontFamily: 'Electrolize' } }} />
@@ -251,7 +224,12 @@ export const Lobby = (p: Props) => {
                                 pointerEvents: 'none',
                             }}
                         >
-                            Drop a recording to play it
+                            Drop a recording to play it, or a saved game to load it
+                        </div>
+                    )}
+                    {notice && (
+                        <div data-id="drop notice" style={{ textAlign: 'center', color: '#ff6666', padding: 8 }}>
+                            {notice}
                         </div>
                     )}
                     <div style={{ padding: 20, textAlign: 'center' }}>

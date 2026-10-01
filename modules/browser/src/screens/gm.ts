@@ -3,6 +3,7 @@
 import { ClientStatus, Driver, GameStatus, Status, createLogger, spaceCommands } from '@starwards/core';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import { ScreenTeardown, runScreenLifecycle } from './station-lifecycle';
+import { installFileDrop, mountDropUi } from '../drop-file';
 
 import { GmWidgets } from '../widgets/gm';
 import { InputManager } from '../input/input-manager';
@@ -55,6 +56,12 @@ runScreenLifecycle(driver, statusTracker, Status.CONNECTED, (wrapperEl) => initS
 async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardown> {
     wrapperEl.append('<ul id="menuContainer"></ul><div id="layoutContainer"></div>');
     const adminDriver = await driver.getAdminDriver();
+    const dropUi = mountDropUi();
+    const stopDrop = installFileDrop(() => adminDriver, dropUi.ui);
+    const stopDropUi = () => {
+        stopDrop();
+        dropUi.destroy();
+    };
     const gameSetup = gameSetupWidget(adminDriver);
     const gameControls = gameControlsWidget(adminDriver);
     const stationRoster = stationRosterWidget(driver, adminDriver);
@@ -124,7 +131,10 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
 
     dashboard.setup();
     if (!gmWidgets) {
-        return () => dashboard.destroy();
+        return () => {
+            stopDropUi();
+            dashboard.destroy();
+        };
     }
 
     const spaceDriver = await driver.getSpaceDriver();
@@ -201,6 +211,7 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
 
     return () => {
         cancelled = true;
+        stopDropUi();
         input.destroy();
         teardownHelp();
         dashboard.destroy();

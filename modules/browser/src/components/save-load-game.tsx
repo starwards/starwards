@@ -4,8 +4,9 @@ import React, { useCallback, useState } from 'react';
 
 import { AdminDriver } from '@starwards/core';
 import fileDownload from 'js-file-download';
+import { savedGameFileExtension } from '../drop-file';
 
-const saveFileExtention = '.ssg';
+const saveFileExtention = savedGameFileExtension;
 
 export function useSaveGameHandler(adminDriver: AdminDriver | null) {
     return useCallback(() => {
@@ -49,6 +50,8 @@ export function LoadGame({ adminDriver }: Props) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         multiple: false,
+        // a file dropped anywhere on the lobby is handled by the page (see `useDropFile`)
+        noDrag: true,
         accept: { 'application/starwards': [saveFileExtention] },
     });
 
@@ -65,7 +68,7 @@ export function LoadGame({ adminDriver }: Props) {
                 <div style={{ width: 400, height: 100 }}>
                     <input {...getInputProps()} />
                     <h2>Load Game</h2>
-                    <p>Click or Drop {saveFileExtention} file here</p>
+                    <p>Click to choose a {saveFileExtention} file, or drop it anywhere on this page</p>
                 </div>
             </FrameCorners>
         </div>

@@ -6,8 +6,9 @@ import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
 import fileDownload from 'js-file-download';
 import { readProp } from '../property-wrappers';
+import { savedGameFileExtension } from '../drop-file';
 
-const saveFileExtension = '.ssg';
+const saveFileExtension = savedGameFileExtension;
 
 /** The maps offered here mirror the lobby's fixed picks (`components/lobby.tsx`) — there is no server endpoint listing available maps yet. */
 const MAPS = [
@@ -63,7 +64,8 @@ function drawGameSetup(container: WidgetContainer, adminDriver: AdminDriver) {
         display: 'block',
         margin: '0.5em 0',
     });
-    container.getElement().append(loadInput);
+    const loadHint = $('<div>or drop a file anywhere on this page</div>').css({ fontSize: '0.85em', opacity: 0.7 });
+    container.getElement().append(loadInput, loadHint);
     loadInput.on('change', () => {
         const file = (loadInput.get(0) as HTMLInputElement).files?.[0];
         if (!file) {
@@ -78,7 +80,10 @@ function drawGameSetup(container: WidgetContainer, adminDriver: AdminDriver) {
         reader.readAsText(file);
         loadInput.val('');
     });
-    cleanup.add(() => loadInput.remove());
+    cleanup.add(() => {
+        loadInput.remove();
+        loadHint.remove();
+    });
 
     const applyMode = () => {
         const stopped = gameStatus.getValue() === GameStatus.STOPPED;
@@ -86,6 +91,7 @@ function drawGameSetup(container: WidgetContainer, adminDriver: AdminDriver) {
             b.hidden = !stopped;
         }
         loadInput.css('display', stopped ? 'block' : 'none');
+        loadHint.css('display', stopped ? 'block' : 'none');
         stopButton.disabled = stopped;
         saveButton.disabled = stopped;
     };
