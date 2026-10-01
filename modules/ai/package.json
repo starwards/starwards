@@ -1,0 +1,14 @@
+{
+    "name": "@starwards/ai",
+    "version": "0.0.0",
+    "private": true,
+    "license": "SEE LICENSE IN LICENSE.md",
+    "description": "Station brains that play Starwards, and the harness that trains them in the headless game",
+    "scripts": {},
+    "dependencies": {
+        "@starwards/core": "0.5.1",
+        "@starwards/mcp": "0.5.1",
+        "@starwards/server": "0.0.0",
+        "zod": "4.1.12"
+    }
+}
