@@ -34,7 +34,15 @@ const fitDefectBarWidth = 28;
 const fitDefectLabelWidth = 56;
 
 const defaultWidths = { status: '60px', power: '60px', epm: '60px', heat: '60px', coolant: '120px', hacked: '60px' };
-const fitWidths = { status: '38px', power: '52px', epm: '34px', heat: '52px', coolant: '52px', eff: '40px', hack: '36px' };
+const fitWidths = {
+    status: '38px',
+    power: '52px',
+    epm: '34px',
+    heat: '52px',
+    coolant: '52px',
+    eff: '40px',
+    hack: '36px',
+};
 
 /** Short readable label per defect name; a name not listed here is shown in full. */
 const defectShortLabels: Record<string, string> = {
@@ -264,10 +272,7 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
             panelCleanup.add,
         );
 
-        const effProps = [
-            readProp(shipDriver, `${pointer}/broken`),
-            readProp(shipDriver, `${pointer}/power`),
-        ];
+        const effProps = [readProp(shipDriver, `${pointer}/broken`), readProp(shipDriver, `${pointer}/power`)];
         const effCell = addTextCellToRow(
             row,
             aggregate(effProps, () => system.state.effectiveness),
