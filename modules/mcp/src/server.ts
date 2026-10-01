@@ -11,12 +11,10 @@ import {
 } from '@starwards/core/internal';
 import { InvalidCommandError, NotPermittedError, StationSession } from './sandbox/session';
 import { enabledStations, fetchStationsManifest } from './sandbox/manifest';
-import { helmsRadarRange, scanBeamStatus, widgetReaders } from './readers';
+import { radarContacts, shipStatus, stationCapabilities } from './sandbox/console';
 
 import { CrewChannel } from './comms/channel';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { commandBindings } from './sandbox/command-map';
-import { describeContact } from './contacts';
 import { z } from 'zod';
 
 const LOGIN_TIMEOUT_MS = 15_000;
@@ -229,37 +227,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
             inputSchema: {},
             annotations: { readOnlyHint: true },
         },
-        async () =>
-            attempt(() => {
-                const s = requireSession();
-                const commands = (s.isGameMaster ? [...stationCommands] : s.commands).map((command) => {
-                    const binding = commandBindings[command];
-                    const base: Record<string, unknown> = { command, kind: binding.kind };
-                    if (binding.kind === 'fixed') {
-                        base.value = binding.value;
-                        base.range = s.rangeOf(binding.pointer);
-                    } else if (binding.kind === 'indexed') {
-                        base.value = binding.value;
-                        base.collection = binding.collection;
-                        base.count = s.shipDriver.state[binding.collection]?.length ?? 0;
-                    } else if (binding.kind === 'system') {
-                        base.value = binding.value;
-                        base.systems = s.shipDriver.systems.map((sys) => sys.pointer);
-                    } else if (binding.kind === 'beam') {
-                        base.value = binding.value;
-                        base.beam = s.scanBeamPointer ?? null;
-                    }
-                    return base;
-                });
-                return {
-                    station: s.stationName,
-                    shipId: s.shipDriver.id,
-                    gameMaster: s.isGameMaster,
-                    widgets: s.isGameMaster ? [...stationWidgets] : s.widgets,
-                    radars: s.isGameMaster ? ['gm'] : s.radarWidgets,
-                    commands,
-                };
-            }),
+        async () => attempt(() => stationCapabilities(requireSession())),
     );
 
     server.registerTool(
@@ -273,16 +241,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
             },
             annotations: { readOnlyHint: true },
         },
-        async ({ widget }) =>
-            attempt(() => {
-                const s = requireSession();
-                s.requireWidget(widget);
-                const reader = widgetReaders[widget];
-                if (!reader) {
-                    throw new InvalidCommandError(`${widget} is a radar — use get_radar_contacts`);
-                }
-                return reader(s);
-            }),
+        async ({ widget }) => attempt(() => shipStatus(requireSession(), widget)),
     );
 
     server.registerTool(
@@ -298,40 +257,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
             },
             annotations: { readOnlyHint: true },
         },
-        async ({ offset, limit }) =>
-            attempt(() => {
-                const s = requireSession();
-                if (!s.isGameMaster && !s.radarWidgets.length) {
-                    throw new NotPermittedError(`station "${s.stationName}" has no radar`);
-                }
-                const ownShip = s.spaceDriver.state.getShip(s.shipDriver.id);
-                if (!ownShip) {
-                    throw new InvalidCommandError('your ship is not in the space state');
-                }
-                const visible = s.radar.visibleObjects(s.viewFaction);
-                // the tactical radar shows the gunner their own rounds in flight, wherever they are
-                if (s.widgets.includes('tactical-radar')) {
-                    for (const shell of s.radar.ownProjectiles(s.shipDriver.id)) {
-                        visible.add(shell);
-                    }
-                }
-                const contacts = [...visible]
-                    .filter((o) => o.id !== s.shipDriver.id)
-                    .map((o) => describeContact(o, s.viewFaction, ownShip.position))
-                    .sort((a, b) => a.distance - b.distance);
-                return {
-                    ownShip: {
-                        id: ownShip.id,
-                        position: { x: ownShip.position.x, y: ownShip.position.y },
-                        heading: ownShip.angle,
-                    },
-                    radarRange: s.widgets.includes('helms-radar') ? helmsRadarRange(s) : undefined,
-                    scanBeam: s.widgets.includes('long-range-radar') ? scanBeamStatus(s) : undefined,
-                    total: contacts.length,
-                    offset,
-                    contacts: contacts.slice(offset, offset + limit),
-                };
-            }),
+        async ({ offset, limit }) => attempt(() => radarContacts(requireSession(), { offset, limit })),
     );
 
     server.registerTool(

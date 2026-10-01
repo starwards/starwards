@@ -22,6 +22,27 @@ export class InvalidCommandError extends Error {}
 /** How long a single burst may hold a trigger down. Long enough to matter, short enough to forget. */
 const MAX_BURST_SECONDS = 5;
 
+/** The members of a ship driver a session reads and commands through — narrow so an in-process fake can stand in. */
+export type SessionShipDriver = Pick<ShipDriver, 'state' | 'systems' | 'id' | 'sendJsonCmd' | 'command'>;
+/** The members of a space driver a session reads and commands through — narrow so an in-process fake can stand in. */
+export type SessionSpaceDriver = Pick<SpaceDriver, 'state' | 'sendJsonCmd' | 'command'>;
+
+/**
+ * How a session sees space and passes time. Both default to the live room; an in-process headless run
+ * overrides them because it has no room events to build a radar from and advances simulated time, not
+ * wall time, so a wall-clock wait would hold a trigger for no simulated time at all.
+ */
+export type StationSessionOptions = {
+    /** The radar picture. Defaults to one built from the space driver's room events. */
+    radar?: RadarView;
+    /** Waits while a trigger is held. Defaults to a wall-clock wait. */
+    wait?: (seconds: number) => Promise<void>;
+};
+
+function wallClockWait(seconds: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
 /**
  * One logged-in station: a seat on a ship, and the boundary of what that seat may see and do.
  *
@@ -31,14 +52,18 @@ const MAX_BURST_SECONDS = 5;
  */
 export class StationSession {
     readonly radar: RadarView;
+    private readonly wait: (seconds: number) => Promise<void>;
 
     constructor(
         readonly stationName: string,
         readonly entry: StationEntry,
-        readonly shipDriver: ShipDriver,
-        readonly spaceDriver: SpaceDriver,
+        readonly shipDriver: SessionShipDriver,
+        readonly spaceDriver: SessionSpaceDriver,
+        options: StationSessionOptions = {},
     ) {
-        this.radar = RadarView.fromDriver(spaceDriver);
+        // only a live driver reaches this default: an in-process caller has no room events and passes its own radar
+        this.radar = options.radar ?? RadarView.fromDriver(spaceDriver as SpaceDriver);
+        this.wait = options.wait ?? wallClockWait;
     }
 
     get isGameMaster(): boolean {
@@ -141,7 +166,7 @@ export class StationSession {
         }
         this.shipDriver.sendJsonCmd(pointer, true);
         try {
-            await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+            await this.wait(seconds);
         } finally {
             this.shipDriver.sendJsonCmd(pointer, false);
         }
