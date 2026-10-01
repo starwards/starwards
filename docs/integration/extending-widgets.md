@@ -131,17 +131,4 @@ dashboard.registerWidget(powerControl(shipDriver));
 
 **Add to screen:**
 
-```typescript
-// modules/browser/src/screens/ship.ts
-export const shipScreen = {
-    content: [
-        {
-            type: 'row',
-            content: [
-                { type: 'component', componentName: 'my-widget' },
-                { type: 'component', componentName: 'power-control' },
-            ],
-        },
-    ],
-};
-```
+Registered widgets become Dashboard (golden-layout) components keyed by their name. `ship.ts` builds the dashboard in `initScreen` through `makeDashboard`; the layout comes from the `layout` URL param or a saved layout, and users add widgets from the dashboard menu. `ship.ts` exports no layout constant.

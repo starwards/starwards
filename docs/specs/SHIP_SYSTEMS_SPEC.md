@@ -21,7 +21,7 @@ last_verified: 2026-06-13
 |--------|---------|----------------|---------|
 | Reactor | Energy generation | energy, power | EnergyManager |
 | Thruster | Propulsion | thrust, turn | MovementManager |
-| Radar | Detection | range, contacts | (no dedicated manager) |
+| Radar | Detection | range, arc, malfunctionRangeFactor | (no dedicated manager) |
 | ChainGun | Weapons | isFiring, rateOfFireFactor, bearingSkew | ChainGunManager |
 | Warp | FTL travel | level, charging | (no dedicated manager) |
 
@@ -66,6 +66,12 @@ abstract class SystemState extends Schema {
     @range([0, 1])
     @gameField('float32')
     hacked: number = HackLevel.OK;
+    
+    @gameField('boolean')
+    energyStarved = false; // set by EnergyManager.drawEnergy when the reactor can't cover a draw
+    
+    get isInternal(): boolean;    // delegates to design.isInternal
+    get isElectronics(): boolean; // delegates to design.isElectronics
     
     // Computed property
     get effectiveness(): number {
@@ -160,6 +166,12 @@ Stores system design parameters (max values, rates, etc.)
 ## Structure
 ```typescript
 abstract class DesignState extends Schema {
+    static readonly isStarwardsDesignState = true; // marker read by isCommandable (game-field.ts) so the GM panel can write design fields over JSON Pointer
+    
+    @gameField('string') modelName = '';
+    @gameField('boolean') isInternal = false;
+    @gameField('boolean') isElectronics = false;
+    
     keys() {
         // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
         const metadata = (this.constructor as any)[Symbol.metadata];
@@ -214,8 +226,9 @@ interface Updateable {
 }
 
 interface IterationData {
-    deltaSeconds: number;
-    totalSeconds: number;
+    readonly deltaSeconds: number;
+    readonly deltaSecondsAvg: number;
+    readonly totalSeconds: number;
 }
 ```
 
@@ -274,23 +287,12 @@ class EnergyManager implements Updateable {
 @updates: heat-accumulation-dissipation
 
 ```typescript
-class HeatManager implements Updateable {
-    constructor(private state: ShipState) {}
-    
-    update({ deltaSeconds }: IterationData) {
-        for (const system of this.getSystems()) {
-            // Dissipate heat
-            const coolantRate = this.getCoolantRate(system);
-            system.heat -= coolantRate * system.coolantFactor * deltaSeconds;
-            
-            // Clamp to valid range
-            system.heat = Math.max(0, Math.min(MAX_SYSTEM_HEAT, system.heat));
-        }
-    }
-    
-    addHeat(system: SystemState, amount: number) {
-        system.heat += amount;
-    }
+export const MAX_SYSTEM_HEAT = 100;
+export class HeatManager implements Updateable {
+    constructor(private state: ShipState, private damageManager: DamageManager) {}
+    addHeat(value: number, system: ShipSystem) // clamps at MAX_SYSTEM_HEAT; overflow -> damageManager.damageSystem(system, {id:'overheat', amount}, 1)
+    reduceHeat(value: number, system: ShipSystem) // floors at 0
+    update({ deltaSeconds }: IterationData) // splits state.design.totalCoolant across systems() in proportion to coolantFactor (evenly if all factors are 0) and calls reduceHeat
 }
 ```
 
@@ -322,39 +324,43 @@ class DamageManager {
 
 ## Initialization
 ```typescript
-class ShipState extends Spaceship {
-    constructor() {
-        super();
-        
-        // Initialize systems
-        this.reactor = new Reactor();
-        this.thrusters = new ArraySchema<Thruster>();
-        this.radar = new Radar();
-        this.chainGun = new ChainGun();
-        this.warp = new Warp();
-    }
+// ShipState composes the Spaceship (it does not extend it); systems are built
+// from the ship's design by make-ship-state.ts, not by the constructor.
+class ShipState extends Schema {
+    @gameField(Spaceship)
+    spaceship: Spaceship = new Spaceship();
+    
+    @gameField(Reactor)
+    reactor!: Reactor;
+    
+    @gameField([Thruster])
+    thrusters!: ArraySchema<Thruster>;
+    
+    @gameField([Radar])
+    radars = new ArraySchema<Radar>();
+    
+    @gameField([ChainGun])
+    chainGuns = new ArraySchema<ChainGun>();
+    
+    @gameField(Warp)
+    warp: Warp | null = null;
 }
 ```
 
 ## Update Loop
 ```typescript
-class ShipRoom extends Room<ShipState> {
-    private energyManager!: EnergyManager;
-    private heatManager!: HeatManager;
-    
-    onCreate() {
-        this.setState(new ShipState());
-        this.energyManager = new EnergyManager(this.state);
-        this.heatManager = new HeatManager(this.state);
-    }
-    
-    onUpdate(deltaSeconds: number) {
-        const data = { deltaSeconds, totalSeconds: 0 };
-        
-        this.energyManager.update(data);
-        this.heatManager.update(data);
-        // ... other managers
-    }
+// Managers are owned by ShipManager, not ShipRoom (modules/server/src/ship/room.ts
+// only receives the ShipManager in onCreate). Shared managers (e.g. HeatManager) are
+// constructed in ship-manager-abstract.ts, player-ship-only ones (e.g. EnergyManager,
+// RepairManager) in ship-manager.ts; dependencies are constructor arguments.
+this.heatManager = new HeatManager(this.state, this.damageManager);
+this.energyManager = new EnergyManager(this.state, this.heatManager);
+
+// each tick
+update(id: IterationData) {
+    this.heatManager.update(id);
+    this.energyManager.update(id);
+    // ... other managers
 }
 ```
 
@@ -426,14 +432,9 @@ export class MySystem extends SystemState {
 // modules/core/src/ship/ship-state.ts
 import { MySystem } from './my-system';
 
-class ShipState extends Spaceship {
+class ShipState extends Schema {
     @gameField(MySystem)
-    mySystem!: MySystem;
-    
-    constructor() {
-        super();
-        this.mySystem = new MySystem();
-    }
+    mySystem!: MySystem; // built from the ship design in make-ship-state.ts
 }
 ```
 
@@ -473,22 +474,14 @@ export class MySystemManager implements Updateable {
 
 ### 5. Integrate Manager
 ```typescript
-// modules/server/src/ship/room.ts
-import { MySystemManager } from '@starwards/core/ship';
+// modules/core/src/ship/ship-manager.ts
+import { MySystemManager } from './my-system-manager';
 
-class ShipRoom extends Room<ShipState> {
-    private mySystemManager!: MySystemManager;
-    
-    onCreate() {
-        this.setState(new ShipState());
-        this.mySystemManager = new MySystemManager(this.state);
-    }
-    
-    onUpdate(deltaSeconds: number) {
-        const data = { deltaSeconds, totalSeconds: 0 };
-        this.mySystemManager.update(data);
-    }
-}
+// in the ShipManager constructor
+this.mySystemManager = new MySystemManager(this.state);
+
+// in ShipManager.update(id: IterationData)
+this.mySystemManager.update(id);
 ```
 
 ### 6. Create UI Widget
@@ -558,7 +551,7 @@ class ThrustManager {
             
             // Generate heat
             const heat = thrust * thruster.design.heatPerThrust;
-            this.heatManager.addHeat(thruster, heat * deltaSeconds);
+            this.heatManager.addHeat(heat * deltaSeconds, thruster);
         }
     }
 }
@@ -705,7 +698,7 @@ class ChainGun extends Turret {
 
 ## Status Calculation
 @function: getStatus
-@returns: 'DISABLED' | 'DAMAGED' | 'OK'
+@returns: 'DISABLED' | 'DAMAGED_STARVED' | 'STARVED' | 'DAMAGED' | 'OK'
 
 ```typescript
 // From system.ts
@@ -713,13 +706,14 @@ getStatus: () => {
     if (state.broken) {
         return 'DISABLED';
     }
-    if (defectibles.some((d) => {
+    const isDamaged = defectibles.some((d) => {
         const currentValue = state[d.field] as number;
         return currentValue !== d.normal;
-    })) {
-        return 'DAMAGED';
+    });
+    if (state.energyStarved) {
+        return isDamaged ? 'DAMAGED_STARVED' : 'STARVED';
     }
-    return 'OK';
+    return isDamaged ? 'DAMAGED' : 'OK';
 }
 ```
 
@@ -822,23 +816,15 @@ export class MySystemManager implements Updateable {
 }
 
 // 4. Add to ShipState
-class ShipState extends Spaceship {
+class ShipState extends Schema {
     @gameField(MySystem)
     mySystem!: MySystem;
 }
 
-// 5. Integrate in Room
-class ShipRoom extends Room<ShipState> {
-    private mySystemManager!: MySystemManager;
-    
-    onCreate() {
-        this.mySystemManager = new MySystemManager(this.state);
-    }
-    
-    onUpdate(deltaSeconds: number) {
-        this.mySystemManager.update({ deltaSeconds, totalSeconds: 0 });
-    }
-}
+// 5. Integrate in ShipManager (constructor + update)
+this.mySystemManager = new MySystemManager(this.state);
+// ShipManager.update(id: IterationData):
+this.mySystemManager.update(id);
 ```
 
 ---

@@ -20,7 +20,7 @@ last_verified: 2026-06-13
 |-------------|---------|-----------|---------|----------|
 | Spaceship | Player/NPC ships | Corporeal | Full | Persistent |
 | Projectile | Bullets/missiles | Corporeal | Full | Time-limited |
-| Explosion | Blast effects | Non-corporeal | None | Time-limited |
+| Explosion | Blast effects | Corporeal (blast overlap) | Growing radius | Time-limited |
 | Asteroid | Space debris | Corporeal | Full | Persistent |
 | Waypoint | Navigation markers | Non-corporeal | None | Persistent |
 
@@ -46,13 +46,15 @@ abstract class SpaceObjectBase extends Schema {
 }
 
 // SpaceObjects type union
-type SpaceObjects = {
+interface SpaceObjects {
     Spaceship: Spaceship;
+    Asteroid: Asteroid;
     Projectile: Projectile;
     Explosion: Explosion;
-    Asteroid: Asteroid;
+    Nebula: Nebula;
     Waypoint: Waypoint;
-};
+    Derelict: Derelict;
+}
 ```
 
 ### Core Properties
@@ -324,7 +326,7 @@ object.destroyed = true;
 
 // Cleanup (next frame)
 if (object.destroyed && object.expendable) {
-    spaceState.asteroids.delete(object.id);
+    spaceState.delete(object);
 }
 ```
 
@@ -374,14 +376,16 @@ export class MyObject extends SpaceObjectBase {
 ### 2. Add to SpaceObjects Type
 ```typescript
 // modules/core/src/space/index.ts
-export type SpaceObjects = {
+export interface SpaceObjects {
     Spaceship: Spaceship;
+    Asteroid: Asteroid;
     Projectile: Projectile;
     Explosion: Explosion;
-    Asteroid: Asteroid;
+    Nebula: Nebula;
     Waypoint: Waypoint;
+    Derelict: Derelict;
     MyObject: MyObject;  // Add new type
-};
+}
 ```
 
 ### 3. Add MapSchema to SpaceState
@@ -398,13 +402,14 @@ class SpaceState extends Schema {
 ### 4. Add Collision Handling
 ```typescript
 // modules/core/src/logic/space-manager.ts
+// Collisions are detected broad-phase across all bodies registered in the
+// detect-collisions system; there are no per-type collision pairs to register.
 private handleCollisions(deltaSeconds: number) {
-    // Add collision pairs
-    this.checkCollisions(
-        this.state.ships,
-        this.state.myObjects,
-        this.handleShipMyObjectCollision
-    );
+    this.collisions.checkAll((response: SWResponse) => {
+        const subject = this.collisionToState.get(response.a);
+        const object = this.collisionToState.get(response.b);
+        // ...
+    });
 }
 
 private handleShipMyObjectCollision(
@@ -434,9 +439,7 @@ function renderMyObject(
     graphics: Graphics,
     color: number
 ) {
-    graphics.beginFill(color);
-    graphics.drawCircle(0, 0, object.radius);
-    graphics.endFill();
+    graphics.circle(0, 0, object.radius).fill({ color });
 }
 
 // Register renderer
@@ -482,8 +485,6 @@ export class Spaceship extends SpaceObjectBase {
         return !!o && (o as SpaceObjectBase).type === 'Spaceship';
     };
     
-    public static radius = 50;
-    
     @gameField('string')
     public readonly type = 'Spaceship';
     
@@ -498,16 +499,22 @@ export class Spaceship extends SpaceObjectBase {
     @tweakable('string')
     public model: ShipModel | null = null;
     
-    constructor() {
-        super();
-        this.radius = Spaceship.radius;
-    }
+    @gameField('string')
+    @tweakable('string')
+    public callsign = '';
+    
+    @gameField('uint16')
+    public hitsLanded = 0;
     
     init(id: string, position: Vec2, shipModel: ShipModel, faction: Faction): this {
         this.id = id;
         this.position = position;
         this.model = shipModel;
         this.faction = faction;
+        this.radius = shipConfigurations[shipModel].radius;
+        if (!this.callsign) {
+            this.callsign = id;
+        }
         return this;
     }
 }
@@ -526,31 +533,37 @@ export class Projectile extends SpaceObjectBase {
     @gameField('string')
     public readonly type = 'Projectile';
     
+    @gameField('float32')
+    public secondsToLive = 0;
+    
+    @gameField('uint16')
+    public health = 10;
+    
     @gameField('string')
-    public sourceId: string = '';
+    public shipId = '';
     
-    @gameField('float32')
-    public damage: number = 10;
+    @gameField('string')
+    public targetId: string | null = null;
     
-    @gameField('float32')
-    public timeToLive: number = 5.0;
+    @gameField('string')
+    public model: AmmoType = 'HiExpShell';
     
-    public readonly isCorporal: boolean = true;
-    // collisionDamage is not overridden — inherits SpaceObjectBase default (0.5)
+    @gameField('string')
+    public warhead: ClusterWarheadMode = 'Frag';
     
-    init(
-        id: string,
-        position: Vec2,
-        velocity: Vec2,
-        sourceId: string,
-        damage: number
-    ): this {
+    // collisionDamage is not overridden — inherits SpaceObjectBase default (10)
+    
+    constructor(model?: AmmoType) {
+        super();
+        if (model) {
+            this.model = model;
+            this.radius = ammoDesigns[model].radius;
+        }
+    }
+    
+    init(id: string, position: Vec2): this {
         this.id = id;
         this.position = position;
-        this.velocity = velocity;
-        this.sourceId = sourceId;
-        this.damage = damage;
-        this.radius = 2;
         return this;
     }
 }
@@ -573,17 +586,36 @@ export class Explosion extends SpaceObjectBase {
     public damageFactor: number = 1;
     
     @gameField('float32')
-    public timeToLive: number = 1.0;
+    public secondsToLive = 0.5;
+    
+    @gameField('float32')
+    public velocityInheritance = BLAST_VELOCITY_INHERITANCE;
+    
+    @gameField('float32')
+    public expansionSpeed = 10; // radius growth, m/s
+    
+    @gameField('float32')
+    public blastFactor = 1;
+    
+    @gameField('boolean')
+    public breachHit = false;
+    
+    @gameField('string')
+    public shipId = '';
     
     // Corporeal (inherited default) — participates in the collision
     // system to deal blast damage/impulse
     public readonly isCorporal: boolean = true;
     
+    constructor() {
+        super();
+        this.radius = 0.01; // grows at expansionSpeed
+    }
+    
     init(id: string, position: Vec2, damageFactor: number): this {
         this.id = id;
         this.position = position;
         this.damageFactor = damageFactor;
-        this.radius = 50;
         return this;
     }
 }
@@ -604,14 +636,21 @@ export class Asteroid extends SpaceObjectBase {
     @gameField('string')
     public readonly type = 'Asteroid';
     
-    public readonly isCorporal: boolean = true;
-    public readonly collisionElasticity: number = 0.2;
-    public readonly collisionDamage: number = 0.8;
+    @gameField('uint16')
+    public health = 0;
     
-    init(id: string, position: Vec2, radius: number): this {
+    constructor() {
+        super();
+        this.health = 100;
+        this.radius = Math.random() * Asteroid.maxSize;
+    }
+    
+    init(id: string, position: Vec2, radius?: number): this {
         this.id = id;
         this.position = position;
-        this.radius = radius;
+        if (typeof radius === 'number') {
+            this.radius = radius;
+        }
         return this;
     }
 }
@@ -751,10 +790,10 @@ export class MyObject extends SpaceObjectBase {
 }
 
 // 2. Add to SpaceObjects type
-export type SpaceObjects = {
-    // ... existing types
+export interface SpaceObjects {
+    // ... existing types (Spaceship, Asteroid, Projectile, Explosion, Nebula, Waypoint, Derelict)
     MyObject: MyObject;
-};
+}
 
 // 3. Add to SpaceState
 class SpaceState extends Schema {

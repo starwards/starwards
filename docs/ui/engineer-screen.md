@@ -63,9 +63,18 @@ The Engineer screen provides detailed system management, power distribution, and
 
 ### 4. Damage (Left, ENG-03) and Armor Status (Bottom-Left)
 
+- **Widget**: `drawDamageReport()` (Damage, left column, scrollable)
 - **Widget**: `drawArmorStatus()` - Same as Pilot screen
 - **Size**: 200px minimum
 - **Data Source**: `/armor/*` (same as Pilot)
+
+### 5. Repair Queue (Right)
+
+- **Widget**: `drawRepairQueue()`
+- **Controls**: Set repair-protocol priority
+    - `alt+<n>`: Raise priority OFF->LOW->MEDIUM->HIGH, or start wind-down if the protocol is RUNNING
+    - `alt+shift+<n>`: Lower priority
+    - `ctrl+alt+<n>`: Toggle mode
 
 ## User Workflows
 
@@ -141,7 +150,7 @@ The Engineer screen provides detailed system management, power distribution, and
 ### State Requirements
 
 - `ShipState.systems()`: All systems array
-- `System.power`: PowerLevel enum (0-4)
+- `System.power`: PowerLevel enum (0-1 in 0.25 steps: SHUTDOWN, LOW, NORMAL, HIGH, MAX)
 - `System.heat`: Float32
 - `System.coolantFactor`: Float32 (0-1)
 - `System.hacked`: HackLevel enum

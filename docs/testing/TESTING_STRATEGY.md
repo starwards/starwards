@@ -4,7 +4,7 @@
 
 This guide provides practical strategies for enhancing Starwards' existing testing infrastructure. The codebase already benefits from sophisticated testing utilities including advanced property-based testing, a feature-rich ship simulation harness, and comprehensive test drivers.
 
-**Current State:** ~40 test files with sophisticated infrastructure (ShipTestHarness, property-based testing, test drivers), Playwright E2E tests across station screens, multi-client server tests, and a mature CI/CD pipeline.
+**Current State:** ~185 test files with sophisticated infrastructure (ShipTestHarness, property-based testing, test drivers), Playwright E2E tests across station screens, multi-client server tests, and a mature CI/CD pipeline.
 
 **Objective:** Build on existing strengths to add multi-client testing capability, expand E2E coverage, and enhance debugging utilities.
 
@@ -14,12 +14,12 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 
 ### 1.1 Existing Testing Infrastructure
 
-**Unit Testing (46 test files):**
+**Unit Testing (185 test files):**
 - Jest with multi-project setup (core, server, node-red)
-- 26 files in `modules/core/test/` - physics, state management, formulas
-- 4 files in `modules/node-red/` - integration nodes
-- 6 files in `modules/server/` - API, serialization
-- 10 files in `modules/e2e/` - Playwright integration
+- 119 files in `modules/core/test/` - physics, state management, formulas
+- 5 files in `modules/node-red/` - integration nodes
+- 34 files in `modules/server/` - API, serialization
+- 27 files in `modules/e2e/` - Playwright integration
 
 **Sophisticated Infrastructure:**
 
@@ -46,7 +46,7 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 - Integration with game state
 
 **CI/CD Pipeline:**
-- `.github/workflows/ci-cd.yml` with 6 jobs: Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build
+- `.github/workflows/ci-cd.yml` with 7 jobs: Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build, Publish-Master-Prerelease (runs after all the others)
 - Container-based E2E
 - Artifact storage
 
@@ -56,13 +56,11 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 2. **Integrated Test Drivers** - Complete lifecycle control, socket management, direct state access
 3. **Visualization** - PlotlyGraphBuilder helps debug complex interactions
 4. **Mature CI/CD** - Separate stages prevent false positives
-5. **Test Organization** - Flat structure works well at current scale (19 files)
+5. **Test Organization** - Flat structure in modules/core/test (~120 spec files)
 
 ### 1.3 Testing Opportunities
 
 **High Value:**
-- Multi-client state synchronization testing (biggest gap)
-- Concurrent command processing validation
 - Network failure/recovery scenarios
 - Cross-browser E2E validation
 - Performance regression detection
@@ -118,14 +116,14 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 
 ### 3.2 Test Structure Evolution (Optional)
 
-**Current (works well):** Flat structure with 19 files
+**Current:** Flat structure with ~120 spec files
 **Future (when >50 files):** Hierarchical organization with unit/integration/utils folders
 **Migration:** Gradual, only when finding tests becomes difficult
 
 ### 3.3 Extending Test Utilities
 
 **ShipTestHarness Additions:**
-- `createCombatScenario(shipCount)` - Multi-ship setup
+- `createCombatScenario(config: CombatScenarioConfig)` - Multi-ship setup
 - `assertPhysicsInvariant(predicate, message)` - Invariant checking
 - `enableStateHistory()` / `getStateAt(time)` - State debugging
 - State history recording during simulation
@@ -241,7 +239,7 @@ collectCoverageFrom: ['modules/*/src/**/*.ts', '!modules/browser/**']
 
 ### 6.1 CI/CD Enhancements
 
-**Existing:** 6 jobs (Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build), container E2E, artifact storage
+**Existing:** 7 jobs (Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build, Publish-Master-Prerelease), container E2E, artifact storage
 
 **Proposed:**
 1. **Parallel Jest** - Add `--maxWorkers=4` to unit tests
@@ -323,7 +321,7 @@ collectCoverageFrom: ['modules/*/src/**/*.ts', '!modules/browser/**']
 - ✅ Physics calculations (strong coverage)
 - ✅ State synchronization (basic coverage, needs multi-client)
 - ✅ Command handling (basic coverage, needs validation)
-- ⚠️ Multi-client scenarios (missing - Priority 1)
+- ✅ Multi-client scenarios (multi-client-driver, sync and concurrent specs in modules/server/src/test/)
 - ✅ Serialization (basic coverage)
 
 ### Performance Characteristics

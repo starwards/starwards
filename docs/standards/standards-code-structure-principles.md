@@ -36,7 +36,7 @@ instantiation. No `...compositeArmor` spreads importing another domain's interna
 ## A convention that only comments know gets promoted to a named decoder
 
 "plateFactor 0 means the armor doesn't engage; then penetration is only meaningfully 0 or 1" was
-encoded as raw numbers interpreted inline by the damage manager. `ArmorDesignState.response()`
+encoded as raw numbers interpreted inline by the damage manager. `ArmorLayerDesignState.response()`
 returning `bypass | block | engage` moves that interpretation into armor itself — one decoder, and
 the caller switches on names instead of re-deriving the rule.
 
@@ -51,7 +51,7 @@ Follow-through: once the union no longer covered all damage, `DamageType` was re
 
 "Elec applies once per hit" and "one reactive cell pops per hit" were previously emergent from loop
 structure (and wrong — per-area). Now: electronics damage is folded outside the area loop; the cell
-pop is threaded as an explicit `mayPopCell` parameter with a `{brokenPlates, cellPopped}` result —
+pop is threaded as an explicit `cellBudget: { popped: boolean }` parameter of `walkPlateLayers`, shared across all plates of a hit —
 the rule is visible in a signature, not implied by iteration order.
 
 ## Collapse parallel code paths by normalizing their input, not by abstracting their logic

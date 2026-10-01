@@ -4,7 +4,9 @@ Guide to piloting in Newtonian space.
 
 ## Flight Modes
 
-### Velocity Mode (Default)
+Ships start in Direct mode for both rotation and maneuvering.
+
+### Velocity Mode
 Computer-assisted flight. Helm sets desired velocity, autopilot adjusts thrusters to match.
 
 - **Helm at rest:** Ship aims for zero velocity

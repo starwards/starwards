@@ -31,7 +31,7 @@ retrieval helpers and worked examples.
 ### SpaceState
 **Location:** `modules/core/src/space/space-state.ts`
 
-**Properties:** `Projectile|Explosion|Asteroid|Spaceship|Waypoint: MapSchema<T>`
+**Properties:** `Projectile|Explosion|Nebula|Asteroid|Spaceship|Waypoint|Derelict: MapSchema<T>` (private; access via `getAll()`/`get()`), `lockedPaths: ArraySchema<string>`
 
 **Methods:**
 - `get(id): SpaceObject|undefined` - Find by ID
@@ -41,16 +41,16 @@ retrieval helpers and worked examples.
 - `getAll(type): Iterable<T>` - Get all of type
 - `[Symbol.iterator](destroyed?): Iterator` - Iterate all
 
-**Commands (server):** `moveCommands|botOrderCommands|createAsteroidCommands|destroySpaceshipCommands`
+**Commands (server):** `moveCommands|botOrderCommands|createAsteroidCommands|createExplosionCommands|createNebulaCommands|createWaypointCommands|setScanLevelCommands|lockCommands|createSpaceshipCommands|destroySpaceshipCommands|convertShipTypeCommands`
 
 ### ShipState
 **Location:** `modules/core/src/ship/ship-state.ts`
 
 **Design:** `@gameField(ShipPropertiesDesignState) design`
 
-**AI:** `isPlayerShip|idleStrategy|order|orderTargetId|orderPosition|currentTask`
+**AI:** `isPlayerShip|idleStrategy|order|orderTargetId|orderPosition|currentTask|flightDoctrine|aggroTargetId`
 
-**Systems:** `thrusters|tubes|chainGun|radar|reactor|smartPilot|armor|magazine|weaponsTarget|warp|docking|maneuvering|signals`
+**Systems:** `thrusters|tubes|chainGuns|radars|reactor|smartPilot|armor|magazine|weaponsTarget|warp|docking|maneuvering|signals|capsule|repairQueue`
 
 **Controls:** `rotation:[-1,1]|boost:[-1,1]|strafe:[-1,1]|antiDrift:[0,1]|breaks:[0,1]|afterBurner:[0,1]`
 
@@ -66,7 +66,7 @@ retrieval helpers and worked examples.
 ### AdminState
 **Location:** `modules/core/src/admin/index.ts`
 
-**Properties:** `@gameField('int8') gameStatus | @gameField(['string']) shipIds | @gameField(['string']) playerShipIds | @gameField('float32') speed` (getter `isGameRunning`)
+**Properties:** `@gameField('int8') gameStatus | @gameField({ map: StationRegistryEntry }) stations | @gameField('boolean') isRecordingGame | @gameField('float32') recordingSeconds | @gameField('string') recordingName | @gameField(['string']) shipIds | @gameField(['string']) playerShipIds | @gameField('float32') speed | @gameField('string') message` (getter `isGameRunning`)
 
 ## Space Objects
 

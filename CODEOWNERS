@@ -13,7 +13,7 @@
 /modules/core/src/json-ptr.ts                    @starwards/maintainers
 /modules/core/src/game-field.ts                  @starwards/maintainers
 /modules/core/src/ship/ship-manager-abstract.ts  @starwards/maintainers
-/modules/core/src/space/space-manager.ts         @starwards/maintainers
+/modules/core/src/logic/space-manager.ts         @starwards/maintainers
 /modules/server/src/ship/room.ts                 @starwards/maintainers
 
 # Build / CI / lint / docs / agent guidance.

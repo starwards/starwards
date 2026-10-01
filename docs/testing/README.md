@@ -2,14 +2,14 @@
 
 ## Status
 
-**41 test files, 200+ tests** (~15s unit, ~2min E2E)
+Unit suites run in seconds, E2E in minutes. Count the test files with `git ls-files | grep -cE '.(spec|test).tsx?$'`.
 
 | Category    | Files | Tests | Location                   |
 | ----------- | ----- | ----- | -------------------------- |
-| Unit        | 23    | ~90   | `modules/core/test/`       |
-| Server      | 6     | 28    | `modules/server/src/test/` |
-| E2E         | 10    | 51    | `modules/e2e/test/`        |
-| Integration | 4     | ~15   | `modules/node-red/src/`    |
+| Unit        | 119   | ~90   | `modules/core/test/`       |
+| Server      | 34    | 28    | `modules/server/src/test/` |
+| E2E         | 27    | 51    | `modules/e2e/test/`        |
+| Integration | 5     | ~15   | `modules/node-red/src/`    |
 
 **CI/CD:** Automated on every push, parallel execution (4 workers)
 
@@ -225,11 +225,11 @@ test.describe('My Screen', () => {
 ```typescript
 // playwright.config.ts
 {
-    timeout: 20000,              // 20s per test (setup + test + cleanup)
-    expect: { timeout: 5000 },   // 5s for assertions
+    timeout: process.env.CI ? 40_000 : 20_000,           // per test; CI machines are slower
+    expect: { timeout: process.env.CI ? 10_000 : 5_000 }, // assertions
     use: {
-        actionTimeout: 5000,     // 5s for actions
-        navigationTimeout: 10000 // 10s for navigation (global)
+        actionTimeout: process.env.CI ? 10_000 : 5_000,      // actions
+        navigationTimeout: process.env.CI ? 15_000 : 10_000  // navigation (global)
     }
 }
 
@@ -341,7 +341,7 @@ describe('multi-client sync', () => {
 **Features:** Physics simulation, graphing, metrics, state history, invariants
 
 ```typescript
-import { ShipTestHarness } from '@starwards/core/test';
+import { ShipTestHarness } from './ship-test-harness'; // from a spec in modules/core/test/
 
 const harness = new ShipTestHarness();
 harness.enableStateHistory();

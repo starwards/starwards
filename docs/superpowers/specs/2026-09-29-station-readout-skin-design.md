@@ -18,7 +18,7 @@ Reference mockups: `docs/design/mockups/station-readouts/*.dc.html` (live canvas
 
 ### 1. Skin structure
 
-- `modules/browser/static/styles/tweakpane.css` is rewritten as the skin. Tokens on `:root`: palette, type faces, type scale, spacing.
+- `static/styles/tweakpane.css` is rewritten as the skin. Tokens on `:root`: palette, type faces, type scale, spacing.
 - `<body data-input="none">` on Helms, Weapons, Engineer, Signals — set in `modules/browser/src/screens/station-screens.ts` per station type. Under it: `pointer-events: none` on panes; hidden slider knobs, checkbox chrome, list arrows, buttons, fold arrows.
 - `<body data-density="compact">` on GM and ship (`templates/sidebar.html`). Scales size/spacing tokens down only; no behaviour change.
 - DRADIS gets neither attribute: same skin, with visible interactive affordances (filled buttons, underlined inputs, toggle switches) per `Dradis.dc.html`.

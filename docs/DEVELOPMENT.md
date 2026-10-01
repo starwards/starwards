@@ -20,7 +20,7 @@ npm test                   # Verify
 | `npm run clean`      | Remove artifacts            |
 | `npm run pkg`        | Native executables (Windows + Linux) |
 
-**Build order:** core → (server, browser, node-red in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
+**Build order:** core → (server, browser, node-red, mcp in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
 
 **Production build:**
 
@@ -37,6 +37,7 @@ npm run pkg      # → dist/exec/starwards-win.exe, dist/exec/starwards-linux (t
 - server: `modules/server/cjs/`
 - browser: `modules/browser/dist/`
 - node-red: `modules/node-red/dist/`
+- mcp: `modules/mcp/dist/`
 
 ## Development Workflow
 
@@ -80,7 +81,7 @@ Commands, harnesses, fixtures and troubleshooting all live in [testing/README.md
 
 ## Docker
 
-**Services:** MQTT (1883), Node-RED (1880)
+**Services:** MQTT (1883), Node-RED (1880), Open Stage Control (8090 HTTP, 57120/udp OSC)
 
 ```bash
 cd docker && docker-compose up -d     # Start

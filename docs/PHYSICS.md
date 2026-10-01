@@ -20,13 +20,22 @@ last_verified: 2026-07-20
 
 ### Update Loop
 ```typescript
-update(dt: IterationData) {
-    updateVelocities(dt);     // F = ma
-    updatePositions(dt);      // x = x0 + vt
-    detectCollisions();       // Circle-circle
-    updateProjectiles(dt);    // Raycast
-    updateExplosions(dt);     // Blast propagation
-    updateAttachments();      // Docking
+update({ deltaSeconds, totalSeconds }: IterationData) {
+    applyLockCommands(state);          // GM lock/unlock first
+    calcAttachmentCliques();
+    // drain create{Asteroid,Explosion,Nebula,Waypoint}Commands, handleToInsert, moveCommands, botOrderCommands
+    growExplosions(dt);                // blast propagation
+    destroyTimedOut(dt);
+    calcHomingProjectiles(dt);
+    if (dt > 0) checkUnguidedProximityFuzes();
+    untrackDestroyedObjects();
+    frozendAndAttachedDontMove();      // docking / frozen
+    applyPhysics(dt);                  // motion
+    factionIntel.update(totalSeconds, getVisibleObjectsByFaction());
+    updateFieldsOFView();
+    updateCollisionBodies();
+    if (dt > 0) handleCollisions(dt);
+    // periodic gc() after GC_TIMEOUT
 }
 ```
 
@@ -41,11 +50,11 @@ velocity.x += acceleration.x * dt;
 
 ## Collision Detection
 
-**Library:** `detect-collisions` (spatial hashing) — version in [DEPENDENCIES.md](DEPENDENCIES.md)
+**Library:** `detect-collisions` (BVH broadphase + SAT narrowphase) — version in [DEPENDENCIES.md](DEPENDENCIES.md)
 
 **Complexity:**
 - Naive: O(n²) → comparisons = n×(n-1)/2
-- Optimized: O(n log n) avg w/ spatial hashing
+- Optimized: O(n log n) avg w/ BVH broadphase
 - Worst: O(n²) for dense distributions
 
 **Implementation:**
@@ -127,9 +136,9 @@ Weapons are designed for specific effectiveness ranges:
    - Optimal for mid-range engagements
 
 3. **Long Range:** Self-propelled torpedoes
-   - Homing capability: 720°/s rotation
+   - Homing capability: 504–936°/s rotation, depending on the missile (see `homing.rotationCapacity` per missile in `modules/core/src/space/projectile.ts`)
    - Flight time varies by warhead (see `secondsToLive` per missile in `modules/core/src/space/projectile.ts`)
-   - Proximity detonation at 100m
+   - Fuze varies by warhead: proximity detonation at 100m (HiExp, Frag, Cluster), or contact (ArmPen, Tandem, Elec)
 
 **Chaingun Selection:** External chain-powered for blowback-free operation, variable motor speed controls rate of fire, misfires don't jam (round ejects, new round loads).
 

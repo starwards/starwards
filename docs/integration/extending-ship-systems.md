@@ -61,7 +61,8 @@ export class Shield extends SystemState {
 // modules/core/src/ship/ship-state.ts
 import { Shield } from './shield';
 
-export class ShipState extends Spaceship {
+@rangeSchema({ '/spaceship/turnSpeed': [-90, 90] })
+export class ShipState extends Schema implements Lockable {
     @gameField(Shield)
     shield!: Shield;
 }
@@ -121,7 +122,7 @@ export class ShipManagerPc extends ShipManager {
         const remaining = this.shieldManager.absorbDamage(amount);
         if (remaining > 0) {
             // Apply to armor/hull
-            this.state.armor.health -= remaining;
+            this.damageManager.damageAllSystems({ id: 'shield-overflow', amount: remaining });
         }
     }
 }
@@ -167,13 +168,15 @@ export function shieldWidget(shipDriver: ShipDriver): DashboardWidget {
 
 ```typescript
 // modules/core/src/configurations/demo-ship.ts
-export const demoShipConfig = {
-    // ... other systems
-    shield: {
-        maxStrength: 1000,
-        rechargeRate: 10,
-        energyCost: 5,
-        damage50: 50,
-    },
+export const demoShipShield = {
+    maxStrength: 1000,
+    rechargeRate: 10,
+    energyCost: 5,
+    damage50: 50,
 };
+
+export const demoShip = {
+    // ... other systems
+    shield: demoShipShield,
+} satisfies ShipDesign;
 ```

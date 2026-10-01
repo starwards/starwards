@@ -640,6 +640,8 @@ type DefectibleConfig = {
 
 **System Status:**
 - `DISABLED` - System broken
+- `DAMAGED_STARVED` - energyStarved and a defectible value ≠ normal
+- `STARVED` - energyStarved, all defectibles at normal
 - `DAMAGED` - Defectible value ≠ normal
 - `OK` - All defectibles at normal values
 
@@ -678,7 +680,7 @@ import { getSystems } from '@starwards/core';
 const systems = getSystems(shipState);
 for (const system of systems) {
     console.log(system.state.name);
-    console.log(system.getStatus());  // 'OK' | 'DAMAGED' | 'DISABLED'
+    console.log(system.getStatus());  // 'OK' | 'DAMAGED' | 'STARVED' | 'DAMAGED_STARVED' | 'DISABLED'
     
     for (const defectible of system.defectibles) {
         console.log(defectible.name, defectible.value, defectible.normal);
@@ -696,13 +698,14 @@ getStatus: () => {
     if (state.broken) {
         return 'DISABLED';
     }
-    if (defectibles.some((d) => {
+    const isDamaged = defectibles.some((d) => {
         const currentValue = state[d.field] as number;
         return currentValue !== d.normal;
-    })) {
-        return 'DAMAGED';
+    });
+    if (state.energyStarved) {
+        return isDamaged ? 'DAMAGED_STARVED' : 'STARVED';
     }
-    return 'OK';
+    return isDamaged ? 'DAMAGED' : 'OK';
 }
 ```
 

@@ -13,7 +13,7 @@ E2E tests using `page.getByText()` to select Tweakpane UI elements hit **Playwri
 **Implementation**: Helper function that wraps Tweakpane creation
 ```typescript
 // modules/browser/src/panel/blades.ts
-export function createPane(params: { title?: string; container: HTMLElement }): Pane {
+export function createPane(params: { title?: string; container?: HTMLElement }): Pane {
     const pane = new Pane(params);
     if (params.title) {
         pane.element.dataset.id = params.title;
@@ -165,7 +165,7 @@ When refactoring tests:
 ## References
 
 - **Implementation**: [`modules/browser/src/panel/blades.ts`](../../modules/browser/src/panel/blades.ts#L33-L39)
-- **Test Helpers**: [`modules/e2e/test/driver.ts`](../../modules/e2e/test/driver.ts#L126-L161)
+- **Test Helpers**: [`modules/e2e/test/driver.ts`](../../modules/e2e/test/driver.ts#L112-L201)
 - **Example Test**: [`modules/e2e/test/weapons-screen.spec.ts`](../../modules/e2e/test/weapons-screen.spec.ts#L32-L35)
 - **Patterns**: [`docs/PATTERNS.md`](../PATTERNS.md)
 - **Testing Guide**: [`docs/testing/README.md`](README.md#ui-testing-best-practices)

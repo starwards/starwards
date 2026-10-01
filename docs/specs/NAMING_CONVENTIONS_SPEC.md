@@ -506,7 +506,7 @@ enum Order {
 enum PowerLevel {
     SHUTDOWN = 0,
     LOW = 0.25,
-    MID = 0.5,
+    NORMAL = 0.5,
     HIGH = 0.75,
     MAX = 1
 }

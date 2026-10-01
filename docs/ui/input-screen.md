@@ -41,7 +41,7 @@ The Input screen provides real-time visualization of gamepad inputs. Used for te
   - Axes (0-10): 11 axis columns with live values
 - **Data Source**: `navigator.getGamepads()` via @maulingmonkey/gamepad
 - **Update Rate**: Polling via `requestAnimationFrame`
-- **Visual**: Background color indicates axis value (blue=negative, green=positive)
+- **Visual**: Background color indicates axis value (red=negative, cyan=positive; intensity scales with magnitude)
 
 ### 3. Gamepad Buttons Table
 - **Columns**:

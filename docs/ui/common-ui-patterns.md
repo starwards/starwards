@@ -5,7 +5,7 @@ source_of_truth:
   - modules/browser/src/widgets
 related:
   - ../UI_SPECIFICATION.md
-  - specs/WIDGET_SYSTEM_SPEC.md
+  - ../specs/WIDGET_SYSTEM_SPEC.md
 last_verified: 2026-08-18
 ---
 
@@ -166,8 +166,8 @@ cleanup.add(() => stopSomething());
 
 #### Target Frame Rates
 - Radar rendering: 60 FPS
-- Panel updates: 30 FPS (via EmitterLoop)
-- Input polling: 60 FPS (requestAnimationFrame)
+- Panel updates: 60 Hz (EmitterLoop default interval 1000/60)
+- Input loop: 10 Hz (InputManager EmitterLoop, 1000/10 ms)
 
 #### Bottlenecks
 - PixiJS: Rendering 100+ blips with FOV overlays

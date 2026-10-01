@@ -49,8 +49,8 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
   - Each tube under its own sub-header
   - Auto-load and safety can be toggled per tube from the keyboard
 - **Keyboard**:
-  - `C` key: Toggle auto-load on Tube 0
-  - `V` key: Change projectile type on Tube 0
+  - `Shift+1`..`Shift+4`: Toggle load/auto-load (`loadAmmo`) on Tube 0..3
+  - `Alt+1`..`Alt+4`: Change projectile type on Tube 0..3
   - `1`, `2`, `3`, `4` keys: Toggle safety on Tube 0, 1, 2, 3 respectively (one dedicated key per tube index)
   - `X` key: Fire — ship-level command that launches every tube that is simultaneously loaded, unlocked, and able to bear; each tube that fires re-locks its own safety immediately
 - **Data Source**: `/tubes/[index]/projectile`, `/tubes/[index]/loadedProjectile`, `/tubes/[index]/loading`, `/tubes/[index]/loadAmmo`, `/tubes/[index]/safetyLocked`, `/fireTubesCommand`
@@ -104,7 +104,7 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 ### Secondary Workflow: Ammunition Management
 1. Monitor **Magazine Panel** for ammo counts
 2. Check **Tubes → Loaded / Next** for current selection
-3. Press `V` to cycle through available projectile types
+3. Press `Alt+1`..`Alt+4` to cycle the projectile type of tube 0..3 (`B` cycles chain-gun ammo)
 4. Ensure **auto load** is enabled for automatic reloading
 5. Coordinate with engineering to ensure magazine has power
 
@@ -116,7 +116,7 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 
 ## Current Pain Points
 
-1. **Projectile Selection Hidden**: `V` key cycles projectile but no visual feedback of available types
+1. **Projectile Selection Hidden**: `Alt+<n>` cycles projectile but no visual feedback of available types
 2. **No Target Info**: Target ID shown but no type, faction, distance, or health
 3. **Radar Range Fixed**: 10000m range may be too close or too far depending on situation
 4. **No Fire Solution**: No lead indicator or time-to-target calculation

@@ -27,7 +27,7 @@ The Ship screen provides a fully customizable dashboard for any ship. Used for s
 - **Framework**: GoldenLayout (same as GM screen)
 - **Menu**: Top menu bar with widget list
 - **Available Widgets**: All 20 per-ship widgets from GM screen
-  - radar, tactical radar, pilot radar, long range radar
+  - radar, tactical radar, helms radar, long range radar
   - helm, gun, design state, target radar
   - monitor, damage report, armor, ammo
   - tubes, systems, systems (full), engineering status

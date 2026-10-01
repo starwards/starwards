@@ -1,6 +1,6 @@
 # Pilot station — current state
 
-**Code:** `modules/browser/src/screens/pilot.ts` + widgets in
+**Code:** `modules/browser/src/screens/helms.ts` (+ `helms-screen.ts`) + widgets in
 `modules/browser/src/widgets/`
 
 ## Widgets on screen
@@ -14,7 +14,7 @@
 | Bottom-right | `dockingStatus` |
 | Bottom-left | `armorStatus` (200px) |
 
-## Inputs wired (`wireInput` in pilot.ts)
+## Inputs wired (`wireInput` in helms.ts)
 
 | Action | Keyboard | Gamepad |
 |---|---|---|

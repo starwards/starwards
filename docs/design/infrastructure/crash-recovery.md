@@ -26,15 +26,13 @@
 | Gap | Severity | Notes |
 |-----|----------|-------|
 | **No connection indicator** | High | Player doesn't know if game is reconnecting or dead. Need visible status. |
-| **Infinite reload loop** | Medium | If ship deleted while offline, `location.reload()` loops forever. |
 | **No reconnection UX** | Medium | No "reconnecting..." overlay or feedback during retry. |
 | **Command loss** | Low | Acceptable — commands during disconnect are dropped, not queued. |
 
 ## Recommendations
 
 1. Add a visible connection status indicator to all station screens (green dot / red dot / spinner)
-2. Guard the `location.reload()` pattern against infinite loops (max retries or fallback to lobby)
-3. Document the reconnection flow for GMs (how to help a player get back in)
+2. Document the reconnection flow for GMs (how to help a player get back in)
 
 ## Key files
 

@@ -55,13 +55,13 @@ node-red
 **Configuration:**
 
 - Server URL (e.g., `http://localhost:8080`)
-- Ship ID
+- Name (optional)
 
 **Usage:**
 
 1. Drag `starwards-config` to flow
 2. Double-click to configure
-3. Enter server URL and ship ID
+3. Enter the server URL (the ship ID is set on each ship-read / ship-write node)
 4. Other nodes reference this config
 
 ### ship-read
@@ -71,6 +71,7 @@ node-red
 **Configuration:**
 
 - Config: Select starwards-config node
+- Ship ID
 - Pattern: JSON Pointer pattern (e.g., `/reactor/energy`)
 
 **Output:**
@@ -103,6 +104,7 @@ node-red
 **Configuration:**
 
 - Config: Select starwards-config node
+- Ship ID
 
 **⚠️ Whitelist:** Node-RED writes go through the same JSON Pointer
 admission check as browser clients. Only `@commandable`, `@tweakable`,
@@ -187,8 +189,8 @@ return msg;
 
 **Configuration:**
 
-1. Create multiple config nodes (one per ship)
-2. Create separate read nodes
+1. Use one starwards-config node per server
+2. Create a ship-read node for each ship, each with its own Ship ID
 3. Display on dashboard
 
 ## Connection Management
@@ -210,14 +212,14 @@ State Sync
     ↓
 Disconnect/Error
     ↓
-Auto-Reconnect (exponential backoff)
+Auto-Reconnect (fixed interval, 1 s)
 ```
 
 **Status Indicators:**
 
 - 🟢 Green: Connected
-- 🟡 Yellow: Connecting
-- 🔴 Red: Disconnected/Error
+- 🔴 Red (dot): Disconnected/Error
+- 🔴 Red (ring): Server config missing or inactive
 
 ## Error Handling
 

@@ -59,9 +59,10 @@ Interactive UI control panels using Tweakpane library.
 **Fields:**
 | Field               | Type    | Format            | Description           |
 | ------------------- | ------- | ----------------- | --------------------- |
-| `hull`              | Boolean | "DAMAGED" \| "OK" | Hull damage indicator |
-| `energy`            | float32 | Graph             | Reactor energy level  |
-| `after-burner fuel` | float32 | Graph             | Maneuvering fuel      |
+| `energy`           | float32 | Bar                    | Reactor energy level  |
+| `cells`            | float32 | Text + segmented bar   | Energy cells          |
+| `afterburner fuel` | float32 | Bar (rounded integer)  | Maneuvering fuel      |
+| `hull`             | Boolean | "DAMAGED" \| "INTACT" | Hull damage indicator |
 
 **Semantics:** Ship resource monitoring for engineering crew
 
@@ -69,8 +70,8 @@ Interactive UI control panels using Tweakpane library.
 
 ### 3. Tubes Status
 
-**Title:** "Tubes Status"
-**Data Types:** String, float32 slider, boolean
+**Title:** "Tubes"
+**Data Types:** Ammo rows, segmented loading bar, list, annunciators
 **File:** `modules/browser/src/widgets/tubes-status.ts`
 
 **Hierarchy:** Folder per tube (dynamic)
@@ -78,10 +79,11 @@ Interactive UI control panels using Tweakpane library.
 **Per-Tube Fields:**
 | Field         | Type       | Editable | Description              |
 | ------------- | ---------- | -------- | ------------------------ |
-| `ammo to use` | String     | ❌        | Selected projectile type |
-| `ammo loaded` | String     | ❌        | Currently loaded ammo    |
-| `loading`     | Slider 0-1 | ❌        | Loading progress         |
-| `auto load`   | Boolean    | ✅        | Auto-load toggle         |
+| `Warhead`     | List       | ✅        | Cluster warhead mode (cluster-capable tubes only) |
+| loading       | Segmented bar | ❌     | Loading progress         |
+| `Ready`       | Annunciator | ❌       | Projectile loaded        |
+| `Safe`        | Annunciator | ✅       | Safety lock (caution tone) |
+| `Auto`        | Annunciator | ❌       | Auto-load                |
 
 **Variations:** Number of tubes varies by ship class
 
@@ -105,7 +107,7 @@ Status | Power | EPM | Heat | Coolant | Hacked
 **System Row (per system):**
 | Column  | Type   | Format                          | Color Coding   |
 | ------- | ------ | ------------------------------- | -------------- |
-| Status  | Enum   | "OK" \| "DAMAGED" \| "DISABLED" | ✅ Status-based |
+| Status  | Enum   | "OK" \| "DAMAGED" \| "STARVED" \| "DAMAGED_STARVED" \| "DISABLED" | ✅ Status-based |
 | Power   | Enum   | PowerLevel (0/0.25/0.5/0.75/1)  | -              |
 | EPM     | int    | Rounded energy/min              | -              |
 | Heat    | int    | Rounded temperature (0-~400)    | -              |
@@ -121,14 +123,14 @@ Status | Power | EPM | Heat | Coolant | Hacked
 ```typescript
 statusCell.element.classList.add('tp-rotv');
 statusCell.element.dataset.status = system.getStatus();
-// CSS: :root [data-status='OK'] { --tp-base-background-color: hsl(123, 61%, 18%); }
+// CSS: :root [data-status='OK'] { background: var(--sw-ground); }  (dark empty cell; .tp-rotv OK cells also hide their text)
 ```
 
 ---
 
 ### 5. Systems Status (Compact)
 
-**Title:** "Systems Status"
+**Title:** "Systems"
 **Width:** 370px fixed
 **File:** `modules/browser/src/widgets/system-status.ts`
 
@@ -155,7 +157,7 @@ Status | Power | Heat | Hacked
 **Data Types:** Numbers, enums, booleans, buttons
 **File:** `modules/browser/src/widgets/create.ts`
 
-**Hierarchy:** 4 folders (expanded by default)
+**Hierarchy:** 5 folders (expanded by default)
 
 **Folder Contents:**
 
@@ -171,6 +173,10 @@ Status | Power | Heat | Hacked
 
 **Explosion:**
 - `damageFactor`: Slider (1-1000)
+- Create button
+
+**Nebula:**
+- `radius`: Slider (500-5000, step 1)
 - Create button
 
 **Waypoint:**
@@ -239,12 +245,12 @@ Status | Power | Heat | Hacked
 **Fields:**
 | Field            | Type   | Format              | Status Styled    |
 | ---------------- | ------ | ------------------- | ---------------- |
-| `Actual LVL`     | Slider | Current warp level  | -                |
-| `Designated LVL` | Slider | Target warp level   | -                |
-| `Proximity Jam`  | Text   | "JAMMED" \| "CLEAR" | ✅ WARN if jammed |
-| `Actual FRQ`     | Text   | WarpFrequency enum  | -                |
-| `Designated FRQ` | Text   | WarpFrequency enum  | -                |
-| `Calibration`    | Slider | Frequency change    | -                |
+| `level`          | Text        | Warp level          | -                |
+| `frequency`      | Text        | WarpFrequency enum  | -                |
+| `designated`     | Text        | WarpFrequency enum  | -                |
+| `calibration`    | Text        | Percent             | -                |
+| `Jammed`         | Annunciator | Proximity jam       | caution tone     |
+| `Calib`          | Annunciator | Calibrating         | -                |
 
 **Status Styling:**
 ```typescript
@@ -256,7 +262,7 @@ jamBlade.element.dataset.status = shipDriver.state.warp.jammed ? 'WARN' : '';
 
 ### 11. Ammunition
 
-**Title:** "Ammunition"
+**Title:** "Magazine"
 **File:** `modules/browser/src/widgets/ammo.ts`
 
 **Hierarchy:** Flat list (per projectile type)
@@ -341,10 +347,10 @@ Visual displays rendered using PixiJS graphics engine.
 
 ---
 
-### 14. Pilot Radar
+### 14. Helms Radar
 
-**data-id:** "Pilot Radar"
-**File:** `modules/browser/src/widgets/pilot-radar.ts`
+**data-id:** "Helms Radar"
+**File:** `modules/browser/src/widgets/helms-radar.ts`
 **Props:** `{ range: number }` (default: 5000)
 
 **Dynamic Behavior:**
@@ -523,7 +529,7 @@ hide ↔ show ↔ exiting (XState)
 ```
 
 **Timings:**
-- Enter: 2000ms
+- Enter: immediate
 - Exit: 1000ms
 
 **Semantics:** Damage alert feed
@@ -575,9 +581,10 @@ HTML components for game lobby.
 ### Styling Systems
 
 **Status Colors (via `data-status` attribute):**
-- "OK" → Green (`hsl(123, 61%, 18%)`)
-- "WARN" → Yellow (`hsl(52, 61%, 18%)`)
-- "ERROR" → Red (`hsl(0, 69%, 17%)`)
+- "OK" → dark ground (`var(--sw-ground)`, #03080b); value text is hidden on non-readout panes
+- "WARN" → amber (`var(--sw-caution)`, #ffb000)
+- "ERROR" → red (`var(--sw-warning)`, #ff3b30)
+(Inline and `.sw-mode` rows use a transparent background with tinted text instead; see static/styles/tweakpane.css.)
 
 **Themes:**
 - **Tweakpane:** Panels 1-12 (CSS variables)
@@ -588,7 +595,7 @@ HTML components for game lobby.
 - **Bebas:** Radars, labels
 - **Electrolize:** React panels
 - **Titillium Web:** Arwes components
-- **Roboto Mono:** Tweakpane
+- **Chakra Petch / Share Tech Mono:** Tweakpane (labels / values)
 
 ---
 
