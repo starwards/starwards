@@ -1,4 +1,4 @@
-import { Driver, waitFor } from '@starwards/core/internal';
+import { Driver, RepairProtocolMode, waitFor } from '@starwards/core/internal';
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -165,6 +165,22 @@ describe('starwards mcp server', () => {
                     expect(contact.name).toBe(contact.id);
                 }
             }
+        });
+    });
+
+    describe('logged in as engineer', () => {
+        it('toggles a repair protocol between Responsive and Dark', async () => {
+            payload(await call('login', { shipId: test_map_1.testShipId, station: 'engineer' }));
+            const protocolId = 'fireControlAlignment';
+            const slotMode = () =>
+                gameDriver
+                    .getShip(test_map_1.testShipId)
+                    .state.repairQueue.slots.find((s) => s.protocolId === protocolId)?.mode;
+            expect(slotMode()).toBe(RepairProtocolMode.Responsive);
+            payload(await call('execute_command', { command: 'toggleRepairProtocolMode', protocolId }));
+            await waitFor(() => {
+                expect(slotMode()).toBe(RepairProtocolMode.Dark);
+            }, 3_000);
         });
     });
 

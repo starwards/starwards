@@ -80,6 +80,13 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
                 .describe('up raises priority OFF->LOW->MEDIUM->HIGH (or starts wind-down if RUNNING); down lowers it'),
         }),
     },
+    toggleRepairProtocolMode: {
+        kind: 'ship-command',
+        cmdName: 'toggleRepairProtocolMode',
+        args: z.object({
+            protocolId: z.string().describe('field-tier repair protocol id, from the repair-queue status'),
+        }),
+    },
 
     // --- signals ---
     beamDirection: { kind: 'beam', field: 'bearingCommand', value: 'number' },

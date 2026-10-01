@@ -301,11 +301,9 @@ export const fireControlAlignment: RepairProtocolStats = {
         { system: 'smartPilot', field: 'offsetFactor' },
         { system: 'radars', field: 'malfunctionRangeFactor' },
     ],
-    // already had no side effect pre-#2255 (the 2026-08-08 §6.2 "scarce safe option") — under R1's
-    // blanket rule its Dark mode inherits that same empty side-effect list, so the two modes here
-    // differ only in duration; that is the intended, uneventful outcome of extending R1 to a
-    // protocol that had nothing to darken in the first place.
-    modes: fieldModes({ duration: 45, energyDraw: 2, heat: 20 }, []),
+    // Dark takes the smart pilot offline: the guns and radars the protocol realigns stay live, so the
+    // price of the faster run lands on the helm's assists, not on the station that benefits.
+    modes: fieldModes({ duration: 45, energyDraw: 2, heat: 20 }, ['smartPilot']),
     tier: 'field',
 };
 
@@ -394,8 +392,7 @@ function jumpStartReactor(state: ShipState): void {
  * runnable from true zero energy — `RepairManager.tickRunning` never draws for a zero-draw
  * protocol.
  *
- * Like `fireControlAlignment`, this already had no side effect pre-#2255, so R1's Dark mode is
- * still side-effect-free here — only its duration (a third of Responsive's) differs.
+ * Neither mode takes anything offline — Dark differs only in duration (a third of Responsive's).
  */
 export const reactorJumpStart: RepairProtocolStats = {
     name: 'Reactor jump-start',

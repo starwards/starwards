@@ -6,7 +6,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 
 - Five people, one ship (**Gravitas**): Pilot, Weapons, Signals, Engineer at screens; Captain has no screen.
 - Ship: forward-fixed chaingun, two missile tubes, 70 km omni radar + steerable 50 km scan beam, 1,000-energy reactor pool, afterburner (gamepad only).
-- Systems run at `power × (1 − hacked)`, zero when broken. Use spends shared energy; fast spending makes heat; over-limit heat damages; damaged systems drift (guns miss, thrusters skew, radar flickers) then break. Engineer raises a repair protocol's priority and runs repairs (10–240 s, most draw energy and darken a system).
+- Systems run at `power × (1 − hacked)`, zero when broken. Use spends shared energy; fast spending makes heat; over-limit heat damages; damaged systems drift (guns miss, thrusters skew, radar flickers) then break. Engineer raises a repair protocol's priority and runs repairs (10–240 s, most draw energy). Each field repair has two modes: **Responsive** (full time, nothing goes dark) or **Dark** (a third of the time, a named system goes dark).
 - Only Engineer sees power/heat/damage; only Signals sees far and identifies contacts (Weapons sees 10 km); gun points where Pilot points; Signals' and Weapons' targets are **separate**. Say contact names aloud ("Asteroid 47").
 - Unknown contact = **UFO** (grey dot, no name). Scan tiers UFO → BASIC (faction, model) → FULL (internals), 5 s per tier at full power, automatic. FULL can go stale to SNAPSHOT — see Signals.
 - Docking: in range of a friendly station, Pilot presses `Z`. Docked: magazine refills (~150 s), energy cells restock, two docked-only repairs unlock. Undock stops restock and **cancels** a running docked-only repair.
@@ -118,7 +118,7 @@ Every raider in this scenario wears plain composite plating. ArmPen eats it twic
 - → Pilot: "Nose 20 degrees right" / "Target inside minimum range, back off."
 - → Signals: "Which one is the Glaive?" / "Is Contact 12 a ship or a shell?" / "What is it wearing?"
 - → Engineer: "Gun loading slow" / "Tubes not responding."
-- ← Engineer: "gun dark 45 s" precedes an Actuator recalibration.
+- ← Engineer: "gun dark 15 s" precedes a Dark-mode Actuator recalibration.
 - ← Signals: "Composite, plates down 40% on the near side."
 
 **Mistakes**
@@ -172,7 +172,7 @@ Scans queue automatically for everything in view; top job runs, one tier per 5 s
 - Top-left: reactor energy, afterburner fuel, hull. Middle-left: warp status and frequency.
 - Centre: **systems table** — status, power, energy/min, heat, coolant slider (mouse works), hacked flag, damaged sub-properties.
 - Top-right: **Damage report**. Bottom-left: armour plates.
-- Middle-right: **Repair Queue** — one fixed row per protocol, showing priority (OFF / LOW / MEDIUM / HIGH / RUNNING / CANCELLING), progress while running, *repair energy* (insufficient reactor energy) when starved, and a *notice* line (why the last priority raise was refused).
+- Middle-right: **Repair Queue** — one fixed row per protocol, showing priority (OFF / LOW / MEDIUM / HIGH / RUNNING / CANCELLING), progress while running, its mode (Responsive / Dark), *repair energy* (insufficient reactor energy) when starved, and a *notice* line (why the last priority raise was refused).
 
 **Keys**
 
@@ -180,26 +180,29 @@ Power/coolant key pairs, one per system in ship order: `1`/`Q`, `2`/`W`, `3`/`E`
 
 | Key | Does |
 |---|---|
-| `Alt+1` | Actuator recalibration — 45 s, **chaingun dark** |
-| `Alt+2` | Thrust-line purge — 60 s, **thrusters dark** |
-| `Alt+3` | Feed-system overhaul — 60 s, **magazine dark** |
-| `Alt+4` | Sensor-array degauss — 30 s, **radars dark** |
-| `Alt+5` | Radar traverse servo alignment — 30 s, **radars dark** |
-| `Alt+6` | Signal-processor retune — 30 s, **signals dark** |
-| `Alt+7` | Power-train reset — 90 s, **warp + manoeuvring dark** |
-| `Alt+8` | Containment-field tuning — 75 s, **warp dark** |
-| `Alt+9` | Fire-control alignment — 45 s, nothing dark |
+| `Alt+1` | Actuator recalibration — 45 s, Dark 15 s: **chaingun dark** |
+| `Alt+2` | Thrust-line purge — 60 s, Dark 20 s: **thrusters dark** |
+| `Alt+3` | Feed-system overhaul — 60 s, Dark 20 s: **magazine dark** |
+| `Alt+4` | Sensor-array degauss — 30 s, Dark 10 s: **radars dark** |
+| `Alt+5` | Radar traverse servo alignment — 30 s, Dark 10 s: **radars dark** |
+| `Alt+6` | Signal-processor retune — 30 s, Dark 10 s: **signals dark** |
+| `Alt+7` | Power-train reset — 90 s, Dark 30 s: **warp + manoeuvring dark** |
+| `Alt+8` | Containment-field tuning — 75 s, Dark 25 s: **warp dark** |
+| `Alt+9` | Fire-control alignment — 45 s, Dark 15 s: **smart pilot dark** (Pilot's VELOCITY and TARGET modes stop working) |
 | `Alt+0` | Hull-wide systems overhaul — 240 s, nothing dark, **docked only** |
 | `Alt+Q` | Armor plate renewal — heals worst plate, repeatable, **docked only** |
-| `Alt+W` | Launcher servo recalibration — 45 s, **tubes dark**; re-locks tube safeties |
-| `Alt+E` | Reactor jump-start — 10 s, 1 energy cell (Gravitas carries 2), +30% energy |
+| `Alt+W` | Launcher servo recalibration — 45 s, Dark 15 s: **tubes dark**; re-locks tube safeties |
+| `Alt+E` | Reactor jump-start — 10 s (Dark ~3 s), nothing dark, 1 energy cell (Gravitas carries 2), +30% energy |
+| `Alt+R` | Turret traverse governor tuning — 45 s, Dark 15 s: **thrusters + chainguns + tubes dark** |
+| `Alt+T` | Traverse-limit recalibration — 60 s, Dark 20 s: **thrusters + chainguns + radars + tubes dark** |
+| `Ctrl+Alt+<same key>` | Toggle that row's mode Responsive ↔ Dark (field protocols only; locked once the run starts) |
 | `]` / `[` | Warp standby frequency up / down; `\` commits (warp ships only) |
 | `SPACE` | Hotkey help |
 
-Thirteen protocols, one fixed row each — nothing to submit and no row order to change, only priority. `Alt+<key>` raises priority OFF → LOW → MEDIUM → HIGH (clamps at HIGH); `Alt+Shift+<key>` lowers it back down (clamps at OFF). Either key on the RUNNING protocol starts a wind-down (CANCELLING): progress runs back to 0%, then side effects revert and a spent energy cell refunds; either key during CANCELLING is ignored, the wind-down always finishes. One repair at a time, no pre-emption: the highest-priority pending protocol starts only once nothing else is RUNNING/CANCELLING, ties broken by the row order above. Completion returns the row to OFF with no auto-repeat, so a renewed armour plate needs a fresh `Alt+Q` per plate. Dark = zero power on that system for the run. Starved of energy for a sustained 2 s force-stops the run outright (same revert as a cancel, but instant). One protocol fixes every instance it targets (all six thrusters). A protocol whose tier, energy cell, or equipment isn't available refuses the raise with a reason on its row; a pending protocol that loses availability (e.g. undocking) drops to OFF with a reason — a docked-only row stays visible while undocked, it just refuses.
+Fifteen protocols (thirteen field, two docked-only), one fixed row each — nothing to submit and no row order to change, only priority. `Alt+<key>` raises priority OFF → LOW → MEDIUM → HIGH (clamps at HIGH); `Alt+Shift+<key>` lowers it back down (clamps at OFF). Either key on the RUNNING protocol starts a wind-down (CANCELLING): progress runs back to 0%, then side effects revert and a spent energy cell refunds; either key during CANCELLING is ignored, the wind-down always finishes. One repair at a time, no pre-emption: the highest-priority pending protocol starts only once nothing else is RUNNING/CANCELLING, ties broken by the row order above. Completion returns the row to OFF with no auto-repeat, so a renewed armour plate needs a fresh `Alt+Q` per plate. Responsive is the default; Dark = zero power on the listed system(s) for the run, restored after. Docked-only protocols have one mode. Starved of energy for a sustained 2 s force-stops the run outright (same revert as a cancel, but instant). One protocol fixes every instance it targets (all six thrusters). A protocol whose tier, energy cell, or equipment isn't available refuses the raise with a reason on its row; a pending protocol that loses availability (e.g. undocking) drops to OFF with a reason — a docked-only row stays visible while undocked, it just refuses.
 
 **Say / Ask**
-- → Weapons before `Alt+1`: "Gun dark 45 s, now." → Pilot before `Alt+2`: "Thrusters off 60 s."
+- → Weapons before `Alt+1`: "Gun dark 15 s, now." → Pilot before `Alt+2`: "Thrusters off 20 s."
 - → Captain: "Energy 200 and falling; one long repair or the gun, not both."
 - → Pilot: "Warp frequency 3 → 5 in ten seconds." (only you see it)
 
