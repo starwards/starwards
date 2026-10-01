@@ -112,6 +112,16 @@ export interface TrainingRunOptions {
     /** Omit to skip persisting the recording -- the run still records to a scratch dir so
      * `extract.ts` has a store to read, but that scratch recording is deleted before returning. */
     readonly recording?: { readonly dir: string; readonly intervalSimSeconds: number };
+    /**
+     * Seats a crew on the GVTS: it gets `ShipManagerPc`, so the map's `orderAttack` on it is a no-op
+     * and, without a {@link beforeTick} driving it, the ship does nothing.
+     */
+    readonly crewedPlayer?: boolean;
+    /**
+     * Awaited before every `game.tick(dt)`, as the wave-defence harness drives its crew before the
+     * tick, so whatever it sets takes effect on that tick. Cannot cross `run-training.ts`'s worker IPC.
+     */
+    readonly beforeTick?: (game: HeadlessGame, recorder: HeadlessRecorder) => Promise<void> | void;
 }
 
 /**
@@ -123,11 +133,11 @@ export interface TrainingRunOptions {
  */
 export async function runTraining<P>(
     scenario: TrainingScenario<P>,
-    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording }: TrainingRunOptions,
+    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording, crewedPlayer = false, beforeTick }: TrainingRunOptions,
 ): Promise<TrainingResult> {
     const started = Date.now();
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
-    const game = HeadlessGame.start(scenario.createMap(params), seed);
+    const game = HeadlessGame.start(scenario.createMap(params), seed, { crewedPlayer });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');
@@ -150,6 +160,7 @@ export async function runTraining<P>(
     const gunnery: GunnerySample[] = [];
     await recorder.capture();
     while (game.seconds < timeoutSeconds) {
+        await beforeTick?.(game, recorder);
         game.tick(dt);
         await recorder.capture();
         const target = game.api.getObject(TRAINING_TARGET_ID);
