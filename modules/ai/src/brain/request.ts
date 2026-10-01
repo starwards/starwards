@@ -12,7 +12,12 @@ export type BrainRequest = { state: Record<string, unknown>; questions: Record<s
  * options, all in one request, because the questions share the same display and are answered in
  * parallel and in isolation.
  */
-export function buildRequest(spec: BrainSpec, display: Display, controls: readonly Control[]): BrainRequest {
+export function buildRequest(
+    spec: BrainSpec,
+    display: Display,
+    controls: readonly Control[],
+    reading?: readonly string[],
+): BrainRequest {
     const questions: Record<string, ChoiceQuestion> = {};
     for (const control of controls) {
         const wording = { ...spec.controls[control.command], ...spec.controls[control.id] };
@@ -21,7 +26,7 @@ export function buildRequest(spec: BrainSpec, display: Display, controls: readon
         }
         questions[control.id] = {
             type: 'choice',
-            instructions: wording.instructions ?? defaultInstructions(control),
+            instructions: wording.instructions ?? defaultInstructions(control, reading ? 'console' : 'display'),
             criteria: { ...control.options, ...pick(wording.options ?? {}, Object.keys(control.options)) },
         };
     }
@@ -30,19 +35,19 @@ export function buildRequest(spec: BrainSpec, display: Display, controls: readon
             station: spec.station,
             role: spec.role,
             mission: spec.mission,
-            display: visibleDisplay(display, spec.hide),
+            ...(reading ? { console: reading } : { display: visibleDisplay(display, spec.hide) }),
         },
         questions,
     };
 }
 
-function defaultInstructions(control: Control) {
+function defaultInstructions(control: Control, view: 'console' | 'display') {
     const [, target] = control.id.split(':');
     const subject =
         target === undefined
             ? `the \`${control.command}\` control`
             : `the \`${control.command}\` control for \`${target}\``;
-    return `You are the \`role\` at the console shown in \`display\`, working toward \`mission\`. What do you do with ${subject} right now?`;
+    return `You are the \`role\` at the console shown in \`${view}\`, working toward \`mission\`. What do you do with ${subject} right now?`;
 }
 
 function pick(record: Record<string, string>, keys: readonly string[]) {

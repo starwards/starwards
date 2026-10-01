@@ -1,0 +1,63 @@
+{
+    "id": "weapons",
+    "version": 5,
+    "station": "weapons",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "weapons officer of the warship GVTS, choosing targets and firing the forward chain gun with the weapons console keys",
+    "mission": "lock the enemy ship and keep hitting it with the chain gun until it is destroyed",
+    "controls": {
+        "target": {
+            "instructions": "Which targeting key do you press now?",
+            "options": {
+                "next": "lock the next contact the filters allow (only contacts scanned at least BASIC); the console then marks the locked contact (LOCKED). With no lock the pilot cannot follow the target. Choose this when the console says no weapons lock and lists a ship",
+                "previous": "lock the previous allowed contact",
+                "clear": "drop the current lock: the pilot loses the target",
+                "none": "press none: keep the current lock, or keep having none. Choose this when the console shows a weapons lock"
+            }
+        },
+        "fireChainGun:0": {
+            "instructions": "Which do you do with the chain gun trigger now?",
+            "options": {
+                "fire": "fire for half a second straight ahead along the ship's nose; shells explode at the locked target's distance, up to 8000 m. Hits only if the locked contact is dead on the nose or within about 2° of it; otherwise it wastes ammunition. Choose this when the LOCKED contact is under 8 km away and dead on the nose or at most 2° right or left of it",
+                "hold_fire": "do not fire. Choose this when there is no lock, or the LOCKED contact is more than 2° off the nose"
+            }
+        },
+        "loadChainGun:0": {
+            "instructions": "Which do you do with the chain gun loading switch now?",
+            "options": {
+                "on": "keep the gun loading rounds, so it can fire",
+                "off": "stop loading: the gun cannot fire once its round is spent"
+            }
+        },
+        "changeGunAmmo:0": {
+            "instructions": "Which do you do with the gun ammunition key now?",
+            "options": {
+                "press": "switch the gun to the next shell type ; high-explosive shells are the ones that kill",
+                "wait": "keep the current shell type"
+            }
+        },
+        "targetEnemyOnly": {
+            "instructions": "Which way do you set the enemies-only targeting filter?",
+            "options": {
+                "on": "the targeting keys only lock enemy contacts",
+                "off": "the targeting keys also lock friends and neutrals"
+            }
+        },
+        "targetShipsOnly": {
+            "instructions": "Which way do you set the ships-only targeting filter?",
+            "options": {
+                "on": "the targeting keys only lock ships",
+                "off": "the targeting keys also lock other objects"
+            }
+        },
+        "targetShortRangeOnly": {
+            "instructions": "Which way do you set the short-range targeting filter?",
+            "options": {
+                "on": "the targeting keys only lock contacts close to the ship",
+                "off": "the targeting keys lock contacts at any range"
+            }
+        }
+    },
+    "view": "verbal"
+}

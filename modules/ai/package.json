@@ -8,7 +8,8 @@
         "train": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/train.ts",
         "decisions": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/decisions.ts",
         "reask": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/reask.ts",
-        "crew": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts"
+        "crew": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts",
+        "read": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/read.ts"
     },
     "dependencies": {
         "@starwards/core": "0.5.1",

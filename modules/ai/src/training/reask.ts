@@ -4,6 +4,7 @@ import { BrainSpec } from '../brain/spec';
 import { Policy } from '../brain/brain';
 import { buildRequest } from '../brain/request';
 import { stationControls } from '../brain/controls';
+import { verbalReader } from '../brain/verbal';
 
 type ReaskRow = {
     t: number;
@@ -26,13 +27,17 @@ export async function reask(
     decisions: readonly RecordedDecision[],
 ) {
     const rows: ReaskRow[] = [];
+    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
     for (const recorded of requests.filter((r) => r.station === spec.station)) {
         const controls = stationControls({
             display: recorded.display,
             capabilities: recorded.capabilities,
             burstSeconds: Math.min(5, spec.decisionSeconds),
         });
-        const answered = await policy.answer(buildRequest(spec, recorded.display, controls), controls);
+        const answered = await policy.answer(
+            buildRequest(spec, recorded.display, controls, read?.(recorded.display)),
+            controls,
+        );
         for (const [control, answer] of Object.entries(answered.answers)) {
             const before = decisions.find(
                 (d) => d.t === recorded.t && d.station === recorded.station && d.control === control,

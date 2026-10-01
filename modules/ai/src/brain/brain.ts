@@ -2,6 +2,8 @@ import { BrainRequest, buildRequest } from './request';
 import { BrainSpec, specHash } from './spec';
 import { Capabilities, Control, Display, Press, stationControls } from './controls';
 
+import { verbalReader } from './verbal';
+
 /** How one question was answered. `source` says who answered: the model, or a fallback. */
 export type Answer = {
     choice: string;
@@ -45,6 +47,7 @@ type DecisionResult = {
  */
 export function buttonBrain(spec: BrainSpec, policy: Policy) {
     const hash = specHash(spec);
+    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
     return {
         spec,
         policy,
@@ -54,7 +57,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 capabilities,
                 burstSeconds: Math.min(5, spec.decisionSeconds),
             });
-            const request = buildRequest(spec, display, controls);
+            const request = buildRequest(spec, display, controls, read?.(display));
             const answered = Object.keys(request.questions).length
                 ? await policy.answer(request, controls)
                 : { answers: {} };

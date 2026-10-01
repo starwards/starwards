@@ -38,6 +38,11 @@ export const brainSpecSchema = z
                     .strict(),
             )
             .default({}),
+        /**
+         * What the model reads: `display`, the panels and radar as the console's data, or `verbal`,
+         * the same display read out as sentences by `verbal.ts` (`console` in the state).
+         */
+        view: z.enum(['display', 'verbal']).default('display'),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
     })
