@@ -32,7 +32,7 @@ export type SessionSpaceDriver = Pick<SpaceDriver, 'state' | 'sendJsonCmd' | 'co
  * overrides them because it has no room events to build a radar from and advances simulated time, not
  * wall time, so a wall-clock wait would hold a trigger for no simulated time at all.
  */
-export type StationSessionOptions = {
+type StationSessionOptions = {
     /** The radar picture. Defaults to one built from the space driver's room events. */
     radar?: RadarView;
     /** Waits while a trigger is held. Defaults to a wall-clock wait. */
