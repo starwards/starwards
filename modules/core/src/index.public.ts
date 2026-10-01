@@ -74,8 +74,17 @@ export type { RTuple2, Tuple2 } from './logic';
 export { getRange } from './range';
 
 // --- recording ---
-export { ReplayRoom, SavedGame, decodeFrame, deepAssignSchema, parseFrameLine, parseHeader } from './recording';
-export type { RecordingFrameLine, RecordingHeader } from './recording';
+export {
+    EVENTS_EXT,
+    ReplayRoom,
+    SavedGame,
+    decodeFrame,
+    deepAssignSchema,
+    parseEventLine,
+    parseFrameLine,
+    parseHeader,
+} from './recording';
+export type { RecordingEventLine, RecordingFrameLine, RecordingHeader } from './recording';
 
 // --- ship ---
 export {

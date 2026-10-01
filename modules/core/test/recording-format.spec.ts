@@ -1,4 +1,4 @@
-import { encodeFrameLine, encodeHeader, parseFrameLine, parseHeader } from '../src';
+import { encodeEventLine, encodeFrameLine, encodeHeader, parseEventLine, parseFrameLine, parseHeader } from '../src';
 
 describe('recording-format', () => {
     it('encodes and parses a header round-trip', () => {
@@ -31,5 +31,27 @@ describe('recording-format', () => {
 
     it('returns null for a frame line missing required fields', () => {
         expect(parseFrameLine(JSON.stringify({ t: 1 }))).toBeNull();
+    });
+});
+
+describe('recording-format sidecar events', () => {
+    it('encodes and parses an event line round-trip, keeping arbitrary data', () => {
+        const event = { t: 3.25, kind: 'decision', objectId: 'GVTS', data: { any: ['json', 1], nested: { ok: true } } };
+        expect(parseEventLine(encodeEventLine(event))).toEqual(event);
+    });
+
+    it('parses an event line without objectId or data', () => {
+        expect(parseEventLine(encodeEventLine({ t: 0, kind: 'tick' }))).toEqual({ t: 0, kind: 'tick' });
+    });
+
+    it('tolerates a truncated event line by returning null', () => {
+        const line = encodeEventLine({ t: 1, kind: 'decision', data: { a: 1 } });
+        expect(parseEventLine(line.slice(0, line.length - 4))).toBeNull();
+    });
+
+    it('returns null for an event line missing required fields', () => {
+        expect(parseEventLine(JSON.stringify({ t: 1 }))).toBeNull();
+        expect(parseEventLine(JSON.stringify({ kind: 'x' }))).toBeNull();
+        expect(parseEventLine('null')).toBeNull();
     });
 });
