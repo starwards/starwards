@@ -1,0 +1,35 @@
+{
+    "id": "weapons",
+    "version": 2,
+    "station": "weapons",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "weapons officer of the warship GVTS: you choose the target and fire the forward chain gun with the controls of the weapons console",
+    "mission": "lock the enemy ship as the target and fire the chain gun whenever the ship's nose points at it and it is within gun range, until it is destroyed",
+    "controls": {
+        "target": {
+            "instructions": "`display.panels.targeting-status.targetId` is the locked target, or null when nothing is locked. Which targeting key do you press?",
+            "options": {
+                "next": "targetId is null and `display.radar.contacts` lists a contact",
+                "previous": "never",
+                "clear": "never",
+                "none": "targetId is not null, or no contact is listed"
+            }
+        },
+        "fireChainGun:0": {
+            "instructions": "Find the contact in `display.radar.contacts` whose `id` equals `display.panels.targeting-status.targetId`. The gun fires along `display.radar.ownShip.heading`. Do you pull the trigger now?",
+            "options": {
+                "fire": "that contact exists, its `distance` is under 8000, and its `bearing` is within 3 degrees of `ownShip.heading`",
+                "hold_fire": "no target is locked, or the target is 8000 m or farther, or its bearing differs from the heading by more than 3 degrees"
+            }
+        },
+        "loadChainGun:0": {
+            "instructions": "The chain gun must keep loading. `display.panels.gun-status[0].loadAmmo` shows whether it does.",
+            "options": { "on": "keep loading on", "off": "never" }
+        },
+        "targetEnemyOnly": { "skip": true },
+        "targetShipsOnly": { "skip": true },
+        "targetShortRangeOnly": { "skip": true },
+        "changeGunAmmo:0": { "skip": true }
+    }
+}

@@ -7,7 +7,7 @@ import { Policy } from '../brain/brain';
 import { SeatPlan } from './crew';
 import { jevClient } from '../brain/jev-client';
 import { loadBrainSpec } from '../brain/spec';
-import { referencePolicy } from '../brain/reference-policy';
+import { makeReferencePolicy } from '../brain/reference-policy';
 import { z } from 'zod';
 
 /** Where the module's own brains live; a crew file names others by a path relative to itself. */
@@ -52,7 +52,7 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
             seat.policy === 'jev'
                 ? jevPolicy(spec, client!)
                 : seat.policy === 'reference'
-                  ? referencePolicy
+                  ? makeReferencePolicy(spec.decisionSeconds)
                   : idlePolicy;
         return { station: seat.station, spec, policy };
     });
