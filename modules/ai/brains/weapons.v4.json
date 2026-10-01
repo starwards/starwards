@@ -1,6 +1,6 @@
 {
     "id": "weapons",
-    "version": 3,
+    "version": 4,
     "station": "weapons",
     "model": "jev-1.13.0",
     "decisionSeconds": 0.5,
@@ -10,17 +10,17 @@
         "target": {
             "instructions": "Which targeting key do you press now?",
             "options": {
-                "next": "lock the next contact the filters allow (only contacts scanned at least BASIC); `targeting-status.targetId` then shows the locked contact. With no lock the pilot cannot follow the target",
+                "next": "lock the next contact the filters allow (only contacts scanned at least BASIC); `targeting-status.targetId` then shows the locked contact. With no lock the pilot cannot follow the target. Choose this when `targeting-status.targetId` is null and the radar lists a ship",
                 "previous": "lock the previous allowed contact",
                 "clear": "drop the current lock: the pilot loses the target",
-                "none": "press none: keep the current lock, or keep having none"
+                "none": "press none: keep the current lock, or keep having none. Choose this when `targeting-status.targetId` is already set"
             }
         },
         "fireChainGun:0": {
             "instructions": "Which do you do with the chain gun trigger now?",
             "options": {
-                "fire": "fire for half a second along the ship's nose (`radar.ownShip.heading`); shells explode at the locked target's distance, up to 8000 m. Hits only if the locked target's bearing is within about 2 degrees of the heading; otherwise it wastes ammunition",
-                "hold_fire": "do not fire"
+                "fire": "fire for half a second along the ship's nose (`radar.ownShip.heading`); shells explode at the locked target's distance, up to 8000 m. Hits only if the locked target's bearing is within about 2 degrees of the heading; otherwise it wastes ammunition. Choose this when `targeting-status.targetId` is set, and that contact's `distance` is under 8000 and its `bearing` is within 2 degrees of `radar.ownShip.heading`",
+                "hold_fire": "do not fire. Choose this when there is no lock, or the locked contact's bearing is more than 2 degrees from the heading"
             }
         },
         "loadChainGun:0": {

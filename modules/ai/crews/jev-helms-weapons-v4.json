@@ -1,0 +1,15 @@
+{
+    "name": "jev-helms-weapons-v4",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "jev",
+            "brain": "../brains/helms.v4.json"
+        },
+        {
+            "station": "weapons",
+            "policy": "jev",
+            "brain": "../brains/weapons.v4.json"
+        }
+    ]
+}
