@@ -20,8 +20,11 @@ export type Answers = {
     latencyMs?: number;
 };
 
-/** Answers a brain's request: the model, hand-written rules, or nothing at all. */
-export type Policy = { name: string; answer(request: BrainRequest, controls: readonly Control[]): Promise<Answers> };
+/** Answers a brain's request: the model, hand-written rules, or nothing at all. Rules read the raw `display`; a model reads only the request. */
+export type Policy = {
+    name: string;
+    answer(request: BrainRequest, controls: readonly Control[], display: Display): Promise<Answers>;
+};
 
 /** One control's outcome at one decision, as recorded beside the game. */
 type Decision = Answer & { control: string; press?: Press };
@@ -59,7 +62,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
             });
             const request = buildRequest(spec, display, controls, read?.(display));
             const answered = Object.keys(request.questions).length
-                ? await policy.answer(request, controls)
+                ? await policy.answer(request, controls, display)
                 : { answers: {} };
             const decisions: Decision[] = [];
             for (const control of controls) {

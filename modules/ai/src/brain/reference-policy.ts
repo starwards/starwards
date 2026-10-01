@@ -43,8 +43,8 @@ export function makeReferencePolicy(decisionSeconds: number): Policy {
     let targetVelocity: XY = { x: 0, y: 0 };
     return {
         name: 'reference',
-        answer(request, controls) {
-            const display = request.state.display as Display;
+        answer(_request, controls, shown) {
+            const display = shown as Display;
             const ship = nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
                 targetVelocity = scale(sub(ship.position, lastFix.position), 1 / decisionSeconds);

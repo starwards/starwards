@@ -9,7 +9,8 @@
         "decisions": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/decisions.ts",
         "reask": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/reask.ts",
         "crew": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts",
-        "read": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/read.ts"
+        "read": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/read.ts",
+        "bench": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/bench.ts"
     },
     "dependencies": {
         "@starwards/core": "0.5.1",

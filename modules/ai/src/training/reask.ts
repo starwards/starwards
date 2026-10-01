@@ -37,6 +37,7 @@ export async function reask(
         const answered = await policy.answer(
             buildRequest(spec, recorded.display, controls, read?.(recorded.display)),
             controls,
+            recorded.display,
         );
         for (const [control, answer] of Object.entries(answered.answers)) {
             const before = decisions.find(
