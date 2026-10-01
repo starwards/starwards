@@ -39,7 +39,7 @@ What it costs on the wire:
 room.send({type: '/Spaceship/ship-1/rotation', value: 0.5});
 ```
 
-**ShipRoom:** JSON Pointer only (all commands relative to ship, for external control)
+**ShipRoom:** JSON Pointer catch-all (relative to ship, for external control) plus typed lock commands, typed repair commands (player ships only), and the `GM_SET_VALUE` GM message
 
 **vs Typed Commands:**
 
@@ -54,7 +54,7 @@ room.send({type: '/Spaceship/ship-1/rotation', value: 0.5});
 
 **Command:** `npm run build:unity`
 
-**Output:** `./unity-schema/` (C# classes)
+**Output:** `modules/core/unity-schema/` (C# classes)
 
 **Type Mappings:**
 
@@ -74,7 +74,7 @@ room.send({type: '/Spaceship/ship-1/rotation', value: 0.5});
 2. Extract class structure
 3. Map types TS→C#
 4. Generate C# with Colyseus attributes
-5. Write to `./unity-schema/`
+5. Write to `modules/core/unity-schema/`
 
 **Unity usage:**
 ```csharp

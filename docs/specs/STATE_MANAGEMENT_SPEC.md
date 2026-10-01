@@ -118,13 +118,16 @@ class CollectionState extends Schema {
 
 ### Structure
 ```typescript
-class SpaceState extends Schema {
+class SpaceState extends Schema implements Lockable {
     // the name of each map is the type of the objects it contains (part of the events API)
     @gameField({ map: Projectile })
     private readonly Projectile = new MapSchema<Projectile>();
 
     @gameField({ map: Explosion })
     private readonly Explosion = new MapSchema<Explosion>();
+
+    @gameField({ map: Nebula })
+    private readonly Nebula = new MapSchema<Nebula>();
 
     @gameField({ map: Asteroid })
     private readonly Asteroid = new MapSchema<Asteroid>();
@@ -135,9 +138,16 @@ class SpaceState extends Schema {
     @gameField({ map: Waypoint })
     private readonly Waypoint = new MapSchema<Waypoint>();
 
+    @gameField({ map: Derelict })
+    private readonly Derelict = new MapSchema<Derelict>();
+
+    @gameField(['string'])
+    lockedPaths = new ArraySchema<string>();
+
     // public access via methods:
     get(id: string): SpaceObject | undefined;        // any type
     getShip(id: string): Spaceship | undefined;
+    getBatch(ids: Array<string>): Array<SpaceObject>;
     getAll<T>(typeField: T): Iterable<SpaceObjects[T]>;  // e.g. getAll('Spaceship')
     set(obj: SpaceObject): void;
     delete(obj: SpaceObject): void;
@@ -170,20 +180,22 @@ class ShipState extends Schema {
     @gameField(Spaceship)
     spaceship: Spaceship = new Spaceship(); // composed mirror of authoritative Spaceship, not a base class
 
+    // excerpt
+    @gameField([Thruster])
+    thrusters!: ArraySchema<Thruster>;
+    
+    @gameField([ChainGun])
+    chainGuns = new ArraySchema<ChainGun>();
+    
+    @gameField([Radar])
+    radars = new ArraySchema<Radar>();
+    
     @gameField(Reactor)
     reactor!: Reactor;
     
-    @gameField([Thruster])
-    thrusters = new ArraySchema<Thruster>();
-    
-    @gameField(Radar)
-    radar!: Radar;
-    
-    @gameField(ChainGun)
-    chainGun!: ChainGun;
-    
     @gameField(Warp)
-    warp!: Warp;
+    warp: Warp | null = null;
+    // ...plus tubes, smartPilot, armor, magazine, targeting, docking, maneuvering, signals, capsule (see ship-state.ts)
     
     @range([-1, 1])
     @gameField('float32')
@@ -209,14 +221,32 @@ class AdminState extends Schema {
     @gameField('int8')
     gameStatus = GameStatus.STOPPED;
 
+    @gameField({ map: StationRegistryEntry })
+    stations = new MapSchema<StationRegistryEntry>();
+
+    @gameField('boolean')
+    isRecordingGame = false;
+
+    @gameField('float32')
+    recordingSeconds = 0;
+
+    @gameField('string')
+    recordingName = '';
+
     @gameField(['string'])
     shipIds = new ArraySchema<string>();
 
     @gameField(['string'])
     playerShipIds = new ArraySchema<string>();
 
+    @range([0, 3])
+    @tweakable('number')
     @gameField('float32')
     speed = 1;
+
+    @tweakable('string')
+    @gameField('string')
+    message = '';
 
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;
@@ -453,9 +483,9 @@ Separate business logic from state storage.
 
 ### State Class (Data)
 ```typescript
-class ReactorState extends SystemState {
+class Reactor extends SystemState {
     readonly name = 'Reactor';
-    readonly broken = false;
+    get broken() { return this.effeciencyFactor <= 0; }
     
     @gameField(ReactorDesignState)
     design = new ReactorDesignState();
@@ -473,7 +503,7 @@ class EnergyManager implements Updateable {
     update({ deltaSeconds }: IterationData) {
         // Generate energy
         this.state.reactor.energy += 
-            this.state.reactor.design.energyPerSecond * 
+            this.state.reactor.energyPerSecond * // getter: effeciencyFactor * design.energyPerSecond
             this.state.reactor.effectiveness * 
             deltaSeconds;
         
@@ -507,7 +537,7 @@ class ShipRoom extends Room<ShipState> {
     }
     
     onUpdate(deltaSeconds: number) {
-        this.energyManager.update({ deltaSeconds, totalSeconds: 0 });
+        this.energyManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: 0 });
     }
 }
 ```
@@ -725,7 +755,7 @@ onCreate() {
 ```typescript
 // Server - every frame
 onUpdate(deltaSeconds: number) {
-    this.manager.update({ deltaSeconds, totalSeconds: 0 });
+    this.manager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: 0 });
 }
 ```
 

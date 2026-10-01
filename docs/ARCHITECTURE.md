@@ -100,9 +100,14 @@ setSimulationInterval(dt =>
 ```
 AdminState (AdminRoom root)
 ├── gameStatus
+├── stations
+├── isRecordingGame
+├── recordingSeconds
+├── recordingName
 ├── shipIds
 ├── playerShipIds
-└── speed
+├── speed
+└── message
 
 SpaceState (SpaceRoom root)
 ├── Spaceship: MapSchema<Spaceship>
@@ -110,15 +115,17 @@ SpaceState (SpaceRoom root)
 ├── Projectile: MapSchema<Projectile>
 ├── Explosion: MapSchema<Explosion>
 ├── Asteroid: MapSchema<Asteroid>
-└── Waypoint: MapSchema<Waypoint>
+├── Nebula: MapSchema<Nebula>
+├── Waypoint: MapSchema<Waypoint>
+└── Derelict: MapSchema<Derelict>
 
 ShipState (per ship, separate room)
 ├── design: ShipPropertiesDesignState
 ├── reactor: Reactor
 ├── thrusters: ArraySchema<Thruster>
 ├── tubes: ArraySchema<Tube>
-├── chainGun: ChainGun
-├── radar: Radar
+├── chainGuns: ArraySchema<ChainGun>
+├── radars: ArraySchema<Radar>
 ├── armor: Armor
 ├── weaponsTarget: Targeting
 └── [other systems]

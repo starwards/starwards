@@ -129,13 +129,15 @@ dependency cycle (`range.ts` imports from `json-ptr.ts`, and
 
 Today's `ShipRoom` has no connection-level GM-vs-player identity
 (`modules/server/src/ship/room.ts` defines no `onAuth`, no client-type
-field). GM and player clients join the same room and send through the
-same `onMessage('*')` handler. The whitelist's value in today's
+field). GM and player clients join the same room. GM tweak writes arrive on a
+separate `GM_SET_VALUE` message; player and Node-RED writes arrive
+through the `onMessage('*')` JSON Pointer handler. Neither path carries
+connection-level identity. The whitelist's value in today's
 architecture is **accidental-exposure protection**: a contributor who
 adds a bare `@gameField` for sync purposes does NOT get a wire-write
 handle for free. Narrowing the player attack surface relative to the
-GM's is a non-goal — see "Non-goal: malicious-player isolation" in
-`docs/maintainers.md`.
+GM's is a non-goal: the GM is trusted, and isolating malicious players
+is out of scope.
 
 ## Adding a new commandable property
 

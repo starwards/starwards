@@ -2,7 +2,8 @@
 audience: agent
 depth: deep
 source_of_truth:
-  - modules/browser/src/screens/pilot.ts
+  - modules/browser/src/screens/helms.ts
+  - modules/browser/src/screens/helms-screen.ts
 related:
   - ../UI_SPECIFICATION.md
   - ../ui/common-ui-patterns.md
@@ -14,8 +15,8 @@ last_verified: 2026-08-18
 
 Implementation inventory for the Pilot screen: mounted widgets, source files, data bindings, and known pain points. For design intent and build status, see [`../design/stations/pilot.md`](../design/stations/pilot.md). For shared widget/panel patterns, see [`common-ui-patterns.md`](common-ui-patterns.md).
 
-**File**: `modules/browser/src/screens/pilot.ts`
-**URL**: `/pilot.html?ship={shipId}` (optional `?station=ID` to pin this tab's registry id). `?ship=` is a self-assignment *request* the server validates against the station registry (issue #2131) — the screen binds to whatever ship its own registry entry resolves to, which may differ (auto-assigned, or standby if rejected). See [`../testing/README.md`](../testing/README.md) and `modules/core/src/stations/`.
+**File**: `modules/browser/src/screens/helms.ts` (entry) and `modules/browser/src/screens/helms-screen.ts` (screen layout)
+**URL**: `/helms.html?ship={shipId}` (optional `?station=ID` to pin this tab's registry id). `?ship=` is a self-assignment *request* the server validates against the station registry (issue #2131) — the screen binds to whatever ship its own registry entry resolves to, which may differ (auto-assigned, or standby if rejected). See [`../testing/README.md`](../testing/README.md) and `modules/core/src/stations/`.
 **Role**: Pilot — flies the ship. The screen itself is called Helms.
 
 ## Overview
@@ -24,7 +25,7 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 ## Functional Elements
 
 ### 1. Pilot Radar (Center/Main)
-- **Widget**: `drawPilotRadar()` - PixiJS-based radar
+- **Widget**: `drawHelmsRadar()` (`modules/browser/src/widgets/helms-radar.ts`) - PixiJS-based radar
 - **Data Source**: SpaceDriver (all space objects), ShipDriver (own ship)
 - **Features**:
   - Circular radar (normal flight) or cone-shaped (warp mode)
@@ -40,29 +41,12 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 - **Data**: `shipDriver.state.warp.currentLevel`, all space objects, faction field-of-view
 
 ### 2. Pilot Stats Panel (Top-Left)
-- **Widget**: `drawPilotStats()` - PropertyPanel
-- **Properties Displayed**:
-  - `energy`: Reactor energy level
-  - `afterBurnerFuel`: Remaining afterburner fuel
-  - `heading`: Current ship angle (0-360°)
-  - `speed`: Current speed (m/s)
-  - `turn speed`: Angular velocity (°/s)
-  - `rotationMode`: Current rotation mode (enum: MANUAL, HEADING, etc.)
-  - `rotationCommand`: Pilot's rotation input (-1 to 1)
-  - `rotation`: Actual rotation being applied
-  - `maneuveringMode`: Current maneuvering mode (enum)
-  - `strafeCommand`: Pilot's strafe input (-1 to 1)
-  - `boostCommand`: Pilot's thrust input (-1 to 1)
-  - `strafe`: Actual strafe being applied
-  - `boost`: Actual thrust being applied
-  - `afterBurner`: Afterburner activation (0-1)
-  - `antiDrift`: Anti-drift system status (0-1)
-  - `breaks`: Brakes status (0-1)
-  - `targeted`: Whether ship is being targeted (boolean)
-- **Data Source**: `/reactor/energy`, `/maneuvering/*`, `/smartPilot/*`, `/angle`, `/speed`, `/turnSpeed`
+- **Widget**: `drawHelmsStats()` (`modules/browser/src/widgets/helms.ts`) - four Tweakpane panes
+- **Panes**: Flight (HDG, SPD, TURN), Modes (rotation, maneuver, target as `TargetedStatus`), Command (rotate/strafe/boost bipolar bars; burner/anti-drift/brakes annunciators), Fuel (energy bar with low-energy theme, afterburner fuel bar)
+- **Data Source**: `/reactor/energy`, `/maneuvering/afterBurnerFuel`, `/smartPilot/rotation`, `/smartPilot/maneuvering/{x,y}`, `/smartPilot/rotationMode`, `/smartPilot/maneuveringMode`, `/targeted`, `/angle`, `/speed`, `/turnSpeed`
 - **Updates**: Real-time via property bindings
 
-### 3. Systems Status Panel (Top-Right)
+### 3. Systems Status Panel (Bottom-Right)
 - **Widget**: `drawSystemsStatus()` - Compact table view
 - **Systems Shown**:
   - All thrusters (`/thrusters/*`)
@@ -75,7 +59,7 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 - **Data Source**: `shipDriver.systems` filtered for relevant subsystems
 - **Updates**: Real-time with color theme changes
 
-### 4. Armor Status (Bottom-Left)
+### 4. Armor Status (Bottom-Center)
 - **Widget**: `drawArmorStatus()` - PixiJS circular visualization
 - **Display**: Circular armor plate visualization
 - **Features**:
@@ -85,7 +69,7 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 - **Size**: 200px minimum width
 - **Data Source**: `/armor/armorPlates[*]/layers[*]/health`, `/armor/layerDesigns[*]/plateMaxHealth`
 
-### 5. Warp Status Panel (Middle-Right)
+### 5. Warp Status Panel (Top-Right)
 - **Widget**: `drawWarpStatus()` - Tweakpane panel
 - **Properties**:
   - `level`: "current / designated" warp level (large text)
@@ -95,7 +79,7 @@ The Pilot screen provides flight controls, navigation instruments, and situation
   - `JAMMED` and `CALIB` lamps: proximity jam (amber) and frequency change in progress
 - **Data Source**: `/warp/currentLevel`, `/warp/desiredLevel`, `/warp/jammed`, `/warp/changingFrequency`, `/warp/currentFrequency`, `/warp/standbyFrequency`, `/warp/frequencyChange`
 
-### 6. Docking Status Panel (Bottom-Right)
+### 6. Docking Status Panel (Middle-Right; top-right if the ship has no warp)
 - **Widget**: `drawDockingStatus()` - Tweakpane panel
 - **Properties**:
   - `Current Target`: ID of docking target
@@ -128,7 +112,7 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 
 ## Current Pain Points
 
-1. **Information Overload**: Pilot Stats panel shows 17 properties - hard to scan quickly for critical info
+1. **Information density**: Pilot stats are grouped into four panes (Flight, Modes, Command, Fuel; `drawHelmsStats` in `modules/browser/src/widgets/helms.ts`), 14 readouts in all.
 2. **Hidden Dependencies**: Rotation/maneuvering modes not explained - users don't understand what each mode does
 3. **Radar Range**: No manual range control - automatic switching based on warp can be disorienting
 4. **Fuel Awareness**: No visual warning when afterburner fuel is low

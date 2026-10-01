@@ -25,8 +25,8 @@ plays with information no player at that seat could have. So the MCP server sand
 a station: the widgets that station's screen draws are what it can read, the input actions that screen
 wires are what it can do, and its radar is filtered exactly as the browser filters it.
 
-The game server enforces none of this and is not meant to (see [`maintainers.md`](../maintainers.md),
-"Non-goal: malicious-player isolation"). The sandbox lives in the MCP server.
+The game server enforces none of this and is not meant to: isolating malicious players is a non-goal.
+The sandbox lives in the MCP server.
 
 ## Setup
 

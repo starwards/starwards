@@ -27,42 +27,29 @@ Integration architecture for sharing visual tokens (colors, borders, glows) acro
 
 ```css
 :root {
-    /* Official Tweakpane theme variables */
-    --tp-base-background-color: hsla(180, 10%, 8%, 1);
-    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
+    /* station readout skin tokens (excerpt) */
+    --sw-ground: #03080b;
+    --sw-glass: rgba(4, 14, 18, 0.92);
+    --sw-frame: #143a42;
+    --sw-accent: #5fe3f0;
+    --sw-caution: #ffb000;
+    --sw-warning: #ff3b30;
+    --sw-font-label: 'Chakra Petch', sans-serif;
+    --sw-font-value: 'Share Tech Mono', monospace;
+    /* ... */
+}
 
-    --tp-button-background-color: hsla(180, 50%, 70%, 1);
-    --tp-button-background-color-active: hsla(180, 60%, 85%, 1);
-    --tp-button-background-color-focus: hsla(180, 55%, 80%, 1);
-    --tp-button-background-color-hover: hsla(180, 55%, 75%, 1);
-    --tp-button-foreground-color: hsla(180, 10%, 8%, 1);
+body[data-density='compact'] {
+    /* smaller --sw-fs-* sizes and --sw-gap / --sw-pad spacing */
+}
 
-    --tp-container-background-color: hsla(180, 100%, 50%, 0.08);
-    --tp-container-background-color-active: hsla(180, 100%, 50%, 0.2);
-    --tp-container-background-color-focus: hsla(180, 100%, 50%, 0.15);
-    --tp-container-background-color-hover: hsla(180, 100%, 50%, 0.12);
-    --tp-container-foreground-color: hsla(180, 50%, 70%, 1);
-
-    --tp-groove-foreground-color: hsla(180, 100%, 50%, 0.15);
-
-    --tp-input-background-color: hsla(180, 100%, 50%, 0.08);
-    --tp-input-background-color-active: hsla(180, 100%, 50%, 0.2);
-    --tp-input-background-color-focus: hsla(180, 100%, 50%, 0.15);
-    --tp-input-background-color-hover: hsla(180, 100%, 50%, 0.12);
-    --tp-input-foreground-color: hsla(180, 70%, 70%, 1);
-
-    --tp-label-foreground-color: hsla(180, 40%, 50%, 1);
-
-    --tp-monitor-background-color: hsla(180, 20%, 5%, 1);
-    --tp-monitor-foreground-color: hsla(180, 40%, 50%, 1);
-
-    /* Custom Starwards variables (unofficial) */
-    --tp-font-family: Roboto Mono, Source Code Pro, Menlo, Courier, monospace;
-    --tp-base-border-radius: 6px;
-    --tp-container-horizontal-padding: 4px;
-    --tp-element-border-radius: 2px;
-    --tp-blade-spacing: 4px;
-    --tp-blade-unit-size: 20px;
+/* Tweakpane theme variables, declared on body so size tokens resolve per density */
+body {
+    --tp-base-background-color: var(--sw-glass);
+    --tp-base-border-radius: 0;
+    --tp-base-font-family: var(--sw-font-label);
+    --tp-blade-border-radius: 0;
+    /* ... */
 }
 ```
 
@@ -132,15 +119,22 @@ applyTheme(); // Apply immediately
 ```css
 /* In /static/styles/tweakpane.css */
 :root [data-status='OK'] {
-    --tp-base-background-color: hsl(123, 61%, 18%);  /* Green */
+    background: var(--sw-ground);
 }
 :root [data-status='WARN'] {
-    --tp-base-background-color: hsl(52, 61%, 18%, 1);  /* Yellow */
+    background: var(--sw-caution);
+    --tp-input-foreground-color: var(--sw-on-caution);
+    --tp-monitor-foreground-color: var(--sw-on-caution);
+    --tp-label-foreground-color: var(--sw-on-caution);
 }
 :root [data-status='ERROR'] {
-    --tp-base-background-color: hsl(0, 69%, 17%, 1);  /* Red */
+    background: var(--sw-warning);
+    --tp-input-foreground-color: var(--sw-on-warning);
+    --tp-monitor-foreground-color: var(--sw-on-warning);
+    --tp-label-foreground-color: var(--sw-on-warning);
 }
 ```
+(Non-readout `.tp-rotv` OK cells make their values transparent; inline `[data-inline]` and `.sw-mode` variants override these; see tweakpane.css.)
 
 #### Usage Locations
 
@@ -148,7 +142,8 @@ applyTheme(); // Apply immediately
 |------|---------|
 | `system-status.ts` | System status cells |
 | `full-system-status.ts` | Full system status rows |
-| `warp.ts` | Warp jam indicator |
+| `ammo.ts` | Restock status |
+| `panel/blades.ts` | Threshold readout blade (e.g. reactor energy) |
 | `tweak.ts` | System defectible folders |
 
 #### Dynamic Application Pattern
@@ -221,14 +216,10 @@ export const radarFogOfWar = 0x1a1a1a;    // Medium gray (fog)
 // Grid Colors (array for different grid levels)
 // ============================================================================
 
-export const gridColors = [
-    0x00ffff,  // Main grid
-    0x00cccc,  // Secondary
-    0x009999,  // Tertiary
-    0x006666,  // Quaternary
-    0x003333,  // Quinary
-    0xff6600   // Senary
-];
+export const gridColors = [0x0c2a31, 0x0e3038, radar.ringLine, 0x1b5560, radar.rangeLabel, status.caution];
+
+// colors.ts also exports the `status` object (ok/caution/warning), the `radar` palette object,
+// `hsl` and `paletteColors`; modules/browser/src/colors.ts is the source of truth.
 
 // ============================================================================
 // Conversion Utility for CSS Interop
@@ -308,8 +299,8 @@ sprite.tint = rgb2hex([1 - health, health, 0]);
 ### CSS Integration from PixiJS
 
 ```typescript
-// mirrors: modules/browser/src/screens/engineer.ts
-import { radarFogOfWar, toCss } from '../colors'; // line 14
+// mirrors: modules/browser/src/screens/engineer-screen.ts
+import { radarFogOfWar, toCss } from '../colors'; // line 16
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
 // Converts: 0x1a1a1a → "#1a1a1a"
@@ -368,7 +359,7 @@ const stylesBaseline = {
 ### CSS Background Application
 
 ```typescript
-// mirrors: modules/browser/src/screens/engineer.ts
+// mirrors: modules/browser/src/screens/engineer-screen.ts
 import { radarFogOfWar, toCss } from '../colors';
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
@@ -392,10 +383,10 @@ container.getElement().css('background-color', toCss(radarFogOfWar));
 | **White** | `0xffffff` | `#ffffff` | - | Projectiles, text |
 | **Radar BG Dark** | `0x0a0a0a` | `#0a0a0a` | - | Visible radar area |
 | **Radar BG Fog** | `0x1a1a1a` | `#1a1a1a` | - | Fog of war |
-| **Tweakpane BG** | - | `hsla(180, 10%, 8%, 1)` | - | Panel base |
-| **Tweakpane OK** | - | `hsl(123, 61%, 18%)` | - | Green status |
-| **Tweakpane WARN** | - | `hsl(52, 61%, 18%)` | - | Yellow warning |
-| **Tweakpane ERROR** | - | `hsl(0, 69%, 17%)` | - | Red error |
+| **Tweakpane BG** | - | `rgba(4, 14, 18, 0.92)` (`--sw-glass`) | - | Panel base |
+| **Tweakpane OK** | - | `#03080b` (`--sw-ground`) | - | OK status (dark, value hidden) |
+| **Tweakpane WARN** | - | `#ffb000` (`--sw-caution`) | - | Amber warning |
+| **Tweakpane ERROR** | - | `#ff3b30` (`--sw-warning`) | - | Red error |
 
 ### Hex Opacity Suffix Convention
 
@@ -462,7 +453,7 @@ color: ${color}33;  // 20% opacity
 ```typescript
 import { AlphaFilter } from 'pixi.js';
 
-// mirrors: modules/browser/src/screens/gm.ts — field of view overlay
+// mirrors: modules/browser/src/widgets/gm.ts — field of view overlay
 fovGraphics.filters = [new AlphaFilter({ alpha: 0.1 })];
 
 // Typical pattern for semi-transparent overlays
@@ -481,7 +472,7 @@ fovGraphics.filters = [new AlphaFilter({ alpha: 0.1 })];
 
 | Context | Font Family | Usage |
 |---------|-------------|-------|
-| **Tweakpane** | Roboto Mono, Source Code Pro, Menlo, Courier | Control panels (via `--tp-font-family`) |
+| **Tweakpane** | Chakra Petch (labels, `--sw-font-label`), Share Tech Mono (values, `--sw-font-value`) | Control panels (via `--tp-base-font-family`) |
 | **Arwes React** | Titillium Web | Body text (Lobby, Monitor, Damage Report) |
 | **Arwes React** | Electrolize | Headers and emphasis |
 | **PixiJS Labels** | Bebas | Radar text, range indicators |
@@ -537,12 +528,14 @@ WebFont.load({
 
 ### Tweakpane Hover State Progression
 
-| State | Alpha | Description |
+| State | Alpha (input background, rgba(95,227,240,a)) | Description |
 |-------|-------|-------------|
-| Idle | 0.1 | Resting state |
-| Hover | 0.15 | Mouse over |
-| Focus | 0.2 | Keyboard focus |
-| Active | 0.25 | Pressed/selected |
+| Idle | transparent | Resting state |
+| Hover | 0.06 | Mouse over |
+| Focus | 0.06 | Keyboard focus |
+| Active | 0.1 | Pressed/selected |
+
+Container backgrounds stay transparent in every state (static/styles/tweakpane.css).
 
 ### PixiJS Special Cases
 
@@ -770,9 +763,9 @@ export function setTheme(theme: Theme) {
 - `modules/browser/src/components/arwes-compat.tsx` - Arwes palette + inline styles
 
 **Styling Applications:**
-- `modules/browser/src/widgets/system-status.ts:107` - Tweakpane status theming
-- `modules/browser/src/widgets/armor.ts:10` - RGB to hex conversion
-- `modules/browser/src/screens/engineer.ts:69` - CSS background from PixiJS color
+- `modules/browser/src/widgets/system-status.ts:127` - Tweakpane status theming
+- `modules/browser/src/widgets/armor.ts:9` - RGB to hex conversion
+- `modules/browser/src/screens/engineer-screen.ts:36` - CSS background from PixiJS color
 
 **Font Loading:**
 - `/static/styles/index.css` - Font-face declarations

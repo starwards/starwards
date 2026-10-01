@@ -85,7 +85,7 @@ room.send('commandName', {value: 0.5});                       // Typed command
 
 **Base:** `SpaceObjectBase` (abstract)
 
-**Types:** `Spaceship|Projectile|Explosion|Asteroid|Waypoint`
+**Types:** `Spaceship|Projectile|Explosion|Asteroid|Waypoint|Nebula|Derelict`
 
 **Properties:** `id|position|velocity|angle|radius|destroyed|freeze|faction` (on SpaceObjectBase); `health` is not on the base — it exists only on `Projectile` and `Asteroid`.
 
@@ -95,8 +95,8 @@ room.send('commandName', {value: 0.5});                       // Typed command
 
 | Class | Location | Key Properties |
 |-------|----------|----------------|
-| SpaceState | `space/space-state.ts` | `Spaceship\|Projectile\|Explosion\|Asteroid\|Waypoint: MapSchema<T>` |
-| ShipState | `ship/ship-state.ts` | `reactor\|thrusters\|chainGun\|radar\|armor\|tubes\|warp` |
+| SpaceState | `space/space-state.ts` | `Spaceship\|Projectile\|Explosion\|Nebula\|Asteroid\|Waypoint\|Derelict: MapSchema<T>` |
+| ShipState | `ship/ship-state.ts` | `reactor\|thrusters\|chainGuns\|radars\|armor\|tubes\|warp` |
 | AdminState | `admin/index.ts` | `gameStatus\|shipIds\|playerShipIds\|speed` |
 
 ## Common Tasks
@@ -175,12 +175,12 @@ core/src/
 server/src/
 ├── admin/room.ts   AdminRoom
 ├── space/room.ts   SpaceRoom
-└── ship/room.ts    ShipRoom (JSON Pointer only)
+└── ship/room.ts    ShipRoom (JSON Pointer catch-all + typed lock/GM_SET_VALUE commands; repair commands on player ships)
 
 browser/src/
 ├── radar/          CameraView, SpriteLayer, BlipRenderer
 ├── widgets/        Dashboard, TacticalRadar, SystemStatus
-└── screens/        Ship, Pilot, Weapons
+└── screens/        Ship, Helms, Weapons, Engineer, Dradis, Signals, GM
 ```
 
 ## Extension Points

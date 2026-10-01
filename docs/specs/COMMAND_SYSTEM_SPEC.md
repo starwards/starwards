@@ -440,10 +440,10 @@ const warpCmd: StateCommand<XY, ShipState, void> = {
 ### Client Layer
 ```typescript
 // Client code
-import { ShipDriver } from '@starwards/core/client';
+import { ShipDriver } from '@starwards/core';
 
-const driver = new ShipDriver(room);
-driver.rotate(0.5);  // Sends command
+const driver = await ShipDriver(shipRoom);
+// ship control is sent as JSON Pointer writes (e.g. sendJsonCmd(shipRoom, pointer, value)), not driver.rotate()
 ```
 
 ### Room Layer
@@ -491,9 +491,10 @@ class SpaceRoom extends Room<SpaceState> {
 
 ### Ship Commands
 ```typescript
-// Ship room handles ship control exclusively via JSON Pointer commands
-// (no typed StateCommand surface — no 'rotate'/'fire'/'setTarget'/'warp'/'setPower').
-// Typed StateCommand handlers (the cmdReceivers loop) are used only by SpaceRoom.
+// Ship control (rotate/fire/setTarget/warp/setPower) goes through JSON Pointer commands ('*' handler).
+// ShipRoom also registers typed StateCommands via cmdReceivers: repairCommands (player ships only) and lockCommands (all ships),
+// plus a GM_SET_VALUE channel (handleGmSetValueCommand, bypasses property locks).
+// SpaceRoom runs the same cmdReceivers loop (spaceCommands, lockCommands); AdminRoom registers single commands with cmdReceiver (registerStation, assignStation).
 class ShipRoom extends Room<ShipState> {
     onCreate() {
         this.onMessage('*', (_, type, message) =>
@@ -638,8 +639,8 @@ room.send('createAsteroidOrder', {
 });
 
 // Pause/run the game and adjust time scale are NOT done via JSON-pointer commands.
-// AdminState (modules/core/src/admin/index.ts) has no `paused`/`timeScale` fields,
-// and AdminRoom (modules/server/src/admin/room.ts) registers no JSON-pointer handler.
+// AdminState (modules/core/src/admin/index.ts) has no `paused`/`timeScale` fields.
+// AdminRoom (modules/server/src/admin/room.ts) does have a '*' JSON-pointer handler that runs on AdminState.
 // Pause/run is controlled by transitioning `gameStatus` (GameStatus enum) via
 // GameManager.startGame()/stopGame(); time scaling is the `speed` field, applied in
 // game-manager.ts as `currDeltaSeconds * this.state.speed`.

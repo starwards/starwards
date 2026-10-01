@@ -98,7 +98,7 @@ return msg;
 **Flow:**
 
 ```
-[ship-read: /chainGun/isFiring]
+[ship-read: /chainGuns/0/isFiring]
     → [switch: true]
     → [mqtt out: audio/effects/gunfire]
 ```

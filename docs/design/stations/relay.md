@@ -1,6 +1,6 @@
 # Dradis Screen (Relay)
 
-**Status:** Partial — the screen has shipped ([PR #1934](https://github.com/starwards/starwards/pull/1934)): dradis radar, waypoint placement/selection/edit layers, waypoint collections with visibility toggles, and radar layer controls (see `modules/browser/src/screens/relay.ts`). Probes and inter-ship route coordination are not yet built.
+**Status:** Partial — the screen has shipped ([PR #1934](https://github.com/starwards/starwards/pull/1934)): dradis radar, waypoint placement/selection/edit layers, waypoint collections with visibility toggles, and radar layer controls (see `modules/browser/src/screens/dradis.ts` and `dradis-screen.ts`). Probes and inter-ship route coordination are not yet built.
 **Crew role:** Relay — the long-game comms officer who runs this screen. In a short bridge game there is no dedicated Relay seat; SIGINT runs Dradis alongside Signals instead.
 **Blocked by (remaining scope):** Probe system, Astrogator station
 **Issues:** [#1211](https://github.com/starwards/starwards/issues/1211), [#1209](https://github.com/starwards/starwards/issues/1209)

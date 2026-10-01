@@ -38,25 +38,25 @@
 - **`heat-manager.ts`** - Thermal regulation
   - Heat accumulation: `heat += usageHeat * dt`
   - Heat dissipation: `heat -= (coolantFactor × coolantPerFactor) * dt`
-  - Overheat damage: `heat > 100 → broken = true`
+  - Overheat damage: heat above `MAX_SYSTEM_HEAT` (100) is clamped to 100, and the excess is applied as system damage via `damageManager.damageSystem(system, {id: 'overheat', amount: heat - 100})`
   - Coolant distribution across all systems (blog mentioned as design concept, now implemented)
 
 ### System Effectiveness Formula
-- **Implemented:** `effectiveness = broken ? 0 : power × coolantFactor × (1 - hacked)`
+- **Implemented:** `effectiveness = broken ? 0 : power × hacked` (hacked is a HackLevel multiplier: OK=1, COMPROMISED=0.5, DISABLED=0; coolantFactor affects heat dissipation, not effectiveness)
 - **Applied to:** All ship systems (reactor, thrusters, weapons, radar, etc.)
-- **Includes:** Power levels (SHUTDOWN/LOW/MID/HIGH/MAX), coolant allocation, cyber warfare states
+- **Includes:** Power levels (SHUTDOWN/LOW/MID/HIGH/MAX), cyber warfare states
 - **Blog status:** Was mentioned in design docs but not fully implemented
 
 ## Weapons Systems (Major Expansion)
 
 ### Missiles & Torpedo Tubes
 - **`tube.ts`** - Missile launcher system (completely new)
-  - Properties: `angle`, `loaded`, `loading`, `loadTimeFactor`
+  - Extends `ChainGun` (inherits its state); adds `safetyLocked` (auto-locks on fire, unlocked per tube by the player)
   - Array of tubes per ship (configurable count)
   - Loading mechanics with time factors
 
 - **`magazine.ts`** - Ammunition storage (new)
-  - Properties: `capacity`, `missiles` (current count)
+  - Properties: `capacity`, `restockDurationSeconds`, per-ammo-type counts (`count_HiExpShell`, `count_HiExpMissile`, ...) with maximums in `design.max_*`
   - Limited ammo requiring resupply
 
 - **Projectile Types** (expanded from basic chaingun):
@@ -109,7 +109,7 @@
 
 ### Warp Drive
 - **`warp.ts`** - FTL travel system (new)
-  - Properties: `chargeLevel`, `currentLevel`, `desiredLevel`
+  - Properties: `currentLevel`, `desiredLevel`, `currentFrequency`, `standbyFrequency`, `jammed`
   - Charge/discharge mechanics
   - Integration with ship power systems
 
@@ -142,7 +142,7 @@
 
 ### Docking System
 - **`docking.ts`** - Ship-to-ship attachment (completely new)
-  - Properties: `docked`, `dockedTo`, `dockingRange`
+  - Properties: `mode` (DockingMode), `targetId`, `rangesFactor`; design ranges `maxDockingDistance`, `maxDockedDistance`, `undockingTargetDistance`
   - `docking-manager.ts` - Attachment logic
   - Enables resupply, repairs, boarding mechanics
 

@@ -138,9 +138,11 @@ The lobby displays different content based on game state:
 
 #### 3.2.2 Game Control Section (Admin Only)
 **Pre-Game:**
-- Load Game dropzone (drag-and-drop .ssg files)
 - "2v1 Game" button (starts 2-vs-1 scenario)
 - "Solo Game" button (starts single-player practice)
+- "Wave Defence" button (starts wave_defence scenario)
+- Load button (opens a saved game or recording); files can also be dropped anywhere on the lobby
+- Recordings menu
 
 **In-Game:**
 - "Stop Game" button (palette: error/red)
@@ -163,17 +165,21 @@ Each card represents one player ship in the game:
   - Layout buttons: Custom saved layouts from localStorage
   - "Empty Screen" (secondary palette)
   - "Weapons" (primary palette)
-  - "Pilot" (primary palette)
+  - "Helms" (primary palette, navigates to helms.html?ship={id})
   - "Engineer" (primary palette, navigates to engineer.html?ship={id})
   - "Signals" (primary palette, navigates to signals.html?ship={id})
+  - "Dradis" (primary palette, navigates to dradis.html?ship={id})
 
 **Layout:** Cards displayed in horizontal wrap or grid (max 3 per row)
 
 #### 3.2.5 Utilities Section
 - **Title:** "Utilities"
-- **Buttons:**
-  - "Input" (secondary palette) - Controller configuration
-  - "Colyseus Monitor" (secondary palette) - Server debug tool
+- **Buttons** (all secondary palette):
+  - "Generic Seat" - station.html
+  - "Input" - Controller configuration (input.html)
+  - "Colyseus Monitor" - Server debug tool (colyseus-monitor)
+  - "Widgets Gallery" - gallery.html
+  - "Recording Player" - player.html
 
 ---
 
@@ -344,9 +350,10 @@ Lobby Screen
 ├─ Click "Game Master" button → Navigate to gm.html
 ├─ Click ship station button → Navigate to ship.html?ship={id}
 ├─ Click "Weapons" → Navigate to weapons.html?ship={id}
-├─ Click "Pilot" → Navigate to pilot.html?ship={id}
+├─ Click "Helms" → Navigate to helms.html?ship={id}
 ├─ Click "Engineer" → Navigate to engineer.html?ship={id}
 ├─ Click "Signals" → Navigate to signals.html?ship={id}
+├─ Click "Dradis" → Navigate to dradis.html?ship={id}
 ├─ Click "Input" → Navigate to input.html
 └─ Click "Colyseus Monitor" → Navigate to colyseus-monitor
 ```

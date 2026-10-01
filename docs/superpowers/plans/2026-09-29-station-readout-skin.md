@@ -41,7 +41,7 @@ Each item's test is placed in the owning task below.
 
 **Files:**
 - Modify: `modules/browser/package.json` (pin `tweakpane` to exact installed version from lockfile; add `@fontsource/chakra-petch`, `@fontsource/share-tech-mono`), `package-lock.json`
-- Modify: `modules/browser/static/styles/tweakpane.css` (replace `:root` token block only; keep existing rules working)
+- Modify: `static/styles/tweakpane.css` (replace `:root` token block only; keep existing rules working)
 - Modify: `modules/browser/src/screens/station-screens.ts` (set `document.body.dataset.input = 'none'` for helms, weapons, engineer, signals; not dradis)
 - Modify: `modules/browser/templates/sidebar.html` (`<body data-density="compact">`)
 - Modify: `modules/browser/src/colors.ts` (add `status` export: ok/caution/warning matching the palette; make CSS values the same numbers)
@@ -59,7 +59,7 @@ Each item's test is placed in the owning task below.
 ### Task 2: Blade skin
 
 **Files:**
-- Modify: `modules/browser/static/styles/tweakpane.css`
+- Modify: `static/styles/tweakpane.css`
 - Test: `modules/e2e/test/readout-skin.spec.ts` (new)
 
 **Interfaces:**
@@ -87,7 +87,7 @@ Implement spec §3 mapping table except pane IDs and segmented bars (Task 3):
 ### Task 3: Pane IDs and segmented bars (CSS-only)
 
 **Files:**
-- Modify: `modules/browser/static/styles/tweakpane.css`
+- Modify: `static/styles/tweakpane.css`
 
 **Interfaces:**
 - Consumes: Task 2 title and bar selectors; pane `data-id` values listed below.

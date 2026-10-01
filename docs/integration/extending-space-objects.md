@@ -59,14 +59,16 @@ export class Mine extends SpaceObjectBase {
 // modules/core/src/space/index.ts
 import { Mine } from './mine';
 
-export type SpaceObjects = {
+export interface SpaceObjects {
     Spaceship: Spaceship;
+    Asteroid: Asteroid;
     Projectile: Projectile;
     Explosion: Explosion;
-    Asteroid: Asteroid;
+    Nebula: Nebula;
     Waypoint: Waypoint;
+    Derelict: Derelict;
     Mine: Mine; // Add new type
-};
+}
 
 export type SpaceObject = SpaceObjects[keyof SpaceObjects];
 ```
@@ -87,7 +89,9 @@ export class SpaceState extends Schema {
             this.Asteroid.get(id) ??
             this.Spaceship.get(id) ??
             this.Explosion.get(id) ??
+            this.Nebula.get(id) ??
             this.Waypoint.get(id) ??
+            this.Derelict.get(id) ??
             this.Mine.get(id) // Add to lookup
         );
     }
@@ -95,9 +99,11 @@ export class SpaceState extends Schema {
     public *maps(): IterableIterator<MapSchema> {
         yield this.Projectile;
         yield this.Explosion;
+        yield this.Nebula;
         yield this.Asteroid;
         yield this.Spaceship;
         yield this.Waypoint;
+        yield this.Derelict;
         yield this.Mine; // Add to iteration
     }
 }

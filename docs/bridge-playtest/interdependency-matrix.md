@@ -52,7 +52,7 @@ These three mechanisms are where the matrix actually lives in code:
 
 | Station | Depends on … | For … | Code reference |
 |---|---|---|---|
-| **Pilot** | Engineering | power for `/thrusters/*`, `/warp`, `/maneuvering`, `/smartPilot`, `/radars/*` | `pilot.ts` (systems-status filter) |
+| **Pilot** | Engineering | power for `/thrusters/*`, `/warp`, `/maneuvering`, `/smartPilot`, `/radars/*` | `helms-screen.ts` (systems-status filter) |
 | Pilot | Engineering | warp **frequency** | `engineer.ts` |
 | Pilot | Signals | scan-level gating on pilot-radar — same-faction always BASIC, others UFO until scanned | `fc54991` (#1205) |
 | **Weapons** | Engineering | power for `/chainGuns/*`, `/tubes/*`, `/magazine`, `/radars/*` | `weapons.ts` |
@@ -153,7 +153,7 @@ feature added on top.** This means:
 - The per-station information filtering documented in §3 is
   **load-bearing** for the captain's role. Examples in current code
   that enable the captain:
-  - `systemsStatus` is filtered per station (`pilot.ts`,
+  - `systemsStatus` is filtered per station (`helms-screen.ts`,
     `weapons.ts`, `signals.ts`) — only engineering sees
     the full systems table
   - Signals' independent `SelectionContainer` (vs `weaponsTarget`)

@@ -86,6 +86,6 @@ purpose; do not read as current.
 
 | Doc | What |
 |---|---|
-| [`maintainers.md`](maintainers.md) | Maintainer roster — consumed by `.github/labeler.yml`. |
+| [`maintainers.md`](maintainers.md) | Maintainer's guide: branch-protection, required-check and CODEOWNERS settings for `master`, plus the hotspot label gate (the `risk:hotspot` rules in `.github/labeler.yml` refer to it). |
 | [`testing/coverage-strategy.md`](testing/coverage-strategy.md) | Where test coverage is thin, and how the coverage gate moves. |
 | [`technical-debt.md`](technical-debt.md) | Known technical debt and documentation gaps. |

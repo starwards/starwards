@@ -1,23 +1,25 @@
 # Signals station — current state
 
-**Code:** `modules/browser/src/screens/signals.ts` (added in PR #1848,
+**Code:** `modules/browser/src/screens/signals-screen.ts` (entry wrapper `signals.ts`; added in PR #1848,
 commit `3b40c6d`, March 2026; spacebar help added in `e869297`).
 
-The signals screen is **brand new** and intentionally a minimal first cut.
+The signals screen is **brand new**.
 It is **not** the full ticket #1208 vision.
 
 ## Widgets on screen
 
 | Region | Widget | Notes |
 |---|---|---|
-| Background (full screen) | `longRangeRadar` | range = 50,000m default; zoom presets [5k, 10k, 25k, 50k, 100k, 250k] |
-| Top-left | `targetInfo` | Type, Faction, Distance, Bearing — updated every 200ms |
-| Top-right | `systemsStatus` | filtered to `/radar` only |
+| Center | `longRangeRadar` | range = 50,000m default; zoom presets [5k, 10k, 25k, 50k, 100k, 250k]; radar header ("LONG RANGE · 50 KM" / "SHIP <id>"); `SignalsJobsLayer` overlay |
+| Left column | `scanBeam` | the steerable radar (the one with `minArc < maxArc`) |
+| Left column | `signalsJobs` | scrolls |
+| Right column | `targetInfo` | Type, Faction, Distance, Bearing — updated every 200ms |
+| Right column | `systemsStatus` | scrolls; systems at `/signals` plus the radar systems |
 
 The `longRangeRadar` widget:
 - Shows zoom level overlay (top-right of canvas, e.g. "50km")
 - Reacts to mouse wheel (with 200ms cooldown), header zoom buttons, **and** to
-  `zoomEvents` from `screens/signals.ts`
+  `zoomEvents` from `screens/signals-screen.ts`
 - Per `fc54991`, applies scan-level gating: UFOs render as gray circles with
   no ID/sprite. BASIC/ADVANCED reveal sprite + ID. Same-faction always at
   least BASIC.
@@ -26,7 +28,7 @@ The `targetInfo` widget shows fixed fields and emits placeholder `—` when no
 target is selected. Distance and bearing are recomputed from the target's
 position vs own ship's position via `XY.difference`.
 
-## Inputs wired (`wireInput` in signals.ts)
+## Inputs wired (`wireInput` in signals-screen.ts)
 
 | Action | Key |
 |---|---|
@@ -67,7 +69,7 @@ exists today:
 | Target info — Lvl0: Physics (distance, heading, rel.speed) | 🟡 distance + bearing exist; **relative speed missing**; "heading" of own ship vs target not shown |
 | Target info — Lvl1: Faction, model | 🟡 Faction shown (always — not gated by scan level); **model missing** |
 | Target info — Lvl2: Armor status, damage reports, list of systems | ❌ none |
-| List of all signals jobs | 🟡 jobs system (#1206) implemented in core (SignalsJobManager + Signals.jobs queue), but no jobs-list widget on the signals screen yet |
+| List of all signals jobs | 🟡 jobs system (#1206) implemented in core (SignalsJobManager + Signals.jobs queue), jobs-list widget (`drawSignalsJobs`) on the signals screen |
 
 ### Hotkeys
 

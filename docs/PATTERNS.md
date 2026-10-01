@@ -128,6 +128,7 @@ protected syncShipProperties() {
     this.state.spaceship.angle = this.spaceObject.angle;
     this.state.spaceship.faction = this.spaceObject.faction;
     this.state.spaceship.radius = this.spaceObject.radius;
+    this.state.spaceship.hitsLanded = this.spaceObject.hitsLanded;
     applyRadarSectors(this.state.spaceship.radarSectors, [...this.spaceObject.radarSectors]);
 }
 ```

@@ -43,7 +43,7 @@ Multi-Client Tests (modules/server/src/test/):
 
 E2E Tests (modules/e2e/test/):
   ├─ integration.spec.ts - Core workflows
-  ├─ pilot-screen.spec.ts / pilot-hotkeys.spec.ts - Helms UI & navigation
+  ├─ helms-screen.spec.ts / helms-hotkeys.spec.ts - Helms UI & navigation
   ├─ weapons-screen.spec.ts / weapons-hotkeys.spec.ts - Gunner UI & combat
   ├─ engineer-screen.spec.ts / engineer-hotkeys.spec.ts - Engineer UI & power systems
   ├─ gm-screen.spec.ts - GM view
@@ -98,7 +98,7 @@ harness.assertPhysicsInvariant(
 
 // Invariant checked automatically during simulation
 harness.simulate(10, 100, () => {
-    harness.shipMgr.addForwardThrust();
+    harness.shipMgr.state.smartPilot.maneuvering.x = 1;
 });
 ```
 
@@ -132,13 +132,12 @@ const enemies = harness.createCombatScenario({
 // Initialize graph with metrics to plot
 harness.initGraph({
     x: () => harness.shipObj.x,
-    velocity: () => harness.shipObj.velocity.x,
-    thrust: () => harness.shipMgr.thrust
+    velocity: () => harness.shipObj.velocity.x
 });
 
 // Run simulation (automatically updates graph)
 harness.simulate(metrics.timeToReach, metrics.iterations, () => {
-    harness.shipMgr.addForwardThrust();
+    harness.shipMgr.state.smartPilot.maneuvering.x = 1;
 });
 
 // Graph saved to file or displayed in HTML
@@ -173,7 +172,7 @@ const timedMetrics = new TimedTestMetrics(
 ### Complete Example
 
 ```typescript
-import { ShipTestHarness, MovementTestMetrics } from '@starwards/core/test';
+import { ShipTestHarness, MovementTestMetrics } from './ship-test-harness'; // from a spec in modules/core/test/
 
 describe('Ship acceleration', () => {
     it('reaches target distance', () => {
@@ -198,7 +197,7 @@ describe('Ship acceleration', () => {
 
         // Run simulation
         harness.simulate(metrics.timeToReach, metrics.iterations, () => {
-            harness.shipMgr.addForwardThrust();
+            harness.shipMgr.state.smartPilot.maneuvering.x = 1;
         });
 
         // Verify results

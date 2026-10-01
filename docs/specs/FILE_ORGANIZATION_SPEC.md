@@ -40,6 +40,7 @@ starwards/
 │   ├── browser/         # Client UI
 │   ├── server/          # Server implementation
 │   ├── node-red/        # Node-RED integration
+│   ├── mcp/             # MCP server (LLM station client)
 │   └── e2e/             # End-to-end tests
 ├── docs/                # Documentation
 ├── scripts/             # Build scripts
@@ -391,13 +392,19 @@ custom-typings/
 
 ```
 static/
+├── environment/
 ├── fonts/
 │   ├── BebasNeue-Regular.ttf
 │   └── Electrolize-Regular.ttf
+├── images/
 ├── models/
 │   ├── Asteroid_01/
-│   └── spaceship_nortend/
-└── textures/
+│   ├── dragonfly/
+│   ├── spaceship_nortend/
+│   └── ... (Projectile_01, Projectile_03, meteor_01, asteroid_*)
+├── particles/
+├── sound/
+└── styles/
 ```
 
 ## Documentation
@@ -467,6 +474,7 @@ import { SystemState } from './system';
 browser → core
 server → core
 node-red → core
+mcp → core, server
 
 core ← (no dependencies on other modules)
 ```
@@ -531,7 +539,7 @@ modules/core/test/
 ├── ship-manager.spec.ts
 ├── space-manager.spec.ts
 ├── energy-manager.spec.ts
-└── test-utils.ts
+└── ship-test-harness.ts
 ```
 
 ## /templates Directory
@@ -563,7 +571,6 @@ modules/node-red/examples/
 ```
 ship-state.ts       → class ShipState
 space-state.ts      → class SpaceState
-admin-state.ts      → class AdminState
 ```
 
 ## Manager Files

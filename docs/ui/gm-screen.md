@@ -43,7 +43,7 @@ The GM (Game Master) screen provides god-mode control over the game space. Used 
   - Waypoints display with owner filtering
   - Interactive layer for object selection
 - **Data Source**: SpaceDriver (all objects), selection state
-- **Zoom Persistence**: Saved in layout state
+- **Zoom Persistence**: None. The layout's `zoom` prop (default 1) sets only the starting zoom. Changes are kept in the camera for the session and lost on reload.
 - **Data Attribute**: `data-zoom` reflects current zoom level
 
 ### 2. GM Controls Panel (Top-Right)
@@ -77,13 +77,14 @@ The GM (Game Master) screen provides god-mode control over the game space. Used 
 - **Per-Ship Widgets** (auto-registered for each ship in game):
   - `{shipId} radar`: Standard radar
   - `{shipId} tactical radar`: Tactical view
-  - `{shipId} pilot radar`: Pilot view
+  - `{shipId} helms radar`: Helms view
   - `{shipId} helm`: Pilot stats
   - `{shipId} gun`: Gun controls
   - `{shipId} design state`: Ship configuration
   - `{shipId} target radar`: Target view
   - `{shipId} monitor`: System monitor
   - `{shipId} damage report`: Damage display
+  - `{shipId} repair queue`: Repair queue
   - `{shipId} armor`: Armor visualization
   - `{shipId} ammo`: Ammunition status
   - `{shipId} tubes`: Tube status
@@ -91,11 +92,11 @@ The GM (Game Master) screen provides god-mode control over the game space. Used 
   - `{shipId} systems (full)`: Full system status
   - `{shipId} engineering status`: Engineering panel
   - `{shipId} targeting`: Targeting panel
-  - `{shipId} warp`: Warp controls
+  - `{shipId} warp`: Warp controls (registered only when the ship has a warp system)
   - `{shipId} docking`: Docking panel
   - `{shipId} target info`: Target information
   - `{shipId} long range radar`: Long range radar view
-- **Layout Persistence**: Auto-save to localStorage
+- **Layout Persistence**: None. The layout is rebuilt from a fixed config on every load. Only the Ship screen saves layouts to localStorage.
 - **Dynamic Registration**: Widgets added as ships spawn
 
 ## User Workflows

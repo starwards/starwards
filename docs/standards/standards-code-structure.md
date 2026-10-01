@@ -47,7 +47,7 @@ Structural conventions for the codebase. Established during the armor/ammo rewor
 - **Name unions for what they mean**, not for where they started: `WeaponDamageType` vs
   `SpaceDamageType`, `AmmoType` (with `ShellAmmoType`/`MissileAmmoType` subsets).
 - **Encode behavioral invariants as discriminated unions** owned by the domain object, not as
-  numeric conventions decoded by callers: `ArmorDesignState.response()` returns
+  numeric conventions decoded by callers: `ArmorLayerDesignState.response()` returns
   `{kind: 'bypass'} | {kind: 'block'} | {kind: 'engage'; plateFactor; penetration}` — the
   "penetration is binary when plates don't engage" rule lives with the armor design.
 - **Resolve derived data once and carry it in the type**: `AttackDamage = Damage &
@@ -58,7 +58,7 @@ Structural conventions for the codebase. Established during the armor/ammo rewor
 
 - **Ship configs do not import stats from other modules.** A config names what it wants via a
   union of literals and lets instantiation resolve it: `demoShipArmor` declares
-  `type: 'composite', withFaradayLayer: false`; `makeArmor` resolves the name through the
+  a layer `{ type: 'composite', plateMaxHealth: 100 }` (the optional `withFaradayLayer` is omitted); `makeArmor` resolves the name through the
   `armorModels` registry (`ArmorModelName` keeps the name checked). No `...compositeArmor`
   spreads in configs.
 - **Type configs with `satisfies`, not annotations**: `demoShip = {...} satisfies
@@ -76,7 +76,7 @@ Structural conventions for the codebase. Established during the armor/ammo rewor
 - **Loops iterate the canonical list**, never name one member as a stand-in for all
   (`for (const at of ammoTypes)` in `resetShipState`, `updateAmmo`, deplete-ammo tests).
 - **Fold parallel type definitions into one.** `ArmorModelStats` is defined once;
-  `ArmorDesign` composes it and `ArmorDesignState implements` it — no restated field lists.
+  `ArmorLayerDesignState implements` it, and layer designs (`ArmorLayerDesign`) name a model via `type: ArmorModelName` rather than restating its fields — no restated field lists.
 
 ## Pipeline structure over branching monoliths
 
@@ -88,7 +88,7 @@ Structural conventions for the codebase. Established during the armor/ammo rewor
   (penetrating, per-area, electronics, bypass) are one `resolvePenetrationChannel` over
   `(system, exposure)` candidates; bypass is just "full exposure per area".
 - **Extract stateful loop bodies into functions with explicit result objects**
-  (`engagePlatesInArea` → `{brokenPlates, cellPopped}`) instead of mutating flags inside the
+  instead of mutating flags inside the
   loop.
 
 ## Naming and comment hygiene
