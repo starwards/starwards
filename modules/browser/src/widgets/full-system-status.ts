@@ -34,7 +34,7 @@ const fitDefectBarWidth = 28;
 const fitDefectLabelWidth = 56;
 
 const defaultWidths = { status: '60px', power: '60px', epm: '60px', heat: '60px', coolant: '120px', hacked: '60px' };
-const fitWidths = { status: '38px', power: '52px', epm: '34px', heat: '52px', coolant: '52px', eff: '40px' };
+const fitWidths = { status: '38px', power: '52px', epm: '34px', heat: '52px', coolant: '52px', eff: '40px', hack: '36px' };
 
 /** Short readable label per defect name; a name not listed here is shown in full. */
 const defectShortLabels: Record<string, string> = {
@@ -176,6 +176,15 @@ function faultOf(system: System): { text: string; tone: Tone } {
     return { text: 'HOT', tone: heat === 'OVERHEAT' ? 'ERROR' : 'WARN' };
 }
 
+const hackText: Record<number, string> = { [HackLevel.COMPROMISED]: 'CMP', [HackLevel.DISABLED]: 'DIS' };
+
+function hackTone(hacked: HackLevel): Tone {
+    if (hacked === HackLevel.DISABLED) {
+        return 'ERROR';
+    }
+    return hacked < HackLevel.OK ? 'WARN' : undefined;
+}
+
 function heatTone(system: System): Tone {
     const heat = system.getHeatStatus();
     if (heat === 'OK') {
@@ -194,8 +203,8 @@ function applyTint(element: HTMLElement, tone: Tone) {
 }
 
 /**
- * The engineer station's Systems pane: SYSTEM | STAT | POWER | EPM | HEAT | COOLANT | EFF, each
- * level a bar and STAT naming only a fault. A system's defects follow as one line of labelled
+ * The engineer station's Systems pane: SYSTEM | STAT | POWER | EPM | HEAT | COOLANT | EFF | HACK, each
+ * level a bar and STAT and HACK naming only a fault. A system's defects follow as one line of labelled
  * bars, because the repair queue cannot be aimed without them.
  */
 function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, systems: System[]) {
@@ -212,6 +221,7 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
             { label: 'HEAT', width: w.heat },
             { label: 'COOL', width: w.coolant },
             { label: 'EFF', width: w.eff },
+            { label: 'HACK', width: w.hack },
         ],
     });
     for (const system of systems) {
@@ -257,7 +267,6 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
         const effProps = [
             readProp(shipDriver, `${pointer}/broken`),
             readProp(shipDriver, `${pointer}/power`),
-            readProp(shipDriver, `${pointer}/hacked`),
         ];
         const effCell = addTextCellToRow(
             row,
@@ -265,15 +274,22 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
             { format: (e: number) => `${Math.round((e / Number(PowerLevel.NORMAL)) * 100)}%`, width: w.eff },
             panelCleanup.add,
         );
-        const effTone = (): Tone => {
-            if (system.state.broken || system.state.hacked === HackLevel.DISABLED) {
-                return 'ERROR';
-            }
-            return system.state.hacked < HackLevel.OK ? 'WARN' : undefined;
-        };
+        const effTone = (): Tone => (system.state.broken ? 'ERROR' : undefined);
         const applyEffTone = () => applyTint(effCell.element, effTone());
         panelCleanup.add(abstractOnChange(effProps, effTone, applyEffTone));
         applyEffTone();
+
+        const hackProp = readProp<number>(shipDriver, `${pointer}/hacked`);
+        const hackCell = addTextCellToRow(
+            row,
+            hackProp,
+            { format: (h: HackLevel) => hackText[h] ?? '', width: w.hack },
+            panelCleanup.add,
+        );
+        hackCell.element.classList.add('tp-rotv'); // lets data-status theme the cell, see tweakpane.css
+        const applyHack = () => (hackCell.element.dataset.status = hackTone(system.state.hacked) ?? 'OK');
+        panelCleanup.add(abstractOnChange([hackProp], () => `${hackTone(system.state.hacked)}`, applyHack));
+        applyHack();
 
         addFitDefectRow(pane, shipDriver, system, panelCleanup.add);
     }

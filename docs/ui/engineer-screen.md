@@ -43,7 +43,8 @@ The Engineer screen provides detailed system management, power distribution, and
     - EPM: Energy Per Minute consumption
     - Heat: bar, amber from half of the maximum, red at the maximum
     - Coolant: bar (coolant factor, 0-100%)
-    - EFF: effectiveness as a percentage of normal power (normal 100%, maximum 200%, broken 0%); amber when hacked (compromised), red when broken or disabled
+    - EFF: effectiveness as a percentage of normal power (normal 100%, maximum 200%, broken 0%); red when broken
+    - Hack: names only a hack (CMP compromised amber, DIS disabled red); dark while OK
 - **Systems Listed**: All ship systems from `shipDriver.systems`
     - Reactor, Maneuvering, Thrusters (multiple), Tubes (multiple)
     - Radar, Smart Pilot, Warp, Docking, Magazine, Chain Gun

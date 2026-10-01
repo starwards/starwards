@@ -1076,7 +1076,7 @@ body[data-station='dradis'] .tp-btnv_b {
 :root body[data-station='engineer'] [data-id='Systems'] .sw-defect-label .tp-txtv_i {
     font-size: 11px;
 }
-/* the engineer's Systems pane packs a defect line under every system; EPM and EFF digits sit centred under their headers */
+/* the engineer's Systems pane packs a defect line under every system; EPM, EFF and HACK text sit centred under their headers */
 :root body[data-station='engineer'] [data-id='Systems'] {
     --tp-container-unit-spacing: 1px;
 }
@@ -1088,7 +1088,7 @@ body[data-station='dradis'] .tp-btnv_b {
     [data-id='Systems']
     .tp-lblv:not(.sw-defect-row)
     > .tp-lblv_v
-    .tp-rowcv:is(:nth-child(3), :nth-child(6))
+    .tp-rowcv:is(:nth-child(3), :nth-child(6), :nth-child(7))
     .tp-txtv_i {
     text-align: center;
 }
