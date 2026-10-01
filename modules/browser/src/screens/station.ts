@@ -26,7 +26,7 @@ window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.r
  * admin room with an empty assignment and sits in a waiting screen — showing this seat's own id
  * large, so the GM can match a physical screen to its roster row, plus (while wholly unassigned)
  * a breakout button back to the manual lobby — until the GM assigns it a `(shipId, stationType)`
- * and a game/replay is running. From there it renders whichever screen the stations manifest
+ * and a game is running. From there it renders whichever screen the stations manifest
  * names (see `station-screens.ts`), and switches screens in place on a reassignment, no reload.
  *
  * A stopped game falls back to the waiting screen too (issue #2242): `GameManager.stopGame`

@@ -5,7 +5,8 @@ import { Button } from './arwes-compat';
 
 type Props = { adminDriver: AdminDriver };
 
-export function ReplayMenu({ adminDriver }: Props) {
+/** Recordings kept by the server, each opening in the recording player. */
+export function RecordingsMenu({ adminDriver }: Props) {
     const [recordings, setRecordings] = useState<RecordingInfo[]>([]);
     useEffect(() => {
         let cancelled = false;
@@ -22,11 +23,17 @@ export function ReplayMenu({ adminDriver }: Props) {
     }
 
     return (
-        <pre key="Replay">
-            <h2>Replay</h2>
+        <pre key="Recordings">
+            <h2>Recordings</h2>
             {recordings.map((r) => (
-                <Button key={r.name} palette="primary" onClick={() => adminDriver.startReplay(r.name)}>
-                    <div data-id={`replay ${r.name}`}>
+                <Button
+                    key={r.name}
+                    palette="primary"
+                    onClick={() =>
+                        window.location.assign(`player.html?src=${encodeURIComponent(`recordings/${r.name}`)}`)
+                    }
+                >
+                    <div data-id={`recording ${r.name}`}>
                         {r.mapName} — {new Date(r.startedAt).toLocaleString()} ({Math.round(r.durationSeconds)}s)
                     </div>
                 </Button>

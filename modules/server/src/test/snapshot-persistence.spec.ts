@@ -2,12 +2,11 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { SavedGame, waitFor } from '@starwards/core/internal';
 import { restoreGameSnapshot, startSnapshotPersistence, writeGameSnapshot } from '../snapshot/snapshot-persistence';
 
-import { SavedGame } from '../serialization/game-state-protocol';
 import { makeDriver } from './driver';
 import { schemaToString } from '../serialization/game-state-serialization';
-import { waitFor } from '@starwards/core/internal';
 
 async function fileExists(filePath: string) {
     try {

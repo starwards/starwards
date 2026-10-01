@@ -25,7 +25,7 @@ function WaitingScreen({ stationId, showBreakout }: { stationId: string; showBre
 
 /**
  * The generic seat's (`station.html`) waiting screen (issue #2242): shown while unassigned, or
- * while assigned but no game/replay is running (see `computeSeatView`). Shows this seat's own id
+ * while assigned but no game is running (see `computeSeatView`). Shows this seat's own id
  * large enough to match against a physical screen, plus — only while wholly unassigned — a
  * breakout button back to the manual lobby (`index.html?lobby`). The id itself is not editable
  * here; it stays whatever `getOrCreateStationId` resolved for this tab.

@@ -7,7 +7,7 @@
  *
  * `--interval 0` disables persisting the recording (each run still records to a scratch dir so
  * `analysis/checks.ts` has a store to run against -- see `training-scenarios.ts`). Persisted
- * recordings land in `<dir>/<scenario>_seed<N>.swr.jsonl`, the report in
+ * recordings land in `<dir>/<scenario>_seed<N>.sgr`, the report in
  * `<dir>/<scenario>-report.md`. The report's "failed checks" column is always populated.
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';

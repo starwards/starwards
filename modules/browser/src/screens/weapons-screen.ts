@@ -6,7 +6,6 @@ import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
 import { drawGunStatus } from '../widgets/gun';
 import { drawRadarHeader } from '../widgets/radar-header';
-import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
@@ -30,7 +29,6 @@ export async function initWeaponsScreen(
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: radarRange });
     const grid = stationGrid(container, { left: 272, right: 256 });
     drawRadarHeader(grid.center({ fill: true }), `TACTICAL · ${radarRange / 1000} KM`, `SHIP ${shipId}`);
-    await drawStationObservationMode(grid.center(), driver);
     const teardownInput = wireInput(shipDriver);
     drawTubesStatus(grid.left(), shipDriver);
     drawAmmoStatus(grid.left({ scroll: true }), shipDriver);

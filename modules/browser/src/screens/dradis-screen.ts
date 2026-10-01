@@ -13,7 +13,6 @@ import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
 
 import { drawMapCaption } from '../widgets/map-caption';
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
-import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { drawWaypointGroups } from '../widgets/waypoint-groups';
 import { setupHotkeyHelp } from '../input/hotkey-help';
@@ -41,7 +40,6 @@ export async function initDradisScreen(
     container.getElement().on('contextmenu', (e) => e.preventDefault());
 
     const grid = stationGrid(container, { left: 240, right: 240 });
-    await drawStationObservationMode(grid.center(), driver);
     const placementSlot = grid.left();
     const editSlot = grid.left({ scroll: true });
     const layersSlot = grid.right({ scroll: true });

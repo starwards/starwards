@@ -11,7 +11,6 @@ import { SignalsJobsLayer } from '../radar/signals-jobs-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawRadarHeader } from '../widgets/radar-header';
 import { drawScanBeam } from '../widgets/scan-beam';
-import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 
@@ -46,7 +45,6 @@ export async function initSignalsScreen(
 
     const grid = stationGrid(container, { left: 250, right: 256 });
     drawRadarHeader(grid.center({ fill: true }), `LONG RANGE · ${radarRange / 1000} KM`, `SHIP ${shipId}`);
-    await drawStationObservationMode(grid.center(), driver);
     const radarSystems = shipDriver.systems.filter((s) => Radar.isInstance(s.state));
     const stationSystems = [...shipDriver.systems.filter((s) => s.pointer === '/signals'), ...radarSystems];
     const scanBeamSlot = grid.left();

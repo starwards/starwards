@@ -8,7 +8,6 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawDockingStatus } from '../widgets/docking';
 import { drawHelmsRadar } from '../widgets/helms-radar';
 import { drawHelmsStats } from '../widgets/helms';
-import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
 import { isHelmsSystem } from './station-system-filters';
@@ -25,7 +24,6 @@ export async function initHelmsScreen(
     const spaceDriver = await driver.getSpaceDriver();
     await drawHelmsRadar(spaceDriver, shipDriver, container);
     const grid = stationGrid(container, { left: 262, right: 300 });
-    await drawStationObservationMode(grid.center(), driver);
     const teardownInput = wireInput(shipDriver);
     drawHelmsStats(grid.left({ scroll: true }), shipDriver);
     const armorSlot = grid.center({ bottom: true, width: 200 });

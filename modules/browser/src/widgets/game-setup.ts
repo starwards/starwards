@@ -1,5 +1,6 @@
 import { AdminDriver, GameStatus } from '@starwards/core';
 import { addButton, createWidgetPane } from '../panel';
+import { handleFile, loadFileAccept } from '../drop-file';
 
 import $ from 'jquery';
 import { DashboardWidget } from './dashboard';
@@ -59,33 +60,34 @@ function drawGameSetup(container: WidgetContainer, adminDriver: AdminDriver) {
         addButton(pane, () => adminDriver.startGame(name), { label, title: label }, cleanup.add),
     );
 
-    const loadInput = $('<input type="file" data-id="Load Game Input" accept="' + saveFileExtension + '" />').css({
+    const loadInput = $('<input type="file" data-id="Load Game Input" accept="' + loadFileAccept + '" />').css({
         display: 'block',
         margin: '0.5em 0',
     });
-    container.getElement().append(loadInput);
+    const loadHint = $('<div>a recording or a saved game — or drop the file anywhere on this page</div>').css({
+        fontSize: '0.85em',
+        opacity: 0.7,
+    });
+    const loadNotice = $('<div data-id="load notice"></div>').css({ fontSize: '0.85em', color: '#ff6666' });
+    container.getElement().append(loadInput, loadHint, loadNotice);
     loadInput.on('change', () => {
         const file = (loadInput.get(0) as HTMLInputElement).files?.[0];
-        if (!file) {
-            return;
+        if (file) {
+            handleFile(file, () => adminDriver, { setNotice: (text) => void loadNotice.text(text) });
         }
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (typeof reader.result === 'string') {
-                adminDriver.loadGame(reader.result);
-            }
-        };
-        reader.readAsText(file);
         loadInput.val('');
     });
-    cleanup.add(() => loadInput.remove());
+    cleanup.add(() => {
+        loadInput.remove();
+        loadHint.remove();
+        loadNotice.remove();
+    });
 
     const applyMode = () => {
         const stopped = gameStatus.getValue() === GameStatus.STOPPED;
         for (const b of startButtons) {
             b.hidden = !stopped;
         }
-        loadInput.css('display', stopped ? 'block' : 'none');
         stopButton.disabled = stopped;
         saveButton.disabled = stopped;
     };

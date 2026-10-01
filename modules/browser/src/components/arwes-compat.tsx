@@ -10,7 +10,6 @@ import {
     Animator,
     AnimatorGeneralProvider as ArwesAnimatorGeneralProvider,
     BleepsProvider as ArwesBleepsProvider,
-    FrameCorners as ArwesFrameCorners,
     Text as ArwesText,
     BleepsOnAnimator,
     FrameNefrex,
@@ -384,47 +383,6 @@ export const Card: React.FC<CardProps> = ({ children, title, image, options, sty
                 </div>
             </Animated>
         </Animator>
-    );
-};
-
-// ============================================================================
-// FrameCorners Component
-// ============================================================================
-
-interface FrameCornersProps {
-    children?: ReactNode;
-    palette?: PaletteType;
-    style?: CSSProperties;
-}
-
-export const FrameCorners: React.FC<FrameCornersProps> = ({ children, palette = 'primary', style }) => {
-    const color = paletteColors[palette];
-
-    return (
-        <div
-            className={`arwes-frame-corners arwes-frame-corners--${palette}`}
-            style={{
-                position: 'relative',
-                padding: '16px',
-                ...style,
-            }}
-        >
-            <style>{`
-                .arwes-frame-corners--${palette} .arwes-frames-frame [data-name=line] {
-                    stroke: ${color};
-                    fill: none;
-                }
-                .arwes-frame-corners--${palette} .arwes-frames-frame [data-name=bg] {
-                    fill: transparent;
-                }
-            `}</style>
-
-            <Animator>
-                <ArwesFrameCorners strokeWidth={2} styled={false} />
-            </Animator>
-
-            {children}
-        </div>
     );
 };
 

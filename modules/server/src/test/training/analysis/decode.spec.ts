@@ -51,7 +51,7 @@ describe('decodeRecording', () => {
     });
 
     it('drops a truncated tail line instead of throwing', async () => {
-        const truncatedPath = path.join(dir, 'truncated.swr.jsonl');
+        const truncatedPath = path.join(dir, 'truncated.sgr');
         const lines = fs.readFileSync(filePath, 'utf8').split('\n').filter(Boolean);
         // header + first two frames intact, third frame line cut mid-way through.
         const cut = lines[3].slice(0, Math.floor(lines[3].length / 2));

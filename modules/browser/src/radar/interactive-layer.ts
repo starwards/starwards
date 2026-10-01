@@ -60,6 +60,8 @@ export class InteractiveLayer {
         private spaceDriver: SpaceDriver,
         private selectionContainer: SelectionContainer,
         private interactiveLayerCommands: InteractiveLayerCommands,
+        /** a read-only layer only selects and pans: it never drags objects or issues orders */
+        private readOnly = false,
     ) {
         this.stage.cursor = defaultCursor;
         this.stage.interactive = true;
@@ -134,6 +136,7 @@ export class InteractiveLayer {
             if (isMainButton) {
                 this.dragFrom = XY.clone(event.global);
                 if (
+                    !this.readOnly &&
                     this.selectionContainer.size > 0 &&
                     this.getObjectAtPoint(
                         this.selectionContainer.selectedItems,
@@ -228,7 +231,7 @@ export class InteractiveLayer {
                 } else {
                     assertUnreachable(this.createTemplate);
                 }
-            } else if (this.actionType === ActionType.panCameraOrOrder) {
+            } else if (this.actionType === ActionType.panCameraOrOrder && !this.readOnly) {
                 const selectedShipIds = [
                     ...new Iterator(this.selectionContainer.selectedItems)
                         .filter((so) => Spaceship.isInstance(so))

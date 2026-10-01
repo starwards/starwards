@@ -2,10 +2,15 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 
-import { RecordingHeader, encodeFrameLine, encodeHeader, parseFrameLine, parseHeader } from './recording-format';
-
+import {
+    RecordingHeader,
+    createLogger,
+    encodeFrameLine,
+    encodeHeader,
+    parseFrameLine,
+    parseHeader,
+} from '@starwards/core/internal';
 import { GameManager } from '../admin/game-manager';
-import { createLogger } from '@starwards/core/internal';
 import { createReadStream } from 'node:fs';
 import { schemaToString } from '../serialization/game-state-serialization';
 
@@ -19,7 +24,7 @@ export interface RecordingSummary {
     frameCount: number;
 }
 
-export const RECORDING_EXT = '.swr.jsonl';
+export const RECORDING_EXT = '.sgr';
 
 /** True for a plain recording file name — no directory part, correct extension. */
 export function isRecordingName(name: string): boolean {
@@ -189,7 +194,7 @@ export class GameRecorder {
  * rather than decoding them: every frame line carries a multi-KB encoded snapshot, and only
  * the tail's timestamp is needed.
  */
-export async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
+async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
     const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
     const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
     let header: RecordingHeader | null = null;

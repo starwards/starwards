@@ -179,10 +179,10 @@ export class Store {
     }
 }
 
-/** `<name>.swr.duckdb` beside `<name>.swr.jsonl`, per the design spec's *Store* layout. */
+/** `<name>.sgr.duckdb` beside `<name>.sgr`, per the design spec's *Store* layout. */
 export function storePathFor(recordingPath: string): string {
-    return recordingPath.endsWith('.swr.jsonl')
-        ? recordingPath.slice(0, -'.swr.jsonl'.length) + '.swr.duckdb'
+    return recordingPath.endsWith('.sgr')
+        ? recordingPath.slice(0, -'.sgr'.length) + '.sgr.duckdb'
         : `${recordingPath}.duckdb`;
 }
 

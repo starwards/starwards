@@ -3,8 +3,8 @@ import * as maps from './maps';
 import * as path from 'path';
 
 import { GameRecorder, RecordingConflictError, isRecordingName } from './recording/game-recorder';
-import { GameStatus, createLogger } from '@starwards/core/internal';
 import { NextFunction, Request, Response } from 'express';
+import { SavedGame, createLogger } from '@starwards/core/internal';
 import { Server, matchMaker } from '@colyseus/core';
 import { schemaToString, stringToSchema } from './serialization/game-state-serialization';
 
@@ -12,8 +12,6 @@ import { AddressInfo } from 'node:net';
 import { AdminRoom } from './admin/room';
 import { CleanLocalPresence } from './clean-local-presence';
 import { GameManager } from './admin/game-manager';
-import { ReplayPlayer } from './recording/replay-player';
-import { SavedGame } from './serialization/game-state-protocol';
 import { ShipRoom } from './ship/room';
 import { SpaceRoom } from './space/room';
 import { WebSocketTransport } from '@colyseus/ws-transport';
@@ -37,6 +35,7 @@ function recordingsDirPath(env: Record<string, string | undefined> = process.env
 
 export const HTTP_CONFLICT_STATUS = 409;
 const HTTP_BAD_REQUEST_STATUS = 400;
+const HTTP_NOT_FOUND_STATUS = 404;
 const HTTP_INTERNAL_SERVER_ERROR_STATUS = 500;
 export async function server(
     port: number,
@@ -52,7 +51,6 @@ export async function server(
     recordingsDir: string = recordingsDirPath(),
 ) {
     const gameRecorder = new GameRecorder(manager, recordingsDir);
-    const replayPlayer = new ReplayPlayer(manager, mapsMap);
     // reassigned once gameServer.listen() resolves the actual bound port (the caller may pass 0)
     let boundPort = port;
     const app = express();
@@ -101,7 +99,6 @@ export async function server(
     app.post(
         '/stop-game',
         asyncHandler(async (_, res) => {
-            replayPlayer.stop();
             await gameRecorder.stopRecording();
             await manager.stopGame();
             res.send();
@@ -139,37 +136,22 @@ export async function server(
         }),
     );
 
-    app.post(
-        '/start-replay',
-        asyncHandler(async (req, res) => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const { name } = req.body;
-            if (typeof name !== 'string') {
-                logError(`missing "name" field to start replay`);
-                res.sendStatus(HTTP_BAD_REQUEST_STATUS);
-                return;
-            }
-            // `name` is client-supplied and joined onto recordingsDir — a path component
-            // would escape the directory and read arbitrary files.
-            if (!isRecordingName(name)) {
-                logError(`invalid recording name "${name}"`);
-                res.sendStatus(HTTP_BAD_REQUEST_STATUS);
-                return;
-            }
-            if (manager.state.gameStatus !== GameStatus.STOPPED) {
-                logError(`can't start replay: a game is already running`);
-                res.sendStatus(HTTP_CONFLICT_STATUS);
-                return;
-            }
-            try {
-                await replayPlayer.startReplay(path.join(recordingsDir, name));
-                res.send();
-            } catch (e) {
-                logError(`can't start replay "${name}":`, e);
-                res.sendStatus(HTTP_BAD_REQUEST_STATUS);
-            }
-        }),
-    );
+    app.get('/recordings/:name', (req, res) => {
+        // `name` is client-supplied and joined onto recordingsDir — a path component would
+        // escape the directory and read arbitrary files.
+        const { name } = req.params;
+        if (!isRecordingName(name)) {
+            logError(`invalid recording name "${name}"`);
+            res.sendStatus(HTTP_BAD_REQUEST_STATUS);
+            return;
+        }
+        res.type('text/plain');
+        // `root`, not a joined path: express refuses any path with a hidden segment, and the default
+        // recordings directory is `.recordings`
+        res.sendFile(name, { root: recordingsDir }, (err) => {
+            if (err && !res.headersSent) res.sendStatus(HTTP_NOT_FOUND_STATUS);
+        });
+    });
 
     app.post(
         '/start-game',
@@ -206,7 +188,6 @@ export async function server(
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { data } = req.body;
             if (typeof data === 'string') {
-                replayPlayer.stop(); // loadGame() stops a running replay; release its reader too
                 const savedGameData = await stringToSchema(SavedGame, data);
                 const map = mapsMap.get(savedGameData.mapName);
                 if (map) {
@@ -247,7 +228,6 @@ export async function server(
         close: async () => {
             // Close the recording before the transport goes away, so no frame write outlives
             // the server (and races whoever cleans up the recordings directory).
-            replayPlayer.stop();
             await gameRecorder.stopRecording();
             // Stats.persist() schedules a 1 s setTimeout when createRoom() runs shortly
             // after the previous persist.  That handle outlives gracefullyShutdown() and

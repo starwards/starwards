@@ -1,6 +1,6 @@
 ---
 name: starwards-recording-analysis
-description: Investigate a headless training recording (.swr.jsonl) via the analyze CLI instead of reading frames by hand -- use when asked why a training/balance run behaved a certain way, to diagnose a failed check, or to compare two recordings
+description: Investigate a headless training recording (.sgr) via the analyze CLI instead of reading frames by hand -- use when asked why a training/balance run behaved a certain way, to diagnose a failed check, or to compare two recordings
 version: 2026-09-21
 related_skills:
     - starwards-verification (evidence before assertions)
@@ -12,7 +12,7 @@ related_skills:
 ## When to use this
 
 A headless training run (`npm --prefix modules/server run training -- ...`) produces a
-`.swr.jsonl` recording and a `TrainingResult` row. Neither answers "what happened" -- the result
+`.sgr` recording and a `TrainingResult` row. Neither answers "what happened" -- the result
 is end-of-run scalars, and the recording is thousands of gzipped snapshots nobody reads by hand.
 Use this skill instead of decoding frames yourself whenever you're asked to explain a run's
 outcome, chase a "why didn't X happen" question, or diff two runs.

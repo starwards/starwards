@@ -31,6 +31,7 @@ export * from './lock-commands';
 export * from './lock-registry';
 export * from './logic';
 export * from './range';
+export * from './recording';
 export * from './scripts-api';
 export * from './ship';
 export * from './space';

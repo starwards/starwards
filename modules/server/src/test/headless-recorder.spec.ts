@@ -4,12 +4,10 @@ import * as path from 'node:path';
 
 import { EVENTS_EXT, HeadlessRecorder, RecordedEvent } from './headless-recorder';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
+import { SavedGame, XY, parseFrameLine, parseHeader } from '@starwards/core/internal';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
-import { parseFrameLine, parseHeader } from '../recording/recording-format';
 
 import { RECORDING_EXT } from '../recording/game-recorder';
-import { SavedGame } from '../serialization/game-state-protocol';
-import { XY } from '@starwards/core/internal';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
 const params: T0Params = { distance: 3000, bearing: 0 };

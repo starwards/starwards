@@ -1,12 +1,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { encodeFrameLine, encodeHeader } from '../recording/recording-format';
-
+import { Spaceship, encodeFrameLine, encodeHeader } from '@starwards/core/internal';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
 import { RECORDING_EXT } from '../recording/game-recorder';
-import { Spaceship } from '@starwards/core/internal';
 import { schemaToString } from '../serialization/game-state-serialization';
 
 /** A state edge observed at tick resolution, written to the `.events.jsonl` sidecar. */
@@ -31,7 +29,7 @@ export type RecordedEvent =
 export const EVENTS_EXT = '.events.jsonl';
 
 /**
- * Writes a {@link HeadlessGame} run in the server's recording format (`.swr.jsonl`), one frame
+ * Writes a {@link HeadlessGame} run in the server's recording format (`.sgr`), one frame
  * every `intervalSimSeconds` of game time -- not wall time, since a headless run is far faster
  * than realtime. The file replays in the GM replay UI and every frame is a `SavedGame` a run can
  * be branched from via `HeadlessGame.restore`.

@@ -4,7 +4,7 @@ type SeatView = 'assigned' | 'waiting';
 
 /**
  * Issue #2242: the generic seat (`station.html`) renders its `(shipId, stationType)` assignment
- * only while a game or replay is actually running. A stopped game must fall back here instead of
+ * only while a game is actually running. A stopped game must fall back here instead of
  * keeping the old screen up: `GameManager`'s per-tick reconciliation clears `shipId` the moment
  * `playerShipIds` empties (which `stopGame` does immediately), but deliberately leaves
  * `stationType` set — that's the GM's seat assignment, and it survives the stop so the seat can
@@ -19,7 +19,7 @@ export function computeSeatView(
     stationType: string,
     gameStatus: GameStatus,
 ): { view: SeatView; showBreakout: boolean } {
-    const gameActive = gameStatus === GameStatus.RUNNING || gameStatus === GameStatus.REPLAY;
+    const gameActive = gameStatus === GameStatus.RUNNING;
     return {
         view: shipId && stationType && gameActive ? 'assigned' : 'waiting',
         showBreakout: !stationType,

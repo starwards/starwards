@@ -1,4 +1,4 @@
-import { AdminDriver, GameStatus, RecordingInfo, createLogger } from '@starwards/core';
+import { AdminDriver, RecordingInfo, createLogger } from '@starwards/core';
 import { addButton, addSliderBlade, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readProp, readWriteNumberProp } from '../property-wrappers';
 
@@ -13,9 +13,6 @@ const RATES = [
     { label: 'fast', rate: 3 },
 ];
 
-/** Step-back offsets, in seconds. Rewinding to a moment by dragging a 0..1 slider is hopeless. */
-const STEPS_BACK = [10, 30];
-
 const { error: logError } = createLogger('widget:game-controls');
 
 function clock(seconds: number) {
@@ -23,13 +20,20 @@ function clock(seconds: number) {
     return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 }
 
+/** Hands the finished recording to the GM's browser, so the file to play back is never out of reach. */
+function downloadRecording(name: string) {
+    const link = document.createElement('a');
+    link.href = `recordings/${encodeURIComponent(name)}`;
+    link.download = name;
+    link.dataset.id = 'recording download';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+}
+
 /**
- * The GM's controls for whatever the game is doing: rate, replay transport and recording.
- * Rate control is `AdminState.speed`, which scales every subsystem's `deltaSeconds`, so the
- * same widget drives a live game and a replay — the stations' observation chip reflects a pause
- * here without knowing this widget exists. The replay transport (position, scrub, step-back,
- * restart) hides in a live game, where there is nothing to seek through, and the recording
- * controls hide during a replay, which cannot be recorded.
+ * The GM's controls for a live game: rate and recording. Rate control is `AdminState.speed`,
+ * which scales every subsystem's `deltaSeconds`.
  */
 export function gameControlsWidget(adminDriver: AdminDriver): DashboardWidget {
     class GameControlsComponent {
@@ -48,65 +52,14 @@ export function gameControlsWidget(adminDriver: AdminDriver): DashboardWidget {
 export function drawGameControls(container: WidgetContainer, adminDriver: AdminDriver) {
     const { pane, cleanup } = createWidgetPane(container, 'Game Controls');
     const speed = readWriteNumberProp(adminDriver, '/speed');
-    const gameStatus = readProp<GameStatus>(adminDriver, '/gameStatus');
-    const position = readProp<number>(adminDriver, '/replayPosition');
-    const duration = readProp<number>(adminDriver, '/replayDuration');
-    const ended = readProp<boolean>(adminDriver, '/replayEnded');
     const isRecording = readProp<boolean>(adminDriver, '/isRecordingGame');
     const recordingSeconds = readProp<number>(adminDriver, '/recordingSeconds');
-
-    const seekTo = (seconds: number) => adminDriver.sendJsonCmd('/replaySeekCommand', Math.max(0, seconds));
+    const recordingName = readProp<string>(adminDriver, '/recordingName');
 
     for (const { label, rate } of RATES) {
         addButton(pane, () => speed.setValue(rate), { label, title: label }, cleanup.add);
     }
     addSliderBlade(pane, speed, { label: 'rate' }, cleanup.add);
-
-    const positionBlade = addTextBlade(
-        pane,
-        aggregate(
-            [position, duration, ended],
-            () =>
-                `${clock(position.getValue() ?? 0)} / ${clock(duration.getValue() ?? 0)}${
-                    ended.getValue() ? ' ENDED' : ''
-                }`,
-        ),
-        { label: 'position' },
-        cleanup.add,
-    );
-    // A fraction rather than seconds: a Tweakpane slider's range is fixed when it is created,
-    // and the recording's length is only known once a replay is loaded.
-    const scrubBlade = addSliderBlade(
-        pane,
-        {
-            range: [0, 1] as [number, number],
-            getValue: () => {
-                const total = duration.getValue() ?? 0;
-                return total > 0 ? (position.getValue() ?? 0) / total : 0;
-            },
-            onChange: aggregate([position, duration], () => position.getValue()).onChange,
-            setValue: (fraction: number) => seekTo(fraction * (duration.getValue() ?? 0)),
-        },
-        { label: 'scrub', min: 0, max: 1, step: 0.001 },
-        cleanup.add,
-    );
-    const stepBackButtons = STEPS_BACK.map((step) =>
-        addButton(
-            pane,
-            () => seekTo((position.getValue() ?? 0) - step),
-            { label: `-${step}s`, title: `-${step}s` },
-            cleanup.add,
-        ),
-    );
-    const restartButton = addButton(
-        pane,
-        () => {
-            seekTo(0);
-            speed.setValue(1);
-        },
-        { label: 'restart', title: 'restart' },
-        cleanup.add,
-    );
 
     // the stop result arrives over HTTP rather than through synced state, so it needs its own
     // change notification to reach the blade
@@ -130,7 +83,7 @@ export function drawGameControls(container: WidgetContainer, adminDriver: AdminD
         { label: 'recording', title: 'Record' },
         cleanup.add,
     );
-    const recordingBlade = addTextBlade(
+    addTextBlade(
         pane,
         aggregate([isRecording, recordingSeconds], () =>
             isRecording.getValue() ? `REC ${clock(recordingSeconds.getValue() ?? 0)}` : 'idle',
@@ -138,7 +91,7 @@ export function drawGameControls(container: WidgetContainer, adminDriver: AdminD
         { label: 'capture' },
         cleanup.add,
     );
-    const savedBlade = addTextBlade(
+    addTextBlade(
         pane,
         {
             onChange: (cb: () => unknown) => {
@@ -154,19 +107,23 @@ export function drawGameControls(container: WidgetContainer, adminDriver: AdminD
         cleanup.add,
     );
 
-    const applyMode = () => {
-        const replaying = gameStatus.getValue() === GameStatus.REPLAY;
-        for (const blade of [positionBlade, scrubBlade, restartButton, ...stepBackButtons]) {
-            blade.element.style.display = replaying ? '' : 'none';
+    // a recording ends by the GM's button or by stopping the game: either way the file is downloaded
+    let recordingFile = '';
+    const onRecordingChange = () => {
+        if (isRecording.getValue()) {
+            recordingFile = recordingName.getValue() || recordingFile;
+        } else if (recordingFile) {
+            downloadRecording(recordingFile);
+            recordingFile = '';
         }
-        restartButton.disabled = !ended.getValue();
-        for (const blade of [recordButton, recordingBlade, savedBlade]) {
-            blade.element.style.display = replaying ? 'none' : '';
-        }
+    };
+    cleanup.add(isRecording.onChange(onRecordingChange));
+    cleanup.add(recordingName.onChange(onRecordingChange));
+    onRecordingChange();
+
+    const updateRecordTitle = () => {
         recordButton.title = isRecording.getValue() ? 'Stop Recording' : 'Record';
     };
-    for (const prop of [gameStatus, isRecording, ended]) {
-        cleanup.add(prop.onChange(applyMode));
-    }
-    applyMode();
+    cleanup.add(isRecording.onChange(updateRecordTitle));
+    updateRecordTitle();
 }

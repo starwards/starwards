@@ -23,7 +23,6 @@ import { drawDamageReport } from '../widgets/damage-report';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { drawRepairQueue } from '../widgets/repair-queue';
-import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { stationGrid } from '../container';
@@ -39,7 +38,6 @@ export async function initEngineerScreen(
     const teardownInput = wireInput(shipDriver);
 
     const grid = stationGrid(container, { left: 252, right: 250 });
-    await drawStationObservationMode(grid.center(), driver);
     drawEngineeringStatus(grid.left(), shipDriver);
     if (shipDriver.state.warp) {
         drawWarpStatus(grid.left(), shipDriver);
