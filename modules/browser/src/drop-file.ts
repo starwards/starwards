@@ -4,10 +4,36 @@ import { stashRecording } from './replay/recording-handoff';
 const recordingFileExtension = '.sgr';
 export const savedGameFileExtension = '.ssg';
 
+/** For a file input's `accept`: everything `handleFile` understands. */
+export const loadFileAccept = `${recordingFileExtension},${savedGameFileExtension}`;
+
 type DropUi = {
     setDragging(dragging: boolean): void;
     setNotice(notice: string): void;
 };
+
+/** What to do with a file the user handed over, by dropping it or by choosing it with the Load button. */
+export function handleFile(file: File, getAdminDriver: () => AdminDriver | null, ui: Pick<DropUi, 'setNotice'>) {
+    ui.setNotice('');
+    if (file.name.endsWith(recordingFileExtension)) {
+        void file
+            .text()
+            .then((text) => stashRecording({ name: file.name, text }))
+            .then(() => window.location.assign('player.html?handoff'));
+    } else if (file.name.endsWith(savedGameFileExtension)) {
+        const adminDriver = getAdminDriver();
+        if (adminDriver?.state.gameStatus !== GameStatus.STOPPED) {
+            ui.setNotice('Stop the running game before loading a saved game.');
+            return;
+        }
+        void file.text().then((text) => {
+            adminDriver.loadGame(text);
+            ui.setNotice(`Loading ${file.name}…`);
+        });
+    } else {
+        ui.setNotice(`Drop a ${recordingFileExtension} recording or a ${savedGameFileExtension} saved game.`);
+    }
+}
 
 /**
  * A file dropped anywhere on a page: a recording plays in the recording player, a saved game is
@@ -29,27 +55,9 @@ export function installFileDrop(getAdminDriver: () => AdminDriver | null, ui: Dr
         if (!hasFile(e)) return;
         e.preventDefault();
         ui.setDragging(false);
-        ui.setNotice('');
         const file = e.dataTransfer?.files[0];
         if (!file) return;
-        if (file.name.endsWith(recordingFileExtension)) {
-            void file
-                .text()
-                .then((text) => stashRecording({ name: file.name, text }))
-                .then(() => window.location.assign('player.html?handoff'));
-        } else if (file.name.endsWith(savedGameFileExtension)) {
-            const adminDriver = getAdminDriver();
-            if (adminDriver?.state.gameStatus !== GameStatus.STOPPED) {
-                ui.setNotice('Stop the running game before loading a saved game.');
-                return;
-            }
-            void file.text().then((text) => {
-                adminDriver.loadGame(text);
-                ui.setNotice(`Loading ${file.name}…`);
-            });
-        } else {
-            ui.setNotice(`Drop a ${recordingFileExtension} recording or a ${savedGameFileExtension} saved game.`);
-        }
+        handleFile(file, getAdminDriver, ui);
     };
     window.addEventListener('dragover', onDragOver);
     window.addEventListener('dragleave', onDragLeave);

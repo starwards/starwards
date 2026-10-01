@@ -1,7 +1,7 @@
 import { AdminDriver, Driver, StationRegistration, VERSION } from '@starwards/core';
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
-import { LoadGame, useSaveGameHandler } from './save-load-game';
 import { beginStationRegistrationWithRetry, getOrCreateStationId } from '../station-identity';
+import { handleFile, installFileDrop, loadFileAccept } from '../drop-file';
 import { useAdminDriver, useCanStartGame, useIsGameRunning, useIsRecording, usePlayerShips } from '../react/hooks';
 
 import { AnimatorGeneralProvider } from './arwes-compat';
@@ -11,7 +11,7 @@ import { REVIEWER_GUIDE_URL } from '../lobby-links';
 import React from 'react';
 import { RecordingsMenu } from './recordings-menu';
 import WebFont from 'webfontloader';
-import { installFileDrop } from '../drop-file';
+import { useSaveGameHandler } from './save-load-game';
 
 /**
  * Shows this device's persistent station registry id (assigned by `getOrCreateStationId`, not
@@ -88,7 +88,31 @@ const StationsMenu = (p: Props) => {
     );
 };
 
-const InGameMenu = (p: Props) => {
+/** Opens a file picker for a recording or a saved game: the same files, and the same result, as dropping one. */
+const LoadButton = ({ onFile }: { onFile: (file: File) => void }) => {
+    const input = React.useRef<HTMLInputElement>(null);
+    return (
+        <>
+            <input
+                ref={input}
+                type="file"
+                accept={loadFileAccept}
+                data-id="load file input"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) onFile(file);
+                }}
+            />
+            <Button palette="primary" onClick={() => input.current?.click()}>
+                <div data-id="load">Load</div>
+            </Button>
+        </>
+    );
+};
+
+const InGameMenu = (p: Props & { onLoadFile: (file: File) => void }) => {
     const adminDriver = useAdminDriver(p.driver);
     const saveGame = useSaveGameHandler(adminDriver);
     const isRecording = useIsRecording(adminDriver);
@@ -102,6 +126,7 @@ const InGameMenu = (p: Props) => {
                     <Button palette="success" onClick={saveGame}>
                         <div data-id="save game">Save Game</div>
                     </Button>
+                    <LoadButton onFile={p.onLoadFile} />
                     {isRecording && <div data-id="recording-note">Recording</div>}
                 </pre>
             )}
@@ -191,14 +216,15 @@ function useDropFile(adminDriver: AdminDriver | null) {
     const latest = React.useRef(adminDriver);
     latest.current = adminDriver;
     React.useEffect(() => installFileDrop(() => latest.current, { setDragging, setNotice }), []);
-    return { dragging, notice };
+    const loadFile = React.useCallback((file: File) => handleFile(file, () => latest.current, { setNotice }), []);
+    return { dragging, notice, loadFile };
 }
 
 export const Lobby = (p: Props) => {
     const isGameRunning = useIsGameRunning(p.driver);
     const canStartGame = useCanStartGame(p.driver);
     const adminDriver = useAdminDriver(p.driver);
-    const { dragging, notice } = useDropFile(adminDriver);
+    const { dragging, notice, loadFile } = useDropFile(adminDriver);
     return (
         <ArwesThemeProvider>
             <StylesBaseline styles={{ body: { fontFamily: 'Electrolize' } }} />
@@ -235,13 +261,12 @@ export const Lobby = (p: Props) => {
                     <div style={{ padding: 20, textAlign: 'center' }}>
                         <StationIdBadge driver={p.driver} adminDriver={adminDriver} />
                         <h1 data-id="title">Starwards</h1>
-                        {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
+                        {isGameRunning && adminDriver && (
+                            <InGameMenu driver={p.driver} onLoadFile={loadFile}></InGameMenu>
+                        )}
                         {isGameRunning && adminDriver && <StationsMenu driver={p.driver} />}
                         {canStartGame && adminDriver && (
                             <pre key="2V1 game">
-                                <LoadGame adminDriver={adminDriver} />
-                                <br />
-
                                 <Button palette="success" onClick={() => adminDriver.startGame('two_vs_one')}>
                                     <div data-id="new game">2v1 Game</div>
                                 </Button>
@@ -251,6 +276,7 @@ export const Lobby = (p: Props) => {
                                 <Button palette="success" onClick={() => adminDriver.startGame('wave_defence')}>
                                     <div data-id="wave defence game">Wave Defence</div>
                                 </Button>
+                                <LoadButton onFile={loadFile} />
                                 <RecordingsMenu adminDriver={adminDriver} />
                             </pre>
                         )}
@@ -290,7 +316,7 @@ export const Lobby = (p: Props) => {
                                 palette="secondary"
                                 onClick={() => window.location.assign('player.html')}
                             >
-                                Recording Player (or drop a file here)
+                                Recording Player
                             </Button>
                         </pre>
                     </div>
