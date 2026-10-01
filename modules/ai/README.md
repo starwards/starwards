@@ -7,6 +7,7 @@ in the headless game. Guide: [`docs/integration/ai-crew.md`](../../docs/integrat
 npm run train -- --scenario T0 --seeds 8 --crew crews/reference.json
 npm run decisions -- --recording <run.sgr> --md
 npm run reask -- --recording <run.sgr> --brain brains/helms.v2.json
+npm run read -- --recording <run.sgr> --station helms --t 40
 ```
 
 Jev seats read `TYPESAFE_API_KEY` from `modules/ai/.env` (git-ignored).

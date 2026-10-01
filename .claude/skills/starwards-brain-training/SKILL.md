@@ -19,12 +19,13 @@ Guide: `docs/integration/ai-crew.md`.
 
 ## Instruments
 
-| Question | Command (from `modules/ai`) |
-| --- | --- |
-| How did crews do on a rung? | `npm run train -- --scenario T0 --seeds 8 --crew crews/a.json --crew crews/b.json --out <dir>` |
-| How was each control played? | `npm run decisions -- --recording <dir>/<crew>/T0_seed1.sgr --md --low 10` |
+| Question                                       | Command (from `modules/ai`)                                                                                         |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| How did crews do on a rung?                    | `npm run train -- --scenario T0 --seeds 8 --crew crews/a.json --crew crews/b.json --out <dir>`                      |
+| How was each control played?                   | `npm run decisions -- --recording <dir>/<crew>/T0_seed1.sgr --md --low 10`                                          |
 | What did the game look like at a bad decision? | from repo root: `npm --prefix modules/server run analyze -- at --recording <x.sgr> --t <t> --roles p=GVTS,t=target` |
-| Would new wording decide differently? | `npm run reask -- --recording <x.sgr> --brain brains/<station>.v<N+1>.json` |
+| What did a `verbal` brain read at a decision?  | `npm run read -- --recording <x.sgr> --station <station> --t <t>`                                                   |
+| Would new wording decide differently?          | `npm run reask -- --recording <x.sgr> --brain brains/<station>.v<N+1>.json`                                         |
 
 ## Procedure
 
@@ -34,7 +35,8 @@ Guide: `docs/integration/ai-crew.md`.
 2. **Baseline.** Train the current brain version on seeds 1–8; keep the report.
 3. **Diagnose one control at a time.** `decisions --md --low 10`: look for controls with low
    confidence, high flip rates (dithering on an axis), fallbacks, or one option never chosen. Open
-   the lowest-confidence times with `analyze at` / `series` and say what the display showed.
+   the lowest-confidence times with `analyze at` / `series` and say what the display showed; for a `verbal` brain, `read` at that time prints the
+   reading the brain actually saw.
 4. **Name the cause before editing** (from the Jev rules): missing evidence in the display (hide less
    or note a sandbox gap), wording the model read literally (rewrite the instruction or option
    descriptions for that control), or a code error (wrong option mapping — fix code with a spec).

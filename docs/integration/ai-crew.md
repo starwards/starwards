@@ -59,6 +59,17 @@ game, [`console/headless.ts`](../../modules/ai/src/console/headless.ts) seats a 
 on in-process drivers that apply the same JSON-pointer handler and typed commands the rooms do, on
 simulated time. A brain therefore sees exactly the fog of war a live MCP seat sees.
 
+## Verbal UI
+
+A brain with `"view": "verbal"` in its brain file reads the console as sentences instead of data:
+[`brain/verbal.ts`](../../modules/ai/src/brain/verbal.ts) has one template per station panel plus one
+for the radar, and the request carries those lines as `console` instead of `display`. Jev is weak at
+comparing raw numbers (bearing against heading, this distance against the last one), so code reads
+the display out as an officer would ("12° right of the nose, closing at 40 m/s", "(LOCKED)", "1 of 3
+station systems working normally") and the brain keeps only the judgement. The reader remembers the
+previous reading to say whether contacts close, open or hold. The templates read only what the
+display shows, so the fog of war is unchanged.
+
 ## Training
 
 ```bash
@@ -66,6 +77,7 @@ cd modules/ai
 npm run train -- --scenario T0 --seeds 8 --crew crews/reference.json --crew crews/jev-helms-weapons.json [--timeout 300] [--latency 0.2] [--workers 1] [--out <dir>]
 npm run decisions -- --recording <out>/<crew>/T0_seed1.sgr --md --low 10
 npm run reask -- --recording <out>/<crew>/T0_seed1.sgr --brain brains/helms.v2.json
+npm run read -- --recording <out>/<crew>/T0_seed1.sgr --station helms --t 40
 ```
 
 - `train` plays a training rung (`modules/server/src/test/training`) with a crewed player ship,
@@ -85,6 +97,18 @@ npm run reask -- --recording <out>/<crew>/T0_seed1.sgr --brain brains/helms.v2.j
 - `reask` puts a recorded run's questions to another brain version without running the game, from
   exactly what each station showed, and reports per control how often it agrees and how its
   confidence moved. Whether the changed decisions win still takes a `train` run on the same seeds.
+- `read` prints the verbal UI's reading of one station at a recorded time: the sentences a `verbal`
+  brain saw at that decision.
+
+Helms brain versions so far, T0 seeds 1–4, 120 s:
+
+| Version         | Wording                                          | Kills                                  |
+| --------------- | ------------------------------------------------ | -------------------------------------- |
+| v1              | generic                                          | 0                                      |
+| v2              | exact conditions on data paths                   | 0/4                                    |
+| v3              | option descriptions only                         | 0/4 (flies closer, almost never fires) |
+| v4              | option descriptions + "choose this when" clauses | 3/4, median 87.7 s, $0.23 per 4 runs   |
+| reference rules | —                                                | 8/8 on seeds 1–8                       |
 
 `--latency` delays every press by simulated seconds, as a network would; held triggers end on
 simulated time.
