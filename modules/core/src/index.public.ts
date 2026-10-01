@@ -73,6 +73,10 @@ export type { RTuple2, Tuple2 } from './logic';
 // --- range ---
 export { getRange } from './range';
 
+// --- recording ---
+export { ReplayRoom, SavedGame, decodeFrame, deepAssignSchema, parseFrameLine, parseHeader } from './recording';
+export type { RecordingFrameLine, RecordingHeader } from './recording';
+
 // --- ship ---
 export {
     ChainGun,

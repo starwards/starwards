@@ -6,7 +6,7 @@ import { AddressInfo, Socket } from 'net';
 import { AdminRoom } from '../admin/room';
 import { EventEmitter } from 'eventemitter3';
 import { GameManager } from '../admin/game-manager';
-import { SavedGame } from '../serialization/game-state-protocol';
+import { SavedGame } from '@starwards/core/internal';
 import { Server } from 'http';
 import { matchMaker } from '@colyseus/core';
 import path from 'path';
@@ -63,7 +63,8 @@ export function makeDriver({ manualClock = false }: { manualClock?: boolean } = 
 
     beforeEach(async () => {
         gameManager = new GameManager();
-        recordingsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'starwards-recordings-'));
+        // a hidden directory, like the real default (`.recordings`): files under it must stay servable
+        recordingsDir = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'starwards-recordings-')), '.recordings');
         // pingInterval: 0 avoids a lingering setInterval outliving gracefullyShutdown()
         // during Jest teardown; see server.ts for why this is test-only.
         serverInfo = await server(
@@ -83,7 +84,7 @@ export function makeDriver({ manualClock = false }: { manualClock?: boolean } = 
         await gameManager?.stopGame();
         await serverInfo?.close();
         await sockets?.waitForNoSockets(10_000); // Increase timeout for multi-client tests
-        if (recordingsDir) await fs.rm(recordingsDir, { recursive: true, force: true });
+        if (recordingsDir) await fs.rm(path.dirname(recordingsDir), { recursive: true, force: true });
     });
 
     return {

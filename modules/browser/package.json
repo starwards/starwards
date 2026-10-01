@@ -38,7 +38,6 @@
         "qrcode": "^1.5.4",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "react-dropzone": "^14.4.1",
         "ts-essentials": "^10.2.1",
         "tweakpane": "4.0.5",
         "tweakpane-table": "^0.4.1",
@@ -47,6 +46,7 @@
         "xstate": "^5.32.4"
     },
     "devDependencies": {
+        "buffer": "^6.0.3",
         "copy-webpack-plugin": "^14.0.0",
         "esbuild": "^0.25.12"
     }

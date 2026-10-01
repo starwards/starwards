@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Starwards Recording Player</title>
+        <link type="text/css" rel="stylesheet" href="styles/goldenlayout-base.css" />
+        <link type="text/css" rel="stylesheet" href="styles/goldenlayout-dark-theme.css" />
+        <link type="text/css" rel="stylesheet" href="styles/index.css" />
+        <link type="text/css" rel="stylesheet" href="styles/tweakpane.css" />
+        <style>
+            html,
+            body {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #0f0f0f;
+                color: #ddd;
+                font-family: sans-serif;
+            }
+            #player {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+            .player-stage {
+                flex: 1 1 auto;
+                min-height: 0;
+                position: relative;
+                overflow: hidden;
+            }
+            /* the recording is read-only: value editors stay visible but can't be operated */
+            .player-stage .tp-sldv,
+            .player-stage .tp-txtv_i,
+            .player-stage .tp-lstv,
+            .player-stage .tp-ckbv,
+            .player-stage .tp-btnv_b,
+            .player-stage .tp-cswv,
+            .player-stage .tp-p2dv {
+                pointer-events: none;
+            }
+            /* the transport bar is a first-class part of the layout, always visible under the stage */
+            .player-bar {
+                flex: 0 0 auto;
+                background: #161616;
+                border-top: 1px solid #333;
+                padding: 6px 12px 8px;
+            }
+            .player-scrubber {
+                --progress: 0%;
+                width: 100%;
+                height: 18px;
+                margin: 0 0 4px;
+                cursor: pointer;
+                accent-color: #00d7ff;
+            }
+            .player-controls {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .player-controls button,
+            .player-controls select {
+                background: #262626;
+                color: #ddd;
+                border: 1px solid #444;
+                border-radius: 4px;
+                min-width: 34px;
+                height: 30px;
+                font-size: 15px;
+                cursor: pointer;
+            }
+            .player-controls button.toggle.on {
+                background: #00465a;
+                border-color: #00d7ff;
+            }
+            .player-time {
+                font-variant-numeric: tabular-nums;
+                min-width: 110px;
+            }
+            .player-title {
+                margin-left: auto;
+                color: #888;
+                font-size: 12px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .player-empty {
+                margin: 20vh auto 0;
+                max-width: 480px;
+                padding: 32px;
+                text-align: center;
+                border: 2px dashed #444;
+                border-radius: 8px;
+            }
+            .player-error {
+                color: #ff6666;
+            }
+            @media (max-width: 700px) {
+                .player-title {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="player"></div>
+    </body>
+</html>

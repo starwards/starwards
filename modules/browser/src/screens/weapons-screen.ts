@@ -6,7 +6,6 @@ import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '
 import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
 import { drawGunStatus } from '../widgets/gun';
-import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
@@ -25,7 +24,6 @@ export async function initWeaponsScreen(
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 10000 });
-    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     const teardownInput = wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),

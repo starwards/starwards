@@ -1,7 +1,7 @@
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import { AssignStationArg, RegisterStationArg, StationRegistrable, StationRegistryEntry } from '../stations';
 
-import { commandable, gameField } from '../game-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -10,7 +10,6 @@ export enum GameStatus {
     STARTING,
     RUNNING,
     STOPPING,
-    REPLAY,
 }
 export class AdminState extends Schema implements StationRegistrable {
     @gameField('int8')
@@ -56,27 +55,6 @@ export class AdminState extends Schema implements StationRegistrable {
     @tweakable('string')
     @gameField('string')
     message = '';
-
-    /** Seconds into the recording currently being replayed. Meaningless unless `gameStatus` is `REPLAY`. */
-    @gameField('float32')
-    replayPosition = 0;
-
-    /** Full length in seconds of the recording currently being replayed. 0 while not replaying. */
-    @gameField('float32')
-    replayDuration = 0;
-
-    /**
-     * Seek request, in recording seconds; -1 when there is nothing to seek. Drained by the
-     * replay player on its next tick — a seek has to reopen the recording, so it can't be a
-     * plain write to {@link replayPosition}.
-     */
-    @commandable()
-    @gameField('float32')
-    replaySeekCommand = -1;
-
-    /** The replay reached its last frame and is holding there. Cleared by any seek. */
-    @gameField('boolean')
-    replayEnded = false;
 
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;

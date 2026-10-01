@@ -2,9 +2,8 @@ import * as fs from 'node:fs';
 import * as readline from 'node:readline';
 
 import { Metadata, Schema } from '@colyseus/schema';
-import { RecordingHeader, parseFrameLine, parseHeader } from '../../../recording/recording-format';
+import { RecordingHeader, SavedGame, parseFrameLine, parseHeader } from '@starwards/core/internal';
 
-import { SavedGame } from '../../../serialization/game-state-protocol';
 import { stringToSchema } from '../../../serialization/game-state-serialization';
 
 /** One leaf value flattened out of a decoded frame. Exactly one of `num`/`str`/`bool` is set. */
@@ -92,7 +91,7 @@ function flattenPrimitive(type: string, value: unknown, path: string, objectId: 
 }
 
 /**
- * Reads a `.swr.jsonl` recording and yields each frame fully flattened (not delta-encoded --
+ * Reads a `.sgr` recording and yields each frame fully flattened (not delta-encoded --
  * that happens on ingest into the store). A truncated final line is dropped, not thrown.
  */
 export async function* decodeRecording(filePath: string): AsyncGenerator<DecodedFrame, void, void> {

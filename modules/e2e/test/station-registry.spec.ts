@@ -198,7 +198,7 @@ test.describe('GM station assignment', () => {
     });
 });
 
-// Issue #2242: a running game or replay routes a fresh lobby load straight to the bridge seat.
+// Issue #2242: a running game routes a fresh lobby load straight to the bridge seat.
 test.describe('Lobby entry routing', () => {
     test.afterEach(async ({ page }) => {
         await cleanupPageState(page);

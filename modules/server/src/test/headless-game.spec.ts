@@ -1,7 +1,6 @@
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { ShipManagerNpc, ShipManagerPc, makeId, mulberry32, uniqueId } from '@starwards/core/internal';
+import { SavedGame, ShipManagerNpc, ShipManagerPc, makeId, mulberry32, uniqueId } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, training_t1 } from '../scenarios/training';
-import { SavedGame } from '../serialization/game-state-protocol';
 import { createWaveDefenceMap } from '../scenarios/wave-defence';
 
 describe('HeadlessGame.start', () => {

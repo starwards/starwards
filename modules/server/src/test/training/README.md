@@ -5,7 +5,7 @@ Runs game maps with no Colyseus and no wall clock (`../headless-game.ts`), recor
 | Runner                                                                                            | What it runs                                                                                                                                        |
 | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm --prefix modules/server run training -- --scenario T1 --seeds 64 --timeout 300 --interval 1` | A training rung (`training-scenarios.ts`) across seeds, with a markdown report. Each run is recorded to `--out`; `--interval 0` keeps no recording. |
-| `npm --prefix modules/server run analyze -- summary --recording <dir>/T1_seed1.swr.jsonl`         | Questions about one recorded run, through a DuckDB store beside it (`analysis/`, skill `starwards-recording-analysis`).                             |
+| `npm --prefix modules/server run analyze -- summary --recording <dir>/T1_seed1.sgr`         | Questions about one recorded run, through a DuckDB store beside it (`analysis/`, skill `starwards-recording-analysis`).                             |
 
 Rungs: `T0` (a target that plays dead), `T1` (a dragonfly-MK1 attacking the GVTS), `T1-MK2` and `T1-predator` (heavier hulls attacking), `T1-noweave` (T1 without the target's combat weave).
 
