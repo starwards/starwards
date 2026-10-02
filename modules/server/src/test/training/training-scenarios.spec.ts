@@ -35,8 +35,8 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T1, T1-MK2, T1-predator and T1-noweave', () => {
-        expect(Object.keys(trainingScenarios)).toEqual(['T0', 'T1', 'T1-MK2', 'T1-predator', 'T1-noweave']);
+    it('has the rungs T0, T1, T1-MK2, T1-predator, T1-noweave and T1-lite', () => {
+        expect(Object.keys(trainingScenarios)).toEqual(['T0', 'T1', 'T1-MK2', 'T1-predator', 'T1-noweave', 'T1-lite']);
     });
 
     it('T0: a dragonfly-MK1 that plays dead, capped to the GVTS top speed', () => {
@@ -62,6 +62,18 @@ describe('training ladder', () => {
         expect(state.order).toBe(Order.ATTACK);
         expect(state.orderTargetId).toBe(TRAINING_PLAYER_ID);
         expect(state.labNoCombatWeave ?? false).toBe(noCombatWeave);
+        expect(state.capsule.integrity).toBe(1);
+    });
+
+    it('T1-lite: a dragonfly-MK1 holding its ground, capped to the GVTS top speed, capsule 70% breached', () => {
+        const { state, model } = targetOf('T1-lite');
+        const cap = shipConfigurations.gravitas.smartPilot.maxSpeed;
+
+        expect(model).toBe('dragonfly-MK1');
+        expect(state.order).toBe(Order.NONE);
+        expect(state.idleStrategy).toBe(IdleStrategy.STAND_GROUND);
+        expect(state.smartPilot.design.maxSpeed).toBe(cap);
+        expect(state.capsule.integrity).toBeCloseTo(0.3);
     });
 });
 

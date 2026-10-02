@@ -81,12 +81,19 @@ const T1_ATTACKING_DRAGONFLY: TrainingScenario<T0Params> = {
     createMap: createTrainingT1Map,
 };
 
-/** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, calibration only, without its combat weave. */
-const t1WithHull = (name: string, model: ShipModel, noCombatWeave = false): TrainingScenario<T0Params> => ({
+type T1Calibration = NonNullable<Parameters<typeof createTrainingT1Map>[2]>;
+
+/** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, calibration only, a handicapped target. */
+const t1WithHull = (
+    name: string,
+    model: ShipModel,
+    calibration: T1Calibration = {},
+    handicap = '',
+): TrainingScenario<T0Params> => ({
     ...T1_ATTACKING_DRAGONFLY,
     name,
-    description: `GVTS vs one ${model} attacking it${noCombatWeave ? ' without its combat weave (calibration only)' : ''}, 2-8 km, any bearing`,
-    createMap: (params) => createTrainingT1Map(params, model, noCombatWeave),
+    description: `GVTS vs one ${model} attacking it${handicap ? ` ${handicap} (calibration only)` : ''}, 2-8 km, any bearing`,
+    createMap: (params) => createTrainingT1Map(params, model, calibration),
 });
 
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
@@ -94,7 +101,18 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
-    'T1-noweave': t1WithHull('T1-noweave', 'dragonfly-MK1', true) as TrainingScenario<never>,
+    'T1-noweave': t1WithHull(
+        'T1-noweave',
+        'dragonfly-MK1',
+        { noCombatWeave: true },
+        'without its combat weave',
+    ) as TrainingScenario<never>,
+    'T1-lite': t1WithHull(
+        'T1-lite',
+        'dragonfly-MK1',
+        { standGround: true, capsuleIntegrity: 0.3 },
+        'holding its ground with its capsule 70% breached',
+    ) as TrainingScenario<never>,
 };
 
 /**

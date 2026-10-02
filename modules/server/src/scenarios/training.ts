@@ -58,8 +58,17 @@ export const training_t0: GameMap = createTrainingT0Map({ distance: 5000, bearin
 export function createTrainingT1Map(
     params: T0Params,
     targetModel: ShipModel = 'dragonfly-MK1',
-    /** Calibration only, not a game config: the target attacks without its combat weave (`ShipState.labNoCombatWeave`). */
-    noCombatWeave = false,
+    /**
+     * Calibration only, not game configs: `noCombatWeave`, the target attacks without its combat weave
+     * (`ShipState.labNoCombatWeave`); `standGround`, the target holds its position and fires at the GVTS
+     * instead of attacking it (no order, `IdleStrategy.STAND_GROUND`), capped to the GVTS's top speed as on T0; `capsuleIntegrity`, the target's capsule starts this
+     * damaged (1 intact), so fewer internal hits kill it.
+     */
+    {
+        noCombatWeave = false,
+        standGround = false,
+        capsuleIntegrity = 1,
+    }: { noCombatWeave?: boolean; standGround?: boolean; capsuleIntegrity?: number } = {},
 ): GameMap {
     return {
         name: 'training_t1',
@@ -68,10 +77,18 @@ export function createTrainingT1Map(
                 new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
             );
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
-            game.addNpcSpaceship(
+            const target = game.addNpcSpaceship(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
-            ).state.labNoCombatWeave = noCombatWeave;
-            game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
+            );
+            target.state.labNoCombatWeave = noCombatWeave;
+            target.state.capsule.integrity = capsuleIntegrity;
+            if (standGround) {
+                target.state.idleStrategy = IdleStrategy.STAND_GROUND;
+                target.state.smartPilot.design.maxSpeed = T0_TARGET_MAX_SPEED;
+                target.state.smartPilot.design.maxSpeedFromAfterBurner = T0_TARGET_MAX_SPEED;
+            } else {
+                game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
+            }
             game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
         },
     };
