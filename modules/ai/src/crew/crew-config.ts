@@ -29,6 +29,21 @@ const crewConfigSchema = z
     })
     .strict();
 
+/** A crew file as written, with every seat's brain file resolved to an absolute path. */
+export function readCrewFile(filePath: string) {
+    const config = crewConfigSchema.parse(JSON.parse(fs.readFileSync(filePath, 'utf8')));
+    return {
+        name: config.name,
+        seats: config.seats.map(({ station, policy, brain }) => ({
+            station,
+            policy,
+            brainPath: brain
+                ? path.resolve(path.dirname(filePath), brain)
+                : path.join(BRAINS_DIR, `${station}.v1.json`),
+        })),
+    };
+}
+
 type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean };
 
 /**
@@ -36,15 +51,11 @@ type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean };
  * by every seat of the crew so the per-process rate limit covers all of them.
  */
 export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewPlan {
-    const config = crewConfigSchema.parse(JSON.parse(fs.readFileSync(filePath, 'utf8')));
+    const config = readCrewFile(filePath);
     const usesJev = config.seats.some((s) => s.policy === 'jev');
     const client = usesJev ? jevClient({ requestsPerMinute: jevRequestsPerMinute }) : undefined;
     const seats = config.seats.map((seat) => {
-        const spec = loadBrainSpec(
-            seat.brain
-                ? path.resolve(path.dirname(filePath), seat.brain)
-                : path.join(BRAINS_DIR, `${seat.station}.v1.json`),
-        );
+        const spec = loadBrainSpec(seat.brainPath);
         if (spec.station !== seat.station) {
             throw new Error(`crew ${config.name}: brain ${spec.id} plays ${spec.station}, not ${seat.station}`);
         }

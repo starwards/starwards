@@ -1,0 +1,110 @@
+{
+    "regression": { "z": 1.645, "medianSlowdown": 0.25, "minKillsForMedian": 3, "minScoreDrop": 0.05 },
+    "levels": [
+        {
+            "id": "L0",
+            "axis": "baseline",
+            "changed": "Start: a target that plays dead 2-8 km away, plus every station benchmark as a skill check.",
+            "status": "built",
+            "rungs": ["T0"],
+            "benchmarks": [
+                "helms-tag",
+                "helms-hold",
+                "helms-intercept",
+                "weapons-acquire",
+                "weapons-range",
+                "engineer-power-budget",
+                "engineer-damage-control",
+                "signals-scan"
+            ],
+            "seeds": { "first": 1, "count": 8 },
+            "timeoutSeconds": 180,
+            "plateau": { "metric": "medianSeconds", "versions": 2 },
+            "accept": { "killRate": 0.875, "medianSeconds": 120 }
+        },
+        {
+            "id": "L0b",
+            "axis": "variance",
+            "changed": "Same difficulty, wider situations: 1-10 km and either dragonfly hull (T0-wide), on twice the seeds.",
+            "status": "built",
+            "rungs": ["T0-wide"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 240,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.75 }
+        },
+        {
+            "id": "L1",
+            "axis": "threat",
+            "changed": "The target fights back: it holds its ground and fires, its capsule 70% breached (T1-lite).",
+            "status": "built",
+            "rungs": ["T1-lite"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 180,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.75 }
+        },
+        {
+            "id": "L2",
+            "axis": "internal",
+            "changed": "Back to a dead target, but the ship starts short of energy and shells with hot guns (T0-constrained).",
+            "status": "built",
+            "rungs": ["T0-constrained"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 8 },
+            "timeoutSeconds": 240,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5 }
+        },
+        {
+            "id": "L3",
+            "axis": "enemies",
+            "changed": "Two or more enemies at once: target choice and order.",
+            "status": "placeholder",
+            "rungs": [],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 300,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5 }
+        },
+        {
+            "id": "L4",
+            "axis": "threat",
+            "changed": "Threat ladder: attacking dragonfly-MK1 (T1), then MK2 and predator hulls.",
+            "status": "placeholder",
+            "rungs": [],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 300,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5 }
+        },
+        {
+            "id": "L5",
+            "axis": "mission",
+            "changed": "A mission beyond the kill: escort, reach a waypoint, survive a wave.",
+            "status": "placeholder",
+            "rungs": [],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 300,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5 }
+        },
+        {
+            "id": "L6",
+            "axis": "space",
+            "changed": "Cluttered space: asteroids, stations, contacts beyond the helms radar.",
+            "status": "placeholder",
+            "rungs": [],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 300,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5 }
+        }
+    ]
+}
