@@ -91,9 +91,11 @@ async function main() {
                       ),
                   )
               ).flat();
+    // every other crew is paired with the first one named
+    const baseline = results[0]?.crew;
     results.sort((a, b) => a.seed - b.seed || a.crew.localeCompare(b.crew));
     const header = `seeds ${firstSeed}–${firstSeed + seedCount - 1}, timeout ${options.timeoutSeconds} s, latency ${options.latencySeconds} s, ${workers} worker(s), wall ${((Date.now() - started) / 1000).toFixed(0)} s`;
-    const report = crewReport(scenario, results, header);
+    const report = crewReport(scenario, results, header, baseline);
     fs.mkdirSync(outDir, { recursive: true });
     const reportPath = path.join(outDir, `${scenario}-crews.md`);
     fs.writeFileSync(reportPath, report);

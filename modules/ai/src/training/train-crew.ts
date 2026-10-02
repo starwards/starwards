@@ -1,3 +1,4 @@
+import { RunScore, scoreRun } from '../scoring/run-score';
 import { TrainingResult, runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
 
 import { ControlStats } from '../crew/crew';
@@ -33,6 +34,9 @@ export type CrewRunResult = TrainingResult & {
     callouts: number;
     suppressed: number;
     controls: Record<string, ControlStats>;
+    timeoutSeconds: number;
+    /** The run's snapshot scores averaged over its frames; null when no frame held both ships. */
+    score: RunScore | null;
 };
 
 /**
@@ -57,8 +61,18 @@ export async function runCrewTraining(crewPath: string, options: CrewRunOptions)
         beforeTick: crew.beforeTick,
         recording: { dir: path.join(options.outDir, plan.name), intervalSimSeconds: options.intervalSimSeconds },
     });
+    const score = result.recording
+        ? await scoreRun(result.recording, {
+              killed: result.killed,
+              seconds: result.seconds,
+              timeoutSeconds: options.timeoutSeconds,
+              playerId: TRAINING_PLAYER_ID,
+          })
+        : undefined;
     return {
         ...result,
+        timeoutSeconds: options.timeoutSeconds,
+        score: score ?? null,
         crew: plan.name,
         brains: plan.seats.map((s) => `${s.station}:${s.spec.id}@${s.spec.version}/${s.policy.name}`),
         ...crew.stats,

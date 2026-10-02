@@ -28,6 +28,8 @@ describe('crew training', () => {
     it('a reference crew pressing buttons kills the T0 target, and its decisions are recorded beside the game', async () => {
         const result = await run('reference');
         expect(result.killed).toBe(true);
+        expect(result.score!.value).toBeGreaterThan(0.3);
+        expect(result).toMatchObject({ inputTokens: 0, cachedTokens: 0, cacheHits: 0, jevRequests: 0 });
         expect(result.refused).toBe(0);
         const log = readDecisionLog(result.recording!);
         expect(log.requests.length).toBeGreaterThan(0);
@@ -40,5 +42,6 @@ describe('crew training', () => {
         const result = await run('idle');
         expect(result.killed).toBe(false);
         expect(result.commands).toBe(0);
+        expect(result.score!.value).toBeLessThan(0.05);
     });
 });
