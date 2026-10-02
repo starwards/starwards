@@ -31,6 +31,8 @@ type Seat = {
     busy: boolean;
 };
 
+/** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
+const RADAR_CONTACT_LIMIT = 200;
 /**
  * Game time as a live client sees it: wall time scaled by the admin speed, standing still while the
  * game is paused. With `record`, it follows the server recording's own clock, interpolated between
@@ -103,7 +105,7 @@ export async function liveCrew(options: LiveCrewOptions) {
 
     async function decide(seat: Seat) {
         const { station } = seat.plan;
-        const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? 40 });
+        const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? RADAR_CONTACT_LIMIT });
         const display = { panels: observed.panels, radar: observed.radar };
         const capabilities = observed.capabilities as unknown as Capabilities;
         const result = await seat.brain.decide(display, capabilities);

@@ -70,6 +70,21 @@ describe('verbal radar', () => {
         expect(lines).toEqual(['Radar: no contacts.', '2 of our own shells in flight.']);
     });
 
+    it('counts unidentified shell-sized blips by size alone, and lists unidentified ship-sized ones', () => {
+        const ufo = { scanLevel: 'UFO', type: undefined, faction: undefined };
+        const lines = verbalReader(1)(
+            radarDisplay([
+                contact('shell7', 900, 90, { ...ufo, radius: 1 }),
+                contact('shell8', 950, 90, { ...ufo, radius: 2 }),
+                contact('blip', 3000, 90, { ...ufo, radius: 40 }),
+            ]),
+        );
+        expect(lines).toEqual([
+            'Contact blip: unidentified, 3,000 m, dead on the nose.',
+            '2 unidentified shell-sized blips in flight.',
+        ]);
+    });
+
     it('calls UFO-level contacts unidentified', () => {
         const [line] = verbalReader(1)(radarDisplay([contact('blip', 20_000, 90, { scanLevel: 'UFO' })]));
         expect(line).toBe('Contact blip: unidentified, 20 km, dead on the nose.');
@@ -175,5 +190,55 @@ describe('buildRequest with a verbal brain', () => {
         expect(request.state).not.toHaveProperty('display');
         expect(request.questions.boost.instructions).toContain('`console`');
         expect(request.questions.boost.instructions).not.toContain('`display`');
+    });
+});
+
+describe('verbal radar: own motion of a contact', () => {
+    const at = (x: number, y: number) => contact('a', Math.hypot(x, y), 90, { position: { x, y } });
+    const second = (x: number, y: number) => {
+        const read = verbalReader(2);
+        read(radarDisplay([at(0, 1000)]));
+        return read(radarDisplay([at(x, y)]))[0];
+    };
+
+    it('says a contact moving along the line of sight is moving away or toward us', () => {
+        expect(second(0, 1100)).toMatch(/, itself moving 50 m\/s away from us, straight\.$/);
+        expect(second(0, 900)).toMatch(/, itself moving 50 m\/s toward us, straight\.$/);
+    });
+
+    it('says a contact crossing the line of sight is moving across, to our right or left of the nose', () => {
+        // heading 90: the nose points along +y, so +x is to our left and -x to our right
+        expect(second(100, 1000)).toMatch(/, itself moving 50 m\/s across, to our left\.$/);
+        expect(second(-100, 1000)).toMatch(/, itself moving 50 m\/s across, to our right\.$/);
+    });
+
+    it('says how far a course away or toward us slants off the line of sight, and to which side', () => {
+        // 30 m across, 100 m out: a 17° slant to +x, which is our left at heading 90
+        expect(second(30, 1100)).toMatch(/, itself moving 52 m\/s away from us, slanting 17° to our left\.$/);
+        expect(second(-30, 900)).toMatch(/, itself moving 52 m\/s toward us, slanting 17° to our right\.$/);
+    });
+
+    it('says nothing of a contact moving 20 m/s or slower', () => {
+        expect(second(0, 1030)).not.toContain('itself moving');
+    });
+});
+
+describe('verbal radar: scan beam', () => {
+    it('reads the scan beam bearing relative to the nose, as beamDirection sets it', () => {
+        const display: Display = {
+            panels: {},
+            radar: {
+                ownShip: { id: 'me', heading: 90 },
+                contacts: [contact('in', 1000, 120), contact('out', 1000, 90)],
+                total: 2,
+                scanBeam: { bearing: 30, arc: 20, range: 35_000 },
+            },
+        };
+        const lines = verbalReader(1)(display);
+        expect(lines[0]).toBe('Contact in: Raiders Spaceship, 1,000 m, 30° right of the nose, inside the scan beam.');
+        expect(lines[1]).toBe('Contact out: Raiders Spaceship, 1,000 m, dead on the nose, outside the scan beam.');
+        expect(lines[2]).toBe(
+            'Scan beam pointed 30° right of the nose, 20° wide (from 20° right to 40° right of the nose), reaching 35 km.',
+        );
     });
 });

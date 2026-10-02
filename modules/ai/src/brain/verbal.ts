@@ -1,4 +1,11 @@
-import { Faction, SmartPilotMode, StationRadarWidget, StationWidget } from '@starwards/core/internal';
+import {
+    Faction,
+    PowerLevel,
+    SmartPilotMode,
+    StationRadarWidget,
+    StationWidget,
+    repairProtocols,
+} from '@starwards/core/internal';
 
 import { Display } from './controls';
 
@@ -9,7 +16,7 @@ import { Display } from './controls';
  * displays, so the comparisons stay in code and the judgement stays with the brain.
  */
 
-type Contact = {
+export type Contact = {
     id: string;
     name: string;
     scanLevel: string;
@@ -18,8 +25,11 @@ type Contact = {
     type?: string;
     faction?: number;
     heading?: number;
+    position?: { x: number; y: number };
+    /** The blip's size in metres: shown at every scan level. */
+    radius?: number;
 };
-type Radar = {
+export type Radar = {
     ownShip?: { id: string; heading: number };
     contacts?: Contact[];
     total?: number;
@@ -28,6 +38,7 @@ type Radar = {
 };
 type Beam = { bearing: number; arc: number; range: number };
 type System = {
+    pointer?: string;
     name: string;
     status: string;
     heatStatus: string;
@@ -36,6 +47,7 @@ type System = {
     heat: number;
     broken: boolean;
     effectiveness: number;
+    energyPerMinute?: number;
 };
 type Gun = {
     index: number;
@@ -47,8 +59,19 @@ type Gun = {
     shellRange?: number;
 };
 
+/** Where a contact was at the previous reading. */
+type Sighting = { distance: number; position?: { x: number; y: number } };
+
 /** What the reading needs besides the display: the previous reading, to say what is changing. */
-export type ReadingContext = { panels: Display['panels']; previous: Map<string, number>; secondsSincePrevious: number };
+export type ReadingContext = {
+    panels: Display['panels'];
+    previous: Map<string, Sighting>;
+    secondsSincePrevious: number;
+    /** Own heading, when the station has a radar: scan job targets are read relative to the nose. */
+    heading?: number;
+    /** The radar picture, when the station has one: panels may relate their reading to a contact on it. */
+    radar?: Radar;
+};
 
 type PanelTemplate = (panel: never, context: ReadingContext) => string[];
 
@@ -71,6 +94,23 @@ function sideOfNose(degrees: number) {
 const systemLine = (s: System) =>
     `${s.name}: ${s.broken ? 'BROKEN' : s.status}, power ${percent(s.power)}, coolant ${percent(s.coolantFactor)}, heat ${s.heat.toFixed(0)} (${s.heatStatus}), working at ${percent(s.effectiveness)}`;
 
+const powerName = (power: number) => (PowerLevel[power] as string | undefined) ?? percent(power);
+
+/** The engineer's line per system: the pointer names the system the way its controls do. */
+const engineerSystemLine = (s: System) =>
+    `${s.name}${s.pointer ? ` [${s.pointer}]` : ''}: ${s.broken ? 'BROKEN' : s.status}, power ${powerName(s.power)}, coolant ${percent(s.coolantFactor)}, heat ${s.heat.toFixed(0)} of 100 (${s.heatStatus})${(s.energyPerMinute ?? 0) >= 0.5 ? `, using ${(s.energyPerMinute ?? 0).toFixed(0)} energy/min` : ''}.`;
+
+/** Which repair protocols clear a damaged system field, by `<system key>.<field>`. */
+const protocolsByDamage = new Map<string, string[]>();
+for (const [id, protocol] of Object.entries(repairProtocols)) {
+    for (const t of protocol.targets) {
+        const key = `${t.system}.${t.field}`;
+        protocolsByDamage.set(key, [...(protocolsByDamage.get(key) ?? []), id]);
+    }
+}
+type Damage = { system: string; field: string; value: number; normal: number };
+const fixedBy = (d: Damage) => protocolsByDamage.get(`${d.system.split('/')[1]}.${d.field}`) ?? [];
+
 /** One template per panel a station can hold; radar panels are read by `readRadar`. */
 const panelTemplates = {
     'helms-stats': (p: Record<string, number | { x: number; y: number }>) => {
@@ -91,10 +131,38 @@ const panelTemplates = {
             `${p.length - trouble.length} of ${p.length} station systems working normally.`,
         ];
     },
-    'full-systems-status': (p: System[]) => p.map(systemLine),
-    'engineering-status': (p: { energy: number; afterBurnerFuel: number; hullDamaged: boolean }) => [
-        `Energy store ${p.energy.toFixed(0)}, afterburner fuel ${p.afterBurnerFuel.toFixed(0)}, hull ${p.hullDamaged ? 'damaged' : 'intact'}.`,
-    ],
+    'full-systems-status': (p: System[]) => p.map(engineerSystemLine),
+    'engineering-status': (
+        p: {
+            energy: number;
+            maxEnergy?: number;
+            energyCells?: number;
+            maxEnergyCells?: number;
+            afterBurnerFuel: number;
+            hullDamaged: boolean;
+        },
+        context: ReadingContext,
+    ) => {
+        const store = p.maxEnergy ? p.energy / p.maxEnergy : undefined;
+        const lines = [
+            `Energy store ${p.energy.toFixed(0)}${store === undefined ? '' : ` of ${p.maxEnergy}, ${percent(store)} full${store < 0.25 ? ' (LOW)' : ''}`}${p.maxEnergyCells ? `, energy cells ${p.energyCells} of ${p.maxEnergyCells}` : ''}, afterburner fuel ${p.afterBurnerFuel.toFixed(0)}, hull ${p.hullDamaged ? 'damaged' : 'intact'}.`,
+        ];
+        const systems = context.panels['full-systems-status'] as System[] | undefined;
+        if (Array.isArray(systems)) {
+            const hot = systems.filter((s) => s.heat >= 1).sort((a, b) => b.heat - a.heat);
+            lines.push(
+                hot.length
+                    ? `Hottest systems: ${hot
+                          .slice(0, 3)
+                          .map((s) => `${s.name} ${s.heat.toFixed(0)}`)
+                          .join(', ')} (at 100 a system overheats and takes damage).`
+                    : 'No system is warm.',
+            );
+            const broken = systems.filter((s) => s.broken).map((s) => s.name);
+            if (broken.length) lines.push(`Broken systems: ${broken.join(', ')}.`);
+        }
+        return lines;
+    },
     'warp-status': (p: {
         fitted: boolean;
         currentLevel?: number;
@@ -114,9 +182,12 @@ const panelTemplates = {
     'armor-status': (p: { numberOfPlates: number; healthyPlates: number }) => [
         `Armor: ${p.healthyPlates} of ${p.numberOfPlates} plates intact.`,
     ],
-    'damage-report': (p: { system: string; field: string; value: number; normal: number }[]) =>
+    'damage-report': (p: Damage[]) =>
         p.length
-            ? p.map((d) => `Damage: ${d.system} ${d.field} at ${d.value.toFixed(2)} (normal ${d.normal}).`)
+            ? p.map((d) => {
+                  const fixes = fixedBy(d);
+                  return `Damage: ${d.system} ${d.field} at ${d.value.toFixed(2)} (normal ${d.normal})${fixes.length ? `, fixed by ${fixes.join(' or ')}` : ''}.`;
+              })
             : ['No damage reported.'],
     'repair-queue': (p: {
         slots: {
@@ -131,9 +202,9 @@ const panelTemplates = {
         return active.length
             ? active.map(
                   (s) =>
-                      `Repair ${s.protocolId}: ${s.priority}, ${percent(s.progress)} done${s.energyStarved ? ', starved of energy' : ''}${s.refusalReason ? `, refused: ${s.refusalReason}` : ''}.`,
+                      `Repair ${s.protocolId}: ${s.priority}${s.priority === 'RUNNING' ? ' (either key now cancels it)' : ''}, ${percent(s.progress)} done${s.energyStarved ? ', starved of energy' : ''}${s.refusalReason ? `, refused: ${s.refusalReason}` : ''}.`,
               )
-            : [`No repairs ordered. Protocols available: ${p.slots.map((s) => s.protocolId).join(', ')}.`];
+            : ['No repairs ordered.'];
     },
     'tubes-status': (p: Gun[]) =>
         p.map(
@@ -168,13 +239,21 @@ const panelTemplates = {
             ? `Selected contact: ${p.target.name}, ${identity(p.target)}, ${metres(p.target.distance)}.`
             : 'No contact selected.',
     ],
-    'signals-jobs': (p: {
-        paused: boolean;
-        jobs: { id: string; status: string; progress: number; target: Contact | { id: string } }[];
-    }) => [
+    'signals-jobs': (
+        p: {
+            paused: boolean;
+            jobs: { id: string; status: string; progress: number; target: Contact | { id: string } }[];
+        },
+        context: ReadingContext,
+    ) => [
         p.jobs.length
-            ? `Scan queue${p.paused ? ' (PAUSED)' : ''}: ${p.jobs.map((j) => `${'name' in j.target ? j.target.name : j.target.id} ${j.status} ${percent(j.progress)}`).join('; ')}.`
-            : `Scan queue empty${p.paused ? ' (paused)' : ''}.`,
+            ? `Scan queue${p.paused ? ' (PAUSED: nothing is being scanned)' : ''}: ${p.jobs
+                  .map(
+                      (j) =>
+                          `${'name' in j.target ? j.target.name : j.target.id} ${j.status} ${percent(j.progress)}${'bearing' in j.target && context.heading !== undefined ? ` (${sideOfNose(offNose(j.target.bearing, context.heading))})` : ''}`,
+                  )
+                  .join('; ')}.`
+            : `Scan queue empty${p.paused ? ' (PAUSED: nothing is being scanned)' : ''}.`,
     ],
     'waypoint-groups': (p: Record<string, string[]>) => [
         `Waypoint groups: ${
@@ -193,29 +272,84 @@ function identity(c: Contact) {
     return `${faction}${c.type}`;
 }
 
+/** Whether a contact `off` degrees from the nose lies within the beam's arc. */
+function inside(off: number, beam: Beam) {
+    return beam.arc >= 360 || Math.abs(offNose(off, beam.bearing)) <= beam.arc / 2;
+}
+
+/** A beam edge in degrees from the nose, wrapped to the side it lies on. */
+function edge(degrees: number) {
+    const d = offNose(degrees, 0);
+    return Math.abs(d) < 1 ? '0°' : `${Math.abs(d).toFixed(0)}° ${d > 0 ? 'right' : 'left'}`;
+}
+
+/** A course this many degrees or more off the line of sight is read as slanting, not straight. */
+const SLANT_DEGREES = 10;
+
+/**
+ * How the contact itself moves since the previous reading, against the line of sight from us to it:
+ * away, toward, or across (to our right or left of the nose).
+ */
+function ownMotion(c: Contact, before: Contact['position'], heading: number, seconds: number) {
+    if (!c.position || !before) return '';
+    const vx = (c.position.x - before.x) / seconds;
+    const vy = (c.position.y - before.y) / seconds;
+    const speed = Math.hypot(vx, vy);
+    if (speed <= 20) return '';
+    const sight = (c.bearing * Math.PI) / 180;
+    const radial = vx * Math.cos(sight) + vy * Math.sin(sight);
+    const nose = (heading * Math.PI) / 180;
+    const side = Math.cos(nose) * vy - Math.sin(nose) * vx > 0 ? 'right' : 'left';
+    // away or toward: how far its course slants off the line of sight, so "straight away" is told apart
+    const slant = (Math.acos(Math.min(1, Math.abs(radial) / speed)) * 180) / Math.PI;
+    const slanting = slant >= SLANT_DEGREES ? `, slanting ${slant.toFixed(0)}° to our ${side}` : ', straight';
+    const direction =
+        radial > 0.7 * speed
+            ? `away from us${slanting}`
+            : radial < -0.7 * speed
+              ? `toward us${slanting}`
+              : `across, to our ${side}`;
+    return `, itself moving ${speed.toFixed(0)} m/s ${direction}`;
+}
+
+/**
+ * Below BASIC a blip has no type, but its size shows: a blip this small is a shell or a missile, not a
+ * ship. Only size is used, so an unidentified contact is never classified by what it really is.
+ */
+const SHELL_SIZED_METRES = 5;
+const shellSized = (c: Contact) => c.type === undefined && c.radius !== undefined && c.radius < SHELL_SIZED_METRES;
+
 function readRadar(radar: Radar, context: ReadingContext): string[] {
     const heading = radar.ownShip?.heading ?? 0;
     const lockedId = (context.panels['targeting-status'] as { targetId?: string | null } | undefined)?.targetId;
     const contacts = radar.contacts ?? [];
     const shells = contacts.filter((c) => c.type === 'Projectile').length;
+    const blips = contacts.filter(shellSized).length;
     const lines = contacts
-        .filter((c) => c.type !== 'Projectile')
+        .filter((c) => c.type !== 'Projectile' && !shellSized(c))
         .map((c) => {
             const before = context.previous.get(c.id);
-            const rate = before === undefined ? 0 : (before - c.distance) / context.secondsSincePrevious;
+            const rate = before === undefined ? 0 : (before.distance - c.distance) / context.secondsSincePrevious;
             const trend =
                 before === undefined
                     ? ''
                     : Math.abs(rate) < 5
                       ? ', holding distance'
                       : `, ${rate > 0 ? 'closing' : 'opening'} at ${Math.abs(rate).toFixed(0)} m/s`;
-            return `Contact ${c.name}${c.id === lockedId ? ' (LOCKED)' : ''}: ${identity(c)}, ${metres(c.distance)}, ${sideOfNose(offNose(c.bearing, heading))}${trend}.`;
+            const off = offNose(c.bearing, heading);
+            const beam = radar.scanBeam
+                ? inside(off, radar.scanBeam)
+                    ? ', inside the scan beam'
+                    : ', outside the scan beam'
+                : '';
+            return `Contact ${c.name}${c.id === lockedId ? ' (LOCKED)' : ''}: ${identity(c)}, ${metres(c.distance)}, ${sideOfNose(off)}${trend}${ownMotion(c, before?.position, heading, context.secondsSincePrevious)}${beam}.`;
         });
     if (!lines.length) lines.push('Radar: no contacts.');
     if (shells) lines.push(`${shells} of our own shells in flight.`);
+    if (blips) lines.push(`${blips} unidentified shell-sized blips in flight.`);
     if (radar.scanBeam) {
         lines.push(
-            `Scan beam pointed ${sideOfNose(radar.scanBeam.bearing)}, ${radar.scanBeam.arc.toFixed(0)}° wide, reaching ${metres(radar.scanBeam.range)}.`,
+            `Scan beam pointed ${sideOfNose(radar.scanBeam.bearing)}, ${radar.scanBeam.arc.toFixed(0)}° wide (from ${edge(radar.scanBeam.bearing - radar.scanBeam.arc / 2)} to ${edge(radar.scanBeam.bearing + radar.scanBeam.arc / 2)} of the nose), reaching ${metres(radar.scanBeam.range)}.`,
         );
     }
     return lines;
@@ -226,12 +360,14 @@ function readRadar(radar: Radar, context: ReadingContext): string[] {
  * opening, as an officer watching the screen would.
  */
 export function verbalReader(secondsBetweenReadings: number) {
-    let previous = new Map<string, number>();
+    let previous = new Map<string, Sighting>();
     return (display: Display) => {
         const context: ReadingContext = {
             panels: display.panels,
             previous,
             secondsSincePrevious: secondsBetweenReadings,
+            heading: (display.radar as Radar | undefined)?.ownShip?.heading,
+            radar: display.radar as Radar | undefined,
         };
         const lines: string[] = [];
         if (display.radar) lines.push(...readRadar(display.radar, context));
@@ -244,7 +380,12 @@ export function verbalReader(secondsBetweenReadings: number) {
                 lines.push(...template(panel, context));
             }
         }
-        previous = new Map(((display.radar as Radar | undefined)?.contacts ?? []).map((c) => [c.id, c.distance]));
+        previous = new Map(
+            ((display.radar as Radar | undefined)?.contacts ?? []).map((c) => [
+                c.id,
+                { distance: c.distance, position: c.position },
+            ]),
+        );
         return lines;
     };
 }

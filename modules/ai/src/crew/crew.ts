@@ -8,6 +8,8 @@ import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
 import { StationSession } from '@starwards/mcp/src/sandbox/session';
 import { observeStation } from '@starwards/mcp/src/sandbox/console';
 
+/** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
+const RADAR_CONTACT_LIMIT = 200;
 /** One seat of a crew: a station, the brain that plays it, and what answers its questions. */
 export type SeatPlan = { station: string; spec: BrainSpec; policy: Policy };
 
@@ -87,7 +89,7 @@ export function headlessCrew(options: CrewOptions) {
     }
 
     async function decide(seat: Seat, recorder: HeadlessRecorder) {
-        const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? 40 });
+        const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? RADAR_CONTACT_LIMIT });
         const display = { panels: observed.panels, radar: observed.radar };
         const capabilities = observed.capabilities as unknown as Capabilities;
         const result = await seat.brain.decide(display, capabilities);
