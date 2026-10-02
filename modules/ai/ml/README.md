@@ -44,3 +44,31 @@ A new artefact version needs `score.ts` to import it. Changing `features.ts` cha
 - Export: coefficients + scaler, or the tree nodes (thresholds on raw feature values) + baseline, plus the
   calibration map. `train.py` asserts its numpy re-implementation of the TS evaluator equals sklearn
   before export, and writes 40 test rows with predictions as the TS parity fixture.
+
+## Heatmaps
+
+Radar isochrone heatmaps (`src/heatmap/`, docs: `docs/integration/ai-crew.md#radar-heatmaps`). Same venv.
+
+```bash
+npm --prefix modules/ai run heatmap:dataset          # -> training-archive/datasets/heatmap-<days>-{threat,cells,iso}.csv + .manifest.json
+cd modules/ai/ml/heatmap
+../.venv/Scripts/python train_heatmap.py --base ../../../../../training-archive/datasets/heatmap-2026-10-02 --version v1
+npx jest --selectProjects=ai --testPathPatterns heatmap                  # from the repo root: parity + grid specs
+npm --prefix modules/ai run heatmap -- --recording <x.sgr> --t 30
+```
+
+Protocol (`heatmap/train_heatmap.py`), on top of the scorer's split rules (test = top 20% of seeds per
+scenario, 5-fold `GroupKFold` by run, unseen map = `training_t1`):
+
+- Isochrone validation: predicted time-to-reach of the point the GVTS really occupied `dt` s later
+  against `dt` (the prediction is a lower bound, so it must not exceed `dt`).
+- `threat5`/`threat10`: categorical over the 32 cells. Baselines: marginal cell frequency; frequency
+  given the opponent's current cell × closing-speed tercile × aspect third. Models: per-cell logistic
+  (one-vs-rest, normalised; cells with < 30 train positives keep their frequency); an HGB over
+  (frame, cell) pairs. Metrics: log loss, top-1/top-3, Brier, ECE over all cell probabilities.
+- `fire`/`danger`/`value`: rows are (frame, cell the GVTS first entered within 60 s); labels at entry.
+  Baselines: per-cell frequency; per cell × closing × aspect. Models: per-cell logistic/ridge; HGB over
+  the grid. Log loss, Brier, AUC, ECE (MSE, R² for `value`).
+- The across-grid HGB ships only when its CV loss is >= 2% below the best simpler model. Export:
+  per-cell linear models, the grid tree model, or the binned table; `train_heatmap.py` asserts its
+  numpy mirror of the TS evaluator on a fixture that `heatmap.spec.ts` replays.

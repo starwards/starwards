@@ -377,6 +377,40 @@ crossing rates need no history.
 | `o_target_shells`            | overall  | 0..1   | target shell rounds / capacity                                         |
 | `o_target_hostile`           | overall  | 0/1    | target follows an order or fights back when idle (not PLAY_DEAD)       |
 
+## Radar heatmaps
+
+`heatmapAt(saved, playerId?)` (`modules/ai/src/heatmap/heatmap.ts`) maps the space around the player
+ship into cells and estimates, per cell, where the opponent will be and what being there is worth.
+Not wired into any brain; `describeHeatmap(map)` is the one-line reading a brain would get.
+
+**Grid** (`heatmap/grid.ts`): 8 sectors of 45° around the nose (clockwise, "right" as the verbal UI
+reads it) × 4 time-to-reach bands (< 5, 5–15, 15–40, > 40 s), not distance rings. Time-to-reach is a
+lower bound from the ship's position, velocity, heading, turn rate and design (thrust per direction,
+`rotationCapacity`, `maxTurnSpeed`, `maxSpeed`): the sooner of thrusting now with the current heading
+and turning the nose first. The bands are recomputed every frame; training labels use the bands as
+computed at the snapshot time.
+
+| map        | value per cell                                                        | station that could use it        |
+| ---------- | --------------------------------------------------------------------- | -------------------------------- |
+| `threat5`  | P(opponent in the cell 5 s from now); sums to 1 over the grid         | helms, signals (radar contacts)  |
+| `threat10` | the same, 10 s from now                                               | helms, weapons (lead), signals   |
+| `fire`     | P(our blast hits the opponent within 10 s of entering the cell)       | helms (where to fly), weapons    |
+| `danger`   | P(we are hit or lose integrity within 10 s of entering the cell)      | helms, engineer (brace, repairs) |
+| `value`    | expected snapshot-scorer `overall.value` 10 s after entering the cell | captain / overall                |
+
+Inputs are limited to what a station displays (`heatmap/inputs.ts`, each input names its screen):
+range and bearing of the opponent, relative and own velocity in the ship's frame, the opponent's
+speed and aspect, own turn rate, own integrity and shells, plus per-cell geometry (where straight-line
+drift takes the opponent; range, aim offset and gun band from the cell centre). No scan-gated or
+hidden state (opponent orders, its ammunition) is used.
+
+```bash
+npm --prefix modules/ai run heatmap -- --recording <x.sgr> --t <seconds> [--ship GVTS]   # ASCII polar maps + cell table
+```
+
+Training, metrics and which maps are trustworthy: [`modules/ai/ml/README.md`](../../modules/ai/ml/README.md#heatmaps)
+and `modules/ai/ml/reports/<date>-heatmap.md`.
+
 ## The key
 
 A Jev seat needs `TYPESAFE_API_KEY`. Put it in `modules/ai/.env` (git-ignored):
