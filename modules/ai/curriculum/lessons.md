@@ -200,6 +200,14 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 - **Reuse:** a weapons brain must beat the reference on a crew metric the helms does not bound (shells
   per kill, kill time under fire) before another paired run.
 
+### T1 — reference with engineer seat (2026-10-03)
+
+- **Lesson:** T1 0/16 was a perception and tactics gap, not balance (NPC calibration 12/16).
+  Unscanned shells look like ships unless filtered by blip radius. The enemy-only filter blocks locks
+  without Signals. Without an engineer the gun is never cooled. Within about 2 km the fighter breaks
+  the reactor and the crew runs out of energy. Range of 3.5–4 km plus an engineer seat gets 4–6/16;
+  final reference 5/16.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

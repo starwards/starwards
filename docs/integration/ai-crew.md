@@ -27,7 +27,8 @@ Owner decisions (Amir, 2026-10-03):
   brain only where it beats them.
 - Weapons seat: `reference`. Jev weapons v17 with reference helms against all-reference, T1-lite seeds
   17–48: 28/32 vs 29/32, run value 0.765 vs 0.777, sign p 1.00; L0 T0 7/8 vs 8/8. No paired win.
-- `T1` must become winnable by bots.
+- Engineer seat: `reference` (cools the gun and keeps energy up; without it T1 is 0/16).
+- `T1` must become winnable by bots. The reference crew (helms, weapons, engineer) wins 5/16.
 - Jev budget: $25.
 
 ## What a brain is
@@ -260,7 +261,7 @@ npm run read -- --recording <out>/<crew>/T0_seed1.sgr --station helms --t 40
 
 - `train` plays a training rung (`modules/server/src/test/training`; `T1-lite`, a dragonfly that
   holds its ground and fires back with its capsule 70% breached, is the middle rung between `T0` and
-  `T1`, which no crew wins, the reference included) with a crewed player ship,
+  `T1`, which the reference crew wins 5/16) with a crewed player ship,
   every crew on the same seeds, and writes `<out>/<scenario>-crews.md` (kills, time to kill,
   decisions, fallbacks, refused commands, input tokens and cost per crew; per control: choice counts
   and mean confidence) and `<out>/<scenario>-crews.json`.
@@ -357,10 +358,10 @@ Suite baselines with every station radar cut to its reach:
 
 | Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` |
 | ------------- | ------------ | ------------- | ------------- | ------------------- |
-| `reference`   | 8/8, 83.7 s  | 16/16, 99.7 s | 13/16, 63.9 s | 4/8, 104.6 s        |
+| `reference`   | 8/8, 80.6 s  | 16/16, 80.6 s | 13/16, 46.9 s | 6/8, 93.4 s         |
 | `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          |
 
-Reports: `training-archive/2026-10-02/suite/reference-075308/`, `recommended-081501/` (L0) and
+Reports: `training-archive/2026-10-02/suite/reference-221925/`, `recommended-081501/` (L0) and
 `recommended-083320/` (L1). The recommended crew fails both levels it played (L0 accept needs a
 median ≤ 120 s, L1 needs 75%).
 
