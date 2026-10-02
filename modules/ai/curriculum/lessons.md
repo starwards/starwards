@@ -66,14 +66,14 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 - **Evidence:** far-contact callout `jev-farcall-h17-w15-e10-s8` vs recommended, T1-lite 1–8: 5/8 vs 6/8,
   signals chose `far_contact` on 608 of 909 decisions, $0.57 vs $0.42. Callouts-only crew 14/16 vs
   listening crew 12/16 at 16 seeds: within noise.
-- **Reuse:** a callout earns its place on the level where the listener has an action for it; on T1-lite
-  every enemy spawns inside every radar's reach.
+- **Reuse:** a callout earns its place on the level where the listener has an action for it: a far
+  contact gives helms something to do only once its wording says to close on a ship it cannot see.
 
 ## Rungs
 
 ### T1 is unwinnable; use T1-lite
 
-- **Evidence:** every crew including `reference` loses T1; `reference` 7/8 on T1-lite (180 s).
+- **Evidence:** every crew including `reference` loses T1; `reference` 13/16 on T1-lite (180 s).
 - **Reuse:** never read a T1 loss as a brain result. Add a rung to the ladder only once `reference`
   wins it, so a failure there says something about the brain.
 
@@ -84,7 +84,76 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 - **Reuse:** decide on 16 seeds for rungs below ~90% kill rate; quote the suite's noise bound with the
   claim.
 
+## Station radar reach
+
+### A seat must act on a target only another seat can see
+
+- **Evidence:** each seat's radar is cut to its screen range (commit `10897201`: helms 5 km, tactical
+  10 km); T0 and T1-lite spawn the target 2–8 km away. `reference` fell to T0 5/8 and T1-lite 0/16: on
+  T0 seeds 5, 7, 8 (target 6.3–8 km) weapons held the lock, helms' radar listed nothing for 180 s and
+  the ship never moved (1 shell fired per run; `rotationMode` press 5 of 2077 decisions over the eight
+  seeds). The Jev crew fails the same way:
+  T0 seed 7 and T1-lite seeds 5, 7, 15 (target 6.3–8 km on the weapons radar all run), helms v16
+  `boost` hold 360/360 and `rotationMode` wait 360/360, `rotation` left/right about evenly while
+  weapons said "need you N°" on 336 of 360 decisions. Its wording ties every press to "the console
+  lists an enemy ship".
+- **Fix (reference, commit `8c61521a`):** press the rotation-mode key while the helms radar is empty
+  (refused without a lock, accepted once weapons holds one); in rotation TARGET with nothing on the
+  radar, boost forward. T0 5/8 → 7/8, T1-lite 0/16 → 15/16.
+- **Reuse:** word a control for the case where its own display is empty but another seat's state shows
+  through a shared key or a callout: "press it anyway, a refused press changes nothing" and "the nose
+  is on the target: fly forward until it shows". The next helms version starts from these two clauses.
+
+### A dead target flung at top speed needs the afterburner
+
+- **Evidence:** `reference` T0 seed 1 after the fix above: from 30 s to 180 s it sat 540–580 m behind
+  a target moving at 450 m/s, its own top speed, with 822 shells fired and target health 0.84. Burning
+  afterburner when the target moves faster than 0.9 of top speed and is beyond the 500 m standoff:
+  T0 7/8 → 8/8 (median 86.6 s → 83.7 s). Same rule on T1-lite: 15/16 → 13/16; on seeds 4 and 14 the
+  ship is at 0 of 16 armor plates when its radar empties, the lock drops, the modes fall to manual
+  rotation and direct maneuvering and it drifts at 620–770 m/s (that the radar itself broke is
+  inferred, not read from the recording).
+- **Reuse:** a chase rule tuned on a dead target changes the flight path under fire; check it on the
+  threat rung before keeping it. Open: the reference does not recover from direct maneuvering mode.
+
 ## Per-level entries
+
+### L0–L2 — `reference` after the radar reach cut (2026-10-02)
+
+- **Change:** `reference-policy.ts`: rotation-mode press and forward boost with an empty helms radar,
+  afterburner on a flung target (commit `8c61521a`).
+- **Level:** L0 T0 8/8, median 83.7 s (baseline before: 5/8, 106.9 s); L0b T0-wide 16/16, median
+  99.7 s; L1 T1-lite 13/16, median 63.9 s (before: 0/16); L2 T0-constrained 4/8, median 104.6 s.
+  Suite report: `training-archive/2026-10-02/suite/reference-075308/`; diagnosis runs in
+  `suite/reference-diagnosis-*`.
+- **Regression suite:** every L0 benchmark ok (helms-tag 0.827, helms-hold 0.784 unchanged;
+  helms-intercept 0.547 → 0.693; weapons-range 46.8 → 71.1).
+- **Decision:** accepted as the positive control; baseline `baselines/reference.json` (commit `f8bebe30`).
+- **Lesson:** the two entries under "Station radar reach".
+- **Reuse:** L2's 4/8 is the reference's own ceiling there (the four losses fired 250–419 shells
+  without a kill); read a brain's L2 result against 4/8, not 8/8.
+
+### L0, L1 — `recommended` after the radar reach cut (2026-10-02)
+
+- **Change:** none: helms v16, weapons v15, engineer v10, signals v3, first suite baseline.
+- **Level:** L0 T0 7/8, median 132.6 s (same crew before the cut: 8/8, 100 s): accept needs a median
+  ≤ 120 s, not met. L1 T1-lite 10/16, median 61.6 s (before the cut: 14/16, 45 s): accept needs 75%,
+  not met; three of the six losses are the never-moved seeds 5, 7, 15, the other three (2, 9, 13)
+  locked and lost under fire. Suite reports: `training-archive/2026-10-02/suite/recommended-081501/`
+  (L0) and `recommended-083320/` (L1). L0b and L2 not played: $2.40 of the $3.00 budget was spent
+  (L0 $1.35, L1 $1.05) and either level costs more than the rest.
+- **Regression suite:** against the earlier numbers by the suite's rule, T0 kills are within noise and
+  the median is 33% slower (limit 25%); T1-lite 10/16 is below the 11.3 bound from 14/16.
+- **Decision:** baseline saved as the measured state (`baselines/recommended.json`), not as an
+  accepted level. Plateau: L0 0 of 2 (no candidate since the cut); L1 1 of 2
+  (`jev-farcall-h17-w15-e10-s8`, 5/8 against 6/8 on seeds 1–8, no gain). No repair version was
+  written: a candidate plus its regression suite costs about $2.40.
+- **Lesson:** the radar cut costs the Jev crew the far-spawn seeds, as it did the reference; telling
+  helms where the contact is (far-contact callout) did not help because helms v17 heard it on
+  `rotation` only and still had no wording to close in.
+- **Reuse:** helms v18 = v16 plus the two clauses from "A seat must act on a target only another seat
+  can see" on `rotationMode` and `boost`; `reask` it on the T0 seed 7 and T1-lite seeds 5, 7, 15
+  recordings before a paid run.
 
 Copy this block for every candidate run on a level.
 

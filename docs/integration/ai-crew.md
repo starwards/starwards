@@ -244,7 +244,18 @@ and acceptance thresholds (kill rate, median time to kill per rung).
 | L3–L6 | enemies, threat ladder, mission, space | placeholders, not built                                             |       |                     |
 
 `T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
-`T0-constrained` the reference fires 226–255 shells per kill, so the shell floor binds.
+`T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds.
+
+Suite baselines with every station radar cut to its reach:
+
+| Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` |
+| ------------- | ------------ | ------------- | ------------- | ------------------- |
+| `reference`   | 8/8, 83.7 s  | 16/16, 99.7 s | 13/16, 63.9 s | 4/8, 104.6 s        |
+| `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          |
+
+The reference reaches a target beyond the helms radar by pressing the rotation-mode key until
+weapons' lock makes it hold, then flying forward; the recommended crew's helms (v16) does not, and
+stands still on spawns beyond 5 km.
 
 ```bash
 cd modules/ai
