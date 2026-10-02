@@ -19,6 +19,8 @@ export {
     getSpatialIndex,
     objectDisplayName,
     playerScanLevel,
+    helmsRadarReach,
+    radarReach,
     scanCycleTargets,
 } from './client';
 export type {

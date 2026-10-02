@@ -1,5 +1,5 @@
 import { InvalidCommandError, NotPermittedError, StationSession } from './session';
-import { StationWidget, stationCommands, stationWidgets } from '@starwards/core/internal';
+import { StationWidget, isRadarWidget, stationCommands, stationWidgets } from '@starwards/core/internal';
 import { helmsRadarRange, scanBeamStatus, widgetReaders } from '../readers';
 
 import { commandBindings } from './command-map';
@@ -52,13 +52,12 @@ export function radarContacts(session: StationSession, { offset, limit }: { offs
     if (!ownShip) {
         throw new InvalidCommandError('your ship is not in the space state');
     }
-    const visible = session.radar.visibleObjects(session.viewFaction);
-    // the tactical radar shows the gunner their own rounds in flight, wherever they are
-    if (session.widgets.includes('tactical-radar')) {
-        for (const shell of session.radar.ownProjectiles(session.shipDriver.id)) {
-            visible.add(shell);
-        }
-    }
+    const visible = session.isGameMaster
+        ? session.radar.visibleObjects(undefined)
+        : session.radar.seatObjects(session.viewFaction, session.widgets.filter(isRadarWidget), {
+              ship: ownShip,
+              warpLevel: session.shipDriver.state.warp?.currentLevel,
+          });
     const contacts = [...visible]
         .filter((o) => o.id !== session.shipDriver.id)
         .map((o) => describeContact(o, session.viewFaction, ownShip.position))

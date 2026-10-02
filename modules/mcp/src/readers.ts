@@ -1,4 +1,4 @@
-import { JobStatus, RepairPriority, StationWidget, System, ammoTypes } from '@starwards/core/internal';
+import { JobStatus, RepairPriority, StationWidget, System, ammoTypes, helmsRadarReach } from '@starwards/core/internal';
 
 import { StationSession } from './sandbox/session';
 import { describeContact } from './contacts';
@@ -284,5 +284,5 @@ export function scanBeamStatus(session: StationSession) {
  * flying by a far coarser picture.
  */
 export function helmsRadarRange(session: StationSession): number {
-    return (session.shipDriver.state.warp?.currentLevel ?? 0) > 0.5 ? 100_000 : 5_000;
+    return helmsRadarReach(session.shipDriver.state.warp?.currentLevel);
 }
