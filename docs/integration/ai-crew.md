@@ -90,6 +90,19 @@ suppressed), the `callout` question's `decision` events, and `heard` in each `br
 `decisions` shows the callout choices per station, `reask` rebuilds the request with what was heard,
 and the `train` report counts callouts said / suppressed per crew.
 
+Silent vs talking crew, seeds 1–8, 180 s timeout (talking crew: helms v12, weapons v11, engineer
+v7, signals v6 — the silent crew's brains plus callouts and wording that uses `heard`):
+
+| Crew                             | T0 kills, median TTK | T1-lite kills, median TTK | Cost (both rungs) |
+| -------------------------------- | -------------------- | ------------------------- | ----------------- |
+| reference                        | 8/8                  | 7/8, 81 s                 | —                 |
+| silent `jev-h11-w8-e6-s3`        | 8/8, 95 s            | 6/8, 41 s                 | $0.73             |
+| talking `jev-talk-h12-w11-e7-s6` | 8/8, 97 s            | 8/8, 49 s                 | $0.71             |
+
+Talk ties on T0 and wins two more seeds on T1-lite, at a slower median kill: suggestive, not
+proven at 8 seeds, and confounded with the listening wording. Helms says "on its tail" on most
+decisions (most suppressed), signals never speaks: those `when` clauses need tightening.
+
 ## Training
 
 ```bash
