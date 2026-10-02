@@ -177,6 +177,86 @@ server records the game, `<name>` is the recording's, event times follow the rec
 Presses go out as soon as a seat decides: the network is the latency. Held triggers hold for wall
 seconds.
 
+## Snapshot scoring
+
+`scoreSnapshot(saved, playerId?)` (`modules/ai/src/scoring/score.ts`) is a heuristic value function
+over one `SavedGame` frame: fast, deterministic, no Python at runtime. It scores the frame from the
+player ship against its opponent (the nearest ship of another faction) and returns `undefined`
+without both. Every value is in [0, 1]:
+
+| field               | meaning (label it is trained on)                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| `overall.kill`      | calibrated P(target killed within 60 s) (`kill60`)                                               |
+| `overall.damage`    | expected drop of the player's integrity over 30 s, lower is better (`damage30`)                  |
+| `overall.value`     | `kill × (1 - damage)`, a composition, not trained                                                |
+| `stations.helms`    | expected share of the next 10 s in firing position (`helms10`)                                   |
+| `stations.weapons`  | expected drop of the target's integrity over the next 10 s (`weapons10`)                         |
+| `stations.engineer` | expected mean of system effectiveness × not starved over the next 30 s (`engineer30`)            |
+| `stations.signals`  | expected share of the remaining scan gap on the target closed within 30 s (`signals30`)          |
+
+Integrity is the mean of armor health ratio, `healthRatio` and capsule integrity. Firing position is
+the target 500–3000 m away with the nose line passing within 100 m of it. Exact label definitions,
+including censoring at the end of a run, are in `scoring/labels.ts`.
+
+The models are an exported artefact, `scoring/models/<version>.json` (feature hash, dataset hash,
+metrics, parity fixture), trained by `modules/ai/ml` on the training archive; see
+[`modules/ai/ml/README.md`](../../modules/ai/ml/README.md) for rebuilding the dataset, retraining and
+the evaluation protocol, and `modules/ai/ml/reports/` for each version's metrics.
+
+```bash
+npm --prefix modules/ai run score -- --recording <x.sgr> [--every 5] [--ship GVTS]   # score series of a run
+```
+
+Features (`scoring/features.ts`), one frame only: velocities are in the frame, so closing and
+crossing rates need no history.
+
+| feature | station | unit | meaning |
+|---|---|---|---|
+| `h_distance_km` | helms | km | distance to target |
+| `h_off_nose` | helms | 0..1 | |target bearing off nose| / 180° |
+| `h_off_nose_cos` | helms | -1..1 | cos of target bearing off nose |
+| `h_off_tail` | helms | 0..1 | player's angle off the target's tail / 180° |
+| `h_lateral_miss_km` | helms | km | how far the nose line passes beside the target (distance if > 90° off) |
+| `h_in_gun_band` | helms | 0/1 | distance within 500..3000 m |
+| `h_in_firing_position` | helms | 0/1 | in gun band and nose line within 100 m of target |
+| `h_closing_speed` | helms | km/s | rate the distance shrinks (negative: opening) |
+| `h_lateral_speed` | helms | km/s | relative speed across the line of sight |
+| `h_own_speed` | helms | km/s | player speed |
+| `h_target_speed` | helms | km/s | target speed |
+| `h_turn_rate` | helms | 100°/s | |player turn speed| |
+| `h_afterburner_fuel` | helms | 0..1 | afterburner fuel / max |
+| `h_maneuvering` | helms | 0..1 | maneuvering effectiveness × efficiency |
+| `w_locked` | weapons | 0/1 | weapons target is the target |
+| `w_gun_firing` | weapons | 0/1 | any chain gun firing |
+| `w_gun_loading` | weapons | 0..1 | mean chain gun load progress |
+| `w_gun_effectiveness` | weapons | 0..1 | mean chain gun effectiveness |
+| `w_gun_heat` | weapons | heat | max chain gun heat |
+| `w_shells` | weapons | 0..1 | shell rounds / magazine capacity |
+| `w_missiles` | weapons | 0..1 | missiles / magazine capacity |
+| `w_target_armor` | weapons | 0..1 | target armor health ratio |
+| `w_target_systems` | weapons | 0..1 | target healthRatio (systems intact) |
+| `w_target_capsule` | weapons | 0..1 | target capsule integrity |
+| `e_reactor_energy` | engineer | 0..1 | reactor energy / max |
+| `e_energy_cells` | engineer | 0..1 | energy cells / max |
+| `e_mean_effectiveness` | engineer | 0..1 | mean effectiveness over all systems |
+| `e_min_effectiveness` | engineer | 0..1 | lowest system effectiveness |
+| `e_broken` | engineer | 0..1 | share of systems broken |
+| `e_starved` | engineer | 0..1 | share of systems energy-starved |
+| `e_max_heat` | engineer | heat | hottest system heat |
+| `e_mean_power` | engineer | 0..1 | mean power setting over systems |
+| `e_own_armor` | engineer | 0..1 | player armor health ratio |
+| `e_own_systems` | engineer | 0..1 | player healthRatio |
+| `e_own_capsule` | engineer | 0..1 | player capsule integrity |
+| `e_repair_slots` | engineer | count | repair queue slots in use |
+| `s_scan_level` | signals | 0..1 | scan level on target / FULL |
+| `s_jobs` | signals | count | signals jobs retained |
+| `s_target_job_progress` | signals | 0..1 | progress of the in-progress job on the target (0 if none) |
+| `s_signals_effectiveness` | signals | 0..1 | signals system effectiveness |
+| `s_radar_effectiveness` | signals | 0..1 | mean radar effectiveness |
+| `o_target_gun_effectiveness` | overall | 0..1 | target mean chain gun effectiveness |
+| `o_target_shells` | overall | 0..1 | target shell rounds / capacity |
+| `o_target_hostile` | overall | 0/1 | target follows an order or fights back when idle (not PLAY_DEAD) |
+
 ## The key
 
 A Jev seat needs `TYPESAFE_API_KEY`. Put it in `modules/ai/.env` (git-ignored):
