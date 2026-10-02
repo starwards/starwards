@@ -171,6 +171,19 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 - **Reuse:** after a core or harness change, rerun the reference suite first: any per-seed
   difference is a code change to explain before any brain is judged.
 
+### L0 benchmarks, L1 — what-if forecasts, helms v19 and weapons v17 (2026-10-02)
+
+- **Change:** helms v19 and weapons v17 read options annotated with a coded forecast of each
+  option's consequence (`src/whatif/`); see "What-if forecasts" in `docs/integration/ai-crew.md`.
+- **Level:** benchmarks, seeds 1–6: `helms-tag` 0.77 → 0.88, `helms-hold` 0.57 → 0.82,
+  `helms-intercept` 0.65 → 0.71 (helms v16 → v19); `weapons-range` 89.7 → 135.9 (weapons v15 → v17).
+  Crew `jev-whatif-h19-w17-e10-s3` on T1-lite seeds 1–6: 3/6 kills, $0.48; seeds 7–8 not played.
+- **Regression suite:** not run.
+- **Decision:** inconclusive at six seeds; recommended crew unchanged.
+- **Lesson:** a forecast written into each option lifts every single-seat benchmark; a seat benchmark
+  gain does not by itself show on a crew rung.
+- **Reuse:** test a what-if brain per seat by paired test against the reference on the same seeds.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

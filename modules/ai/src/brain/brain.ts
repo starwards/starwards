@@ -4,6 +4,7 @@ import { CALLOUT_QUESTION, Heard, Said, calloutSaid } from './callout';
 import { Capabilities, Control, Display, Press, stationControls } from './controls';
 
 import { verbalReader } from './verbal';
+import { whatIfForecaster } from '../whatif/forecast';
 
 /** How one question was answered. `source` says who answered: the model, or a fallback. */
 export type Answer = {
@@ -55,6 +56,7 @@ type DecisionResult = {
 export function buttonBrain(spec: BrainSpec, policy: Policy) {
     const hash = specHash(spec);
     const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
+    const forecast = whatIfForecaster(spec);
     return {
         spec,
         policy,
@@ -64,7 +66,14 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 capabilities,
                 burstSeconds: Math.min(5, spec.decisionSeconds),
             });
-            const request = buildRequest(spec, display, controls, read?.(display), heard);
+            const request = buildRequest(
+                spec,
+                display,
+                controls,
+                read?.(display),
+                heard,
+                forecast?.(display, controls),
+            );
             const answered = Object.keys(request.questions).length
                 ? await policy.answer(request, controls, display)
                 : { answers: {} };

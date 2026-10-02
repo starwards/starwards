@@ -1,5 +1,6 @@
 import { CALLOUT_QUESTION, Heard, calloutQuestion, heardFor, heardLines } from './callout';
 import { Control, Display } from './controls';
+import { Forecasts, withForecasts } from '../whatif/forecast';
 
 import { BrainSpec } from './spec';
 
@@ -21,6 +22,8 @@ export function buildRequest(
     reading?: readonly string[],
     /** What the seat heard on the crew channel; undefined for a seat on no channel. */
     heard?: readonly Heard[],
+    /** The predicted effect of each option of the controls whose wording names a what-if plug-in. */
+    forecasts?: Forecasts,
 ): BrainRequest {
     const questions: Record<string, ChoiceQuestion> = {};
     // a brain whose controls name the callouts they listen for hears per decision; any other hears everything in `heard`
@@ -35,7 +38,10 @@ export function buildRequest(
         questions[control.id] = {
             type: 'choice',
             instructions: radio.length ? `${instructions} On the radio: ${radio.join('; ')}.` : instructions,
-            criteria: { ...control.options, ...pick(wording.options ?? {}, Object.keys(control.options)) },
+            criteria: withForecasts(
+                { ...control.options, ...pick(wording.options ?? {}, Object.keys(control.options)) },
+                forecasts?.[control.id],
+            ),
         };
     }
     const callout = calloutQuestion(spec);

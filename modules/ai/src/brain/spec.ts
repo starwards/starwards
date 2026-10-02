@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import { createHash } from 'node:crypto';
+import { whatIfNames } from '../whatif/whatif';
 import { z } from 'zod';
 
 /**
@@ -49,6 +50,12 @@ export const brainSpecSchema = z
                          * instructions, and no other question sees them.
                          */
                         hears: z.array(z.string().regex(/^\w+\.\w+$/)).optional(),
+                        /**
+                         * The what-if plug-in (`whatif/`) that predicts, from this station's display
+                         * alone, what each option of this control leads to; the prediction is appended
+                         * to the option's description.
+                         */
+                        whatIf: z.enum(whatIfNames).optional(),
                     })
                     .strict(),
             )
