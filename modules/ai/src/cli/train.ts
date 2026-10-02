@@ -8,6 +8,7 @@
  * beside them; the report in `<out>/<scenario>-crews.md`. Seeds are shared round-robin between
  * `--workers` processes; a Jev crew's request budget is split between them. Jev answers come from
  * the answer cache when it holds them (`--no-cache` asks afresh, `--cache-dir <dir>` names another).
+ * `--expect-kills <crew>=<min>-<max>` (repeatable) exits 1 when that crew's kills fall outside it.
  */
 import { CrewRunResult, runCrewTraining } from '../training/train-crew';
 
@@ -101,4 +102,12 @@ async function main() {
     fs.writeFileSync(reportPath, report);
     fs.writeFileSync(path.join(outDir, `${scenario}-crews.json`), JSON.stringify(results, null, 2));
     process.stdout.write(`${report}\nreport: ${reportPath}\n`);
+    for (const gate of args('expect-kills')) {
+        const [crew, min, max] = /^(.+)=(\d+)-(\d+)$/.exec(gate)?.slice(1) ?? [];
+        if (!crew) throw new Error(`--expect-kills ${gate}: use <crew>=<min>-<max>`);
+        const kills = results.filter((r) => r.crew === crew && r.killed).length;
+        const ok = kills >= Number(min) && kills <= Number(max);
+        process.stdout.write(`gate ${crew}: ${kills} kills, expected ${min}-${max}: ${ok ? 'ok' : 'FAILED'}\n`);
+        if (!ok) process.exitCode = 1;
+    }
 }
