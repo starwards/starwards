@@ -31,6 +31,8 @@ const STILL_SPEED = 50;
 const MAX_SPEED = 450;
 /** Beyond this past the standoff the pilot burns afterburner: blasts fling a dead target at our top speed. */
 const PURSUIT_METERS = 1500;
+/** A target this fast was flung by our blasts and runs away at our top speed. */
+const FLUNG_SPEED = 0.9 * MAX_SPEED;
 
 /**
  * Hand-written rules that press the same buttons a brain does, for helms and weapons. It is the
@@ -78,8 +80,9 @@ function referenceChoice(control: Control, display: Display, ship: Contact | und
                 : 'hold_fire';
         }
         case 'rotationMode':
-            // the target mode is refused until weapons holds a lock, which needs a scanned contact
-            return helms && helms.rotationMode !== TARGET && ship && ship.scanLevel !== 'UFO' ? 'press' : 'wait';
+            // the target mode is refused until weapons holds a lock; weapons' radar reaches twice as far
+            // as helms', so keep pressing while helms shows nothing: a refused press changes nothing
+            return helms && helms.rotationMode !== TARGET && (!ship || ship.scanLevel !== 'UFO') ? 'press' : 'wait';
         case 'maneuveringMode':
             // matching the target's velocity needs the same lock, which shows as the rotation lock holding
             return helms && helms.rotationMode === TARGET && helms.maneuveringMode !== TARGET ? 'press' : 'wait';
@@ -92,7 +95,8 @@ function referenceChoice(control: Control, display: Display, ship: Contact | und
         }
         case 'boost':
         case 'strafe': {
-            const wanted = helms && ship ? parkingCommand(display, helms, ship, targetVelocity, heading) : undefined;
+            const wanted =
+                helms && (ship ? parkingCommand(display, helms, ship, targetVelocity, heading) : closeIn(helms));
             const axis = command === 'boost' ? 'x' : 'y';
             const current = Number(helms?.maneuveringCommand?.[axis] ?? 0);
             const goal = wanted ? wanted[axis] : 0;
@@ -100,7 +104,12 @@ function referenceChoice(control: Control, display: Display, ship: Contact | und
             return current < goal - 0.025 ? up : current > goal + 0.025 ? down : 'hold';
         }
         case 'afterBurner':
-            return aligned && ship.distance > STANDOFF_METERS + PURSUIT_METERS ? 'engage' : 'release';
+            // a target flung at our top speed is never closed on without the afterburner
+            return aligned &&
+                (ship.distance > STANDOFF_METERS + PURSUIT_METERS ||
+                    (ship.distance > STANDOFF_METERS && length(targetVelocity) > FLUNG_SPEED))
+                ? 'engage'
+                : 'release';
         default:
             return undefined;
     }
@@ -124,6 +133,14 @@ function parkingCommand(display: Display, helms: Helms, ship: Contact, targetVel
         x: clamp((world.x * Math.cos(rad) - world.y * Math.sin(rad)) / MAX_SPEED),
         y: clamp((world.x * Math.sin(rad) + world.y * Math.cos(rad)) / MAX_SPEED),
     };
+}
+
+/**
+ * With the rotation locked on a target beyond the helms radar, the nose points at it: fly forward
+ * until it shows on the radar and parking takes over.
+ */
+function closeIn(helms: Helms) {
+    return helms.rotationMode === TARGET ? { x: MAX_PARKING_SPEED / MAX_SPEED, y: 0 } : undefined;
 }
 
 /** The nearest contact that is a ship, not a shell or a blast. */
