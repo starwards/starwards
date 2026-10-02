@@ -35,7 +35,8 @@ const metres = (m: number) => (Number.isFinite(m) ? `${m.toFixed(0)} m off the g
 /**
  * Weapons trigger: whether the locked target is within a blast of the gun line now, and in 1 s given
  * how the line of sight and the nose moved since the previous display. Indicator: firing is good
- * when the target is on the line now and stays there, bad when it is off it; holding fire is neutral.
+ * only when the target is on the line now and still on it in 1 s (a burst outlasts a target that is
+ * leaving the line); holding fire is neutral.
  */
 export const gunLine: WhatIf = ({ display, previous, secondsSincePrevious, control, option }) => {
     if (control.command !== 'fireChainGun') {
@@ -65,7 +66,7 @@ export const gunLine: WhatIf = ({ display, previous, secondsSincePrevious, contr
     const verdict = onNow
         ? onAhead
             ? { text: 'shells fired now hit', value: 1 }
-            : { text: 'it is leaving the gun line, only the first shells hit', value: 0.5 }
+            : { text: 'it is leaving the gun line, most of a burst fired now misses', value: -0.5 }
         : onAhead
           ? { text: 'it is coming onto the gun line, shells fired now still miss', value: -0.5 }
           : { text: 'shells fired now miss', value: -1 };
