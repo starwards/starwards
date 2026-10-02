@@ -1,0 +1,43 @@
+{
+    "id": "weapons",
+    "version": 14,
+    "station": "weapons",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "weapons officer of the warship GVTS, choosing targets and firing the forward chain gun with the weapons console keys",
+    "mission": "lock the enemy ship and keep hitting it with the chain gun until it is destroyed",
+    "controls": {
+        "target": {
+            "instructions": "Which targeting key do you press now?",
+            "options": {
+                "next": "lock the next contact the filters allow (only contacts scanned at least BASIC); the console then marks the locked contact (LOCKED). With no lock the pilot cannot follow the target. Choose this when the console says no weapons lock and lists a ship, or when Helms said \"need a lock\" in `heard` and the console shows no weapons lock",
+                "previous": "lock the previous allowed contact",
+                "clear": "drop the current lock: the pilot loses the target",
+                "none": "press none: keep the current lock, or keep having none. Choose this when the console shows a weapons lock"
+            }
+        },
+        "fireChainGun:0": {
+            "instructions": "Which do you do with the chain gun trigger now?",
+            "options": {
+                "fire": "fire for half a second straight ahead along the ship's nose; shells explode at the locked target's distance, up to 8000 m, in a blast about 100 m wide each side. A shell hits when the LOCKED contact is within 100 m of the nose's line, so the closer the target the more degrees off the nose still hit: under 600 m up to 8°, under 1.5 km up to 4°, farther only 2°. Choose this when the radar lists the LOCKED contact under 8 km away and that close to the nose. Helms saying \"on its tail\" in `heard` means the target is moving away from us, when shells hit best",
+                "hold_fire": "do not fire. Choose this when there is no lock, when the LOCKED contact is further off the nose than its distance allows (under 600 m: 8°, under 1.5 km: 4°, farther: 2°), or when the radar does not list the LOCKED contact at all (you cannot see where it is, so shells would be wasted)"
+            }
+        },
+        "loadChainGun:0": {
+            "skip": true
+        },
+        "changeGunAmmo:0": {
+            "skip": true
+        },
+        "targetEnemyOnly": {
+            "skip": true
+        },
+        "targetShipsOnly": {
+            "skip": true
+        },
+        "targetShortRangeOnly": {
+            "skip": true
+        }
+    },
+    "view": "verbal"
+}
