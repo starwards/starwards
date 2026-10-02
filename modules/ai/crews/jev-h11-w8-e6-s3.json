@@ -1,0 +1,25 @@
+{
+    "name": "jev-h11-w8-e6-s3",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "jev",
+            "brain": "../brains/helms.v11.json"
+        },
+        {
+            "station": "weapons",
+            "policy": "jev",
+            "brain": "../brains/weapons.v8.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "jev",
+            "brain": "../brains/engineer.v6.json"
+        },
+        {
+            "station": "signals",
+            "policy": "jev",
+            "brain": "../brains/signals.v3.json"
+        }
+    ]
+}
