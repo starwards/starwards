@@ -26,6 +26,7 @@ Guide: `docs/integration/ai-crew.md`.
 | What did the game look like at a bad decision? | from repo root: `npm --prefix modules/server run analyze -- at --recording <x.sgr> --t <t> --roles p=GVTS,t=target` |
 | What did a `verbal` brain read at a decision?  | `npm run read -- --recording <x.sgr> --station <station> --t <t>`                                                   |
 | Would new wording decide differently?          | `npm run reask -- --recording <x.sgr> --brain brains/<station>.v<N+1>.json`                                         |
+| Does a candidate hold on every level?          | `npm run suite -- --crew crews/<candidate>.json --baseline <accepted crew> --workers 4 --archive`                   |
 | What did the crew say to each other?           | from repo root: `npm --prefix modules/server run analyze -- events --recording <x.sgr> --kind callout`              |
 
 ## Procedure
@@ -47,6 +48,22 @@ Guide: `docs/integration/ai-crew.md`.
 7. **Train v(N+1) on the same seeds.** Keep it only if kills or time to kill improve without more
    refused commands. Record the result.
 8. Cost: the report prints input tokens and dollars. Stop a tuning session at an agreed budget.
+
+## Curriculum
+
+The ladder (`modules/ai/curriculum/ladder.json`) orders levels by complexity axis; the lessons log
+(`curriculum/lessons.md`) is read before a level and written after every candidate.
+
+1. **Candidate** on the current level: write v(N+1) from the lessons' reuse notes, tune with the
+   procedure above until the level's `accept` is met.
+2. **Full regression suite:** `npm run suite -- --crew <candidate> --baseline <accepted crew>` over
+   every built level up to and including the current one. Any `regressed` verdict rejects it.
+3. **Accept or reject.** Accepted: `--save-baseline` under the accepted crew's name and make it the
+   recommended crew. Rejected: keep the brain file as a recorded failure.
+4. **Lessons entry** (template at the end of `lessons.md`), with the archive path.
+5. **Plateau:** when the level's `plateau.metric` has not improved beyond seed noise for
+   `plateau.versions` versions, add the next level (one axis, or wider variance at equal difficulty)
+   and rerun the suite for the reference and idle crews to baseline it.
 
 ## Rungs
 

@@ -224,6 +224,57 @@ Helms brain versions so far, T0 seeds 1–4, 120 s:
 `--latency` delays every press by simulated seconds, as a network would; held triggers end on
 simulated time.
 
+## Curriculum
+
+Owner's approach: master a simple challenge, record what it taught, and add complexity only when a
+level plateaus, reusing the lessons. The ladder,
+[`curriculum/ladder.json`](../../modules/ai/curriculum/ladder.json) (schema:
+[`suite/ladder.ts`](../../modules/ai/src/suite/ladder.ts)), orders levels along complexity axes:
+`baseline`, `variance` (same difficulty, wider situations), `threat`, `internal` (the ship's own
+energy, ammo and heat), `enemies`, `mission`, `space`. Each level names its rungs and station
+benchmarks, seeds, timeout, plateau criterion (no gain in its metric beyond seed noise for N versions)
+and acceptance thresholds (kill rate, median time to kill per rung).
+
+| Level | Axis                                   | Plays                                                               | Seeds | Accept              |
+| ----- | -------------------------------------- | ------------------------------------------------------------------- | ----- | ------------------- |
+| L0    | baseline                               | `T0` and every station benchmark                                    | 1–8   | 7/8, median ≤ 120 s |
+| L0b   | variance                               | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                            | 1–16  | 75%                 |
+| L1    | threat                                 | `T1-lite`                                                           | 1–16  | 75%                 |
+| L2    | internal                               | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70 | 1–8   | 50%                 |
+| L3–L6 | enemies, threat ladder, mission, space | placeholders, not built                                             |       |                     |
+
+`T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
+`T0-constrained` the reference fires 226–255 shells per kill, so the shell floor binds.
+
+```bash
+cd modules/ai
+npm run suite -- --crew crews/<crew>.json [--levels L0,L1] [--baseline <name>] [--save-baseline] [--workers 4] [--out <dir>] [--archive]
+```
+
+`suite` plays every built level listed (default: all) for the crew: rungs through `train`, benchmarks
+through `bench` with the crew's own brain and policy at that benchmark's station (benchmarks for
+stations the crew does not seat are skipped). It writes `<out>/suite.md` and `suite.json` (per level
+and item: result, refused, fallbacks, level accepted, verdict against the baseline) and exits 1 on any
+regression. Baselines are committed, small, per crew or name:
+[`curriculum/baselines/<name>.json`](../../modules/ai/curriculum/baselines); `--save-baseline`
+replaces the levels just played. `--archive` copies the run into
+`training-archive/<date>/suite/<crew>-<time>/` beside the repo and rebuilds that day's manifest.
+
+Regression rule ([`suite/regression.ts`](../../modules/ai/src/suite/regression.ts), thresholds in
+the ladder's `regression`), compared only on identical seeds and timeout:
+
+- **Kills:** regressed when below `n·p − z·√(n·p·(1−p))`, `p = (k₀ + ½)/(n₀ + 1)` from the baseline,
+  `z` 1.645 (one-sided 5%). From 8/8, 7/8 is noise and 6/8 regresses; from 12/16, 9/16 is noise and
+  7/16 regresses.
+- **Median time to kill:** regressed when slower than the baseline by more than 25%, with at least 3
+  kills on both sides.
+- **Benchmark score:** regressed when the mean drops by more than `max(0.05, z·SE)` of the two seed
+  sets.
+
+A candidate is accepted only if it passes its own level and nothing regresses on any earlier level
+or benchmark. Lessons, with evidence and reuse notes, go to
+[`curriculum/lessons.md`](../../modules/ai/curriculum/lessons.md).
+
 ## Live game
 
 ```bash
