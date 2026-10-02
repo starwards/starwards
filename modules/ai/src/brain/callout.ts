@@ -3,6 +3,7 @@ import { Radar, offNose } from './verbal';
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
+import { radarReach } from '@starwards/core/internal';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';
@@ -50,6 +51,27 @@ const calloutFills: Record<CalloutFill, (display: Display) => FillValues | undef
               )
             : undefined;
         return skew && degreesAndSide(skew.value);
+    },
+    /**
+     * Signals: the nearest contact its long-range radar shows beyond the helms radar's reach (outside
+     * warp), which helms cannot see. Identified non-ships (rocks, nebulae) are left out; an
+     * unidentified blip may be a ship, so it counts.
+     */
+    farContact: ({ radar }) => {
+        const r = radar as Radar | undefined;
+        const far = r?.contacts?.find(
+            (c) => c.distance > radarReach.helms && (c.type === undefined || c.type === 'Spaceship'),
+        );
+        if (!far || !r?.ownShip) {
+            return undefined;
+        }
+        const off = Math.round(offNose(far.bearing, r.ownShip.heading));
+        return {
+            name: far.name,
+            range: (far.distance / 1000).toFixed(1),
+            bearing:
+                Math.abs(off) < 1 ? 'dead on the nose' : `${Math.abs(off)}° ${off > 0 ? 'right' : 'left'} of the nose`,
+        };
     },
 };
 

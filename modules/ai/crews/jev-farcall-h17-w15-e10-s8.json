@@ -1,0 +1,25 @@
+{
+    "name": "jev-farcall-h17-w15-e10-s8",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "jev",
+            "brain": "../brains/helms.v17.json"
+        },
+        {
+            "station": "weapons",
+            "policy": "jev",
+            "brain": "../brains/weapons.v15.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "jev",
+            "brain": "../brains/engineer.v10.json"
+        },
+        {
+            "station": "signals",
+            "policy": "jev",
+            "brain": "../brains/signals.v8.json"
+        }
+    ]
+}

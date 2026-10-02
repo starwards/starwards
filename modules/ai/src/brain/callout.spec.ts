@@ -120,6 +120,27 @@ describe('callouts', () => {
         expect(calloutSaid(talker, SILENCE, report(5))).toBeUndefined();
     });
 
+    it('name the nearest ship-like contact beyond the helms radar, read off the signals display', () => {
+        const signals = brainSpecSchema.parse({
+            ...spec,
+            callouts: {
+                far_contact: { say: 'contact {name} at {range} km, {bearing}', when: 'far', fill: 'farContact' },
+            },
+        });
+        const radarDisplay = (contacts: object[]) => ({
+            panels: {},
+            radar: { ownShip: { id: 'me', heading: 90 }, contacts },
+        });
+        const near = { id: 'n', name: 'near', distance: 3000, bearing: 90, type: 'Spaceship' };
+        const rock = { id: 'r', name: 'rock', distance: 6000, bearing: 90, type: 'Asteroid' };
+        const blip = { id: 'u', name: 'UFO-u', distance: 7400, bearing: 70 };
+
+        expect(calloutSaid(signals, 'far_contact', radarDisplay([near, rock, blip]))?.phrase).toBe(
+            'contact UFO-u at 7.4 km, 20° left of the nose',
+        );
+        expect(calloutSaid(signals, 'far_contact', radarDisplay([near, rock]))).toBeUndefined();
+    });
+
     it('read out to each decision only the callouts it listens for, and keep them out of the shared state', () => {
         const listener = brainSpecSchema.parse({
             ...spec,

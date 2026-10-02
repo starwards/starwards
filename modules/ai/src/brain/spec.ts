@@ -5,9 +5,10 @@ import { z } from 'zod';
 /**
  * Values a parameterised callout can carry, each read off the speaker's own display:
  * `lockedOffNose` (weapons: the locked contact's degrees and side off the nose) and `gunSkew`
- * (engineer: a chain gun's damage skew from the damage report).
+ * (engineer: a chain gun's damage skew from the damage report), `farContact` (signals: the nearest
+ * contact beyond the helms radar's reach, its name, range and side of the nose).
  */
-export const calloutFills = ['lockedOffNose', 'gunSkew'] as const;
+export const calloutFills = ['lockedOffNose', 'gunSkew', 'farContact'] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
 /**
@@ -64,7 +65,7 @@ export const brainSpecSchema = z
          * `say` is the phrase the other seats hear; `when` describes what saying it tells the crew and
          * "choose this when ...". With callouts, every decision asks one more question, `callout`, over
          * these options and `silence` (wording override: `controls.callout.instructions`).
-         * With `fill`, `say` is a template whose `{degrees}` and `{side}` code fills from this
+         * With `fill`, `say` is a template whose `{placeholders}` code fills from this
          * station's own display when the callout is said; a display that does not show the value says
          * nothing.
          */
