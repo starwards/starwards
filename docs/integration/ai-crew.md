@@ -84,10 +84,11 @@ keeps the seat silent and is recorded as a fallback; `reference` and `idle` seat
 callout or silence; the numbers are deterministic, and a seat can only say what its station shows:
 a display that does not show the value says nothing.
 
-| `fill`          | Speaker  | Read from                                                            | Example              |
-| --------------- | -------- | -------------------------------------------------------------------- | -------------------- |
-| `lockedOffNose` | weapons  | `targeting-status` lock + its radar contact's bearing vs our heading | "need you 6° left"   |
-| `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                         | "gun skewed 8° left" |
+| `fill`          | Speaker  | Read from                                                            | Example                                          |
+| --------------- | -------- | -------------------------------------------------------------------- | ------------------------------------------------ |
+| `lockedOffNose` | weapons  | `targeting-status` lock + its radar contact's bearing vs our heading | "need you 6° left"                               |
+| `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                         | "gun skewed 8° left"                             |
+| `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km        | "contact UFO-12 at 7.4 km, 20° left of the nose" |
 
 **Pub-sub, filtered per decision.** Every crew run has one in-memory channel
 ([`crew/channel.ts`](../../modules/ai/src/crew/channel.ts)), the same in the headless crew and the
@@ -112,23 +113,23 @@ Owner's rule: a callout, and a trigger listening for it, only carries informatio
 what the listener's own station displays. From the manifest widgets and the sandbox readers
 ([`modules/mcp/src/readers.ts`](../../modules/mcp/src/readers.ts)):
 
-| Speaker → listener       | Speaker shows, listener does not                                              | Callout kept                                                         |
-| ------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| weapons → helms          | which contact is locked; where it sits against the gun line                   | "target locked"; "need you {degrees}° {side}" (`lockedOffNose`)      |
-| engineer → weapons       | damage report: chain gun bearing skew, rate-of-fire damage; repair queue      | "gun skewed {degrees}° {side}" (`gunSkew`)                           |
-| engineer → helms         | damage report fields of helms systems (smart pilot offset, thruster capacity) | none: helms' own status strip already flags them damaged             |
-| helms → weapons          | helms stats: rotation/maneuvering mode, strafe, boost                         | none: weapons sees the target's own motion on its radar              |
-| signals → helms, weapons | scan beam and job progress, selected-contact detail                           | none: all radars read the faction's one picture, scan level included |
-| any → engineer           | nothing the engineer needs: it shows every system's heat, power and damage    | none                                                                 |
+| Speaker → listener | Speaker shows, listener does not                                              | Callout kept                                                    |
+| ------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| weapons → helms    | which contact is locked; where it sits against the gun line                   | "target locked"; "need you {degrees}° {side}" (`lockedOffNose`) |
+| engineer → weapons | damage report: chain gun bearing skew, rate-of-fire damage; repair queue      | "gun skewed {degrees}° {side}" (`gunSkew`)                      |
+| engineer → helms   | damage report fields of helms systems (smart pilot offset, thruster capacity) | none: helms' own status strip already flags them damaged        |
+| helms → weapons    | helms stats: rotation/maneuvering mode, strafe, boost                         | none: weapons sees the target's own motion on its radar         |
+| signals → helms    | contacts between the helms radar's 5 km and its own 50 km                     | "contact {name} at {range} km, {bearing}" (`farContact`)        |
+| signals → weapons  | contacts between the tactical radar's 10 km and 50 km                         | none: T1 enemies spawn 2–8 km, inside tactical reach            |
+| any → engineer     | nothing the engineer needs: it shows every system's heat, power and damage    | none                                                            |
 
 Dropped as already on the listener's console: helms "on its tail", "closing", "need a lock";
 weapons "on the gun line, firing"; engineer
 "energy low" (helms stats show energy), "gun overheating" (weapons' status strip shows the chain
 gun's heat), "reactor down" (no listener action); signals "new contact scanned" (the contact's
-identity appears on every radar at once). Weapons "lost the lock" is complementary but left out: helms has no action for it in these rungs. Signals' "far contact at bearing X" needs radars with
-different reach: in the sandbox every seat's radar lists the same faction-visible contacts with no
-range cut ([`sandbox/console.ts`](../../modules/mcp/src/sandbox/console.ts) `radarContacts`), so
-signals has nothing complementary to say until helms and tactical radars are cut to their range.
+identity appears on every radar at once). Weapons "lost the lock" is complementary but left out: helms has no action for it in these rungs. Every seat's radar is cut to its station's reach
+(helms 5 km, tactical 10 km, long range 50 km; see [MCP server](mcp-server.md#radar-filtering)), so
+signals sees farther than helms and weapons; scan level still reaches every radar at once.
 
 Callouts vs listening, T1-lite seeds 1–16, 180 s timeout. Talking crew `jev-talk-h13-w12-e7-s7`
 (helms v13 says "on its tail" only on arriving behind the target, signals v7 says "new contact
