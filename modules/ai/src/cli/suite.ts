@@ -6,11 +6,13 @@
  *
  * `--baseline` defaults to the crew's name (`curriculum/baselines/<name>.json`); `--save-baseline`
  * writes this run's levels into it. `--archive` copies the run into the training archive and
- * rebuilds that day's manifest. Exits 1 when anything regressed.
+ * rebuilds that day's manifest. Exits 1 when anything regressed. `--no-cache` and `--cache-dir <dir>`
+ * reach every run it starts.
  */
 import { CURRICULUM_DIR, loadLadder } from '../suite/ladder';
 import { LevelResult, Verdict, compareLevel, levelAccepted } from '../suite/regression';
 
+import { applyCacheFlags } from '../brain/jev-cache';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -68,6 +70,7 @@ function archive(outDir: string, crew: string) {
 }
 
 async function main() {
+    applyCacheFlags();
     const crewPath = path.resolve(arg('crew', ''));
     if (!fs.existsSync(crewPath)) {
         throw new Error('usage: suite --crew <crew.json> [--levels L0,L1] [--baseline <name>] [--save-baseline]');

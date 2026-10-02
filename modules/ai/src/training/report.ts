@@ -2,7 +2,7 @@ import { CrewRunResult } from './train-crew';
 import { median } from '@starwards/server/src/test/training/gunnery-metrics';
 
 /** Published input price of `jev-1.13.0`, US dollars per million input tokens (output tokens are free). */
-const JEV_DOLLARS_PER_MILLION_TOKENS = 0.042;
+export const JEV_DOLLARS_PER_MILLION_TOKENS = 0.042;
 
 function quantile(values: readonly number[], q: number) {
     if (!values.length) return NaN;
@@ -23,8 +23,8 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         '',
         header,
         '',
-        '| crew | brains | kills | time to kill p10 / median / p90 (s) | shells | decisions | fallbacks | refused | callouts said / suppressed | input tokens | cost ($) |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| crew | brains | kills | time to kill p10 / median / p90 (s) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const crew of crews) {
         const runs = results.filter((r) => r.crew === crew);
@@ -32,7 +32,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         const sum = (f: (r: CrewRunResult) => number) => runs.reduce((a, r) => a + f(r), 0);
         const tokens = sum((r) => r.inputTokens);
         lines.push(
-            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
+            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
         );
     }
     lines.push(

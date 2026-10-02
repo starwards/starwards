@@ -25,7 +25,11 @@ export type CrewRunResult = TrainingResult & {
     commands: number;
     refused: number;
     fallbacks: number;
+    /** Tokens paid for in this run; a request answered from the answer cache adds to `cachedTokens` instead. */
     inputTokens: number;
+    cachedTokens: number;
+    jevRequests: number;
+    cacheHits: number;
     callouts: number;
     suppressed: number;
     controls: Record<string, ControlStats>;
@@ -58,5 +62,8 @@ export async function runCrewTraining(crewPath: string, options: CrewRunOptions)
         crew: plan.name,
         brains: plan.seats.map((s) => `${s.station}:${s.spec.id}@${s.spec.version}/${s.policy.name}`),
         ...crew.stats,
+        cachedTokens: plan.jevUsage?.cachedTokens ?? 0,
+        jevRequests: plan.jevUsage?.requests ?? 0,
+        cacheHits: plan.jevUsage?.cacheHits ?? 0,
     };
 }

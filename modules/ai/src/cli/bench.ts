@@ -4,10 +4,13 @@
  *   npm run bench -- --bench helms-tag --seeds 8 --brain brains/helms.v6.json --brain brains/helms.v7.json [--policy jev] [--workers 2] [--out <dir>]
  *
  * `--policy reference` scores the hand-written rules instead (a sanity check of the benchmark).
+ * Jev answers come from the answer cache when it holds them (`--no-cache`, `--cache-dir <dir>`).
  * Recordings land in `<out>/<brain>.v<N>-<policy>/<bench>_seed<N>.sgr`; the report in `<out>/<bench>.md`.
  */
 import { BenchmarkRunResult, runBenchmark } from '../benchmarks/run-benchmark';
 
+import { JEV_DOLLARS_PER_MILLION_TOKENS } from '../training/report';
+import { applyCacheFlags } from '../brain/jev-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -19,8 +22,6 @@ type Job = {
     options: Omit<Parameters<typeof runBenchmark>[0], 'seed' | 'brainPath'>;
 };
 
-/** Published input price of `jev-1.13.0`, US dollars per million input tokens. */
-const JEV_DOLLARS_PER_MILLION_TOKENS = 0.042;
 const JEV_REQUESTS_PER_MINUTE = 1000;
 
 function arg(name: string, fallback: string) {
@@ -51,14 +52,14 @@ function report(benchmark: string, results: BenchmarkRunResult[], header: string
         '',
         header,
         '',
-        `| brain | runs | ${metricNames.map((m) => `mean ${m}`).join(' | ')} | refused | fallbacks | cost ($) |`,
-        `| --- | --- | ${metricNames.map(() => '---').join(' | ')} | --- | --- | --- |`,
+        `| brain | runs | ${metricNames.map((m) => `mean ${m}`).join(' | ')} | refused | fallbacks | paid tokens | cached tokens (hits) | cost ($) |`,
+        `| --- | --- | ${metricNames.map(() => '---').join(' | ')} | --- | --- | --- | --- | --- |`,
     ];
     for (const brain of brains) {
         const runs = results.filter((r) => r.brain === brain);
         const tokens = runs.reduce((a, r) => a + r.inputTokens, 0);
         lines.push(
-            `| ${brain} | ${runs.length} | ${metricNames.map((m) => mean(runs.map((r) => r.metrics[m] ?? NaN)).toFixed(2)).join(' | ')} | ${runs.reduce((a, r) => a + r.refused, 0)} | ${runs.reduce((a, r) => a + r.fallbacks, 0)} | ${((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS).toFixed(3)} |`,
+            `| ${brain} | ${runs.length} | ${metricNames.map((m) => mean(runs.map((r) => r.metrics[m] ?? NaN)).toFixed(2)).join(' | ')} | ${runs.reduce((a, r) => a + r.refused, 0)} | ${runs.reduce((a, r) => a + r.fallbacks, 0)} | ${tokens} | ${runs.reduce((a, r) => a + r.cachedTokens, 0)} (${runs.reduce((a, r) => a + r.cacheHits, 0)}) | ${((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS).toFixed(3)} |`,
         );
     }
     lines.push('', '| brain | seed | seconds | score | recording |', '| --- | --- | --- | --- | --- |');
@@ -79,6 +80,7 @@ if (process.send) {
 }
 
 async function main() {
+    applyCacheFlags();
     const benchmark = arg('bench', '');
     const brains = args('brain').map((b) => path.resolve(b));
     if (!benchmark || !brains.length) {

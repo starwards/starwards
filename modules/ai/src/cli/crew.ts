@@ -10,6 +10,7 @@
  */
 import { Driver, EVENTS_EXT, encodeEventLine } from '@starwards/core/internal';
 
+import { applyCacheFlags } from '../brain/jev-cache';
 import fs from 'node:fs';
 import { liveCrew } from '../live/live-crew';
 import { loadCrew } from '../crew/crew-config';
@@ -24,6 +25,7 @@ function arg(name: string, fallback?: string) {
 }
 
 async function main() {
+    applyCacheFlags();
     const baseUrl = new URL(arg('url', 'http://localhost:8080')!);
     const shipId = arg('ship', 'GVTS')!;
     const crewFile = arg('crew');
@@ -56,7 +58,7 @@ async function main() {
         process.once('SIGINT', () => live.stop());
         say(`${crew.name} seated on ${shipId}${record ? `, recording ${name}` : ''}; Ctrl-C to stop`);
         await live.run((t) => t < seconds);
-        say(JSON.stringify(live.stats));
+        say(JSON.stringify({ ...live.stats, jev: crew.jevUsage }));
         if (record) {
             await admin.stopRecording();
             const response = await fetch(new URL(`/recordings/${encodeURIComponent(name)}`, baseUrl));

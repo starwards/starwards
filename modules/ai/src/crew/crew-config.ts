@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
 import { Policy } from '../brain/brain';
@@ -44,16 +45,20 @@ export function readCrewFile(filePath: string) {
     };
 }
 
-type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean };
+/** `jevUsage` counts what the crew's Jev seats ask from now on; absent for a crew without one. */
+type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean; jevUsage?: JevUsage };
 
 /**
  * Reads a crew file and builds its seats. A Jev seat needs `TYPESAFE_API_KEY`; the client is shared
- * by every seat of the crew so the per-process rate limit covers all of them.
+ * by every seat of the crew so the per-process rate limit covers all of them, and answers from the
+ * answer cache the environment names.
  */
 export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewPlan {
     const config = readCrewFile(filePath);
     const usesJev = config.seats.some((s) => s.policy === 'jev');
-    const client = usesJev ? jevClient({ requestsPerMinute: jevRequestsPerMinute }) : undefined;
+    const client = usesJev
+        ? meteredJevClient(jevClient({ requestsPerMinute: jevRequestsPerMinute }), answerCacheFromEnv())
+        : undefined;
     const seats = config.seats.map((seat) => {
         const spec = loadBrainSpec(seat.brainPath);
         if (spec.station !== seat.station) {
@@ -67,5 +72,5 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
                   : idlePolicy;
         return { station: seat.station, spec, policy };
     });
-    return { name: config.name, seats, usesJev };
+    return { name: config.name, seats, usesJev, jevUsage: client?.usage };
 }

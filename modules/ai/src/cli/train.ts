@@ -6,10 +6,12 @@
  *
  * Recordings land in `<out>/<crew>/<scenario>_seed<N>.sgr` with the decisions in the `.events.jsonl`
  * beside them; the report in `<out>/<scenario>-crews.md`. Seeds are shared round-robin between
- * `--workers` processes; a Jev crew's request budget is split between them.
+ * `--workers` processes; a Jev crew's request budget is split between them. Jev answers come from
+ * the answer cache when it holds them (`--no-cache` asks afresh, `--cache-dir <dir>` names another).
  */
 import { CrewRunResult, runCrewTraining } from '../training/train-crew';
 
+import { applyCacheFlags } from '../brain/jev-cache';
 import { crewReport } from '../training/report';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
@@ -49,6 +51,7 @@ if (process.send) {
 }
 
 async function main() {
+    applyCacheFlags();
     const scenario = arg('scenario', 'T0');
     const crews = args('crew').map((c) => path.resolve(c));
     if (!crews.length) {
