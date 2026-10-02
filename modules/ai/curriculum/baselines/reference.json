@@ -1,7 +1,7 @@
 {
     "name": "reference",
     "crew": "reference",
-    "commit": "886b16cf",
+    "commit": "259ac3c0",
     "date": "2026-10-02",
     "levels": [
         {
@@ -16,8 +16,8 @@
                     "kind": "rung",
                     "name": "T0",
                     "runs": 8,
-                    "kills": 5,
-                    "medianSeconds": 106.88333333332855,
+                    "kills": 8,
+                    "medianSeconds": 83.70833333332988,
                     "refused": 0,
                     "fallbacks": 0
                 },
@@ -46,8 +46,8 @@
                     "name": "helms-intercept",
                     "brain": "helms@1/reference",
                     "runs": 8,
-                    "meanScore": 0.5471527777777789,
-                    "sdScore": 0.3434910275441434,
+                    "meanScore": 0.6934027777777811,
+                    "sdScore": 0.0917322963978832,
                     "refused": 0,
                     "fallbacks": 0
                 },
@@ -56,8 +56,8 @@
                     "name": "weapons-acquire",
                     "brain": "weapons@1/reference",
                     "runs": 8,
-                    "meanScore": 44.483524620512185,
-                    "sdScore": 17.201047354129503,
+                    "meanScore": 44.6501295816377,
+                    "sdScore": 18.219345372639417,
                     "refused": 0,
                     "fallbacks": 0
                 },
@@ -66,8 +66,27 @@
                     "name": "weapons-range",
                     "brain": "weapons@1/reference",
                     "runs": 8,
-                    "meanScore": 46.79659355971125,
-                    "sdScore": 33.802199415181256,
+                    "meanScore": 71.0801968531931,
+                    "sdScore": 17.24085468279025,
+                    "refused": 0,
+                    "fallbacks": 0
+                }
+            ]
+        },
+        {
+            "id": "L0b",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 240,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T0-wide",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 99.67499999999563,
                     "refused": 0,
                     "fallbacks": 0
                 }
@@ -85,8 +104,27 @@
                     "kind": "rung",
                     "name": "T1-lite",
                     "runs": 16,
-                    "kills": 0,
-                    "medianSeconds": null,
+                    "kills": 13,
+                    "medianSeconds": 63.94999999999765,
+                    "refused": 0,
+                    "fallbacks": 0
+                }
+            ]
+        },
+        {
+            "id": "L2",
+            "seeds": {
+                "first": 1,
+                "count": 8
+            },
+            "timeoutSeconds": 240,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T0-constrained",
+                    "runs": 8,
+                    "kills": 4,
+                    "medianSeconds": 104.64166666666202,
                     "refused": 0,
                     "fallbacks": 0
                 }
