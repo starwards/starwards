@@ -391,7 +391,7 @@ the evaluation protocol, and `modules/ai/ml/reports/` for each version's metrics
 Current model (`modules/ai/ml/reports/2026-10-02.md`): trained on 874 runs of the archive.
 `kill60` test AUC 0.945 pooled over scenarios; per scenario T0 0.83, T1-lite 0.70, so most of the
 pooled figure is telling scenarios apart, not good frames from bad within one. The heatmaps
-(`2026-10-02-heatmap.md`) use 1050 runs. The archive holds 1258 recordings (2026-10-02 manifests).
+(`2026-10-02-heatmap.md`) use 1050 runs. The archive holds 1410 recordings (2026-10-02 manifest).
 
 ```bash
 npm --prefix modules/ai run score -- --recording <x.sgr> [--every 5] [--ship GVTS]   # score series of a run
