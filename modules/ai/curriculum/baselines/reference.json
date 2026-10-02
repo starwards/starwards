@@ -1,0 +1,96 @@
+{
+    "name": "reference",
+    "crew": "reference",
+    "commit": "886b16cf",
+    "date": "2026-10-02",
+    "levels": [
+        {
+            "id": "L0",
+            "seeds": {
+                "first": 1,
+                "count": 8
+            },
+            "timeoutSeconds": 180,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T0",
+                    "runs": 8,
+                    "kills": 5,
+                    "medianSeconds": 106.88333333332855,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-tag",
+                    "brain": "helms@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.8269996296982065,
+                    "sdScore": 0.024663111824111118,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-hold",
+                    "brain": "helms@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.7844695917800657,
+                    "sdScore": 0.03616859499965964,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-intercept",
+                    "brain": "helms@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.5471527777777789,
+                    "sdScore": 0.3434910275441434,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "weapons-acquire",
+                    "brain": "weapons@1/reference",
+                    "runs": 8,
+                    "meanScore": 44.483524620512185,
+                    "sdScore": 17.201047354129503,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "weapons-range",
+                    "brain": "weapons@1/reference",
+                    "runs": 8,
+                    "meanScore": 46.79659355971125,
+                    "sdScore": 33.802199415181256,
+                    "refused": 0,
+                    "fallbacks": 0
+                }
+            ]
+        },
+        {
+            "id": "L1",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 180,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T1-lite",
+                    "runs": 16,
+                    "kills": 0,
+                    "medianSeconds": null,
+                    "refused": 0,
+                    "fallbacks": 0
+                }
+            ]
+        }
+    ]
+}
