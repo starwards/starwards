@@ -37,7 +37,8 @@ const RETRY_STATUSES = new Set([408, 429, 500, 502, 503, 504, 529]);
 /**
  * Talks to TypeSafe's System One endpoint (`POST /v1/systemone`) with plain `fetch`, so neither
  * repo carries an SDK. The key is read from `TYPESAFE_API_KEY` and never logged. Rate limits and
- * overload answers are retried with backoff, honouring `retry-after`.
+ * overload answers are retried with backoff, honouring `retry-after`. Refuses to reach the network
+ * when `CI` is set.
  */
 export function jevClient(options: JevClientOptions = {}): JevClient {
     const apiKey = options.apiKey ?? process.env.TYPESAFE_API_KEY;
@@ -45,6 +46,9 @@ export function jevClient(options: JevClientOptions = {}): JevClient {
         throw new Error(
             'TYPESAFE_API_KEY is not set: a Jev brain cannot run without it. Set it in the environment, not in a file.',
         );
+    }
+    if (process.env.CI && !options.fetchImpl) {
+        throw new Error('CI is set: a Jev brain must not spend money in CI. Use reference or idle crews there.');
     }
     const baseUrl = options.baseUrl ?? process.env.TYPESAFE_BASE_URL ?? 'https://api.typesafe.ai';
     const doFetch = options.fetchImpl ?? fetch;

@@ -35,6 +35,18 @@ describe('jev client', () => {
         }
     });
 
+    it('refuses to reach the network when CI is set', () => {
+        const saved = process.env.CI;
+        process.env.CI = 'true';
+        try {
+            expect(() => jevClient({ apiKey: 'k' })).toThrow(/CI is set/);
+            expect(() => jevClient({ apiKey: 'k', fetchImpl: fetch })).not.toThrow();
+        } finally {
+            if (saved === undefined) delete process.env.CI;
+            else process.env.CI = saved;
+        }
+    });
+
     it('posts state, questions and the pinned model, and retries an overloaded answer', async () => {
         const calls: RequestInit[] = [];
         const sleeps: number[] = [];
