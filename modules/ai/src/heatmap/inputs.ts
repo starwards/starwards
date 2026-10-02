@@ -18,7 +18,7 @@ const local = (m: Mover, v: XY) => XY.rotate(v, -m.angle);
 const sight = (d: Duel) => XY.difference(d.targetBody.position, d.playerBody.position);
 const relVel = (d: Duel) => XY.difference(d.targetBody.velocity, d.playerBody.velocity);
 
-export const FRAME_FEATURES: readonly FrameFeature[] = [
+const FRAME_FEATURES: readonly FrameFeature[] = [
     { name: 'range_km', shownOn: 'radar (helms, weapons, signals)', value: (d) => XY.lengthOf(sight(d)) / 1000 },
     {
         name: 'bearing_cos',
@@ -58,12 +58,9 @@ export const FRAME_FEATURES: readonly FrameFeature[] = [
 
 export const FRAME_FEATURE_NAMES = FRAME_FEATURES.map((f) => f.name);
 
-/** Per-cell inputs of the threat maps: where the target is now and where straight-line flight takes it. */
-export const THREAT_CELL_FEATURE_NAMES = ['is_current', 'is_drift', 'drift_km'] as const;
-/** Per-cell inputs of the position maps (fire, danger, value): the cell's geometry against the target. */
 export const POSITION_CELL_FEATURE_NAMES = ['centre_range_km', 'centre_aim_off', 'centre_in_band'] as const;
 
-export interface FrameInputs {
+interface FrameInputs {
     readonly mover: Mover;
     readonly frame: number[];
     readonly centres: XY[];

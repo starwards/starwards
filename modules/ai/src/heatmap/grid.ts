@@ -142,7 +142,7 @@ export function sectorOf(m: Mover, point: XY) {
     return ((Math.round(off / width) % SECTORS) + SECTORS) % SECTORS;
 }
 
-export interface Cell {
+interface Cell {
     readonly sector: number;
     readonly band: number;
 }
