@@ -26,6 +26,7 @@ Guide: `docs/integration/ai-crew.md`.
 | What did the game look like at a bad decision? | from repo root: `npm --prefix modules/server run analyze -- at --recording <x.sgr> --t <t> --roles p=GVTS,t=target` |
 | What did a `verbal` brain read at a decision?  | `npm run read -- --recording <x.sgr> --station <station> --t <t>`                                                   |
 | Would new wording decide differently?          | `npm run reask -- --recording <x.sgr> --brain brains/<station>.v<N+1>.json`                                         |
+| What did the crew say to each other?           | from repo root: `npm --prefix modules/server run analyze -- events --recording <x.sgr> --kind callout`              |
 
 ## Procedure
 
@@ -46,6 +47,18 @@ Guide: `docs/integration/ai-crew.md`.
 7. **Train v(N+1) on the same seeds.** Keep it only if kills or time to kill improve without more
    refused commands. Record the result.
 8. Cost: the report prints input tokens and dollars. Stop a tuning session at an agreed budget.
+
+## Rungs
+
+`T0` (target plays dead) for the basics; `T1-lite` (stand-ground target that fires back, capsule
+70% breached; calibration only) to see whether a change holds up under fire. `T1` is unwinnable for
+every crew including `reference`: a loss there says nothing about a brain.
+
+## Crew talk
+
+Callouts are brain data (`callouts` in the brain file); listening is wording that names a phrase in
+`heard`. Tune a callout like a control: `decisions` shows its choice counts; a phrase said every
+decision is suppressed by the channel and shows as `suppressed` in the report — tighten its `when`.
 
 ## Rules
 

@@ -19,9 +19,9 @@ of one station each, and the harness that trains and measures them in the headle
 
 ## What a brain is
 
-A brain plays one station, alone: no crew talk. At every decision it is shown everything that
-station's console displays, and for every control the console has it picks one of the buttons that
-control physically offers:
+A brain plays one station. At every decision it is shown everything that station's console displays
+(and, on a crew, what the other seats said lately — see [Crew talk](#crew-talk)), and for every control
+the console has it picks one of the buttons that control physically offers:
 
 | Control kind        | Options                                                 | Example                                        |
 | ------------------- | ------------------------------------------------------- | ---------------------------------------------- |
@@ -70,6 +70,26 @@ station systems working normally") and the brain keeps only the judgement. The r
 previous reading to say whether contacts close, open or hold. The templates read only what the
 display shows, so the fog of war is unchanged.
 
+## Crew talk
+
+A brain file may list `callouts`: the fixed phrases its station may say, keyed by option name, each
+with `say` (what the others hear) and `when` (what saying it tells the crew, and "choose this when
+…"). A talking brain's every decision asks one more choice question, `callout`, over those phrases
+plus `silence` (instruction override: `controls.callout.instructions`). An unknown or unsure answer
+keeps the seat silent and is recorded as a fallback; `reference` and `idle` seats never speak.
+
+Every crew run has one in-memory channel
+([`crew/channel.ts`](../../modules/ai/src/crew/channel.ts)), the same in the headless crew and the
+live crew. Each seat's request carries `heard`: the other seats' callouts of the last 5 s, read out
+as `Weapons said "target locked" 2 s ago`. Radio discipline is in code: the same seat repeating the
+same phrase within 10 s is suppressed. A brain uses what it hears through its wording ("press the
+maneuvering mode key when Weapons said “target locked” in `heard`").
+
+The sidecar gets one `callout` event per phrase chosen (`station`, `phrase`, `delivered`: false when
+suppressed), the `callout` question's `decision` events, and `heard` in each `brain_request`, so
+`decisions` shows the callout choices per station, `reask` rebuilds the request with what was heard,
+and the `train` report counts callouts said / suppressed per crew.
+
 ## Training
 
 ```bash
@@ -80,7 +100,9 @@ npm run reask -- --recording <out>/<crew>/T0_seed1.sgr --brain brains/helms.v2.j
 npm run read -- --recording <out>/<crew>/T0_seed1.sgr --station helms --t 40
 ```
 
-- `train` plays a training rung (`modules/server/src/test/training`) with a crewed player ship,
+- `train` plays a training rung (`modules/server/src/test/training`; `T1-lite`, a dragonfly that
+  holds its ground and fires back with its capsule 70% breached, is the middle rung between `T0` and
+  `T1`, which no crew wins, the reference included) with a crewed player ship,
   every crew on the same seeds, and writes `<out>/<scenario>-crews.md` (kills, time to kill,
   decisions, fallbacks, refused commands, input tokens and cost per crew; per control: choice counts
   and mean confidence) and `<out>/<scenario>-crews.json`.
@@ -148,7 +170,7 @@ The module's scripts load that file; the key is never logged or recorded. Withou
 
 - **Tubes and signals job commands are out**, until the station sandbox can release a tube's safety
   and pass a job id.
-- **No crew communication**: each brain decides alone from its own console.
+- **Crew talk is fixed phrases only**: no free speech, no questions to a seat, no human on the channel.
 - **Confidence is uncalibrated** until thresholds are tuned on recorded runs; `minConfidence`
   defaults to 0.
 - The reference policy plays helms and weapons only.
