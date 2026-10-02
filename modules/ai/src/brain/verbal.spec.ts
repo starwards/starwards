@@ -60,6 +60,18 @@ describe('verbal radar', () => {
         expect(lines).toContain('Weapons locked on enemy.');
     });
 
+    it('says whether the locked target is within a blast of the nose line at its range', () => {
+        const locked = (distance: number, bearing: number) =>
+            verbalReader(1)(
+                radarDisplay([contact('enemy', distance, bearing)], {
+                    'targeting-status': { targetId: 'enemy', shipOnly: true, enemyOnly: false, shortRangeOnly: false },
+                }),
+            );
+        expect(locked(600, 98)).toContain('The locked target is on the gun line at this range.');
+        expect(locked(2000, 98)).toContain('The locked target is off the gun line, to the right of it.');
+        expect(locked(2000, 87)).toContain('The locked target is off the gun line, to the left of it.');
+    });
+
     it('counts own shells instead of listing them', () => {
         const lines = verbalReader(1)(
             radarDisplay([

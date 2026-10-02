@@ -111,6 +111,20 @@ for (const [id, protocol] of Object.entries(repairProtocols)) {
 type Damage = { system: string; field: string; value: number; normal: number };
 const fixedBy = (d: Damage) => protocolsByDamage.get(`${d.system.split('/')[1]}.${d.field}`) ?? [];
 
+/** A shell's blast reaches this far each side of the nose line at the locked target's distance. */
+const GUN_LINE_METRES = 100;
+
+/** Whether the locked contact, as the radar shows it, lies within a blast's reach of the nose line. */
+function gunLine(targetId: string | null, context: ReadingContext): string[] {
+    const locked = targetId ? context.radar?.contacts?.find((c) => c.id === targetId) : undefined;
+    if (!locked || context.heading === undefined) return [];
+    const off = offNose(locked.bearing, context.heading);
+    const aside = Math.abs(off) >= 90 ? Infinity : locked.distance * Math.sin((Math.abs(off) * Math.PI) / 180);
+    return aside <= GUN_LINE_METRES
+        ? ['The locked target is on the gun line at this range.']
+        : [`The locked target is off the gun line, to the ${off > 0 ? 'right' : 'left'} of it.`];
+}
+
 /** One template per panel a station can hold; radar panels are read by `readRadar`. */
 const panelTemplates = {
     'helms-stats': (p: Record<string, number | { x: number; y: number }>) => {
@@ -225,13 +239,17 @@ const panelTemplates = {
                       .join(', ')}.`,
               ]
             : ['No magazine.'],
-    'targeting-status': (p: {
-        targetId: string | null;
-        shipOnly: boolean;
-        enemyOnly: boolean;
-        shortRangeOnly: boolean;
-    }) => [
+    'targeting-status': (
+        p: {
+            targetId: string | null;
+            shipOnly: boolean;
+            enemyOnly: boolean;
+            shortRangeOnly: boolean;
+        },
+        context: ReadingContext,
+    ) => [
         p.targetId ? `Weapons locked on ${p.targetId}.` : 'No weapons lock.',
+        ...gunLine(p.targetId, context),
         `Targeting filters: ships only ${p.shipOnly ? 'on' : 'off'}, enemies only ${p.enemyOnly ? 'on' : 'off'}, short range only ${p.shortRangeOnly ? 'on' : 'off'}.`,
     ],
     'target-info': (p: { target: Contact | null }) => [
