@@ -1,4 +1,5 @@
 import { Level, RegressionRule } from './ladder';
+import { pairedComparison, pairedText } from '../training/paired';
 
 /** One rung of a level, summarised over its seeds. */
 export type RungResult = {
@@ -10,6 +11,11 @@ export type RungResult = {
     medianSeconds: number | null;
     refused: number;
     fallbacks: number;
+    /** Each seed's run value (`RunScore.value`), in seed order; absent when a run could not be scored. */
+    values?: number[];
+    /** Tokens paid to Jev, and tokens answered from the answer cache instead. */
+    paidTokens?: number;
+    cachedTokens?: number;
 };
 
 /** One benchmark of a level, summarised over its seeds. */
@@ -23,6 +29,10 @@ export type BenchResult = {
     sdScore: number;
     refused: number;
     fallbacks: number;
+    /** Each seed's score, in seed order. */
+    scores?: number[];
+    paidTokens?: number;
+    cachedTokens?: number;
 };
 
 export type ItemResult = RungResult | BenchResult;
@@ -43,26 +53,36 @@ const median = (xs: readonly number[]) => {
     return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
+type RunCost = { seed: number; refused: number; fallbacks: number; inputTokens?: number; cachedTokens?: number };
+
+const sum = <T>(runs: readonly T[], of: (run: T) => number | undefined) => runs.reduce((a, r) => a + (of(r) ?? 0), 0);
+
 export function summariseRung(
     name: string,
-    runs: readonly { killed: boolean; seconds: number; refused: number; fallbacks: number }[],
+    unordered: readonly (RunCost & { killed: boolean; seconds: number; score?: { value: number } | null })[],
 ): RungResult {
+    const runs = [...unordered].sort((a, b) => a.seed - b.seed);
+    const values = runs.flatMap((r) => (r.score ? [r.score.value] : []));
     return {
         kind: 'rung',
         name,
         runs: runs.length,
         kills: runs.filter((r) => r.killed).length,
         medianSeconds: median(runs.filter((r) => r.killed).map((r) => r.seconds)),
-        refused: runs.reduce((a, r) => a + r.refused, 0),
-        fallbacks: runs.reduce((a, r) => a + r.fallbacks, 0),
+        refused: sum(runs, (r) => r.refused),
+        fallbacks: sum(runs, (r) => r.fallbacks),
+        ...(values.length === runs.length ? { values } : {}),
+        paidTokens: sum(runs, (r) => r.inputTokens),
+        cachedTokens: sum(runs, (r) => r.cachedTokens),
     };
 }
 
 export function summariseBench(
     name: string,
     brain: string,
-    runs: readonly { metrics: { score: number }; refused: number; fallbacks: number }[],
+    unordered: readonly (RunCost & { metrics: { score: number } })[],
 ): BenchResult {
+    const runs = [...unordered].sort((a, b) => a.seed - b.seed);
     const scores = runs.map((r) => r.metrics.score);
     const mean = scores.reduce((a, b) => a + b, 0) / Math.max(1, scores.length);
     const variance = scores.length > 1 ? scores.reduce((a, s) => a + (s - mean) ** 2, 0) / (scores.length - 1) : 0;
@@ -73,8 +93,11 @@ export function summariseBench(
         runs: runs.length,
         meanScore: mean,
         sdScore: Math.sqrt(variance),
-        refused: runs.reduce((a, r) => a + r.refused, 0),
-        fallbacks: runs.reduce((a, r) => a + r.fallbacks, 0),
+        refused: sum(runs, (r) => r.refused),
+        fallbacks: sum(runs, (r) => r.fallbacks),
+        scores,
+        paidTokens: sum(runs, (r) => r.inputTokens),
+        cachedTokens: sum(runs, (r) => r.cachedTokens),
     };
 }
 
@@ -109,14 +132,31 @@ function compareRung(base: RungResult, now: RungResult, rule: RegressionRule): V
             detail: `median ${now.medianSeconds.toFixed(1)} s over ${(base.medianSeconds * (1 + rule.medianSlowdown)).toFixed(1)} s (baseline ${base.medianSeconds.toFixed(1)} s + ${rule.medianSlowdown * 100}%)`,
         };
     }
+    const value = pairedSeeds(base.values, now.values);
+    if (value && value.ci[1] < 0 && -value.meanDiff > rule.minValueDrop) {
+        return { item: now.name, status: 'regressed', detail: `run value ${pairedText(value)} against the baseline` };
+    }
     return {
         item: now.name,
         status: 'ok',
-        detail: `kills ${now.kills}/${now.runs} (baseline ${base.kills}/${base.runs}), median ${now.medianSeconds?.toFixed(1) ?? '–'} s (baseline ${base.medianSeconds?.toFixed(1) ?? '–'} s)`,
+        detail: `kills ${now.kills}/${now.runs} (baseline ${base.kills}/${base.runs}), median ${now.medianSeconds?.toFixed(1) ?? '–'} s (baseline ${base.medianSeconds?.toFixed(1) ?? '–'} s)${value ? `, run value ${pairedText(value)}` : ''}`,
     };
 }
 
+/** The seed-by-seed comparison, when both sides kept every seed's number. */
+function pairedSeeds(base: readonly number[] | undefined, now: readonly number[] | undefined) {
+    return base && now && base.length === now.length && now.length > 1 ? pairedComparison(base, now) : undefined;
+}
+
 function compareBench(base: BenchResult, now: BenchResult, rule: RegressionRule): Verdict {
+    const paired = pairedSeeds(base.scores, now.scores);
+    if (paired) {
+        return {
+            item: now.name,
+            status: paired.ci[1] < 0 && -paired.meanDiff > rule.minScoreDrop ? 'regressed' : 'ok',
+            detail: `score ${now.meanScore.toFixed(3)} (baseline ${base.meanScore.toFixed(3)}), seed by seed ${pairedText(paired)}`,
+        };
+    }
     const noise = rule.z * Math.sqrt(base.sdScore ** 2 / base.runs + now.sdScore ** 2 / now.runs);
     const allowed = Math.max(rule.minScoreDrop, noise);
     const drop = base.meanScore - now.meanScore;
