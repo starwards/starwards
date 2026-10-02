@@ -25,6 +25,8 @@ Owner decisions (Amir, 2026-10-03):
   evaluation harness.
 - Each seat gets the best player for it by paired test: `reference` rules ($0) where they win, a Jev
   brain only where it beats them.
+- Weapons seat: `reference`. Jev weapons v17 with reference helms against all-reference, T1-lite seeds
+  17–48: 28/32 vs 29/32, run value 0.765 vs 0.777, sign p 1.00; L0 T0 7/8 vs 8/8. No paired win.
 - `T1` must become winnable by bots.
 - Jev budget: $25.
 

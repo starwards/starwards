@@ -184,6 +184,22 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
   gain does not by itself show on a crew rung.
 - **Reuse:** test a what-if brain per seat by paired test against the reference on the same seeds.
 
+### L0, L1 — weapons seat, Jev weapons v17 against the reference (2026-10-03)
+
+- **Change:** crew `jev-weapons-w17-ref-helms`: reference helms, Jev weapons v17 (chosen over v15 on
+  `weapons-range` 135.9 vs 89.7); paired with `reference` on the same seeds, 180 s.
+- **Level:** L1 T1-lite seeds 17–48: 28/32, median 51.7 s, run value 0.765 (reference 29/32, 53.1 s,
+  0.777). Kills Jev-only on seeds 20, 34; reference-only on 22, 24, 46; both lost 39. Run value up/down
+  15/16/1, sign p 1.00; kills 2/3/27, sign p 1.00. L0 T0 seeds 1–8: 7/8, median 77.7 s, run value 0.727
+  (reference 8/8, 83.7 s, 0.795), lost seed 2; run value sign p 0.73. Cost $0.285 (T0 $0.083, T1-lite
+  $0.202). Archive: `training-archive/2026-10-02/weapons-seat-paired/`.
+- **Regression suite:** L0 T0 within noise on every paired metric.
+- **Decision:** rejected for the seat: no paired win; the reference keeps weapons.
+- **Lesson:** a 50% gain on the single-seat `weapons-range` benchmark does not move kills or run value
+  in a crew with reference helms (shells 2737 vs 2766 on T1-lite).
+- **Reuse:** a weapons brain must beat the reference on a crew metric the helms does not bound (shells
+  per kill, kill time under fire) before another paired run.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
