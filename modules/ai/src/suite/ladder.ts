@@ -52,6 +52,8 @@ const regressionSchema = z
         minKillsForMedian: z.number().int().min(1),
         /** Benchmark mean score drops smaller than this never count, whatever the spread. */
         minScoreDrop: z.number().min(0),
+        /** Mean run value drops on a rung smaller than this never count, whatever the interval. */
+        minValueDrop: z.number().min(0).default(0.05),
     })
     .strict();
 

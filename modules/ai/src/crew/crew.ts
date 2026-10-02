@@ -1,10 +1,11 @@
 import { ButtonBrain, Policy, buttonBrain } from '../brain/brain';
+import { Capabilities, Display } from '../brain/controls';
 import { SimClock, headlessStation } from '../console/headless';
 
 import { BrainSpec } from '../brain/spec';
-import { Capabilities } from '../brain/controls';
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
+import { Heard } from '../brain/callout';
 import { StationSession } from '@starwards/mcp/src/sandbox/session';
 import { crewChannel } from './channel';
 import { observeStation } from '@starwards/mcp/src/sandbox/console';
@@ -32,6 +33,8 @@ export type ControlStats = {
 };
 
 type Seat = { plan: SeatPlan; brain: ButtonBrain; session: StationSession; nextDecisionAt: number };
+/** What a seat was shown and heard when it was asked: recorded with the answer it led to. */
+type Asked = { seat: Seat; display: Display; capabilities: Capabilities; heard: Heard[] };
 type Pending = {
     at: number;
     seat: Seat;
@@ -44,6 +47,12 @@ type Pending = {
  * tick: it lets each seat decide on its own cadence, hearing the others' callouts on the crew
  * channel, applies buttons once their latency has passed, and records every request, decision,
  * callout and command beside the recording.
+ *
+ * The seats due on the same tick are asked together: each reads its console and the channel before
+ * any of them answers, their answers are awaited in parallel, and requests, callouts and decisions
+ * are then recorded in seat order. A callout is therefore heard from the listener's next decision
+ * on, as in a live game where it is said once the speaker's decision lands, and a run does not
+ * depend on which answer came back first.
  */
 export function headlessCrew(options: CrewOptions) {
     let game: HeadlessGame;
@@ -81,13 +90,11 @@ export function headlessCrew(options: CrewOptions) {
             board(ticked);
         }
         await clock.advance(game.seconds);
-        for (const seat of seats) {
-            if (game.seconds + 1e-9 < seat.nextDecisionAt) {
-                continue;
-            }
-            seat.nextDecisionAt = game.seconds + seat.plan.spec.decisionSeconds;
-            await decide(seat, recorder);
-        }
+        const asked = seats.filter((seat) => game.seconds + 1e-9 >= seat.nextDecisionAt).map(observe);
+        const results = await Promise.all(
+            asked.map(({ seat, display, capabilities, heard }) => seat.brain.decide(display, capabilities, heard)),
+        );
+        asked.forEach((ask, i) => land(ask, results[i], recorder));
         const due = pending.filter((p) => p.at <= game.seconds + 1e-9);
         pending = pending.filter((p) => p.at > game.seconds + 1e-9);
         for (const p of due) {
@@ -95,13 +102,23 @@ export function headlessCrew(options: CrewOptions) {
         }
     }
 
-    async function decide(seat: Seat, recorder: HeadlessRecorder) {
+    function observe(seat: Seat): Asked {
+        seat.nextDecisionAt = game.seconds + seat.plan.spec.decisionSeconds;
         const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? RADAR_CONTACT_LIMIT });
-        const display = { panels: observed.panels, radar: observed.radar };
-        const capabilities = observed.capabilities as unknown as Capabilities;
+        return {
+            seat,
+            display: { panels: observed.panels, radar: observed.radar },
+            capabilities: observed.capabilities as unknown as Capabilities,
+            heard: channel.heard(seat.plan.station, game.seconds),
+        };
+    }
+
+    function land(
+        { seat, display, capabilities, heard }: Asked,
+        result: Awaited<ReturnType<ButtonBrain['decide']>>,
+        recorder: HeadlessRecorder,
+    ) {
         const { station } = seat.plan;
-        const heard = channel.heard(station, game.seconds);
-        const result = await seat.brain.decide(display, capabilities, heard);
         // the raw display and capabilities, not the request's filtered copy, so `reask` can rebuild the
         // request any later brain would have asked from exactly what this station showed
         recorder.record('brain_request', options.shipId, {

@@ -1,4 +1,7 @@
+import { BrainSpec, loadBrainSpec } from '../brain/spec';
 import { HeadlessGame, SERVER_TICK_HZ } from '@starwards/server/src/test/headless-game';
+import { JevClient, jevClient } from '../brain/jev-client';
+import { MeteredJevClient, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
@@ -6,9 +9,7 @@ import { Policy } from '../brain/brain';
 import { SeatPlan } from '../crew/crew';
 import fc from 'fast-check';
 import { headlessCrew } from '../crew/crew';
-import { jevClient } from '../brain/jev-client';
 import { loadBenchmark } from './benchmark';
-import { loadBrainSpec } from '../brain/spec';
 import { makeReferencePolicy } from '../brain/reference-policy';
 import path from 'node:path';
 
@@ -35,12 +36,15 @@ export type BenchmarkRunResult = {
     decisions: number;
     fallbacks: number;
     refused: number;
+    /** Tokens paid for in this run; a request answered from the answer cache adds to `cachedTokens` instead. */
     inputTokens: number;
+    cachedTokens: number;
+    cacheHits: number;
     recording: string;
 };
 
-function policyFor(kind: BenchmarkRunOptions['policy'], spec: ReturnType<typeof loadBrainSpec>, rpm?: number): Policy {
-    if (kind === 'jev') return jevPolicy(spec, jevClient({ requestsPerMinute: rpm }));
+function policyFor(kind: BenchmarkRunOptions['policy'], spec: BrainSpec, jev: () => JevClient): Policy {
+    if (kind === 'jev') return jevPolicy(spec, jev());
     if (kind === 'reference') return makeReferencePolicy(spec.decisionSeconds);
     return idlePolicy;
 }
@@ -57,11 +61,18 @@ export async function runBenchmark(options: BenchmarkRunOptions): Promise<Benchm
             `benchmark ${benchmark.name} tests ${benchmark.station}; brain ${spec.id} plays ${spec.station}`,
         );
     }
+    // made on first use, so a benchmark without a Jev seat never needs the key
+    let metered: MeteredJevClient | undefined;
+    const jev = () =>
+        (metered ??= meteredJevClient(
+            jevClient({ requestsPerMinute: options.jevRequestsPerMinute }),
+            answerCacheFromEnv(),
+        ));
     const seats: SeatPlan[] = [
-        { station: spec.station, spec, policy: policyFor(options.policy, spec, options.jevRequestsPerMinute) },
+        { station: spec.station, spec, policy: policyFor(options.policy, spec, jev) },
         ...benchmark.supporting.map(({ station, policy }) => {
             const supportSpec = loadBrainSpec(path.join(BRAINS_DIR, `${station}.v1.json`));
-            return { station, spec: supportSpec, policy: policyFor(policy, supportSpec) };
+            return { station, spec: supportSpec, policy: policyFor(policy, supportSpec, jev) };
         }),
     ];
     const [params] = fc.sample(benchmark.params, { seed: options.seed, numRuns: 1 });
@@ -98,6 +109,8 @@ export async function runBenchmark(options: BenchmarkRunOptions): Promise<Benchm
         fallbacks: crew.stats.fallbacks,
         refused: crew.stats.refused,
         inputTokens: crew.stats.inputTokens,
+        cachedTokens: metered?.usage.cachedTokens ?? 0,
+        cacheHits: metered?.usage.cacheHits ?? 0,
         recording: recorder.filePath,
     };
 }

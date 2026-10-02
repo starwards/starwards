@@ -26,6 +26,8 @@ Guide: `docs/integration/ai-crew.md`.
 | What did the game look like at a bad decision? | from repo root: `npm --prefix modules/server run analyze -- at --recording <x.sgr> --t <t> --roles p=GVTS,t=target` |
 | What did a `verbal` brain read at a decision?  | `npm run read -- --recording <x.sgr> --station <station> --t <t>`                                                   |
 | Would new wording decide differently?          | `npm run reask -- --recording <x.sgr> --brain brains/<station>.v<N+1>.json`                                         |
+| Is crew A better than B on the same seeds?     | `npm run compare -- --results <dir>/T0-crews.json --baseline <B> [--timeout 120]` (read run value, not kills)       |
+| Does a brain still act like the reference?     | `npm run agree -- --recording <dir> --station <helms\|weapons> [--brain brains/<station>.v<N+1>.json]`              |
 | Does a candidate hold on every level?          | `npm run suite -- --crew crews/<candidate>.json --baseline <accepted crew> --workers 4 --archive`                   |
 | What did the crew say to each other?           | from repo root: `npm --prefix modules/server run analyze -- events --recording <x.sgr> --kind callout`              |
 
@@ -45,9 +47,13 @@ Guide: `docs/integration/ai-crew.md`.
 5. **Write v(N+1)** — a new file, never an edit of a recorded version. Change one thing.
 6. **Reask** the baseline recordings with v(N+1): confirm the intended controls flipped and nothing
    else moved much. Cheap; do it before spending a training run.
-7. **Train v(N+1) on the same seeds.** Keep it only if kills or time to kill improve without more
-   refused commands. Record the result.
-8. Cost: the report prints input tokens and dollars. Stop a tuning session at an agreed budget.
+   `agree` on the same recordings flags a broken version (agreement collapses where the reference
+   acts) but a better brain may agree less: never pick by agreement alone.
+7. **Train v(N+1) on the same seeds.** Judge by the paired run value (seed by seed, sign test) in
+   the report; kills at 8 seeds rarely separate two working crews. Keep it only if that improves
+   without more refused commands. Record the result.
+8. Cost: the report prints paid and cached tokens and dollars. Jev answers are cached on disk, so
+   rerunning a seed is free and identical. Stop a tuning session at an agreed budget.
 
 ## Curriculum
 

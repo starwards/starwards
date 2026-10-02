@@ -6,11 +6,13 @@
  *
  * `--baseline` defaults to the crew's name (`curriculum/baselines/<name>.json`); `--save-baseline`
  * writes this run's levels into it. `--archive` copies the run into the training archive and
- * rebuilds that day's manifest. Exits 1 when anything regressed.
+ * rebuilds that day's manifest. Exits 1 when anything regressed. `--no-cache` and `--cache-dir <dir>`
+ * reach every run it starts.
  */
 import { CURRICULUM_DIR, loadLadder } from '../suite/ladder';
 import { LevelResult, Verdict, compareLevel, levelAccepted } from '../suite/regression';
 
+import { applyCacheFlags } from '../brain/jev-cache';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -29,6 +31,7 @@ function arg(name: string, fallback: string) {
 }
 
 const fmt = (n: number | null, digits = 1) => (n === null ? '–' : n.toFixed(digits));
+const meanOf = (xs?: readonly number[]) => (xs?.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 function report(
     crew: string,
@@ -40,17 +43,17 @@ function report(
         '',
         `baseline \`${baselineName}\``,
         '',
-        '| level | item | seeds | result | refused | fallbacks | level accepted | vs baseline | detail |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| level | item | seeds | result | refused | fallbacks | paid tokens | cached tokens | level accepted | vs baseline | detail |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const { result, verdicts, accepted } of rows) {
         for (const [i, item] of result.items.entries()) {
             const outcome =
                 item.kind === 'rung'
-                    ? `kills ${item.kills}/${item.runs}, median ${fmt(item.medianSeconds)} s`
+                    ? `kills ${item.kills}/${item.runs}, median ${fmt(item.medianSeconds)} s, run value ${fmt(meanOf(item.values), 3)}`
                     : `score ${item.meanScore.toFixed(3)} ± ${item.sdScore.toFixed(3)} (${item.brain})`;
             lines.push(
-                `| ${result.id} | ${item.name} | ${result.seeds.first}–${result.seeds.first + result.seeds.count - 1} | ${outcome} | ${item.refused} | ${item.fallbacks} | ${accepted ? 'yes' : 'no'} | ${verdicts[i].status} | ${verdicts[i].detail} |`,
+                `| ${result.id} | ${item.name} | ${result.seeds.first}–${result.seeds.first + result.seeds.count - 1} | ${outcome} | ${item.refused} | ${item.fallbacks} | ${item.paidTokens ?? 0} | ${item.cachedTokens ?? 0} | ${accepted ? 'yes' : 'no'} | ${verdicts[i].status} | ${verdicts[i].detail} |`,
             );
         }
     }
@@ -68,6 +71,7 @@ function archive(outDir: string, crew: string) {
 }
 
 async function main() {
+    applyCacheFlags();
     const crewPath = path.resolve(arg('crew', ''));
     if (!fs.existsSync(crewPath)) {
         throw new Error('usage: suite --crew <crew.json> [--levels L0,L1] [--baseline <name>] [--save-baseline]');

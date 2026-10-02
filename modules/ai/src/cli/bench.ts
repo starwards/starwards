@@ -4,10 +4,14 @@
  *   npm run bench -- --bench helms-tag --seeds 8 --brain brains/helms.v6.json --brain brains/helms.v7.json [--policy jev] [--workers 2] [--out <dir>]
  *
  * `--policy reference` scores the hand-written rules instead (a sanity check of the benchmark).
+ * Jev answers come from the answer cache when it holds them (`--no-cache`, `--cache-dir <dir>`).
  * Recordings land in `<out>/<brain>.v<N>-<policy>/<bench>_seed<N>.sgr`; the report in `<out>/<bench>.md`.
  */
 import { BenchmarkRunResult, runBenchmark } from '../benchmarks/run-benchmark';
+import { isSignificant, pairedComparison, pairedText } from '../training/paired';
 
+import { JEV_DOLLARS_PER_MILLION_TOKENS } from '../training/report';
+import { applyCacheFlags } from '../brain/jev-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -19,8 +23,6 @@ type Job = {
     options: Omit<Parameters<typeof runBenchmark>[0], 'seed' | 'brainPath'>;
 };
 
-/** Published input price of `jev-1.13.0`, US dollars per million input tokens. */
-const JEV_DOLLARS_PER_MILLION_TOKENS = 0.042;
 const JEV_REQUESTS_PER_MINUTE = 1000;
 
 function arg(name: string, fallback: string) {
@@ -42,7 +44,7 @@ async function runJob(job: Job) {
     return results;
 }
 
-function report(benchmark: string, results: BenchmarkRunResult[], header: string) {
+function report(benchmark: string, results: BenchmarkRunResult[], header: string, baseline: string) {
     const brains = [...new Set(results.map((r) => r.brain))];
     const metricNames = [...new Set(results.flatMap((r) => Object.keys(r.metrics)))];
     const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
@@ -51,15 +53,35 @@ function report(benchmark: string, results: BenchmarkRunResult[], header: string
         '',
         header,
         '',
-        `| brain | runs | ${metricNames.map((m) => `mean ${m}`).join(' | ')} | refused | fallbacks | cost ($) |`,
-        `| --- | --- | ${metricNames.map(() => '---').join(' | ')} | --- | --- | --- |`,
+        `| brain | runs | ${metricNames.map((m) => `mean ${m}`).join(' | ')} | refused | fallbacks | paid tokens | cached tokens (hits) | cost ($) |`,
+        `| --- | --- | ${metricNames.map(() => '---').join(' | ')} | --- | --- | --- | --- | --- |`,
     ];
     for (const brain of brains) {
         const runs = results.filter((r) => r.brain === brain);
         const tokens = runs.reduce((a, r) => a + r.inputTokens, 0);
         lines.push(
-            `| ${brain} | ${runs.length} | ${metricNames.map((m) => mean(runs.map((r) => r.metrics[m] ?? NaN)).toFixed(2)).join(' | ')} | ${runs.reduce((a, r) => a + r.refused, 0)} | ${runs.reduce((a, r) => a + r.fallbacks, 0)} | ${((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS).toFixed(3)} |`,
+            `| ${brain} | ${runs.length} | ${metricNames.map((m) => mean(runs.map((r) => r.metrics[m] ?? NaN)).toFixed(2)).join(' | ')} | ${runs.reduce((a, r) => a + r.refused, 0)} | ${runs.reduce((a, r) => a + r.fallbacks, 0)} | ${tokens} | ${runs.reduce((a, r) => a + r.cachedTokens, 0)} (${runs.reduce((a, r) => a + r.cacheHits, 0)}) | ${((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS).toFixed(3)} |`,
         );
+    }
+    if (brains.length > 1) {
+        lines.push(
+            '',
+            `| brain | score against ${baseline}, seed by seed: difference [95% interval] | verdict |`,
+            '| --- | --- | --- |',
+        );
+        const scores = (brain: string) => new Map(results.filter((r) => r.brain === brain).map((r) => [r.seed, r]));
+        const base = scores(baseline);
+        for (const brain of brains.filter((b) => b !== baseline)) {
+            const mine = scores(brain);
+            const seeds = [...mine.keys()].filter((seed) => base.has(seed));
+            const c = pairedComparison(
+                seeds.map((seed) => base.get(seed)!.metrics.score),
+                seeds.map((seed) => mine.get(seed)!.metrics.score),
+            );
+            lines.push(
+                `| ${brain} | ${pairedText(c)} | ${isSignificant(c) ? (c.meanDiff > 0 ? 'better' : 'worse') : 'within noise'} |`,
+            );
+        }
     }
     lines.push('', '| brain | seed | seconds | score | recording |', '| --- | --- | --- | --- | --- |');
     for (const r of results) {
@@ -79,6 +101,7 @@ if (process.send) {
 }
 
 async function main() {
+    applyCacheFlags();
     const benchmark = arg('bench', '');
     const brains = args('brain').map((b) => path.resolve(b));
     if (!benchmark || !brains.length) {
@@ -117,11 +140,14 @@ async function main() {
                       ),
                   )
               ).flat();
+    // every other brain is paired with the first one named
+    const baseline = results[0].brain;
     results.sort((a, b) => a.seed - b.seed || a.brain.localeCompare(b.brain));
     const text = report(
         benchmark,
         results,
         `seeds ${firstSeed}–${firstSeed + seedCount - 1}, policy ${options.policy}, ${workers} worker(s), wall ${((Date.now() - started) / 1000).toFixed(0)} s`,
+        baseline,
     );
     fs.mkdirSync(outDir, { recursive: true });
     fs.writeFileSync(path.join(outDir, `${benchmark}.md`), text);

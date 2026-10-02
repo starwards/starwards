@@ -17,6 +17,11 @@ export type JevResponse = {
 
 export type JevClient = { ask(request: BrainRequest, model: string): Promise<JevResponse> };
 
+/** The request exactly as it goes on the wire: what Jev reads, and so what an answer is cached under. */
+export function jevBody(request: BrainRequest, model: string) {
+    return JSON.stringify({ model, state: request.state, questions: request.questions });
+}
+
 type JevClientOptions = {
     apiKey?: string;
     baseUrl?: string;
@@ -59,7 +64,7 @@ export function jevClient(options: JevClientOptions = {}): JevClient {
 
     return {
         async ask(request, model) {
-            const body = JSON.stringify({ model, state: request.state, questions: request.questions });
+            const body = jevBody(request, model);
             for (let attempt = 0; ; attempt++) {
                 await slot();
                 const started = Date.now();
