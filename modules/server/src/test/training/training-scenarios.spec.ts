@@ -35,8 +35,17 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T1, T1-MK2, T1-predator, T1-noweave and T1-lite', () => {
-        expect(Object.keys(trainingScenarios)).toEqual(['T0', 'T1', 'T1-MK2', 'T1-predator', 'T1-noweave', 'T1-lite']);
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T1-MK2, T1-predator, T1-noweave and T1-lite', () => {
+        expect(Object.keys(trainingScenarios)).toEqual([
+            'T0',
+            'T0-wide',
+            'T0-constrained',
+            'T1',
+            'T1-MK2',
+            'T1-predator',
+            'T1-noweave',
+            'T1-lite',
+        ]);
     });
 
     it('T0: a dragonfly-MK1 that plays dead, capped to the GVTS top speed', () => {
