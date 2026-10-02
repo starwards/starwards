@@ -155,6 +155,22 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
   can see" on `rotationMode` and `boost`; `reask` it on the T0 seed 7 and T1-lite seeds 5, 7, 15
   recordings before a paid run.
 
+### L0–L2 — `reference` determinism and fresh seeds (2026-10-02)
+
+- **Change:** none; a rerun of the accepted reference and a held-out seed check.
+- **Level:** rerun of L0, L0b, L1, L2 on the baseline seeds: every rung identical seed by seed
+  (killed, seconds, shells) to `reference-075308`, every benchmark score identical, every verdict ok.
+  Fresh seeds 17–48, 180 s: T0 30/32, median 99.2 s (losses seeds 23, 45); T1-lite 29/32, median
+  53.1 s (losses 20, 34, 39). Archive: `training-archive/2026-10-02/suite/reference-determinism-rerun/`
+  and `reference-fresh-seeds-17-48/`.
+- **Regression suite:** all ok. T1-lite 29/32 lies above 13/16's lower bound at 32 seeds (21.6 kills
+  by the suite's rule) and within noise of it two-sided (z 1.6).
+- **Decision:** the harness is deterministic at $0; the reference is not fitted to seeds 1–16.
+- **Lesson:** a reference result on the ladder's seeds holds on unseen seeds; a rerun is free proof
+  that a change in numbers comes from code, not chance.
+- **Reuse:** after a core or harness change, rerun the reference suite first: any per-seed
+  difference is a code change to explain before any brain is judged.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
