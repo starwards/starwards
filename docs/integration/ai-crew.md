@@ -17,6 +17,17 @@ last_verified: 2026-10-02
 **Module:** [`modules/ai`](../../modules/ai) — station brains that play a ship by pressing the buttons
 of one station each, and the harness that trains and measures them in the headless game.
 
+## Purpose and seat policy
+
+Owner decisions (Amir, 2026-10-03):
+
+- Bots serve three uses: NPC crews in the game, filling empty seats at playtests, and a balance and
+  evaluation harness.
+- Each seat gets the best player for it by paired test: `reference` rules ($0) where they win, a Jev
+  brain only where it beats them.
+- `T1` must become winnable by bots.
+- Jev budget: $25.
+
 ## What a brain is
 
 A brain plays one station. At every decision it is shown everything that station's console displays
@@ -176,8 +187,9 @@ decisions. Three more kills on T1-lite, at a slower kill on both rungs; at 16 se
 near seed noise (the silent crew scored 12/16 on an earlier run).
 
 Recommended crew: [`crews/recommended.json`](../../modules/ai/crews/recommended.json), a copy of
-`jev-complement-h16-w15-e10-s3`: most T1-lite kills, and every callout carries what the listener
-cannot see.
+`jev-complement-h16-w15-e10-s3`: every callout carries what the listener cannot see. Since the radar
+reach cut it fails L0 (7/8, median 132.6 s) and L1 (10/16); see the suite baselines under
+[Curriculum](#curriculum).
 
 ## Training
 
@@ -291,6 +303,10 @@ Suite baselines with every station radar cut to its reach:
 | `reference`   | 8/8, 83.7 s  | 16/16, 99.7 s | 13/16, 63.9 s | 4/8, 104.6 s        |
 | `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          |
 
+Reports: `training-archive/2026-10-02/suite/reference-075308/`, `recommended-081501/` (L0) and
+`recommended-083320/` (L1). The recommended crew fails both levels it played (L0 accept needs a
+median ≤ 120 s, L1 needs 75%).
+
 The reference reaches a target beyond the helms radar by pressing the rotation-mode key until
 weapons' lock makes it hold, then flying forward; the recommended crew's helms (v16) does not, and
 stands still on spawns beyond 5 km.
@@ -371,6 +387,11 @@ The models are an exported artefact, `scoring/models/<version>.json` (feature ha
 metrics, parity fixture), trained by `modules/ai/ml` on the training archive; see
 [`modules/ai/ml/README.md`](../../modules/ai/ml/README.md) for rebuilding the dataset, retraining and
 the evaluation protocol, and `modules/ai/ml/reports/` for each version's metrics.
+
+Current model (`modules/ai/ml/reports/2026-10-02.md`): trained on 874 runs of the archive.
+`kill60` test AUC 0.945 pooled over scenarios; per scenario T0 0.83, T1-lite 0.70, so most of the
+pooled figure is telling scenarios apart, not good frames from bad within one. The heatmaps
+(`2026-10-02-heatmap.md`) use 1050 runs. The archive holds 1258 recordings (2026-10-02 manifests).
 
 ```bash
 npm --prefix modules/ai run score -- --recording <x.sgr> [--every 5] [--ship GVTS]   # score series of a run
