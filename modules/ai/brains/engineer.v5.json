@@ -1,0 +1,136 @@
+{
+    "id": "engineer",
+    "version": 5,
+    "station": "engineer",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 2,
+    "role": "engineer of the warship GVTS: you set each system's power and coolant share and order repairs with the engineering console keys",
+    "mission": "keep the ship fighting: energy store never empty, no system overheating, damage repaired; warp and docking are not used in this fight",
+    "controls": {
+        "systemPower": {
+            "options": {
+                "raise": "raise this system's power one level (power levels step SHUTDOWN → LOW → NORMAL → HIGH → MAX): it works harder, draws more energy and heats faster. Choose this when its power is below NORMAL",
+                "lower": "lower this system's power one level: it works less, draws less energy and heats slower. Choose this when its power is above NORMAL",
+                "hold": "press nothing: keep the power level. Choose this when its power is NORMAL"
+            }
+        },
+        "systemCoolant": {
+            "options": {
+                "raise": "raise this system's coolant share one step: the ship's coolant is shared out by these shares, so this system cools faster and the others slower. Choose this when this system is listed among the hottest systems and its heat is 30 or more",
+                "lower": "lower this system's coolant share one step, leaving more coolant for the others. Choose this when its heat is below 10 and its coolant is above 0%",
+                "hold": "press nothing: keep its coolant share. Choose this when neither of the other two applies"
+            }
+        },
+        "cycleRepairPriority": {
+            "options": {
+                "raise": "raise this protocol's repair priority one step (OFF → LOW → MEDIUM → HIGH; the highest priority runs next, one repair at a time). Choose this when a Damage line says it is 'fixed by' this protocol, the reactor is not BROKEN, and this repair is not listed or is LOW or MEDIUM",
+                "lower": "lower this protocol's priority one step; on a RUNNING repair either key cancels it. Choose this when this repair is listed but no Damage line names this protocol, or when the reactor is BROKEN and this repair is listed: it holds the repair crew the reactor jump-start needs",
+                "none": "press neither key. Choose this when this repair is RUNNING and the reactor is not BROKEN, or neither of the other two applies"
+            }
+        },
+        "systemPower:/reactor": {
+            "options": {
+                "raise": "raise reactor power one level above NORMAL. Never choose this: above NORMAL the reactor heats about 19 per second, more than all the ship's coolant removes, so it overheats and takes damage within seconds",
+                "lower": "lower reactor power one level, back to NORMAL. Choose this when reactor power is HIGH or MAX",
+                "hold": "press nothing: keep reactor power. Choose this when reactor power is NORMAL or the reactor is BROKEN"
+            }
+        },
+        "systemPower:/warp": {
+            "options": {
+                "raise": "raise this system's power one level. Never needed in this fight",
+                "lower": "lower this system's power one level, toward SHUTDOWN: this system is not used in this fight and only wastes energy. Choose this when its power is above SHUTDOWN",
+                "hold": "press nothing: keep the power level. Choose this when its power is already SHUTDOWN"
+            }
+        },
+        "systemPower:/docking": {
+            "options": {
+                "raise": "raise this system's power one level. Never needed in this fight",
+                "lower": "lower this system's power one level, toward SHUTDOWN: this system is not used in this fight and only wastes energy. Choose this when its power is above SHUTDOWN",
+                "hold": "press nothing: keep the power level. Choose this when its power is already SHUTDOWN"
+            }
+        },
+        "systemPower:/thrusters/0": {
+            "options": {
+                "raise": "raise this thruster's power one level: the ship maneuvers harder but uses more energy. Choose this when its power is below NORMAL and the energy store is more than 50% full",
+                "lower": "lower this thruster's power one level: weaker maneuvering, saves energy. Choose this when the energy store is LOW (below 25% full) and its power is above LOW, or its power is above NORMAL",
+                "hold": "press nothing: keep the power level. Choose this when neither of the other two applies"
+            }
+        },
+        "systemPower:/thrusters/1": {
+            "options": {
+                "raise": "raise this thruster's power one level: the ship maneuvers harder but uses more energy. Choose this when its power is below NORMAL and the energy store is more than 50% full",
+                "lower": "lower this thruster's power one level: weaker maneuvering, saves energy. Choose this when the energy store is LOW (below 25% full) and its power is above LOW, or its power is above NORMAL",
+                "hold": "press nothing: keep the power level. Choose this when neither of the other two applies"
+            }
+        },
+        "systemPower:/thrusters/2": {
+            "options": {
+                "raise": "raise this thruster's power one level: the ship maneuvers harder but uses more energy. Choose this when its power is below NORMAL and the energy store is more than 50% full",
+                "lower": "lower this thruster's power one level: weaker maneuvering, saves energy. Choose this when the energy store is LOW (below 25% full) and its power is above LOW, or its power is above NORMAL",
+                "hold": "press nothing: keep the power level. Choose this when neither of the other two applies"
+            }
+        },
+        "systemPower:/thrusters/3": {
+            "options": {
+                "raise": "raise this thruster's power one level: the ship maneuvers harder but uses more energy. Choose this when its power is below NORMAL and the energy store is more than 50% full",
+                "lower": "lower this thruster's power one level: weaker maneuvering, saves energy. Choose this when the energy store is LOW (below 25% full) and its power is above LOW, or its power is above NORMAL",
+                "hold": "press nothing: keep the power level. Choose this when neither of the other two applies"
+            }
+        },
+        "systemPower:/thrusters/4": {
+            "options": {
+                "raise": "raise this thruster's power one level: the ship maneuvers harder but uses more energy. Choose this when its power is below NORMAL and the energy store is more than 50% full",
+                "lower": "lower this thruster's power one level: weaker maneuvering, saves energy. Choose this when the energy store is LOW (below 25% full) and its power is above LOW, or its power is above NORMAL",
+                "hold": "press nothing: keep the power level. Choose this when neither of the other two applies"
+            }
+        },
+        "systemPower:/thrusters/5": {
+            "options": {
+                "raise": "raise this thruster's power one level: the ship maneuvers harder but uses more energy. Choose this when its power is below NORMAL and the energy store is more than 50% full",
+                "lower": "lower this thruster's power one level: weaker maneuvering, saves energy. Choose this when the energy store is LOW (below 25% full) and its power is above LOW, or its power is above NORMAL",
+                "hold": "press nothing: keep the power level. Choose this when neither of the other two applies"
+            }
+        },
+        "systemPower:/tubes/0": {
+            "skip": true
+        },
+        "systemPower:/tubes/1": {
+            "skip": true
+        },
+        "systemCoolant:/tubes/0": {
+            "skip": true
+        },
+        "systemCoolant:/tubes/1": {
+            "skip": true
+        },
+        "systemCoolant:/warp": {
+            "skip": true
+        },
+        "systemCoolant:/docking": {
+            "skip": true
+        },
+        "warpFrequency": {
+            "skip": true
+        },
+        "changeFrequency": {
+            "skip": true
+        },
+        "toggleRepairProtocolMode": {
+            "skip": true
+        },
+        "cycleRepairPriority:armorPlateRenewal": {
+            "skip": true
+        },
+        "cycleRepairPriority:hullWideSystemsOverhaul": {
+            "skip": true
+        },
+        "cycleRepairPriority:reactorJumpStart": {
+            "options": {
+                "raise": "raise the reactor jump-start priority one step (OFF → LOW → MEDIUM → HIGH): when it runs it spends one energy cell to restart a dead reactor, giving back 30% reactor efficiency and 30% energy in 10 seconds, with no energy needed. Choose this when the reactor is BROKEN and this repair is not listed or is LOW or MEDIUM",
+                "lower": "lower its priority one step; while it is RUNNING either key cancels it. Choose this when the reactor is not BROKEN and this repair is listed but not RUNNING",
+                "none": "press neither key. Choose this when this repair is RUNNING or HIGH, or the reactor is not BROKEN and this repair is not listed"
+            }
+        }
+    },
+    "view": "verbal"
+}
