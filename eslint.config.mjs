@@ -213,7 +213,7 @@ export default [
         // .claude/workflows: Claude Workflow-tool scripts — their body executes inside
         // an async function, so top-level `return` is part of the format and cannot
         // parse as standard JS. Prettier still formats them (separate command).
-        ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts', '.claude/workflows/**'],
+        ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts', '.claude/workflows/**', '**/.venv/**'],
     },
     // Base config for all files
     {
