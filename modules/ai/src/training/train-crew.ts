@@ -26,6 +26,8 @@ export type CrewRunResult = TrainingResult & {
     refused: number;
     fallbacks: number;
     inputTokens: number;
+    callouts: number;
+    suppressed: number;
     controls: Record<string, ControlStats>;
 };
 

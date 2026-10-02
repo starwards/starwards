@@ -35,7 +35,7 @@ export async function reask(
             burstSeconds: Math.min(5, spec.decisionSeconds),
         });
         const answered = await policy.answer(
-            buildRequest(spec, recorded.display, controls, read?.(recorded.display)),
+            buildRequest(spec, recorded.display, controls, read?.(recorded.display), recorded.heard),
             controls,
             recorded.display,
         );

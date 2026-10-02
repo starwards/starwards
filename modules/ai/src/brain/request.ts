@@ -1,10 +1,12 @@
+import { CALLOUT_QUESTION, Heard, calloutQuestion, heardLines } from './callout';
 import { Control, Display } from './controls';
+
 import { BrainSpec } from './spec';
 
 /** One choice question in a snap-judgment request: pick exactly one option. */
 export type ChoiceQuestion = { type: 'choice'; instructions: string; criteria: Record<string, string> };
 
-/** A whole decision: the station's display as state, and one choice question per control. */
+/** A whole decision: the station's display as state, one choice question per control, and the callout question of a talking brain. */
 export type BrainRequest = { state: Record<string, unknown>; questions: Record<string, ChoiceQuestion> };
 
 /**
@@ -17,6 +19,8 @@ export function buildRequest(
     display: Display,
     controls: readonly Control[],
     reading?: readonly string[],
+    /** What the seat heard on the crew channel; undefined for a seat on no channel. */
+    heard?: readonly Heard[],
 ): BrainRequest {
     const questions: Record<string, ChoiceQuestion> = {};
     for (const control of controls) {
@@ -30,12 +34,17 @@ export function buildRequest(
             criteria: { ...control.options, ...pick(wording.options ?? {}, Object.keys(control.options)) },
         };
     }
+    const callout = calloutQuestion(spec);
+    if (callout) {
+        questions[CALLOUT_QUESTION] = callout;
+    }
     return {
         state: {
             station: spec.station,
             role: spec.role,
             mission: spec.mission,
             ...(reading ? { console: reading } : { display: visibleDisplay(display, spec.hide) }),
+            ...(heard ? { heard: heardLines(heard) } : {}),
         },
         questions,
     };

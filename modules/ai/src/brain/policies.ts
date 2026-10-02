@@ -2,6 +2,7 @@ import { Answer, Policy } from './brain';
 
 import { BrainSpec } from './spec';
 import { JevClient } from './jev-client';
+import { SILENCE } from './callout';
 
 /** Leaves every control as it is: the crew member who never showed up. */
 export const idlePolicy: Policy = {
@@ -15,9 +16,9 @@ export const idlePolicy: Policy = {
 };
 
 /**
- * Asks Jev every question of a decision in one request. An answer outside the control's options,
- * a missing answer, or one under the brain's confidence floor rests the control instead, and is
- * recorded as a fallback so tuning can see how often the brain was not trusted.
+ * Asks Jev every question of a decision in one request. An answer outside the question's options,
+ * a missing answer, or one under the brain's confidence floor rests the control (or keeps a callout
+ * silent) instead, and is recorded as a fallback so tuning can see how often the brain was not trusted.
  */
 export function jevPolicy(spec: BrainSpec, client: JevClient): Policy {
     return {
@@ -25,13 +26,11 @@ export function jevPolicy(spec: BrainSpec, client: JevClient): Policy {
         async answer(request, controls) {
             const response = await client.ask(request, spec.model);
             const answers: Record<string, Answer> = {};
-            for (const control of controls) {
-                if (!(control.id in request.questions)) {
-                    continue;
-                }
-                const given = response.answers[control.id];
-                const trusted = given && given.choice in control.options && given.confidence >= spec.minConfidence;
-                answers[control.id] = trusted
+            for (const [id, question] of Object.entries(request.questions)) {
+                const rest = controls.find((c) => c.id === id)?.rest ?? SILENCE;
+                const given = response.answers[id];
+                const trusted = given && given.choice in question.criteria && given.confidence >= spec.minConfidence;
+                answers[id] = trusted
                     ? {
                           choice: given.choice,
                           confidence: given.confidence,
@@ -39,7 +38,7 @@ export function jevPolicy(spec: BrainSpec, client: JevClient): Policy {
                           source: 'model',
                       }
                     : {
-                          choice: control.rest,
+                          choice: rest,
                           confidence: given?.confidence,
                           probabilities: given?.probabilities,
                           source: 'fallback',

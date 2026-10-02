@@ -4,6 +4,7 @@ import { ButtonBrain, buttonBrain } from '../brain/brain';
 import { Capabilities } from '../brain/controls';
 import { SeatPlan } from '../crew/crew';
 import { StationSession } from '@starwards/mcp/src/sandbox/session';
+import { crewChannel } from '../crew/channel';
 import { liveStation } from '../console/live';
 import { observeStation } from '@starwards/mcp/src/sandbox/console';
 
@@ -73,8 +74,9 @@ function gameClock(admin: AdminDriver, record: boolean) {
 
 /**
  * Runs a crew of station brains on one ship of a live game: each seat decides on its own cadence in
- * game time and presses its buttons through a real station session, and every request, decision,
- * command and brain failure is written as a sidecar event. A seat whose brain throws is recorded and
+ * game time, hearing the others' callouts on the crew channel, and presses its buttons through a real
+ * station session; every request, decision, callout, command and brain failure is written as a
+ * sidecar event. A seat whose brain throws is recorded and
  * keeps its cadence; the other seats are not affected.
  */
 export async function liveCrew(options: LiveCrewOptions) {
@@ -94,7 +96,17 @@ export async function liveCrew(options: LiveCrewOptions) {
     }
     const clock = gameClock(admin, options.record ?? false);
     const inFlight = new Set<Promise<unknown>>();
-    const stats = { decisions: 0, commands: 0, refused: 0, fallbacks: 0, brainErrors: 0, inputTokens: 0 };
+    const stats = {
+        decisions: 0,
+        commands: 0,
+        refused: 0,
+        fallbacks: 0,
+        brainErrors: 0,
+        inputTokens: 0,
+        callouts: 0,
+        suppressed: 0,
+    };
+    const channel = crewChannel();
     let stopped = false;
 
     const emit = (kind: string, data: unknown) => write({ t: clock.stamp, kind, objectId: shipId, data });
@@ -108,8 +120,22 @@ export async function liveCrew(options: LiveCrewOptions) {
         const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? RADAR_CONTACT_LIMIT });
         const display = { panels: observed.panels, radar: observed.radar };
         const capabilities = observed.capabilities as unknown as Capabilities;
-        const result = await seat.brain.decide(display, capabilities);
-        emit('brain_request', { station, ...result.meta, display, capabilities, questions: result.request.questions });
+        const heard = channel.heard(station, clock.seconds);
+        const result = await seat.brain.decide(display, capabilities, heard);
+        emit('brain_request', {
+            station,
+            ...result.meta,
+            display,
+            capabilities,
+            heard,
+            questions: result.request.questions,
+        });
+        if (result.callout) {
+            // said when the decision lands, as a player speaks once they have made up their mind
+            const delivered = channel.say(station, result.callout, clock.seconds);
+            stats[delivered ? 'callouts' : 'suppressed']++;
+            emit('callout', { station, phrase: result.callout, delivered });
+        }
         for (const d of result.decisions) {
             emit('decision', {
                 station,

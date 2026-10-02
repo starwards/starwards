@@ -2,6 +2,7 @@ import { Capabilities, Display } from '../brain/controls';
 import { EVENTS_EXT, RecordingEventLine, parseEventLine } from '@starwards/core/internal';
 
 import { Answer } from '../brain/brain';
+import { Heard } from '../brain/callout';
 import fs from 'node:fs';
 
 const RECORDING_EXT = '.sgr';
@@ -27,6 +28,8 @@ export type RecordedRequest = {
     policy: string;
     display: Display;
     capabilities: Capabilities;
+    /** What the seat heard on the crew channel; absent in runs recorded before crew talk. */
+    heard?: Heard[];
 };
 
 /** Reads the decision events recorded beside a recording (`x.sgr` or its `x.events.jsonl`). */

@@ -1,5 +1,6 @@
 import { BrainRequest, buildRequest } from './request';
 import { BrainSpec, specHash } from './spec';
+import { CALLOUT_QUESTION, Heard, calloutPhrase } from './callout';
 import { Capabilities, Control, Display, Press, stationControls } from './controls';
 
 import { verbalReader } from './verbal';
@@ -33,6 +34,8 @@ type DecisionResult = {
     request: BrainRequest;
     decisions: Decision[];
     presses: Press[];
+    /** The phrase this seat says on the crew channel, if it chose to speak. */
+    callout?: string;
     meta: {
         brain: string;
         version: number;
@@ -45,8 +48,9 @@ type DecisionResult = {
 };
 
 /**
- * A station brain that plays by pressing buttons: it shows the whole display, asks one choice per
- * control, and turns the chosen options into console commands. It talks to no other station.
+ * A station brain that plays by pressing buttons: it shows the whole display (and what it heard from
+ * the crew), asks one choice per control (and, with `callouts`, what to say), and turns the chosen
+ * options into console commands and a callout.
  */
 export function buttonBrain(spec: BrainSpec, policy: Policy) {
     const hash = specHash(spec);
@@ -54,13 +58,13 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
     return {
         spec,
         policy,
-        async decide(display: Display, capabilities: Capabilities): Promise<DecisionResult> {
+        async decide(display: Display, capabilities: Capabilities, heard?: readonly Heard[]): Promise<DecisionResult> {
             const controls = stationControls({
                 display,
                 capabilities,
                 burstSeconds: Math.min(5, spec.decisionSeconds),
             });
-            const request = buildRequest(spec, display, controls, read?.(display));
+            const request = buildRequest(spec, display, controls, read?.(display), heard);
             const answered = Object.keys(request.questions).length
                 ? await policy.answer(request, controls, display)
                 : { answers: {} };
@@ -72,10 +76,15 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 }
                 decisions.push({ control: control.id, ...answer, press: control.press(answer.choice) });
             }
+            const callout = answered.answers[CALLOUT_QUESTION];
+            if (callout && CALLOUT_QUESTION in request.questions) {
+                decisions.push({ control: CALLOUT_QUESTION, ...callout });
+            }
             return {
                 request,
                 decisions,
                 presses: decisions.flatMap((d) => (d.press ? [d.press] : [])),
+                callout: callout && calloutPhrase(spec, callout.choice),
                 meta: {
                     brain: spec.id,
                     version: spec.version,

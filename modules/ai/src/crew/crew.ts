@@ -6,6 +6,7 @@ import { Capabilities } from '../brain/controls';
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
 import { StationSession } from '@starwards/mcp/src/sandbox/session';
+import { crewChannel } from './channel';
 import { observeStation } from '@starwards/mcp/src/sandbox/console';
 
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
@@ -39,9 +40,10 @@ type Pending = {
 };
 
 /**
- * Runs a crew of isolated station brains on one ship of a headless game. Call `beforeTick` before
- * every tick: it lets each seat decide on its own cadence, applies buttons once their latency has
- * passed, and records every request, decision and command beside the recording.
+ * Runs a crew of station brains on one ship of a headless game. Call `beforeTick` before every
+ * tick: it lets each seat decide on its own cadence, hearing the others' callouts on the crew
+ * channel, applies buttons once their latency has passed, and records every request, decision,
+ * callout and command beside the recording.
  */
 export function headlessCrew(options: CrewOptions) {
     let game: HeadlessGame;
@@ -54,13 +56,18 @@ export function headlessCrew(options: CrewOptions) {
         refused: 0,
         fallbacks: 0,
         inputTokens: 0,
+        /** Callouts put on the air, and callouts suppressed as repeats. */
+        callouts: 0,
+        suppressed: 0,
         controls: {} as Record<string, ControlStats>,
     };
+    let channel = crewChannel();
 
     /** The crew boards the game it is first called with: the training loop creates the game itself. */
     function board(boarded: HeadlessGame) {
         game = boarded;
         clock = new SimClock(game.seconds);
+        channel = crewChannel();
         seats = options.seats.map((plan) => ({
             plan,
             brain: buttonBrain(plan.spec, plan.policy),
@@ -92,8 +99,9 @@ export function headlessCrew(options: CrewOptions) {
         const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? RADAR_CONTACT_LIMIT });
         const display = { panels: observed.panels, radar: observed.radar };
         const capabilities = observed.capabilities as unknown as Capabilities;
-        const result = await seat.brain.decide(display, capabilities);
         const { station } = seat.plan;
+        const heard = channel.heard(station, game.seconds);
+        const result = await seat.brain.decide(display, capabilities, heard);
         // the raw display and capabilities, not the request's filtered copy, so `reask` can rebuild the
         // request any later brain would have asked from exactly what this station showed
         recorder.record('brain_request', options.shipId, {
@@ -101,8 +109,14 @@ export function headlessCrew(options: CrewOptions) {
             ...result.meta,
             display,
             capabilities,
+            heard,
             questions: result.request.questions,
         });
+        if (result.callout) {
+            const delivered = channel.say(station, result.callout, game.seconds);
+            stats[delivered ? 'callouts' : 'suppressed']++;
+            recorder.record('callout', options.shipId, { station, phrase: result.callout, delivered });
+        }
         for (const d of result.decisions) {
             recorder.record('decision', options.shipId, {
                 station,

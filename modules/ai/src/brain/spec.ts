@@ -45,6 +45,18 @@ export const brainSpecSchema = z
         view: z.enum(['display', 'verbal']).default('display'),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
+        /**
+         * Crew talk: the fixed phrases this station may say on the crew channel, keyed by option name.
+         * `say` is the phrase the other seats hear; `when` describes what saying it tells the crew and
+         * "choose this when ...". With callouts, every decision asks one more question, `callout`, over
+         * these options and `silence` (wording override: `controls.callout.instructions`).
+         */
+        callouts: z
+            .record(
+                z.string().refine((k) => k !== 'silence', 'silence is always an option'),
+                z.object({ say: z.string(), when: z.string() }).strict(),
+            )
+            .optional(),
     })
     .strict();
 
