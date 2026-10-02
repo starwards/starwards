@@ -161,6 +161,8 @@ simulated time.
 npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS --crew crews/reference.json [--record] [--seconds N] [--out <dir>]
 ```
 
+Run it from Git Bash: PowerShell's npm drops the `--` flags. In PowerShell call the script directly from `modules/ai`: `node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts --url ...`.
+
 Waits for a running game, seats each crew station on the ship as an MCP `login` does
 ([`console/live.ts`](../../modules/ai/src/console/live.ts): the server's manifest decides the seat,
 and it registers as `ai-<station>` on the GM roster), and plays until Ctrl-C or `--seconds` of game
