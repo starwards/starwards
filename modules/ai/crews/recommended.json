@@ -4,22 +4,22 @@
         {
             "station": "helms",
             "policy": "jev",
-            "brain": "../brains/helms.v14.json"
+            "brain": "../brains/helms.v16.json"
         },
         {
             "station": "weapons",
             "policy": "jev",
-            "brain": "../brains/weapons.v13.json"
+            "brain": "../brains/weapons.v15.json"
         },
         {
             "station": "engineer",
             "policy": "jev",
-            "brain": "../brains/engineer.v8.json"
+            "brain": "../brains/engineer.v10.json"
         },
         {
             "station": "signals",
             "policy": "jev",
-            "brain": "../brains/signals.v7.json"
+            "brain": "../brains/signals.v3.json"
         }
     ]
 }
