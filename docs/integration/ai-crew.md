@@ -148,6 +148,19 @@ kills are within seed noise; the earlier 8/8 for talk did not hold. Helms now sa
 8% of decisions (was ~80%), signals speaks 36 times in 16 runs. Listening wording without callouts
 heard (`jev-listen-h15-w14-e9-s3`) and the talking crew on T0 are built but not yet run.
 
+Far-contact callout under the radar reach cut, crew `jev-farcall-h17-w15-e10-s8` (recommended plus
+signals v8 saying "contact {name} at {range} km, {bearing}" beyond the helms radar's 5 km, and helms
+v17 hearing it on `rotation` only), against recommended in the same run, T1-lite seeds 1–8, 180 s
+timeout, 2 workers:
+
+| Crew                                     | T1-lite 1–8 kills | median TTK | Cost  |
+| ---------------------------------------- | ----------------- | ---------- | ----- |
+| recommended                              | 6/8               | 49 s       | $0.42 |
+| far contact `jev-farcall-h17-w15-e10-s8` | 5/8               | 42 s       | $0.57 |
+
+Signals chose `far_contact` on 608 of 909 decisions (e.g. "contact target at 5.1 km, 54° left of the
+nose") and helms' rotation requests carried it; no gain at 8 seeds, so recommended stays.
+
 Complementary callouts, crew `jev-complement-h16-w15-e10-s3` (helms v16, weapons v15, engineer v10,
 signals v3: the silent crew's wording plus the audited callouts and per-decision `hears`), against
 the silent crew in the same run, 180 s timeout, 2 workers:
