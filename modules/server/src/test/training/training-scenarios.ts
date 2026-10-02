@@ -6,6 +6,7 @@ import { GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import {
+    T0Lab,
     T0Params,
     TRAINING_PLAYER_ID,
     TRAINING_TARGET_ID,
@@ -81,6 +82,37 @@ const T1_ATTACKING_DRAGONFLY: TrainingScenario<T0Params> = {
     createMap: createTrainingT1Map,
 };
 
+type T0WideParams = T0Params & { readonly targetModel: NonNullable<T0Lab['targetModel']> };
+
+/** T0 at the same difficulty with wider situations: 1-10 km and either dragonfly hull (calibration only). */
+const T0_WIDE: TrainingScenario<T0WideParams> = {
+    name: 'T0-wide',
+    description: 'GVTS vs one PLAY_DEAD dragonfly-MK1 or -MK2 (calibration only), 1-10 km, any bearing',
+    params: fc.record({
+        distance: fc.integer({ min: 1000, max: 10000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        targetModel: fc.constantFrom('dragonfly-MK1' as const, 'dragonfly-MK2' as const),
+    }),
+    createMap: (params) => createTrainingT0Map(params, { targetModel: params.targetModel }),
+};
+
+type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel'>>;
+
+/** T0 with the GVTS starting short of energy and shells, guns already hot (calibration only). */
+const T0_CONSTRAINED: TrainingScenario<T0ConstrainedParams> = {
+    name: 'T0-constrained',
+    description:
+        'GVTS starting with 10-30% reactor energy, 250-450 shells per type, chain guns at heat 40-70 (calibration only) vs one PLAY_DEAD dragonfly-MK1, 2-8 km, any bearing',
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        playerEnergy: fc.integer({ min: 10, max: 30 }).map((p) => p / 100),
+        playerShells: fc.integer({ min: 250, max: 450 }),
+        playerGunHeat: fc.integer({ min: 40, max: 70 }),
+    }),
+    createMap: (params) => createTrainingT0Map(params, params),
+};
+
 type T1Calibration = NonNullable<Parameters<typeof createTrainingT1Map>[2]>;
 
 /** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, calibration only, a handicapped target. */
@@ -98,6 +130,8 @@ const t1WithHull = (
 
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
+    'T0-wide': T0_WIDE as TrainingScenario<never>,
+    'T0-constrained': T0_CONSTRAINED as TrainingScenario<never>,
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
