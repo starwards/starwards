@@ -5,6 +5,7 @@ import { Policy } from '../brain/brain';
 import { buildRequest } from '../brain/request';
 import { stationControls } from '../brain/controls';
 import { verbalReader } from '../brain/verbal';
+import { whatIfForecaster } from '../whatif/forecast';
 
 type ReaskRow = {
     t: number;
@@ -28,6 +29,7 @@ export async function reask(
 ) {
     const rows: ReaskRow[] = [];
     const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
+    const forecast = whatIfForecaster(spec);
     for (const recorded of requests.filter((r) => r.station === spec.station)) {
         const controls = stationControls({
             display: recorded.display,
@@ -35,7 +37,14 @@ export async function reask(
             burstSeconds: Math.min(5, spec.decisionSeconds),
         });
         const answered = await policy.answer(
-            buildRequest(spec, recorded.display, controls, read?.(recorded.display), recorded.heard),
+            buildRequest(
+                spec,
+                recorded.display,
+                controls,
+                read?.(recorded.display),
+                recorded.heard,
+                forecast?.(recorded.display, controls),
+            ),
             controls,
             recorded.display,
         );
