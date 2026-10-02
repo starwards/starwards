@@ -12,6 +12,7 @@
         "read": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/read.ts",
         "bench": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/bench.ts",
         "suite": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/suite.ts",
+        "agree": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/agree.ts",
         "compare": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/compare.ts",
         "score:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/dataset.ts",
         "score": "node -r ts-node/register/transpile-only ./src/scoring/cli.ts",

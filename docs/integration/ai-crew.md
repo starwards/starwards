@@ -211,6 +211,44 @@ npm run read -- --recording <out>/<crew>/T0_seed1.sgr --station helms --t 40
 - `read` prints the verbal UI's reading of one station at a recorded time: the sentences a `verbal`
   brain saw at that decision.
 
+```bash
+npm run compare -- --results <out>/T0-crews.json [--results <other>/T0-crews.json] [--baseline <crew>] [--timeout 120]
+npm run agree -- --recording <x.sgr | folder> --station helms [--brain brains/helms.v12.json] [--reach 5000] [--md]
+```
+
+- **Answer cache.** Every Jev answer is stored on disk under `training-archive/jev-cache`, keyed by
+  model and request; a request already paid for is answered from disk for free, so a replayed seed
+  makes the same decisions. Reports show paid and cached tokens apart. `--no-cache` asks afresh,
+  `--cache-dir <dir>` uses another folder (`JEV_CACHE=off`, `JEV_CACHE_DIR` in the environment).
+  Measured: one T0 seed, 30 s, helms v11 + weapons v5: first run 22 s wall, 200k paid tokens; the
+  replay 4 s, 0 paid, identical frames and decisions.
+- **Parallel seats.** Seats due on the same tick ask Jev at once; their decisions are recorded in seat
+  order.
+- **Run value.** Each run also gets the time-mean of the snapshot score over its frames
+  (`scoring/run-score.ts`): `value` (the time after a kill counts as 1) and one score per station.
+  Train and suite reports pair every crew with the first (or `--baseline`) seed by seed: mean
+  difference, 95% t interval and sign test. `compare` does the same from finished results files;
+  `--timeout` rescores from the recordings over a common horizon, for runs played with different
+  timeouts or recorded before results carried a run value.
+  On archived T0 seeds 1–8 (`agents/t0`), run value calls `jev-h11-w8-e6-s3` better than
+  `jev-h11-w8-idle-es` on 8/8 seeds (sign p 0.008) where kills (7/8 vs 3/8) are within noise
+  (p 0.22), and the reference better than the same crew 8/8 (kills p 0.063). Reference vs idle
+  separates on both. At 4 seeds a sign test cannot go below p 0.125, so only the t interval can call
+  a difference there. Station scores mislead across crews: helms score ranks a crew that sits in
+  firing position without killing above the reference.
+- **Teacher agreement.** `agree` scores a helms or weapons brain by how often it chooses what the
+  reference policy chooses on the displays recorded in runs, per control and overall over the
+  controls the reference plays (`actAgreement`: on decisions where the reference does not rest).
+  Without `--brain` it scores the brain that played each run, from its recorded decisions, for free;
+  with `--brain` it asks that brain (answers from the cache when held). `--reach` cuts the recorded
+  radar for runs made before station radars were cut to their reach (helms 5000, weapons 10000).
+  It detects a broken brain but does not rank good ones: on the archived benchmark runs weapons v9
+  (the recorded failure) agrees 26% where the reference fires, v5–v8 93–100%; but v8, the best on
+  weapons-range (133.5 vs v5 54.5, reference 65), agrees least overall (80% vs v5 94%), because it
+  fires where the reference holds. Helms v6→v11 agreement rises with version (intercept 19%→38%,
+  hold 15%→24%) while staying far below the reference's own runs; it is a cheap screen before a
+  rung, not a replacement for one.
+
 Helms brain versions so far, T0 seeds 1–4, 120 s:
 
 | Version         | Wording                                          | Kills                                  |
