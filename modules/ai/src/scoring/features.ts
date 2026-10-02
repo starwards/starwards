@@ -1,4 +1,13 @@
-import { JobStatus, SavedGame, ScanLevel, ShipState, XY } from '@starwards/core/internal';
+import {
+    IdleStrategy,
+    JobStatus,
+    Order,
+    SavedGame,
+    ScanLevel,
+    ShipState,
+    Spaceship,
+    XY,
+} from '@starwards/core/internal';
 
 import { offNose } from '../brain/verbal';
 
@@ -11,10 +20,16 @@ import { offNose } from '../brain/verbal';
 
 export type Station = 'helms' | 'weapons' | 'engineer' | 'signals' | 'overall';
 
-/** The two ships a frame is scored for. */
+/**
+ * The two ships a frame is scored for: their systems (`ShipState`) and their bodies in space. Physics
+ * and scan levels come from the bodies; `ShipState.spaceship` is a mirror that lags a tick and does
+ * not carry scan levels.
+ */
 export interface Duel {
     readonly player: ShipState;
     readonly target: ShipState;
+    readonly playerBody: Spaceship;
+    readonly targetBody: Spaceship;
 }
 
 interface Geometry {
@@ -71,8 +86,8 @@ export function systemEffectiveness(ship: ShipState) {
 }
 
 /** The player's scan level on the target, 0..3 (`ScanLevel`). */
-export function scanLevel({ player, target }: Duel) {
-    return target.spaceship.scanLevels.at(player.faction) ?? ScanLevel.UFO;
+export function scanLevel({ playerBody, targetBody }: Pick<Duel, 'playerBody' | 'targetBody'>) {
+    return targetBody.scanLevels.at(playerBody.faction) ?? ScanLevel.UFO;
 }
 
 const SHELLS = ['HiExpShell', 'ArmPenShell', 'FragShell'] as const;
@@ -99,7 +114,10 @@ function lateralMiss({ distance, offNose: off }: Pick<Geometry, 'distance' | 'of
     return abs >= 90 ? distance : distance * Math.sin((abs * Math.PI) / 180);
 }
 
-export function geometry({ player, target }: Duel): Geometry {
+export function geometry({
+    playerBody: player,
+    targetBody: target,
+}: Pick<Duel, 'playerBody' | 'targetBody'>): Geometry {
     const sight = XY.difference(target.position, player.position);
     const distance = XY.lengthOf(sight);
     const relVel = XY.difference(target.velocity, player.velocity);
@@ -185,21 +203,21 @@ export const FEATURES: readonly Feature[] = [
         station: 'helms',
         unit: 'km/s',
         meaning: 'player speed',
-        value: ({ player }) => player.speed / 1000,
+        value: ({ playerBody }) => XY.lengthOf(playerBody.velocity) / 1000,
     },
     {
         name: 'h_target_speed',
         station: 'helms',
         unit: 'km/s',
         meaning: 'target speed',
-        value: ({ target }) => target.speed / 1000,
+        value: ({ targetBody }) => XY.lengthOf(targetBody.velocity) / 1000,
     },
     {
         name: 'h_turn_rate',
         station: 'helms',
         unit: '100°/s',
         meaning: '|player turn speed|',
-        value: ({ player }) => Math.abs(player.turnSpeed) / 100,
+        value: ({ playerBody }) => Math.abs(playerBody.turnSpeed) / 100,
     },
     {
         name: 'h_afterburner_fuel',
@@ -430,7 +448,7 @@ export const FEATURES: readonly Feature[] = [
         station: 'overall',
         unit: '0/1',
         meaning: 'target follows an order or fights back when idle (not PLAY_DEAD)',
-        value: ({ target }) => b(target.order !== 0 || target.idleStrategy !== 0),
+        value: ({ target }) => b(target.order !== Order.NONE || target.idleStrategy !== IdleStrategy.PLAY_DEAD),
     },
 ];
 
@@ -443,18 +461,34 @@ export const FEATURE_NAMES = FEATURES.map((f) => f.name);
 export function findDuel(saved: SavedGame, playerId?: string): Duel | undefined {
     const ships = [...saved.fragment.ship.values()].sort((a, c) => (a.id < c.id ? -1 : a.id > c.id ? 1 : 0));
     const player = playerId ? ships.find((s) => s.id === playerId) : ships.find((s) => s.isPlayerShip);
-    if (!player) return undefined;
-    let target: ShipState | undefined;
+    const playerBody = player && body(saved, player.id);
+    if (!player || !playerBody) return undefined;
+    let found: Duel | undefined;
     let best = Infinity;
-    for (const ship of ships) {
-        if (ship.faction === player.faction || ship.spaceship.destroyed) continue;
-        const d = XY.lengthOf(XY.difference(ship.position, player.position));
+    for (const target of ships) {
+        const targetBody = body(saved, target.id);
+        if (target.faction === player.faction || !targetBody) continue;
+        const d = XY.lengthOf(XY.difference(targetBody.position, playerBody.position));
         if (d < best) {
             best = d;
-            target = ship;
+            found = { player, target, playerBody, targetBody };
         }
     }
-    return target ? { player, target } : undefined;
+    return found;
+}
+
+/** The duel between two known ships, `undefined` when either is gone. */
+export function duelOf(saved: SavedGame, playerId: string, targetId: string): Duel | undefined {
+    const player = saved.fragment.ship.get(playerId);
+    const target = saved.fragment.ship.get(targetId);
+    const playerBody = body(saved, playerId);
+    const targetBody = body(saved, targetId);
+    return player && target && playerBody && targetBody ? { player, target, playerBody, targetBody } : undefined;
+}
+
+function body(saved: SavedGame, id: string) {
+    const ship = saved.fragment.space.getShip(id);
+    return ship && !ship.destroyed ? ship : undefined;
 }
 
 /** Feature vector in `FEATURE_NAMES` order. */

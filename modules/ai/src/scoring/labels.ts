@@ -1,5 +1,5 @@
 import { SavedGame, ScanLevel } from '@starwards/core/internal';
-import { findDuel, geometry, inFiringPosition, integrity, scanLevel, systemEffectiveness } from './features';
+import { duelOf, geometry, inFiringPosition, integrity, scanLevel, systemEffectiveness } from './features';
 
 /**
  * Training targets for the snapshot scorer, read from the future of the same run. Definitions
@@ -21,11 +21,9 @@ import { findDuel, geometry, inFiringPosition, integrity, scanLevel, systemEffec
 export const LABELS = ['kill60', 'damage30', 'helms10', 'weapons10', 'engineer30', 'signals30'] as const;
 export type LabelName = (typeof LABELS)[number];
 
-/** What a label needs from one frame, keyed by ids so the target is followed by id into the future. */
+/** What a label needs from one frame, with the duel pinned by ids so the target is followed into the future. */
 interface FrameSummary {
     readonly t: number;
-    readonly playerId: string;
-    readonly targetId: string;
     readonly targetAlive: boolean;
     readonly playerIntegrity: number;
     readonly targetIntegrity: number;
@@ -34,25 +32,21 @@ interface FrameSummary {
     readonly scan: number;
 }
 
-/** `ids` pins the duel to the one chosen at frame t; without it, the frame's own duel is used. */
-export function summarize(t: number, saved: SavedGame, ids?: { playerId: string; targetId: string }) {
-    const player = ids ? saved.fragment.ship.get(ids.playerId) : findDuel(saved)?.player;
-    const target = ids ? saved.fragment.ship.get(ids.targetId) : player && findDuel(saved, player.id)?.target;
-    if (!player || (!ids && !target)) return undefined;
-    const alive = !!target && !target.spaceship.destroyed;
-    const eff = systemEffectiveness(player);
-    const summary: FrameSummary = {
+/** Summary of one frame for the duel `playerId` vs `targetId`; a missing ship counts as destroyed. */
+export function summarize(t: number, saved: SavedGame, playerId: string, targetId: string): FrameSummary {
+    const player = saved.fragment.ship.get(playerId);
+    const target = saved.fragment.ship.get(targetId);
+    const duel = duelOf(saved, playerId, targetId);
+    const eff = player ? systemEffectiveness(player) : undefined;
+    return {
         t,
-        playerId: player.id,
-        targetId: ids?.targetId ?? target?.id ?? '',
-        targetAlive: alive,
-        playerIntegrity: integrity(player),
-        targetIntegrity: alive && target ? integrity(target) : 0,
-        firing: alive && target ? inFiringPosition(geometry({ player, target })) : false,
-        engineer: eff.mean * (1 - eff.starved),
-        scan: alive && target ? scanLevel({ player, target }) : ScanLevel.FULL,
+        targetAlive: !!saved.fragment.space.getShip(targetId) && !saved.fragment.space.getShip(targetId)?.destroyed,
+        playerIntegrity: player && saved.fragment.space.getShip(playerId) ? integrity(player) : 0,
+        targetIntegrity: target && duel ? integrity(target) : 0,
+        firing: duel ? inFiringPosition(geometry(duel)) : false,
+        engineer: eff ? eff.mean * (1 - eff.starved) : 0,
+        scan: duel ? scanLevel(duel) : ScanLevel.FULL,
     };
-    return summary;
 }
 
 type Labels = Record<LabelName, number | null>;
@@ -61,11 +55,10 @@ type Labels = Record<LabelName, number | null>;
  * Labels for frame `i` of a run whose frames have all been summarised against frame i's duel
  * (`future[k]` = summary of frame k pinned to frame i's player/target ids; `future[i]` is frame i).
  */
-export function labelsAt(future: readonly (FrameSummary | undefined)[], i: number): Labels {
+export function labelsAt(future: readonly FrameSummary[], i: number): Labels {
     const now = future[i];
-    if (!now) throw new Error('labelsAt: no summary for the labelled frame');
-    const endT = future[future.length - 1]?.t ?? now.t;
-    const window = (h: number) => future.slice(i + 1).filter((f): f is FrameSummary => !!f && f.t <= now.t + h + 1e-6);
+    const endT = future[future.length - 1].t;
+    const window = (h: number) => future.slice(i + 1).filter((f) => f.t <= now.t + h + 1e-6);
     const complete = (h: number) => endT >= now.t + h - 1e-6;
     const lastIn = (h: number) => window(h).at(-1);
 

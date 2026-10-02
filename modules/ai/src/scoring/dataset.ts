@@ -49,7 +49,7 @@ const META = [
     'target_id',
 ];
 
-const csvCell = (v: unknown) => {
+const csvCell = (v: string | number | boolean | null | undefined) => {
     if (v === null || v === undefined || (typeof v === 'number' && !Number.isFinite(v))) return '';
     const s = String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -66,7 +66,7 @@ async function rowsFor(day: string, archive: string, line: ManifestLine) {
     const frames = await readFrames(path.join(archive, day, line.path));
     const duels = frames.map((f) => findDuel(f.saved));
     const pinned = new Map<string, ReturnType<typeof summarize>[]>();
-    const rows: unknown[][] = [];
+    const rows: (string | number | boolean | null)[][] = [];
     const scenario = line.outcome?.scenario ?? path.basename(line.path).replace(/_seed\d+\.sgr$|\.sgr$/, '');
     const meta = [
         `${day}/${line.path}`,
@@ -86,8 +86,7 @@ async function rowsFor(day: string, archive: string, line: ManifestLine) {
         const key = `${duel.player.id} ${duel.target.id}`;
         let summaries = pinned.get(key);
         if (!summaries) {
-            const ids = { playerId: duel.player.id, targetId: duel.target.id };
-            summaries = frames.map((f) => summarize(f.t, f.saved, ids));
+            summaries = frames.map((f) => summarize(f.t, f.saved, duel.player.id, duel.target.id));
             pinned.set(key, summaries);
         }
         const labels = labelsAt(summaries, i);
@@ -106,7 +105,7 @@ async function main() {
     fs.mkdirSync(path.dirname(out), { recursive: true });
     const header = [...META, ...FEATURE_NAMES, ...LABELS];
     const hash = crypto.createHash('sha256');
-    const write = (cells: unknown[]) => {
+    const write = (cells: (string | number | boolean | null)[]) => {
         const text = cells.map(csvCell).join(',') + '\n';
         hash.update(text);
         fs.appendFileSync(out, text);
