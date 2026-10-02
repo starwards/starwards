@@ -90,18 +90,25 @@ suppressed), the `callout` question's `decision` events, and `heard` in each `br
 `decisions` shows the callout choices per station, `reask` rebuilds the request with what was heard,
 and the `train` report counts callouts said / suppressed per crew.
 
-Silent vs talking crew, seeds 1–8, 180 s timeout (talking crew: helms v12, weapons v11, engineer
-v7, signals v6 — the silent crew's brains plus callouts and wording that uses `heard`):
+Callouts vs listening, T1-lite seeds 1–16, 180 s timeout. Talking crew `jev-talk-h13-w12-e7-s7`
+(helms v13 says "on its tail" only on arriving behind the target, signals v7 says "new contact
+scanned" when a scan finishes, weapons v12 fire wording in clean UTF-8). Callouts-only crew
+`jev-callouts-h14-w13-e8-s7`: the silent crew's wording plus the same callouts, so seats speak but
+no wording uses `heard`:
 
-| Crew                             | T0 kills, median TTK | T1-lite kills, median TTK | Cost (both rungs) |
-| -------------------------------- | -------------------- | ------------------------- | ----------------- |
-| reference                        | 8/8                  | 7/8, 81 s                 | —                 |
-| silent `jev-h11-w8-e6-s3`        | 8/8, 95 s            | 6/8, 41 s                 | $0.73             |
-| talking `jev-talk-h12-w11-e7-s6` | 8/8, 97 s            | 8/8, 49 s                 | $0.71             |
+| Crew                                       | T1-lite kills | median TTK | Cost (16 seeds) |
+| ------------------------------------------ | ------------- | ---------- | --------------- |
+| silent `jev-h11-w8-e6-s3`                  | 12/16         | 46 s       | $0.70           |
+| talking `jev-talk-h13-w12-e7-s7`           | 12/16         | 46 s       | $0.85           |
+| callouts only `jev-callouts-h14-w13-e8-s7` | 14/16         | 53 s       | $0.70           |
 
-Talk ties on T0 and wins two more seeds on T1-lite, at a slower median kill: suggestive, not
-proven at 8 seeds, and confounded with the listening wording. Helms says "on its tail" on most
-decisions (most suppressed), signals never speaks: those `when` clauses need tightening.
+At 16 seeds the listening wording adds nothing over silence, and the callouts-only crew's two extra
+kills are within seed noise; the earlier 8/8 for talk did not hold. Helms now says "on its tail" on
+8% of decisions (was ~80%), signals speaks 36 times in 16 runs. Listening wording without callouts
+heard (`jev-listen-h15-w14-e9-s3`) and the talking crew on T0 are built but not yet run.
+
+Recommended crew: [`crews/recommended.json`](../../modules/ai/crews/recommended.json), a copy of
+`jev-callouts-h14-w13-e8-s7` — most kills, no extra cost, and its brains are clean UTF-8.
 
 ## Training
 
