@@ -13,9 +13,7 @@
                 "press": "switch the rotation mode between 1 (manual: the rotation keys turn the ship) and 2 (target: the ship keeps its nose on the weapons target by itself). The ship only accepts 2 while weapons holds a target lock; otherwise the press does nothing. the console says which rotation mode is on. Choose this when rotation mode is not TARGET and the console lists an enemy ship, and at once when Weapons just said on the radio \"target locked\" (you cannot see the lock yourself)",
                 "wait": "keep the current rotation mode. Choose this when rotation mode is already TARGET, or no ship is listed"
             },
-            "hears": [
-                "weapons.target_locked"
-            ]
+            "hears": ["weapons.target_locked"]
         },
         "maneuveringMode": {
             "instructions": "Which do you do with the maneuvering mode key now?",
@@ -23,9 +21,7 @@
                 "press": "step the maneuvering mode 1 → 2 → 0 → 1. In 1 (velocity) boost and strafe set the ship's own speed. In 2 (target) the ship flies alongside the weapons target, matching its velocity, and boost and strafe move the ship toward, away from or around the target relative to it. In 0 (direct) boost and strafe fire the thrusters raw. Mode 2 needs a weapons lock. the console says which maneuvering mode is on. Choose this when rotation mode is TARGET (so weapons has a lock) and maneuvering mode is not TARGET. Also choose this when maneuvering mode is not TARGET and Weapons just said on the radio \"target locked\"",
                 "wait": "keep the current maneuvering mode. Choose this when maneuvering mode is already TARGET, or rotation mode is not TARGET yet"
             },
-            "hears": [
-                "weapons.target_locked"
-            ]
+            "hears": ["weapons.target_locked"]
         },
         "rotation": {
             "instructions": "Which rotation key do you press now?",
@@ -35,9 +31,7 @@
                 "hold": "press nothing: keep the current turn rate. Choose this when rotation mode is TARGET (the nose follows the target by itself)",
                 "centre": "stop turning: set the turn rate to 0. Choose this when rotation mode is VELOCITY and the enemy ship is within 5° of the nose"
             },
-            "hears": [
-                "weapons.need_turn"
-            ]
+            "hears": ["weapons.need_turn"]
         },
         "boost": {
             "instructions": "Which boost key do you press now?",
@@ -99,9 +93,7 @@
                 "press": "re-centre the aim offset of rotation mode 2 on the target itself. Choose this when rotation mode is TARGET and Weapons just said on the radio \"need you N° left\" or \"need you N° right\": the nose is following the target with an offset",
                 "wait": "leave the aim offset. Choose this when the nose already follows the target"
             },
-            "hears": [
-                "weapons.need_turn"
-            ]
+            "hears": ["weapons.need_turn"]
         }
     },
     "view": "verbal"

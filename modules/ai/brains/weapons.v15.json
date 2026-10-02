@@ -22,9 +22,7 @@
                 "fire": "fire for half a second straight ahead along the ship's nose; shells explode at the locked target's distance, up to 8000 m, in a blast about 100 m wide each side. A shell hits when the LOCKED contact is within 100 m of the nose's line, so the closer the target the more degrees off the nose still hit: under 600 m up to 8°, under 1.5 km up to 4°, farther only 2°. Choose this when the radar lists the LOCKED contact under 8 km away and that close to the nose. If the Engineer just said on the radio \"gun skewed N° right\" (or left), damage has bent the gun: shells fly N° that side of the nose, so fire when the LOCKED contact is about N° to that side of the nose instead",
                 "hold_fire": "do not fire. Choose this when there is no lock, when the LOCKED contact is further off the nose than its distance allows (under 600 m: 8°, under 1.5 km: 4°, farther: 2°), or when the radar does not list the LOCKED contact at all (you cannot see where it is, so shells would be wasted). If the Engineer just said \"gun skewed N° right\" (or left), the gun line is N° that side of the nose: hold fire while the LOCKED contact is not near it"
             },
-            "hears": [
-                "engineer.gun_skewed"
-            ]
+            "hears": ["engineer.gun_skewed"]
         },
         "loadChainGun:0": {
             "skip": true
