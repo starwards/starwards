@@ -10,7 +10,9 @@
         "reask": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/reask.ts",
         "crew": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts",
         "read": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/read.ts",
-        "bench": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/bench.ts"
+        "bench": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/bench.ts",
+        "score:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/dataset.ts",
+        "score": "node -r ts-node/register/transpile-only ./src/scoring/cli.ts"
     },
     "dependencies": {
         "@starwards/core": "0.5.1",
