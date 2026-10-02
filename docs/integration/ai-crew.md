@@ -70,6 +70,61 @@ station systems working normally") and the brain keeps only the judgement. The r
 previous reading to say whether contacts close, open or hold. The templates read only what the
 display shows, so the fog of war is unchanged.
 
+## What-if forecasts
+
+Owner's idea: instead of leaving Jev to compare raw numbers, code roughly simulates each option of a
+control and writes the consequence into that option. A control's wording in the brain file names a
+plug-in, `"whatIf": "tailGeometry"`; a brain version without it is unchanged. The plug-in interface
+is [`whatif/whatif.ts`](../../modules/ai/src/whatif/whatif.ts): given the station's display, the
+display at the previous decision (a seat remembers its own screen, as the verbal reader does), a
+control and one of its options, a `WhatIf` returns a sentence and optionally an indicator value
+(higher is better, comparable only within one control), or nothing when the display does not show
+enough. [`whatif/forecast.ts`](../../modules/ai/src/whatif/forecast.ts) asks the plug-in about every
+option, appends each sentence to that option's description, and marks the option with the highest
+indicator `Best forecast of these options.` (a tie goes to pressing nothing): the comparison is made
+in code. The option a plug-in is asked about is turned into a setting by the control's own `press`,
+so a forecast is always of the key the console would send.
+
+| Plug-in         | Controls                         | Says                                                                                                                             | Indicator                               |
+| --------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `tailGeometry`  | helms boost, strafe, afterburner | "In 4 s: contact 620 m away, 3° left of the nose, firing position 180 m off (reached in 9 s)."                                   | nearer the firing position in 4 s       |
+| `noseOnContact` | helms rotation (mode VELOCITY)   | "In 3 s: contact 74° right of the nose."                                                                                         | nearer the nose in 3 s                  |
+| `gunLine`       | weapons trigger                  | "The locked target is 40 m off the gun line now and 60 m off the gun line in 1 s (a blast reaches 100 m): shells fired now hit." | fire only if on the line now and in 1 s |
+| `energyHeat`    | engineer power, coolant          | "In 10 s: energy store 450 of 1000, this system's heat 15 of 100."                                                               | none: the trade-off is the engineer's   |
+
+The kinematics are simple and read only the display. Helms flies on the nearest ship-sized contact
+of its own radar, whose velocity is its change of position between two displays; the commanded
+speed or turn rate is taken as reached at once (the smart pilot gets there inside a quarter of a
+second); in maneuvering TARGET the command rides on the contact's velocity, in rotation TARGET the
+nose stays on the contact. The firing position is 500 m behind the contact's motion (any side of a
+still contact). Minimising the distance to it 4 s ahead is a proportional controller: a setting
+that would fly past the position scores worse than a gentler one. The engineer's rates are the
+change of the energy store and of a system's heat between two displays plus each system's displayed
+energy per minute. Each plug-in file names the ship constants it assumes the officer knows (top
+speed, afterburner speed, turn rate, shell reach, coolant): they are the GVTS's, as in the reference
+policy.
+
+The snapshot scorer ([Snapshot scoring](#snapshot-scoring)) is not used as the indicator: it takes a
+whole `SavedGame`, and its features need what a station does not show (the target's systems and
+ammunition, every own system for the helms model, the weapons lock for helms). Building a frame from
+one station's display would either leak state or feed the models invented values, so the indicators
+are computed from the display alone.
+
+Benchmarks, seeds 1–6, 2 workers, policy jev, every station radar cut to its reach (helms 5 km;
+`helms-intercept` spawns 3–6 km, so some of its seeds start beyond the helms radar for both brains):
+
+| Benchmark         | Current best                    | What-if                          | Cost (both)    |
+| ----------------- | ------------------------------- | -------------------------------- | -------------- |
+| `helms-tag`       | helms v16 0.77                  | helms v19 0.88                   | $0.111 + 0.128 |
+| `helms-hold`      | helms v16 0.57                  | helms v19 0.82                   | $0.074 + 0.086 |
+| `helms-intercept` | helms v16 0.65                  | helms v19 0.71                   | $0.038 + 0.034 |
+| `weapons-range`   | weapons v15 89.7 (8.3 off line) | weapons v17 135.9 (2.8 off line) | $0.035 + 0.033 |
+
+Crew `jev-whatif-h19-w17-e10-s3` (recommended with helms v19 and weapons v17) on T1-lite seeds 1–6,
+180 s timeout: 3/6 kills (seeds 1, 4, 5; 51.5, 31.8, 159.2 s), $0.48. Seeds 7–8 were not played (the
+$1 budget ran out). Recommended after the radar cut: 10/16 on seeds 1–16. Every benchmark improves;
+the rung result is not better at six seeds, so the recommended crew is unchanged.
+
 ## Crew talk
 
 A brain file may list `callouts`: the phrases its station may say, keyed by option name, each
