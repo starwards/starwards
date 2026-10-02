@@ -1,6 +1,6 @@
 import { BrainRequest, buildRequest } from './request';
 import { BrainSpec, specHash } from './spec';
-import { CALLOUT_QUESTION, Heard, calloutPhrase } from './callout';
+import { CALLOUT_QUESTION, Heard, Said, calloutSaid } from './callout';
 import { Capabilities, Control, Display, Press, stationControls } from './controls';
 
 import { verbalReader } from './verbal';
@@ -34,8 +34,8 @@ type DecisionResult = {
     request: BrainRequest;
     decisions: Decision[];
     presses: Press[];
-    /** The phrase this seat says on the crew channel, if it chose to speak. */
-    callout?: string;
+    /** What this seat says on the crew channel, if it chose to speak and its display supplies the values. */
+    callout?: Said;
     meta: {
         brain: string;
         version: number;
@@ -84,7 +84,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 request,
                 decisions,
                 presses: decisions.flatMap((d) => (d.press ? [d.press] : [])),
-                callout: callout && calloutPhrase(spec, callout.choice),
+                callout: callout && calloutSaid(spec, callout.choice, display),
                 meta: {
                     brain: spec.id,
                     version: spec.version,

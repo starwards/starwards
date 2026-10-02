@@ -1,4 +1,4 @@
-import { CALLOUT_QUESTION, Heard, calloutQuestion, heardLines } from './callout';
+import { CALLOUT_QUESTION, Heard, calloutQuestion, heardFor, heardLines } from './callout';
 import { Control, Display } from './controls';
 
 import { BrainSpec } from './spec';
@@ -23,14 +23,18 @@ export function buildRequest(
     heard?: readonly Heard[],
 ): BrainRequest {
     const questions: Record<string, ChoiceQuestion> = {};
+    // a brain whose controls name the callouts they listen for hears per decision; any other hears everything in `heard`
+    const perDecision = Object.values(spec.controls).some((w) => w.hears);
     for (const control of controls) {
         const wording = { ...spec.controls[control.command], ...spec.controls[control.id] };
         if (wording.skip) {
             continue;
         }
+        const instructions = wording.instructions ?? defaultInstructions(control, reading ? 'console' : 'display');
+        const radio = heard && wording.hears ? heardFor(heard, wording.hears) : [];
         questions[control.id] = {
             type: 'choice',
-            instructions: wording.instructions ?? defaultInstructions(control, reading ? 'console' : 'display'),
+            instructions: radio.length ? `${instructions} On the radio: ${radio.join('; ')}.` : instructions,
             criteria: { ...control.options, ...pick(wording.options ?? {}, Object.keys(control.options)) },
         };
     }
@@ -44,7 +48,7 @@ export function buildRequest(
             role: spec.role,
             mission: spec.mission,
             ...(reading ? { console: reading } : { display: visibleDisplay(display, spec.hide) }),
-            ...(heard ? { heard: heardLines(heard) } : {}),
+            ...(heard && !perDecision ? { heard: heardLines(heard) } : {}),
         },
         questions,
     };

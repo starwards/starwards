@@ -134,7 +134,7 @@ export async function liveCrew(options: LiveCrewOptions) {
             // said when the decision lands, as a player speaks once they have made up their mind
             const delivered = channel.say(station, result.callout, clock.seconds);
             stats[delivered ? 'callouts' : 'suppressed']++;
-            emit('callout', { station, phrase: result.callout, delivered });
+            emit('callout', { station, callout: result.callout.callout, phrase: result.callout.phrase, delivered });
         }
         for (const d of result.decisions) {
             emit('decision', {

@@ -78,9 +78,9 @@ describe('a headless crew that talks', () => {
                 .filter((l) => l.includes('"kind":"callout"'))
                 .map((l) => (JSON.parse(l) as { data: unknown }).data);
             expect(callouts).toEqual([
-                { station: 'weapons', phrase: 'target locked', delivered: true },
-                { station: 'weapons', phrase: 'target locked', delivered: false },
-                { station: 'weapons', phrase: 'target locked', delivered: false },
+                { station: 'weapons', callout: 'locked', phrase: 'target locked', delivered: true },
+                { station: 'weapons', callout: 'locked', phrase: 'target locked', delivered: false },
+                { station: 'weapons', callout: 'locked', phrase: 'target locked', delivered: false },
             ]);
             const { decisions, requests } = readDecisionLog(result.recording!);
             expect(decisions.filter((d) => d.control === CALLOUT_QUESTION)).toHaveLength(3);

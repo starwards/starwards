@@ -1,8 +1,9 @@
-import { CALLOUT_QUESTION, SILENCE } from './callout';
+import { CALLOUT_QUESTION, SILENCE, calloutSaid } from './callout';
 import { Capabilities, Display } from './controls';
 
 import { JevClient } from './jev-client';
 import { brainSpecSchema } from './spec';
+import { buildRequest } from './request';
 import { buttonBrain } from './brain';
 import { idlePolicy } from './policies';
 import { jevPolicy } from './policies';
@@ -51,7 +52,7 @@ describe('callouts', () => {
         expect(Object.keys(question.criteria)).toEqual(['target_locked', SILENCE]);
         expect(question.criteria.target_locked).toMatch(/^say "target locked": tells helms/);
         expect(result.request.state.heard).toEqual(['Helms said "on its tail" 2 s ago']);
-        expect(result.callout).toBe('target locked');
+        expect(result.callout).toEqual({ callout: 'target_locked', phrase: 'target locked' });
         expect(result.decisions.find((d) => d.control === CALLOUT_QUESTION)).toMatchObject({
             choice: 'target_locked',
             source: 'model',
@@ -85,5 +86,64 @@ describe('callouts', () => {
         expect(() =>
             brainSpecSchema.parse({ ...spec, callouts: { silence: { say: 'shh', when: 'never' } } }),
         ).toThrow();
+    });
+
+    it('fill a template from the speaker display, and say nothing when the display does not show the value', () => {
+        const talker = brainSpecSchema.parse({
+            ...spec,
+            callouts: {
+                need_turn: { say: 'need you {degrees}° {side}', when: 'off the gun line', fill: 'lockedOffNose' },
+                gun_skewed: { say: 'gun skewed {degrees}° {side}', when: 'gun bent', fill: 'gunSkew' },
+            },
+        });
+        const radar = (bearing: number) => ({ ownShip: { id: 'me', heading: 90 }, contacts: [{ id: 't', bearing }] });
+        const weapons = (bearing: number) => ({
+            panels: { 'targeting-status': { targetId: 't' } },
+            radar: radar(bearing),
+        });
+
+        expect(calloutSaid(talker, 'need_turn', weapons(84))).toEqual({
+            callout: 'need_turn',
+            phrase: 'need you 6° left',
+        });
+        expect(calloutSaid(talker, 'need_turn', weapons(93.4))?.phrase).toBe('need you 3° right');
+        expect(calloutSaid(talker, 'need_turn', weapons(90.2))).toBeUndefined();
+        expect(
+            calloutSaid(talker, 'need_turn', { panels: { 'targeting-status': { targetId: null } } }),
+        ).toBeUndefined();
+
+        const report = (value: number) => ({
+            panels: { 'damage-report': [{ system: '/chainGuns/0', field: 'bearingSkew', value, normal: 0 }] },
+        });
+        expect(calloutSaid(talker, 'gun_skewed', report(-7.6))?.phrase).toBe('gun skewed 8° left');
+        expect(calloutSaid(talker, 'gun_skewed', { panels: { 'damage-report': [] } })).toBeUndefined();
+        expect(calloutSaid(talker, SILENCE, report(5))).toBeUndefined();
+    });
+
+    it('read out to each decision only the callouts it listens for, and keep them out of the shared state', () => {
+        const listener = brainSpecSchema.parse({
+            ...spec,
+            callouts: undefined,
+            controls: { target: { hears: ['helms.need_lock'] } },
+        });
+        const controls = [
+            {
+                id: 'target',
+                command: 'target',
+                options: { next: 'n', none: 'x' },
+                rest: 'none',
+                press: () => undefined,
+            },
+            { id: 'fire', command: 'fireChainGun', options: { fire: 'f' }, rest: 'fire', press: () => undefined },
+        ] as unknown as Parameters<typeof buildRequest>[2];
+        const request = buildRequest(listener, display, controls, undefined, [
+            { speaker: 'helms', callout: 'need_lock', phrase: 'need a lock', secondsAgo: 1 },
+            { speaker: 'engineer', callout: 'energy_low', phrase: 'energy low', secondsAgo: 1 },
+            { speaker: 'helms', phrase: 'need a lock', secondsAgo: 1 },
+        ]);
+
+        expect(request.questions.target.instructions).toMatch(/On the radio: Helms said "need a lock" 1 s ago.$/);
+        expect(request.questions.fire.instructions).not.toMatch(/radio/);
+        expect(request.state).not.toHaveProperty('heard');
     });
 });

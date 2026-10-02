@@ -115,7 +115,12 @@ export function headlessCrew(options: CrewOptions) {
         if (result.callout) {
             const delivered = channel.say(station, result.callout, game.seconds);
             stats[delivered ? 'callouts' : 'suppressed']++;
-            recorder.record('callout', options.shipId, { station, phrase: result.callout, delivered });
+            recorder.record('callout', options.shipId, {
+                station,
+                callout: result.callout.callout,
+                phrase: result.callout.phrase,
+                delivered,
+            });
         }
         for (const d of result.decisions) {
             recorder.record('decision', options.shipId, {

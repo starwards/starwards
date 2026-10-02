@@ -3,6 +3,14 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
 /**
+ * Values a parameterised callout can carry, each read off the speaker's own display:
+ * `lockedOffNose` (weapons: the locked contact's degrees and side off the nose) and `gunSkew`
+ * (engineer: a chain gun's damage skew from the damage report).
+ */
+export const calloutFills = ['lockedOffNose', 'gunSkew'] as const;
+export type CalloutFill = (typeof calloutFills)[number];
+
+/**
  * A brain: everything tunable about how one station is played, as one versioned data file.
  *
  * The code that turns a display into questions and answers into button presses is shared by every
@@ -34,6 +42,12 @@ export const brainSpecSchema = z
                         options: z.record(z.string(), z.string()).optional(),
                         /** Leave this control alone: no question is asked and nothing is pressed. */
                         skip: z.boolean().optional(),
+                        /**
+                         * The callouts this decision listens for, as `<station>.<callout option>`
+                         * (`weapons.need_turn`): those heard lately are read out in this question's
+                         * instructions, and no other question sees them.
+                         */
+                        hears: z.array(z.string().regex(/^\w+\.\w+$/)).optional(),
                     })
                     .strict(),
             )
@@ -50,11 +64,14 @@ export const brainSpecSchema = z
          * `say` is the phrase the other seats hear; `when` describes what saying it tells the crew and
          * "choose this when ...". With callouts, every decision asks one more question, `callout`, over
          * these options and `silence` (wording override: `controls.callout.instructions`).
+         * With `fill`, `say` is a template whose `{degrees}` and `{side}` code fills from this
+         * station's own display when the callout is said; a display that does not show the value says
+         * nothing.
          */
         callouts: z
             .record(
                 z.string().refine((k) => k !== 'silence', 'silence is always an option'),
-                z.object({ say: z.string(), when: z.string() }).strict(),
+                z.object({ say: z.string(), when: z.string(), fill: z.enum(calloutFills).optional() }).strict(),
             )
             .optional(),
     })
