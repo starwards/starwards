@@ -31,7 +31,7 @@ describe('a crew of brains on a live server', () => {
             const decided = new Set(
                 events.filter((e) => e.kind === 'decision').map((e) => (e.data as { station: string }).station),
             );
-            expect([...decided].sort()).toEqual(['helms', 'weapons']);
+            expect([...decided].sort()).toEqual(['engineer', 'helms', 'weapons']);
             expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
             const commands = events.filter((e) => e.kind === 'command').map((e) => e.data as { ok: boolean });
             expect(commands.some((c) => c.ok)).toBe(true);

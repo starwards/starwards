@@ -33,7 +33,7 @@ describe('crew training', () => {
         expect(result.refused).toBe(0);
         const log = readDecisionLog(result.recording!);
         expect(log.requests.length).toBeGreaterThan(0);
-        expect(new Set(log.requests.map((r) => r.station))).toEqual(new Set(['helms', 'weapons']));
+        expect(new Set(log.requests.map((r) => r.station))).toEqual(new Set(['helms', 'weapons', 'engineer']));
         expect(log.decisions.some((d) => d.control === 'fireChainGun:0' && d.choice === 'fire')).toBe(true);
         expect(log.decisions.every((d) => d.source === 'rule')).toBe(true);
     });
