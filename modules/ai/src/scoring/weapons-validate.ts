@@ -170,7 +170,9 @@ const METRICS: Record<string, Metric> = {
     /** Share of fighting frames locked on the scenario's designated target (`target`). */
     lockDesignated: (r) => {
         const fighting = r.frames.filter((f) => f.enemies.some((e) => !e.destroyed));
-        return fighting.length ? fighting.filter((f) => f.weapons.targetId === 'target').length / fighting.length : null;
+        return fighting.length
+            ? fighting.filter((f) => f.weapons.targetId === 'target').length / fighting.length
+            : null;
     },
     friendly: (r) => r.rates.friendly,
     clipped: (r) => (r.windows.length ? mean(r.windows.map((x) => Number(x.clipped))) : null),
