@@ -58,6 +58,17 @@ const SURFACE_EFFECT_FACTOR = 0.05;
 const GUN_DEFECT_LOSS = 0.5 * 0.1;
 /** A thruster defect: half the time `availableCapacity −= U(0.01, 0.1)`. */
 const THRUSTER_DEFECT_LOSS = 0.5 * 0.055;
+/**
+ * Blast geometry, measured from the `damage` and `defect` events of the 2026-10-03 weapons-score runs
+ * (T0, T1, T1-MK2; reference, spray-fire and wrong-ammo crews; seeds 1-8, frozen; seeds 9-12 held out)
+ * where the rules leave it open: a HiExp shell blast erodes 4.68 plates' worth (held out 4.16), and
+ * reaches the capsule in 0.90 of the cases the defect roll allows once the plates are gone (held out
+ * 0.99). Surface scrapes were measured too and agree with the rules (Frag: 0.026 gun and 0.12 thruster
+ * defects per hit against 0.025 and 0.13 predicted), so they stay rule values. No ArmPen hit was
+ * recorded, so impacts keep the rules' one plate and one system.
+ */
+const BLAST_PLATES = 4.68;
+const BLAST_CAPSULE_ODDS = 0.9;
 /** Frame solutions allow for the gun's spread out to this many standard deviations. */
 const SPREAD_SIGMAS = 2;
 
@@ -321,11 +332,11 @@ export function threatShares(enemies: readonly ShipReading[]): Map<string, numbe
 /**
  * Analytic value of one round of `ammo` against `target` in its current state, in incapacitation
  * `I = 1 − (1 − kill)·cap`: `ΔI = cap·Δkill + (1 − kill)·Δcap`. Δkill: plate erosion (½ of kill over the
- * whole armor; a blast touches two plates, an impact one) and capsule defects behind broken or
- * penetrated plates (½·0.1 each; a blast reaches half the hull's systems, a single-system round one).
- * Δcap: surface scrapes on external systems through {@link ShipReading.surfaceExposure}. Every
- * constant is a rule value; none is fitted. Reactive armor is out of scope (#1970). INFERENCE: hit
- * geometry (plates touched, systems reached) is a nominal reading of the rules, not measured.
+ * whole armor; a blast erodes {@link BLAST_PLATES} plates, an impact one) and capsule defects behind
+ * broken or penetrated plates (½·0.1 each; a blast reaches the capsule at {@link BLAST_CAPSULE_ODDS}, a
+ * single-system round picks one internal system). Δcap: surface scrapes on external systems through
+ * {@link ShipReading.surfaceExposure}. The blast geometry is measured; every other constant is a rule
+ * value. Reactive armor is out of scope (#1970).
  */
 export function ammoValue(ammo: AmmoType, target: ShipReading) {
     const design = ammoDesigns[ammo];
@@ -333,10 +344,10 @@ export function ammoValue(ammo: AmmoType, target: ShipReading) {
     const profile = damageProfiles[type];
     const amount = roundAmount(ammo);
     const broken = target.plateHealthMax > 0 ? 1 - target.plateHealth / target.plateHealthMax : 1;
-    const plates = design.delivery === 'explosion' ? 2 : 1;
+    const plates = design.delivery === 'explosion' ? BLAST_PLATES : 1;
     const plate = (0.5 * amount * plates * target.plateDamage[type]) / Math.max(target.plateHealthMax, 1);
     const exposed = broken + (1 - broken) * target.penetration[type];
-    const capsuleOdds = profile.systemScope === 'single' ? 1 / Math.max(target.internals, 1) : 0.5;
+    const capsuleOdds = profile.systemScope === 'single' ? 1 / Math.max(target.internals, 1) : BLAST_CAPSULE_ODDS;
     const capsuleDefects = profile.hitsInternal
         ? ((exposed * amount * profile.systemDamageFactor) / (2 * target.capsuleDamage50)) * capsuleOdds
         : 0;
