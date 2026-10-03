@@ -151,7 +151,7 @@ export const gravitasWarp = {
     chargeTime: 10,
     dechargeTime: 5,
     speedPerLevel: 1_000,
-    energyCostPerLevel: 2,
+    energyCostPerLevel: 120,
     damagePerPhysicalSpeed: 20,
     baseDamagePerWarpSpeedPerSecond: 0.1,
     secondsToChangeFrequency: 10,

@@ -207,6 +207,30 @@ describe('MovementManager', () => {
             expect(spent(60)).to.be.closeTo(spent(10), 0.5);
         });
 
+        it('costs 120 energy per second per warp level (2 per tick at 60 Hz before #2316)', () => {
+            const spentInOneSecond = (warpLevel: number) => {
+                const mgr = new ShipManagerPc(
+                    Object.assign(new Spaceship(), { id: 'w' }),
+                    makeShipState('w', demoShipConfig),
+                    new SpaceManager(),
+                    die,
+                );
+                const warp = mgr.state.warp!;
+                warp.currentLevel = warpLevel;
+                warp.desiredLevel = warpLevel;
+                mgr.state.reactor.energy = mgr.state.reactor.design.maxEnergy;
+                mgr.state.reactor.power = PowerLevel.SHUTDOWN;
+                const before = mgr.state.reactor.energy;
+                for (const id of makeIterationsData(1, 60)) {
+                    mgr.update(id);
+                }
+                return { spent: before - mgr.state.reactor.energy, effectiveness: warp.effectiveness };
+            };
+            const idle = spentInOneSecond(0);
+            const warping = spentInOneSecond(1);
+            expect((warping.spent - idle.spent) / warping.effectiveness).to.be.closeTo(120, 2);
+        });
+
         it('marks warp energyStarved when the reactor cannot supply it', () => {
             const warp = engageWarp();
             shipMgr.state.reactor.power = PowerLevel.SHUTDOWN;
