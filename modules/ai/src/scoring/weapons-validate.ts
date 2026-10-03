@@ -8,7 +8,7 @@
  *   npm --prefix modules/ai run score:weapons -- --runs <root> [--out report.md]
  *
  * Each run's frames, reduced to {@link TacticalFrame}s, and its shot and damage events are cached
- * beside the recording as `<run>.wkpi.json`.
+ * beside the recording as `<run>.wkpi2.json`.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -45,7 +45,7 @@ function args(name: string) {
 }
 
 async function loadRun(sgr: string) {
-    const cache = sgr.replace(/\.sgr$/, '.wkpi.json');
+    const cache = sgr.replace(/\.sgr$/, '.wkpi2.json');
     if (fs.existsSync(cache))
         return JSON.parse(fs.readFileSync(cache, 'utf8')) as { frames: TacticalFrame[]; events: RecordingEventLine[] };
     const frames = (await readFrames(sgr)).flatMap((f) => observeTactical(f.t, f.saved, PLAYER) ?? []);
@@ -166,6 +166,9 @@ const METRICS: Record<string, Metric> = {
     V: (r) => r.V,
     Kw: (r) => r.rates.kw,
     lock: (r) => r.rates.lockUptime,
+    lockThreat: (r) => r.rates.lockThreat,
+    friendly: (r) => r.rates.friendly,
+    clipped: (r) => (r.windows.length ? mean(r.windows.map((x) => Number(x.clipped))) : null),
     nosol: (r) => r.rates.nosol,
     dominated: (r) => r.rates.dominated,
     T_outranged: (r) => r.Tout,
@@ -192,6 +195,7 @@ const ORDERINGS: [Crew, Crew, string][] = [
     ['reference', 'wrong-ammo', 'V'],
     ['reference', 'no-lock', 'lock'],
     ['torpedo-reference', 'reference', 'T_outranged'],
+    ['torpedo-reference', 'reference', 'T'],
     ['torpedo-reference', 'reference', 'T_inrange'],
 ];
 
