@@ -6,8 +6,11 @@ import {
     SpaceDriver,
     SpaceObject,
     SpatialIndex,
+    StationRadarWidget,
     getSpatialIndex,
     isSensorInvisible,
+    isWithinRadarReach,
+    radarWidgetReach,
 } from '@starwards/core/internal';
 
 /**
@@ -64,8 +67,8 @@ export class RadarView {
     }
 
     /**
-     * The tactical radar draws the ship's own shells regardless of radar coverage — a gunner watches
-     * their own rounds fly, which discloses nothing the gunner did not already fire.
+     * The tactical radar draws the ship's own shells regardless of radar coverage (inside its reach) — a
+     * gunner watches their own rounds fly, which discloses nothing the gunner did not already fire.
      */
     ownProjectiles(shipId: string): SpaceObject[] {
         const own: SpaceObject[] = [];
@@ -75,5 +78,33 @@ export class RadarView {
             }
         }
         return own;
+    }
+
+    /**
+     * What a seat's radar widgets draw: the faction picture cut to each widget's reach around the own
+     * ship (a seat with several radars draws their union), plus the own shells the tactical radar
+     * shows inside its reach. Mirrors the browser widgets, which mask their blips to that circle.
+     */
+    seatObjects(
+        faction: Faction | undefined,
+        widgets: StationRadarWidget[],
+        own: { ship: SpaceObject; warpLevel: number | undefined },
+    ): Set<SpaceObject> {
+        const visible = this.visibleObjects(faction);
+        const reach = Math.max(...widgets.map((widget) => radarWidgetReach(widget, own.warpLevel)));
+        for (const object of visible) {
+            if (!isWithinRadarReach(own.ship.position, object.position, reach)) {
+                visible.delete(object);
+            }
+        }
+        if (widgets.includes('tactical-radar')) {
+            const tacticalReach = radarWidgetReach('tactical-radar', own.warpLevel);
+            for (const shell of this.ownProjectiles(own.ship.id)) {
+                if (isWithinRadarReach(own.ship.position, shell.position, tacticalReach)) {
+                    visible.add(shell);
+                }
+            }
+        }
+        return visible;
     }
 }

@@ -4,11 +4,11 @@
  */
 import * as fs from 'node:fs';
 
-import { CHECK_CATALOGUE, computeChecks } from './checks';
 import { DICTIONARY, dictionaryLookup } from './dictionary';
-import { Store, ingest, storePathFor } from './store';
+import { RecordingRoles, openRecordingStore } from './open-store';
 
-import { computeEvents } from './events';
+import { CHECK_CATALOGUE } from './checks';
+import { Store } from './store';
 
 function arg(name: string): string | undefined {
     const i = process.argv.indexOf(`--${name}`);
@@ -36,20 +36,11 @@ async function resolveStore(): Promise<{ store: Store; runId: string }> {
     if (!recordingPath) {
         throw new Error('--store or --recording is required');
     }
-    const dbPath = storePath ?? storePathFor(recordingPath);
-    const needsIngest = !fs.existsSync(dbPath) || fs.statSync(dbPath).mtimeMs < fs.statSync(recordingPath).mtimeMs;
-    if (needsIngest) {
-        const roles = parseRoles(arg('roles'));
-        const store = await ingest(dbPath, recordingPath, roles);
-        await computeEvents(store, recordingPath);
-        await computeChecks(store, recordingPath);
-        return { store, runId: recordingPath };
-    }
-    const store = Store.open(dbPath);
+    const store = await openRecordingStore(recordingPath, parseRoles(arg('roles')), storePath);
     return { store, runId: recordingPath };
 }
 
-function parseRoles(spec: string | undefined): { player?: string; target?: string } {
+function parseRoles(spec: string | undefined): RecordingRoles {
     if (!spec) {
         return {};
     }

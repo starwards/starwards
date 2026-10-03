@@ -1,0 +1,25 @@
+{
+    "name": "jev-talk-h12-w11-e7-s6",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "jev",
+            "brain": "../brains/helms.v12.json"
+        },
+        {
+            "station": "weapons",
+            "policy": "jev",
+            "brain": "../brains/weapons.v11.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "jev",
+            "brain": "../brains/engineer.v7.json"
+        },
+        {
+            "station": "signals",
+            "policy": "jev",
+            "brain": "../brains/signals.v6.json"
+        }
+    ]
+}

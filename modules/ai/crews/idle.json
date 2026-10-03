@@ -1,0 +1,7 @@
+{
+    "name": "idle",
+    "seats": [
+        { "station": "helms", "policy": "idle" },
+        { "station": "weapons", "policy": "idle" }
+    ]
+}

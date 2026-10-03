@@ -1,0 +1,25 @@
+{
+    "name": "jev-listen-h15-w14-e9-s3",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "jev",
+            "brain": "../brains/helms.v15.json"
+        },
+        {
+            "station": "weapons",
+            "policy": "jev",
+            "brain": "../brains/weapons.v14.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "jev",
+            "brain": "../brains/engineer.v9.json"
+        },
+        {
+            "station": "signals",
+            "policy": "jev",
+            "brain": "../brains/signals.v3.json"
+        }
+    ]
+}

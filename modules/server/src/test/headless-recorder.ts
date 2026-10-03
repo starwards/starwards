@@ -1,32 +1,20 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { Spaceship, encodeFrameLine, encodeHeader } from '@starwards/core/internal';
+import {
+    EVENTS_EXT,
+    RecordingEventLine,
+    ShipManager,
+    ShipManagerPc,
+    Spaceship,
+    encodeEventLine,
+    encodeFrameLine,
+    encodeHeader,
+} from '@starwards/core/internal';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
 import { RECORDING_EXT } from '../recording/game-recorder';
 import { schemaToString } from '../serialization/game-state-serialization';
-
-/** A state edge observed at tick resolution, written to the `.events.jsonl` sidecar. */
-export type RecordedEvent =
-    | {
-          /** Game seconds of the tick the edge was observed after. */
-          readonly t: number;
-          readonly kind: 'fire_start' | 'fire_stop';
-          readonly objectId: string;
-          /** Chain gun index on the ship. */
-          readonly mount: number;
-      }
-    | {
-          readonly t: number;
-          /** First tick an explosion physically overlaps a ship; once per explosion per ship. */
-          readonly kind: 'blast_hit';
-          readonly objectId: string;
-          readonly explosionId: string;
-          readonly damageType: string;
-      };
-
-export const EVENTS_EXT = '.events.jsonl';
 
 /**
  * Writes a {@link HeadlessGame} run in the server's recording format (`.sgr`), one frame
@@ -35,9 +23,12 @@ export const EVENTS_EXT = '.events.jsonl';
  * be branched from via `HeadlessGame.restore`.
  *
  * Frames are sampled, so a burst shorter than the interval leaves no trace in them. Chain gun
- * `isFiring` edges and first blast-on-ship overlaps are therefore observed every tick and written
- * as {@link RecordedEvent} lines to a sidecar `<name>.events.jsonl`, leaving the recording format
- * itself untouched.
+ * `isFiring` edges (`fire_start`/`fire_stop`, data `{ mount }`) and first blast-on-ship overlaps
+ * (`blast_hit`, data `{ explosionId, damageType }`) are therefore observed every tick and written as
+ * {@link RecordingEventLine}s to a sidecar `<name>.events.jsonl`, leaving the `.sgr` untouched so
+ * replay keeps working. So is every system defect (`defect`, data `{ system, cause }`, cause
+ * `hit`/`overheat`/`warp`), and with each frame each player ship's previous-tick energy flow
+ * (`energy`, data `{ demand, granted }`). Other modules add their own kinds through {@link HeadlessRecorder.record}.
  */
 export class HeadlessRecorder {
     readonly filePath: string;
@@ -46,7 +37,8 @@ export class HeadlessRecorder {
     private frames = 0;
     private readonly firing = new Map<string, boolean>();
     private readonly blastHits = new BlastOverlaps();
-    private pendingEvents: RecordedEvent[] = [];
+    private readonly defectListeners = new WeakSet<ShipManager>();
+    private pendingEvents: RecordingEventLine[] = [];
 
     constructor(
         private readonly game: HeadlessGame,
@@ -80,17 +72,27 @@ export class HeadlessRecorder {
     }
 
     /**
+     * Queues a sidecar event stamped with the current game time. It is written with the next frame,
+     * so a sidecar never runs ahead of the `.sgr` it belongs to.
+     */
+    record(kind: string, objectId: string | undefined, data?: unknown) {
+        this.pendingEvents.push({ t: this.game.seconds, kind, objectId, data });
+    }
+
+    /**
      * Call after every tick: records `isFiring` edges for this tick, and writes a frame (flushing
      * pending events) when one is due. `force` writes a frame regardless (e.g. the final frame).
      */
     async capture(force = false) {
         this.observeFiring();
         this.observeBlastHits();
+        this.listenToDefects();
         if (!force && this.game.seconds + 1e-9 < this.nextFrameAt) {
             return;
         }
+        this.recordEnergyFlow();
         if (this.pendingEvents.length) {
-            fs.appendFileSync(this.eventsPath, this.pendingEvents.map((e) => JSON.stringify(e) + '\n').join(''));
+            fs.appendFileSync(this.eventsPath, this.pendingEvents.map((e) => encodeEventLine(e)).join(''));
             this.pendingEvents = [];
         }
         const frame = await schemaToString(this.game.saveGame());
@@ -103,13 +105,26 @@ export class HeadlessRecorder {
         const state = this.game.spaceManager.state;
         const ships = [...state].filter((o): o is Spaceship => Spaceship.isInstance(o) && !o.destroyed);
         for (const [explosion, ship] of this.blastHits.next(state, ships)) {
-            this.pendingEvents.push({
-                t: this.game.seconds,
-                kind: 'blast_hit',
-                objectId: ship.id,
-                explosionId: explosion.id,
-                damageType: explosion.damageType,
-            });
+            this.record('blast_hit', ship.id, { explosionId: explosion.id, damageType: explosion.damageType });
+        }
+    }
+
+    private listenToDefects() {
+        for (const [objectId, manager] of this.game.shipManagers) {
+            if (!this.defectListeners.has(manager)) {
+                this.defectListeners.add(manager);
+                manager.listenToDefects((system, cause) =>
+                    this.record('defect', objectId, { system: system.name, cause }),
+                );
+            }
+        }
+    }
+
+    private recordEnergyFlow() {
+        for (const [objectId, manager] of this.game.shipManagers) {
+            if (manager instanceof ShipManagerPc) {
+                this.record('energy', objectId, { ...manager.energyFlow });
+            }
         }
     }
 
@@ -119,12 +134,7 @@ export class HeadlessRecorder {
                 const key = `${objectId}/${mount}`;
                 if ((this.firing.get(key) ?? false) !== gun.isFiring) {
                     this.firing.set(key, gun.isFiring);
-                    this.pendingEvents.push({
-                        t: this.game.seconds,
-                        kind: gun.isFiring ? 'fire_start' : 'fire_stop',
-                        objectId,
-                        mount,
-                    });
+                    this.record(gun.isFiring ? 'fire_start' : 'fire_stop', objectId, { mount });
                 }
             });
         }

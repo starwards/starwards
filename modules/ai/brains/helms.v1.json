@@ -1,0 +1,9 @@
+{
+    "id": "helms",
+    "version": 1,
+    "station": "helms",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "helms officer of the warship GVTS: you fly the ship with the controls of the helms console",
+    "mission": "bring the ship's nose onto the enemy ship and hold a firing position about 2 to 3 km from it, so the forward chain gun can hit it, without ramming it"
+}

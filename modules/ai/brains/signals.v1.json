@@ -1,0 +1,9 @@
+{
+    "id": "signals",
+    "version": 1,
+    "station": "signals",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 2,
+    "role": "signals officer of the warship GVTS: you steer the scan beam and run the scan queue with the controls of the signals console",
+    "mission": "get every contact near the ship scanned as fast as possible, the most threatening first"
+}

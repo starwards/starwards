@@ -9,8 +9,11 @@ import {
     SpaceObject,
     Spaceship,
     SpatialIndex,
+    StationRadarWidget,
     Vec2,
+    XY,
     isSensorInvisible,
+    stationRadarWidgets,
 } from '@starwards/core/internal';
 
 import { RadarView } from './radar-view';
@@ -88,6 +91,31 @@ function browserVisibleSet(spatial: SpatialIndex, objects: SpaceObject[], factio
         }
     }
     return visible;
+}
+
+/**
+ * What one browser radar widget draws: `RadarRangeFilter`'s set (plus, on the tactical radar, the
+ * own shells it lets past the filter), masked to the circle of the widget's camera range around the
+ * own ship. The ranges are the ones each screen passes its widget: helms 5 km (100 km at warp),
+ * weapons' tactical 10 km, signals' long range 50 km, dradis 50 km.
+ */
+const browserWidgetRange: Record<StationRadarWidget, (warp: boolean) => number> = {
+    'helms-radar': (warp) => (warp ? 100_000 : 5_000),
+    'tactical-radar': () => 10_000,
+    'long-range-radar': () => 50_000,
+    'dradis-radar': () => 50_000,
+};
+function browserWidgetSet(
+    widget: StationRadarWidget,
+    objects: SpaceObject[],
+    own: SpaceObject,
+    warp: boolean,
+): Set<SpaceObject> {
+    const filtered = browserVisibleSet(makeSpatialIndex(objects), objects, own.faction);
+    const drawn = (o: SpaceObject) =>
+        filtered.has(o) || (widget === 'tactical-radar' && Projectile.isInstance(o) && o.shipId === own.id);
+    const range = browserWidgetRange[widget](warp);
+    return new Set(objects.filter((o) => drawn(o) && XY.lengthOf(XY.difference(o.position, own.position)) <= range));
 }
 
 function ids(objects: Iterable<SpaceObject>) {
@@ -233,6 +261,62 @@ describe('RadarView', () => {
             theirs.shipId = 'foe';
             const objects: SpaceObject[] = [ship('own', 0, 0, Faction.Gravitas), mine, theirs];
             expect(ids(viewOf(objects).ownProjectiles('own'))).to.deep.equal(['mine']);
+        });
+    });
+    describe('seatObjects', () => {
+        function scene() {
+            const own = ship('own', 0, 0, Faction.Gravitas, 200_000);
+            const shell = new Projectile();
+            shell.id = 'my-shell';
+            shell.position = new Vec2(8000, 0);
+            shell.radius = 1;
+            shell.shipId = 'own';
+            const farShell = new Projectile();
+            farShell.id = 'my-far-shell';
+            farShell.position = new Vec2(0, 12_000);
+            farShell.radius = 1;
+            farShell.shipId = 'own';
+            const objects: SpaceObject[] = [
+                own,
+                asteroid('near', 3000, 0, 300),
+                asteroid('mid', 0, -8000, 600),
+                asteroid('far', -30_000, 0, 3000),
+                asteroid('very-far', 0, 80_000, 6000),
+                shell,
+                farShell,
+            ];
+            return { own, objects };
+        }
+
+        for (const widget of stationRadarWidgets) {
+            for (const warp of [false, true]) {
+                it(`matches what the browser ${widget} draws${warp ? ' at warp' : ''}`, () => {
+                    const { own, objects } = scene();
+                    const seat = viewOf(objects).seatObjects(Faction.Gravitas, [widget], {
+                        ship: own,
+                        warpLevel: warp ? 1 : 0,
+                    });
+                    expect(ids(seat)).to.deep.equal(ids(browserWidgetSet(widget, objects, own, warp)));
+                });
+            }
+        }
+
+        it('cuts each station to its own reach', () => {
+            const { own, objects } = scene();
+            const seat = (widget: StationRadarWidget) =>
+                ids(viewOf(objects).seatObjects(Faction.Gravitas, [widget], { ship: own, warpLevel: 0 }));
+            expect(seat('helms-radar')).to.deep.equal(['near', 'own']);
+            expect(seat('tactical-radar')).to.deep.equal(['mid', 'my-shell', 'near', 'own']);
+            expect(seat('long-range-radar')).to.deep.equal(['far', 'mid', 'near', 'own']);
+        });
+
+        it('draws the union of a seat holding several radars', () => {
+            const { own, objects } = scene();
+            const seat = viewOf(objects).seatObjects(Faction.Gravitas, ['helms-radar', 'long-range-radar'], {
+                ship: own,
+                warpLevel: 0,
+            });
+            expect(ids(seat)).to.deep.equal(['far', 'mid', 'near', 'own']);
         });
     });
 });

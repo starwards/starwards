@@ -1,5 +1,5 @@
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
-import { Faction, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
+import { Faction, ShipDriver, SpaceDriver, SpaceObject, radarReach } from '@starwards/core';
 import { blue, radarFogOfWar, red, yellow } from '../colors';
 
 import { Camera } from '../radar/camera';
@@ -20,7 +20,7 @@ WebFont.load({
     },
 });
 
-const DEFAULT_RANGE = 50_000;
+const DEFAULT_RANGE = radarReach.dradis;
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 

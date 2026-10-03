@@ -6,6 +6,7 @@ import { GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import {
+    T0Lab,
     T0Params,
     TRAINING_PLAYER_ID,
     TRAINING_TARGET_ID,
@@ -81,20 +82,71 @@ const T1_ATTACKING_DRAGONFLY: TrainingScenario<T0Params> = {
     createMap: createTrainingT1Map,
 };
 
-/** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, calibration only, without its combat weave. */
-const t1WithHull = (name: string, model: ShipModel, noCombatWeave = false): TrainingScenario<T0Params> => ({
+type T0WideParams = T0Params & { readonly targetModel: NonNullable<T0Lab['targetModel']> };
+
+/** T0 at the same difficulty with wider situations: 1-10 km and either dragonfly hull (calibration only). */
+const T0_WIDE: TrainingScenario<T0WideParams> = {
+    name: 'T0-wide',
+    description: 'GVTS vs one PLAY_DEAD dragonfly-MK1 or -MK2 (calibration only), 1-10 km, any bearing',
+    params: fc.record({
+        distance: fc.integer({ min: 1000, max: 10000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        targetModel: fc.constantFrom('dragonfly-MK1' as const, 'dragonfly-MK2' as const),
+    }),
+    createMap: (params) => createTrainingT0Map(params, { targetModel: params.targetModel }),
+};
+
+type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel'>>;
+
+/** T0 with the GVTS starting short of energy and shells, guns already hot (calibration only). */
+const T0_CONSTRAINED: TrainingScenario<T0ConstrainedParams> = {
+    name: 'T0-constrained',
+    description:
+        'GVTS starting with 10-30% reactor energy, 250-450 shells per type, chain guns at heat 40-70 (calibration only) vs one PLAY_DEAD dragonfly-MK1, 2-8 km, any bearing',
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        playerEnergy: fc.integer({ min: 10, max: 30 }).map((p) => p / 100),
+        playerShells: fc.integer({ min: 250, max: 450 }),
+        playerGunHeat: fc.integer({ min: 40, max: 70 }),
+    }),
+    createMap: (params) => createTrainingT0Map(params, params),
+};
+
+type T1Calibration = NonNullable<Parameters<typeof createTrainingT1Map>[2]>;
+
+/** T1 with another hull attacking the GVTS -- the TTK ladder's heavier rungs -- or, calibration only, a handicapped target. */
+const t1WithHull = (
+    name: string,
+    model: ShipModel,
+    calibration: T1Calibration = {},
+    handicap = '',
+): TrainingScenario<T0Params> => ({
     ...T1_ATTACKING_DRAGONFLY,
     name,
-    description: `GVTS vs one ${model} attacking it${noCombatWeave ? ' without its combat weave (calibration only)' : ''}, 2-8 km, any bearing`,
-    createMap: (params) => createTrainingT1Map(params, model, noCombatWeave),
+    description: `GVTS vs one ${model} attacking it${handicap ? ` ${handicap} (calibration only)` : ''}, 2-8 km, any bearing`,
+    createMap: (params) => createTrainingT1Map(params, model, calibration),
 });
 
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
+    'T0-wide': T0_WIDE as TrainingScenario<never>,
+    'T0-constrained': T0_CONSTRAINED as TrainingScenario<never>,
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
-    'T1-noweave': t1WithHull('T1-noweave', 'dragonfly-MK1', true) as TrainingScenario<never>,
+    'T1-noweave': t1WithHull(
+        'T1-noweave',
+        'dragonfly-MK1',
+        { noCombatWeave: true },
+        'without its combat weave',
+    ) as TrainingScenario<never>,
+    'T1-lite': t1WithHull(
+        'T1-lite',
+        'dragonfly-MK1',
+        { standGround: true, capsuleIntegrity: 0.3 },
+        'holding its ground with its capsule 70% breached',
+    ) as TrainingScenario<never>,
 };
 
 /**
@@ -112,6 +164,16 @@ export interface TrainingRunOptions {
     /** Omit to skip persisting the recording -- the run still records to a scratch dir so
      * `extract.ts` has a store to read, but that scratch recording is deleted before returning. */
     readonly recording?: { readonly dir: string; readonly intervalSimSeconds: number };
+    /**
+     * Seats a crew on the GVTS: it gets `ShipManagerPc`, so the map's `orderAttack` on it is a no-op
+     * and, without a {@link beforeTick} driving it, the ship does nothing.
+     */
+    readonly crewedPlayer?: boolean;
+    /**
+     * Awaited before every `game.tick(dt)`, as the wave-defence harness drives its crew before the
+     * tick, so whatever it sets takes effect on that tick. Cannot cross `run-training.ts`'s worker IPC.
+     */
+    readonly beforeTick?: (game: HeadlessGame, recorder: HeadlessRecorder) => Promise<void> | void;
 }
 
 /**
@@ -123,11 +185,11 @@ export interface TrainingRunOptions {
  */
 export async function runTraining<P>(
     scenario: TrainingScenario<P>,
-    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording }: TrainingRunOptions,
+    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording, crewedPlayer = false, beforeTick }: TrainingRunOptions,
 ): Promise<TrainingResult> {
     const started = Date.now();
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
-    const game = HeadlessGame.start(scenario.createMap(params), seed);
+    const game = HeadlessGame.start(scenario.createMap(params), seed, { crewedPlayer });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');
@@ -150,6 +212,7 @@ export async function runTraining<P>(
     const gunnery: GunnerySample[] = [];
     await recorder.capture();
     while (game.seconds < timeoutSeconds) {
+        await beforeTick?.(game, recorder);
         game.tick(dt);
         await recorder.capture();
         const target = game.api.getObject(TRAINING_TARGET_ID);
