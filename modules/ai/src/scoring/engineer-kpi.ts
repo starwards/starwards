@@ -28,7 +28,8 @@ import { integrity } from './features';
  * - integrity `D_t = 1 − Σ(a+ε)·sev / Σ(a+ε)`, sev 1 when broken, else the largest defect fraction off
  *   normal (hacking excluded), and its look-ahead `D60` = mean D over [t, t+60 s] of the run, so
  *   damage an action causes (an overheat) lands on the frames that caused it;
- * - `K = D60·((1 − λ)·S + λ·R)`, `λ = min(0.6, λ0 + λ1·r)`.
+ * - `K = D60·((1 − λ)·S + λ·R)`, `λ = min(0.6, λ0 + λ1·r)`; `K = D60·R` when `Σ a < 0.1` (unreachable
+ *   while the reactor is always demanded).
  *
  * Risk `r` in [0, 1] is a logistic of raw danger fitted to whether the ship loses integrity in the
  * next 30 s ({@link RISK_MODEL}). The label `engineer_kpi30` is the mean K over (t, t+30 s].
@@ -73,6 +74,8 @@ export interface RiskModel {
 export const RISK_MODEL: RiskModel = { bias: -4.803, coef: [2.323, 0.527, 1.997, 0, 0.883] };
 
 const LAMBDA_CAP = 0.6;
+/** Below this total demand nothing is asked of the systems and only reserve counts: K = D·R. */
+const MIN_DEMAND = 0.1;
 /** Half-width of the window requests are read over, seconds. */
 const DEMAND_WINDOW = 3;
 /** How far the integrity term looks ahead, seconds. */
@@ -326,8 +329,14 @@ export function damageLookahead(cs: readonly EngineerComponents[], epsilon: numb
 }
 
 /** K of one frame from its look-ahead integrity `d60` and risk `r`. */
-export function kpiOf(c: Pick<EngineerComponents, 'service' | 'store'>, d60: number, r: number, w: EngineerWeights) {
+export function kpiOf(
+    c: Pick<EngineerComponents, 'service' | 'store' | 'sumA'>,
+    d60: number,
+    r: number,
+    w: EngineerWeights,
+) {
     const reserve = 1 - Math.exp((-w.k * c.store) / (w.n0 * (1 + w.beta * r)));
+    if (c.sumA < MIN_DEMAND) return d60 * reserve;
     const lambda = Math.min(LAMBDA_CAP, w.lambda0 + w.lambda1 * r);
     return d60 * ((1 - lambda) * c.service + lambda * reserve);
 }

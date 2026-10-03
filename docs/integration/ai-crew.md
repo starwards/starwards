@@ -562,7 +562,11 @@ matched-seed runs of the scripted engineers (`crews/engineer-*.json`):
 
 Status on 420 runs, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`: wherever kills or time-to-kill
 separate two engineers, the KPI's ordering agrees in sign (reference over idle, all-max and random on
-T1 and T1-MK2). Where nothing is fought, an all-shutdown engineer banks a full store and outscores idle.
+T1 and T1-MK2). Where nothing is fought, an all-shutdown engineer banks a full store and outscores idle,
+which is accepted (no demand, K = D·R). Open: repairs clear damage the KPI barely registers, and the E1
+rungs (energy-bound, almost no kills) are gated on survival and damage per exposure second, which
+reward not fighting. The `engineer_kpi30` label is in the dataset; its per-scenario stats are in the
+report.
 
 The score is not yet a training target. The supply cap stays until energy draw becomes a curve in power
 (#2305).
