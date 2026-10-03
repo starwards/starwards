@@ -3,13 +3,16 @@ import { JobStatus, SignalsJob } from './signals-job';
 
 import { Projectile, isShellAmmo } from '../space/projectile';
 
+import { Radar } from './radar';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
 import { Spaceship } from '../space';
+import { XY } from '../logic/xy';
 import { findLastIndex } from '../utils';
 import { isSensorInvisible } from '../space/sensor-visibility';
 import { makeId } from '../id';
+import { sectorCovers } from '../logic/field-of-view';
 
 export class SignalsJobManager implements Updateable {
     constructor(
@@ -134,18 +137,18 @@ export class SignalsJobManager implements Updateable {
     }
 
     /**
-     * The station always works the first workable job in the queue. A job that loses the working
-     * slot (displaced by a prioritized job, or its target slipping out of sight) loses all
-     * progress — progress only survives while a job stays active. Every job that is not the active
-     * one is marked `QUEUED` or `DORMANT` by whether the station could work it, so a client can
-     * tell a genuinely next-up job from one that will be skipped.
+     * The station always works the first progressable job in the queue. A job that loses the
+     * working slot (displaced by a prioritized job, its target slipping out of sight, or the beam
+     * swinging off it) loses all progress — progress only survives while a job stays active. Every
+     * job that is not the active one is marked `QUEUED` or `DORMANT` by whether it could progress,
+     * so a client can tell a genuinely next-up job from one that will be skipped.
      */
     private updateActiveJob(): SignalsJob | undefined {
         const jobs = this.state.signals.jobs;
         let active: SignalsJob | undefined;
         for (const job of jobs) {
-            const workable = this.isJobWorkable(job);
-            if (workable && !active) {
+            const progressable = this.isJobWorkable(job) && this.canProgress(job);
+            if (progressable && !active) {
                 active = job;
                 job.status = JobStatus.IN_PROGRESS;
                 continue;
@@ -153,9 +156,50 @@ export class SignalsJobManager implements Updateable {
             if (job.status === JobStatus.IN_PROGRESS) {
                 job.progress = 0;
             }
-            job.status = workable ? JobStatus.QUEUED : JobStatus.DORMANT;
+            job.status = progressable ? JobStatus.QUEUED : JobStatus.DORMANT;
         }
         return active;
+    }
+
+    /**
+     * Whether the job's working slot could actually make progress right now, on top of mere
+     * field-of-view visibility: a target already identified (BASIC or better) needs the signals
+     * beam specifically aimed and ranged on it to go deeper — the omni radar alone only ever
+     * establishes detection and BASIC (issue #2307).
+     */
+    private canProgress(job: SignalsJob): boolean {
+        const level = this.spaceManager.factionIntel.getScanLevel(job.targetId, this.state.faction);
+        return level < ScanLevel.BASIC || !!this.coveringScanBeam(job.targetId);
+    }
+
+    /**
+     * The first of this ship's scan-beam radars (`design.isScanBeam`) currently covering the
+     * target's bearing and range, or `undefined` if none is. Occlusion is not re-checked here:
+     * `isJobWorkable`'s `spaceManager.isVisible` already established a clear line of sight at the
+     * target's actual distance, which is a physical fact independent of which radar is looking.
+     */
+    private coveringScanBeam(targetId: string): Radar | undefined {
+        const target = this.spaceManager.state.get(targetId);
+        if (!target) {
+            return undefined;
+        }
+        const diff = XY.difference(target.position, this.state.position);
+        const distance = XY.lengthOf(diff);
+        const bearing = XY.angleOf(diff);
+        for (const radar of this.state.radars) {
+            if (
+                radar.design.isScanBeam &&
+                sectorCovers(
+                    { direction: radar.getGlobalBearing(this.state), arc: radar.arc, range: radar.range },
+                    bearing,
+                    distance,
+                    target.radius,
+                )
+            ) {
+                return radar;
+            }
+        }
+        return undefined;
     }
 
     private processJobQueue(activeJob: SignalsJob, deltaSeconds: number): void {
@@ -164,13 +208,24 @@ export class SignalsJobManager implements Updateable {
             return;
         }
 
-        const effectiveDuration = activeJob.duration / effectiveness;
+        const effectiveDuration = activeJob.duration / (effectiveness * this.dwellFactor(activeJob));
         const progressIncrement = deltaSeconds / effectiveDuration;
         activeJob.progress = Math.min(1, activeJob.progress + progressIncrement);
 
         if (activeJob.progress >= 1) {
             this.completeJob(activeJob);
         }
+    }
+
+    /**
+     * Speed multiplier from the beam's current dwell: narrowing the arc concentrates the sweep on
+     * fewer bearings, so it classifies faster than the beam's `defaultArc`; widening spreads it
+     * thinner and slows the scan. 1 when no beam is covering the job (identification via the omni
+     * alone does not dwell).
+     */
+    private dwellFactor(job: SignalsJob): number {
+        const beam = this.coveringScanBeam(job.targetId);
+        return beam ? beam.design.defaultArc / beam.arc : 1;
     }
 
     private completeJob(job: SignalsJob): void {

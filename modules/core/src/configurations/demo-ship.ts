@@ -39,6 +39,7 @@ export const demoShipOmniRadar = {
 };
 export const demoShipScanBeam = {
     modelName: 'Lancet-20 Directional Scan Beam',
+    isScanBeam: true,
     isInternal: false,
     isElectronics: true,
     damage50: 20,

@@ -23,7 +23,10 @@ import { expect } from 'chai';
 
 const demoShipConfig = shipConfigurations['demo-ship'];
 
-function shipWithContactInSight(targetScanLevel: ScanLevel = ScanLevel.UFO) {
+function shipWithContactInSight(
+    targetScanLevel: ScanLevel = ScanLevel.UFO,
+    targetPosition: Vec2 = Vec2.make({ x: 1000, y: 0 }),
+) {
     const spaceMgr = new SpaceManager();
     const shipObj = new Spaceship();
     shipObj.id = 'ship1';
@@ -41,7 +44,7 @@ function shipWithContactInSight(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     targetObj.id = 'target1';
     targetObj.radius = demoShipConfig.radius;
     targetObj.faction = Faction.Raiders;
-    targetObj.position = Vec2.make({ x: 1000, y: 0 });
+    targetObj.position = targetPosition;
     spaceMgr.insert(targetObj);
     const targetDie = new MockDie();
     const targetMgr = new ShipManagerPc(
@@ -276,6 +279,45 @@ describe('SignalsJobManager', () => {
             runTicks(spaceMgr, 30, 20, 0.05, shipMgr);
             expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
             expect(scanJobs(shipMgr).length).to.equal(0);
+        });
+    });
+
+    describe('deep scans require the beam (issue #2307)', () => {
+        it('identifies a ship via the omni alone but stalls short of FULL until the beam points at it', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.UFO, Vec2.make({ x: 0, y: 1000 }));
+
+            runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+
+            // the beam still rests dead ahead (bearing 0); the target sits at bearing 90 — sustained
+            // omni sight alone cannot push identification any deeper
+            const t = runTicks(spaceMgr, 10, 20, 6.05, shipMgr);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+
+            // point the beam at the target's bearing — set both so it doesn't slew back toward the
+            // default-aimed bearingCommand on the next tick
+            shipMgr.state.radars[1].bearing = 90;
+            shipMgr.state.radars[1].bearingCommand = 90;
+            runTicks(spaceMgr, 5, 20, t, shipMgr);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+        });
+
+        it('scanning at a narrower beam arc is proportionally faster than at the default arc', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.BASIC);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+
+            const progressBefore = shipMgr.state.signals.jobs[0].progress;
+            tick(spaceMgr, 1, 1.1, shipMgr);
+            const defaultArcProgressPerSecond = shipMgr.state.signals.jobs[0].progress - progressBefore;
+
+            shipMgr.state.signals.jobs[0].progress = 0;
+            shipMgr.state.radars[1].arc = 5; // the beam's narrowest setting, vs its 20° default
+
+            const progressBefore2 = shipMgr.state.signals.jobs[0].progress;
+            tick(spaceMgr, 1, 2.1, shipMgr);
+            const narrowArcProgressPerSecond = shipMgr.state.signals.jobs[0].progress - progressBefore2;
+
+            expect(narrowArcProgressPerSecond / defaultArcProgressPerSecond).to.be.closeTo(20 / 5, 0.1);
         });
     });
 
