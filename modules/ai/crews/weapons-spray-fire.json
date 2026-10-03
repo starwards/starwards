@@ -1,0 +1,17 @@
+{
+    "name": "weapons-spray-fire",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "spray-fire"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}
