@@ -18,6 +18,8 @@ import { HeadlessGame } from './headless-game';
 import { RECORDING_EXT } from '../recording/game-recorder';
 import { schemaToString } from '../serialization/game-state-serialization';
 
+type Flying = { shipId: string; x: number; y: number; health: number };
+
 /**
  * Writes a {@link HeadlessGame} run in the server's recording format (`.sgr`), one frame
  * every `intervalSimSeconds` of game time -- not wall time, since a headless run is far faster
@@ -44,7 +46,8 @@ export class HeadlessRecorder {
     private readonly firing = new Map<string, boolean>();
     private readonly blastHits = new BlastOverlaps();
     private readonly defectListeners = new WeakSet<ShipManager>();
-    private readonly flying = new Map<string, { shipId: string; x: number; y: number; health: number }>();
+    private readonly flying = new Map<string, Flying>();
+    private gone: { id: string; last: Flying; t: number; waited: boolean }[] = [];
     private readonly blasts = new Set<string>();
     private impactsThisTick = new Set<string>();
     private pendingEvents: RecordingEventLine[] = [];
@@ -81,11 +84,11 @@ export class HeadlessRecorder {
     }
 
     /**
-     * Queues a sidecar event stamped with the current game time. It is written with the next frame,
+     * Queues a sidecar event stamped with game time `t` (default: now). It is written with the next frame,
      * so a sidecar never runs ahead of the `.sgr` it belongs to.
      */
-    record(kind: string, objectId: string | undefined, data?: unknown) {
-        this.pendingEvents.push({ t: this.game.seconds, kind, objectId, data });
+    record(kind: string, objectId: string | undefined, data?: unknown, t = this.game.seconds) {
+        this.pendingEvents.push({ t, kind, objectId, data });
     }
 
     /**
@@ -134,6 +137,10 @@ export class HeadlessRecorder {
         }
     }
 
+    /**
+     * A detonating round's blast enters space a tick after the round leaves it, so a round that is gone
+     * is classified once the next tick's new blasts are known.
+     */
     private observeProjectiles() {
         const state = this.game.spaceManager.state;
         const newBlasts: Explosion[] = [];
@@ -143,6 +150,18 @@ export class HeadlessRecorder {
                 newBlasts.push(e);
             }
         }
+        const near = (last: Flying) =>
+            newBlasts.some(
+                (e) => e.shipId === last.shipId && Math.hypot(e.position.x - last.x, e.position.y - last.y) < 200,
+            );
+        const stillPending: typeof this.gone = [];
+        for (const g of this.gone) {
+            if (near(g.last)) this.record('projectile_end', g.id, { reason: 'detonate' }, g.t);
+            else if (g.waited)
+                this.record('projectile_end', g.id, { reason: g.last.health <= 0 ? 'shotDown' : 'expire' }, g.t);
+            else stillPending.push({ ...g, waited: true });
+        }
+        this.gone = stillPending;
         const live = new Set<string>();
         for (const p of state.getAll('Projectile')) {
             if (p.destroyed) continue;
@@ -153,17 +172,9 @@ export class HeadlessRecorder {
         for (const [id, last] of this.flying) {
             if (live.has(id)) continue;
             this.flying.delete(id);
-            const detonated = newBlasts.some(
-                (e) => e.shipId === last.shipId && Math.hypot(e.position.x - last.x, e.position.y - last.y) < 200,
-            );
-            const reason = this.impactsThisTick.has(id)
-                ? 'impact'
-                : detonated
-                  ? 'detonate'
-                  : last.health <= 0
-                    ? 'shotDown'
-                    : 'expire';
-            this.record('projectile_end', id, { reason });
+            if (this.impactsThisTick.has(id)) this.record('projectile_end', id, { reason: 'impact' });
+            else if (near(last)) this.record('projectile_end', id, { reason: 'detonate' });
+            else this.gone.push({ id, last, t: this.game.seconds, waited: false });
         }
         this.impactsThisTick = new Set();
     }

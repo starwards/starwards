@@ -1,0 +1,17 @@
+{
+    "name": "weapons-no-lock",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "no-lock"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

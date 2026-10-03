@@ -144,7 +144,11 @@ describe('HeadlessRecorder', () => {
             expect(projectileIds.has(e.objectId!)).toBe(true);
             expect(['detonate', 'impact', 'expire', 'shotDown']).toContain((e.data as { reason: string }).reason);
         }
-        expect(ends.some((e) => (e.data as { reason: string }).reason === 'detonate')).toBe(true);
+        // a HiExp shell's proximity fuze is also its time fuze: it always ends in a blast
+        const gvtsShells = new Set(gvts.map((e) => e.objectId));
+        const gvtsEnds = ends.filter((e) => gvtsShells.has(e.objectId));
+        expect(gvtsEnds.length).toBeGreaterThan(0);
+        expect(gvtsEnds.every((e) => (e.data as { reason: string }).reason === 'detonate')).toBe(true);
     });
 
     it('records each weapon hit on a ship with who fired it and what it did', () => {

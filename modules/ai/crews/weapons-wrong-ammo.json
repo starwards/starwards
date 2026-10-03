@@ -1,0 +1,17 @@
+{
+    "name": "weapons-wrong-ammo",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "wrong-ammo"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}
