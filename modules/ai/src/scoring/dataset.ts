@@ -83,7 +83,8 @@ function engineerLabels(
         events,
         playerId,
     );
-    seen.forEach((s, j) => labels.set(s.i, engineerKpi30(cs, j)));
+    const kpi30 = engineerKpi30(cs);
+    seen.forEach((s, j) => labels.set(s.i, kpi30[j]));
     return labels;
 }
 

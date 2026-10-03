@@ -1,21 +1,30 @@
 /**
- * Matched-seed validation of the engineer score and the fit of its weights. Reads crew training
- * runs made with `npm run train` on the same seeds, one crew per engineer policy (crews
- * `engineer-<policy>.json`), and prints a markdown report: the fitted weights, paired gaps between
- * policies with 95% bootstrap intervals, gaps by risk tercile, held-out seeds and scenarios, and how
- * well K predicts the next 60-120 s.
+ * Matched-seed validation of the engineer score and the fit of its risk curve and weights. Reads
+ * crew training runs made with `npm run train` on the same seeds, one crew per engineer policy
+ * (crews `engineer-<policy>.json`), and prints a markdown report.
  *
  *   npm --prefix modules/ai run score:engineer -- --runs <train out dir> [--runs <dir> ...] [--out report.md]
  *
- * Each run's weight-free components are cached beside its recording as `<run>.ekpi.json`.
+ * Two runs of a seed are compared over the same stretch of game time: from the start to the earlier
+ * of their ends (a kill, the ship's loss, or the timeout), so a run that wins early is never averaged
+ * against a run's long calm tail. Each run's weight-free components are cached beside its recording
+ * as `<run>.ekpi2.json`.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { EngineerComponents, EngineerWeights, components, engineerKpi, observe } from './engineer-kpi';
+import {
+    EngineerComponents,
+    EngineerWeights,
+    RISK_FEATURES,
+    RiskModel,
+    components,
+    damageLookahead,
+    kpiOf,
+    observe,
+    riskOf,
+} from './engineer-kpi';
 import { readEvents, readFrames } from './recording';
-
-import { integrity } from './features';
 
 const PLAYER = 'GVTS';
 const POLICIES = [
@@ -29,58 +38,85 @@ const POLICIES = [
 ] as const;
 type PolicyName = (typeof POLICIES)[number];
 
-/** One frame of a run: K's components and what happened next. */
-interface Frame extends EngineerComponents {
-    /** 1 target dead by t+h, minus the player's integrity lost by t+h; null when the run ends first. */
-    readonly outcome60: number | null;
-    readonly outcome120: number | null;
-}
+/** One frame: K's components, and whether the opponent is still alive. */
+type Frame = EngineerComponents & { readonly targetAlive: boolean };
 
 interface Run {
     readonly scenario: string;
     readonly seed: number;
     readonly policy: PolicyName;
     readonly frames: readonly Frame[];
-    readonly killed: boolean;
+    readonly end: number;
+}
+
+/** A labelled frame for the risk fit and the predictive check. */
+interface Outcomes {
+    /** Own integrity lost ≥ 0.02 (or the ship lost) in the next 30 s; null when the run ends first otherwise. */
+    readonly hurt30: (number | null)[];
+    /** 1 if the opponent dies by t+h, minus own integrity lost by t+h; null when the run ends first otherwise. */
+    readonly outcome60: (number | null)[];
+    readonly outcome120: (number | null)[];
 }
 
 function args(name: string) {
     return process.argv.flatMap((a, i) => (a === `--${name}` ? [process.argv[i + 1]] : []));
 }
 
-async function loadRun(sgr: string): Promise<Frame[]> {
-    const cache = sgr.replace(/\.sgr$/, '.ekpi.json');
-    if (fs.existsSync(cache)) return JSON.parse(fs.readFileSync(cache, 'utf8')) as Frame[];
-    const frames = await readFrames(sgr);
-    const seen = frames.flatMap((f) => {
+async function loadRun(sgr: string): Promise<{ frames: Frame[]; end: number; lost: boolean }> {
+    const cache = sgr.replace(/\.sgr$/, '.ekpi2.json');
+    if (fs.existsSync(cache))
+        return JSON.parse(fs.readFileSync(cache, 'utf8')) as { frames: Frame[]; end: number; lost: boolean };
+    const recorded = await readFrames(sgr);
+    const seen = recorded.flatMap((f) => {
         const o = observe(f.t, f.saved, PLAYER);
         if (!o) return [];
-        const target = [...f.saved.fragment.space.getAll('Spaceship')].find((s) => s.id !== PLAYER && !s.destroyed);
-        const ship = f.saved.fragment.ship.get(PLAYER)!;
-        return [{ o, alive: !!target, integrity: integrity(ship) }];
+        const alive = [...f.saved.fragment.space.getAll('Spaceship')].some((s) => s.id !== PLAYER && !s.destroyed);
+        return [{ o, alive }];
     });
     const cs = components(
         seen.map((s) => s.o),
         readEvents(sgr),
         PLAYER,
     );
-    const end = frames.at(-1)?.t ?? 0;
-    const lost = seen.length < frames.length;
-    const outcome = (i: number, h: number) => {
-        const t = cs[i].t;
-        const later = seen.findIndex((s, j) => j > i && !s.alive);
-        if (later >= 0 && cs[later].t <= t + h) return 1 - (seen[i].integrity - seen[later].integrity);
-        if (end < t + h) return lost ? -seen[i].integrity : null;
-        const at = seen.findLastIndex((_, j) => cs[j].t <= t + h);
-        return -(seen[i].integrity - seen[at].integrity);
+    const run = {
+        frames: cs.map((c, i) => ({ ...c, targetAlive: seen[i].alive })),
+        end: recorded.at(-1)?.t ?? 0,
+        lost: seen.length < recorded.length,
     };
-    const out = cs.map((c, i) => ({ ...c, outcome60: outcome(i, 60), outcome120: outcome(i, 120) }));
-    fs.writeFileSync(cache, JSON.stringify(out));
-    return out;
+    fs.writeFileSync(cache, JSON.stringify(run));
+    return run;
 }
 
+function outcomesOf(run: Run & { lost: boolean }): Outcomes {
+    const f = run.frames;
+    const at = (i: number, h: number) => {
+        const t = f[i].t;
+        const killed = f.findIndex((x, j) => j > i && !x.targetAlive && x.t <= t + h);
+        if (killed >= 0) return { kill: 1, loss: f[i].integrity - f[killed].integrity };
+        if (run.end < t + h) return run.lost ? { kill: 0, loss: f[i].integrity } : null;
+        const last = f.findLastIndex((x) => x.t <= t + h);
+        return { kill: 0, loss: f[i].integrity - f[last].integrity };
+    };
+    return {
+        hurt30: f.map((_, i) => {
+            const o = at(i, 30);
+            return o ? (o.loss >= 0.02 ? 1 : 0) : null;
+        }),
+        outcome60: f.map((_, i) => {
+            const o = at(i, 60);
+            return o ? o.kill - o.loss : null;
+        }),
+        outcome120: f.map((_, i) => {
+            const o = at(i, 120);
+            return o ? o.kill - o.loss : null;
+        }),
+    };
+}
+
+type LoadedRun = Run & { lost: boolean; outcomes: Outcomes };
+
 async function loadRuns(dirs: readonly string[]) {
-    const runs: Run[] = [];
+    const runs: LoadedRun[] = [];
     for (const dir of dirs) {
         for (const crew of fs.readdirSync(dir)) {
             const policy = crew.replace(/^engineer-/, '') as PolicyName;
@@ -88,18 +124,9 @@ async function loadRuns(dirs: readonly string[]) {
             for (const file of fs.readdirSync(path.join(dir, crew)).filter((f) => f.endsWith('.sgr'))) {
                 const [, scenario, seed] = /^(.+)_seed(\d+)\.sgr$/.exec(file) ?? [];
                 if (!scenario) continue;
-                const frames = await loadRun(path.join(dir, crew, file));
-                const report = path.join(dir, `${scenario}-crews.json`);
-                const killed = fs.existsSync(report)
-                    ? (
-                          JSON.parse(fs.readFileSync(report, 'utf8')) as {
-                              crew: string;
-                              seed: number;
-                              killed: boolean;
-                          }[]
-                      ).some((r) => r.crew === crew && r.seed === Number(seed) && r.killed)
-                    : false;
-                runs.push({ scenario, seed: Number(seed), policy, frames, killed });
+                const loaded = await loadRun(path.join(dir, crew, file));
+                const run = { scenario, seed: Number(seed), policy, ...loaded };
+                runs.push({ ...run, outcomes: outcomesOf(run) });
                 process.stderr.write('.');
             }
         }
@@ -122,7 +149,6 @@ function rng(seed: number) {
     };
 }
 
-/** Mean of `deltas` and its 95% percentile bootstrap interval. */
 function bootstrap(deltas: readonly number[], resamples = 2000) {
     if (!deltas.length) return { mean: NaN, lo: NaN, hi: NaN, n: 0 };
     const next = rng(20261003);
@@ -141,68 +167,104 @@ function bootstrap(deltas: readonly number[], resamples = 2000) {
     };
 }
 
-/** Run-level score: mean K over the run's frames, optionally only those whose risk passes `keep`. */
-function runScore(run: Run, w: EngineerWeights, keep: (f: Frame) => boolean = () => true) {
-    return mean(run.frames.filter(keep).map((f) => engineerKpi(f, w)));
+/** Logistic regression of `hurt30` on the raw risk features, by gradient descent. */
+function fitRisk(runs: readonly LoadedRun[]): RiskModel {
+    const xs: number[][] = [];
+    const ys: number[] = [];
+    for (const r of runs) {
+        r.frames.forEach((f, i) => {
+            const y = r.outcomes.hurt30[i];
+            if (y === null) return;
+            xs.push(RISK_FEATURES.map((k) => f.features[k]));
+            ys.push(y);
+        });
+    }
+    let bias = 0;
+    const coef = RISK_FEATURES.map(() => 0);
+    const rate = 0.5;
+    for (let step = 0; step < 3000; step++) {
+        let gb = 0;
+        const g = coef.map(() => 0);
+        for (let i = 0; i < xs.length; i++) {
+            const z = xs[i].reduce((s, x, j) => s + coef[j] * x, bias);
+            const err = 1 / (1 + Math.exp(-z)) - ys[i];
+            gb += err;
+            xs[i].forEach((x, j) => (g[j] += err * x));
+        }
+        bias -= (rate * gb) / xs.length;
+        coef.forEach((_, j) => (coef[j] -= (rate * g[j]) / xs.length + 1e-3 * coef[j]));
+    }
+    return { bias, coef };
 }
 
-/** Per (scenario, seed) paired deltas of `a` minus `b`. */
-function paired(
-    runs: readonly Run[],
-    a: PolicyName,
-    b: PolicyName,
-    w: EngineerWeights,
-    keep?: (f: Frame) => boolean,
-): number[] {
+type Scored = LoadedRun & { k: number[]; r: number[] };
+
+const lookahead = new WeakMap<LoadedRun, Map<number, number[]>>();
+const riskCache = new WeakMap<LoadedRun, { model: RiskModel; r: number[] }>();
+
+function score(runs: readonly LoadedRun[], w: EngineerWeights, risk: RiskModel): Scored[] {
+    return runs.map((run) => {
+        let byEpsilon = lookahead.get(run);
+        if (!byEpsilon) lookahead.set(run, (byEpsilon = new Map<number, number[]>()));
+        let d60 = byEpsilon.get(w.epsilon);
+        if (!d60) byEpsilon.set(w.epsilon, (d60 = damageLookahead(run.frames, w.epsilon)));
+        let cached = riskCache.get(run);
+        if (cached?.model !== risk)
+            riskCache.set(run, (cached = { model: risk, r: run.frames.map((f) => riskOf(f.features, risk)) }));
+        const r = cached.r;
+        return { ...run, k: run.frames.map((f, i) => kpiOf(f, d60[i], r[i], w)), r };
+    });
+}
+
+type Keep = (r: number) => boolean;
+
+/** Per (scenario, seed) paired deltas of `a` minus `b`, each run averaged over the pair's common time. */
+function paired(runs: readonly Scored[], a: PolicyName, b: PolicyName, keep: Keep = () => true): number[] {
     const by = new Map(runs.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
     const deltas: number[] = [];
-    for (const r of runs.filter((x) => x.policy === a)) {
-        const other = by.get(`${r.scenario}/${r.seed}/${b}`);
-        if (!other) continue;
-        const d = runScore(r, w, keep) - runScore(other, w, keep);
+    for (const x of runs.filter((r) => r.policy === a)) {
+        const y = by.get(`${x.scenario}/${x.seed}/${b}`);
+        if (!y) continue;
+        const until = Math.min(x.end, y.end);
+        const avg = (r: Scored) => mean(r.k.filter((_, i) => r.frames[i].t <= until && keep(r.r[i])));
+        const d = avg(x) - avg(y);
         if (Number.isFinite(d)) deltas.push(d);
     }
     return deltas;
 }
 
-/** Risk tercile cut points, pooled over every frame. */
-function terciles(runs: readonly Run[]) {
-    const risks = runs.flatMap((r) => r.frames.map((f) => f.risk)).sort((a, c) => a - c);
+function terciles(runs: readonly Scored[]) {
+    const risks = runs.flatMap((r) => r.r).sort((a, c) => a - c);
     return [risks[Math.floor(risks.length / 3)], risks[Math.floor((2 * risks.length) / 3)]] as const;
 }
 
-const tercileOf = (cuts: readonly [number, number]) => (k: 0 | 1 | 2) => (f: Frame) =>
-    k === 0 ? f.risk < cuts[0] : k === 1 ? f.risk >= cuts[0] && f.risk < cuts[1] : f.risk >= cuts[1];
+const tercile =
+    (cuts: readonly [number, number], k: 0 | 1 | 2): Keep =>
+    (r) =>
+        k === 0 ? r < cuts[0] : k === 1 ? r >= cuts[0] && r < cuts[1] : r >= cuts[1];
 
-/** The required orderings, as paired contrasts that must be positive. */
-function contrasts(runs: readonly Run[], w: EngineerWeights, cuts: readonly [number, number]) {
-    const high = tercileOf(cuts)(2);
-    return {
-        'reference − idle': paired(runs, 'reference', 'idle', w),
-        'idle − all-shutdown': paired(runs, 'idle', 'all-shutdown', w),
-        'reference − all-max (high risk)': paired(runs, 'reference', 'all-max', w, high),
-    };
-}
+const REQUIRED = [
+    ['reference', 'idle', 'all'],
+    ['idle', 'all-shutdown', 'all'],
+    ['reference', 'all-max', 'high'],
+] as const;
 
-/** Standardised paired gap: mean / sd, the paired t without the sqrt(n). */
 function effect(deltas: readonly number[]) {
+    if (!deltas.length) return Infinity;
     const m = mean(deltas);
     const sd = Math.sqrt(mean(deltas.map((d) => (d - m) ** 2))) || 1e-9;
     return m / sd;
 }
 
-/**
- * Within-tercile Pearson correlation of frame K with the outcome h seconds on, averaged over terciles
- * (and so conditional on the situation's risk).
- */
-function predictive(runs: readonly Run[], w: EngineerWeights, cuts: readonly [number, number], h: 60 | 120) {
+/** Within-tercile Pearson r of frame K with the h-second outcome, averaged over terciles. */
+function predictive(runs: readonly Scored[], cuts: readonly [number, number], h: 60 | 120) {
     const corr: number[] = [];
     for (const k of [0, 1, 2] as const) {
-        const keep = tercileOf(cuts)(k);
+        const keep = tercile(cuts, k);
         const pairs = runs.flatMap((r) =>
-            r.frames.flatMap((f) => {
-                const y = h === 60 ? f.outcome60 : f.outcome120;
-                return keep(f) && y !== null ? [[engineerKpi(f, w), y] as const] : [];
+            r.k.flatMap((x, i) => {
+                const y = (h === 60 ? r.outcomes.outcome60 : r.outcomes.outcome120)[i];
+                return keep(r.r[i]) && y !== null ? [[x, y] as const] : [];
             }),
         );
         const mx = mean(pairs.map((p) => p[0]));
@@ -232,148 +294,139 @@ function grid(): EngineerWeights[] {
 }
 
 /**
- * The weights maximising the weakest required contrast, among those whose K predicts the 120 s
- * outcome; when none does, the best of all, flagged `predictive: false`.
+ * Fits the risk curve, then the weights maximising the weakest required contrast over every
+ * scenario, among those whose K predicts the 120 s outcome; when none does, the best of all.
  */
-function fit(runs: readonly Run[]) {
-    const cuts = terciles(runs);
+function fit(runs: readonly LoadedRun[]) {
+    const risk = fitRisk(runs);
+    const scenarios = [...new Set(runs.map((r) => r.scenario))];
     let best: { w: EngineerWeights; score: number; predictive: boolean } | undefined;
     for (const w of grid()) {
-        const ok = predictive(runs, w, cuts, 120).mean > 0;
+        const scored = score(runs, w, risk);
+        const cuts = terciles(scored);
+        const ok = predictive(scored, cuts, 120).mean > 0;
         if (best?.predictive && !ok) continue;
-        const score = Math.min(...Object.values(contrasts(runs, w, cuts)).map(effect));
-        if (!best || (ok && !best.predictive) || score > best.score) best = { w, score, predictive: ok };
+        let s = Infinity;
+        for (const sc of scenarios) {
+            const sub = scored.filter((r) => r.scenario === sc);
+            for (const [a, b, where] of REQUIRED) {
+                s = Math.min(s, effect(paired(sub, a, b, where === 'high' ? tercile(cuts, 2) : undefined)));
+            }
+        }
+        if (!best || (ok && !best.predictive) || s > best.score) best = { w, score: s, predictive: ok };
     }
-    return best;
+    return best && { ...best, risk };
 }
 
 const fmt = (x: number, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : '–');
 const ci = (b: ReturnType<typeof bootstrap>) =>
-    `${fmt(b.mean)} [${fmt(b.lo)}, ${fmt(b.hi)}] n=${b.n}${b.lo > 0 ? ' ✓' : b.hi < 0 ? ' ✗' : ''}`;
+    b.n ? `${fmt(b.mean)} [${fmt(b.lo)}, ${fmt(b.hi)}] n=${b.n}${b.lo > 0 ? ' ✓' : b.hi < 0 ? ' ✗' : ''}` : '–';
 
 async function main() {
     const runs = await loadRuns(args('runs').map((d) => path.resolve(d)));
     const scenarios = [...new Set(runs.map((r) => r.scenario))].sort();
     const seeds = [...new Set(runs.map((r) => r.seed))].sort((a, c) => a - c);
     const trainSeeds = new Set(seeds.slice(0, Math.ceil((2 * seeds.length) / 3)));
-    const train = runs.filter((r) => trainSeeds.has(r.seed));
-    const test = runs.filter((r) => !trainSeeds.has(r.seed));
     const lines: string[] = [];
     const out = (s = '') => lines.push(s);
 
-    const fitted = fit(train);
+    const fitted = fit(runs.filter((r) => trainSeeds.has(r.seed)));
     if (!fitted) throw new Error('no runs to fit');
-    const w = fitted.w;
-    out(`runs ${runs.length}; scenarios ${scenarios.join(', ')}; seeds ${seeds.join(',')}`);
-    out(`fit seeds ${[...trainSeeds].join(',')}; held-out seeds ${seeds.filter((s) => !trainSeeds.has(s)).join(',')}`);
-    out();
+    const all = score(runs, fitted.w, fitted.risk);
+    const test = all.filter((r) => !trainSeeds.has(r.seed));
+    const cuts = terciles(all);
     out(
-        `fitted weights: \`${JSON.stringify(w)}\` (weakest standardised train contrast ${fmt(fitted.score)}; predictive constraint ${fitted.predictive ? 'met' : 'NOT met'})`,
+        `runs ${runs.length}; scenarios ${scenarios.join(', ')}; fit seeds ${[...trainSeeds].join(',')}; held-out ${seeds.filter((s) => !trainSeeds.has(s)).join(',')}`,
     );
     out();
-
-    const cuts = terciles(runs);
-    out(`risk tercile cuts (all frames): ${fmt(cuts[0])}, ${fmt(cuts[1])}`);
+    out(
+        `risk model (fit seeds, P(integrity loss ≥ 0.02 in 30 s)): \`${JSON.stringify({ bias: +fitted.risk.bias.toFixed(3), coef: fitted.risk.coef.map((c) => +c.toFixed(3)) })}\` over ${RISK_FEATURES.join(', ')}`,
+    );
     out();
-    out('### Mean run K by policy (all seeds)');
+    out(
+        `weights: \`${JSON.stringify(fitted.w)}\`; weakest standardised fit-seed contrast ${fmt(fitted.score)}; predictive constraint ${fitted.predictive ? 'met' : 'NOT met'}`,
+    );
     out();
-    out(`| scenario | ${POLICIES.join(' | ')} |`);
-    out(`| --- |${POLICIES.map(() => ' --- |').join('')}`);
-    for (const s of [...scenarios, 'all']) {
-        const sub = runs.filter((r) => s === 'all' || r.scenario === s);
-        out(
-            `| ${s} | ${POLICIES.map((p) => fmt(mean(sub.filter((r) => r.policy === p).map((r) => runScore(r, w))))).join(' | ')} |`,
-        );
-    }
+    out(`risk tercile cuts: ${fmt(cuts[0])}, ${fmt(cuts[1])}. Frame share per tercile:`);
     out();
-    out('### Kills by policy');
-    out();
-    out(`| scenario | ${POLICIES.join(' | ')} |`);
-    out(`| --- |${POLICIES.map(() => ' --- |').join('')}`);
+    out('| scenario | low | mid | high |');
+    out('| --- | --- | --- | --- |');
     for (const s of scenarios) {
-        const sub = runs.filter((r) => r.scenario === s);
+        const rs = all.filter((r) => r.scenario === s).flatMap((r) => r.r);
         out(
-            `| ${s} | ${POLICIES.map((p) => {
-                const rs = sub.filter((r) => r.policy === p);
-                return `${rs.filter((r) => r.killed).length}/${rs.length}`;
-            }).join(' | ')} |`,
+            `| ${s} | ${([0, 1, 2] as const).map((k) => fmt(rs.filter(tercile(cuts, k)).length / rs.length, 2)).join(' | ')} |`,
         );
     }
     out();
-    const contrastTable = (title: string, subset: readonly Run[]) => {
+    const pairs: [PolicyName, PolicyName][] = [
+        ['reference', 'idle'],
+        ['idle', 'all-shutdown'],
+        ['reference', 'all-max'],
+        ['reference', 'random'],
+        ['reference', 'never-jump-start'],
+        ['reference-repairing', 'reference'],
+    ];
+    const table = (title: string, subset: readonly Scored[]) => {
         out(`### ${title}`);
         out();
-        out('Paired Δ mean run K, 95% bootstrap CI over (scenario, seed) pairs. ✓ CI above 0, ✗ below.');
+        out("Paired Δ mean K over each pair's common time, 95% bootstrap CI over seeds. ✓ above 0, ✗ below.");
         out();
-        const pairs: [PolicyName, PolicyName][] = [
-            ['reference', 'idle'],
-            ['idle', 'all-shutdown'],
-            ['reference', 'all-shutdown'],
-            ['reference', 'all-max'],
-            ['reference', 'random'],
-            ['reference', 'never-jump-start'],
-            ['reference-repairing', 'reference'],
-        ];
-        out(`| scenario | ${pairs.map(([a, b]) => `${a} − ${b}`).join(' | ')} |`);
-        out(`| --- |${pairs.map(() => ' --- |').join('')}`);
+        out(`| scenario | ${pairs.map(([a, b]) => `${a} − ${b}`).join(' | ')} | reference − all-max (high risk) |`);
+        out(`| --- |${pairs.map(() => ' --- |').join('')} --- |`);
         for (const s of [...scenarios, 'all']) {
             const sub = subset.filter((r) => s === 'all' || r.scenario === s);
-            out(`| ${s} | ${pairs.map(([a, b]) => ci(bootstrap(paired(sub, a, b, w)))).join(' | ')} |`);
+            out(
+                `| ${s} | ${pairs.map(([a, b]) => ci(bootstrap(paired(sub, a, b)))).join(' | ')} | ${ci(bootstrap(paired(sub, 'reference', 'all-max', tercile(cuts, 2))))} |`,
+            );
         }
         out();
-        out('By risk tercile (frames of each run within the tercile):');
+        out('reference − idle by risk tercile:');
         out();
-        out('| scenario | tercile | reference − idle | reference − all-max | idle − all-shutdown |');
-        out('| --- | --- | --- | --- | --- |');
+        out('| scenario | low | mid | high |');
+        out('| --- | --- | --- | --- |');
         for (const s of [...scenarios, 'all']) {
             const sub = subset.filter((r) => s === 'all' || r.scenario === s);
-            for (const k of [0, 1, 2] as const) {
-                const keep = tercileOf(cuts)(k);
-                out(
-                    `| ${s} | ${['low', 'mid', 'high'][k]} | ${ci(bootstrap(paired(sub, 'reference', 'idle', w, keep)))} | ${ci(
-                        bootstrap(paired(sub, 'reference', 'all-max', w, keep)),
-                    )} | ${ci(bootstrap(paired(sub, 'idle', 'all-shutdown', w, keep)))} |`,
-                );
-            }
+            out(
+                `| ${s} | ${([0, 1, 2] as const).map((k) => ci(bootstrap(paired(sub, 'reference', 'idle', tercile(cuts, k))))).join(' | ')} |`,
+            );
         }
         out();
     };
-    contrastTable('All seeds', runs);
-    contrastTable('Held-out seeds', test);
+    table('All seeds', all);
+    table('Held-out seeds', test);
 
-    out('### Held-out scenario (fit on the other scenarios, all seeds)');
+    out('### Leave one scenario out (risk curve and weights fit on the other scenarios, all seeds)');
     out();
     out('| held out | weights | reference − idle | idle − all-shutdown | reference − all-max (high risk) |');
     out('| --- | --- | --- | --- | --- |');
     for (const s of scenarios) {
         const f = fit(runs.filter((r) => r.scenario !== s));
-        const held = runs.filter((r) => r.scenario === s);
-        if (!f) {
-            out(`| ${s} | none | | | |`);
-            continue;
-        }
-        const c = contrasts(held, f.w, cuts);
+        if (!f) continue;
+        const held = score(
+            runs.filter((r) => r.scenario === s),
+            f.w,
+            f.risk,
+        );
+        const c = terciles(score(runs, f.w, f.risk));
         out(
-            `| ${s} | \`${JSON.stringify(f.w)}\` | ${Object.values(c)
-                .map((d) => ci(bootstrap(d)))
-                .join(' | ')} |`,
+            `| ${s} | \`${JSON.stringify(f.w)}\` | ${ci(bootstrap(paired(held, 'reference', 'idle')))} | ${ci(bootstrap(paired(held, 'idle', 'all-shutdown')))} | ${ci(bootstrap(paired(held, 'reference', 'all-max', tercile(c, 2))))} |`,
         );
     }
     out();
     out('### Predictive validity');
     out();
     out(
-        'Within-risk-tercile Pearson r of frame K with the outcome (1 if the target dies by t+h, minus own integrity lost by t+h).',
+        'Within-risk-tercile Pearson r of frame K with the outcome (1 if the opponent dies by t+h, minus own integrity lost by t+h).',
     );
     out();
     out('| set | h | mean r | low | mid | high |');
     out('| --- | --- | --- | --- | --- | --- |');
     for (const [name, set] of [
-        ['fit seeds', train],
+        ['fit seeds', all.filter((r) => trainSeeds.has(r.seed))],
         ['held-out seeds', test],
     ] as const) {
         for (const h of [60, 120] as const) {
-            const p = predictive(set, w, cuts, h);
+            const p = predictive(set, cuts, h);
             out(`| ${name} | ${h} | ${fmt(p.mean)} | ${p.byTercile.map((x) => fmt(x)).join(' | ')} |`);
         }
     }
