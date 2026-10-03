@@ -177,6 +177,72 @@ describe('MovementManager', () => {
         expect(finalFuel).to.be.lessThan(initialFuel);
     });
 
+    describe('warp energy draw', () => {
+        const engageWarp = () => {
+            const warp = shipMgr.state.warp!;
+            warp.currentLevel = 1;
+            warp.desiredLevel = 1;
+            return warp;
+        };
+
+        it('costs the same energy per second regardless of tick rate', () => {
+            const spent = (iterations: number) => {
+                const mgr = new ShipManagerPc(
+                    Object.assign(new Spaceship(), { id: 'w' }),
+                    makeShipState('w', demoShipConfig),
+                    new SpaceManager(),
+                    die,
+                );
+                const warp = mgr.state.warp!;
+                warp.currentLevel = 1;
+                warp.desiredLevel = 1;
+                mgr.state.reactor.energy = mgr.state.reactor.design.maxEnergy;
+                mgr.state.reactor.power = PowerLevel.SHUTDOWN;
+                const before = mgr.state.reactor.energy;
+                for (const id of makeIterationsData(1, iterations)) {
+                    mgr.update(id);
+                }
+                return before - mgr.state.reactor.energy;
+            };
+            expect(spent(60)).to.be.closeTo(spent(10), 0.5);
+        });
+
+        it('costs 120 energy per second per warp level (2 per tick at 60 Hz before #2316)', () => {
+            const spentInOneSecond = (warpLevel: number) => {
+                const mgr = new ShipManagerPc(
+                    Object.assign(new Spaceship(), { id: 'w' }),
+                    makeShipState('w', demoShipConfig),
+                    new SpaceManager(),
+                    die,
+                );
+                const warp = mgr.state.warp!;
+                warp.currentLevel = warpLevel;
+                warp.desiredLevel = warpLevel;
+                mgr.state.reactor.energy = mgr.state.reactor.design.maxEnergy;
+                mgr.state.reactor.power = PowerLevel.SHUTDOWN;
+                const before = mgr.state.reactor.energy;
+                for (const id of makeIterationsData(1, 60)) {
+                    mgr.update(id);
+                }
+                return { spent: before - mgr.state.reactor.energy, effectiveness: warp.effectiveness };
+            };
+            const idle = spentInOneSecond(0);
+            const warping = spentInOneSecond(1);
+            expect((warping.spent - idle.spent) / warping.effectiveness).to.be.closeTo(120, 2);
+        });
+
+        it('marks warp energyStarved when the reactor cannot supply it', () => {
+            const warp = engageWarp();
+            shipMgr.state.reactor.power = PowerLevel.SHUTDOWN;
+            shipMgr.state.reactor.energy = 0;
+            for (const id of makeIterationsData(1, 20)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+            expect(warp.energyStarved).to.equal(true);
+        });
+    });
+
     it('a solid object within warp proximity jams warp', () => {
         const rock = new Asteroid();
         rock.init('rock', Vec2.make({ x: 2000, y: 0 }), 100);

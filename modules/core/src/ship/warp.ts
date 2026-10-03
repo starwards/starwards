@@ -13,6 +13,7 @@ export type WarpDesign = {
     chargeTime: number;
     dechargeTime: number;
     speedPerLevel: number;
+    /** Energy per second per warp level. */
     energyCostPerLevel: number;
     damagePerPhysicalSpeed: number;
     baseDamagePerWarpSpeedPerSecond: number;

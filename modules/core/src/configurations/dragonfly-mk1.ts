@@ -147,7 +147,7 @@ export const dragonflyMK1Warp = {
     chargeTime: 10,
     dechargeTime: 5,
     speedPerLevel: 800,
-    energyCostPerLevel: 2,
+    energyCostPerLevel: 120,
     damagePerPhysicalSpeed: 20,
     baseDamagePerWarpSpeedPerSecond: 0.1,
     secondsToChangeFrequency: 10,

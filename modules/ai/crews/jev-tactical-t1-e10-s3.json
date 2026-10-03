@@ -1,0 +1,20 @@
+{
+    "name": "jev-tactical-t1-e10-s3",
+    "seats": [
+        {
+            "station": "tactical",
+            "policy": "jev",
+            "brain": "../brains/tactical.v1.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "jev",
+            "brain": "../brains/engineer.v10.json"
+        },
+        {
+            "station": "signals",
+            "policy": "jev",
+            "brain": "../brains/signals.v3.json"
+        }
+    ]
+}

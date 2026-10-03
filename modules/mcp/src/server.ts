@@ -11,10 +11,12 @@ import {
 } from '@starwards/core/internal';
 import { InvalidCommandError, NotPermittedError, StationSession } from './sandbox/session';
 import { enabledStations, fetchStationsManifest } from './sandbox/manifest';
+import { openStation, seatsOf, withMultiplexedStations } from './sandbox/multiplex';
 import { radarContacts, shipStatus, stationCapabilities } from './sandbox/console';
 
 import { CrewChannel } from './comms/channel';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { RadarView } from './radar/radar-view';
 import { z } from 'zod';
 
 const LOGIN_TIMEOUT_MS = 15_000;
@@ -96,7 +98,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
 
     let session: StationSession | undefined;
     let manifest: StationsManifest | undefined;
-    let stationRegistration: StationRegistration | undefined;
+    let stationRegistrations: StationRegistration[] = [];
 
     function requireSession(): StationSession {
         if (!session) {
@@ -145,7 +147,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
         },
         async ({ shipId }) =>
             attempt(async () => {
-                manifest = await fetchStationsManifest(baseUrl, shipId);
+                manifest = withMultiplexedStations(await fetchStationsManifest(baseUrl, shipId));
                 return enabledStations(manifest).map((name) => {
                     const entry = manifest!.stations[name];
                     return {
@@ -177,7 +179,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
         },
         async ({ shipId, station, stationId }) =>
             attempt(async () => {
-                manifest = await fetchStationsManifest(baseUrl, shipId);
+                manifest = withMultiplexedStations(await fetchStationsManifest(baseUrl, shipId));
                 const entry = manifest.stations[station];
                 if (!entry) {
                     throw new NotPermittedError(
@@ -198,9 +200,23 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
                 ]);
                 const shipDriver: ShipDriver = await driver.getShipDriver(shipId);
                 const spaceDriver: SpaceDriver = await driver.getSpaceDriver();
-                session = new StationSession(station, entry, shipDriver, spaceDriver);
-                stationRegistration?.dispose();
-                stationRegistration = beginStationRegistration(driver, stationId ?? `mcp-${station}`, station, shipId);
+                const radar = RadarView.fromDriver(spaceDriver);
+                session = openStation(
+                    manifest,
+                    station,
+                    (seat, seatEntry) => new StationSession(seat, seatEntry, shipDriver, spaceDriver, { radar }),
+                );
+                stationRegistrations.forEach((r) => r.dispose());
+                // a multiplexed seat takes each of its member seats on the GM roster
+                const seats = seatsOf(station);
+                stationRegistrations = seats.map((seat) =>
+                    beginStationRegistration(
+                        driver,
+                        seats.length > 1 ? `${stationId ?? `mcp-${station}`}-${seat}` : (stationId ?? `mcp-${seat}`),
+                        seat,
+                        shipId,
+                    ),
+                );
                 return {
                     station,
                     shipId,

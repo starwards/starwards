@@ -130,15 +130,18 @@ export async function liveCrew(options: LiveCrewOptions) {
             heard,
             questions: result.request.questions,
         });
-        if (result.callout) {
-            // said when the decision lands, as a player speaks once they have made up their mind
-            const delivered = channel.say(station, result.callout, clock.seconds);
+        for (const said of result.callouts) {
+            // said when the decision lands, as a player speaks once they have made up their mind; a fused brain speaks as the member seat
+            const delivered = channel.say(said.seat ?? station, said, clock.seconds);
             stats[delivered ? 'callouts' : 'suppressed']++;
-            emit('callout', { station, callout: result.callout.callout, phrase: result.callout.phrase, delivered });
+            const seatTag = said.seat === undefined ? {} : { seat: said.seat };
+            emit('callout', { station, ...seatTag, callout: said.callout, phrase: said.phrase, delivered });
         }
         for (const d of result.decisions) {
+            const seatTag = d.seat === undefined ? {} : { seat: d.seat };
             emit('decision', {
                 station,
+                ...seatTag,
                 brain: result.meta.brain,
                 version: result.meta.version,
                 policy: result.meta.policy,
@@ -160,7 +163,7 @@ export async function liveCrew(options: LiveCrewOptions) {
                     if (!ok) {
                         stats.refused++;
                     }
-                    emit('command', { station, control: d.control, ...press, ok, result: outcome });
+                    emit('command', { station, ...seatTag, control: d.control, ...press, ok, result: outcome });
                 };
                 track(
                     seat.session.execute(press.command as never, press.args, press.value).then(

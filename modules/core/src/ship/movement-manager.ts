@@ -180,7 +180,9 @@ export class MovementManager implements Updateable {
             this.state.warp.currentLevel *
                 this.state.warp.effectiveness *
                 this.state.warp.design.energyCostPerLevel *
-                this.state.warp.powerDrawFactor,
+                this.state.warp.powerDrawFactor *
+                deltaSeconds,
+            this.state.warp,
         );
         if (supply > 0) {
             const newSpeed =
