@@ -28,6 +28,7 @@ export const smallStationOmniRadar = {
 
 export const smallStationScanBeam = {
     modelName: 'Lancet-100 Directional Scan Beam',
+    isScanBeam: true,
     isInternal: false,
     isElectronics: true,
     damage50: 20,

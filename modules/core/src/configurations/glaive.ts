@@ -37,6 +37,7 @@ export const glaiveOmniRadar = {
 
 export const glaiveScanBeam = {
     modelName: 'Lancet-75 Directional Scan Beam',
+    isScanBeam: true,
     isInternal: false,
     isElectronics: true,
     damage50: 20,
