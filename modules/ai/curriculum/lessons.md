@@ -208,6 +208,16 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
   the reactor and the crew runs out of energy. Range of 3.5–4 km plus an engineer seat gets 4–6/16;
   final reference 5/16.
 
+### Scoring — snapshot scorer v2 (2026-10-03)
+
+- **Lesson:** per-station scores from the scorer are now tactical T/O/V, K_w and the engineer score, all
+  validated on matched-seed runs: the model's out-of-fold scores keep every pooled policy ordering the
+  labels hold (`modules/ai/ml/reports/2026-10-03-v2.md`). `stations.helms` is unvalidated, signals has
+  no score. A better pooled model can still regress small earlier scenarios: v2 beats v1 pooled on
+  kill60/damage30 but is strictly worse on some near-zero-loss rungs, so overall stays on v1.
+- **Reuse:** compare crews on `tactical.opportunity` (helms) and `tactical.conversion` (weapons) before
+  `stations.helms`; read K_w as a habit score (persistence predicts it better than one frame).
+
 Copy this block for every candidate run on a level.
 
 ```markdown

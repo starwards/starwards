@@ -108,20 +108,19 @@ idle > all-shutdown there (all ✓), against that gate.
 The label carries variance only in the fight rungs: T1, T1-MK2, T1-lite, T0-constrained, W-multi and
 the E1 rungs. The benchmark and T0 rungs sit at 0.95–1.0 and teach little.
 
-## Open design questions (stopping here as instructed)
+## Design decisions
 
-1. **Repair credit.** The backlog that repairs clear is about 0.5–0.7 of a system, out of a demand sum
-   of about 14 (helm, guns, reactor, radar, …), so the ratio D moves about 0.04. Weighting by severity
-   or extending the horizon does not change that ratio. Options:
-    - a separate repair term, e.g. backlog-seconds cleared;
-    - normalising D by the demanded systems that can take defects;
-    - accepting that repairs matter little in 5-minute duels.
-2. **Survival gating on E1 rewards not fighting**, the same flaw as "integrity kept". Gate E1 on damage
-   per exposure second only? It favours reference on E1-predator but idle and all-max on E1-MK2.
-   Alternatively, make E1 winnable so kills can gate.
-3. **All-shutdown above idle where nothing is fought** (E1, T1-MK2) is accepted by the user's rule. Should
-   idle > all-shutdown therefore be required only where outcomes separate them, which is T0-constrained
-   and pooled (both hold)?
+Decided by the owner (2026-10-03):
+
+1. **Repairs are not credited separately.** Repairs clear about 0.5–0.7 of a system's backlog out of a
+   demand sum of about 14, so D moves about 0.04 and the KPI Δ of reference-repairing over reference is
+   inside noise (T1 −0.011, E1-MK2 −0.009). In 5-minute fights that small effect is accepted as real:
+   repairs matter little there. No repair term, no renormalised D.
+2. **E1 rungs gate on damage per exposure second only.** Survival time rewards not fighting (all-shutdown
+   outlasts idle, idle outlasts reference on E1-MK2), so it does not gate.
+3. **idle > all-shutdown is required only where outcomes separate them**: T0-constrained and pooled, where
+   it holds. On E1 and T1-MK2, where nothing is fought, all-shutdown banking a full store and outscoring
+   idle stays accepted (no demand met, K = D·R).
 
 ## Full validator output
 

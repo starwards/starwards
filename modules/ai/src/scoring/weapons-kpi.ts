@@ -43,7 +43,7 @@ export interface TacticalWeights {
     readonly rho: number;
 }
 
-export const TACTICAL_WEIGHTS: TacticalWeights = { phi: 1, lambdaFriendly: 2, windowSeconds: 45, rho: 0.01 };
+export const TACTICAL_WEIGHTS: TacticalWeights = { phi: 1, lambdaFriendly: 2, windowSeconds: 45, rho: 0.0272 };
 const HELD_SECONDS = 5;
 
 /**
@@ -508,16 +508,119 @@ export interface TacticalWindow {
     readonly outranged: boolean;
 }
 
-/** Our share of the hits `victim` took in (t0, t1]; 0 when it took none. */
-function oursShare(hits: readonly Hit[], victim: string, t0: number, t1: number, playerId: string) {
-    let ours = 0;
-    let all = 0;
+/**
+ * Per victim, our share of the hits it took in each frame interval (frames[k].t, frames[k+1].t]; 0 for an
+ * interval with no hit (unattributed loss is nobody's credit).
+ */
+function oursByInterval(hits: readonly Hit[], frames: readonly TacticalFrame[], playerId: string) {
+    const ours = new Map<string, number[]>();
+    const all = new Map<string, number[]>();
     for (const h of hits) {
-        if (h.victim !== victim || h.t <= t0 || h.t > t1) continue;
-        all += h.weight;
-        if (h.shooterId === playerId) ours += h.weight;
+        if (!frames.length || h.t <= frames[0].t || h.t > frames[frames.length - 1].t) continue;
+        let k = frameAt(frames, h.t);
+        if (frames[k].t >= h.t) k--;
+        const sum = (m: Map<string, number[]>) => {
+            let xs = m.get(h.victim);
+            if (!xs) m.set(h.victim, (xs = new Array<number>(frames.length).fill(0)));
+            return xs;
+        };
+        sum(all)[k] += h.weight;
+        if (h.shooterId === playerId) sum(ours)[k] += h.weight;
     }
-    return all > 0 ? ours / all : 0;
+    return (victim: string, k: number) => {
+        const a = all.get(victim)?.[k] ?? 0;
+        return a > 0 ? (ours.get(victim)?.[k] ?? 0) / a : 0;
+    };
+}
+
+/** What every window of a run reads: hit attribution and how long each frame's target had been held. */
+interface TacticalRun {
+    readonly frames: readonly TacticalFrame[];
+    readonly ours: (victim: string, k: number) => number;
+    readonly heldSince: readonly number[];
+    readonly w: TacticalWeights;
+    readonly gunRange: number;
+}
+
+function tacticalRun(
+    frames: readonly TacticalFrame[],
+    events: readonly RecordingEventLine[],
+    playerId: string,
+    w: TacticalWeights,
+    gunRange: number,
+): TacticalRun {
+    const heldSince: number[] = [];
+    let since = 0;
+    frames.forEach((f, k) => {
+        if (k === 0 || f.weapons.targetId !== frames[k - 1].weapons.targetId) since = f.t;
+        heldSince.push(since);
+    });
+    return { frames, ours: oursByInterval(hitsOf(events, frames), frames, playerId), heldSince, w, gunRange };
+}
+
+/**
+ * The window of {@link TacticalWeights.windowSeconds} starting at frame `start`, with the frame index it
+ * ends at; `undefined` when no enemy is alive at its start or fewer than half its seconds remain.
+ */
+function windowAt(run: TacticalRun, start: number): { window: TacticalWindow; last: number } | undefined {
+    const { frames, w, ours, heldSince } = run;
+    const f0 = frames[start];
+    const alive = f0.enemies.filter((e) => !e.destroyed);
+    if (!alive.length) return undefined;
+    const end = frames.findIndex((f) => f.t >= f0.t + w.windowSeconds);
+    const last = end < 0 ? frames.length - 1 : end;
+    if (frames[last].t - f0.t < w.windowSeconds / 2) return undefined;
+    const shares = new Map<string, number>();
+    let O = 0;
+    let gun = 0;
+    for (let k = start; k < last; k++) {
+        const s = threatShares(frames[k].enemies);
+        for (const [id, v] of s) shares.set(id, (shares.get(id) ?? 0) + v / (last - start));
+        for (const e of frames[k].enemies) if (hasSolution(frames[k], e)) O += (s.get(e.id) ?? 0) / (last - start);
+        gun += frames[k].weapons.gun / (last - start);
+    }
+    let c = 0;
+    let cMax = 0;
+    let dI = 0;
+    const iAt = (k: number, id: string) =>
+        frames[k].enemies.find((e) => e.id === id)?.incapacitation ??
+        frames[k].friends.find((e) => e.id === id)?.incapacitation ??
+        1;
+    for (const e of alive) {
+        const theta = shares.get(e.id) ?? 0;
+        cMax += (1 + w.phi) * theta * Math.min(1 - e.incapacitation, w.rho * gun * w.windowSeconds);
+        for (let k = start; k < last; k++) {
+            const gain = Math.max(0, iAt(k + 1, e.id) - iAt(k, e.id));
+            dI += gain;
+            const held = frames[k].weapons.targetId === e.id && frames[k].t - heldSince[k] >= HELD_SECONDS;
+            c += theta * (1 + (held ? w.phi : 0)) * gain * ours(e.id, k);
+        }
+    }
+    for (const fr of f0.friends) {
+        for (let k = start; k < last; k++) {
+            const gain = Math.max(0, iAt(k + 1, fr.id) - iAt(k, fr.id));
+            c -= w.lambdaFriendly * gain * ours(fr.id, k);
+        }
+    }
+    const deadBy = (id: string, t: number) =>
+        frames.some((f) => f.t <= t && f.t > f0.t && f.enemies.every((e) => e.id !== id || e.destroyed));
+    const nearest = Math.min(...alive.map((e) => Math.hypot(e.x - f0.own.x, e.y - f0.own.y)));
+    const ceiling = O * cMax;
+    return {
+        last,
+        window: {
+            t: f0.t,
+            c: Math.min(c, ceiling),
+            cMax,
+            T: cMax > 1e-9 ? Math.min(c, ceiling) / cMax : null,
+            O,
+            clipped: c > ceiling + 1e-12,
+            gun,
+            dI,
+            kill60: alive.some((e) => deadBy(e.id, f0.t + 60)),
+            outranged: nearest > run.gunRange,
+        },
+    };
 }
 
 /** Consecutive windows over a run while an enemy is alive at the window's start. */
@@ -528,75 +631,49 @@ export function tacticalWindows(
     w: TacticalWeights = TACTICAL_WEIGHTS,
     gunRange = 8000,
 ): TacticalWindow[] {
-    const hits = hitsOf(events, frames);
-    const heldSince = new Map<number, number>();
-    let since = 0;
-    frames.forEach((f, k) => {
-        if (k === 0 || f.weapons.targetId !== frames[k - 1].weapons.targetId) since = f.t;
-        heldSince.set(k, since);
-    });
+    const run = tacticalRun(frames, events, playerId, w, gunRange);
     const windows: TacticalWindow[] = [];
     let start = 0;
     while (start < frames.length - 1) {
-        const f0 = frames[start];
-        const alive = f0.enemies.filter((e) => !e.destroyed);
-        if (!alive.length) break;
-        const end = frames.findIndex((f) => f.t >= f0.t + w.windowSeconds);
-        const last = end < 0 ? frames.length - 1 : end;
-        if (frames[last].t - f0.t < w.windowSeconds / 2) break;
-        const shares = new Map<string, number>();
-        let O = 0;
-        let gun = 0;
-        for (let k = start; k < last; k++) {
-            const s = threatShares(frames[k].enemies);
-            for (const [id, v] of s) shares.set(id, (shares.get(id) ?? 0) + v / (last - start));
-            for (const e of frames[k].enemies) if (hasSolution(frames[k], e)) O += (s.get(e.id) ?? 0) / (last - start);
-            gun += frames[k].weapons.gun / (last - start);
-        }
-        let c = 0;
-        let cMax = 0;
-        let dI = 0;
-        const iAt = (k: number, id: string) =>
-            frames[k].enemies.find((e) => e.id === id)?.incapacitation ??
-            frames[k].friends.find((e) => e.id === id)?.incapacitation ??
-            1;
-        for (const e of alive) {
-            const theta = shares.get(e.id) ?? 0;
-            cMax += (1 + w.phi) * theta * Math.min(1 - e.incapacitation, w.rho * gun * w.windowSeconds);
-            for (let k = start; k < last; k++) {
-                const gain = Math.max(0, iAt(k + 1, e.id) - iAt(k, e.id));
-                dI += gain;
-                const held = frames[k].weapons.targetId === e.id && frames[k].t - heldSince.get(k)! >= HELD_SECONDS;
-                c +=
-                    theta *
-                    (1 + (held ? w.phi : 0)) *
-                    gain *
-                    oursShare(hits, e.id, frames[k].t, frames[k + 1].t, playerId);
-            }
-        }
-        for (const fr of f0.friends) {
-            for (let k = start; k < last; k++) {
-                const gain = Math.max(0, iAt(k + 1, fr.id) - iAt(k, fr.id));
-                c -= w.lambdaFriendly * gain * oursShare(hits, fr.id, frames[k].t, frames[k + 1].t, playerId);
-            }
-        }
-        const deadBy = (id: string, t: number) =>
-            frames.some((f) => f.t <= t && f.t > f0.t && f.enemies.every((e) => e.id !== id || e.destroyed));
-        const nearest = Math.min(...alive.map((e) => Math.hypot(e.x - f0.own.x, e.y - f0.own.y)));
-        const ceiling = O * cMax;
-        windows.push({
-            t: f0.t,
-            c: Math.min(c, ceiling),
-            cMax,
-            T: cMax > 1e-9 ? Math.min(c, ceiling) / cMax : null,
-            O,
-            clipped: c > ceiling + 1e-12,
-            gun,
-            dI,
-            kill60: alive.some((e) => deadBy(e.id, f0.t + 60)),
-            outranged: nearest > gunRange,
-        });
-        start = last;
+        const at = windowAt(run, start);
+        if (!at) break;
+        windows.push(at.window);
+        start = at.last;
     }
     return windows;
+}
+
+/**
+ * The window starting at every frame (sliding, one per frame): the snapshot scorer's tactical labels.
+ * `undefined` where {@link tacticalWindows} would end the run's windows.
+ */
+export function tacticalSeries(
+    frames: readonly TacticalFrame[],
+    events: readonly RecordingEventLine[],
+    playerId: string,
+    w: TacticalWeights = TACTICAL_WEIGHTS,
+): (TacticalWindow | undefined)[] {
+    const run = tacticalRun(frames, events, playerId, w, Infinity);
+    return frames.map((_, start) => (start < frames.length - 1 ? windowAt(run, start)?.window : undefined));
+}
+
+/**
+ * {@link weaponsScore} over the rounds fired in (t, t + `horizon`] and the frames in [t, t + `horizon`] of every frame;
+ * `kw` is `null` where no round was fired in the window or the run ends before it closes.
+ */
+export function weaponsSeries(
+    frames: readonly TacticalFrame[],
+    events: readonly RecordingEventLine[],
+    playerId: string,
+    horizon: number,
+): (number | null)[] {
+    const relevant = events.filter((e) => e.kind === 'shot' || e.kind === 'damage');
+    const end = frames.at(-1)?.t ?? 0;
+    return frames.map((f, i) => {
+        if (end < f.t + horizon - 1e-6) return null;
+        const until = f.t + horizon + 1e-6;
+        const window = frames.slice(i).filter((g) => g.t <= until);
+        const inWindow = relevant.filter((e) => e.t > f.t && e.t <= until);
+        return window.length ? weaponsScore(window, inWindow, playerId).kw : null;
+    });
 }
