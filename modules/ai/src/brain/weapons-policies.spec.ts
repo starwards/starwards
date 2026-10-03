@@ -63,7 +63,20 @@ describe('scripted weapons officers', () => {
         expect((await choices('no-lock', display(false)))['fireChainGun:0']).toBe('fire');
     });
 
-    it('tubes-powered runs the reference engineer but keeps the tubes at normal power', async () => {
+    it('tubes-powered runs the reference engineer but keeps the tubes at normal power while the store is above half', async () => {
         expect((await choices('tubes-powered', display(true)))['systemPower:/tubes/0']).toBe('raise');
+        const low = display(true);
+        (low.panels['engineering-status'] as { energy: number }).energy = 300;
+        const lowFull = {
+            ...low,
+            panels: {
+                ...low.panels,
+                'full-systems-status': [
+                    { pointer: '/reactor', power: 0.5, coolantFactor: 0, heat: 0 },
+                    { pointer: '/tubes/0', power: 0.5, coolantFactor: 0, heat: 0 },
+                ],
+            },
+        };
+        expect((await choices('tubes-powered', lowFull))['systemPower:/tubes/0']).toBe('lower');
     });
 });
