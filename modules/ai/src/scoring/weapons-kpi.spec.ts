@@ -1,8 +1,8 @@
 import {
     ShipReading,
     TacticalFrame,
+    ammoShortfall,
     ammoValue,
-    isDominated,
     shellReaches,
     tacticalWindows,
     weaponsScore,
@@ -29,7 +29,10 @@ const fighter = (over: Partial<ShipReading> = {}): ShipReading => ({
     penetration: Object.fromEntries(types.map((t) => [t, compositeArmor[`penetration_${t}`]])) as never,
     capsuleDamage50: 40,
     internals: 4,
-    externals: 8,
+    kill: 0,
+    cap: 1,
+    // a dragonfly's one gun (damage50 20) and four thrusters (damage50 15), by the defect rules
+    surfaceExposure: 0.05 / 40 + (4 * ((0.0275 / 4) * 0.5)) / 30,
     ...over,
 });
 
@@ -43,6 +46,7 @@ const frame = (t: number, enemy: Partial<ShipReading> = {}, gunBearing = 0): Tac
         gun: 1,
         gunBearing,
         bulletSpeed: 2000,
+        spreadDegrees: 1,
         fuzeSeconds: 1.5,
         gunAmmo: 'HiExpShell',
         shellsInMagazine: ['HiExpShell', 'ArmPenShell', 'FragShell'],
@@ -72,13 +76,13 @@ describe('weapons and tactical scores', () => {
         expect(shellReaches({ x: 0, y: 0, vx: -2000, vy: 0 }, 1.5, 'HiExpShell', target)).toBe(false);
     });
 
-    it('Frag shells are dominated on intact composite armor; HiExp and ArmPen are not', () => {
+    it('on intact composite armor Frag shells give up most of the best round; HiExp and ArmPen little', () => {
         const all = ['HiExpShell', 'ArmPenShell', 'FragShell'] as const;
-        expect(isDominated('FragShell', all, fighter())).toBe(true);
-        expect(isDominated('HiExpShell', all, fighter())).toBe(false);
-        expect(isDominated('ArmPenShell', all, fighter())).toBe(false);
-        // with nothing better loaded, a round is never dominated
-        expect(isDominated('FragShell', ['FragShell'], fighter())).toBe(false);
+        expect(ammoShortfall('FragShell', all, fighter())).toBeGreaterThan(0.5);
+        expect(ammoShortfall('HiExpShell', all, fighter())).toBeLessThan(0.5);
+        expect(ammoShortfall('ArmPenShell', all, fighter())).toBeLessThan(0.5);
+        // with nothing better loaded, a round gives up nothing
+        expect(ammoShortfall('FragShell', ['FragShell'], fighter())).toBe(0);
         expect(ammoValue('FragShell', fighter())).toBeGreaterThan(0);
     });
 
@@ -88,8 +92,13 @@ describe('weapons and tactical scores', () => {
         const sprayed = weaponsScore(frames, [shot(0.5), shot(1.5, 900)], 'us');
         expect(aimed.nosol).toBe(0);
         expect(sprayed.nosol).toBe(0.5);
-        expect(sprayed.kw).toBeLessThan(aimed.kw);
+        expect(sprayed.kw!).toBeLessThan(aimed.kw!);
         expect(aimed.lockUptime).toBe(1);
+        expect(aimed.lockThreat).toBe(1);
+    });
+
+    it('a crew that fires no round has no weapons score, not a perfect one', () => {
+        expect(weaponsScore([frame(0), frame(1)], [], 'us').kw).toBeNull();
     });
 
     it('credits only incapacitation our own hits dealt, and a crew that never fires converts nothing', () => {
@@ -110,5 +119,14 @@ describe('weapons and tactical scores', () => {
         expect(theirs[0].T).toBe(0);
         const offAim = Array.from({ length: 46 }, (_, t) => frame(t, {}, 90));
         expect(tacticalWindows(offAim, [], 'us')[0].O).toBe(0);
+    });
+
+    it('counts a well-aimed round fired between frames as opportunity, and never converts above it', () => {
+        // nose off the target at every frame, one aimed round at t = 10.5 and our hits all along
+        const frames = Array.from({ length: 46 }, (_, t) => frame(t, { incapacitation: t / 100 }, 90));
+        const [w] = tacticalWindows(frames, [shot(10.5), ...frames.map((f) => hit(f.t + 0.5, 'us'))], 'us');
+        expect(w.O).toBeCloseTo(1 / 45, 6);
+        expect(w.T!).toBeLessThanOrEqual(w.O + 1e-12);
+        expect(w.clipped).toBe(true);
     });
 });
