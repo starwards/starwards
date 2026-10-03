@@ -45,6 +45,38 @@ describe('SystemState', () => {
         expect(target.power).to.equal(PowerLevel.NORMAL);
     });
 
+    describe('powerDrawFactor', () => {
+        it('is ×1 at NORMAL power, today’s draw stays unchanged for untouched systems', () => {
+            const target = new Target();
+            target.power = PowerLevel.NORMAL;
+            expect(target.powerDrawFactor).to.be.closeTo(1, 1e-9);
+        });
+
+        it('draws more than proportionally above NORMAL power — overdrive is inefficient', () => {
+            const target = new Target();
+            target.power = PowerLevel.MAX;
+            // x = 2: (power / NORMAL)^(x-1) = MAX / NORMAL = 1 / 0.5
+            expect(target.powerDrawFactor).to.be.closeTo(2, 1e-9);
+        });
+
+        it('draws less than proportionally below NORMAL power — a conservation skill', () => {
+            const target = new Target();
+            target.power = PowerLevel.LOW;
+            expect(target.powerDrawFactor).to.be.closeTo(0.5, 1e-9);
+        });
+
+        it('is unaffected by hacked or broken — keyed on power alone, so a hacked system never becomes cheaper to run', () => {
+            const target = new Target();
+            target.power = PowerLevel.MAX;
+            const atFullHealth = target.powerDrawFactor;
+
+            target.hacked = 0.5;
+            target.broken = true;
+
+            expect(target.powerDrawFactor).to.be.closeTo(atFullHealth, 1e-9);
+        });
+    });
+
     it('isInternal reads from the design state', () => {
         const target = new Target();
         target.design = new (class extends DesignState {})();

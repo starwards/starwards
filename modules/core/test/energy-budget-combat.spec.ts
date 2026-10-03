@@ -8,6 +8,12 @@ import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
  * Regression test for #2187: testplay reported a single Corvette-vs-fighter fight needing roughly
  * five GM energy refills. Gravitas is the roster's corvette-class hull (#2042 size ladder: fighter 8
  * plates -> corvette 16), so it stands in for the reported "Corvette" here.
+ *
+ * The chain gun runs at NORMAL, not MAX: #2305 anchors a system's own energy (and, since heat scales
+ * with what a system draws, thermal) cost at ×1 at NORMAL and makes it rise above that — sustained
+ * MAX-power gunfire is deliberately no longer energy/heat neutral, so it would no longer belong in a
+ * "does this stay within budget" regression. The reactor stays at MAX: its own above-NORMAL heat
+ * cost (#2278) is a separate concern from a drawing system's #2305 cost and still applies here.
  */
 describe('energy budget under sustained weapons fire (#2187)', () => {
     it('a cooled gravitas at max reactor power does not drain its reserve firing its chaingun continuously for a full minute', () => {
@@ -22,10 +28,10 @@ describe('energy budget under sustained weapons fire (#2187)', () => {
         shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
         state.reactor.power = PowerLevel.MAX;
-        // above NORMAL the reactor heats by what it generates, like the gun by what it draws
+        // above NORMAL the reactor heats by what it generates, like a drawing system by what it draws
         state.reactor.coolantFactor = 1;
         const chainGun = state.chainGuns[0];
-        chainGun.power = PowerLevel.MAX;
+        chainGun.power = PowerLevel.NORMAL;
         chainGun.coolantFactor = 1; // cool the reactor and the gun under test, so heat can't be the limiter
         chainGun.isFiring = true;
         chainGun.loadAmmo = true;
@@ -40,7 +46,7 @@ describe('energy budget under sustained weapons fire (#2187)', () => {
         expect(chainGun.heat, 'chaingun overheated despite being fully cooled').to.be.lessThan(100);
         expect(
             state.reactor.energy,
-            'reactor drained from sustained gunfire at max power instead of staying roughly net-positive',
+            'reactor drained from sustained gunfire at normal power instead of staying roughly net-positive',
         ).to.be.at.least(startEnergy * 0.95);
     });
 });

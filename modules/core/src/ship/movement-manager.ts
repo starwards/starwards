@@ -180,6 +180,7 @@ export class MovementManager implements Updateable {
             this.state.warp.currentLevel *
                 this.state.warp.effectiveness *
                 this.state.warp.design.energyCostPerLevel *
+                this.state.warp.powerDrawFactor *
                 deltaSeconds,
             this.state.warp,
         );
@@ -280,7 +281,9 @@ export class MovementManager implements Updateable {
                 this.state.maneuvering.effectiveness *
                 this.state.maneuvering.design.rotationCapacity;
             const supply = this.energyManager.drawEnergy(
-                Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost,
+                Math.abs(enginePower) *
+                    this.state.maneuvering.design.rotationEnergyCost *
+                    this.state.maneuvering.powerDrawFactor,
                 this.state.maneuvering,
             );
             speedToChange += enginePower * this.state.maneuvering.efficiency * supply;
@@ -379,7 +382,10 @@ export class MovementManager implements Updateable {
                 const axisCapacity = thruster.design.capacity * thruster.effectiveness * deltaSeconds;
                 thruster.active =
                     desiredAction *
-                    this.energyManager.drawEnergy(desiredAction * axisCapacity * thruster.design.energyCost, thruster);
+                    this.energyManager.drawEnergy(
+                        desiredAction * axisCapacity * thruster.design.energyCost * thruster.powerDrawFactor,
+                        thruster,
+                    );
                 if (this.state.afterBurner) {
                     const desiredAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
                     const afterBurnerCapacity =

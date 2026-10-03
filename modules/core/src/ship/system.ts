@@ -155,7 +155,24 @@ export abstract class SystemState extends Schema {
     public get effectiveness() {
         return this.broken ? 0 : this.power * this.hacked;
     }
+
+    /**
+     * Extra multiplier on top of `effectiveness` for a system's own energy draw, so overdrive
+     * trades efficiency and not just rate: `(power / NORMAL)^(POWER_DRAW_EXPONENT - 1)`, ×1 at
+     * NORMAL (today's draw, unchanged). Keyed on `power` alone, never `hacked`/`broken` — a
+     * hacked or damaged system must not become cheaper to run (#2305).
+     */
+    public get powerDrawFactor() {
+        return Math.pow(this.power / PowerLevel.NORMAL, POWER_DRAW_EXPONENT - 1);
+    }
 }
+
+/**
+ * `x` in `SystemState.powerDrawFactor`'s `(power / NORMAL)^(x - 1)`. At 2, MAX gives 2× output
+ * for 4× energy draw; LOW gives 0.5× output for 0.25× draw — energy per unit of output equals
+ * `power / NORMAL`. Design call, see #2305.
+ */
+export const POWER_DRAW_EXPONENT = 2;
 
 export function defectible(config: DefectibleConfig) {
     return (target: SystemState, propertyKey: string | symbol) => {
