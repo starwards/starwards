@@ -2,6 +2,7 @@ import { InvalidCommandError, NotPermittedError, StationSession } from './sessio
 import { StationWidget, isRadarWidget, stationCommands, stationWidgets } from '@starwards/core/internal';
 import { helmsRadarRange, scanBeamStatus, widgetReaders } from '../readers';
 
+import { MultiplexedSession } from './multiplex';
 import { commandBindings } from './command-map';
 import { describeContact } from '../contacts';
 
@@ -17,6 +18,10 @@ export function stationCapabilities(session: StationSession) {
     const commands = (session.isGameMaster ? [...stationCommands] : session.commands).map((command) => {
         const binding = commandBindings[command];
         const base: Record<string, unknown> = { command, kind: binding.kind };
+        if (session instanceof MultiplexedSession) {
+            // the member seat that works this command, so a fused player's every press is attributable to one seat
+            base.seat = session.seatOf(command);
+        }
         if (binding.kind === 'fixed') {
             base.value = binding.value;
             base.range = session.rangeOf(binding.pointer);
