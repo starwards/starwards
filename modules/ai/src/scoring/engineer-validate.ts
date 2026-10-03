@@ -167,7 +167,7 @@ function bootstrap(deltas: readonly number[], resamples = 2000) {
     };
 }
 
-/** Logistic regression of `hurt30` on the raw risk features, by gradient descent. */
+/** Logistic regression of `hurt30` on the raw risk features, by projected gradient descent with non-negative coefficients. */
 function fitRisk(runs: readonly LoadedRun[]): RiskModel {
     const xs: number[][] = [];
     const ys: number[] = [];
@@ -192,7 +192,8 @@ function fitRisk(runs: readonly LoadedRun[]): RiskModel {
             xs[i].forEach((x, j) => (g[j] += err * x));
         }
         bias -= (rate * gb) / xs.length;
-        coef.forEach((_, j) => (coef[j] -= (rate * g[j]) / xs.length + 1e-3 * coef[j]));
+        // more danger never lowers risk: every coefficient is kept non-negative
+        coef.forEach((_, j) => (coef[j] = Math.max(0, coef[j] - (rate * g[j]) / xs.length - 1e-3 * coef[j])));
     }
     return { bias, coef };
 }
@@ -282,14 +283,22 @@ function predictive(runs: readonly Scored[], cuts: readonly [number, number], h:
     return { mean: mean(corr), byTercile: corr };
 }
 
+/**
+ * Reserve weights are set by design (`λ0` 0.3, `λ1` 0.4, `β` 3); `--free-reserve` fits them too, to
+ * check whether a fit would choose them stably.
+ */
+const FREE_RESERVE = process.argv.includes('--free-reserve');
+
 function grid(): EngineerWeights[] {
     const out: EngineerWeights[] = [];
+    const reserve = FREE_RESERVE
+        ? [0, 1, 3].flatMap((beta) =>
+              [0, 0.1, 0.2, 0.3].flatMap((lambda0) => [0, 0.2, 0.4].map((lambda1) => ({ beta, lambda0, lambda1 }))),
+          )
+        : [{ beta: 3, lambda0: 0.3, lambda1: 0.4 }];
     for (const k of [0.5, 1, 2, 4])
         for (const n0 of [0.25, 0.5, 1])
-            for (const beta of [0, 1, 3])
-                for (const lambda0 of [0, 0.1, 0.2, 0.3])
-                    for (const lambda1 of [0, 0.2, 0.4])
-                        for (const epsilon of [0.01, 0.05, 0.2]) out.push({ k, n0, beta, lambda0, lambda1, epsilon });
+            for (const r of reserve) for (const epsilon of [0.01, 0.05, 0.2]) out.push({ k, n0, ...r, epsilon });
     return out;
 }
 
