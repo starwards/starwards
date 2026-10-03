@@ -2,7 +2,8 @@ import { AttackDamage, AttackResolutionManager, ResolvedSystemHit } from './atta
 import { CAPSULE_DEFECT_STEP, Capsule } from './capsule';
 import { ChainGun, Damage, SmartPilot, SpaceManager, Spaceship, ammoTypes, capToRange, limitPercision } from '..';
 import { Die, ShipSystem } from './ship-manager-abstract';
-import { damageProfiles, isWeaponDamageType } from '../space/damage-profile';
+import { WeaponDamageType, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
+import { DamageDelivery } from '../space/projectile';
 
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
@@ -29,8 +30,25 @@ function defectCause(damageId: string): DefectCause {
     return damageId === 'overheat' ? 'overheat' : damageId.startsWith('warp_') ? 'warp' : 'hit';
 }
 
+/** One weapon hit as this ship took it: who fired it, what it carried, and what it did. */
+export type DamageReport = {
+    /** The projectile (impact) or explosion that dealt it. */
+    sourceId: string;
+    /** The ship whose weapon dealt it; empty when unknown. */
+    shooterId: string;
+    damageType: WeaponDamageType;
+    delivery: DamageDelivery;
+    /** The hit's amount before armor. */
+    amount: number;
+    /** Armor health the hit took off this ship's plates. */
+    plateLoss: number;
+    /** Defects the hit caused on this ship's systems. */
+    defects: number;
+};
+
 export class DamageManager {
     private applicationCounter = 0;
+    private defectCount = 0;
     private attackResolution: AttackResolutionManager;
     /**
      * Called for each weapon hit dealt by another faction's Spaceship, with the hit's amount before
@@ -39,6 +57,8 @@ export class DamageManager {
     onWeaponHit: ((attackerId: string, amount: number) => void) | null = null;
     /** Called for every defect applied to a system, with what caused it. Unset: nobody listens. */
     onDefect: ((system: ShipSystem, cause: DefectCause) => void) | null = null;
+    /** Called for every weapon hit this ship takes, with its source and effect. Unset: nobody listens. */
+    onDamage: ((report: DamageReport) => void) | null = null;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -88,12 +108,35 @@ export class DamageManager {
     public takeWeaponDamage(damage: AttackDamage): boolean {
         this.spaceManager.registerHit(damage.shipId);
         this.notifyWeaponHit(damage);
+        const plates = this.onDamage && this.plateHealth();
+        const defects = this.defectCount;
         const { hits, damagedExternals, breachHit } = this.attackResolution.resolveWeaponAttack(damage);
         this.applyResolvedHits(hits);
+        if (this.onDamage && plates !== null) {
+            this.onDamage({
+                sourceId: damage.id,
+                shooterId: damage.shipId,
+                damageType: damage.damageType,
+                delivery: damage.delivery,
+                amount: damage.amount,
+                plateLoss: plates - this.plateHealth(),
+                defects: this.defectCount - defects,
+            });
+        }
         if (breachHit) {
             this.spaceManager.markBreachHit(damage.id);
         }
         return hits.length > 0 || damagedExternals;
+    }
+
+    private plateHealth() {
+        let health = 0;
+        for (const plate of this.state.armor.armorPlates) {
+            for (const layer of plate.layers) {
+                health += layer.health;
+            }
+        }
+        return health;
     }
 
     public takeCollisionDamage(damage: Damage): boolean {
@@ -146,6 +189,7 @@ export class DamageManager {
     }
 
     private applyDefect(system: ShipSystem, defectId: string) {
+        this.defectCount++;
         if (Capsule.isInstance(system)) {
             const integrity = system.integrity - CAPSULE_DEFECT_STEP;
             // snap float residue (ten 0.1 steps leave ~1e-16) so the last defect breaches it
