@@ -1,0 +1,7 @@
+{
+    "name": "jev-helms-weapons",
+    "seats": [
+        { "station": "helms", "policy": "jev" },
+        { "station": "weapons", "policy": "jev" }
+    ]
+}

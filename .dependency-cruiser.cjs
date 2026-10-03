@@ -21,6 +21,15 @@ module.exports = {
             to: { path: '@starwards/core/internal' },
         },
         {
+            name: 'no-imports-from-ai',
+            comment:
+                'modules/ai is a leaf: it trains and runs station brains on top of ' +
+                'core, server and mcp. Nothing else may depend on it.',
+            severity: 'error',
+            from: { pathNot: '^modules/ai/' },
+            to: { path: '^modules/ai/' },
+        },
+        {
             name: 'no-browser-from-mcp',
             comment:
                 'modules/mcp is a headless Node client. Anything it needs from ' +
@@ -42,7 +51,7 @@ module.exports = {
                 'symptom of layering breakage. Within-module cycles are ' +
                 'tolerated for now and tracked separately.',
             severity: 'error',
-            from: { path: '^modules/(browser|server|node-red|mcp)/' },
+            from: { path: '^modules/(browser|server|node-red|mcp|ai)/' },
             to: {
                 circular: true,
                 path: '^modules/core/',

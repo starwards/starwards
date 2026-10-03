@@ -220,3 +220,23 @@ describe('EnergyManager.update — reactor power heat', () => {
         expect(state.reactor.heat).to.equal(0);
     });
 });
+
+describe('EnergyManager.lastFlow', () => {
+    it("reports the previous tick's total demand and what the reactor granted of it", () => {
+        const { state, energyManager } = setUpEnergyManager();
+        state.reactor.energy = 6;
+        tick(energyManager, 0);
+        energyManager.drawEnergy(4, state.thrusters[0]);
+        energyManager.drawEnergy(4, state.thrusters[1]);
+        tick(energyManager, 0);
+
+        expect(energyManager.lastFlow.demand).to.equal(8);
+        expect(energyManager.lastFlow.granted).to.equal(6);
+    });
+
+    it('reports zero flow for a tick nothing drew on', () => {
+        const { energyManager } = setUpEnergyManager();
+        tick(energyManager, 0);
+        expect(energyManager.lastFlow).to.deep.equal({ demand: 0, granted: 0 });
+    });
+});

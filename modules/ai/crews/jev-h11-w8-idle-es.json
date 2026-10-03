@@ -1,0 +1,23 @@
+{
+    "name": "jev-h11-w8-idle-es",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "jev",
+            "brain": "../brains/helms.v11.json"
+        },
+        {
+            "station": "weapons",
+            "policy": "jev",
+            "brain": "../brains/weapons.v8.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "idle"
+        },
+        {
+            "station": "signals",
+            "policy": "idle"
+        }
+    ]
+}

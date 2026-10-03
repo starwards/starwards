@@ -1,0 +1,7 @@
+{
+    "name": "jev-weapons-w17-ref-helms",
+    "seats": [
+        { "station": "helms", "policy": "reference" },
+        { "station": "weapons", "policy": "jev", "brain": "../brains/weapons.v17.json" }
+    ]
+}

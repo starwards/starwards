@@ -1,0 +1,9 @@
+{
+    "name": "jev-hw-v5-idle-es",
+    "seats": [
+        { "station": "helms", "policy": "jev", "brain": "../brains/helms.v5.json" },
+        { "station": "weapons", "policy": "jev", "brain": "../brains/weapons.v5.json" },
+        { "station": "engineer", "policy": "idle" },
+        { "station": "signals", "policy": "idle" }
+    ]
+}

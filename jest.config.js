@@ -50,6 +50,11 @@ module.exports = {
         },
         {
             ...baseConfig,
+            displayName: 'ai',
+            testRegex: 'modules/ai/.*\\.spec\\.ts$',
+        },
+        {
+            ...baseConfig,
             displayName: 'browser',
             testRegex: 'modules/browser/.*\\.spec\\.ts$',
         },

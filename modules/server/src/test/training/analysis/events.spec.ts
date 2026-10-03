@@ -2,6 +2,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { EVENTS_EXT, encodeEventLine } from '@starwards/core/internal';
+import { RECORDING_EXT } from '../../../recording/game-recorder';
 import { Store } from './store';
 import { computeEvents } from './events';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
@@ -172,5 +174,55 @@ describe('computeEvents', () => {
         const proximity = await eventsOfKind('proximity');
         expect(proximity).toHaveLength(1);
         expect(proximity[0].t).toBe(1);
+    });
+
+    /** Points `runId` at a `.sgr` path whose sidecar holds `lines`, the way a headless run's ingest does. */
+    function sidecar(lines: string[]) {
+        runId = path.join(dir, `${runId}${RECORDING_EXT}`);
+        fs.writeFileSync(runId.slice(0, -RECORDING_EXT.length) + EVENTS_EXT, lines.join('\n') + '\n');
+    }
+
+    it('ingests a custom-kind sidecar event with its full data as detail_json', async () => {
+        await frame(0);
+        const data = { any: ['json', 1], nested: { ok: true } };
+        sidecar([encodeEventLine({ t: 2.5, kind: 'decision', objectId: 'GVTS', data }).trim()]);
+        await computeEvents(store, runId);
+        const decisions = await store.all<{ t: number; object_id: string; source: string; detail_json: string }>(
+            "SELECT t, object_id, source, detail_json FROM event WHERE run_id = ? AND kind = 'decision'",
+            runId,
+        );
+        expect(decisions).toHaveLength(1);
+        expect(decisions[0]).toMatchObject({ t: 2.5, object_id: 'GVTS', source: 'recorded' });
+        expect(JSON.parse(decisions[0].detail_json)).toEqual(data);
+    });
+
+    it('keeps the gun/explosion detail keys for built-in sidecar kinds', async () => {
+        await frame(0);
+        sidecar([
+            encodeEventLine({ t: 1, kind: 'fire_start', objectId: 'a', data: { mount: 1 } }).trim(),
+            encodeEventLine({
+                t: 2,
+                kind: 'blast_hit',
+                objectId: 'a',
+                data: { explosionId: 'e', damageType: 'x' },
+            }).trim(),
+        ]);
+        await computeEvents(store, runId);
+        expect(JSON.parse((await eventsOfKind('fire_start'))[0].detail_json)).toEqual({ gun: 1 });
+        expect(JSON.parse((await eventsOfKind('blast_hit'))[0].detail_json)).toEqual({
+            explosionId: 'e',
+            damageType: 'x',
+        });
+    });
+
+    it('skips and counts malformed sidecar lines instead of aborting ingest', async () => {
+        await frame(0);
+        const good = encodeEventLine({ t: 1, kind: 'command', objectId: 'a', data: { x: 1 } }).trim();
+        sidecar([good, '{"t":2,"kind":"comm', 'not json']);
+        await computeEvents(store, runId);
+        expect(await eventsOfKind('command')).toHaveLength(1);
+        const malformed = await eventsOfKind('sidecar_malformed');
+        expect(malformed).toHaveLength(1);
+        expect(JSON.parse(malformed[0].detail_json)).toEqual({ lines: 2 });
     });
 });

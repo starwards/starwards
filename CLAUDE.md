@@ -78,6 +78,7 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 | `osc-controllers`              | Open Stage Control layouts/custom modules, Node-RED OSC bridge, tablet controllers, Playwright tests driving O-S-C widgets |
 | `starwards-recording-analysis` | Why a headless training run behaved as it did: failed checks, events, series from its recording                            |
 | `starwards-balance-check`      | Balance questions: time to kill, wave difficulty, re-pinning harness numbers after a core change                           |
+| `starwards-brain-training`     | Train, tune or compare a station brain (`modules/ai`) in the headless game                                                 |
 
 ## Custom Commands
 
@@ -87,8 +88,8 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 - **Stack**: Colyseus multiplayer, PixiJS v8 graphics, React UI, XState, TypeScript
 - **Monorepo**: `modules/` folder with npm workspaces
-- **Modules**: browser, core, server, node-red, mcp, e2e
-- **Build order**: core → (server, browser, node-red, mcp in parallel)
+- **Modules**: browser, core, server, node-red, mcp, ai, e2e
+- **Build order**: core → (server, browser, node-red, mcp in parallel); `ai` has no build (ts-node scripts over core, server and mcp source)
 - **Scenarios**: Defined in `modules/server/src/maps.ts`
 
 ## Architecture

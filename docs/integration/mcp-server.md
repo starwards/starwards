@@ -2,14 +2,14 @@
 audience: both
 depth: deep
 source_of_truth:
-  - modules/mcp
-  - modules/core/src/stations-manifest.ts
-  - modules/server/src/stations-manifest.ts
-  - modules/mcp/src/radar/radar-view.spec.ts
-  - modules/mcp/src/testplay.spec.ts
+    - modules/mcp
+    - modules/core/src/stations-manifest.ts
+    - modules/server/src/stations-manifest.ts
+    - modules/mcp/src/radar/radar-view.spec.ts
+    - modules/mcp/src/testplay.spec.ts
 related:
-  - INTEGRATION.md
-  - maintainers.md
+    - INTEGRATION.md
+    - maintainers.md
 last_verified: 2026-08-18
 ---
 
@@ -59,9 +59,9 @@ The manifest is `{ stations: { <name>: StationEntry } }`, defined in
 [`modules/core/src/stations-manifest.ts`](../../modules/core/src/stations-manifest.ts) and populated in
 [`modules/server/src/stations-manifest.ts`](../../modules/server/src/stations-manifest.ts). Each entry:
 
-| Field      | Meaning                                                                             |
-| ---------- | ----------------------------------------------------------------------------------- |
-| `enabled`  | A station is selectable only when explicitly enabled.                               |
+| Field      | Meaning                                                                              |
+| ---------- | ------------------------------------------------------------------------------------ |
+| `enabled`  | A station is selectable only when explicitly enabled.                                |
 | `widgets`  | Panels this seat may read — one flag per widget the station screen draws.            |
 | `commands` | Controls this seat may operate — one flag per input action the station screen wires. |
 | `prompt`   | The briefing handed to an LLM taking this seat.                                      |
@@ -78,18 +78,18 @@ returns the same bridge for every one.
 
 ## Tools
 
-| Tool                  | Purpose                                                                       |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `list_ships`          | Ships in the running game.                                                    |
-| `list_stations`       | Stations a ship offers, with flags and briefings.                             |
-| `login`               | Take a seat. Everything afterwards is bounded by it.                          |
-| `logout`              | Leave the seat.                                                               |
-| `get_capabilities`    | What this seat may read and do, with live value ranges and indices.           |
-| `get_ship_status`     | Read one panel the seat holds.                                                |
-| `get_radar_contacts`  | The seat's picture of space, filtered and scan-level degraded.                |
-| `execute_command`     | Operate a control the seat holds.                                             |
-| `say`                 | Speak to the rest of the crew.                                                |
-| `listen`              | Hear what the crew has said since the last call.                              |
+| Tool                 | Purpose                                                             |
+| -------------------- | ------------------------------------------------------------------- |
+| `list_ships`         | Ships in the running game.                                          |
+| `list_stations`      | Stations a ship offers, with flags and briefings.                   |
+| `login`              | Take a seat. Everything afterwards is bounded by it.                |
+| `logout`             | Leave the seat.                                                     |
+| `get_capabilities`   | What this seat may read and do, with live value ranges and indices. |
+| `get_ship_status`    | Read one panel the seat holds.                                      |
+| `get_radar_contacts` | The seat's picture of space, filtered and scan-level degraded.      |
+| `execute_command`    | Operate a control the seat holds.                                   |
+| `say`                | Speak to the rest of the crew.                                      |
+| `listen`             | Hear what the crew has said since the last call.                    |
 
 A refusal names what the seat can do instead, so a model can correct itself without guessing.
 
@@ -102,7 +102,26 @@ contact is visible when any same-faction ship holds it — the fleet shares one 
 degrades detail without hiding contacts: below `BASIC` a contact reports position and size only, never
 its type, faction or name.
 
-`modules/mcp/src/radar/radar-view.spec.ts` asserts this against the browser's predicate directly.
+Each station radar then draws only out to its reach around the own ship, as the browser masks its
+blips to the camera circle. The reaches live in core (`radarReach` in
+[`client/radar-reach.ts`](../../modules/core/src/client/radar-reach.ts)), read by the browser screens
+and by `get_radar_contacts` alike:
+
+| Radar widget       | Station | Reach                               | Browser source      |
+| ------------------ | ------- | ----------------------------------- | ------------------- |
+| `helms-radar`      | helms   | 5 km; 100 km at warp (level > 0.5)  | `helms-radar.ts`    |
+| `tactical-radar`   | weapons | 10 km                               | `weapons-screen.ts` |
+| `long-range-radar` | signals | 50 km (zoomable 5–250 km; opens 50) | `signals-screen.ts` |
+| `dradis-radar`     | dradis  | 50 km (free zoom; opens 50 to top)  | `dradis-radar.ts`   |
+
+Zoomable radars are cut at the range the screen opens with: a headless seat has no zoom, and the
+opening view is what the station is designed to show. The helms radar's warp cone, whose width
+follows the panel's aspect ratio, is cut by range only. A seat holding several radars sees their
+union; the game master is not cut. The tactical radar's own shells, drawn past the field-of-view
+filter, are cut to its reach like every blip.
+
+`modules/mcp/src/radar/radar-view.spec.ts` asserts this against the browser's predicate directly,
+per radar widget.
 
 ## The crew channel
 
@@ -115,13 +134,13 @@ kind of participant in the same room. A testplay can be all-LLM, all-human, or m
 Configure it through the environment of each MCP server process — a bot token does not belong in a
 committed client config, so there is no flag form:
 
-| Variable               | Purpose                                                                       |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| `DISCORD_WEBHOOK_URL`  | Where speech is posted. Each message overrides the webhook username with the   |
-|                        | speaking station's name, so one webhook serves the whole crew.                 |
-| `DISCORD_BOT_TOKEN`    | Reading needs a bot, with the **Message Content intent** enabled.              |
-| `DISCORD_CHANNEL_ID`   | The channel to read.                                                           |
-| `STARWARDS_CALLSIGN`   | What to call yourself before you hold a seat. A captain never logs in.         |
+| Variable              | Purpose                                                                      |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `DISCORD_WEBHOOK_URL` | Where speech is posted. Each message overrides the webhook username with the |
+|                       | speaking station's name, so one webhook serves the whole crew.               |
+| `DISCORD_BOT_TOKEN`   | Reading needs a bot, with the **Message Content intent** enabled.            |
+| `DISCORD_CHANNEL_ID`  | The channel to read.                                                         |
+| `STARWARDS_CALLSIGN`  | What to call yourself before you hold a seat. A captain never logs in.       |
 
 Neither tool consults the manifest: speech is not a station capability. Unset variables produce a
 refusal naming them, and the server otherwise runs exactly as it does without a channel.

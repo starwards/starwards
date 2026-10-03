@@ -2,23 +2,35 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { EVENTS_EXT, HeadlessRecorder, RecordedEvent } from './headless-recorder';
+import {
+    EVENTS_EXT,
+    RecordingEventLine,
+    SavedGame,
+    XY,
+    parseEventLine,
+    parseFrameLine,
+    parseHeader,
+} from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { SavedGame, XY, parseFrameLine, parseHeader } from '@starwards/core/internal';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
 
+import { HeadlessRecorder } from './headless-recorder';
 import { RECORDING_EXT } from '../recording/game-recorder';
+import { decodeRecording } from './training/analysis/decode';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
 const params: T0Params = { distance: 3000, bearing: 0 };
 const seed = 1;
 const timeoutSeconds = 20;
+/** An extension event, as a station brain would record one, with an arbitrary JSON payload. */
+const decision = { any: ['json', 1], nested: { ok: true } };
 
 describe('HeadlessRecorder', () => {
     let dir: string;
     let recorder: HeadlessRecorder;
     /** Ground truth from live state: the first tick each explosion overlaps the target. */
     const targetOverlaps: { explosionId: string; t: number }[] = [];
+    let decisionAt: number | undefined;
 
     beforeAll(async () => {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), 'headless-recorder-'));
@@ -28,6 +40,10 @@ describe('HeadlessRecorder', () => {
         await recorder.capture();
         while (game.seconds < timeoutSeconds) {
             game.tick(1 / SERVER_TICK_HZ);
+            if (decisionAt === undefined && game.seconds >= 2.5) {
+                decisionAt = game.seconds;
+                recorder.record('decision', TRAINING_PLAYER_ID, decision);
+            }
             await recorder.capture();
             const target = game.spaceManager.state.get(TRAINING_TARGET_ID);
             if (!target || target.destroyed) {
@@ -56,7 +72,7 @@ describe('HeadlessRecorder', () => {
             .readFileSync(recorder.filePath.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
             .split('\n')
             .filter((line) => line)
-            .map((line) => JSON.parse(line) as RecordedEvent);
+            .map((line) => parseEventLine(line)!);
 
     it('records a training run whose frames resume into the same trajectory', async () => {
         const [headerLine, ...frameLines] = fs.readFileSync(recorder.filePath, 'utf-8').trim().split('\n');
@@ -67,7 +83,10 @@ describe('HeadlessRecorder', () => {
 
         // isFiring edges land at tick resolution, between 1 s frames, alternating start/stop per mount.
         const gvtsFire = readEvents().filter(
-            (e) => e.kind !== 'blast_hit' && e.objectId === TRAINING_PLAYER_ID && e.mount === 0,
+            (e) =>
+                (e.kind === 'fire_start' || e.kind === 'fire_stop') &&
+                e.objectId === TRAINING_PLAYER_ID &&
+                (e.data as { mount: number }).mount === 0,
         );
         expect(gvtsFire[0]?.kind).toBe('fire_start');
         gvtsFire.forEach((e, i) => expect(e.kind).toBe(i % 2 ? 'fire_stop' : 'fire_start'));
@@ -99,8 +118,60 @@ describe('HeadlessRecorder', () => {
     it("records each explosion's first overlap with a ship once, on the tick it begins", () => {
         expect(targetOverlaps.length).toBeGreaterThan(0);
         const hits = readEvents().flatMap((e) =>
-            e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID ? [{ explosionId: e.explosionId, t: e.t }] : [],
+            e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID
+                ? [{ explosionId: (e.data as { explosionId: string }).explosionId, t: e.t }]
+                : [],
         );
         expect(hits).toEqual(targetOverlaps);
+    });
+
+    it('records defects on ships with the system and cause', () => {
+        const defects = readEvents().filter((e) => e.kind === 'defect');
+        expect(defects.length).toBeGreaterThan(0);
+        for (const d of defects) {
+            const { system, cause } = d.data as { system: unknown; cause: unknown };
+            expect(typeof system).toBe('string');
+            expect(['hit', 'overheat', 'warp']).toContain(cause);
+        }
+    });
+
+    it('writes a record() event with any kind and JSON data to the sidecar, stamped with game time', () => {
+        const recorded: RecordingEventLine[] = readEvents().filter((e) => e.kind === 'decision');
+        expect(recorded).toEqual([{ t: decisionAt, kind: 'decision', objectId: TRAINING_PLAYER_ID, data: decision }]);
+    });
+
+    it('keeps the .sgr replayable when extension events were recorded', async () => {
+        const [headerLine, ...frameLines] = fs.readFileSync(recorder.filePath, 'utf-8').trim().split('\n');
+        expect(() => parseHeader(headerLine)).not.toThrow();
+        // Replay readers count every non-header line as a frame, so each must be one.
+        expect(frameLines.every((line) => parseFrameLine(line) !== null)).toBe(true);
+        expect(frameLines.length).toBe(recorder.frameCount);
+        let decoded = 0;
+        for await (const _ of decodeRecording(recorder.filePath)) {
+            decoded++;
+        }
+        expect(decoded).toBe(recorder.frameCount);
+    });
+
+    it("records a crewed player ship's energy demand and grant with every frame", async () => {
+        const game = HeadlessGame.start(createTrainingT1Map(params), seed, { crewedPlayer: true });
+        const crewed = new HeadlessRecorder(game, dir, 'crewed', 1, params, SERVER_TICK_HZ);
+        await crewed.capture();
+        while (game.seconds < 5) {
+            game.tick(1 / SERVER_TICK_HZ);
+            await crewed.capture();
+        }
+        const flows = fs
+            .readFileSync(crewed.eventsPath, 'utf-8')
+            .split('\n')
+            .filter((line) => line)
+            .map((line) => parseEventLine(line)!)
+            .filter((e) => e.kind === 'energy' && e.objectId === TRAINING_PLAYER_ID);
+        expect(flows.length).toBe(crewed.frameCount);
+        for (const f of flows) {
+            const { demand, granted } = f.data as { demand: number; granted: number };
+            expect(granted).toBeLessThanOrEqual(demand + 1e-9);
+        }
+        expect(flows.some((f) => (f.data as { demand: number }).demand > 0)).toBe(true);
     });
 });
