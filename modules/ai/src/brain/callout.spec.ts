@@ -52,7 +52,7 @@ describe('callouts', () => {
         expect(Object.keys(question.criteria)).toEqual(['target_locked', SILENCE]);
         expect(question.criteria.target_locked).toMatch(/^say "target locked": tells helms/);
         expect(result.request.state.heard).toEqual(['Helms said "on its tail" 2 s ago']);
-        expect(result.callout).toEqual({ callout: 'target_locked', phrase: 'target locked' });
+        expect(result.callouts).toEqual([{ callout: 'target_locked', phrase: 'target locked' }]);
         expect(result.decisions.find((d) => d.control === CALLOUT_QUESTION)).toMatchObject({
             choice: 'target_locked',
             source: 'model',
@@ -65,14 +65,14 @@ describe('callouts', () => {
             spec,
             jevPolicy(spec, client({ [CALLOUT_QUESTION]: { choice: 'sing', confidence: 1 } })),
         ).decide(display, capabilities, []);
-        expect(unsure.callout).toBeUndefined();
+        expect(unsure.callouts).toEqual([]);
         expect(unsure.decisions.find((d) => d.control === CALLOUT_QUESTION)).toMatchObject({
             choice: SILENCE,
             source: 'fallback',
         });
 
         const idle = await buttonBrain(spec, idlePolicy).decide(display, capabilities, []);
-        expect(idle.callout).toBeUndefined();
+        expect(idle.callouts).toEqual([]);
     });
 
     it('a brain without callouts asks no callout question, and a seat on no channel has no `heard`', async () => {

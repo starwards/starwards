@@ -1,6 +1,6 @@
-import { CALLOUT_QUESTION, Heard, calloutQuestion, heardFor, heardLines } from './callout';
 import { Control, Display } from './controls';
 import { Forecasts, withForecasts } from '../whatif/forecast';
+import { Heard, calloutQuestions, heardFor, heardLines } from './callout';
 
 import { BrainSpec } from './spec';
 
@@ -44,10 +44,7 @@ export function buildRequest(
             ),
         };
     }
-    const callout = calloutQuestion(spec);
-    if (callout) {
-        questions[CALLOUT_QUESTION] = callout;
-    }
+    Object.assign(questions, calloutQuestions(spec));
     return {
         state: {
             station: spec.station,

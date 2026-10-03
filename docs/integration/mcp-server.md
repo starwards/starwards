@@ -73,6 +73,13 @@ and do nothing. Station names are free-form. The `gm` seat ships disabled.
 View-state actions — zoom, pan, follow, client-local target cycling — have no flags. They change
 nothing another client can observe, and an LLM always reads the full scope its widgets admit.
 
+**Multiplexed stations.** The MCP client adds `tactical`, one seat holding `helms` and `weapons`
+together ([`sandbox/multiplex.ts`](../../modules/mcp/src/sandbox/multiplex.ts)). It reads the union of
+its members' widgets, so its radar and panels are exactly what the two seats see between them (pinned
+in `multiplex.spec.ts`); each command goes to the member session that holds it, `get_capabilities`
+tags every command with that `seat`, and `login` registers both member seats on the GM roster. It is
+listed only while both members are enabled.
+
 Per-ship bridges are the seam this leaves open: `getStationsManifest(shipId)` takes the ship, and today
 returns the same bridge for every one.
 

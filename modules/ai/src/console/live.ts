@@ -1,6 +1,10 @@
 import { Driver, beginStationRegistration } from '@starwards/core/internal';
 
+import { openStation, seatsOf, withMultiplexedStations } from '@starwards/mcp/src/sandbox/multiplex';
+
+import { RadarView } from '@starwards/mcp/src/radar/radar-view';
 import { StationSession } from '@starwards/mcp/src/sandbox/session';
+
 import { fetchStationsManifest } from '@starwards/mcp/src/sandbox/manifest';
 
 /**
@@ -33,19 +37,19 @@ function gameTimeWait(admin: { state: { speed: number } }) {
 }
 
 export async function liveStation(driver: Driver, baseUrl: URL, shipId: string, station: string) {
-    const manifest = await fetchStationsManifest(baseUrl, shipId);
-    const entry = manifest.stations[station];
-    if (!entry?.enabled) {
+    const manifest = withMultiplexedStations(await fetchStationsManifest(baseUrl, shipId));
+    if (!manifest.stations[station]?.enabled) {
         throw new Error(`station "${station}" is not open on ${shipId}`);
     }
     await driver.waitForShip(shipId);
-    const session = new StationSession(
+    const shipDriver = await driver.getShipDriver(shipId);
+    const spaceDriver = await driver.getSpaceDriver();
+    const options = { radar: RadarView.fromDriver(spaceDriver), wait: gameTimeWait(await driver.getAdminDriver()) };
+    const session = openStation(
+        manifest,
         station,
-        entry,
-        await driver.getShipDriver(shipId),
-        await driver.getSpaceDriver(),
-        { wait: gameTimeWait(await driver.getAdminDriver()) },
+        (seat, entry) => new StationSession(seat, entry, shipDriver, spaceDriver, options),
     );
-    const registration = beginStationRegistration(driver, `ai-${station}`, station, shipId);
-    return { session, close: () => registration.dispose() };
+    const registrations = seatsOf(station).map((seat) => beginStationRegistration(driver, `ai-${seat}`, seat, shipId));
+    return { session, close: () => registrations.forEach((r) => r.dispose()) };
 }

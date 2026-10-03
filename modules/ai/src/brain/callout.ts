@@ -16,8 +16,31 @@ export const SILENCE = 'silence';
  */
 export type Heard = { speaker: string; callout?: string; phrase: string; secondsAgo: number };
 
-/** What a seat puts on the air: the callout option it chose and the phrase with its values filled in. */
-export type Said = { callout: string; phrase: string };
+/**
+ * What a seat puts on the air: the callout option it chose and the phrase with its values filled in.
+ * `seat` names the member seat that said it, for a fused brain's callouts.
+ */
+export type Said = { callout: string; phrase: string; seat?: string };
+
+/** The callout question of one seat of a fused brain. */
+export function seatCalloutQuestion(seat: string) {
+    return `${CALLOUT_QUESTION}:${seat}`;
+}
+
+type Callouts = NonNullable<BrainSpec['callouts']>;
+
+/** Every callout question a brain asks, by question id, with the callouts it chooses among and the seat that says them. */
+export function calloutSources(spec: BrainSpec): { question: string; callouts: Callouts; seat?: string }[] {
+    const sources: { question: string; callouts: Callouts; seat?: string }[] = spec.callouts
+        ? [{ question: CALLOUT_QUESTION, callouts: spec.callouts }]
+        : [];
+    for (const [seat, { callouts }] of Object.entries(spec.seats ?? {})) {
+        if (callouts) {
+            sources.push({ question: seatCalloutQuestion(seat), callouts, seat });
+        }
+    }
+    return sources;
+}
 
 type FillValues = Record<string, string>;
 
@@ -89,15 +112,18 @@ export function heardFor(heard: readonly Heard[], hears: readonly string[]): str
 }
 
 /**
- * The callout question of a brain with `callouts`: one option per phrase, described by what saying
- * it tells the crew and when to say it, plus `silence`. Undefined for a brain without callouts.
+ * The callout questions of a brain, by question id: one option per phrase, described by what saying
+ * it tells the crew and when to say it, plus `silence`. Empty for a brain without callouts.
  */
-export function calloutQuestion(spec: BrainSpec): ChoiceQuestion | undefined {
-    if (!spec.callouts) {
-        return undefined;
-    }
+export function calloutQuestions(spec: BrainSpec): Record<string, ChoiceQuestion> {
+    return Object.fromEntries(
+        calloutSources(spec).map(({ question, callouts }) => [question, calloutQuestion(spec, question, callouts)]),
+    );
+}
+
+function calloutQuestion(spec: BrainSpec, question: string, callouts: Callouts): ChoiceQuestion {
     const criteria: Record<string, string> = {};
-    for (const [option, callout] of Object.entries(spec.callouts)) {
+    for (const [option, callout] of Object.entries(callouts)) {
         criteria[option] =
             `say "${callout.say}"${callout.fill ? ' (the values are filled in from your console)' : ''}: ${callout.when}`;
     }
@@ -105,7 +131,7 @@ export function calloutQuestion(spec: BrainSpec): ChoiceQuestion | undefined {
     return {
         type: 'choice',
         instructions:
-            spec.controls[CALLOUT_QUESTION]?.instructions ??
+            spec.controls[question]?.instructions ??
             'You are the `role`, speaking to the rest of the crew on the ship radio. `heard` is what they said lately. Do you call something out right now?',
         criteria,
     };
@@ -116,14 +142,27 @@ export function calloutQuestion(spec: BrainSpec): ChoiceQuestion | undefined {
  * speaker's display by the callout's `fill`. Undefined for silence, an unknown option, or a fill the
  * display cannot supply.
  */
-export function calloutSaid(spec: BrainSpec, choice: string, display: Display): Said | undefined {
-    const callout = choice === SILENCE ? undefined : spec.callouts?.[choice];
+export function calloutSaid(
+    spec: BrainSpec,
+    choice: string,
+    display: Display,
+    question = CALLOUT_QUESTION,
+): Said | undefined {
+    const source = calloutSources(spec).find((s) => s.question === question);
+    const callout = choice === SILENCE ? undefined : source?.callouts[choice];
     if (!callout) {
         return undefined;
     }
+    const seat = source?.seat === undefined ? {} : { seat: source.seat };
     if (!callout.fill) {
-        return { callout: choice, phrase: callout.say };
+        return { callout: choice, phrase: callout.say, ...seat };
     }
     const values = calloutFills[callout.fill](display);
-    return values && { callout: choice, phrase: callout.say.replace(/\{(\w+)\}/g, (m, k: string) => values[k] ?? m) };
+    return (
+        values && {
+            callout: choice,
+            phrase: callout.say.replace(/\{(\w+)\}/g, (m, k: string) => values[k] ?? m),
+            ...seat,
+        }
+    );
 }
