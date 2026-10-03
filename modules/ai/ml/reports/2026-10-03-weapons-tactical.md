@@ -204,7 +204,7 @@ Pooled results, all seeds (held-out seeds agree in sign):
 - Spearman of window T against kill60: 0.398. The persistence baseline gives 0.062.
 - T, reference against spray-fire: T0 0.654/0.613, T0-wide 0.675/0.687, T1 0.481/0.248, T1-MK2 0.388/0.484, W-multi
   0.547/0.643. Mixed, roughly parity.
-- Share of windows where the cap binds: reference 0.19–0.36; spray-fire 0.36–0.64; other crews ≤ 0.17 (EVIDENCE,
+- Share of windows where the cap binds: reference 0.19–0.36; spray-fire 0.36–0.64; other crews ≤ 0.33 (EVIDENCE,
   `clipped` column). Spray-fire's credit beyond its geometric opportunity is clipped, not counted.
 
 ## Result after round 3 (pooled, all seeds; held-out agrees in sign)
