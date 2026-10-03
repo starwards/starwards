@@ -26,6 +26,7 @@ describe('weapons training rungs', () => {
             decoy.magazine.count_HiExpShell + decoy.magazine.count_ArmPenShell + decoy.magazine.count_FragShell,
         ).toBe(0);
         expect(distance(game, TRAINING_ALLY_ID, TRAINING_TARGET_ID)).toBeLessThan(700);
+        expect(game.shipManagers.get(TRAINING_PLAYER_ID)!.state.weaponsTarget.targetId).toBe(TRAINING_TARGET_ID);
     });
 
     it('W-outranged: the target starts beyond the gun and runs at the GVTS top speed', () => {

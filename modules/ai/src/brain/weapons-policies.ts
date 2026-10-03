@@ -9,7 +9,8 @@ import { makeReferencePolicy } from './reference-policy';
  * - `spray-fire`: holds the reference lock but fires every decision, solution or not.
  * - `wrong-ammo`: the reference, firing Frag shells (no plate damage on a fighter's composite armor).
  * - `no-lock`: never holds a target; fires when the nearest ship is in the gun's arc and range.
- * - `tubes-powered`: the reference engineer, keeping the missile tubes at normal power.
+ * - `tubes-powered`: the reference engineer, keeping the missile tubes at normal power while the store
+ *   holds more than half, shut below it.
  */
 export const SCRIPTED_SEAT_POLICIES = ['spray-fire', 'wrong-ammo', 'no-lock', 'tubes-powered'] as const;
 export type ScriptedSeatPolicyName = (typeof SCRIPTED_SEAT_POLICIES)[number];
@@ -24,6 +25,8 @@ const WRONG_AMMO = 'FragShell';
 const FIRE_ARC_DEGREES = 2;
 const FIRE_RANGE_METERS = 8000;
 const NORMAL_POWER = 0.5;
+/** The tubes-powered engineer shuts the tubes when the store falls to this share, so loading never starves the gun. */
+const TUBE_STORE = 0.5;
 const SHIP_RADIUS_METERS = 5;
 
 export function makeScriptedSeatPolicy(name: ScriptedSeatPolicyName, decisionSeconds: number): Policy {
@@ -73,7 +76,9 @@ function override(name: ScriptedSeatPolicyName, id: string, display: Shown): str
             if (command !== 'systemPower' || !key.startsWith('/tubes/')) return undefined;
             const systems = (display.panels['full-systems-status'] ?? []) as { pointer: string; power: number }[];
             const power = systems.find((s) => s.pointer === key)?.power ?? NORMAL_POWER;
-            return power < NORMAL_POWER - 0.01 ? 'raise' : power > NORMAL_POWER + 0.01 ? 'lower' : 'hold';
+            const store = display.panels['engineering-status'] as { energy: number; maxEnergy: number } | undefined;
+            const goal = store && store.energy / store.maxEnergy > TUBE_STORE ? NORMAL_POWER : 0;
+            return power < goal - 0.01 ? 'raise' : power > goal + 0.01 ? 'lower' : 'hold';
         }
     }
 }
