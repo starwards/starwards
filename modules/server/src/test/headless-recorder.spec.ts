@@ -125,6 +125,16 @@ describe('HeadlessRecorder', () => {
         expect(hits).toEqual(targetOverlaps);
     });
 
+    it('records defects on ships with the system and cause', () => {
+        const defects = readEvents().filter((e) => e.kind === 'defect');
+        expect(defects.length).toBeGreaterThan(0);
+        for (const d of defects) {
+            const { system, cause } = d.data as { system: unknown; cause: unknown };
+            expect(typeof system).toBe('string');
+            expect(['hit', 'overheat', 'warp']).toContain(cause);
+        }
+    });
+
     it('writes a record() event with any kind and JSON data to the sidecar, stamped with game time', () => {
         const recorded: RecordingEventLine[] = readEvents().filter((e) => e.kind === 'decision');
         expect(recorded).toEqual([{ t: decisionAt, kind: 'decision', objectId: TRAINING_PLAYER_ID, data: decision }]);
@@ -141,5 +151,27 @@ describe('HeadlessRecorder', () => {
             decoded++;
         }
         expect(decoded).toBe(recorder.frameCount);
+    });
+
+    it("records a crewed player ship's energy demand and grant with every frame", async () => {
+        const game = HeadlessGame.start(createTrainingT1Map(params), seed, { crewedPlayer: true });
+        const crewed = new HeadlessRecorder(game, dir, 'crewed', 1, params, SERVER_TICK_HZ);
+        await crewed.capture();
+        while (game.seconds < 5) {
+            game.tick(1 / SERVER_TICK_HZ);
+            await crewed.capture();
+        }
+        const flows = fs
+            .readFileSync(crewed.eventsPath, 'utf-8')
+            .split('\n')
+            .filter((line) => line)
+            .map((line) => parseEventLine(line)!)
+            .filter((e) => e.kind === 'energy' && e.objectId === TRAINING_PLAYER_ID);
+        expect(flows.length).toBe(crewed.frameCount);
+        for (const f of flows) {
+            const { demand, granted } = f.data as { demand: number; granted: number };
+            expect(granted).toBeLessThanOrEqual(demand + 1e-9);
+        }
+        expect(flows.some((f) => (f.data as { demand: number }).demand > 0)).toBe(true);
     });
 });
