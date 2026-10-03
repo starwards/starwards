@@ -1,149 +1,200 @@
 # Weapons station and tactical score, phase 1 validation, 2026-10-03
 
-Scores: `src/scoring/weapons-kpi.ts`. Validator: `npm run score:weapons`. Runs: 288 headless (T0, T0-wide, T1,
-T1-MK2 × seeds 1–12 × 6 crews; helms reference throughout), made with `npm run score:weapons-runs` at `26e162b0`,
-archived in `training-archive/2026-10-03/weapons-score/`. Scripted seats only; Jev spend $0. No snapshot model trained.
+Scores: `src/scoring/weapons-kpi.ts`. Validator: `npm run score:weapons`. Runs: 432 headless, 12 seeds × 6 crews per
+scenario, all with the reference helms, made with `npm run score:weapons-runs`. T0, T0-wide, T1 and T1-MK2 were recorded
+at `26e162b0`; W-multi and W-outranged at `465503bc`. Archived in `training-archive/2026-10-03/weapons-score/`. Scripted
+seats only, Jev spend $0. No snapshot model was trained.
 
 ## Recording extensions
 
-- `shot` per projectile `{shipId, ammo, warhead, targetId, x, y, vx, vy, ttl}`: diffed per tick; `targetId` is the
-  shooter's weapons target for an unguided round.
-- `projectile_end` `{reason}`: `impact` (a hit carries its id), `detonate` (a new blast of the same shooter within
-  200 m, this or the next tick), `shotDown` (health ≤ 0), else `expire`.
-- `damage` per weapon hit `{sourceId, shooterId, damageType, delivery, amount, plateLoss, defects}`, from
+- `shot` for every projectile: `{shipId, ammo, warhead, targetId, x, y, vx, vy, ttl}`. `targetId` is the shooter's
+  weapons target for an unguided round.
+- `projectile_end` with `{reason}`:
+    - `impact`: a recorded hit carries the projectile's id.
+    - `detonate`: a new blast from the same shooter appears within 200 m, in this tick or the next.
+    - `shotDown`: the projectile's health reached 0.
+    - `expire`: anything else.
+- `damage` for every weapon hit: `{sourceId, shooterId, damageType, delivery, amount, plateLoss, defects}`, from
   `DamageManager.onDamage`.
+
+## Scenarios (calibration only)
+
+- **W-multi**: three ships besides the GVTS.
+    - The threat: a dragonfly-MK2 attacking the GVTS from 4–7 km.
+    - A decoy: a PLAY_DEAD dragonfly-MK1 with an empty magazine, so its threat θ is 0.
+    - An ally: a PLAY_DEAD dragonfly-MK1 of the GVTS faction, 600 m from where the threat starts, in the line of fire.
+- **W-outranged**: a dragonfly-MK1 starts 10–14 km away and flees at the GVTS top speed, so the gun never comes in
+  range.
 
 ## Design
 
-- Incapacitation `I = 1 − (1 − kill)·cap`; `kill = ½·armor lost + ½·capsule lost` (1 when destroyed);
-  `cap = gun·(½ + ½·mobility)`. A hit is valued by the change it makes to I, so system damage counts as much as
-  plate damage.
-- Threat `θ_j = dps·P_reach·ammoFrac·cap`, normalised over living enemies and averaged over the window.
-- Credit `C = Σ θ̃·(1 + φ·held≥5 s)·ΔI⁺·ours − λ_ff·friendly`. `ours` is our share of the recorded hit weight
-  between frames; when no hit is recorded, the loss is credited to nobody. `C_max = (1+φ)·Σ θ̃·min(1 − I₀, ρ·gun·W)`,
-  with W = 45 s, φ = 1 and λ_ff = 2. ρ = 0.0272/s is fitted on the reference runs of seeds 1–8 (95th percentile of
-  windowed ΔI per unit gun). Leave-one-scenario-out refits give 0.024–0.028.
-- `T = C/C_max`. `O` is the threat-weighted share of 1 s frames with a firing solution. Gun: a shell along the
-  gun's bearing, with the current fuze, passes within fuze + blast + hull radius while closing. Missile: a powered
-  tube with missiles in the magazine and the target held at 1–20 km. The tube safety is ignored, because no seat
-  can release it. `V = T/O`.
-- `K_w = 1 − nosol − dominated − 2·friendly + ½·lockUptime`, with rates per round. `nosol` is checked against
-  each shot's own position, velocity and fuze. A round is `dominated` when its analytic value on the target's
-  current armor is below half of the best shell in the magazine. The weights are fixed by hand, not fitted.
-- Helms residual `K_h` (sketch, not built): −(threat-weighted time inside enemy gun reach while O = 0) + standoff
-  adherence (|distance − chosen standoff| over the gun's range).
-- Engineer as covariate: our `gun` capability scales `C_max`. Reachability ignores thruster state (not built).
+- **Incapacitation** `I = 1 − (1 − kill)·cap`.
+    - Kill progress: `kill = ½·armor lost + ½·capsule lost`, and 1 once destroyed.
+    - Capability: `cap = gun·(½ + ½·mobility)`. A system that is broken or energy-starved counts as down.
+- **Threat** `θ = dps·P_reach·ammoFrac·cap`, normalised over the living enemies.
+- **Credit** `C = Σ θ̃·(1 + φ·held≥5 s)·ΔI⁺·ours − λ_ff·friendly`.
+    - `ours` is our share of the recorded hits between frames.
+    - `C_max = (1+φ)·Σ θ̃·min(1 − I₀, ρ·gun·W)`, with W = 45 s, φ = 1 and λ_ff = 2.
+    - ρ = 0.0279/s is fitted on reference runs of seeds 1–8. Leave-one-scenario-out refits give 0.027–0.028.
+- **Opportunity O**: the threat-weighted share of the 1 s intervals that had a firing solution. An interval counts
+  if either:
+    - at the frame, a shell along the gun bearing reaches the enemy, allowing 2σ of gun spread (σ = 1°); or
+    - any round fired inside the interval reaches the enemy's path, timed from its `shot` event.
+- **Tactical score** `T = min(C, O·C_max)/C_max`, so conversion `V = T/O ≤ 1` by construction.
+- **Weapons station score** `K_w = 1 − nosol − dominated − 2·friendly + ½·lockUptime`, in rates per round.
+    - K_w is **undefined when no round was fired**.
+    - `dominated` is graded: each round's shortfall against the best shell in the magazine is `1 − value/best`.
+    - A round's value is `ΔI = cap·Δkill + (1 − kill)·Δcap`. All of its constants are rule values: plate erosion from
+      `armor-models.ts`, the capsule defect step 0.1, the surface factor 0.05, and the gun and thruster defect losses
+      from `damage-manager.ts`. None of them is fitted.
+- **Helms residual** `K_h`, sketch only: −(threat-weighted time inside enemy reach while O = 0) + standoff adherence.
 
-## Result (all seeds; held-out seeds 9–12 agree except where noted)
+## Result
 
-| required ordering                       | pooled Δ [95% CI]      | per scenario                                         |
-| --------------------------------------- | ---------------------- | ---------------------------------------------------- |
-| reference > idle on T                   | 0.604 [0.525, 0.686] ✓ | ✓ in all four                                        |
-| reference > idle on V                   | 0.829 [0.736, 0.929] ✓ | ✓ in all four                                        |
-| reference > spray-fire on K_w           | 0.401 [0.310, 0.493] ✓ | ✓ in all four (held-out T1-MK2: ✓)                   |
-| reference > wrong-ammo on K_w           | 1.055 [1.021, 1.091] ✓ | ✓ in all four                                        |
-| reference > wrong-ammo on V             | 0.422 [0.263, 0.576] ✓ | **T1-MK2 −0.159 [−0.447, 0.165], not separated**     |
-| reference > no-lock on lock uptime      | 0.897 [0.835, 0.953] ✓ | ✓ in all four                                        |
-| torpedo > reference on T, gun outranged | 0.100, n=2 windows     | **untestable: only 2 outranged windows in 288 runs** |
-| torpedo vs reference on T, in range     | 0.033 [−0.082, 0.133]  | not separated (expected: no gain in range)           |
+Pooled Δ over all seeds. Held-out seeds 9–12 agree in sign throughout.
 
-Spearman of window T with kill60: 0.394 pooled (T0 0.52, T0-wide 0.56, T1 0.21, T1-MK2 0.33). The persistence
-baseline (ΔI in the previous window) gives 0.010; O alone gives 0.273.
+| required ordering                       | pooled Δ [95% CI]      | per scenario                                                   |
+| --------------------------------------- | ---------------------- | -------------------------------------------------------------- |
+| reference > idle on T                   | 0.428 [0.358, 0.502] ✓ | ✓ in all five where any crew fires in range; W-outranged 0 = 0 |
+| reference > idle on V                   | 0.672 [0.619, 0.726] ✓ | ✓ in all five                                                  |
+| reference > spray-fire on K_w           | 0.354 [0.269, 0.443] ✓ | ✓ in all five                                                  |
+| reference > wrong-ammo on K_w           | 0.910 [0.868, 0.950] ✓ | ✓ in all five                                                  |
+| reference > wrong-ammo on V             | 0.340 [0.261, 0.423] ✓ | **T1-MK2 0.042 [−0.113, 0.230]: not separated**                |
+| reference > no-lock on lock uptime      | 0.915 [0.868, 0.953] ✓ | ✓ in all six                                                   |
+| torpedo > reference on T, gun outranged | 0.063 [0.039, 0.091] ✓ | W-outranged 0.057 [0.036, 0.075] ✓ (held-out ✓)                |
+| torpedo vs reference on T, in range     | 0.057 [−0.024, 0.133]  | not separated, as expected                                     |
 
-## Findings and caveats
+- Idle no longer ties or beats the reference on any report: its K_w is undefined, and its T and V are 0.
+- Spearman of window T with kill60 is 0.391 pooled. The persistence baseline scores 0.080, and O alone 0.250.
 
-- EVIDENCE: idle has `K_w = 1.000`, because it fires no rounds, so no waste is charged. That exceeds the reference
-  in T1 (1.029 vs 1.000, close to a tie). K_w ranks firing quality and must be read together with V.
-- EVIDENCE: V exceeds 1 for spray-fire (1.06–1.61). Credit is earned outside the frames that O counts: the 1 s
-  frames and the gun-bearing check miss the reach that spray fire gets from shell spread and from blasts flinging
-  the target. INFERENCE: O is too narrow; sample it per tick, or widen it by `bulletDegreesDeviation`.
-- EVIDENCE: `dominated` is binary in practice (reference 0.000, wrong-ammo 1.000). The ammo value constants are
-  INFERENCE read from the rules, not measured. The first calibration (disarm weight 0.05 per external defect) called
-  HiExp dominated once the plates were stripped, so it was lowered to 0.01 after looking at the validation data.
-  That is a tuning step on the test data.
-- EVIDENCE: the torpedo crew did not beat the reference in T1 (6/12 kills vs 9/12). INFERENCE: missile blasts fling
-  the target away. Not investigated.
-- The archived tactical-brain runs (`tactical-t0`, `split-h19-w17-t0`) were skipped. They predate the `shot` and
-  `damage` events, so T, V and K_w cannot be computed for them.
-- Scenarios have one enemy and no friendlies. θ normalisation, the friendly-fire penalty and the held-target bonus
-  are therefore untested beyond the unit tests.
+## Torpedo crew in T1: 6/12 kills against the reference's 9/12
+
+The evidence comes from the sidecars and the scorer caches, seeds 4, 10 and 1:
+
+- The armorer fires all 12 HiExp missiles between t = 2.0 s and 12.2 s, every seed.
+- After that, the `tubes-powered` engineer keeps the empty tubes at normal power.
+- The GVTS is energy-starved in 111, 69 and 83 of 302 frames, starting at t ≈ 90–110 s. The reference crew is starved
+  in 0 frames.
+- From then on, shell fire collapses. On seed 4 it falls from 94 rounds in t = 60–90 s to 0 after t = 120 s, while the
+  target sits at I = 0.98.
+- The torpedo crew also takes far more hits: 293 against 49 on seed 4.
+
+INFERENCE: the drain comes from tube power with an empty magazine, which starves the chain gun before the kill. The
+cause is the scripted torpedo crew (all missiles at once, tubes never shut down), not the score. The earlier gun
+capability ignored `energyStarved`; it now counts a starved system as down.
+
+## Caveats
+
+- EVIDENCE: the O·C_max cap binds in 13–53% of windows, highest for spray-fire. V ≤ 1 holds by construction, but O
+  still misses some reach. INFERENCE: blast knock-back and late fuzes are not modelled.
+- EVIDENCE: W-multi works as designed.
+    - The reference crew spends 60% of its lock time on the top threat. The other crews spend 75–88%, because the
+      reference target cycling locks the decoy or the ally first.
+    - Friendly-hit share is 0.005–0.010.
+    - Spray-fire scores higher T than the reference (0.557 against 0.365). INFERENCE: the reference helms and weapons
+      lose time on the wrong target.
+- EVIDENCE: W-outranged has no kills in any crew. The torpedo crew's 12 missiles reach T = 0.057. Spray-fire fires
+  1,600 rounds out of range: nosol 1.0, K_w −0.026.
+- The constants of the round-1 ammo value were tuned after viewing validation data. Round 2 replaces them with rule
+  values and fits nothing beyond ρ, which comes from the fit seeds; the tables above report held-out seeds separately.
+- W-multi runs end when the threat dies, so the decoy is never resolved.
 
 ## Full validator output
 
-runs 288; scenarios T0, T0-wide, T1, T1-MK2; fit seeds 1,2,3,4,5,6,7,8; held-out 9,10,11,12
+runs 432; scenarios T0, T0-wide, T1, T1-MK2, W-multi, W-outranged; fit seeds 1,2,3,4,5,6,7,8; held-out 9,10,11,12
 
-weights: `{"phi":1,"lambdaFriendly":2,"windowSeconds":45,"rho":0.027222222089767472}` (ρ fitted on reference runs of the fit seeds: 95th percentile of windowed incapacitation rate per unit gun)
+weights: `{"phi":1,"lambdaFriendly":2,"windowSeconds":45,"rho":0.027877493096596224}` (ρ fitted on reference runs of the fit seeds: 95th percentile of windowed incapacitation rate per unit gun)
 
 ### Per-crew means
 
-| scenario | crew              | kills | T     | O     | V     | Kw     | lock  | nosol | dominated | T_outranged | T_inrange | rounds |
-| -------- | ----------------- | ----- | ----- | ----- | ----- | ------ | ----- | ----- | --------- | ----------- | --------- | ------ |
-| T0       | reference         | 12/12 | 0.672 | 0.850 | 0.790 | 1.471  | 0.987 | 0.022 | 0.000     | –           | 0.672     | 246    |
-| T0       | idle              | 0/12  | 0.000 | 0.481 | 0.000 | 1.000  | 0.000 | 0.000 | 0.000     | –           | 0.000     | 0      |
-| T0       | spray-fire        | 11/12 | 0.686 | 0.640 | 1.055 | 1.078  | 0.853 | 0.348 | 0.000     | –           | 0.686     | 710    |
-| T0       | wrong-ammo        | 0/12  | 0.072 | 0.714 | 0.100 | 0.491  | 0.997 | 0.008 | 1.000     | –           | 0.072     | 607    |
-| T0       | no-lock           | 0/12  | 0.006 | 0.320 | 0.278 | 0.692  | 0.000 | 0.308 | 0.000     | 0.000       | 0.034     | 13     |
-| T0       | torpedo-reference | 12/12 | 0.654 | 0.780 | 0.849 | 1.415  | 0.988 | 0.079 | 0.000     | –           | 0.654     | 239    |
-| T0-wide  | reference         | 12/12 | 0.704 | 0.858 | 0.828 | 1.478  | 0.987 | 0.015 | 0.000     | 0.626       | 0.732     | 241    |
-| T0-wide  | idle              | 0/12  | 0.000 | 0.289 | 0.000 | 1.000  | 0.000 | 0.000 | 0.000     | 0.000       | 0.000     | 0      |
-| T0-wide  | spray-fire        | 11/12 | 0.796 | 0.632 | 1.161 | 1.119  | 0.892 | 0.327 | 0.000     | 0.709       | 0.758     | 649    |
-| T0-wide  | wrong-ammo        | 0/12  | 0.057 | 0.710 | 0.080 | 0.483  | 0.997 | 0.016 | 1.000     | 0.067       | 0.056     | 602    |
-| T0-wide  | no-lock           | 0/12  | 0.003 | 0.208 | 0.124 | 0.774  | 0.000 | 0.226 | 0.000     | 0.000       | 0.010     | 9      |
-| T0-wide  | torpedo-reference | 12/12 | 0.729 | 0.812 | 0.905 | 1.439  | 0.987 | 0.054 | 0.000     | 0.726       | 0.752     | 213    |
-| T1       | reference         | 9/12  | 0.611 | 0.535 | 1.067 | 1.029  | 0.884 | 0.413 | 0.000     | –           | 0.611     | 659    |
-| T1       | idle              | 0/12  | 0.000 | 0.157 | 0.000 | 1.000  | 0.000 | 0.000 | 0.000     | –           | 0.000     | 0      |
-| T1       | spray-fire        | 2/12  | 0.356 | 0.229 | 1.612 | 0.540  | 0.495 | 0.708 | 0.000     | –           | 0.356     | 1143   |
-| T1       | wrong-ammo        | 0/12  | 0.252 | 0.361 | 0.659 | -0.050 | 0.602 | 0.351 | 1.000     | –           | 0.252     | 653    |
-| T1       | no-lock           | 0/12  | 0.055 | 0.102 | 0.661 | 0.443  | 0.000 | 0.557 | 0.000     | –           | 0.055     | 288    |
-| T1       | torpedo-reference | 6/12  | 0.493 | 0.747 | 0.630 | 1.045  | 0.740 | 0.325 | 0.000     | 0.000       | 0.495     | 502    |
-| T1-MK2   | reference         | 6/12  | 0.429 | 0.568 | 0.659 | 1.237  | 0.731 | 0.129 | 0.000     | 0.000       | 0.431     | 299    |
-| T1-MK2   | idle              | 0/12  | 0.000 | 0.105 | 0.000 | 1.000  | 0.000 | 0.000 | 0.000     | 0.000       | 0.000     | 0      |
-| T1-MK2   | spray-fire        | 7/12  | 0.624 | 0.433 | 1.529 | 0.874  | 0.653 | 0.453 | 0.000     | 0.000       | 0.639     | 734    |
-| T1-MK2   | wrong-ammo        | 0/12  | 0.217 | 0.266 | 0.818 | 0.073  | 0.354 | 0.104 | 1.000     | 0.000       | 0.224     | 325    |
-| T1-MK2   | no-lock           | 0/12  | 0.047 | 0.085 | 0.594 | 0.477  | 0.000 | 0.523 | 0.000     | 0.000       | 0.050     | 190    |
-| T1-MK2   | torpedo-reference | 9/12  | 0.675 | 0.831 | 0.791 | 1.238  | 0.849 | 0.186 | 0.000     | –           | 0.675     | 307    |
+| scenario    | crew              | kills | T     | O     | V     | Kw     | lock  | lockThreat | friendly | clipped | nosol | dominated | T_outranged | T_inrange | rounds |
+| ----------- | ----------------- | ----- | ----- | ----- | ----- | ------ | ----- | ---------- | -------- | ------- | ----- | --------- | ----------- | --------- | ------ |
+| T0          | reference         | 12/12 | 0.654 | 0.880 | 0.742 | 1.397  | 0.987 | 1.000      | 0.000    | 0.208   | 0.022 | 0.074     | –           | 0.654     | 246    |
+| T0          | idle              | 0/12  | 0.000 | 0.482 | 0.000 | –      | 0.000 | 0.000      | 0.000    | 0.000   | 0.000 | 0.000     | –           | 0.000     | 0      |
+| T0          | spray-fire        | 11/12 | 0.630 | 0.747 | 0.804 | 0.998  | 0.853 | 1.000      | 0.000    | 0.375   | 0.348 | 0.081     | –           | 0.630     | 710    |
+| T0          | wrong-ammo        | 0/12  | 0.072 | 0.740 | 0.096 | 0.518  | 0.997 | 1.000      | 0.000    | 0.000   | 0.008 | 0.973     | –           | 0.072     | 607    |
+| T0          | no-lock           | 0/12  | 0.005 | 0.322 | 0.222 | 0.146  | 0.000 | 0.000      | 0.000    | 0.024   | 0.308 | 0.190     | 0.000       | 0.030     | 13     |
+| T0          | torpedo-reference | 12/12 | 0.616 | 0.803 | 0.777 | 1.364  | 0.988 | 1.000      | 0.000    | 0.375   | 0.079 | 0.051     | –           | 0.616     | 239    |
+| T0-wide     | reference         | 12/12 | 0.675 | 0.884 | 0.767 | 1.386  | 0.987 | 1.000      | 0.000    | 0.250   | 0.015 | 0.092     | 0.626       | 0.696     | 241    |
+| T0-wide     | idle              | 0/12  | 0.000 | 0.292 | 0.000 | –      | 0.000 | 0.000      | 0.000    | 0.000   | 0.000 | 0.000     | 0.000       | 0.000     | 0      |
+| T0-wide     | spray-fire        | 11/12 | 0.715 | 0.716 | 0.893 | 1.042  | 0.892 | 1.000      | 0.000    | 0.530   | 0.327 | 0.076     | 0.543       | 0.714     | 649    |
+| T0-wide     | wrong-ammo        | 0/12  | 0.057 | 0.735 | 0.078 | 0.519  | 0.997 | 1.000      | 0.000    | 0.000   | 0.016 | 0.964     | 0.067       | 0.056     | 602    |
+| T0-wide     | no-lock           | 0/12  | 0.003 | 0.211 | 0.092 | -0.002 | 0.000 | 0.000      | 0.000    | 0.000   | 0.226 | 0.108     | 0.000       | 0.010     | 9      |
+| T0-wide     | torpedo-reference | 12/12 | 0.692 | 0.838 | 0.831 | 1.352  | 0.987 | 1.000      | 0.000    | 0.333   | 0.054 | 0.087     | 0.726       | 0.707     | 213    |
+| T1          | reference         | 9/12  | 0.486 | 0.717 | 0.658 | 0.971  | 0.884 | 1.000      | 0.000    | 0.362   | 0.413 | 0.059     | –           | 0.486     | 659    |
+| T1          | idle              | 0/12  | 0.000 | 0.234 | 0.000 | –      | 0.000 | 0.000      | 0.000    | 0.000   | 0.000 | 0.000     | –           | 0.000     | 0      |
+| T1          | spray-fire        | 2/12  | 0.267 | 0.359 | 0.777 | 0.477  | 0.495 | 1.000      | 0.000    | 0.305   | 0.708 | 0.063     | –           | 0.267     | 1143   |
+| T1          | wrong-ammo        | 0/12  | 0.168 | 0.459 | 0.354 | -0.021 | 0.602 | 1.000      | 0.000    | 0.131   | 0.351 | 0.971     | –           | 0.168     | 653    |
+| T1          | no-lock           | 0/12  | 0.053 | 0.163 | 0.364 | 0.260  | 0.000 | 0.000      | 0.000    | 0.060   | 0.557 | 0.183     | –           | 0.053     | 288    |
+| T1          | torpedo-reference | 6/12  | 0.418 | 0.762 | 0.529 | 1.006  | 0.740 | 1.000      | 0.000    | 0.168   | 0.325 | 0.039     | 0.000       | 0.420     | 502    |
+| T1-MK2      | reference         | 6/12  | 0.388 | 0.606 | 0.549 | 1.104  | 0.731 | 1.000      | 0.000    | 0.190   | 0.129 | 0.133     | 0.000       | 0.390     | 299    |
+| T1-MK2      | idle              | 0/12  | 0.000 | 0.164 | 0.000 | –      | 0.000 | 0.000      | 0.000    | 0.000   | 0.000 | 0.000     | 0.000       | 0.000     | 0      |
+| T1-MK2      | spray-fire        | 7/12  | 0.509 | 0.518 | 0.907 | 0.787  | 0.653 | 1.000      | 0.000    | 0.405   | 0.453 | 0.087     | –           | 0.509     | 734    |
+| T1-MK2      | wrong-ammo        | 0/12  | 0.144 | 0.290 | 0.507 | 0.128  | 0.354 | 1.000      | 0.000    | 0.167   | 0.104 | 0.945     | 0.000       | 0.149     | 325    |
+| T1-MK2      | no-lock           | 0/12  | 0.039 | 0.135 | 0.294 | 0.215  | 0.000 | 0.000      | 0.000    | 0.048   | 0.523 | 0.263     | 0.000       | 0.041     | 190    |
+| T1-MK2      | torpedo-reference | 9/12  | 0.556 | 0.838 | 0.641 | 1.162  | 0.849 | 1.000      | 0.000    | 0.273   | 0.186 | 0.077     | –           | 0.556     | 307    |
+| W-multi     | reference         | 5/12  | 0.365 | 0.484 | 0.726 | 0.977  | 0.904 | 0.602      | 0.005    | 0.217   | 0.328 | 0.137     | 0.000       | 0.378     | 426    |
+| W-multi     | idle              | 0/12  | 0.000 | 0.065 | 0.000 | –      | 0.000 | 0.000      | 0.000    | 0.000   | 0.000 | 0.000     | –           | 0.000     | 0      |
+| W-multi     | spray-fire        | 7/12  | 0.557 | 0.629 | 0.925 | 0.761  | 0.857 | 0.793      | 0.007    | 0.512   | 0.542 | 0.112     | –           | 0.557     | 892    |
+| W-multi     | wrong-ammo        | 0/12  | 0.142 | 0.375 | 0.365 | 0.142  | 0.725 | 0.749      | 0.010    | 0.119   | 0.243 | 0.957     | –           | 0.142     | 597    |
+| W-multi     | no-lock           | 0/12  | 0.011 | 0.060 | 0.137 | -0.093 | 0.000 | 0.000      | 0.000    | 0.024   | 0.794 | 0.299     | –           | 0.011     | 79     |
+| W-multi     | torpedo-reference | 10/12 | 0.590 | 0.862 | 0.663 | 1.120  | 0.972 | 0.877      | 0.009    | 0.206   | 0.286 | 0.062     | –           | 0.590     | 404    |
+| W-outranged | reference         | 0/12  | 0.000 | 0.006 | 0.000 | –      | 0.997 | 1.000      | 0.000    | 0.000   | 0.000 | 0.000     | 0.000       | –         | 0      |
+| W-outranged | idle              | 0/12  | 0.000 | 0.000 | –     | –      | 0.000 | 0.000      | 0.000    | 0.000   | 0.000 | 0.000     | 0.000       | –         | 0      |
+| W-outranged | spray-fire        | 0/12  | 0.000 | 0.006 | 0.000 | -0.026 | 0.604 | 1.000      | 0.000    | 0.000   | 1.000 | 0.328     | 0.000       | –         | 1600   |
+| W-outranged | wrong-ammo        | 0/12  | 0.000 | 0.006 | 0.000 | –      | 0.997 | 1.000      | 0.000    | 0.000   | 0.000 | 0.000     | 0.000       | –         | 0      |
+| W-outranged | no-lock           | 0/12  | 0.000 | 0.000 | –     | –      | 0.000 | 0.000      | 0.000    | 0.000   | 0.000 | 0.000     | 0.000       | –         | 0      |
+| W-outranged | torpedo-reference | 0/12  | 0.057 | 0.997 | 0.057 | 1.498  | 0.997 | 1.000      | 0.000    | 0.000   | 0.000 | 0.000     | 0.057       | –         | 12     |
 
 ### All seeds
 
 Paired Δ (a − b) per seed, 95% bootstrap CI over seeds. ✓ above 0, ✗ below.
 
-| scenario | reference − idle (T)        | reference − idle (V)        | reference − spray-fire (Kw) | reference − wrong-ammo (Kw) | reference − wrong-ammo (V)  | reference − no-lock (lock)  | torpedo-reference − reference (T_outranged) | torpedo-reference − reference (T_inrange) |
-| -------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | ------------------------------------------- | ----------------------------------------- |
-| T0       | 0.672 [0.611, 0.734] n=12 ✓ | 0.753 [0.681, 0.826] n=9 ✓  | 0.393 [0.264, 0.526] n=12 ✓ | 0.980 [0.963, 0.993] n=12 ✓ | 0.690 [0.618, 0.763] n=12 ✓ | 0.987 [0.985, 0.989] n=12 ✓ | –                                           | -0.018 [-0.087, 0.055] n=12               |
-| T0-wide  | 0.704 [0.663, 0.747] n=12 ✓ | 0.813 [0.730, 0.896] n=7 ✓  | 0.359 [0.209, 0.529] n=12 ✓ | 0.996 [0.990, 1.002] n=12 ✓ | 0.747 [0.669, 0.823] n=12 ✓ | 0.987 [0.986, 0.989] n=12 ✓ | 0.100 [0.001, 0.200] n=2 ✓                  | 0.020 [-0.016, 0.058] n=12                |
-| T1       | 0.611 [0.420, 0.810] n=12 ✓ | 1.067 [0.851, 1.289] n=12 ✓ | 0.489 [0.310, 0.675] n=12 ✓ | 1.079 [1.019, 1.142] n=12 ✓ | 0.408 [0.080, 0.756] n=12 ✓ | 0.884 [0.774, 0.970] n=12 ✓ | –                                           | -0.115 [-0.404, 0.166] n=12               |
-| T1-MK2   | 0.429 [0.245, 0.644] n=12 ✓ | 0.659 [0.500, 0.850] n=12 ✓ | 0.363 [0.139, 0.586] n=12 ✓ | 1.164 [1.067, 1.253] n=12 ✓ | -0.159 [-0.447, 0.165] n=12 | 0.731 [0.558, 0.897] n=12 ✓ | –                                           | 0.245 [-0.043, 0.479] n=12                |
-| all      | 0.604 [0.525, 0.686] n=48 ✓ | 0.829 [0.736, 0.929] n=40 ✓ | 0.401 [0.310, 0.493] n=48 ✓ | 1.055 [1.021, 1.091] n=48 ✓ | 0.422 [0.263, 0.576] n=48 ✓ | 0.897 [0.835, 0.953] n=48 ✓ | 0.100 [0.001, 0.200] n=2 ✓                  | 0.033 [-0.082, 0.133] n=48                |
+| scenario    | reference − idle (T)        | reference − idle (V)        | reference − spray-fire (Kw) | reference − wrong-ammo (Kw) | reference − wrong-ammo (V)  | reference − no-lock (lock)  | torpedo-reference − reference (T_outranged) | torpedo-reference − reference (T) | torpedo-reference − reference (T_inrange) |
+| ----------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | ------------------------------------------- | --------------------------------- | ----------------------------------------- |
+| T0          | 0.654 [0.600, 0.711] n=12 ✓ | 0.717 [0.654, 0.779] n=9 ✓  | 0.400 [0.275, 0.524] n=12 ✓ | 0.879 [0.844, 0.911] n=12 ✓ | 0.645 [0.586, 0.708] n=12 ✓ | 0.987 [0.985, 0.989] n=12 ✓ | –                                           | -0.037 [-0.101, 0.034] n=12       | -0.037 [-0.101, 0.034] n=12               |
+| T0-wide     | 0.675 [0.645, 0.706] n=12 ✓ | 0.769 [0.709, 0.825] n=8 ✓  | 0.344 [0.197, 0.496] n=12 ✓ | 0.868 [0.842, 0.892] n=12 ✓ | 0.689 [0.631, 0.745] n=12 ✓ | 0.987 [0.986, 0.989] n=12 ✓ | 0.100 [0.001, 0.200] n=2 ✓                  | 0.017 [-0.009, 0.051] n=12        | 0.011 [-0.012, 0.038] n=12                |
+| T1          | 0.486 [0.364, 0.614] n=12 ✓ | 0.658 [0.550, 0.775] n=12 ✓ | 0.493 [0.317, 0.674] n=12 ✓ | 0.992 [0.931, 1.057] n=12 ✓ | 0.304 [0.149, 0.469] n=12 ✓ | 0.884 [0.774, 0.970] n=12 ✓ | –                                           | -0.068 [-0.242, 0.097] n=12       | -0.066 [-0.239, 0.097] n=12               |
+| T1-MK2      | 0.388 [0.221, 0.575] n=12 ✓ | 0.549 [0.423, 0.696] n=12 ✓ | 0.317 [0.107, 0.524] n=12 ✓ | 0.976 [0.870, 1.081] n=12 ✓ | 0.042 [-0.113, 0.230] n=12  | 0.731 [0.558, 0.897] n=12 ✓ | –                                           | 0.169 [-0.076, 0.370] n=12        | 0.166 [-0.077, 0.367] n=12                |
+| W-multi     | 0.365 [0.219, 0.517] n=12 ✓ | 0.715 [0.606, 0.810] n=11 ✓ | 0.216 [0.018, 0.442] n=12 ✓ | 0.834 [0.706, 0.963] n=12 ✓ | 0.362 [0.206, 0.536] n=12 ✓ | 0.904 [0.802, 0.975] n=12 ✓ | –                                           | 0.225 [-0.028, 0.453] n=12        | 0.212 [-0.034, 0.438] n=12                |
+| W-outranged | 0.000 [0.000, 0.000] n=12   | –                           | –                           | –                           | 0.000 [0.000, 0.000] n=12   | 0.997 [0.997, 0.997] n=12 ✓ | 0.057 [0.036, 0.075] n=12 ✓                 | 0.057 [0.036, 0.075] n=12 ✓       | –                                         |
+| all         | 0.428 [0.358, 0.502] n=72 ✓ | 0.672 [0.619, 0.726] n=52 ✓ | 0.354 [0.269, 0.443] n=60 ✓ | 0.910 [0.868, 0.950] n=60 ✓ | 0.340 [0.261, 0.423] n=72 ✓ | 0.915 [0.868, 0.953] n=72 ✓ | 0.063 [0.039, 0.091] n=14 ✓                 | 0.060 [-0.006, 0.128] n=72        | 0.057 [-0.024, 0.133] n=60                |
 
 ### Held-out seeds
 
 Paired Δ (a − b) per seed, 95% bootstrap CI over seeds. ✓ above 0, ✗ below.
 
-| scenario | reference − idle (T)        | reference − idle (V)        | reference − spray-fire (Kw) | reference − wrong-ammo (Kw) | reference − wrong-ammo (V)  | reference − no-lock (lock)  | torpedo-reference − reference (T_outranged) | torpedo-reference − reference (T_inrange) |
-| -------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | ------------------------------------------- | ----------------------------------------- |
-| T0       | 0.595 [0.503, 0.694] n=4 ✓  | 0.710 [0.613, 0.805] n=4 ✓  | 0.332 [0.136, 0.491] n=4 ✓  | 0.985 [0.966, 0.997] n=4 ✓  | 0.611 [0.543, 0.695] n=4 ✓  | 0.987 [0.984, 0.991] n=4 ✓  | –                                           | 0.072 [-0.048, 0.218] n=4                 |
-| T0-wide  | 0.650 [0.608, 0.717] n=4 ✓  | 0.785 [0.684, 0.886] n=2 ✓  | 0.222 [0.056, 0.444] n=4 ✓  | 0.998 [0.987, 1.012] n=4 ✓  | 0.642 [0.571, 0.762] n=4 ✓  | 0.985 [0.982, 0.988] n=4 ✓  | –                                           | 0.021 [-0.009, 0.060] n=4                 |
-| T1       | 0.857 [0.522, 1.192] n=4 ✓  | 1.416 [1.202, 1.601] n=4 ✓  | 0.583 [0.341, 0.826] n=4 ✓  | 1.083 [0.966, 1.180] n=4 ✓  | 0.832 [0.290, 1.312] n=4 ✓  | 0.906 [0.778, 0.993] n=4 ✓  | –                                           | -0.363 [-0.803, 0.066] n=4                |
-| T1-MK2   | 0.503 [0.084, 0.997] n=4 ✓  | 0.782 [0.464, 1.214] n=4 ✓  | 0.427 [0.052, 0.802] n=4 ✓  | 1.187 [1.084, 1.259] n=4 ✓  | 0.121 [-0.744, 0.908] n=4   | 0.815 [0.483, 0.984] n=4 ✓  | –                                           | 0.069 [-0.682, 0.522] n=4                 |
-| all      | 0.651 [0.507, 0.805] n=16 ✓ | 0.943 [0.760, 1.153] n=14 ✓ | 0.391 [0.245, 0.537] n=16 ✓ | 1.063 [1.012, 1.119] n=16 ✓ | 0.551 [0.276, 0.783] n=16 ✓ | 0.923 [0.824, 0.986] n=16 ✓ | –                                           | -0.050 [-0.288, 0.146] n=16               |
+| scenario    | reference − idle (T)        | reference − idle (V)        | reference − spray-fire (Kw) | reference − wrong-ammo (Kw) | reference − wrong-ammo (V)  | reference − no-lock (lock)  | torpedo-reference − reference (T_outranged) | torpedo-reference − reference (T) | torpedo-reference − reference (T_inrange) |
+| ----------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | ------------------------------------------- | --------------------------------- | ----------------------------------------- |
+| T0          | 0.585 [0.503, 0.665] n=4 ✓  | 0.672 [0.594, 0.746] n=4 ✓  | 0.344 [0.163, 0.488] n=4 ✓  | 0.908 [0.887, 0.942] n=4 ✓  | 0.575 [0.525, 0.633] n=4 ✓  | 0.987 [0.984, 0.991] n=4 ✓  | –                                           | 0.052 [-0.074, 0.202] n=4         | 0.052 [-0.074, 0.202] n=4                 |
+| T0-wide     | 0.633 [0.608, 0.663] n=4 ✓  | 0.735 [0.668, 0.801] n=2 ✓  | 0.189 [0.019, 0.390] n=4 ✓  | 0.870 [0.828, 0.913] n=4 ✓  | 0.613 [0.559, 0.698] n=4 ✓  | 0.985 [0.982, 0.988] n=4 ✓  | –                                           | 0.015 [-0.009, 0.043] n=4         | 0.015 [-0.009, 0.043] n=4                 |
+| T1          | 0.617 [0.405, 0.828] n=4 ✓  | 0.788 [0.616, 0.920] n=4 ✓  | 0.597 [0.380, 0.826] n=4 ✓  | 0.998 [0.884, 1.091] n=4 ✓  | 0.576 [0.336, 0.712] n=4 ✓  | 0.906 [0.778, 0.993] n=4 ✓  | –                                           | -0.137 [-0.405, 0.130] n=4        | -0.137 [-0.405, 0.130] n=4                |
+| T1-MK2      | 0.442 [0.076, 0.837] n=4 ✓  | 0.647 [0.397, 0.949] n=4 ✓  | 0.352 [0.113, 0.591] n=4 ✓  | 0.959 [0.824, 1.095] n=4 ✓  | 0.158 [-0.352, 0.672] n=4   | 0.815 [0.483, 0.984] n=4 ✓  | –                                           | 0.055 [-0.594, 0.546] n=4         | 0.048 [-0.594, 0.526] n=4                 |
+| W-multi     | 0.336 [0.163, 0.626] n=4 ✓  | 0.769 [0.711, 0.811] n=4 ✓  | 0.305 [0.161, 0.491] n=4 ✓  | 0.819 [0.685, 0.969] n=4 ✓  | 0.430 [0.224, 0.624] n=4 ✓  | 0.772 [0.565, 0.983] n=4 ✓  | –                                           | 0.285 [-0.034, 0.525] n=4         | 0.254 [-0.034, 0.452] n=4                 |
+| W-outranged | 0.000 [0.000, 0.000] n=4    | –                           | –                           | –                           | 0.000 [0.000, 0.000] n=4    | 0.997 [0.997, 0.997] n=4 ✓  | 0.058 [0.019, 0.091] n=4 ✓                  | 0.058 [0.019, 0.091] n=4 ✓        | –                                         |
+| all         | 0.435 [0.315, 0.559] n=24 ✓ | 0.721 [0.643, 0.797] n=18 ✓ | 0.358 [0.248, 0.467] n=20 ✓ | 0.911 [0.858, 0.965] n=20 ✓ | 0.392 [0.258, 0.519] n=24 ✓ | 0.910 [0.833, 0.973] n=24 ✓ | 0.058 [0.019, 0.091] n=4 ✓                  | 0.055 [-0.075, 0.175] n=24        | 0.047 [-0.100, 0.181] n=20                |
 
 ### Leave one scenario out (ρ refit on the other scenarios)
 
-| held out | ρ      | reference − idle (T)        | reference − idle (V)        | reference − wrong-ammo (V)  |
-| -------- | ------ | --------------------------- | --------------------------- | --------------------------- |
-| T0       | 0.0279 | 0.672 [0.611, 0.734] n=12 ✓ | 0.753 [0.681, 0.826] n=9 ✓  | 0.690 [0.618, 0.763] n=12 ✓ |
-| T0-wide  | 0.0279 | 0.704 [0.663, 0.747] n=12 ✓ | 0.813 [0.730, 0.896] n=7 ✓  | 0.747 [0.669, 0.823] n=12 ✓ |
-| T1       | 0.0283 | 0.611 [0.420, 0.810] n=12 ✓ | 1.067 [0.851, 1.289] n=12 ✓ | 0.408 [0.080, 0.756] n=12 ✓ |
-| T1-MK2   | 0.0244 | 0.429 [0.245, 0.644] n=12 ✓ | 0.659 [0.500, 0.850] n=12 ✓ | -0.159 [-0.447, 0.165] n=12 |
+| held out    | ρ      | reference − idle (T)        | reference − idle (V)        | reference − wrong-ammo (V)  |
+| ----------- | ------ | --------------------------- | --------------------------- | --------------------------- |
+| T0          | 0.0279 | 0.654 [0.600, 0.711] n=12 ✓ | 0.717 [0.654, 0.779] n=9 ✓  | 0.645 [0.586, 0.708] n=12 ✓ |
+| T0-wide     | 0.0279 | 0.675 [0.645, 0.706] n=12 ✓ | 0.769 [0.709, 0.825] n=8 ✓  | 0.689 [0.631, 0.745] n=12 ✓ |
+| T1          | 0.0279 | 0.486 [0.364, 0.614] n=12 ✓ | 0.658 [0.550, 0.775] n=12 ✓ | 0.304 [0.149, 0.469] n=12 ✓ |
+| T1-MK2      | 0.0272 | 0.388 [0.221, 0.575] n=12 ✓ | 0.549 [0.423, 0.696] n=12 ✓ | 0.042 [-0.113, 0.230] n=12  |
+| W-multi     | 0.0272 | 0.365 [0.219, 0.517] n=12 ✓ | 0.715 [0.606, 0.810] n=11 ✓ | 0.362 [0.206, 0.536] n=12 ✓ |
+| W-outranged | 0.0283 | 0.000 [0.000, 0.000] n=12   | –                           | 0.000 [0.000, 0.000] n=12   |
 
 ### Predictive validity
 
 Spearman over windows (all crews) of window T with a kill in the next 60 s, against the persistence baseline: the incapacitation the enemy took in the previous window.
 
-| scenario | windows | ρ_s(T, kill60) | ρ_s(persistence, kill60) | ρ_s(O, kill60) |
-| -------- | ------- | -------------- | ------------------------ | -------------- |
-| T0       | 321     | 0.516          | 0.320                    | 0.219          |
-| T0-wide  | 318     | 0.561          | 0.411                    | 0.329          |
-| T1       | 457     | 0.211          | -0.117                   | 0.177          |
-| T1-MK2   | 391     | 0.326          | -0.129                   | 0.280          |
-| all      | 1487    | 0.394          | 0.010                    | 0.273          |
+| scenario    | windows | ρ_s(T, kill60) | ρ_s(persistence, kill60) | ρ_s(O, kill60) |
+| ----------- | ------- | -------------- | ------------------------ | -------------- |
+| T0          | 321     | 0.516          | 0.320                    | 0.231          |
+| T0-wide     | 318     | 0.560          | 0.411                    | 0.348          |
+| T1          | 443     | 0.214          | -0.120                   | 0.176          |
+| T1-MK2      | 385     | 0.332          | -0.132                   | 0.279          |
+| W-multi     | 393     | 0.382          | 0.076                    | 0.276          |
+| W-outranged | 504     | –              | –                        | –              |
+| all         | 2364    | 0.391          | 0.080                    | 0.250          |
