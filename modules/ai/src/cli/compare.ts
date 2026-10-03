@@ -10,11 +10,11 @@
  * (a kill after it does not count), which is how runs played with different timeouts, or recorded
  * before results carried a run score, are compared; recordings are looked up beside the results file.
  */
+import { readEvents, readFrames } from '../scoring/recording';
 import { CrewRunResult } from '../training/train-crew';
 import fs from 'node:fs';
 import { pairedSection } from '../training/report';
 import path from 'node:path';
-import { readFrames } from '../scoring/recording';
 import { scoreFrames } from '../scoring/run-score';
 
 function args(name: string) {
@@ -26,7 +26,11 @@ async function within(run: CrewRunResult, recording: string, horizon: number): P
     const killed = run.killed && run.seconds <= horizon;
     const seconds = Math.min(run.seconds, horizon);
     const frames = (await readFrames(recording)).filter((f) => f.t < horizon);
-    const score = scoreFrames(frames, { killed, seconds, timeoutSeconds: horizon });
+    const score = scoreFrames(
+        frames,
+        { killed, seconds, timeoutSeconds: horizon },
+        readEvents(recording).filter((e) => e.t < horizon),
+    );
     return { ...run, killed, seconds, timeoutSeconds: horizon, score: score ?? null };
 }
 
