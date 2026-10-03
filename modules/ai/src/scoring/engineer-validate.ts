@@ -256,9 +256,15 @@ function paired(runs: readonly Scored[], a: PolicyName, b: PolicyName, keep: Kee
  * per second a hostile was within twice its gun range of us, over the pair's common time (lower for `a`
  * is positive). With the KPI delta of the same pair.
  */
+/** Below this own integrity a run counts as no longer surviving (the GVTS is non-expendable). */
+const SURVIVAL_INTEGRITY = 0.5;
+
+/** Scenarios whose fights almost never end in a kill: gated on survival and damage rate instead. */
+const SURVIVAL_GATED = /^E1-/;
+
 function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
     const by = new Map(runs.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
-    const rows: { kpi: number; kill: number; saved: number; damageRate: number }[] = [];
+    const rows: { kpi: number; kill: number; saved: number; survived: number; damageRate: number }[] = [];
     for (const x of runs.filter((r) => r.policy === a)) {
         const y = by.get(`${x.scenario}/${x.seed}/${b}`);
         if (!y || !x.frames.length || !y.frames.length) continue;
@@ -270,10 +276,14 @@ function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
             return exposed ? lost / exposed : 0;
         };
         const avg = (r: Scored) => mean(r.k.filter((_, i) => r.frames[i].t <= until));
+        /** Seconds until own integrity fell below half, or the pair's common end. */
+        const survival = (r: Scored) =>
+            r.frames.find((f) => f.t <= until && f.integrity < SURVIVAL_INTEGRITY)?.t ?? until;
         rows.push({
             kpi: avg(x) - avg(y),
             kill: Number(x.killed) - Number(y.killed),
             saved: y.end - x.end,
+            survived: survival(x) - survival(y),
             damageRate: rate(y) - rate(x),
         });
     }
@@ -335,6 +345,8 @@ function predictive(runs: readonly Scored[], cuts: readonly [number, number], h:
  * R = 0.9. Only `ε` is fitted. `--free-reserve` also fits the reserve weights, for reference.
  */
 const FREE_RESERVE = process.argv.includes('--free-reserve');
+/** `--epsilon <x>` pins ε instead of fitting it. */
+const EPSILONS = args('epsilon').length ? args('epsilon').map(Number) : [0.01, 0.05, 0.2];
 
 function grid(): EngineerWeights[] {
     const out: EngineerWeights[] = [];
@@ -349,7 +361,7 @@ function grid(): EngineerWeights[] {
               ),
           )
         : [{ k: Math.LN10, n0: 0.25, beta: 1, lambda0: 0.3, lambda1: 0.4 }];
-    for (const r of reserve) for (const epsilon of [0.01, 0.05, 0.2]) out.push({ ...r, epsilon });
+    for (const r of reserve) for (const epsilon of EPSILONS) out.push({ ...r, epsilon });
     return out;
 }
 
@@ -473,11 +485,13 @@ async function main() {
     out('### KPI against outcome');
     out();
     out(
-        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0; elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
+        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: survival — seconds until own integrity < 0.5 — or damage rate); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
     );
     out();
-    out('| scenario | contrast | KPI Δ | kill Δ | seconds saved | damage-rate Δ | outcome separates | agreement |');
-    out('| --- | --- | --- | --- | --- | --- | --- | --- |');
+    out(
+        '| scenario | contrast | KPI Δ | kill Δ | seconds saved | survival Δ (s) | damage-rate Δ | gated on | outcome separates | agreement |',
+    );
+    out('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     for (const s of [...scenarios, 'all']) {
         const sub = all.filter((r) => s === 'all' || r.scenario === s);
         for (const [a, b] of [
@@ -491,16 +505,48 @@ async function main() {
             const rows = pairedOutcomes(sub, a, b);
             const kill = bootstrap(rows.map((r) => r.kill));
             const saved = bootstrap(rows.map((r) => r.saved));
+            const survived = bootstrap(rows.map((r) => r.survived));
+            const rate = bootstrap(rows.map((r) => r.damageRate));
+            const bySurvival = SURVIVAL_GATED.test(s);
+            const [g1, g2] = bySurvival ? [survived, rate] : [kill, saved];
             const outcome = (r: (typeof rows)[number]) =>
-                r.kill !== 0 ? Math.sign(r.kill) : Math.sign(Math.round(r.saved));
+                bySurvival
+                    ? Math.sign(Math.round(r.survived)) || Math.sign(r.damageRate)
+                    : r.kill !== 0
+                      ? Math.sign(r.kill)
+                      : Math.sign(Math.round(r.saved));
             const decided = rows.filter((r) => outcome(r) !== 0);
             const agree = decided.filter((r) => Math.sign(r.kpi) === outcome(r)).length;
-            const separates =
-                kill.lo > 0 || saved.lo > 0 ? `${a} better` : kill.hi < 0 || saved.hi < 0 ? `${b} better` : 'no';
+            const separates = g1.lo > 0 || g2.lo > 0 ? `${a} better` : g1.hi < 0 || g2.hi < 0 ? `${b} better` : 'no';
             out(
-                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(bootstrap(rows.map((r) => r.damageRate)))} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
+                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(survived)} | ${ci(rate)} | ${bySurvival ? 'survival, damage rate' : 'kill, seconds saved'} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
             );
         }
+    }
+    out();
+    out('### Repairs: reference-repairing − reference where there is damage to fix');
+    out();
+    out(
+        'Seeds whose reference run took a defect; KPI Δ and demanded damage backlog Δ (Σa·sev, lower is better) over their common time.',
+    );
+    out();
+    out('| scenario | seeds with damage | KPI Δ | backlog Δ |');
+    out('| --- | --- | --- | --- |');
+    for (const s of [...scenarios, 'all']) {
+        const sub = all.filter((r) => s === 'all' || r.scenario === s);
+        const by = new Map(sub.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
+        const kpi: number[] = [];
+        const backlog: number[] = [];
+        for (const x of sub.filter((r) => r.policy === 'reference' && r.frames.some((f) => f.sumSev > 0))) {
+            const y = by.get(`${x.scenario}/${x.seed}/reference-repairing`);
+            if (!y) continue;
+            const until = Math.min(x.end, y.end);
+            const avg = (r: Scored, v: (i: number) => number) =>
+                mean(r.frames.flatMap((f, i) => (f.t <= until ? [v(i)] : [])));
+            kpi.push(avg(y, (i) => y.k[i]) - avg(x, (i) => x.k[i]));
+            backlog.push(avg(y, (i) => y.frames[i].sumAsev) - avg(x, (i) => x.frames[i].sumAsev));
+        }
+        out(`| ${s} | ${kpi.length} | ${ci(bootstrap(kpi))} | ${ci(bootstrap(backlog))} |`);
     }
     out();
 
