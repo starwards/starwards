@@ -177,7 +177,11 @@ export class MovementManager implements Updateable {
     private handleWarpMovement(deltaSeconds: number) {
         if (!this.state.warp || !this.isWarpActive()) return;
         const supply = this.energyManager.drawEnergy(
-            this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.energyCostPerLevel,
+            this.state.warp.currentLevel *
+                this.state.warp.effectiveness *
+                this.state.warp.design.energyCostPerLevel *
+                deltaSeconds,
+            this.state.warp,
         );
         if (supply > 0) {
             const newSpeed =
