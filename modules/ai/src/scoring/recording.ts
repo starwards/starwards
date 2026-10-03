@@ -1,7 +1,14 @@
 import * as fs from 'node:fs';
 import * as readline from 'node:readline';
 
-import { SavedGame, parseFrameLine, parseHeader } from '@starwards/core/internal';
+import {
+    EVENTS_EXT,
+    RecordingEventLine,
+    SavedGame,
+    parseEventLine,
+    parseFrameLine,
+    parseHeader,
+} from '@starwards/core/internal';
 
 import { stringToSchema } from '@starwards/server/src/serialization/game-state-serialization';
 
@@ -21,4 +28,17 @@ export async function readFrames(path: string): Promise<{ t: number; saved: Save
         if (frame) frames.push({ t: frame.t, saved: await stringToSchema(SavedGame, frame.frame) });
     }
     return frames;
+}
+
+/** Reads the `.events.jsonl` sidecar beside a `.sgr` recording; none when it is missing. */
+export function readEvents(sgrPath: string): RecordingEventLine[] {
+    const sidecar = sgrPath.replace(/\.sgr$/, EVENTS_EXT);
+    if (!fs.existsSync(sidecar)) return [];
+    return fs
+        .readFileSync(sidecar, 'utf8')
+        .split('\n')
+        .flatMap((line) => {
+            const event = line.trim() ? parseEventLine(line) : null;
+            return event ? [event] : [];
+        });
 }

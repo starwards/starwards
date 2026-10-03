@@ -16,6 +16,7 @@
         "compare": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/compare.ts",
         "score:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/dataset.ts",
         "score": "node -r ts-node/register/transpile-only ./src/scoring/cli.ts",
+        "score:engineer": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/engineer-validate.ts",
         "heatmap:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/heatmap/dataset.ts",
         "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts"
     },
