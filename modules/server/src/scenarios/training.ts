@@ -92,20 +92,41 @@ export function createTrainingT1Map(
      * Calibration only, not game configs: `noCombatWeave`, the target attacks without its combat weave
      * (`ShipState.labNoCombatWeave`); `standGround`, the target holds its position and fires at the GVTS
      * instead of attacking it (no order, `IdleStrategy.STAND_GROUND`), capped to the GVTS's top speed as on T0; `capsuleIntegrity`, the target's capsule starts this
-     * damaged (1 intact), so fewer internal hits kill it.
+     * damaged (1 intact), so fewer internal hits kill it. `playerEnergy` (share of the store),
+     * `playerCells` and `reactorOutput` (factor on the GVTS reactor's energy per second) start the GVTS
+     * short of energy, so the engineer's power budget binds.
      */
     {
         noCombatWeave = false,
         standGround = false,
         capsuleIntegrity = 1,
-    }: { noCombatWeave?: boolean; standGround?: boolean; capsuleIntegrity?: number } = {},
+        playerEnergy,
+        playerCells,
+        reactorOutput,
+    }: {
+        noCombatWeave?: boolean;
+        standGround?: boolean;
+        capsuleIntegrity?: number;
+        playerEnergy?: number;
+        playerCells?: number;
+        reactorOutput?: number;
+    } = {},
 ): GameMap {
     return {
         name: 'training_t1',
         init: (game) => {
-            game.addPlayerSpaceship(
+            const reactor = game.addPlayerSpaceship(
                 new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
-            );
+            ).state.reactor;
+            if (playerEnergy !== undefined) {
+                reactor.energy = playerEnergy * reactor.design.maxEnergy;
+            }
+            if (playerCells !== undefined) {
+                reactor.energyCells = playerCells;
+            }
+            if (reactorOutput !== undefined) {
+                reactor.design.energyPerSecond *= reactorOutput;
+            }
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
             const target = game.addNpcSpaceship(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),

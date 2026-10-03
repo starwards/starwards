@@ -35,7 +35,7 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T0-wide, T0-constrained, T1, T1-MK2, T1-predator, T1-noweave and T1-lite', () => {
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator and T1-lite', () => {
         expect(Object.keys(trainingScenarios)).toEqual([
             'T0',
             'T0-wide',
@@ -44,6 +44,8 @@ describe('training ladder', () => {
             'T1-MK2',
             'T1-predator',
             'T1-noweave',
+            'E1-MK2',
+            'E1-predator',
             'T1-lite',
         ]);
     });
