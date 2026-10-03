@@ -3,6 +3,7 @@ import * as path from 'node:path';
 
 import { ENGINEER_POLICIES, makeEngineerPolicy } from '../brain/engineer-policies';
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
+import { SCRIPTED_SEAT_POLICIES, makeScriptedSeatPolicy } from '../brain/weapons-policies';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
 import { Policy } from '../brain/brain';
@@ -22,8 +23,11 @@ const crewConfigSchema = z
             z
                 .object({
                     station: z.string(),
-                    /** The `ENGINEER_POLICIES` are scripted engineers for validating an engineer score. */
-                    policy: z.enum(['jev', 'reference', 'idle', ...ENGINEER_POLICIES]),
+                    /**
+                     * The `ENGINEER_POLICIES` and `SCRIPTED_SEAT_POLICIES` are scripted seats for validating
+                     * the engineer, weapons and tactical scores.
+                     */
+                    policy: z.enum(['jev', 'reference', 'idle', ...ENGINEER_POLICIES, ...SCRIPTED_SEAT_POLICIES]),
                     /** Brain file; defaults to the module's `<station>.v1.json`. */
                     brain: z.string().optional(),
                 })
@@ -73,7 +77,12 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
                   ? makeReferencePolicy(spec.decisionSeconds)
                   : seat.policy === 'idle'
                     ? idlePolicy
-                    : makeEngineerPolicy(seat.policy, spec.decisionSeconds);
+                    : (SCRIPTED_SEAT_POLICIES as readonly string[]).includes(seat.policy)
+                      ? makeScriptedSeatPolicy(
+                            seat.policy as (typeof SCRIPTED_SEAT_POLICIES)[number],
+                            spec.decisionSeconds,
+                        )
+                      : makeEngineerPolicy(seat.policy as (typeof ENGINEER_POLICIES)[number], spec.decisionSeconds);
         return { station: seat.station, spec, policy };
     });
     return { name: config.name, seats, usesJev, jevUsage: client?.usage };

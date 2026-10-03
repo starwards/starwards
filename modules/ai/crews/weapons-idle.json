@@ -1,0 +1,17 @@
+{
+    "name": "weapons-idle",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "idle"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}
