@@ -7,7 +7,6 @@ import {
     tacticalSeries,
     tacticalWindows,
     weaponsScore,
-    weaponsSeries,
 } from './weapons-kpi';
 
 import { RecordingEventLine } from '@starwards/core/internal';
@@ -140,13 +139,5 @@ describe('weapons and tactical scores', () => {
         expect(series[10]?.t).toBe(10);
         // fewer than half a window left
         expect(series[40]).toBeUndefined();
-    });
-
-    it('scores weapons per window, null where no round was fired or the window runs past the end', () => {
-        const frames = Array.from({ length: 40 }, (_, t) => frame(t));
-        const kw = weaponsSeries(frames, [shot(20.5)], 'us', 10);
-        expect(kw[5]).toBeNull();
-        expect(kw[15]).not.toBeNull();
-        expect(kw[35]).toBeNull();
     });
 });

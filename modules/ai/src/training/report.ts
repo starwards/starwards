@@ -24,7 +24,7 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
     { name: 'opportunity (helms)', of: (r) => r.score?.opportunity, better: 'higher' },
     { name: 'conversion (weapons)', of: (r) => r.score?.conversion, better: 'higher' },
     { name: 'helms score', of: (r) => r.score?.helms, better: 'higher' },
-    { name: 'weapons score', of: (r) => r.score?.weapons, better: 'higher' },
+    { name: 'weapons score (K_w)', of: (r) => r.score?.weapons ?? undefined, better: 'higher' },
     { name: 'engineer score', of: (r) => r.score?.engineer, better: 'higher' },
 ];
 

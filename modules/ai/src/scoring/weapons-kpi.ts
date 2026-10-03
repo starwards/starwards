@@ -656,24 +656,3 @@ export function tacticalSeries(
     const run = tacticalRun(frames, events, playerId, w, Infinity);
     return frames.map((_, start) => (start < frames.length - 1 ? windowAt(run, start)?.window : undefined));
 }
-
-/**
- * {@link weaponsScore} over the rounds fired in (t, t + `horizon`] and the frames in [t, t + `horizon`] of every frame;
- * `kw` is `null` where no round was fired in the window or the run ends before it closes.
- */
-export function weaponsSeries(
-    frames: readonly TacticalFrame[],
-    events: readonly RecordingEventLine[],
-    playerId: string,
-    horizon: number,
-): (number | null)[] {
-    const relevant = events.filter((e) => e.kind === 'shot' || e.kind === 'damage');
-    const end = frames.at(-1)?.t ?? 0;
-    return frames.map((f, i) => {
-        if (end < f.t + horizon - 1e-6) return null;
-        const until = f.t + horizon + 1e-6;
-        const window = frames.slice(i).filter((g) => g.t <= until);
-        const inWindow = relevant.filter((e) => e.t > f.t && e.t <= until);
-        return window.length ? weaponsScore(window, inWindow, playerId).kw : null;
-    });
-}

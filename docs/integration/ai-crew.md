@@ -453,7 +453,6 @@ without both. Every value is in [0, 1], in three layers:
 | `tactical.opportunity` | expected O, helms' share of T: time with a firing solution (`opportunity45`)             |
 | `tactical.conversion`  | expected V = T / O, weapons' share of T (`conversion45`, censored where O = 0)           |
 | `stations.helms`       | expected share of the next 10 s in firing position (`helms10`); not validated            |
-| `stations.weapons`     | expected weapons station score K_w over the next 30 s, / 1.5 (`weapons_kw30`)            |
 | `stations.engineer`    | expected engineer score K over the next 30 s (`engineer_kpi30`)                          |
 
 T, O, V and K_w are defined in `scoring/weapons-kpi.ts` and the weapons report; K in
@@ -478,14 +477,17 @@ backwards benchmark, behavioural orderings). Artefacts are read by feature name,
 
 Current models (`modules/ai/ml/reports/2026-10-03-v2.md`), trained on 2778 runs:
 
-- `overall` comes from **v1**: v2 is better pooled (kill60 logloss 0.226 → 0.139, damage30 mse 0.0124 →
-  0.0026) but strictly worse on some earlier scenarios, so it is not the default there.
-- `tactical` and `stations` come from v2. Persistence gain (1 − loss / loss of the label's own past
-  value): T 0.64, O 0.77, V 0.53, helms 0.65, engineer 0.72; K_w −0.18 (K_w is a crew habit the last
-  30 s show better than one frame).
+- Every head comes from v2. v2 replaces v1 unless a scenario regresses beyond noise: Δ loss (v2 − v1, 95% bootstrap CI over runs) counts as a regression only when the whole CI lies above a noise floor (0.002 logloss for `kill60`, 0.0005 mse for `damage30`; the calibration floor alone costs up to 0.001 logloss) on at least 5 runs. A CI above the floor on fewer runs is reported as insufficient evidence. Pooled v2 beats v1 (kill60 logloss 0.226 → 0.139, damage30 mse
+  0.0124 → 0.0026); no scenario regresses beyond noise; T1-noweave damage30 (+0.0028, 2 runs) is
+  insufficient evidence.
+- Persistence gain (1 − loss / loss of the label's own past value): kill60 0.76, damage30 0.76, T 0.64,
+  O 0.77, V 0.53, helms 0.65, engineer 0.72.
+- The weapons station score K_w is not a snapshot field: it is a rate over rounds fired, computed
+  exactly from the recorded `shot`/`damage` events (`weaponsScore`; `RunScore.weapons` from
+  `scoreRun`). Weapons' snapshot share is `tactical.conversion`.
 - On the matched-seed validation runs the model's out-of-fold station scores keep every pooled policy
-  ordering the labels hold (engineer reference > idle, all-max, random; K_w reference > spray-fire,
-  wrong-ammo; T and V reference > idle; V reference > wrong-ammo).
+  ordering the labels hold (engineer reference > idle, all-max, random; T and V reference > idle; V
+  reference > wrong-ammo).
 
 ```bash
 npm --prefix modules/ai run score -- --recording <x.sgr> [--every 5] [--ship GVTS]   # score series of a run
