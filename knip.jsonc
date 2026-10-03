@@ -48,6 +48,10 @@
         },
         "modules/mcp": {
             "entry": ["src/cli.ts"]
+        },
+        "modules/ai": {
+            // command-line entry points, run through ts-node by the module's npm scripts
+            "entry": ["src/cli/*.ts"]
         }
     }
 }

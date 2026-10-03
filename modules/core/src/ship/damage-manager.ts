@@ -22,6 +22,13 @@ import { Warp } from './warp';
  */
 const MAX_SPILLOVER_ROLLS = 20;
 
+/** What dealt a defect: a system running past its heat limit, warp penalty damage, or any other hit (weapon, collision). */
+export type DefectCause = 'overheat' | 'warp' | 'hit';
+
+function defectCause(damageId: string): DefectCause {
+    return damageId === 'overheat' ? 'overheat' : damageId.startsWith('warp_') ? 'warp' : 'hit';
+}
+
 export class DamageManager {
     private applicationCounter = 0;
     private attackResolution: AttackResolutionManager;
@@ -30,6 +37,8 @@ export class DamageManager {
      * armor. Unset: nobody listens (player ships).
      */
     onWeaponHit: ((attackerId: string, amount: number) => void) | null = null;
+    /** Called for every defect applied to a system, with what caused it. Unset: nobody listens. */
+    onDefect: ((system: ShipSystem, cause: DefectCause) => void) | null = null;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -119,6 +128,7 @@ export class DamageManager {
             // treat any hit as a guaranteed single defect rather than looping forever at p=Infinity
             if (remaining > 0 && !system.broken) {
                 this.applyDefect(system, `defect:${damageObject.id}:${appIdx}:${system.name}:0`);
+                this.onDefect?.(system, defectCause(damageObject.id));
             }
             return;
         }
@@ -128,6 +138,7 @@ export class DamageManager {
             const defectId = `defect:${damageObject.id}:${appIdx}:${system.name}:${rollIdx}`;
             if (this.die.getSuccess(defectId, p)) {
                 this.applyDefect(system, defectId);
+                this.onDefect?.(system, defectCause(damageObject.id));
             }
             remaining -= damage50;
             rollIdx++;

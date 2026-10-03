@@ -61,6 +61,11 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
         this.internalProxy.drawEnergy = this.energyManager.drawEnergy;
     }
 
+    /** The previous tick's energy demand and what the reactor granted of it (see `EnergyManager.lastFlow`). */
+    get energyFlow() {
+        return this.energyManager.lastFlow;
+    }
+
     public handleToggleSmartPilotManeuveringMode() {
         if (this.state.maneuveringModeCommand) {
             this.state.maneuveringModeCommand = false;

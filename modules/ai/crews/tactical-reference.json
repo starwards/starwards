@@ -1,0 +1,13 @@
+{
+    "name": "tactical-reference",
+    "seats": [
+        {
+            "station": "tactical",
+            "policy": "reference"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

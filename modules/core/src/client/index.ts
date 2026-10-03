@@ -6,3 +6,4 @@ export * from './driver';
 export * from './space-object-intel';
 export * from './spatial-index';
 export * from './station-registration';
+export * from './radar-reach';

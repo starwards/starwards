@@ -1,4 +1,4 @@
-import { Driver, Radar, ShipDriver, SpaceDriver, scanCycleTargets } from '@starwards/core';
+import { Driver, Radar, ShipDriver, SpaceDriver, radarReach, scanCycleTargets } from '@starwards/core';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 
 import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
@@ -32,7 +32,7 @@ export async function initSignalsScreen(
     const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    const radarRange = 50_000;
+    const radarRange = radarReach.longRange;
     const radar = await drawLongRangeRadar(
         spaceDriver,
         shipDriver,

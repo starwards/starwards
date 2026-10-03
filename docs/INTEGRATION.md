@@ -6,6 +6,7 @@ This page is an index. Each integration surface has its own audience and now its
 
 - [`integration/node-red.md`](integration/node-red.md) - Visual-programming bridge to ship state: nodes, example flows, connection lifecycle, error handling.
 - [`integration/mcp-server.md`](integration/mcp-server.md) - MCP server that seats an LLM at a station, sandboxed to what that seat can see and do.
+- [`integration/ai-crew.md`](integration/ai-crew.md) - Station brains that play by pressing one station's buttons, trained and measured in the headless game.
 - [`integration/docker.md`](integration/docker.md) - Docker Compose setup for the MQTT and Node-RED services, service URLs, and volume backup/restore.
 - [`integration/open-stage-control.md`](integration/open-stage-control.md) - Touchscreen/MIDI control surfaces (O-S-C) bridged to ship state through Node-RED.
 - [`integration/mqtt.md`](integration/mqtt.md) - Pub/sub bridging for external systems (lights, sound) via Node-RED.

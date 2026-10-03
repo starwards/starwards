@@ -1,0 +1,9 @@
+{
+    "name": "jev-all",
+    "seats": [
+        { "station": "helms", "policy": "jev" },
+        { "station": "weapons", "policy": "jev" },
+        { "station": "engineer", "policy": "jev" },
+        { "station": "signals", "policy": "jev" }
+    ]
+}

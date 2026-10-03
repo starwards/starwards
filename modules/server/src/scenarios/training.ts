@@ -6,6 +6,7 @@ import {
     Spaceship,
     Vec2,
     XY,
+    shellAmmoTypes,
     shipConfigurations,
 } from '@starwards/core/internal';
 
@@ -26,19 +27,48 @@ export interface T0Params {
 const T0_TARGET_MAX_SPEED = shipConfigurations.gravitas.smartPilot.maxSpeed;
 
 /**
+ * Calibration only, not game configs: the curriculum's T0 variants. `targetModel` swaps the hull
+ * (default dragonfly-MK1); the rest start the GVTS constrained -- `playerEnergy`, reactor energy as a
+ * share of its maximum; `playerShells`, rounds of every shell type in the magazine (capped at its
+ * capacity); `playerGunHeat`, every chain gun's starting heat (0..100).
+ */
+export interface T0Lab {
+    readonly targetModel?: ShipModel;
+    readonly playerEnergy?: number;
+    readonly playerShells?: number;
+    readonly playerGunHeat?: number;
+}
+
+/**
  * Training rung 0: the GVTS is ordered to kill a dragonfly-MK1 that never moves or shoots
  * (PLAY_DEAD, no order). Lab conditions -- no stations, no asteroids, no other ships.
  */
-export function createTrainingT0Map(params: T0Params): GameMap {
+export function createTrainingT0Map(
+    params: T0Params,
+    { targetModel = 'dragonfly-MK1', playerEnergy, playerShells, playerGunHeat }: T0Lab = {},
+): GameMap {
     return {
         name: 'training_t0',
         init: (game) => {
-            game.addPlayerSpaceship(
+            const player = game.addPlayerSpaceship(
                 new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
-            );
+            ).state;
+            if (playerEnergy !== undefined) {
+                player.reactor.energy = playerEnergy * player.reactor.design.maxEnergy;
+            }
+            if (playerShells !== undefined) {
+                for (const ammo of shellAmmoTypes) {
+                    player.magazine[`count_${ammo}`] = Math.min(playerShells, player.magazine.design[`max_${ammo}`]);
+                }
+            }
+            if (playerGunHeat !== undefined) {
+                for (const gun of player.chainGuns) {
+                    gun.heat = playerGunHeat;
+                }
+            }
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
             const target = game.addNpcSpaceship(
-                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), 'dragonfly-MK1', Faction.Raiders),
+                new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
             );
             target.state.idleStrategy = IdleStrategy.PLAY_DEAD;
             target.state.smartPilot.design.maxSpeed = T0_TARGET_MAX_SPEED;
@@ -58,8 +88,17 @@ export const training_t0: GameMap = createTrainingT0Map({ distance: 5000, bearin
 export function createTrainingT1Map(
     params: T0Params,
     targetModel: ShipModel = 'dragonfly-MK1',
-    /** Calibration only, not a game config: the target attacks without its combat weave (`ShipState.labNoCombatWeave`). */
-    noCombatWeave = false,
+    /**
+     * Calibration only, not game configs: `noCombatWeave`, the target attacks without its combat weave
+     * (`ShipState.labNoCombatWeave`); `standGround`, the target holds its position and fires at the GVTS
+     * instead of attacking it (no order, `IdleStrategy.STAND_GROUND`), capped to the GVTS's top speed as on T0; `capsuleIntegrity`, the target's capsule starts this
+     * damaged (1 intact), so fewer internal hits kill it.
+     */
+    {
+        noCombatWeave = false,
+        standGround = false,
+        capsuleIntegrity = 1,
+    }: { noCombatWeave?: boolean; standGround?: boolean; capsuleIntegrity?: number } = {},
 ): GameMap {
     return {
         name: 'training_t1',
@@ -68,10 +107,18 @@ export function createTrainingT1Map(
                 new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
             );
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
-            game.addNpcSpaceship(
+            const target = game.addNpcSpaceship(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
-            ).state.labNoCombatWeave = noCombatWeave;
-            game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
+            );
+            target.state.labNoCombatWeave = noCombatWeave;
+            target.state.capsule.integrity = capsuleIntegrity;
+            if (standGround) {
+                target.state.idleStrategy = IdleStrategy.STAND_GROUND;
+                target.state.smartPilot.design.maxSpeed = T0_TARGET_MAX_SPEED;
+                target.state.smartPilot.design.maxSpeedFromAfterBurner = T0_TARGET_MAX_SPEED;
+            } else {
+                game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
+            }
             game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
         },
     };

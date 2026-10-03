@@ -1,5 +1,5 @@
 import { Container, Graphics, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject, XY, calcArcAngle, degToRad } from '@starwards/core';
+import { ShipDriver, SpaceDriver, SpaceObject, XY, calcArcAngle, degToRad, helmsRadarReach } from '@starwards/core';
 import { aggregate, readProp } from '../property-wrappers';
 import { azimuthCircle, speedLines } from '../radar/tactical-radar-layers';
 import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
@@ -47,7 +47,7 @@ export async function drawHelmsRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         return warpLevel !== undefined && warpLevel > 0.5;
     });
     const camera = new Camera();
-    const p = { range: isWarpProp.getValue() ? 100_000 : 5_000 };
+    const p = { range: helmsRadarReach(warpLevelProp.getValue()) };
     const root = new CameraView(camera);
 
     await root.initialize({ backgroundColor: radarFogOfWar }, container);
@@ -186,7 +186,7 @@ export async function drawHelmsRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         }
     }
     function onRangeChange() {
-        p.range = isWarpProp.getValue() ? 100_000 : 5_000;
+        p.range = helmsRadarReach(warpLevelProp.getValue());
         background.setSpacing(p.range / 5);
         background.setRange(p.range);
         range.setStepSize(p.range / 5);

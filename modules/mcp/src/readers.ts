@@ -1,4 +1,4 @@
-import { JobStatus, RepairPriority, StationWidget, System, ammoTypes } from '@starwards/core/internal';
+import { JobStatus, RepairPriority, StationWidget, System, ammoTypes, helmsRadarReach } from '@starwards/core/internal';
 
 import { StationSession } from './sandbox/session';
 import { describeContact } from './contacts';
@@ -98,6 +98,9 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
         const ship = s.shipDriver.state;
         return {
             energy: ship.reactor?.energy,
+            maxEnergy: ship.reactor?.design.maxEnergy,
+            energyCells: ship.reactor?.energyCells,
+            maxEnergyCells: ship.reactor?.design.maxEnergyCells,
             afterBurnerFuel: ship.maneuvering?.afterBurnerFuel,
             hullDamaged: ship.hullDamaged,
         };
@@ -281,5 +284,5 @@ export function scanBeamStatus(session: StationSession) {
  * flying by a far coarser picture.
  */
 export function helmsRadarRange(session: StationSession): number {
-    return (session.shipDriver.state.warp?.currentLevel ?? 0) > 0.5 ? 100_000 : 5_000;
+    return helmsRadarReach(session.shipDriver.state.warp?.currentLevel);
 }
