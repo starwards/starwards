@@ -530,6 +530,38 @@ crossing rates need no history.
 | `o_target_shells`            | overall  | 0..1   | target shell rounds / capacity                                         |
 | `o_target_hostile`           | overall  | 0/1    | target follows an order or fights back when idle (not PLAY_DEAD)       |
 
+### Engineer score
+
+`stations.engineer` above is the trained snapshot model on the old `engineer30` label. The engineer
+score proper is `modules/ai/src/scoring/engineer-kpi.ts`. It is computed from a recording's frames and
+sidecar, never from the trained model, and its per-frame K over the next 30 s is the `engineer_kpi30`
+dataset column. Per frame, over the player ship's systems:
+
+- demand `a` comes from what the other seats request: smart-pilot commands, TARGET modes, afterburner,
+  weapons' fire decisions or a held lock, tube commands; radar demand comes from unresolved contacts;
+  the reactor is always demanded;
+- supply `e = min(1, power / NORMAL) × hacked`, or 0 when broken or energy-starved;
+- `K = D60 · ((1 − λ)·S + λ·R)`, where:
+    - `S = Σa·e / Σa`;
+    - `R = 1 − exp(−k·store / N0(1 + β·r))`, with store = energy share + 0.3 per cell;
+    - `D60` is the mean demand-weighted intactness over the next 60 s;
+    - `λ = min(0.6, λ0 + λ1·r)`.
+
+Risk `r` is a logistic with non-negative coefficients over hostiles in range, nearness, recent blast hits,
+lost integrity and unscanned contacts. It is fitted to own integrity loss in the next 30 s. λ0, λ1 and β
+are set by design; k, N0 and ε are fitted.
+
+`npm --prefix modules/ai run score:engineer -- --runs <train out dir> ...` validates the score on
+matched-seed runs of the scripted engineers (`crews/engineer-*.json`), comparing paired runs over their
+common time. The status on 420 runs is in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`:
+
+- idle > all-shutdown holds in every scenario;
+- reference > all-max at high risk holds pooled and on T1;
+- reference > idle holds only on T1; it fails on T0-constrained and E1-predator.
+
+The score is not yet a training target. The supply cap stays until energy draw becomes a curve in power
+(#2305); refit the weights when it does.
+
 ## Radar heatmaps
 
 `heatmapAt(saved, playerId?)` (`modules/ai/src/heatmap/heatmap.ts`) maps the space around the player

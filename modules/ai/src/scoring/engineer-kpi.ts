@@ -42,8 +42,11 @@ export interface EngineerWeights {
     readonly epsilon: number;
 }
 
-/** Fitted on the matched-seed validation of 2026-10-03 (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`). */
-export const ENGINEER_WEIGHTS: EngineerWeights = { k: 0.5, n0: 0.25, beta: 0, lambda0: 0, lambda1: 0, epsilon: 0.01 };
+/**
+ * Reserve weights (`λ0`, `λ1`, `β`) set by design; `k`, `N0`, `ε` fitted on the matched-seed validation of
+ * 2026-10-03 (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`).
+ */
+export const ENGINEER_WEIGHTS: EngineerWeights = { k: 0.5, n0: 1, beta: 3, lambda0: 0.3, lambda1: 0.4, epsilon: 0.01 };
 
 /** Raw danger, in {@link RiskModel} coefficient order. */
 export const RISK_FEATURES = ['threats', 'proximity', 'blastRate', 'damage', 'unscanned'] as const;
@@ -55,8 +58,11 @@ export interface RiskModel {
     readonly coef: readonly number[];
 }
 
-/** Fitted on the matched-seed validation of 2026-10-03 to P(integrity loss ≥ 0.02 in the next 30 s). */
-export const RISK_MODEL: RiskModel = { bias: -4.164, coef: [2.179, -0.129, 3.142, -2.694, 1.336] };
+/**
+ * Fitted on the matched-seed validation of 2026-10-03 to P(integrity loss ≥ 0.02 in the next 30 s), with
+ * non-negative coefficients: more danger never lowers risk.
+ */
+export const RISK_MODEL: RiskModel = { bias: -4.803, coef: [2.323, 0.527, 1.997, 0, 0.883] };
 
 const LAMBDA_CAP = 0.6;
 /** Half-width of the window requests are read over, seconds. */
