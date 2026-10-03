@@ -1,6 +1,7 @@
+import { RecordingEventLine, SavedGame } from '@starwards/core/internal';
 import { SnapshotScore, scoreSnapshot } from './score';
-import { SavedGame } from '@starwards/core/internal';
-import { readFrames } from './recording';
+import { observeTactical, weaponsScore } from './weapons-kpi';
+import { readEvents, readFrames } from './recording';
 
 /**
  * A whole run as one number per score, each the time-mean of the snapshot score over the run's frames.
@@ -9,29 +10,30 @@ import { readFrames } from './recording';
  *
  * `value` is taken over the full timeout: the time left after a kill counts as 1 (the target is dead,
  * nothing more can be lost), so an early kill scores above a late one and any kill above none.
- * The other scores are means over the frames in which the duel was on.
+ * The other scores are means over the frames in which the duel was on, except `weapons`: the weapons
+ * station score K_w (`weaponsScore`), computed exactly from the recorded `shot` and `damage` events over
+ * the whole run; `null` without events or when no round was fired.
  */
 export type RunScore = {
     value: number;
+    weapons: number | null;
     kill: number;
     damage: number;
     tactical: number;
     opportunity: number;
     conversion: number;
     helms: number;
-    weapons: number;
     engineer: number;
 };
 
 /** Each run score's snapshot score, except `value` (which also counts the time after a kill). */
-const READ: Record<Exclude<keyof RunScore, 'value'>, (s: SnapshotScore) => number> = {
+const READ: Record<Exclude<keyof RunScore, 'value' | 'weapons'>, (s: SnapshotScore) => number> = {
     kill: (s) => s.overall.kill,
     damage: (s) => s.overall.damage,
     tactical: (s) => s.tactical.score,
     opportunity: (s) => s.tactical.opportunity,
     conversion: (s) => s.tactical.conversion,
     helms: (s) => s.stations.helms,
-    weapons: (s) => s.stations.weapons,
     engineer: (s) => s.stations.engineer,
 };
 const KEYS = Object.keys(READ) as (keyof typeof READ)[];
@@ -48,6 +50,7 @@ type RunOutcome = {
 export function scoreFrames(
     frames: readonly { t: number; saved: SavedGame }[],
     { killed, seconds, timeoutSeconds, playerId }: RunOutcome,
+    events: readonly RecordingEventLine[] = [],
 ): RunScore | undefined {
     let value = 0;
     const sums = Object.fromEntries(KEYS.map((k) => [k, 0])) as Record<keyof typeof READ, number>;
@@ -65,11 +68,23 @@ export function scoreFrames(
     const afterKill = killed ? Math.max(0, timeoutSeconds - seconds) : 0;
     return {
         value: (value + afterKill) / (weight + afterKill),
+        weapons: weaponsOf(frames, events, playerId),
         ...(Object.fromEntries(KEYS.map((k) => [k, sums[k] / weight])) as Record<keyof typeof READ, number>),
     };
 }
 
-/** Scores a recorded run from its `.sgr` frames. */
+function weaponsOf(
+    frames: readonly { t: number; saved: SavedGame }[],
+    events: readonly RecordingEventLine[],
+    playerId: string | undefined,
+) {
+    const id = playerId ?? [...(frames[0]?.saved.fragment.ship.values() ?? [])].find((s) => s.isPlayerShip)?.id;
+    if (!id || !events.some((e) => e.kind === 'shot')) return null;
+    const tactical = frames.flatMap((f) => observeTactical(f.t, f.saved, id) ?? []);
+    return weaponsScore(tactical, events, id).kw;
+}
+
+/** Scores a recorded run from its `.sgr` frames and `.events.jsonl` sidecar. */
 export async function scoreRun(recording: string, outcome: RunOutcome) {
-    return scoreFrames(await readFrames(recording), outcome);
+    return scoreFrames(await readFrames(recording), outcome, readEvents(recording));
 }

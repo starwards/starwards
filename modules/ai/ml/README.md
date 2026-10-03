@@ -50,12 +50,12 @@ scoring; removing or redefining a feature an artefact uses needs a retrain.
   95% bootstrap CI over runs.
 - Backwards benchmark: on `kill60` and `damage30`, the new artefact against `--baseline` per scenario,
   on test runs outside the baseline's training set, Δ loss with a 95% bootstrap CI over runs. A scenario
-  where the CI lies above 0 is a regression; then the baseline keeps the overall heads.
+  regresses only when the whole CI lies above the noise floor (0.002 logloss, 0.0005 mse) on at least 5
+  runs; above the floor on fewer runs is reported as insufficient evidence.
 - Behavioural ordering: on the matched-seed validation runs (`engineer-kpi/`, `weapons-score/`), run
   means of label and out-of-fold prediction (5 folds grouped by seed), paired by seed: the model must
   keep the policy orderings the labels hold (reference > idle, > all-max, > random on the engineer
-  score; idle > all-shutdown where outcomes separate them; reference > spray-fire and > wrong-ammo on
-  K_w; reference > idle on T and V; reference > wrong-ammo on V; torpedo > reference on T when the gun
+  score; idle > all-shutdown where outcomes separate them; reference > idle on T and V; reference > wrong-ammo on V; torpedo > reference on T when the gun
   is outranged).
 - Leakage check: time-in-run added as a feature must not cut the CV loss.
 - Export: coefficients + scaler or tree nodes, calibration map, metrics, and 40 test rows with

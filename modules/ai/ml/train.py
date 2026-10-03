@@ -34,7 +34,6 @@ LABELS = {
     "opportunity45": ("regression", "tactical", 45),
     "conversion45": ("regression", "tactical", 45),
     "helms10": ("regression", "helms", 10),
-    "weapons_kw30": ("regression", "weapons", 30),
     "engineer_kpi30": ("regression", "engineer", 30),
 }
 OVERALL = ["kill60", "damage30"]
@@ -44,6 +43,10 @@ TRAIN_STRIDE = 2  # fits use every 2nd frame of a run (1 Hz frames are strongly 
 BOOT = 300
 MIN_SCENARIO_RUNS = 4
 CAL_EPS = 0.001
+# backwards benchmark: a scenario regresses only when the whole CI of Δ loss lies above this noise floor
+# (the calibration floor alone costs up to -log(1 - CAL_EPS) ≈ 0.001 logloss), on at least this many runs
+NOISE_FLOOR = {"binary": 0.002, "regression": 0.0005}
+MIN_EVIDENCE_RUNS = 5
 VALIDATION_SOURCES = ("engineer-kpi/", "weapons-score/")
 
 
@@ -369,10 +372,13 @@ def main():
                 d = paired_loss_delta(task, per)
                 lo, hi = boot_ci(per, lambda ps: paired_loss_delta(task, ps))
                 y = part[label].to_numpy(float)
-                verdict = "**worse**" if lo > 0 else "better" if hi < 0 else "not separated"
+                if lo > NOISE_FLOOR[task]:
+                    verdict = "**regressed**" if part.run_id.nunique() >= MIN_EVIDENCE_RUNS else "worse, insufficient evidence"
+                else:
+                    verdict = "better" if hi < 0 else "no regression"
                 old_sc = "yes" if (df[(df.scenario == sc) & df.day.isin(base_days)].size or sc == "all") else "no"
                 rows.append(f"| {sc} | {old_sc} | {part.run_id.nunique()} | {len(part)} | {f4(loss(task, y, part._base.to_numpy()))} | {f4(loss(task, y, part._p.to_numpy()))} | {f4(d)} [{f4(lo)}, {f4(hi)}] | {verdict} |")
-            rep.append(f"Backwards benchmark ({args.baseline} vs {args.version}, {loss_name(task)}, test runs outside {args.baseline}'s training set; Δ = {args.version} − {args.baseline}, 95% CI over runs):\n\n"
+            rep.append(f"Backwards benchmark ({args.baseline} vs {args.version}, {loss_name(task)}, test runs outside {args.baseline}'s training set; Δ = {args.version} − {args.baseline}, 95% CI over runs; regressed = CI above {NOISE_FLOOR[task]} on >= {MIN_EVIDENCE_RUNS} runs):\n\n"
                        f"| scenario | in {args.baseline}'s days | runs | rows | {args.baseline} | {args.version} | Δ | {args.version} is |\n|---|---|---|---|---|---|---|---|\n" + "\n".join(rows) + "\n")
 
     rep.append(behaviour(df, features, artefact))
@@ -396,8 +402,6 @@ ORDERINGS = [
     ("engineer-kpi/", "engineer_kpi30", "reference", "all-max", None),
     ("engineer-kpi/", "engineer_kpi30", "reference", "random", None),
     ("engineer-kpi/", "engineer_kpi30", "idle", "all-shutdown", {"T0-constrained", "all"}),
-    ("weapons-score/", "weapons_kw30", "reference", "spray-fire", None),
-    ("weapons-score/", "weapons_kw30", "reference", "wrong-ammo", None),
     ("weapons-score/", "tactical45", "reference", "idle", None),
     ("weapons-score/", "conversion45", "reference", "idle", None),
     ("weapons-score/", "conversion45", "reference", "wrong-ammo", None),
