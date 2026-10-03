@@ -1,6 +1,6 @@
+import { SnapshotScore, scoreSnapshot } from './score';
 import { SavedGame } from '@starwards/core/internal';
 import { readFrames } from './recording';
-import { scoreSnapshot } from './score';
 
 /**
  * A whole run as one number per score, each the time-mean of the snapshot score over the run's frames.
@@ -15,11 +15,26 @@ export type RunScore = {
     value: number;
     kill: number;
     damage: number;
+    tactical: number;
+    opportunity: number;
+    conversion: number;
     helms: number;
     weapons: number;
     engineer: number;
-    signals: number;
 };
+
+/** Each run score's snapshot score, except `value` (which also counts the time after a kill). */
+const READ: Record<Exclude<keyof RunScore, 'value'>, (s: SnapshotScore) => number> = {
+    kill: (s) => s.overall.kill,
+    damage: (s) => s.overall.damage,
+    tactical: (s) => s.tactical.score,
+    opportunity: (s) => s.tactical.opportunity,
+    conversion: (s) => s.tactical.conversion,
+    helms: (s) => s.stations.helms,
+    weapons: (s) => s.stations.weapons,
+    engineer: (s) => s.stations.engineer,
+};
+const KEYS = Object.keys(READ) as (keyof typeof READ)[];
 
 type RunOutcome = {
     killed: boolean;
@@ -34,7 +49,8 @@ export function scoreFrames(
     frames: readonly { t: number; saved: SavedGame }[],
     { killed, seconds, timeoutSeconds, playerId }: RunOutcome,
 ): RunScore | undefined {
-    const sums: RunScore = { value: 0, kill: 0, damage: 0, helms: 0, weapons: 0, engineer: 0, signals: 0 };
+    let value = 0;
+    const sums = Object.fromEntries(KEYS.map((k) => [k, 0])) as Record<keyof typeof READ, number>;
     let weight = 0;
     frames.forEach(({ t, saved }, i) => {
         const score = scoreSnapshot(saved, playerId);
@@ -42,24 +58,14 @@ export function scoreFrames(
         const dt = Math.max(0, (frames[i + 1]?.t ?? seconds) - t);
         if (!score || dt === 0) return;
         weight += dt;
-        sums.value += dt * score.overall.value;
-        sums.kill += dt * score.overall.kill;
-        sums.damage += dt * score.overall.damage;
-        sums.helms += dt * score.stations.helms;
-        sums.weapons += dt * score.stations.weapons;
-        sums.engineer += dt * score.stations.engineer;
-        sums.signals += dt * score.stations.signals;
+        value += dt * score.overall.value;
+        for (const k of KEYS) sums[k] += dt * READ[k](score);
     });
     if (weight === 0) return undefined;
     const afterKill = killed ? Math.max(0, timeoutSeconds - seconds) : 0;
     return {
-        value: (sums.value + afterKill) / (weight + afterKill),
-        kill: sums.kill / weight,
-        damage: sums.damage / weight,
-        helms: sums.helms / weight,
-        weapons: sums.weapons / weight,
-        engineer: sums.engineer / weight,
-        signals: sums.signals / weight,
+        value: (value + afterKill) / (weight + afterKill),
+        ...(Object.fromEntries(KEYS.map((k) => [k, sums[k] / weight])) as Record<keyof typeof READ, number>),
     };
 }
 

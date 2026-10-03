@@ -80,6 +80,20 @@ function raw(model: LinearModel | TreeModel, x: readonly number[]) {
     return z;
 }
 
+/**
+ * Maps a feature vector in `names` order (`FEATURE_NAMES`) to the artefact's own feature order; throws
+ * when the artefact needs a feature `names` lacks. An artefact trained on fewer features (an earlier
+ * version) keeps scoring after features are added.
+ */
+export function featureSelector(artefact: ScorerArtefact, names: readonly string[]) {
+    const index = artefact.features.map((f) => {
+        const i = names.indexOf(f);
+        if (i < 0) throw new Error(`scorer ${artefact.version} needs feature ${f}, which features.ts does not compute`);
+        return i;
+    });
+    return (x: readonly number[]) => index.map((i) => x[i]);
+}
+
 /** The model's prediction in [0, 1]: a probability for binary targets, the label's unit otherwise. */
 export function evaluate(model: ExportedModel, x: readonly number[]) {
     const z = raw(model, x);

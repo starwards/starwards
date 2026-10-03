@@ -4,8 +4,10 @@ import {
     ammoShortfall,
     ammoValue,
     shellReaches,
+    tacticalSeries,
     tacticalWindows,
     weaponsScore,
+    weaponsSeries,
 } from './weapons-kpi';
 
 import { RecordingEventLine } from '@starwards/core/internal';
@@ -128,5 +130,23 @@ describe('weapons and tactical scores', () => {
         expect(w.O).toBe(0);
         expect(w.T).toBe(0);
         expect(w.clipped).toBe(true);
+    });
+
+    it('slides one window per frame, the first equal to the consecutive windows', () => {
+        const frames = Array.from({ length: 60 }, (_, t) => frame(t, { incapacitation: t / 200 }));
+        const events = frames.map((f) => hit(f.t + 0.5, 'us'));
+        const series = tacticalSeries(frames, events, 'us');
+        expect(series[0]).toEqual(tacticalWindows(frames, events, 'us')[0]);
+        expect(series[10]?.t).toBe(10);
+        // fewer than half a window left
+        expect(series[40]).toBeUndefined();
+    });
+
+    it('scores weapons per window, null where no round was fired or the window runs past the end', () => {
+        const frames = Array.from({ length: 40 }, (_, t) => frame(t));
+        const kw = weaponsSeries(frames, [shot(20.5)], 'us', 10);
+        expect(kw[5]).toBeNull();
+        expect(kw[15]).not.toBeNull();
+        expect(kw[35]).toBeNull();
     });
 });

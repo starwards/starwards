@@ -9,6 +9,8 @@ import {
     XY,
 } from '@starwards/core/internal';
 
+import { TacticalFrame, ammoShortfall, hasSolution, observeTactical, threatShares } from './weapons-kpi';
+import { components, observe, riskOf } from './engineer-kpi';
 import { offNose } from '../brain/verbal';
 
 /**
@@ -18,7 +20,7 @@ import { offNose } from '../brain/verbal';
  * scoring docs (`docs/integration/ai-crew.md#snapshot-scoring`) render it as a table.
  */
 
-export type Station = 'helms' | 'weapons' | 'engineer' | 'signals' | 'overall';
+export type Station = 'helms' | 'weapons' | 'tactical' | 'engineer' | 'signals' | 'overall';
 
 /**
  * The two ships a frame is scored for: their systems (`ShipState`) and their bodies in space. Physics
@@ -30,6 +32,8 @@ export interface Duel {
     readonly target: ShipState;
     readonly playerBody: Spaceship;
     readonly targetBody: Spaceship;
+    /** The whole frame, for features that read beyond the two ships (other enemies, allies). */
+    readonly saved: SavedGame;
 }
 
 interface Geometry {
@@ -47,8 +51,28 @@ interface Feature {
     readonly station: Station;
     readonly unit: string;
     readonly meaning: string;
-    readonly value: (duel: Duel, g: Geometry) => number;
+    readonly value: (duel: Duel, g: Geometry, f: FrameReadings) => number;
 }
+
+/**
+ * The tactical and engineer scores' own readings of the frame (`weapons-kpi.ts`, `engineer-kpi.ts`),
+ * taken once per frame: the features below read the scores' per-frame terms instead of re-deriving them.
+ */
+interface FrameReadings {
+    readonly tactical?: TacticalFrame;
+    readonly engineer?: ReturnType<typeof components>[number];
+}
+
+function readings({ saved, player }: Duel): FrameReadings {
+    const o = observe(0, saved, player.id);
+    return {
+        tactical: observeTactical(0, saved, player.id),
+        // no sidecar: the demand a single frame shows (helm requests, a held lock, unresolved contacts)
+        engineer: o ? components([o], [], player.id)[0] : undefined,
+    };
+}
+
+const enemyOf = (f: FrameReadings, id: string) => f.tactical?.enemies.find((e) => e.id === id);
 
 /** Inside this band the forward chain gun can reach the target (gravitas: min shell range .. ~1.5 s of flight). */
 export const GUN_BAND_METERS: readonly [number, number] = [500, 3000];
@@ -450,6 +474,103 @@ export const FEATURES: readonly Feature[] = [
         meaning: 'target follows an order or fights back when idle (not PLAY_DEAD)',
         value: ({ target }) => b(target.order !== Order.NONE || target.idleStrategy !== IdleStrategy.PLAY_DEAD),
     },
+    // tactical (helms + weapons): the per-frame terms of T, O and V
+    {
+        name: 't_solution',
+        station: 'tactical',
+        unit: '0..1',
+        meaning: 'threat-weighted share of living enemies with a firing solution now (the frame term of O)',
+        value: (_d, _g, { tactical }) => {
+            if (!tactical) return 0;
+            const shares = threatShares(tactical.enemies);
+            return tactical.enemies.reduce((s, e) => s + (hasSolution(tactical, e) ? (shares.get(e.id) ?? 0) : 0), 0);
+        },
+    },
+    {
+        name: 't_target_threat_share',
+        station: 'tactical',
+        unit: '0..1',
+        meaning: "the opponent's share of the living enemies' threat θ (the weight its damage earns in T)",
+        value: ({ target }, _g, f) => (f.tactical ? (threatShares(f.tactical.enemies).get(target.id) ?? 0) : 0),
+    },
+    {
+        name: 't_threat',
+        station: 'tactical',
+        unit: 'log(1 + dps)',
+        meaning: 'summed enemy threat θ = dps × reach × ammo × capability, before normalising',
+        value: (_d, _g, { tactical }) =>
+            Math.log1p(tactical?.enemies.reduce((s, e) => s + (e.destroyed ? 0 : e.threat), 0) ?? 0),
+    },
+    {
+        name: 't_enemies',
+        station: 'tactical',
+        unit: 'count, capped 3',
+        meaning: 'living enemies (credit is split over them)',
+        value: (_d, _g, { tactical }) => Math.min(3, tactical?.enemies.filter((e) => !e.destroyed).length ?? 0),
+    },
+    {
+        name: 't_target_incapacitation',
+        station: 'tactical',
+        unit: '0..1',
+        meaning: "the opponent's incapacitation I (C_max's headroom is 1 − I)",
+        value: ({ target }, _g, f) => enemyOf(f, target.id)?.incapacitation ?? 1,
+    },
+    {
+        name: 't_own_incapacitation',
+        station: 'tactical',
+        unit: '0..1',
+        meaning: "the player's own incapacitation I",
+        value: (_d, _g, { tactical }) => tactical?.own.incapacitation ?? 1,
+    },
+    {
+        name: 'w_ammo_shortfall',
+        station: 'weapons',
+        unit: '0..1',
+        meaning:
+            "value the loaded shell gives up against the best shell in the magazine, on the opponent (K_w's dominated term)",
+        value: ({ target }, _g, f) => {
+            const enemy = enemyOf(f, target.id);
+            const ammo = f.tactical?.weapons.gunAmmo;
+            return enemy && ammo && ammo !== 'None'
+                ? ammoShortfall(ammo, f.tactical.weapons.shellsInMagazine, enemy)
+                : 0;
+        },
+    },
+    {
+        name: 'w_tubes_ready',
+        station: 'weapons',
+        unit: '0/1',
+        meaning: 'a working tube and a missile in the magazine',
+        value: (_d, _g, { tactical }) => b(!!tactical?.weapons.tubesReady),
+    },
+    {
+        name: 'e_demand',
+        station: 'engineer',
+        unit: '0..1',
+        meaning: 'demand Σa per system the frame shows (helm requests, a held lock, unresolved contacts; no sidecar)',
+        value: (_d, _g, { engineer }) => (engineer ? engineer.sumA / Math.max(1, engineer.systems) : 0),
+    },
+    {
+        name: 'e_service',
+        station: 'engineer',
+        unit: '0..1',
+        meaning: 'service S = Σa·e / Σa over that demand',
+        value: (_d, _g, { engineer }) => engineer?.service ?? 0,
+    },
+    {
+        name: 'e_risk',
+        station: 'engineer',
+        unit: '0..1',
+        meaning: "the engineer score's risk r from the frame's danger (blast rate needs the sidecar: 0)",
+        value: (_d, _g, { engineer }) => (engineer ? riskOf(engineer.features) : 0),
+    },
+    {
+        name: 'e_backlog',
+        station: 'engineer',
+        unit: '0..1',
+        meaning: 'mean defect severity over the systems (what repairs would clear)',
+        value: (_d, _g, { engineer }) => (engineer ? engineer.sumSev / Math.max(1, engineer.systems) : 0),
+    },
 ];
 
 export const FEATURE_NAMES = FEATURES.map((f) => f.name);
@@ -471,7 +592,7 @@ export function findDuel(saved: SavedGame, playerId?: string): Duel | undefined 
         const d = XY.lengthOf(XY.difference(targetBody.position, playerBody.position));
         if (d < best) {
             best = d;
-            found = { player, target, playerBody, targetBody };
+            found = { player, target, playerBody, targetBody, saved };
         }
     }
     return found;
@@ -483,7 +604,7 @@ export function duelOf(saved: SavedGame, playerId: string, targetId: string): Du
     const target = saved.fragment.ship.get(targetId);
     const playerBody = body(saved, playerId);
     const targetBody = body(saved, targetId);
-    return player && target && playerBody && targetBody ? { player, target, playerBody, targetBody } : undefined;
+    return player && target && playerBody && targetBody ? { player, target, playerBody, targetBody, saved } : undefined;
 }
 
 function body(saved: SavedGame, id: string) {
@@ -494,5 +615,6 @@ function body(saved: SavedGame, id: string) {
 /** Feature vector in `FEATURE_NAMES` order. */
 export function extractFeatures(duel: Duel): number[] {
     const g = geometry(duel);
-    return FEATURES.map((f) => f.value(duel, g));
+    const r = readings(duel);
+    return FEATURES.map((f) => f.value(duel, g, r));
 }

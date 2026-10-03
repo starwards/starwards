@@ -442,39 +442,50 @@ seconds.
 `scoreSnapshot(saved, playerId?)` (`modules/ai/src/scoring/score.ts`) is a heuristic value function
 over one `SavedGame` frame: fast, deterministic, no Python at runtime. It scores the frame from the
 player ship against its opponent (the nearest ship of another faction) and returns `undefined`
-without both. Every value is in [0, 1]:
+without both. Every value is in [0, 1], in three layers:
 
-| field               | meaning (label it is trained on)                                                        |
-| ------------------- | --------------------------------------------------------------------------------------- |
-| `overall.kill`      | calibrated P(target killed within 60 s) (`kill60`)                                      |
-| `overall.damage`    | expected drop of the player's integrity over 30 s, lower is better (`damage30`)         |
-| `overall.value`     | `kill × (1 - damage)`, a composition, not trained                                       |
-| `stations.helms`    | expected share of the next 10 s in firing position (`helms10`)                          |
-| `stations.weapons`  | expected drop of the target's integrity over the next 10 s (`weapons10`)                |
-| `stations.engineer` | expected mean of system effectiveness × not starved over the next 30 s (`engineer30`)   |
-| `stations.signals`  | expected share of the remaining scan gap on the target closed within 30 s (`signals30`) |
+| field                  | meaning (label it is trained on)                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `overall.kill`         | calibrated P(target killed within 60 s) (`kill60`)                                       |
+| `overall.damage`       | expected drop of the player's integrity over 30 s, lower is better (`damage30`)          |
+| `overall.value`        | `kill × (1 - damage)`, a composition, not trained                                        |
+| `tactical.score`       | expected tactical score T over the next 45 s, shared by helms and weapons (`tactical45`) |
+| `tactical.opportunity` | expected O, helms' share of T: time with a firing solution (`opportunity45`)             |
+| `tactical.conversion`  | expected V = T / O, weapons' share of T (`conversion45`, censored where O = 0)           |
+| `stations.helms`       | expected share of the next 10 s in firing position (`helms10`); not validated            |
+| `stations.weapons`     | expected weapons station score K_w over the next 30 s, / 1.5 (`weapons_kw30`)            |
+| `stations.engineer`    | expected engineer score K over the next 30 s (`engineer_kpi30`)                          |
 
-Integrity is the mean of armor health ratio, `healthRatio` and capsule integrity. Firing position is
-the target 500–3000 m away with the nose line passing within 100 m of it. Exact label definitions,
-including censoring at the end of a run, are in `scoring/labels.ts`.
+T, O, V and K_w are defined in `scoring/weapons-kpi.ts` and the weapons report; K in
+[Engineer score](#engineer-score). Integrity is the mean of armor health ratio, `healthRatio` and capsule
+integrity. Firing position is the target 500–3000 m away with the nose line passing within 100 m of it.
+Exact label definitions, including censoring, are in `scoring/labels.ts`. The tactical and weapons
+labels need the sidecar's `shot` and `damage` events, so runs recorded without them are censored for
+those labels.
 
-`stations.signals` does not rate the signals seat. The scan queue runs on its own: a contact rises a
-tier per 5 s in the ship's field of view from any radar, and the reference signals seat rests, so
-`signals30` measures how predictable the queue is, not the seat. A signals score stays parked until
-the seat has levers to credit: the beam matters only beyond the omni radar's reach
-([#2307](https://github.com/starwards/starwards/issues/2307)), brains cannot reorder the queue
-([#2308](https://github.com/starwards/starwards/issues/2308)), and no signals callout carries a
-target or structured intel.
+Signals has no station score. The scan queue runs on its own: a contact rises a tier per 5 s in the
+ship's field of view from any radar, and the reference signals seat rests, so a scan label measures the
+queue, not the seat. It stays parked until the seat has levers to credit: the beam matters only beyond
+the omni radar's reach ([#2307](https://github.com/starwards/starwards/issues/2307)), brains cannot
+reorder the queue ([#2308](https://github.com/starwards/starwards/issues/2308)), and no signals callout
+carries a target or structured intel.
 
-The models are an exported artefact, `scoring/models/<version>.json` (feature hash, dataset hash,
-metrics, parity fixture), trained by `modules/ai/ml` on the training archive; see
+The models are exported artefacts, `scoring/models/<version>.json` (feature list, dataset hash, metrics,
+parity fixture), trained by `modules/ai/ml` on the training archive; see
 [`modules/ai/ml/README.md`](../../modules/ai/ml/README.md) for rebuilding the dataset, retraining and
-the evaluation protocol, and `modules/ai/ml/reports/` for each version's metrics.
+the evaluation protocol (seed and leave-one-scenario-out holdouts, persistence baseline, calibration,
+backwards benchmark, behavioural orderings). Artefacts are read by feature name, so v1 still scores.
 
-Current model (`modules/ai/ml/reports/2026-10-02.md`): trained on 874 runs of the archive.
-`kill60` test AUC 0.945 pooled over scenarios; per scenario T0 0.83, T1-lite 0.70, so most of the
-pooled figure is telling scenarios apart, not good frames from bad within one. The heatmaps
-(`2026-10-02-heatmap.md`) use 1050 runs. The archive holds 1410 recordings (2026-10-02 manifest).
+Current models (`modules/ai/ml/reports/2026-10-03-v2.md`), trained on 2778 runs:
+
+- `overall` comes from **v1**: v2 is better pooled (kill60 logloss 0.226 → 0.139, damage30 mse 0.0124 →
+  0.0026) but strictly worse on some earlier scenarios, so it is not the default there.
+- `tactical` and `stations` come from v2. Persistence gain (1 − loss / loss of the label's own past
+  value): T 0.64, O 0.77, V 0.53, helms 0.65, engineer 0.72; K_w −0.18 (K_w is a crew habit the last
+  30 s show better than one frame).
+- On the matched-seed validation runs the model's out-of-fold station scores keep every pooled policy
+  ordering the labels hold (engineer reference > idle, all-max, random; K_w reference > spray-fire,
+  wrong-ammo; T and V reference > idle; V reference > wrong-ammo).
 
 ```bash
 npm --prefix modules/ai run score -- --recording <x.sgr> [--every 5] [--ship GVTS]   # score series of a run
@@ -483,57 +494,68 @@ npm --prefix modules/ai run score -- --recording <x.sgr> [--every 5] [--ship GVT
 Features (`scoring/features.ts`), one frame only: velocities are in the frame, so closing and
 crossing rates need no history.
 
-| feature                      | station  | unit   | meaning                                                                |
-| ---------------------------- | -------- | ------ | ---------------------------------------------------------------------- |
-| `h_distance_km`              | helms    | km     | distance to target                                                     |
-| `h_off_nose`                 | helms    | 0..1   |                                                                        | target bearing off nose | / 180° |
-| `h_off_nose_cos`             | helms    | -1..1  | cos of target bearing off nose                                         |
-| `h_off_tail`                 | helms    | 0..1   | player's angle off the target's tail / 180°                            |
-| `h_lateral_miss_km`          | helms    | km     | how far the nose line passes beside the target (distance if > 90° off) |
-| `h_in_gun_band`              | helms    | 0/1    | distance within 500..3000 m                                            |
-| `h_in_firing_position`       | helms    | 0/1    | in gun band and nose line within 100 m of target                       |
-| `h_closing_speed`            | helms    | km/s   | rate the distance shrinks (negative: opening)                          |
-| `h_lateral_speed`            | helms    | km/s   | relative speed across the line of sight                                |
-| `h_own_speed`                | helms    | km/s   | player speed                                                           |
-| `h_target_speed`             | helms    | km/s   | target speed                                                           |
-| `h_turn_rate`                | helms    | 100°/s |                                                                        | player turn speed       |        |
-| `h_afterburner_fuel`         | helms    | 0..1   | afterburner fuel / max                                                 |
-| `h_maneuvering`              | helms    | 0..1   | maneuvering effectiveness × efficiency                                 |
-| `w_locked`                   | weapons  | 0/1    | weapons target is the target                                           |
-| `w_gun_firing`               | weapons  | 0/1    | any chain gun firing                                                   |
-| `w_gun_loading`              | weapons  | 0..1   | mean chain gun load progress                                           |
-| `w_gun_effectiveness`        | weapons  | 0..1   | mean chain gun effectiveness                                           |
-| `w_gun_heat`                 | weapons  | heat   | max chain gun heat                                                     |
-| `w_shells`                   | weapons  | 0..1   | shell rounds / magazine capacity                                       |
-| `w_missiles`                 | weapons  | 0..1   | missiles / magazine capacity                                           |
-| `w_target_armor`             | weapons  | 0..1   | target armor health ratio                                              |
-| `w_target_systems`           | weapons  | 0..1   | target healthRatio (systems intact)                                    |
-| `w_target_capsule`           | weapons  | 0..1   | target capsule integrity                                               |
-| `e_reactor_energy`           | engineer | 0..1   | reactor energy / max                                                   |
-| `e_energy_cells`             | engineer | 0..1   | energy cells / max                                                     |
-| `e_mean_effectiveness`       | engineer | 0..1   | mean effectiveness over all systems                                    |
-| `e_min_effectiveness`        | engineer | 0..1   | lowest system effectiveness                                            |
-| `e_broken`                   | engineer | 0..1   | share of systems broken                                                |
-| `e_starved`                  | engineer | 0..1   | share of systems energy-starved                                        |
-| `e_max_heat`                 | engineer | heat   | hottest system heat                                                    |
-| `e_mean_power`               | engineer | 0..1   | mean power setting over systems                                        |
-| `e_own_armor`                | engineer | 0..1   | player armor health ratio                                              |
-| `e_own_systems`              | engineer | 0..1   | player healthRatio                                                     |
-| `e_own_capsule`              | engineer | 0..1   | player capsule integrity                                               |
-| `e_repair_slots`             | engineer | count  | repair queue slots in use                                              |
-| `s_scan_level`               | signals  | 0..1   | scan level on target / FULL                                            |
-| `s_jobs`                     | signals  | count  | signals jobs retained                                                  |
-| `s_target_job_progress`      | signals  | 0..1   | progress of the in-progress job on the target (0 if none)              |
-| `s_signals_effectiveness`    | signals  | 0..1   | signals system effectiveness                                           |
-| `s_radar_effectiveness`      | signals  | 0..1   | mean radar effectiveness                                               |
-| `o_target_gun_effectiveness` | overall  | 0..1   | target mean chain gun effectiveness                                    |
-| `o_target_shells`            | overall  | 0..1   | target shell rounds / capacity                                         |
-| `o_target_hostile`           | overall  | 0/1    | target follows an order or fights back when idle (not PLAY_DEAD)       |
+| feature                      | station  | unit       | meaning                                                                       |
+| ---------------------------- | -------- | ---------- | ----------------------------------------------------------------------------- |
+| `h_distance_km`              | helms    | km         | distance to target                                                            |
+| `h_off_nose`                 | helms    | 0..1       |                                                                               | target bearing off nose | / 180° |
+| `h_off_nose_cos`             | helms    | -1..1      | cos of target bearing off nose                                                |
+| `h_off_tail`                 | helms    | 0..1       | player's angle off the target's tail / 180°                                   |
+| `h_lateral_miss_km`          | helms    | km         | how far the nose line passes beside the target (distance if > 90° off)        |
+| `h_in_gun_band`              | helms    | 0/1        | distance within 500..3000 m                                                   |
+| `h_in_firing_position`       | helms    | 0/1        | in gun band and nose line within 100 m of target                              |
+| `h_closing_speed`            | helms    | km/s       | rate the distance shrinks (negative: opening)                                 |
+| `h_lateral_speed`            | helms    | km/s       | relative speed across the line of sight                                       |
+| `h_own_speed`                | helms    | km/s       | player speed                                                                  |
+| `h_target_speed`             | helms    | km/s       | target speed                                                                  |
+| `h_turn_rate`                | helms    | 100°/s     |                                                                               | player turn speed       |        |
+| `h_afterburner_fuel`         | helms    | 0..1       | afterburner fuel / max                                                        |
+| `h_maneuvering`              | helms    | 0..1       | maneuvering effectiveness × efficiency                                        |
+| `w_locked`                   | weapons  | 0/1        | weapons target is the target                                                  |
+| `w_gun_firing`               | weapons  | 0/1        | any chain gun firing                                                          |
+| `w_gun_loading`              | weapons  | 0..1       | mean chain gun load progress                                                  |
+| `w_gun_effectiveness`        | weapons  | 0..1       | mean chain gun effectiveness                                                  |
+| `w_gun_heat`                 | weapons  | heat       | max chain gun heat                                                            |
+| `w_shells`                   | weapons  | 0..1       | shell rounds / magazine capacity                                              |
+| `w_missiles`                 | weapons  | 0..1       | missiles / magazine capacity                                                  |
+| `w_target_armor`             | weapons  | 0..1       | target armor health ratio                                                     |
+| `w_target_systems`           | weapons  | 0..1       | target healthRatio (systems intact)                                           |
+| `w_target_capsule`           | weapons  | 0..1       | target capsule integrity                                                      |
+| `e_reactor_energy`           | engineer | 0..1       | reactor energy / max                                                          |
+| `e_energy_cells`             | engineer | 0..1       | energy cells / max                                                            |
+| `e_mean_effectiveness`       | engineer | 0..1       | mean effectiveness over all systems                                           |
+| `e_min_effectiveness`        | engineer | 0..1       | lowest system effectiveness                                                   |
+| `e_broken`                   | engineer | 0..1       | share of systems broken                                                       |
+| `e_starved`                  | engineer | 0..1       | share of systems energy-starved                                               |
+| `e_max_heat`                 | engineer | heat       | hottest system heat                                                           |
+| `e_mean_power`               | engineer | 0..1       | mean power setting over systems                                               |
+| `e_own_armor`                | engineer | 0..1       | player armor health ratio                                                     |
+| `e_own_systems`              | engineer | 0..1       | player healthRatio                                                            |
+| `e_own_capsule`              | engineer | 0..1       | player capsule integrity                                                      |
+| `e_repair_slots`             | engineer | count      | repair queue slots in use                                                     |
+| `s_scan_level`               | signals  | 0..1       | scan level on target / FULL                                                   |
+| `s_jobs`                     | signals  | count      | signals jobs retained                                                         |
+| `s_target_job_progress`      | signals  | 0..1       | progress of the in-progress job on the target (0 if none)                     |
+| `s_signals_effectiveness`    | signals  | 0..1       | signals system effectiveness                                                  |
+| `s_radar_effectiveness`      | signals  | 0..1       | mean radar effectiveness                                                      |
+| `o_target_gun_effectiveness` | overall  | 0..1       | target mean chain gun effectiveness                                           |
+| `o_target_shells`            | overall  | 0..1       | target shell rounds / capacity                                                |
+| `o_target_hostile`           | overall  | 0/1        | target follows an order or fights back when idle (not PLAY_DEAD)              |
+| `t_solution`                 | tactical | 0..1       | threat-weighted share of enemies with a firing solution now (frame term of O) |
+| `t_target_threat_share`      | tactical | 0..1       | opponent's share of the enemies' threat θ                                     |
+| `t_threat`                   | tactical | log(1+dps) | summed enemy threat θ before normalising                                      |
+| `t_enemies`                  | tactical | count ≤ 3  | living enemies                                                                |
+| `t_target_incapacitation`    | tactical | 0..1       | opponent's incapacitation I                                                   |
+| `t_own_incapacitation`       | tactical | 0..1       | player's incapacitation I                                                     |
+| `w_ammo_shortfall`           | weapons  | 0..1       | loaded shell's value shortfall against the best shell in the magazine         |
+| `w_tubes_ready`              | weapons  | 0/1        | a working tube and a missile in the magazine                                  |
+| `e_demand`                   | engineer | 0..1       | demand Σa per system the frame shows (no sidecar)                             |
+| `e_service`                  | engineer | 0..1       | service S over that demand                                                    |
+| `e_risk`                     | engineer | 0..1       | engineer-score risk r without the blast rate                                  |
+| `e_backlog`                  | engineer | 0..1       | mean defect severity over systems                                             |
 
 ### Engineer score
 
-`stations.engineer` above is the trained snapshot model on the old `engineer30` label. The engineer
-score proper is `modules/ai/src/scoring/engineer-kpi.ts`. It is computed from a recording's frames and
+`stations.engineer` above is the trained snapshot model of this score. The engineer score proper is `modules/ai/src/scoring/engineer-kpi.ts`. It is computed from a recording's frames and
 sidecar, never from the trained model, and its per-frame K over the next 30 s is the `engineer_kpi30`
 dataset column. Per frame, over the player ship's systems:
 
@@ -570,6 +592,9 @@ reference. E1 rungs (energy-bound, almost no kills) are gated on damage per expo
 KPI sides with reference on E1-MK2 against the damage rate (reference kills more) and does not separate
 reference from all-max on E1-predator. Repairs are not credited separately. idle > all-shutdown is
 required only where outcomes separate them (T0-constrained, pooled).
+
+`engineer_kpi30` is the training target of `stations.engineer` since v2, labelled only from runs recorded
+after #2306.
 
 ## Radar heatmaps
 
