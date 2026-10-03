@@ -441,6 +441,14 @@ Integrity is the mean of armor health ratio, `healthRatio` and capsule integrity
 the target 500–3000 m away with the nose line passing within 100 m of it. Exact label definitions,
 including censoring at the end of a run, are in `scoring/labels.ts`.
 
+`stations.signals` does not rate the signals seat. The scan queue runs on its own: a contact rises a
+tier per 5 s in the ship's field of view from any radar, and the reference signals seat rests, so
+`signals30` measures how predictable the queue is, not the seat. A signals score stays parked until
+the seat has levers to credit: the beam matters only beyond the omni radar's reach
+([#2307](https://github.com/starwards/starwards/issues/2307)), brains cannot reorder the queue
+([#2308](https://github.com/starwards/starwards/issues/2308)), and no signals callout carries a
+target or structured intel.
+
 The models are an exported artefact, `scoring/models/<version>.json` (feature hash, dataset hash,
 metrics, parity fixture), trained by `modules/ai/ml` on the training archive; see
 [`modules/ai/ml/README.md`](../../modules/ai/ml/README.md) for rebuilding the dataset, retraining and

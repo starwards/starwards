@@ -11,24 +11,25 @@
 
 The signals officer gathers intelligence on contacts and disrupts enemy systems. Three job types:
 
-| Job | Duration | Success Rate | Effect |
-|-----|----------|-------------|--------|
-| **Scan** (Lvl0→1) | 15-30s | 70-90% | Reveals faction and ship model |
-| **Scan** (Lvl1→2) | 30-60s | 70-90% | Reveals systems, damage, armor |
-| **Hack** | 30-60s | 50-70% | 50% effectiveness reduction for 2-3 min |
-| **Track** | Instant | 100% | Target visible beyond line-of-sight |
+| Job               | Duration | Success Rate | Effect                                  |
+| ----------------- | -------- | ------------ | --------------------------------------- |
+| **Scan** (Lvl0→1) | 15-30s   | 70-90%       | Reveals faction and ship model          |
+| **Scan** (Lvl1→2) | 30-60s   | 70-90%       | Reveals systems, damage, armor          |
+| **Hack**          | 30-60s   | 50-70%       | 50% effectiveness reduction for 2-3 min |
+| **Track**         | Instant  | 100%         | Target visible beyond line-of-sight     |
 
 Job queue: max 9 jobs, sequential execution (FIFO). Malfunctions increase duration (+25%) and failure chance (+20%) per defect.
 
-## Scan levels (3-tier progressive reveal)
+## Scan levels
 
-| Level | What you see | What's hidden |
-|-------|-------------|---------------|
-| Lvl0 (UFO) | Distance, heading, speed | Everything else |
-| Lvl1 (Basic) | + Faction, ship model | Systems, damage |
-| Lvl2 (Advanced) | + Systems, damage, armor | Nothing |
+| Level    | What you see                                                   |
+| -------- | -------------------------------------------------------------- |
+| UFO      | Distance, heading, speed                                       |
+| BASIC    | + Faction, ship model                                          |
+| FULL     | + Systems, damage, armor layout, tube loadout                  |
+| SNAPSHOT | FULL frozen at the moment the faction lost sight of the target |
 
-Scan levels are persistent (no decay) and faction-shared (if one ship scans a target, all allied ships see the result).
+Built: the scan-job queue is automatic (#1992). Every visible contact below FULL gets a job, and a job raises its target one tier per 5 s of unbroken field of view from any of the ship's radars. Non-ships stop at BASIC. Scan levels are faction-shared, and FULL drops to SNAPSHOT when the faction loses sight. The officer's levers are beam direction and arc, job priority, and pause; the beam extends reach only past the omni radar ([#2307](https://github.com/starwards/starwards/issues/2307)).
 
 ## Widgets
 
