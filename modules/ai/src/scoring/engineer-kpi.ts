@@ -17,12 +17,12 @@ import { integrity } from './features';
  * the trained snapshot scorer.
  *
  * Per frame t, over the player ship's systems s:
- * - supply `e_s = min(1, power / NORMAL) × hacked × (1 − energyStarved)`, 0 when broken: power above
- *   NORMAL earns nothing while energy drawn per unit of output is flat in power (issue #2305 proposes
- *   a curve; lift the cap and refit when it lands);
+ * - supply `e_s = (power / NORMAL) × hacked × (1 − energyStarved)`, 0 when broken, uncapped: since
+ *   energy draw grows as (power / NORMAL)² per unit of time (#2305), overdrive pays through the reserve;
  * - demand `a_s` in [0, 1] from what the other seats request (see {@link demandOf}), never from what
  *   the ship achieved, so a shut-down ship still registers what it was asked for;
- * - service `S = Σ a·e / Σ a`;
+ * - need `n_s = 1 + a_s·(MAX / NORMAL − 1)`: NORMAL power when nothing is asked, MAX when fully asked;
+ * - service `S = Σ a·min(e, n) / Σ a·n`: supply is credited up to the need, never beyond;
  * - reserve `R = 1 − exp(−k·store / N(r))`, store = the reactor's energy share, `N(r) = N0·(1 + β·r)`.
  *   Energy cells are a fallback, not reserve: an unspent cell while the store runs dry is a failure;
  * - integrity `D_t = 1 − Σ(a+ε)·sev / Σ(a+ε)`, sev 1 when broken, else the largest defect fraction off
@@ -141,10 +141,17 @@ function severity(broken: boolean, defectibles: readonly { value: number; normal
     return worst;
 }
 
-/** Supply of one system, capped at what NORMAL power gives. */
+/** Supply of one system in units of NORMAL power. */
 export function supply(state: { broken: boolean; power: number; hacked: number; energyStarved: boolean }) {
     if (state.broken || state.energyStarved) return 0;
-    return Math.min(1, state.power / PowerLevel.NORMAL) * state.hacked;
+    return (state.power / PowerLevel.NORMAL) * state.hacked;
+}
+
+const MAX_SUPPLY = PowerLevel.MAX / PowerLevel.NORMAL;
+
+/** Supply a system needs under demand `a`: NORMAL power when nothing is asked, MAX when fully asked. */
+export function needOf(a: number) {
+    return 1 + a * (MAX_SUPPLY - 1);
 }
 
 /** Reads one frame for the player ship `playerId`; `undefined` when it is gone. */
@@ -279,20 +286,23 @@ export function components(
             docking: o.docking ? 1 : 0,
         };
         let sumA = 0;
+        let sumAn = 0;
         let sumAe = 0;
         let sumAsev = 0;
         let sumSev = 0;
         for (const s of o.systems) {
             const a = demandOf(s.kind, demand);
             sumA += a;
-            sumAe += a * s.e;
+            const need = needOf(a);
+            sumAn += a * need;
+            sumAe += a * Math.min(s.e, need);
             sumAsev += a * s.sev;
             sumSev += s.sev;
         }
         return {
             t: o.t,
             sumA,
-            service: sumA > 0 ? sumAe / sumA : 0,
+            service: sumAn > 0 ? sumAe / sumAn : 0,
             store: o.store,
             cells: o.cells,
             features: { ...o.risk, blastRate: Math.min(1, blasts.filter((t) => t > o.t - 10 && t <= o.t).length / 10) },
