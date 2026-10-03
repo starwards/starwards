@@ -23,12 +23,13 @@ import { integrity } from './features';
  * - demand `a_s` in [0, 1] from what the other seats request (see {@link demandOf}), never from what
  *   the ship achieved, so a shut-down ship still registers what it was asked for;
  * - service `S = Σ a·e / Σ a`;
- * - reserve `R = 1 − exp(−k·store / N(r))`, store = energy share + 0.3 per energy cell (a cell
- *   jump-starts 30% of the store), `N(r) = N0·(1 + β·r)`;
+ * - reserve `R = 1 − exp(−k·store / N(r))`, store = the reactor's energy share, `N(r) = N0·(1 + β·r)`.
+ *   Energy cells are a fallback, not reserve: an unspent cell while the store runs dry is a failure;
  * - integrity `D_t = 1 − Σ(a+ε)·sev / Σ(a+ε)`, sev 1 when broken, else the largest defect fraction off
  *   normal (hacking excluded), and its look-ahead `D60` = mean D over [t, t+60 s] of the run, so
  *   damage an action causes (an overheat) lands on the frames that caused it;
- * - `K = D60·((1 − λ)·S + λ·R)`, `λ = min(0.6, λ0 + λ1·r)`.
+ * - `K = D60·((1 − λ)·S + λ·R)`, `λ = min(0.6, λ0 + λ1·r)`; `K = D60·R` when `Σ a < 0.1` (unreachable
+ *   while the reactor is always demanded).
  *
  * Risk `r` in [0, 1] is a logistic of raw danger fitted to whether the ship loses integrity in the
  * next 30 s ({@link RISK_MODEL}). The label `engineer_kpi30` is the mean K over (t, t+30 s].
@@ -42,8 +43,19 @@ export interface EngineerWeights {
     readonly epsilon: number;
 }
 
-/** Fitted on the matched-seed validation of 2026-10-03 (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`). */
-export const ENGINEER_WEIGHTS: EngineerWeights = { k: 0.5, n0: 0.25, beta: 0, lambda0: 0, lambda1: 0, epsilon: 0.01 };
+/**
+ * Reserve set by design: `λ0` 0.3, `λ1` 0.4; the store the engineer should hold rises from 0.25 at no
+ * risk to 0.5 at full risk (`N0` 0.25, `β` 1), and holding it earns R = 0.9 (`k = ln 10`). `ε` is fitted
+ * on the matched-seed validation of 2026-10-03 (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`).
+ */
+export const ENGINEER_WEIGHTS: EngineerWeights = {
+    k: Math.LN10,
+    n0: 0.25,
+    beta: 1,
+    lambda0: 0.3,
+    lambda1: 0.4,
+    epsilon: 0.01,
+};
 
 /** Raw danger, in {@link RiskModel} coefficient order. */
 export const RISK_FEATURES = ['threats', 'proximity', 'blastRate', 'damage', 'unscanned'] as const;
@@ -55,17 +67,20 @@ export interface RiskModel {
     readonly coef: readonly number[];
 }
 
-/** Fitted on the matched-seed validation of 2026-10-03 to P(integrity loss ≥ 0.02 in the next 30 s). */
-export const RISK_MODEL: RiskModel = { bias: -4.164, coef: [2.179, -0.129, 3.142, -2.694, 1.336] };
+/**
+ * Fitted on the matched-seed validation of 2026-10-03 to P(integrity loss ≥ 0.02 in the next 30 s), with
+ * non-negative coefficients: more danger never lowers risk.
+ */
+export const RISK_MODEL: RiskModel = { bias: -4.803, coef: [2.323, 0.527, 1.997, 0, 0.883] };
 
 const LAMBDA_CAP = 0.6;
+/** Below this total demand nothing is asked of the systems and only reserve counts: K = D·R. */
+const MIN_DEMAND = 0.1;
 /** Half-width of the window requests are read over, seconds. */
 const DEMAND_WINDOW = 3;
 /** How far the integrity term looks ahead, seconds. */
 export const DAMAGE_HORIZON = 60;
 export const KPI_HORIZON = 30;
-/** The share of a full store one energy cell restores (`jumpStartReactor`). */
-const CELL_STORE = 0.3;
 /** Contacts this far beyond the radar's nominal range still ask for scanning. */
 const RADAR_REACH_FACTOR = 1.5;
 /** A hostile this many of its own gun ranges away threatens the ship. */
@@ -91,6 +106,7 @@ export interface EngineerObservation {
     readonly warpEngaged: boolean;
     readonly docking: boolean;
     readonly store: number;
+    readonly cells: number;
     readonly integrity: number;
     readonly risk: Omit<RiskFeatures, 'blastRate'>;
 }
@@ -101,6 +117,7 @@ export interface EngineerComponents {
     readonly sumA: number;
     readonly service: number;
     readonly store: number;
+    readonly cells: number;
     readonly features: RiskFeatures;
     readonly sumAsev: number;
     readonly sumSev: number;
@@ -174,7 +191,8 @@ export function observe(t: number, saved: SavedGame, playerId: string): Engineer
         unresolved,
         warpEngaged: (ship.warp?.desiredLevel ?? 0) > 0,
         docking: !!ship.docking && ship.docking.mode !== DockingMode.UNDOCKED,
-        store: ship.reactor.energy / Math.max(1, ship.reactor.design.maxEnergy) + CELL_STORE * ship.reactor.energyCells,
+        store: ship.reactor.energy / Math.max(1, ship.reactor.design.maxEnergy),
+        cells: ship.reactor.energyCells,
         integrity: own,
         risk: {
             threats: Math.min(threats, 3),
@@ -276,6 +294,7 @@ export function components(
             sumA,
             service: sumA > 0 ? sumAe / sumA : 0,
             store: o.store,
+            cells: o.cells,
             features: { ...o.risk, blastRate: Math.min(1, blasts.filter((t) => t > o.t - 10 && t <= o.t).length / 10) },
             sumAsev,
             sumSev,
@@ -310,8 +329,14 @@ export function damageLookahead(cs: readonly EngineerComponents[], epsilon: numb
 }
 
 /** K of one frame from its look-ahead integrity `d60` and risk `r`. */
-export function kpiOf(c: Pick<EngineerComponents, 'service' | 'store'>, d60: number, r: number, w: EngineerWeights) {
+export function kpiOf(
+    c: Pick<EngineerComponents, 'service' | 'store' | 'sumA'>,
+    d60: number,
+    r: number,
+    w: EngineerWeights,
+) {
     const reserve = 1 - Math.exp((-w.k * c.store) / (w.n0 * (1 + w.beta * r)));
+    if (c.sumA < MIN_DEMAND) return d60 * reserve;
     const lambda = Math.min(LAMBDA_CAP, w.lambda0 + w.lambda1 * r);
     return d60 * ((1 - lambda) * c.service + lambda * reserve);
 }

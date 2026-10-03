@@ -1,4 +1,5 @@
 import {
+    ENGINEER_WEIGHTS,
     EngineerComponents,
     EngineerWeights,
     RiskModel,
@@ -23,6 +24,7 @@ const frame = (over: Partial<EngineerComponents> = {}): EngineerComponents => ({
     sumA: 2,
     service: 1,
     store: 1,
+    cells: 0,
     features: calm,
     sumAsev: 0,
     sumSev: 0,
@@ -33,6 +35,14 @@ const frame = (over: Partial<EngineerComponents> = {}): EngineerComponents => ({
 const k = (over: Partial<EngineerComponents>, weights = w) => engineerKpiSeries([frame(over)], weights, direct)[0];
 
 describe('engineer KPI formula', () => {
+    it('earns 0.9 of the reserve for holding the store risk calls for: 0.25 calm, 0.5 at full risk', () => {
+        const reserveOnly = { ...ENGINEER_WEIGHTS, lambda0: 0.6, lambda1: 0 };
+        const reserveAt = (store: number, features = calm) => k({ service: 0, store, features }, reserveOnly) / 0.6;
+        expect(reserveAt(0.25)).toBeCloseTo(0.9, 3);
+        expect(reserveAt(0.5, danger)).toBeCloseTo(0.9, 3);
+        expect(reserveAt(0.2) - reserveAt(0.04)).toBeGreaterThan(0.4);
+    });
+
     it('caps supply at NORMAL power: no reward for raw power', () => {
         const at = (power: number) => supply({ broken: false, power, hacked: 1, energyStarved: false });
         expect(at(0.25)).toBeCloseTo(0.5, 9);

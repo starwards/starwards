@@ -8,7 +8,7 @@
  * Two runs of a seed are compared over the same stretch of game time: from the start to the earlier
  * of their ends (a kill, the ship's loss, or the timeout), so a run that wins early is never averaged
  * against a run's long calm tail. Each run's weight-free components are cached beside its recording
- * as `<run>.ekpi2.json`.
+ * as `<run>.ekpi3.json`.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -63,7 +63,7 @@ function args(name: string) {
 }
 
 async function loadRun(sgr: string): Promise<{ frames: Frame[]; end: number; lost: boolean }> {
-    const cache = sgr.replace(/\.sgr$/, '.ekpi2.json');
+    const cache = sgr.replace(/\.sgr$/, '.ekpi3.json');
     if (fs.existsSync(cache))
         return JSON.parse(fs.readFileSync(cache, 'utf8')) as { frames: Frame[]; end: number; lost: boolean };
     const recorded = await readFrames(sgr);
@@ -113,7 +113,22 @@ function outcomesOf(run: Run & { lost: boolean }): Outcomes {
     };
 }
 
-type LoadedRun = Run & { lost: boolean; outcomes: Outcomes };
+type LoadedRun = Run & { lost: boolean; killed: boolean; outcomes: Outcomes };
+
+const crewReports = new Map<string, { crew: string; seed: number; killed: boolean }[]>();
+
+/** The run results `npm run train` wrote beside a scenario's recordings. */
+function crewResults(dir: string, scenario: string) {
+    const file = path.join(dir, `${scenario}-crews.json`);
+    let results = crewReports.get(file);
+    if (!results) {
+        results = fs.existsSync(file)
+            ? (JSON.parse(fs.readFileSync(file, 'utf8')) as { crew: string; seed: number; killed: boolean }[])
+            : [];
+        crewReports.set(file, results);
+    }
+    return results;
+}
 
 async function loadRuns(dirs: readonly string[]) {
     const runs: LoadedRun[] = [];
@@ -125,7 +140,8 @@ async function loadRuns(dirs: readonly string[]) {
                 const [, scenario, seed] = /^(.+)_seed(\d+)\.sgr$/.exec(file) ?? [];
                 if (!scenario) continue;
                 const loaded = await loadRun(path.join(dir, crew, file));
-                const run = { scenario, seed: Number(seed), policy, ...loaded };
+                const result = crewResults(dir, scenario).find((r) => r.crew === crew && r.seed === Number(seed));
+                const run = { scenario, seed: Number(seed), policy, ...loaded, killed: !!result?.killed };
                 runs.push({ ...run, outcomes: outcomesOf(run) });
                 process.stderr.write('.');
             }
@@ -167,7 +183,7 @@ function bootstrap(deltas: readonly number[], resamples = 2000) {
     };
 }
 
-/** Logistic regression of `hurt30` on the raw risk features, by gradient descent. */
+/** Logistic regression of `hurt30` on the raw risk features, by projected gradient descent with non-negative coefficients. */
 function fitRisk(runs: readonly LoadedRun[]): RiskModel {
     const xs: number[][] = [];
     const ys: number[] = [];
@@ -192,7 +208,8 @@ function fitRisk(runs: readonly LoadedRun[]): RiskModel {
             xs[i].forEach((x, j) => (g[j] += err * x));
         }
         bias -= (rate * gb) / xs.length;
-        coef.forEach((_, j) => (coef[j] -= (rate * g[j]) / xs.length + 1e-3 * coef[j]));
+        // more danger never lowers risk: every coefficient is kept non-negative
+        coef.forEach((_, j) => (coef[j] = Math.max(0, coef[j] - (rate * g[j]) / xs.length - 1e-3 * coef[j])));
     }
     return { bias, coef };
 }
@@ -231,6 +248,46 @@ function paired(runs: readonly Scored[], a: PolicyName, b: PolicyName, keep: Kee
         if (Number.isFinite(d)) deltas.push(d);
     }
     return deltas;
+}
+
+/**
+ * Per (scenario, seed) paired outcome deltas of `a` minus `b`, positive better for `a`: the kill (1/0),
+ * seconds saved to the run's end (the kill, or the timeout for both), and damage rate: own integrity lost
+ * per second a hostile was within twice its gun range of us, over the pair's common time (lower for `a`
+ * is positive). With the KPI delta of the same pair.
+ */
+/** Below this own integrity a run counts as no longer surviving (the GVTS is non-expendable). */
+const SURVIVAL_INTEGRITY = 0.5;
+
+/** Scenarios whose fights almost never end in a kill: gated on survival and damage rate instead. */
+const SURVIVAL_GATED = /^E1-/;
+
+function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
+    const by = new Map(runs.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
+    const rows: { kpi: number; kill: number; saved: number; survived: number; damageRate: number }[] = [];
+    for (const x of runs.filter((r) => r.policy === a)) {
+        const y = by.get(`${x.scenario}/${x.seed}/${b}`);
+        if (!y || !x.frames.length || !y.frames.length) continue;
+        const until = Math.min(x.end, y.end);
+        const rate = (r: Scored) => {
+            const within = r.frames.filter((f) => f.t <= until);
+            const exposed = within.filter((f) => f.features.threats > 0).length;
+            const lost = r.frames[0].integrity - (within.at(-1) ?? r.frames[0]).integrity;
+            return exposed ? lost / exposed : 0;
+        };
+        const avg = (r: Scored) => mean(r.k.filter((_, i) => r.frames[i].t <= until));
+        /** Seconds until own integrity fell below half, or the pair's common end. */
+        const survival = (r: Scored) =>
+            r.frames.find((f) => f.t <= until && f.integrity < SURVIVAL_INTEGRITY)?.t ?? until;
+        rows.push({
+            kpi: avg(x) - avg(y),
+            kill: Number(x.killed) - Number(y.killed),
+            saved: y.end - x.end,
+            survived: survival(x) - survival(y),
+            damageRate: rate(y) - rate(x),
+        });
+    }
+    return rows;
 }
 
 function terciles(runs: readonly Scored[]) {
@@ -282,14 +339,29 @@ function predictive(runs: readonly Scored[], cuts: readonly [number, number], h:
     return { mean: mean(corr), byTercile: corr };
 }
 
+/**
+ * The reserve is set by design: `λ0` 0.3, `λ1` 0.4, and the store the engineer should hold rising from
+ * 0.25 at no risk to 0.5 at full risk (`N0` 0.25, `β` 1) with `k = ln 10`, so holding that store earns
+ * R = 0.9. Only `ε` is fitted. `--free-reserve` also fits the reserve weights, for reference.
+ */
+const FREE_RESERVE = process.argv.includes('--free-reserve');
+/** `--epsilon <x>` pins ε instead of fitting it. */
+const EPSILONS = args('epsilon').length ? args('epsilon').map(Number) : [0.01, 0.05, 0.2];
+
 function grid(): EngineerWeights[] {
     const out: EngineerWeights[] = [];
-    for (const k of [0.5, 1, 2, 4])
-        for (const n0 of [0.25, 0.5, 1])
-            for (const beta of [0, 1, 3])
-                for (const lambda0 of [0, 0.1, 0.2, 0.3])
-                    for (const lambda1 of [0, 0.2, 0.4])
-                        for (const epsilon of [0.01, 0.05, 0.2]) out.push({ k, n0, beta, lambda0, lambda1, epsilon });
+    const reserve = FREE_RESERVE
+        ? [0.5, 1, 2, 4].flatMap((k) =>
+              [0.25, 0.5, 1].flatMap((n0) =>
+                  [0, 1, 3].flatMap((beta) =>
+                      [0, 0.1, 0.2, 0.3].flatMap((lambda0) =>
+                          [0, 0.2, 0.4].map((lambda1) => ({ k, n0, beta, lambda0, lambda1 })),
+                      ),
+                  ),
+              ),
+          )
+        : [{ k: Math.LN10, n0: 0.25, beta: 1, lambda0: 0.3, lambda1: 0.4 }];
+    for (const r of reserve) for (const epsilon of EPSILONS) out.push({ ...r, epsilon });
     return out;
 }
 
@@ -394,6 +466,89 @@ async function main() {
     };
     table('All seeds', all);
     table('Held-out seeds', test);
+
+    out('### Energy held (store share without cells)');
+    out();
+    out(`| scenario | ${POLICIES.join(' | ')} |`);
+    out(`| --- |${POLICIES.map(() => ' --- |').join('')}`);
+    for (const s of scenarios) {
+        const cell = (p: PolicyName) =>
+            fmt(
+                mean(
+                    all.filter((r) => r.scenario === s && r.policy === p).flatMap((r) => r.frames.map((f) => f.store)),
+                ),
+                2,
+            );
+        out(`| ${s} | ${POLICIES.map(cell).join(' | ')} |`);
+    }
+    out();
+    out('### KPI against outcome');
+    out();
+    out(
+        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: survival — seconds until own integrity < 0.5 — or damage rate); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
+    );
+    out();
+    out(
+        '| scenario | contrast | KPI Δ | kill Δ | seconds saved | survival Δ (s) | damage-rate Δ | gated on | outcome separates | agreement |',
+    );
+    out('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+    for (const s of [...scenarios, 'all']) {
+        const sub = all.filter((r) => s === 'all' || r.scenario === s);
+        for (const [a, b] of [
+            ['reference', 'idle'],
+            ['idle', 'all-shutdown'],
+            ['reference', 'all-max'],
+            ['reference', 'random'],
+            ['reference', 'never-jump-start'],
+            ['reference-repairing', 'reference'],
+        ] as const) {
+            const rows = pairedOutcomes(sub, a, b);
+            const kill = bootstrap(rows.map((r) => r.kill));
+            const saved = bootstrap(rows.map((r) => r.saved));
+            const survived = bootstrap(rows.map((r) => r.survived));
+            const rate = bootstrap(rows.map((r) => r.damageRate));
+            const bySurvival = SURVIVAL_GATED.test(s);
+            const [g1, g2] = bySurvival ? [survived, rate] : [kill, saved];
+            const outcome = (r: (typeof rows)[number]) =>
+                bySurvival
+                    ? Math.sign(Math.round(r.survived)) || Math.sign(r.damageRate)
+                    : r.kill !== 0
+                      ? Math.sign(r.kill)
+                      : Math.sign(Math.round(r.saved));
+            const decided = rows.filter((r) => outcome(r) !== 0);
+            const agree = decided.filter((r) => Math.sign(r.kpi) === outcome(r)).length;
+            const separates = g1.lo > 0 || g2.lo > 0 ? `${a} better` : g1.hi < 0 || g2.hi < 0 ? `${b} better` : 'no';
+            out(
+                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(survived)} | ${ci(rate)} | ${bySurvival ? 'survival, damage rate' : 'kill, seconds saved'} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
+            );
+        }
+    }
+    out();
+    out('### Repairs: reference-repairing − reference where there is damage to fix');
+    out();
+    out(
+        'Seeds whose reference run took a defect; KPI Δ and demanded damage backlog Δ (Σa·sev, lower is better) over their common time.',
+    );
+    out();
+    out('| scenario | seeds with damage | KPI Δ | backlog Δ |');
+    out('| --- | --- | --- | --- |');
+    for (const s of [...scenarios, 'all']) {
+        const sub = all.filter((r) => s === 'all' || r.scenario === s);
+        const by = new Map(sub.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
+        const kpi: number[] = [];
+        const backlog: number[] = [];
+        for (const x of sub.filter((r) => r.policy === 'reference' && r.frames.some((f) => f.sumSev > 0))) {
+            const y = by.get(`${x.scenario}/${x.seed}/reference-repairing`);
+            if (!y) continue;
+            const until = Math.min(x.end, y.end);
+            const avg = (r: Scored, v: (i: number) => number) =>
+                mean(r.frames.flatMap((f, i) => (f.t <= until ? [v(i)] : [])));
+            kpi.push(avg(y, (i) => y.k[i]) - avg(x, (i) => x.k[i]));
+            backlog.push(avg(y, (i) => y.frames[i].sumAsev) - avg(x, (i) => x.frames[i].sumAsev));
+        }
+        out(`| ${s} | ${kpi.length} | ${ci(bootstrap(kpi))} | ${ci(bootstrap(backlog))} |`);
+    }
+    out();
 
     out('### Leave one scenario out (risk curve and weights fit on the other scenarios, all seeds)');
     out();

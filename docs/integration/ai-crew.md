@@ -530,6 +530,47 @@ crossing rates need no history.
 | `o_target_shells`            | overall  | 0..1   | target shell rounds / capacity                                         |
 | `o_target_hostile`           | overall  | 0/1    | target follows an order or fights back when idle (not PLAY_DEAD)       |
 
+### Engineer score
+
+`stations.engineer` above is the trained snapshot model on the old `engineer30` label. The engineer
+score proper is `modules/ai/src/scoring/engineer-kpi.ts`. It is computed from a recording's frames and
+sidecar, never from the trained model, and its per-frame K over the next 30 s is the `engineer_kpi30`
+dataset column. Per frame, over the player ship's systems:
+
+- demand `a` comes from what the other seats request: smart-pilot commands, TARGET modes, afterburner,
+  weapons' fire decisions or a held lock, tube commands; radar demand comes from unresolved contacts;
+  the reactor is always demanded;
+- supply `e = min(1, power / NORMAL) × hacked`, or 0 when broken or energy-starved;
+- `K = D60 · ((1 − λ)·S + λ·R)`, where:
+    - `S = Σa·e / Σa`;
+    - `R = 1 − exp(−k·store / N0(1 + β·r))`, with store = energy share + 0.3 per cell;
+    - `D60` is the mean demand-weighted intactness over the next 60 s;
+    - `λ = min(0.6, λ0 + λ1·r)`.
+
+Risk `r` is a logistic with non-negative coefficients over hostiles in range, nearness, recent blast hits,
+lost integrity and unscanned contacts. It is fitted to own integrity loss in the next 30 s.
+
+The reserve counts the reactor's energy only; energy cells are a fallback. It is set by design: λ0 0.3 and λ1 0.4. The store to hold rises from 0.25 calm to 0.5 at full
+risk, and holding it earns R = 0.9 (N0 0.25, β 1, k ln 10). Only ε is fitted.
+
+`npm --prefix modules/ai run score:engineer -- --runs <train out dir> ...` validates the score on
+matched-seed runs of the scripted engineers (`crews/engineer-*.json`):
+
+- it compares paired runs over their common time;
+- it reports each KPI Δ next to the paired outcome Δs (kills, own integrity kept), and how often the
+  KPI's sign agrees with the outcome's.
+
+Status on 420 runs, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`: wherever kills or time-to-kill
+separate two engineers, the KPI's ordering agrees in sign (reference over idle, all-max and random on
+T1 and T1-MK2). Where nothing is fought, an all-shutdown engineer banks a full store and outscores idle,
+which is accepted (no demand, K = D·R). Open: repairs clear damage the KPI barely registers, and the E1
+rungs (energy-bound, almost no kills) are gated on survival and damage per exposure second, which
+reward not fighting. The `engineer_kpi30` label is in the dataset; its per-scenario stats are in the
+report.
+
+The score is not yet a training target. The supply cap stays until energy draw becomes a curve in power
+(#2305).
+
 ## Radar heatmaps
 
 `heatmapAt(saved, playerId?)` (`modules/ai/src/heatmap/heatmap.ts`) maps the space around the player

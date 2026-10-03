@@ -128,6 +128,24 @@ const t1WithHull = (
     createMap: (params) => createTrainingT1Map(params, model, calibration),
 });
 
+type EnergyBoundParams = T0Params & { readonly playerEnergy: number };
+
+/**
+ * T1 against a heavier hull with the GVTS's reactor at a fraction of its output, starting part-charged
+ * with one energy cell: a long fight in which the engineer's power budget binds (calibration only).
+ */
+const energyBound = (name: string, model: ShipModel, reactorOutput: number): TrainingScenario<EnergyBoundParams> => ({
+    name,
+    description: `GVTS with its reactor at ${reactorOutput * 100}% output, 30-60% energy and one cell, vs one ${model} attacking it (calibration only), 2-8 km, any bearing`,
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        playerEnergy: fc.integer({ min: 30, max: 60 }).map((p) => p / 100),
+    }),
+    createMap: (params) =>
+        createTrainingT1Map(params, model, { playerEnergy: params.playerEnergy, playerCells: 1, reactorOutput }),
+});
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     'T0-wide': T0_WIDE as TrainingScenario<never>,
@@ -141,6 +159,8 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
         { noCombatWeave: true },
         'without its combat weave',
     ) as TrainingScenario<never>,
+    'E1-MK2': energyBound('E1-MK2', 'dragonfly-MK2', 0.5) as TrainingScenario<never>,
+    'E1-predator': energyBound('E1-predator', 'predator', 0.5) as TrainingScenario<never>,
     'T1-lite': t1WithHull(
         'T1-lite',
         'dragonfly-MK1',
