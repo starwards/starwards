@@ -28,9 +28,11 @@ import {
  * − λ_ff · Σ_friendly ΔI⁺·ours`, where `ours_j(k)` is our share of the recorded hits j took between
  * frames k and k+1 (0 when it took none: unattributed loss is nobody's credit). `C_max = (1+φ)·Σ_j θ̃_j
  * · min(1 − I_j(start), ρ·gun_ours·W)`, ρ the fastest incapacitation rate a full-strength gun reaches.
- * Tactical `T = C / C_max`. Opportunity `O` = threat-weighted share of the window's frames in which a
- * ground-truth firing solution existed (credited to helms); conversion `V = T / O` (to weapons), so
- * `log T = log O + log V`. A crew that never fires has `V = 0` wherever `O > 0`.
+ * Opportunity `O` = threat-weighted share of the window's 1 s intervals in which a ground-truth firing
+ * solution existed (credited to helms): at the frame, allowing for the gun's spread, or for any round
+ * fired within the interval that reached the enemy's path. Tactical `T = min(C, O·C_max) / C_max`, so
+ * conversion `V = T / O` (to weapons) is at most 1 by construction and `log T = log O + log V`. A crew
+ * that never fires has `V = 0` wherever `O > 0`.
  */
 export interface TacticalWeights {
     /** Bonus on damage to the target held ≥ {@link HELD_SECONDS}: an owner value judgement. */
@@ -44,10 +46,20 @@ export interface TacticalWeights {
 export const TACTICAL_WEIGHTS: TacticalWeights = { phi: 1, lambdaFriendly: 2, windowSeconds: 45, rho: 0.01 };
 const HELD_SECONDS = 5;
 
-/** Weapons station `K_w = 1 − w1·nosol − w2·dominated − w3·friendly + w4·lockUptime`, rates per round. */
+/**
+ * Weapons station `K_w = 1 − w1·nosol − w2·dominated − w3·friendly + w4·lockUptime`, rates per round;
+ * undefined for a run that fired no round (no demand, no score: never firing is V's failure, not a K_w win).
+ */
 export const WEAPONS_WEIGHTS = { nosol: 1, dominated: 1, friendly: 2, lock: 0.5 } as const;
-/** A round is dominated when its analytic value is below this share of the best ammo in the magazine. */
-const DOMINATED_SHARE = 0.5;
+/** Rule values the ammo value reads (`capsule.ts`, `attack-resolution-manager.ts`, `damage-manager.ts`). */
+const CAPSULE_DEFECT_STEP = 0.1;
+const SURFACE_EFFECT_FACTOR = 0.05;
+/** A chain gun defect: half the time `rateOfFireFactor *= 0.9`. */
+const GUN_DEFECT_LOSS = 0.5 * 0.1;
+/** A thruster defect: half the time `availableCapacity −= U(0.01, 0.1)`. */
+const THRUSTER_DEFECT_LOSS = 0.5 * 0.055;
+/** Frame solutions allow for the gun's spread out to this many standard deviations. */
+const SPREAD_SIGMAS = 2;
 
 /** One ship of a frame, as the scores read it. */
 export interface ShipReading {
@@ -69,7 +81,11 @@ export interface ShipReading {
     readonly penetration: Record<WeaponDamageType, number>;
     readonly capsuleDamage50: number;
     readonly internals: number;
-    readonly externals: number;
+    /** Kill progress and capability, the two factors of incapacitation. */
+    readonly kill: number;
+    readonly cap: number;
+    /** Capability lost per unit of surface damage amount, summed over external systems (from the defect rules). */
+    readonly surfaceExposure: number;
 }
 
 /** The player's weapons, as one frame shows them. */
@@ -77,6 +93,7 @@ export interface OwnWeapons {
     readonly gun: number;
     readonly gunBearing: number;
     readonly bulletSpeed: number;
+    readonly spreadDegrees: number;
     readonly fuzeSeconds: number;
     readonly gunAmmo: AmmoType | 'None';
     readonly shellsInMagazine: readonly AmmoType[];
@@ -92,19 +109,37 @@ export interface TacticalFrame {
     readonly friends: readonly ShipReading[];
 }
 
-const shipNormal = (power: number, hacked: number, broken: boolean) =>
-    broken ? 0 : Math.min(1, power / PowerLevel.NORMAL) * hacked;
+/** Output share of a system: none when broken or starved of energy, capped at what NORMAL power gives. */
+const shipNormal = (s: { power: number; hacked: number; broken: boolean; energyStarved?: boolean }) =>
+    s.broken || s.energyStarved ? 0 : Math.min(1, s.power / PowerLevel.NORMAL) * s.hacked;
 
 function gunCapability(ship: ShipState) {
     const guns = [...ship.chainGuns];
     if (!guns.length) return 0;
-    return guns.reduce((s, g) => s + shipNormal(g.power, g.hacked, g.broken) * g.rateOfFireFactor, 0) / guns.length;
+    return guns.reduce((s, g) => s + shipNormal(g) * g.rateOfFireFactor, 0) / guns.length;
 }
 
 function mobility(ship: ShipState) {
     const ts = [...ship.thrusters];
     if (!ts.length) return 0;
-    return ts.reduce((s, t) => s + shipNormal(t.power, t.hacked, t.broken) * t.availableCapacity, 0) / ts.length;
+    return ts.reduce((s, t) => s + shipNormal(t) * t.availableCapacity, 0) / ts.length;
+}
+
+/**
+ * Capability lost per unit of surface damage amount: each external system rolls a defect with odds
+ * amount/(2·damage50); a gun defect costs `GUN_DEFECT_LOSS` of its gun's share of `cap = gun·(½+½·mob)`,
+ * a thruster defect `THRUSTER_DEFECT_LOSS` of its share of mobility; other systems leave cap alone.
+ */
+function surfaceExposure(ship: ShipState, gun: number, mob: number) {
+    const guns = ship.chainGuns.length || 1;
+    const thrusters = ship.thrusters.length || 1;
+    let exposure = 0;
+    for (const g of ship.chainGuns)
+        if (!g.design.isInternal) exposure += ((GUN_DEFECT_LOSS / guns) * (0.5 + 0.5 * mob)) / (2 * g.design.damage50);
+    for (const t of ship.thrusters)
+        if (!t.design.isInternal)
+            exposure += ((THRUSTER_DEFECT_LOSS / thrusters) * 0.5 * gun) / (2 * t.design.damage50);
+    return exposure;
 }
 
 function armorHealth(ship: ShipState) {
@@ -157,7 +192,9 @@ function readShip(saved: SavedGame, id: string, versus?: { x: number; y: number 
     const armor = armorHealth(ship);
     const capsule = Math.max(0, ship.capsule.integrity);
     const kill = body.destroyed ? 1 : 0.5 * (armor.max > 0 ? 1 - armor.health / armor.max : 0) + 0.5 * (1 - capsule);
-    const cap = gunCapability(ship) * (0.5 + 0.5 * mobility(ship));
+    const gun = gunCapability(ship);
+    const mob = mobility(ship);
+    const cap = gun * (0.5 + 0.5 * mob);
     const range = Math.max(0, ...[...ship.chainGuns].map((g) => g.design.maxShellRange));
     const distance = versus ? Math.hypot(body.position.x - versus.x, body.position.y - versus.y) : 0;
     const outer = [...ship.armor.armorPlates].flatMap((p) => [...p.layers]).find((l) => l.health > 0)?.design;
@@ -185,7 +222,9 @@ function readShip(saved: SavedGame, id: string, versus?: { x: number; y: number 
         penetration,
         capsuleDamage50: ship.capsule.design.damage50,
         internals: systems.filter((s) => s.design.isInternal).length,
-        externals: systems.filter((s) => !s.design.isInternal).length,
+        kill,
+        cap,
+        surfaceExposure: surfaceExposure(ship, gun, mob),
     };
 }
 
@@ -207,6 +246,7 @@ export function observeTactical(t: number, saved: SavedGame, playerId: string): 
             gun: gunCapability(ship),
             gunBearing: gun ? gun.getGlobalBearing(ship) : 0,
             bulletSpeed: gun?.design.bulletSpeed ?? 0,
+            spreadDegrees: gun?.design.bulletDegreesDeviation ?? 0,
             fuzeSeconds: gun ? gun.shellSecondsToLive || gun.design.maxShellRange / gun.design.bulletSpeed : 0,
             gunAmmo: gun?.projectile ?? 'None',
             shellsInMagazine: shellAmmoTypes.filter(
@@ -214,7 +254,7 @@ export function observeTactical(t: number, saved: SavedGame, playerId: string): 
             ),
             targetId: ship.weaponsTarget.targetId,
             tubesReady:
-                [...ship.tubes].some((tube) => shipNormal(tube.power, tube.hacked, tube.broken) > 0) &&
+                [...ship.tubes].some((tube) => shipNormal(tube) > 0) &&
                 ['HiExpMissile', 'ArmPenMissile', 'FragMissile', 'ClusterMissile', 'TandemMissile', 'ElecMissile'].some(
                     (a) => ship.magazine.getCount(a as AmmoType) > 0,
                 ),
@@ -226,9 +266,16 @@ type XYV = { x: number; y: number; vx: number; vy: number };
 
 /**
  * Whether an unguided round from `shell` (position and velocity), fuzed to `fuzeSeconds`, passes
- * within its fuze and blast reach of `target` (moving straight) while closing on it.
+ * within its fuze and blast reach of `target` (moving straight) while closing on it; `spreadDegrees`
+ * widens the reach by the gun's dispersion over the round's flight.
  */
-export function shellReaches(shell: XYV, fuzeSeconds: number, ammo: AmmoType, target: XYV & { radius: number }) {
+export function shellReaches(
+    shell: XYV,
+    fuzeSeconds: number,
+    ammo: AmmoType,
+    target: XYV & { radius: number },
+    spreadDegrees = 0,
+) {
     const rx = target.x - shell.x;
     const ry = target.y - shell.y;
     const vx = shell.vx - target.vx;
@@ -239,7 +286,8 @@ export function shellReaches(shell: XYV, fuzeSeconds: number, ammo: AmmoType, ta
     const miss = Math.hypot(rx - vx * tStar, ry - vy * tStar);
     const design = ammoDesigns[ammo];
     const fuze = design.fuze.type === 'proximity' ? design.fuze.range : 0;
-    return miss <= fuze + blastRadius(ammo) + target.radius;
+    const spread = Math.hypot(vx, vy) * tStar * Math.tan((spreadDegrees * Math.PI) / 180);
+    return miss <= fuze + blastRadius(ammo) + target.radius + spread;
 }
 
 const MISSILE_BAND: readonly [number, number] = [1000, 20_000];
@@ -257,7 +305,7 @@ export function hasSolution(frame: TacticalFrame, enemy: ShipReading) {
             vx: own.vx + weapons.bulletSpeed * Math.cos(rad),
             vy: own.vy + weapons.bulletSpeed * Math.sin(rad),
         };
-        if (shellReaches(shell, weapons.fuzeSeconds, ammo, enemy)) return true;
+        if (shellReaches(shell, weapons.fuzeSeconds, ammo, enemy, SPREAD_SIGMAS * weapons.spreadDegrees)) return true;
     }
     const d = Math.hypot(enemy.x - own.x, enemy.y - own.y);
     return weapons.tubesReady && weapons.targetId === enemy.id && d >= MISSILE_BAND[0] && d <= MISSILE_BAND[1];
@@ -271,11 +319,13 @@ export function threatShares(enemies: readonly ShipReading[]): Map<string, numbe
 }
 
 /**
- * Analytic value of one round of `ammo` against `target`'s armor in its current state, in
- * incapacitation: plate erosion toward a kill (a blast touches two plates, an impact one), capsule
- * defects behind broken or penetrated plates (a blast reaches half the hull's systems, a single-system round one), and surface scrapes on external systems toward
- * disarming. Reactive armor is out of scope (#1970). INFERENCE in its constants: they read the rules
- * in `armor-models.ts`, `damage-profile.ts` and the defect roll, not measured hit rates.
+ * Analytic value of one round of `ammo` against `target` in its current state, in incapacitation
+ * `I = 1 − (1 − kill)·cap`: `ΔI = cap·Δkill + (1 − kill)·Δcap`. Δkill: plate erosion (½ of kill over the
+ * whole armor; a blast touches two plates, an impact one) and capsule defects behind broken or
+ * penetrated plates (½·0.1 each; a blast reaches half the hull's systems, a single-system round one).
+ * Δcap: surface scrapes on external systems through {@link ShipReading.surfaceExposure}. Every
+ * constant is a rule value; none is fitted. Reactive armor is out of scope (#1970). INFERENCE: hit
+ * geometry (plates touched, systems reached) is a nominal reading of the rules, not measured.
  */
 export function ammoValue(ammo: AmmoType, target: ShipReading) {
     const design = ammoDesigns[ammo];
@@ -286,20 +336,20 @@ export function ammoValue(ammo: AmmoType, target: ShipReading) {
     const plates = design.delivery === 'explosion' ? 2 : 1;
     const plate = (0.5 * amount * plates * target.plateDamage[type]) / Math.max(target.plateHealthMax, 1);
     const exposed = broken + (1 - broken) * target.penetration[type];
-    // a single-system round picks one internal system; a blast reaches every system in its area (half the hull)
     const capsuleOdds = profile.systemScope === 'single' ? 1 / Math.max(target.internals, 1) : 0.5;
     const capsuleDefects = profile.hitsInternal
         ? ((exposed * amount * profile.systemDamageFactor) / (2 * target.capsuleDamage50)) * capsuleOdds
         : 0;
-    const surface = (profile.surfaceDamageFactor * 0.05 * amount * target.externals) / (2 * 20);
-    // a capsule defect is a tenth of the capsule (half of kill progress); a random external defect costs
-    // about 0.01 of capability (the gun is one external system in nine, a defect takes 5-10% off it)
-    return plate + 0.5 * 0.1 * capsuleDefects + 0.01 * surface;
+    const dKill = plate + 0.5 * CAPSULE_DEFECT_STEP * capsuleDefects;
+    const dCap = profile.surfaceDamageFactor * SURFACE_EFFECT_FACTOR * amount * target.surfaceExposure;
+    return target.cap * dKill + (1 - target.kill) * dCap;
 }
 
-export function isDominated(ammo: AmmoType, available: readonly AmmoType[], target: ShipReading) {
-    const best = Math.max(ammoValue(ammo, target), ...available.map((a) => ammoValue(a, target)));
-    return ammoValue(ammo, target) < DOMINATED_SHARE * best;
+/** How much of the best available round's value a round of `ammo` gives up: 0 for the best, 1 for a worthless one. */
+export function ammoShortfall(ammo: AmmoType, available: readonly AmmoType[], target: ShipReading) {
+    const own = ammoValue(ammo, target);
+    const best = Math.max(own, ...available.map((a) => ammoValue(a, target)));
+    return best > 0 ? 1 - own / best : 0;
 }
 
 interface Shot {
@@ -365,7 +415,9 @@ export interface WeaponsRates {
     readonly dominated: number;
     readonly friendly: number;
     readonly lockUptime: number;
-    readonly kw: number;
+    /** Share of the locked time spent on the enemy that threatened most at that moment. */
+    readonly lockThreat: number;
+    readonly kw: number | null;
 }
 
 /** The weapons station score over a run's frames and events. */
@@ -391,7 +443,7 @@ export function weaponsScore(
         const at = { ...target, x: target.x + target.vx * dt, y: target.y + target.vy * dt };
         if (isShellAmmo(s.ammo)) {
             if (!shellReaches(s, s.ttl, s.ammo, at)) nosol++;
-            if (isDominated(s.ammo, f.weapons.shellsInMagazine, target)) dominated++;
+            dominated += ammoShortfall(s.ammo, f.weapons.shellsInMagazine, target);
         } else {
             const d = Math.hypot(at.x - s.x, at.y - s.y);
             if (s.targetId !== target.id || d < MISSILE_BAND[0] || d > MISSILE_BAND[1]) nosol++;
@@ -405,6 +457,12 @@ export function weaponsScore(
     const fighting = frames.filter((f) => f.enemies.some((e) => !e.destroyed));
     const locked = fighting.filter((f) => f.enemies.some((e) => !e.destroyed && e.id === f.weapons.targetId)).length;
     const lockUptime = fighting.length ? locked / fighting.length : 0;
+    let onThreat = 0;
+    for (const f of fighting) {
+        const shares = threatShares(f.enemies);
+        const top = [...shares].sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (f.weapons.targetId && f.weapons.targetId === top) onThreat++;
+    }
     const rate = (n: number) => (rated ? n / rated : 0);
     const w = WEAPONS_WEIGHTS;
     return {
@@ -413,7 +471,10 @@ export function weaponsScore(
         dominated: rate(dominated),
         friendly,
         lockUptime,
-        kw: 1 - w.nosol * rate(nosol) - w.dominated * rate(dominated) - w.friendly * friendly + w.lock * lockUptime,
+        lockThreat: locked ? onThreat / locked : 0,
+        kw: rated
+            ? 1 - w.nosol * rate(nosol) - w.dominated * rate(dominated) - w.friendly * friendly + w.lock * lockUptime
+            : null,
     };
 }
 
@@ -424,6 +485,8 @@ export interface TacticalWindow {
     readonly cMax: number;
     readonly T: number | null;
     readonly O: number;
+    /** Whether the credit exceeded O·C_max and was cut to it, which keeps V = T/O ≤ 1. */
+    readonly clipped: boolean;
     /** Our gun's mean capability over the window (the engineer covariate). */
     readonly gun: number;
     /** Incapacitation the enemies took in the window, whoever dealt it (the persistence baseline's input). */
@@ -455,6 +518,7 @@ export function tacticalWindows(
     gunRange = 8000,
 ): TacticalWindow[] {
     const hits = hitsOf(events, frames);
+    const shots = shotsOf(events, playerId);
     const heldSince = new Map<number, number>();
     let since = 0;
     frames.forEach((f, k) => {
@@ -476,7 +540,17 @@ export function tacticalWindows(
         for (let k = start; k < last; k++) {
             const s = threatShares(frames[k].enemies);
             for (const [id, v] of s) shares.set(id, (shares.get(id) ?? 0) + v / (last - start));
-            for (const e of frames[k].enemies) if (hasSolution(frames[k], e)) O += (s.get(e.id) ?? 0) / (last - start);
+            const fired = shots.filter((x) => x.t >= frames[k].t && x.t < frames[k + 1].t);
+            for (const e of frames[k].enemies) {
+                const reached = fired.some((x) => {
+                    const dt = x.t - frames[k].t;
+                    const at = { ...e, x: e.x + e.vx * dt, y: e.y + e.vy * dt };
+                    if (isShellAmmo(x.ammo)) return shellReaches(x, x.ttl, x.ammo, at);
+                    const d = Math.hypot(at.x - x.x, at.y - x.y);
+                    return x.targetId === e.id && d >= MISSILE_BAND[0] && d <= MISSILE_BAND[1];
+                });
+                if (reached || hasSolution(frames[k], e)) O += (s.get(e.id) ?? 0) / (last - start);
+            }
             gun += frames[k].weapons.gun / (last - start);
         }
         let c = 0;
@@ -509,12 +583,14 @@ export function tacticalWindows(
         const deadBy = (id: string, t: number) =>
             frames.some((f) => f.t <= t && f.t > f0.t && f.enemies.every((e) => e.id !== id || e.destroyed));
         const nearest = Math.min(...alive.map((e) => Math.hypot(e.x - f0.own.x, e.y - f0.own.y)));
+        const ceiling = O * cMax;
         windows.push({
             t: f0.t,
-            c,
+            c: Math.min(c, ceiling),
             cMax,
-            T: cMax > 1e-9 ? c / cMax : null,
+            T: cMax > 1e-9 ? Math.min(c, ceiling) / cMax : null,
             O,
+            clipped: c > ceiling + 1e-12,
             gun,
             dI,
             kill60: alive.some((e) => deadBy(e.id, f0.t + 60)),
