@@ -3,6 +3,8 @@ import * as path from 'node:path';
 
 import {
     EVENTS_EXT,
+    Explosion,
+    Projectile,
     RecordingEventLine,
     ShipManager,
     ShipManagerPc,
@@ -28,7 +30,11 @@ import { schemaToString } from '../serialization/game-state-serialization';
  * {@link RecordingEventLine}s to a sidecar `<name>.events.jsonl`, leaving the `.sgr` untouched so
  * replay keeps working. So is every system defect (`defect`, data `{ system, cause }`, cause
  * `hit`/`overheat`/`warp`), and with each frame each player ship's previous-tick energy flow
- * (`energy`, data `{ demand, granted }`). Other modules add their own kinds through {@link HeadlessRecorder.record}.
+ * (`energy`, data `{ demand, granted }`). Every projectile is written once as it appears (`shot`, objectId the
+ * projectile, data `{ shipId, ammo, warhead, targetId, x, y, vx, vy, ttl }`; `targetId` is the shooter's weapons
+ * target for an unguided round) and once as it goes (`projectile_end`, data `{ reason }`: `detonate` into a blast,
+ * `impact` on a hull, `shotDown`, or `expire`), and every weapon hit a ship takes (`damage`, objectId the victim, data
+ * `DamageReport`). Other modules add their own kinds through {@link HeadlessRecorder.record}.
  */
 export class HeadlessRecorder {
     readonly filePath: string;
@@ -38,6 +44,9 @@ export class HeadlessRecorder {
     private readonly firing = new Map<string, boolean>();
     private readonly blastHits = new BlastOverlaps();
     private readonly defectListeners = new WeakSet<ShipManager>();
+    private readonly flying = new Map<string, { shipId: string; x: number; y: number; health: number }>();
+    private readonly blasts = new Set<string>();
+    private impactsThisTick = new Set<string>();
     private pendingEvents: RecordingEventLine[] = [];
 
     constructor(
@@ -86,6 +95,7 @@ export class HeadlessRecorder {
     async capture(force = false) {
         this.observeFiring();
         this.observeBlastHits();
+        this.observeProjectiles();
         this.listenToDefects();
         if (!force && this.game.seconds + 1e-9 < this.nextFrameAt) {
             return;
@@ -116,8 +126,61 @@ export class HeadlessRecorder {
                 manager.listenToDefects((system, cause) =>
                     this.record('defect', objectId, { system: system.name, cause }),
                 );
+                manager.listenToDamage((report) => {
+                    this.impactsThisTick.add(report.sourceId);
+                    this.record('damage', objectId, report);
+                });
             }
         }
+    }
+
+    private observeProjectiles() {
+        const state = this.game.spaceManager.state;
+        const newBlasts: Explosion[] = [];
+        for (const e of state.getAll('Explosion')) {
+            if (!this.blasts.has(e.id)) {
+                this.blasts.add(e.id);
+                newBlasts.push(e);
+            }
+        }
+        const live = new Set<string>();
+        for (const p of state.getAll('Projectile')) {
+            if (p.destroyed) continue;
+            live.add(p.id);
+            if (!this.flying.has(p.id)) this.recordShot(p);
+            this.flying.set(p.id, { shipId: p.shipId, x: p.position.x, y: p.position.y, health: p.health });
+        }
+        for (const [id, last] of this.flying) {
+            if (live.has(id)) continue;
+            this.flying.delete(id);
+            const detonated = newBlasts.some(
+                (e) => e.shipId === last.shipId && Math.hypot(e.position.x - last.x, e.position.y - last.y) < 200,
+            );
+            const reason = this.impactsThisTick.has(id)
+                ? 'impact'
+                : detonated
+                  ? 'detonate'
+                  : last.health <= 0
+                    ? 'shotDown'
+                    : 'expire';
+            this.record('projectile_end', id, { reason });
+        }
+        this.impactsThisTick = new Set();
+    }
+
+    private recordShot(p: Projectile) {
+        const shooter = this.game.shipManagers.get(p.shipId);
+        this.record('shot', p.id, {
+            shipId: p.shipId,
+            ammo: p.model,
+            warhead: p.warhead,
+            targetId: p.targetId ?? shooter?.state.weaponsTarget.targetId ?? null,
+            x: p.position.x,
+            y: p.position.y,
+            vx: p.velocity.x,
+            vy: p.velocity.y,
+            ttl: p.secondsToLive,
+        });
     }
 
     private recordEnergyFlow() {
