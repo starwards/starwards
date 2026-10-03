@@ -28,9 +28,9 @@ import {
  * − λ_ff · Σ_friendly ΔI⁺·ours`, where `ours_j(k)` is our share of the recorded hits j took between
  * frames k and k+1 (0 when it took none: unattributed loss is nobody's credit). `C_max = (1+φ)·Σ_j θ̃_j
  * · min(1 − I_j(start), ρ·gun_ours·W)`, ρ the fastest incapacitation rate a full-strength gun reaches.
- * Opportunity `O` = threat-weighted share of the window's 1 s intervals in which a ground-truth firing
- * solution existed (credited to helms): at the frame, allowing for the gun's spread, or for any round
- * fired within the interval that reached the enemy's path. Tactical `T = min(C, O·C_max) / C_max`, so
+ * Opportunity `O` = threat-weighted share of the window's 1 s frames in which a ground-truth firing
+ * solution existed, from geometry alone (allowing for the gun's spread), never from what weapons fired:
+ * it is helms' share of the credit split. Tactical `T = min(C, O·C_max) / C_max`, so
  * conversion `V = T / O` (to weapons) is at most 1 by construction and `log T = log O + log V`. A crew
  * that never fires has `V = 0` wherever `O > 0`.
  */
@@ -529,7 +529,6 @@ export function tacticalWindows(
     gunRange = 8000,
 ): TacticalWindow[] {
     const hits = hitsOf(events, frames);
-    const shots = shotsOf(events, playerId);
     const heldSince = new Map<number, number>();
     let since = 0;
     frames.forEach((f, k) => {
@@ -551,17 +550,7 @@ export function tacticalWindows(
         for (let k = start; k < last; k++) {
             const s = threatShares(frames[k].enemies);
             for (const [id, v] of s) shares.set(id, (shares.get(id) ?? 0) + v / (last - start));
-            const fired = shots.filter((x) => x.t >= frames[k].t && x.t < frames[k + 1].t);
-            for (const e of frames[k].enemies) {
-                const reached = fired.some((x) => {
-                    const dt = x.t - frames[k].t;
-                    const at = { ...e, x: e.x + e.vx * dt, y: e.y + e.vy * dt };
-                    if (isShellAmmo(x.ammo)) return shellReaches(x, x.ttl, x.ammo, at);
-                    const d = Math.hypot(at.x - x.x, at.y - x.y);
-                    return x.targetId === e.id && d >= MISSILE_BAND[0] && d <= MISSILE_BAND[1];
-                });
-                if (reached || hasSolution(frames[k], e)) O += (s.get(e.id) ?? 0) / (last - start);
-            }
+            for (const e of frames[k].enemies) if (hasSolution(frames[k], e)) O += (s.get(e.id) ?? 0) / (last - start);
             gun += frames[k].weapons.gun / (last - start);
         }
         let c = 0;

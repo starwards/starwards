@@ -121,12 +121,12 @@ describe('weapons and tactical scores', () => {
         expect(tacticalWindows(offAim, [], 'us')[0].O).toBe(0);
     });
 
-    it('counts a well-aimed round fired between frames as opportunity, and never converts above it', () => {
+    it("opportunity is helms' geometry alone: rounds fired add none, and conversion never exceeds it", () => {
         // nose off the target at every frame, one aimed round at t = 10.5 and our hits all along
         const frames = Array.from({ length: 46 }, (_, t) => frame(t, { incapacitation: t / 100 }, 90));
         const [w] = tacticalWindows(frames, [shot(10.5), ...frames.map((f) => hit(f.t + 0.5, 'us'))], 'us');
-        expect(w.O).toBeCloseTo(1 / 45, 6);
-        expect(w.T!).toBeLessThanOrEqual(w.O + 1e-12);
+        expect(w.O).toBe(0);
+        expect(w.T).toBe(0);
         expect(w.clipped).toBe(true);
     });
 });
