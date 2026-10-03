@@ -548,19 +548,27 @@ dataset column. Per frame, over the player ship's systems:
     - `λ = min(0.6, λ0 + λ1·r)`.
 
 Risk `r` is a logistic with non-negative coefficients over hostiles in range, nearness, recent blast hits,
-lost integrity and unscanned contacts. It is fitted to own integrity loss in the next 30 s. λ0, λ1 and β
-are set by design; k, N0 and ε are fitted.
+lost integrity and unscanned contacts. It is fitted to own integrity loss in the next 30 s.
+
+The reserve is set by design: λ0 0.3 and λ1 0.4. The store to hold rises from 0.25 calm to 0.5 at full
+risk, and holding it earns R = 0.9 (N0 0.25, β 1, k ln 10). Only ε is fitted.
 
 `npm --prefix modules/ai run score:engineer -- --runs <train out dir> ...` validates the score on
-matched-seed runs of the scripted engineers (`crews/engineer-*.json`), comparing paired runs over their
-common time. The status on 420 runs is in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`:
+matched-seed runs of the scripted engineers (`crews/engineer-*.json`):
 
-- idle > all-shutdown holds in every scenario;
-- reference > all-max at high risk holds pooled and on T1;
-- reference > idle holds only on T1; it fails on T0-constrained and E1-predator.
+- it compares paired runs over their common time;
+- it reports each KPI Δ next to the paired outcome Δs (kills, own integrity kept), and how often the
+  KPI's sign agrees with the outcome's.
+
+Status on 420 runs, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`:
+
+- the KPI agrees with kills on T1;
+- the KPI is null on T1-MK2, where the reference engineer kills more;
+- the store counts an unspent energy cell as reserve, so engineers that never jump-start look best on the
+  energy-bound E1 rungs.
 
 The score is not yet a training target. The supply cap stays until energy draw becomes a curve in power
-(#2305); refit the weights when it does.
+(#2305).
 
 ## Radar heatmaps
 

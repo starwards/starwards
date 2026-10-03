@@ -113,7 +113,22 @@ function outcomesOf(run: Run & { lost: boolean }): Outcomes {
     };
 }
 
-type LoadedRun = Run & { lost: boolean; outcomes: Outcomes };
+type LoadedRun = Run & { lost: boolean; killed: boolean; outcomes: Outcomes };
+
+const crewReports = new Map<string, { crew: string; seed: number; killed: boolean }[]>();
+
+/** The run results `npm run train` wrote beside a scenario's recordings. */
+function crewResults(dir: string, scenario: string) {
+    const file = path.join(dir, `${scenario}-crews.json`);
+    let results = crewReports.get(file);
+    if (!results) {
+        results = fs.existsSync(file)
+            ? (JSON.parse(fs.readFileSync(file, 'utf8')) as { crew: string; seed: number; killed: boolean }[])
+            : [];
+        crewReports.set(file, results);
+    }
+    return results;
+}
 
 async function loadRuns(dirs: readonly string[]) {
     const runs: LoadedRun[] = [];
@@ -125,7 +140,8 @@ async function loadRuns(dirs: readonly string[]) {
                 const [, scenario, seed] = /^(.+)_seed(\d+)\.sgr$/.exec(file) ?? [];
                 if (!scenario) continue;
                 const loaded = await loadRun(path.join(dir, crew, file));
-                const run = { scenario, seed: Number(seed), policy, ...loaded };
+                const result = crewResults(dir, scenario).find((r) => r.crew === crew && r.seed === Number(seed));
+                const run = { scenario, seed: Number(seed), policy, ...loaded, killed: !!result?.killed };
                 runs.push({ ...run, outcomes: outcomesOf(run) });
                 process.stderr.write('.');
             }
@@ -234,6 +250,27 @@ function paired(runs: readonly Scored[], a: PolicyName, b: PolicyName, keep: Kee
     return deltas;
 }
 
+/**
+ * Per (scenario, seed) paired outcome deltas of `a` minus `b`: the kill (1/0), and own integrity kept
+ * over the pair's common time (so positive is better for `a` in both); with the KPI delta of the same pair.
+ */
+function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
+    const by = new Map(runs.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
+    const rows: { kpi: number; kill: number; kept: number }[] = [];
+    for (const x of runs.filter((r) => r.policy === a)) {
+        const y = by.get(`${x.scenario}/${x.seed}/${b}`);
+        if (!y || !x.frames.length || !y.frames.length) continue;
+        const until = Math.min(x.end, y.end);
+        const kept = (r: Scored) => {
+            const last = r.frames.findLast((f) => f.t <= until) ?? r.frames[0];
+            return last.integrity - r.frames[0].integrity;
+        };
+        const avg = (r: Scored) => mean(r.k.filter((_, i) => r.frames[i].t <= until));
+        rows.push({ kpi: avg(x) - avg(y), kill: Number(x.killed) - Number(y.killed), kept: kept(x) - kept(y) });
+    }
+    return rows;
+}
+
 function terciles(runs: readonly Scored[]) {
     const risks = runs.flatMap((r) => r.r).sort((a, c) => a - c);
     return [risks[Math.floor(risks.length / 3)], risks[Math.floor((2 * risks.length) / 3)]] as const;
@@ -284,21 +321,26 @@ function predictive(runs: readonly Scored[], cuts: readonly [number, number], h:
 }
 
 /**
- * Reserve weights are set by design (`λ0` 0.3, `λ1` 0.4, `β` 3); `--free-reserve` fits them too, to
- * check whether a fit would choose them stably.
+ * The reserve is set by design: `λ0` 0.3, `λ1` 0.4, and the store the engineer should hold rising from
+ * 0.25 at no risk to 0.5 at full risk (`N0` 0.25, `β` 1) with `k = ln 10`, so holding that store earns
+ * R = 0.9. Only `ε` is fitted. `--free-reserve` also fits the reserve weights, for reference.
  */
 const FREE_RESERVE = process.argv.includes('--free-reserve');
 
 function grid(): EngineerWeights[] {
     const out: EngineerWeights[] = [];
     const reserve = FREE_RESERVE
-        ? [0, 1, 3].flatMap((beta) =>
-              [0, 0.1, 0.2, 0.3].flatMap((lambda0) => [0, 0.2, 0.4].map((lambda1) => ({ beta, lambda0, lambda1 }))),
+        ? [0.5, 1, 2, 4].flatMap((k) =>
+              [0.25, 0.5, 1].flatMap((n0) =>
+                  [0, 1, 3].flatMap((beta) =>
+                      [0, 0.1, 0.2, 0.3].flatMap((lambda0) =>
+                          [0, 0.2, 0.4].map((lambda1) => ({ k, n0, beta, lambda0, lambda1 })),
+                      ),
+                  ),
+              ),
           )
-        : [{ beta: 3, lambda0: 0.3, lambda1: 0.4 }];
-    for (const k of [0.5, 1, 2, 4])
-        for (const n0 of [0.25, 0.5, 1])
-            for (const r of reserve) for (const epsilon of [0.01, 0.05, 0.2]) out.push({ k, n0, ...r, epsilon });
+        : [{ k: Math.LN10, n0: 0.25, beta: 1, lambda0: 0.3, lambda1: 0.4 }];
+    for (const r of reserve) for (const epsilon of [0.01, 0.05, 0.2]) out.push({ ...r, epsilon });
     return out;
 }
 
@@ -403,6 +445,39 @@ async function main() {
     };
     table('All seeds', all);
     table('Held-out seeds', test);
+
+    out('### KPI against outcome');
+    out();
+    out(
+        'Per pair of runs on one seed: KPI Δ, kill Δ (1/0) and own integrity kept Δ over their common time, 95% bootstrap CIs. An ordering is required only where an outcome CI excludes 0; elsewhere it is informational. Agreement: share of seeds where the KPI Δ has the sign of (kill Δ + integrity kept Δ), among seeds where that is non-zero.',
+    );
+    out();
+    out('| scenario | contrast | KPI Δ | kill Δ | integrity kept Δ | outcome separates | agreement |');
+    out('| --- | --- | --- | --- | --- | --- | --- |');
+    for (const s of [...scenarios, 'all']) {
+        const sub = all.filter((r) => s === 'all' || r.scenario === s);
+        for (const [a, b] of [
+            ['reference', 'idle'],
+            ['idle', 'all-shutdown'],
+            ['reference', 'all-max'],
+            ['reference', 'random'],
+            ['reference', 'never-jump-start'],
+            ['reference-repairing', 'reference'],
+        ] as const) {
+            const rows = pairedOutcomes(sub, a, b);
+            const kill = bootstrap(rows.map((r) => r.kill));
+            const kept = bootstrap(rows.map((r) => r.kept));
+            const sign = Math.sign;
+            const decided = rows.filter((r) => Math.abs(r.kill + r.kept) > 1e-3);
+            const agree = decided.filter((r) => sign(r.kpi) === sign(r.kill + r.kept)).length;
+            const separates =
+                kill.lo > 0 || kept.lo > 0 ? `${a} better` : kill.hi < 0 || kept.hi < 0 ? `${b} better` : 'no';
+            out(
+                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(kept)} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
+            );
+        }
+    }
+    out();
 
     out('### Leave one scenario out (risk curve and weights fit on the other scenarios, all seeds)');
     out();
