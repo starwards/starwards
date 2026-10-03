@@ -25,13 +25,14 @@ export interface WeaponsMultiParams extends T0Params {
  * Weapons rung with a choice of targets: a dragonfly-MK2 attacking the GVTS (the threat, id `target`), a
  * PLAY_DEAD dragonfly-MK1 with an empty magazine (a decoy that cannot threaten), and a PLAY_DEAD
  * dragonfly-MK1 of the GVTS's own faction (an ally) parked 600 m off the threat's start, in the line of
- * fire. Calibration only: no real map does this.
+ * fire. The captain designates the threat: the GVTS starts with it as its weapons target. Calibration
+ * only: no real map does this.
  */
 export function createTrainingWeaponsMultiMap(params: WeaponsMultiParams): GameMap {
     return {
         name: 'training_weapons_multi',
         init: (game) => {
-            game.addPlayerSpaceship(
+            const player = game.addPlayerSpaceship(
                 new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
             );
             const threatAt = XY.byLengthAndDirection(params.distance, params.bearing);
@@ -59,6 +60,8 @@ export function createTrainingWeaponsMultiMap(params: WeaponsMultiParams): GameM
             ally.state.idleStrategy = IdleStrategy.PLAY_DEAD;
             game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
             game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
+            // the captain designates the threat: weapons starts locked on it
+            player.state.weaponsTarget.targetId = TRAINING_TARGET_ID;
         },
     };
 }
