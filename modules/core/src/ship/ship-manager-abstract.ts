@@ -398,7 +398,11 @@ export abstract class ShipManager implements Updateable {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
             radar.supply = this.internalProxy.drawEnergy(
-                radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
+                radar.design.range *
+                    radar.effectiveness *
+                    (radar.design.energyCost / 1000) *
+                    deltaSeconds *
+                    radar.powerDrawFactor,
                 radar,
             );
             radar.areaFactor = radar.supply > 0 ? this.calcRadarAreaFactor(radar, index) : 0;

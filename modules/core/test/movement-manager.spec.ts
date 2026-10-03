@@ -253,4 +253,77 @@ describe('MovementManager', () => {
         }
         expect(shipMgr.state.warp!.jammed).to.equal(false);
     });
+
+    // #2305: energy per unit of output must rise with power, not stay constant — overdrive
+    // should be inefficient, not just faster.
+    describe('energy draw rises more than proportionally with power', () => {
+        function isolateExcept(system: 'thrusters' | 'maneuvering' | 'warp') {
+            const state = shipMgr.state;
+            if (system !== 'warp' && state.warp) state.warp.power = PowerLevel.SHUTDOWN;
+            if (system !== 'maneuvering') state.maneuvering.power = PowerLevel.SHUTDOWN;
+            if (system !== 'thrusters') for (const thruster of state.thrusters) thruster.power = PowerLevel.SHUTDOWN;
+            for (const chainGun of state.chainGuns) chainGun.power = PowerLevel.SHUTDOWN;
+            for (const tube of state.tubes) tube.power = PowerLevel.SHUTDOWN;
+            for (const radar of state.radars) radar.power = PowerLevel.SHUTDOWN;
+            state.reactor.power = PowerLevel.SHUTDOWN; // no income — the store is the whole supply
+        }
+
+        function drawnOverOneTick(setPower: (power: PowerLevel) => void, power: PowerLevel) {
+            setPower(power);
+            shipMgr.state.reactor.energy = shipMgr.state.reactor.design.maxEnergy; // @range clamps any higher assignment
+            const before = shipMgr.state.reactor.energy;
+            for (const id of makeIterationsData(1, 1)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+            return before - shipMgr.state.reactor.energy;
+        }
+
+        // x = 2: draw ∝ power² ⇒ MAX/NORMAL draw ratio = (MAX/NORMAL)² = 4, for 2× output.
+        const expectQuadraticRatio = (drawnAtNormal: number, drawnAtMax: number) =>
+            expect(drawnAtMax).to.be.closeTo(drawnAtNormal * 4, drawnAtNormal * 0.01);
+
+        it('thrusters', () => {
+            isolateExcept('thrusters');
+            shipMgr.state.smartPilot.maneuvering.x = 1; // full boost commanded
+            const setPower = (power: PowerLevel) => {
+                for (const thruster of shipMgr.state.thrusters) thruster.power = power;
+            };
+
+            const drawnAtNormal = drawnOverOneTick(setPower, PowerLevel.NORMAL);
+            const drawnAtMax = drawnOverOneTick(setPower, PowerLevel.MAX);
+
+            expectQuadraticRatio(drawnAtNormal, drawnAtMax);
+        });
+
+        it('rotation', () => {
+            isolateExcept('maneuvering');
+            shipMgr.state.smartPilot.rotation = 1; // full rotation commanded
+            // already-full afterburner tank: chargeAfterBurner also draws on maneuvering and would
+            // otherwise confound the measurement with a second, unrelated draw
+            shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
+            const setPower = (power: PowerLevel) => {
+                shipMgr.state.maneuvering.power = power;
+            };
+
+            const drawnAtNormal = drawnOverOneTick(setPower, PowerLevel.NORMAL);
+            const drawnAtMax = drawnOverOneTick(setPower, PowerLevel.MAX);
+
+            expectQuadraticRatio(drawnAtNormal, drawnAtMax);
+        });
+
+        it('warp', () => {
+            isolateExcept('warp');
+            shipMgr.state.warp!.currentLevel = 1;
+            shipMgr.state.warp!.desiredLevel = 1; // already at level — skip the charge ramp
+            const setPower = (power: PowerLevel) => {
+                shipMgr.state.warp!.power = power;
+            };
+
+            const drawnAtNormal = drawnOverOneTick(setPower, PowerLevel.NORMAL);
+            const drawnAtMax = drawnOverOneTick(setPower, PowerLevel.MAX);
+
+            expectQuadraticRatio(drawnAtNormal, drawnAtMax);
+        });
+    });
 });

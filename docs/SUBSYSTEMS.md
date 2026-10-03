@@ -35,6 +35,8 @@ last_verified: 2026-09-03
 
 **Effectiveness:** Output = maxOutput × effectiveness, where `effectiveness = broken ? 0 : power × hacked` (see `SystemState.effectiveness` in modules/core/src/ship/system.ts). `hacked` is a HackLevel multiplier (OK=1, COMPROMISED=0.5, DISABLED=0), so it scales output directly — not as (1-hacked). coolantFactor does not affect output; it only governs heat dissipation in heat-manager.ts.
 
+**Power draw factor:** `powerDrawFactor = (power / NORMAL)^(POWER_DRAW_EXPONENT - 1)` (`POWER_DRAW_EXPONENT = 2`, see `system.ts`), ×1 at NORMAL. Each system's own energy draw (thrusters, rotation, chain gun loading, radar, warp) is multiplied by this on top of its existing `effectiveness` scaling, so running above NORMAL trades energy efficiency for output — MAX gives 2× output for 4× draw, LOW gives 0.5× output for 0.5× draw. Keyed on `power` alone, never `hacked`/`broken`, so a hacked or damaged system never becomes cheaper to run. Repair draw is unaffected — it doesn't scale with power (#2305).
+
 **Heat:**
 - Accumulation: `heat += usageHeat * dt`
 - Dissipation: `heat -= (coolantFactor × coolantPerFactor) * dt`
