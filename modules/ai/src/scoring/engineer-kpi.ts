@@ -43,10 +43,18 @@ export interface EngineerWeights {
 }
 
 /**
- * Reserve weights (`λ0`, `λ1`, `β`) set by design; `k`, `N0`, `ε` fitted on the matched-seed validation of
- * 2026-10-03 (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`).
+ * Reserve set by design: `λ0` 0.3, `λ1` 0.4; the store the engineer should hold rises from 0.25 at no
+ * risk to 0.5 at full risk (`N0` 0.25, `β` 1), and holding it earns R = 0.9 (`k = ln 10`). `ε` is fitted
+ * on the matched-seed validation of 2026-10-03 (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`).
  */
-export const ENGINEER_WEIGHTS: EngineerWeights = { k: 0.5, n0: 1, beta: 3, lambda0: 0.3, lambda1: 0.4, epsilon: 0.01 };
+export const ENGINEER_WEIGHTS: EngineerWeights = {
+    k: Math.LN10,
+    n0: 0.25,
+    beta: 1,
+    lambda0: 0.3,
+    lambda1: 0.4,
+    epsilon: 0.01,
+};
 
 /** Raw danger, in {@link RiskModel} coefficient order. */
 export const RISK_FEATURES = ['threats', 'proximity', 'blastRate', 'damage', 'unscanned'] as const;
