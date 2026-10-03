@@ -533,7 +533,7 @@ dataset column. Per frame, over the player ship's systems:
 Risk `r` is a logistic with non-negative coefficients over hostiles in range, nearness, recent blast hits,
 lost integrity and unscanned contacts. It is fitted to own integrity loss in the next 30 s.
 
-The reserve is set by design: λ0 0.3 and λ1 0.4. The store to hold rises from 0.25 calm to 0.5 at full
+The reserve counts the reactor's energy only; energy cells are a fallback. It is set by design: λ0 0.3 and λ1 0.4. The store to hold rises from 0.25 calm to 0.5 at full
 risk, and holding it earns R = 0.9 (N0 0.25, β 1, k ln 10). Only ε is fitted.
 
 `npm --prefix modules/ai run score:engineer -- --runs <train out dir> ...` validates the score on
@@ -543,12 +543,9 @@ matched-seed runs of the scripted engineers (`crews/engineer-*.json`):
 - it reports each KPI Δ next to the paired outcome Δs (kills, own integrity kept), and how often the
   KPI's sign agrees with the outcome's.
 
-Status on 420 runs, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`:
-
-- the KPI agrees with kills on T1;
-- the KPI is null on T1-MK2, where the reference engineer kills more;
-- the store counts an unspent energy cell as reserve, so engineers that never jump-start look best on the
-  energy-bound E1 rungs.
+Status on 420 runs, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`: wherever kills or time-to-kill
+separate two engineers, the KPI's ordering agrees in sign (reference over idle, all-max and random on
+T1 and T1-MK2). Where nothing is fought, an all-shutdown engineer banks a full store and outscores idle.
 
 The score is not yet a training target. The supply cap stays until energy draw becomes a curve in power
 (#2305).

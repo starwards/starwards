@@ -8,7 +8,7 @@
  * Two runs of a seed are compared over the same stretch of game time: from the start to the earlier
  * of their ends (a kill, the ship's loss, or the timeout), so a run that wins early is never averaged
  * against a run's long calm tail. Each run's weight-free components are cached beside its recording
- * as `<run>.ekpi2.json`.
+ * as `<run>.ekpi3.json`.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -63,7 +63,7 @@ function args(name: string) {
 }
 
 async function loadRun(sgr: string): Promise<{ frames: Frame[]; end: number; lost: boolean }> {
-    const cache = sgr.replace(/\.sgr$/, '.ekpi2.json');
+    const cache = sgr.replace(/\.sgr$/, '.ekpi3.json');
     if (fs.existsSync(cache))
         return JSON.parse(fs.readFileSync(cache, 'utf8')) as { frames: Frame[]; end: number; lost: boolean };
     const recorded = await readFrames(sgr);
@@ -251,22 +251,31 @@ function paired(runs: readonly Scored[], a: PolicyName, b: PolicyName, keep: Kee
 }
 
 /**
- * Per (scenario, seed) paired outcome deltas of `a` minus `b`: the kill (1/0), and own integrity kept
- * over the pair's common time (so positive is better for `a` in both); with the KPI delta of the same pair.
+ * Per (scenario, seed) paired outcome deltas of `a` minus `b`, positive better for `a`: the kill (1/0),
+ * seconds saved to the run's end (the kill, or the timeout for both), and damage rate: own integrity lost
+ * per second a hostile was within twice its gun range of us, over the pair's common time (lower for `a`
+ * is positive). With the KPI delta of the same pair.
  */
 function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
     const by = new Map(runs.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
-    const rows: { kpi: number; kill: number; kept: number }[] = [];
+    const rows: { kpi: number; kill: number; saved: number; damageRate: number }[] = [];
     for (const x of runs.filter((r) => r.policy === a)) {
         const y = by.get(`${x.scenario}/${x.seed}/${b}`);
         if (!y || !x.frames.length || !y.frames.length) continue;
         const until = Math.min(x.end, y.end);
-        const kept = (r: Scored) => {
-            const last = r.frames.findLast((f) => f.t <= until) ?? r.frames[0];
-            return last.integrity - r.frames[0].integrity;
+        const rate = (r: Scored) => {
+            const within = r.frames.filter((f) => f.t <= until);
+            const exposed = within.filter((f) => f.features.threats > 0).length;
+            const lost = r.frames[0].integrity - (within.at(-1) ?? r.frames[0]).integrity;
+            return exposed ? lost / exposed : 0;
         };
         const avg = (r: Scored) => mean(r.k.filter((_, i) => r.frames[i].t <= until));
-        rows.push({ kpi: avg(x) - avg(y), kill: Number(x.killed) - Number(y.killed), kept: kept(x) - kept(y) });
+        rows.push({
+            kpi: avg(x) - avg(y),
+            kill: Number(x.killed) - Number(y.killed),
+            saved: y.end - x.end,
+            damageRate: rate(y) - rate(x),
+        });
     }
     return rows;
 }
@@ -446,14 +455,29 @@ async function main() {
     table('All seeds', all);
     table('Held-out seeds', test);
 
+    out('### Energy held (store share without cells)');
+    out();
+    out(`| scenario | ${POLICIES.join(' | ')} |`);
+    out(`| --- |${POLICIES.map(() => ' --- |').join('')}`);
+    for (const s of scenarios) {
+        const cell = (p: PolicyName) =>
+            fmt(
+                mean(
+                    all.filter((r) => r.scenario === s && r.policy === p).flatMap((r) => r.frames.map((f) => f.store)),
+                ),
+                2,
+            );
+        out(`| ${s} | ${POLICIES.map(cell).join(' | ')} |`);
+    }
+    out();
     out('### KPI against outcome');
     out();
     out(
-        'Per pair of runs on one seed: KPI Δ, kill Δ (1/0) and own integrity kept Δ over their common time, 95% bootstrap CIs. An ordering is required only where an outcome CI excludes 0; elsewhere it is informational. Agreement: share of seeds where the KPI Δ has the sign of (kill Δ + integrity kept Δ), among seeds where that is non-zero.',
+        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0; elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
     );
     out();
-    out('| scenario | contrast | KPI Δ | kill Δ | integrity kept Δ | outcome separates | agreement |');
-    out('| --- | --- | --- | --- | --- | --- | --- |');
+    out('| scenario | contrast | KPI Δ | kill Δ | seconds saved | damage-rate Δ | outcome separates | agreement |');
+    out('| --- | --- | --- | --- | --- | --- | --- | --- |');
     for (const s of [...scenarios, 'all']) {
         const sub = all.filter((r) => s === 'all' || r.scenario === s);
         for (const [a, b] of [
@@ -466,14 +490,15 @@ async function main() {
         ] as const) {
             const rows = pairedOutcomes(sub, a, b);
             const kill = bootstrap(rows.map((r) => r.kill));
-            const kept = bootstrap(rows.map((r) => r.kept));
-            const sign = Math.sign;
-            const decided = rows.filter((r) => Math.abs(r.kill + r.kept) > 1e-3);
-            const agree = decided.filter((r) => sign(r.kpi) === sign(r.kill + r.kept)).length;
+            const saved = bootstrap(rows.map((r) => r.saved));
+            const outcome = (r: (typeof rows)[number]) =>
+                r.kill !== 0 ? Math.sign(r.kill) : Math.sign(Math.round(r.saved));
+            const decided = rows.filter((r) => outcome(r) !== 0);
+            const agree = decided.filter((r) => Math.sign(r.kpi) === outcome(r)).length;
             const separates =
-                kill.lo > 0 || kept.lo > 0 ? `${a} better` : kill.hi < 0 || kept.hi < 0 ? `${b} better` : 'no';
+                kill.lo > 0 || saved.lo > 0 ? `${a} better` : kill.hi < 0 || saved.hi < 0 ? `${b} better` : 'no';
             out(
-                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(kept)} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
+                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(bootstrap(rows.map((r) => r.damageRate)))} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
             );
         }
     }
