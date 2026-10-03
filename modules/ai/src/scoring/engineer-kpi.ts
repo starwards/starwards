@@ -33,8 +33,18 @@ export interface EngineerWeights {
     readonly epsilon: number;
 }
 
-/** Fitted on the matched-seed validation of 2026-10-03 (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`). */
-export const ENGINEER_WEIGHTS: EngineerWeights = { k: 2, n0: 0.5, beta: 1, lambda0: 0.1, lambda1: 0.4, epsilon: 0.05 };
+/**
+ * Best of the grid on the matched-seed validation of 2026-10-03, but failing its predictive constraint
+ * and the all-max ordering (`modules/ai/ml/reports/2026-10-03-engineer-kpi.md`): provisional.
+ */
+export const ENGINEER_WEIGHTS: EngineerWeights = {
+    k: 0.5,
+    n0: 0.5,
+    beta: 0,
+    lambda0: 0.3,
+    lambda1: 0.4,
+    epsilon: 0.01,
+};
 
 /** Lambda's cap: reserve never outweighs service. */
 const LAMBDA_CAP = 0.6;

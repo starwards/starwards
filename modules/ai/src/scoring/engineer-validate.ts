@@ -231,14 +231,18 @@ function grid(): EngineerWeights[] {
     return out;
 }
 
-/** The weights maximising the weakest required contrast, among those whose K predicts the 120 s outcome. */
+/**
+ * The weights maximising the weakest required contrast, among those whose K predicts the 120 s
+ * outcome; when none does, the best of all, flagged `predictive: false`.
+ */
 function fit(runs: readonly Run[]) {
     const cuts = terciles(runs);
-    let best: { w: EngineerWeights; score: number } | undefined;
+    let best: { w: EngineerWeights; score: number; predictive: boolean } | undefined;
     for (const w of grid()) {
-        if (predictive(runs, w, cuts, 120).mean <= 0) continue;
+        const ok = predictive(runs, w, cuts, 120).mean > 0;
+        if (best?.predictive && !ok) continue;
         const score = Math.min(...Object.values(contrasts(runs, w, cuts)).map(effect));
-        if (!best || score > best.score) best = { w, score };
+        if (!best || (ok && !best.predictive) || score > best.score) best = { w, score, predictive: ok };
     }
     return best;
 }
@@ -258,12 +262,14 @@ async function main() {
     const out = (s = '') => lines.push(s);
 
     const fitted = fit(train);
-    if (!fitted) throw new Error('no weights satisfy the predictive constraint');
+    if (!fitted) throw new Error('no runs to fit');
     const w = fitted.w;
     out(`runs ${runs.length}; scenarios ${scenarios.join(', ')}; seeds ${seeds.join(',')}`);
     out(`fit seeds ${[...trainSeeds].join(',')}; held-out seeds ${seeds.filter((s) => !trainSeeds.has(s)).join(',')}`);
     out();
-    out(`fitted weights: \`${JSON.stringify(w)}\` (weakest standardised train contrast ${fmt(fitted.score)})`);
+    out(
+        `fitted weights: \`${JSON.stringify(w)}\` (weakest standardised train contrast ${fmt(fitted.score)}; predictive constraint ${fitted.predictive ? 'met' : 'NOT met'})`,
+    );
     out();
 
     const cuts = terciles(runs);
