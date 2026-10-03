@@ -10,6 +10,7 @@ import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { brainSpecSchema } from '../brain/spec';
 import { headlessCrew } from './crew';
 import { idlePolicy } from '../brain/policies';
+import { loadCrew } from './crew-config';
 import { readDecisionLog } from '../training/decision-log';
 import { rmDirRetrying } from '@starwards/server/src/test/training/analysis/__fixtures__/rm-retry';
 
@@ -148,6 +149,75 @@ describe('a headless crew that talks', () => {
             const { decisions, requests } = readDecisionLog(result.recording!);
             expect(decisions.filter((d) => d.control === CALLOUT_QUESTION)).toHaveLength(3);
             expect(requests.filter((r) => r.station === 'helms').map((r) => r.heard?.length)).toEqual([0, 1, 1]);
+        } finally {
+            await rmDirRetrying(dir);
+        }
+    });
+});
+
+describe('a headless crew with a tactical seat', () => {
+    jest.setTimeout(60_000);
+
+    it("routes the fused brain's presses to helms and weapons, and its callouts to the crew as the seat that said them", async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crew-tactical-'));
+        try {
+            const heard: unknown[] = [];
+            const scripted: Policy = {
+                name: 'scripted',
+                answer: async (request, controls, display) => {
+                    heard.push(request.questions.rotationMode.instructions);
+                    return {
+                        answers: {
+                            ...(await idlePolicy.answer(request, controls, display)).answers,
+                            rotation: { choice: 'right', source: 'rule' },
+                            target: { choice: 'next', source: 'rule' },
+                            'fireChainGun:0': { choice: 'fire', source: 'rule' },
+                            'callout:weapons': { choice: 'target_locked', source: 'rule' },
+                        },
+                    };
+                },
+            };
+            const { seats } = loadCrew(path.resolve(__dirname, '../../crews/tactical-reference.json'));
+            const crew = headlessCrew({
+                shipId: TRAINING_PLAYER_ID,
+                latencySeconds: 0,
+                seats: [{ ...seats[0], policy: scripted }],
+            });
+            const result = await runTraining(trainingScenarios.T0, {
+                seed: 1,
+                timeoutSeconds: 1.2,
+                crewedPlayer: true,
+                beforeTick: crew.beforeTick,
+                recording: { dir, intervalSimSeconds: 1 },
+            });
+
+            const events = fs
+                .readFileSync(result.recording!.replace(/\.sgr$/, '.events.jsonl'), 'utf8')
+                .split('\n')
+                .filter(Boolean)
+                .map((l) => JSON.parse(l) as { kind: string; data: Record<string, unknown> });
+            const of = (kind: string) => events.filter((e) => e.kind === kind).map((e) => e.data);
+            const commands = of('command').map((c) => `${String(c.seat)} ${String(c.command)} ${String(c.ok)}`);
+            expect(new Set(commands)).toEqual(
+                new Set(['helms rotation true', 'weapons nextTarget true', 'weapons fireChainGun true']),
+            );
+            expect(of('command').every((c) => c.station === 'tactical')).toBe(true);
+            expect(of('callout')[0]).toEqual({
+                station: 'tactical',
+                seat: 'weapons',
+                callout: 'target_locked',
+                phrase: 'target locked',
+                delivered: true,
+            });
+            // weapons' lock reaches helms' question at the next decision, never the one that said it
+            expect(heard[0]).not.toMatch(/On the radio/);
+            expect(heard[1]).toMatch(/On the radio: Weapons said "target locked"/);
+            expect(of('decision').find((d) => d.control === 'rotation')).toMatchObject({ seat: 'helms' });
+            expect(of('brain_request')[0]).toMatchObject({
+                station: 'tactical',
+                brain: 'tactical',
+                seats: ['helms', 'weapons'],
+            });
         } finally {
             await rmDirRetrying(dir);
         }

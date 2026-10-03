@@ -249,6 +249,23 @@ Recommended crew: [`crews/recommended.json`](../../modules/ai/crews/recommended.
 reach cut it fails L0 (7/8, median 132.6 s) and L1 (10/16); see the suite baselines under
 [Curriculum](#curriculum).
 
+### Tactical: one brain for helms and weapons
+
+A crew may seat `tactical` in place of `helms` and `weapons` (`crews/tactical-reference.json`,
+`crews/jev-tactical-t1-e10-s3.json`). The station is the MCP multiplexer, and its brain,
+[`brains/tactical.v1.json`](../../modules/ai/brains/tactical.v1.json), is a clone of `helms.v19` and
+`weapons.v17`: their control wording merged, one decision answering both seats' questions. It is a
+fused oracle meant to be distilled back into per-seat brains, so the seams stay visible:
+
+- `seats` in the brain names the member seats; each seat's `callouts` are asked as `callout:<seat>`.
+- Every `decision`, `command` and `callout` event carries `seat`; `brain_request` carries `seats`, and
+  the archive manifest keeps it beside the station's brain and policy.
+- A seat's callout is said on the crew channel as that seat, so the brain hears "weapons: target
+  locked" at its next decision through the cloned `hears` wording, exactly as the split helms would.
+
+The reference policy plays the fused seat to the same result as the split seats (T0 seeds 1–2: same
+kill times and shells fired).
+
 ## Training
 
 ```bash

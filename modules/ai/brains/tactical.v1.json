@@ -1,0 +1,156 @@
+{
+    "id": "tactical",
+    "version": 1,
+    "station": "tactical",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "helms and weapons officers of the warship GVTS at one console: helms flies the ship with the helms console keys; weapons chooses targets and fires the forward chain gun with the weapons console keys",
+    "mission": "helms: get behind the enemy ship and stay about 500 m behind it, moving with it: the console says the contact is itself moving away from us when we are behind it. The forward chain gun hits a target that moves away from us; shells fired at a target coming toward us or crossing are swept off it. weapons: lock the enemy ship and keep hitting it with the chain gun until it is destroyed",
+    "controls": {
+        "rotationMode": {
+            "instructions": "Which do you do with the rotation mode key now?",
+            "options": {
+                "press": "switch the rotation mode between 1 (manual: the rotation keys turn the ship) and 2 (target: the ship keeps its nose on the weapons target by itself). The ship only accepts 2 while weapons holds a target lock; otherwise the press does nothing. the console says which rotation mode is on. Choose this when rotation mode is not TARGET and the console lists an enemy ship, and at once when Weapons just said on the radio \"target locked\" (you cannot see the lock yourself)",
+                "wait": "keep the current rotation mode. Choose this when rotation mode is already TARGET, or no ship is listed"
+            },
+            "hears": ["weapons.target_locked"]
+        },
+        "maneuveringMode": {
+            "instructions": "Which do you do with the maneuvering mode key now?",
+            "options": {
+                "press": "step the maneuvering mode 1 → 2 → 0 → 1. In 1 (velocity) boost and strafe set the ship's own speed. In 2 (target) the ship flies alongside the weapons target, matching its velocity, and boost and strafe move the ship toward, away from or around the target relative to it. In 0 (direct) boost and strafe fire the thrusters raw. Mode 2 needs a weapons lock. the console says which maneuvering mode is on. Choose this when rotation mode is TARGET (so weapons has a lock) and maneuvering mode is not TARGET. Also choose this when maneuvering mode is not TARGET and Weapons just said on the radio \"target locked\"",
+                "wait": "keep the current maneuvering mode. Choose this when maneuvering mode is already TARGET, or rotation mode is not TARGET yet"
+            },
+            "hears": ["weapons.target_locked"]
+        },
+        "rotation": {
+            "instructions": "Which rotation key do you press now? In rotation mode VELOCITY each option ends with a forecast of how far off the nose the enemy will be 3 s after that key; code has compared them and marked one best.",
+            "options": {
+                "right": "turn the nose further clockwise: raises the turn rate one step. Ignored while rotation mode is TARGET. Choose this when the forecast written here is marked 'Best forecast of these options'",
+                "left": "turn the nose further counter-clockwise: lowers the turn rate one step. Ignored while rotation mode is TARGET. Choose this when the forecast written here is marked 'Best forecast of these options'",
+                "hold": "press nothing: keep the current turn rate. Choose this when the forecast written here is marked 'Best forecast of these options'. With no forecast written here, choose this when rotation mode is TARGET (the nose follows the target by itself)",
+                "centre": "stop turning: set the turn rate to 0. Choose this when the forecast written here is marked 'Best forecast of these options'. With no forecast written here, choose this when rotation mode is VELOCITY"
+            },
+            "hears": ["weapons.need_turn"],
+            "whatIf": "noseOnContact"
+        },
+        "boost": {
+            "instructions": "Which boost key do you press now? Each option ends with a forecast of where the enemy and the firing position behind it will be 4 s after that key; code has compared them and marked one best.",
+            "options": {
+                "forward": "raise forward thrust one step: in maneuvering mode TARGET the ship closes on the target faster; in mode VELOCITY it speeds up along its nose. Choose this when the forecast written here is marked 'Best forecast of these options'. With no forecast written here, choose this when the enemy ship is farther than 600 m",
+                "back": "lower forward thrust one step: in maneuvering mode TARGET the ship drops back from the target; in mode VELOCITY it slows and then reverses. Choose this when the forecast written here is marked 'Best forecast of these options'",
+                "hold": "press nothing: keep the current thrust. Choose this when the forecast written here is marked 'Best forecast of these options'. With no forecast written here, choose this when no ship is on the radar",
+                "centre": "set thrust to 0: in maneuvering mode TARGET the ship keeps its current distance to the target; in mode VELOCITY it coasts. Choose this when the forecast written here is marked 'Best forecast of these options'"
+            },
+            "whatIf": "tailGeometry"
+        },
+        "strafe": {
+            "instructions": "Which strafe key do you press now? Each option ends with a forecast of where the enemy and the firing position behind it will be 4 s after that key; code has compared them and marked one best.",
+            "options": {
+                "right": "slide one step (0.05) more to the right: in maneuvering mode TARGET the ship circles the target to the right, faster the larger the strafe setting. Choose this when the forecast written here is marked 'Best forecast of these options'",
+                "left": "slide one step (0.05) more to the left: in maneuvering mode TARGET the ship circles the target to the left, faster the larger the strafe setting. Choose this when the forecast written here is marked 'Best forecast of these options'",
+                "hold": "press nothing: keep the current sideways thrust. Choose this when the forecast written here is marked 'Best forecast of these options'. Also choose this when no forecast is written here",
+                "centre": "stop sliding sideways: strafe back to 0. Choose this when the forecast written here is marked 'Best forecast of these options'"
+            },
+            "whatIf": "tailGeometry"
+        },
+        "afterBurner": {
+            "instructions": "Which do you do with the afterburner key now? Each option ends with a forecast of where the enemy and the firing position behind it will be 4 s after it; code has compared them and marked one best.",
+            "options": {
+                "engage": "hold it: top speed rises while afterburner fuel lasts, so every boost and strafe setting moves the ship more than twice as fast; for catching up with a far target. Choose this when the forecast written here is marked 'Best forecast of these options'",
+                "release": "let go: normal thrust, saves afterburner fuel. Choose this when the forecast written here is marked 'Best forecast of these options'. Also choose this when no forecast is written here"
+            },
+            "whatIf": "tailGeometry"
+        },
+        "antiDrift": {
+            "instructions": "Which do you do with the anti-drift key now?",
+            "options": {
+                "engage": "hold it: the thrusters cancel sideways drift, which fights maneuvering mode 2",
+                "release": "let go: no drift correction"
+            }
+        },
+        "breaks": {
+            "instructions": "Which do you do with the brakes key now?",
+            "options": {
+                "engage": "hold it: the thrusters brake the ship toward a standstill, which fights maneuvering mode 2",
+                "release": "let go: no braking"
+            }
+        },
+        "warp": {
+            "instructions": "Which warp key do you press now?",
+            "options": {
+                "up": "engage or raise warp: the ship travels far and fast and leaves the fight",
+                "down": "lower warp",
+                "none": "press neither: stay at normal flight"
+            }
+        },
+        "dock": {
+            "instructions": "Which do you do with the dock key now?",
+            "options": {
+                "press": "dock with a nearby friendly station; there is none in this fight",
+                "wait": "do not dock"
+            }
+        },
+        "resetRotationOffset": {
+            "instructions": "Which do you do with the rotation offset reset key now?",
+            "options": {
+                "press": "re-centre the aim offset of rotation mode 2 on the target itself. Choose this when rotation mode is TARGET and Weapons just said on the radio \"need you N° left\" or \"need you N° right\": the nose is following the target with an offset",
+                "wait": "leave the aim offset. Choose this when the nose already follows the target"
+            },
+            "hears": ["weapons.need_turn"]
+        },
+        "target": {
+            "instructions": "Which targeting key do you press now?",
+            "options": {
+                "next": "lock the next contact the filters allow (only contacts scanned at least BASIC); the console then marks the locked contact (LOCKED). With no lock the pilot cannot follow the target. Choose this when the console says no weapons lock and lists a ship",
+                "previous": "lock the previous allowed contact",
+                "clear": "drop the current lock: the pilot loses the target",
+                "none": "press none: keep the current lock, or keep having none. Choose this when the console shows a weapons lock"
+            }
+        },
+        "fireChainGun:0": {
+            "instructions": "Which do you do with the chain gun trigger now? Each option ends with a forecast of where the locked target is against the gun line now and in 1 s; code has compared them and marked one best.",
+            "options": {
+                "fire": "fire for half a second straight ahead along the ship's nose; shells explode at the locked target's distance, up to 8000 m, in a blast about 100 m wide each side. Choose this when the forecast written here is marked 'Best forecast of these options'. If the Engineer just said on the radio \"gun skewed N° right\" (or left), damage has bent the gun: shells fly N° that side of the nose, so fire when the LOCKED contact is about N° to that side of the nose instead",
+                "hold_fire": "do not fire. Choose this when the forecast written here is marked 'Best forecast of these options'. If the Engineer just said \"gun skewed N° right\" (or left), the gun line is N° that side of the nose: hold fire while the LOCKED contact is not near it"
+            },
+            "hears": ["engineer.gun_skewed"],
+            "whatIf": "gunLine"
+        },
+        "loadChainGun:0": {
+            "skip": true
+        },
+        "changeGunAmmo:0": {
+            "skip": true
+        },
+        "targetEnemyOnly": {
+            "skip": true
+        },
+        "targetShipsOnly": {
+            "skip": true
+        },
+        "targetShortRangeOnly": {
+            "skip": true
+        },
+        "callout:weapons": {
+            "instructions": "You are the weapons officer, speaking on the ship radio to helms and the rest of the crew. Do you call something out right now?"
+        }
+    },
+    "view": "verbal",
+    "seats": {
+        "helms": {},
+        "weapons": {
+            "callouts": {
+                "need_turn": {
+                    "say": "need you {degrees}° {side}",
+                    "fill": "lockedOffNose",
+                    "when": "tells helms how many degrees, and to which side, to turn the nose onto the locked target: helms cannot see which contact is locked or where the gun line is. Choose this when the console shows a weapons lock and says the locked target is off the gun line"
+                },
+                "target_locked": {
+                    "say": "target locked",
+                    "when": "tells helms weapons holds a lock, which helms cannot see, so helms can switch on its target modes. Choose this when the console shows a weapons lock and you have not said so since the lock was taken"
+                }
+            }
+        }
+    }
+}

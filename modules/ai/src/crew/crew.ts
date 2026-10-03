@@ -39,6 +39,8 @@ type Pending = {
     at: number;
     seat: Seat;
     control: string;
+    /** The member seat of a multiplexed station that this press is for. */
+    member?: string;
     press: { command: string; args: Record<string, unknown>; value?: number | boolean };
 };
 
@@ -129,19 +131,22 @@ export function headlessCrew(options: CrewOptions) {
             heard,
             questions: result.request.questions,
         });
-        if (result.callout) {
-            const delivered = channel.say(station, result.callout, game.seconds);
+        for (const said of result.callouts) {
+            // a fused brain speaks as the member seat, so it hears itself next decision as the split crew would
+            const delivered = channel.say(said.seat ?? station, said, game.seconds);
             stats[delivered ? 'callouts' : 'suppressed']++;
             recorder.record('callout', options.shipId, {
                 station,
-                callout: result.callout.callout,
-                phrase: result.callout.phrase,
+                ...(said.seat === undefined ? {} : { seat: said.seat }),
+                callout: said.callout,
+                phrase: said.phrase,
                 delivered,
             });
         }
         for (const d of result.decisions) {
             recorder.record('decision', options.shipId, {
                 station,
+                ...(d.seat === undefined ? {} : { seat: d.seat }),
                 brain: result.meta.brain,
                 version: result.meta.version,
                 policy: result.meta.policy,
@@ -153,7 +158,7 @@ export function headlessCrew(options: CrewOptions) {
                 pressed: d.press !== undefined,
             });
             stats.decisions++;
-            const control = (stats.controls[`${station}/${d.control}`] ??= {
+            const control = (stats.controls[`${d.seat ?? station}/${d.control}`] ??= {
                 decisions: 0,
                 confident: 0,
                 confidenceSum: 0,
@@ -169,19 +174,32 @@ export function headlessCrew(options: CrewOptions) {
                 stats.fallbacks++;
             }
             if (d.press) {
-                pending.push({ at: game.seconds + options.latencySeconds, seat, control: d.control, press: d.press });
+                pending.push({
+                    at: game.seconds + options.latencySeconds,
+                    seat,
+                    control: d.control,
+                    member: d.seat,
+                    press: d.press,
+                });
             }
         }
         stats.inputTokens += result.meta.inputTokens ?? 0;
     }
 
-    function execute({ seat, control, press }: Pending, recorder: HeadlessRecorder) {
+    function execute({ seat, control, member, press }: Pending, recorder: HeadlessRecorder) {
         const record = (ok: boolean, result: string) => {
             stats.commands++;
             if (!ok) {
                 stats.refused++;
             }
-            recorder.record('command', options.shipId, { station: seat.plan.station, control, ...press, ok, result });
+            recorder.record('command', options.shipId, {
+                station: seat.plan.station,
+                ...(member === undefined ? {} : { seat: member }),
+                control,
+                ...press,
+                ok,
+                result,
+            });
         };
         // a held trigger resolves only after simulated time passes, so it must not stall the tick
         seat.session.execute(press.command as never, press.args, press.value).then(
