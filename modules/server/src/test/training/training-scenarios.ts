@@ -177,8 +177,6 @@ const W_OUTRANGED: TrainingScenario<T0Params> = {
 };
 
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
-    'W-multi': W_MULTI as TrainingScenario<never>,
-    'W-outranged': W_OUTRANGED as TrainingScenario<never>,
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     'T0-wide': T0_WIDE as TrainingScenario<never>,
     'T0-constrained': T0_CONSTRAINED as TrainingScenario<never>,
@@ -199,6 +197,8 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
         { standGround: true, capsuleIntegrity: 0.3 },
         'holding its ground with its capsule 70% breached',
     ) as TrainingScenario<never>,
+    'W-multi': W_MULTI as TrainingScenario<never>,
+    'W-outranged': W_OUTRANGED as TrainingScenario<never>,
 };
 
 /**
