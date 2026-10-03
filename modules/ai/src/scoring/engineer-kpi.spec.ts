@@ -24,6 +24,7 @@ const frame = (over: Partial<EngineerComponents> = {}): EngineerComponents => ({
     sumA: 2,
     service: 1,
     store: 1,
+    cells: 0,
     features: calm,
     sumAsev: 0,
     sumSev: 0,
