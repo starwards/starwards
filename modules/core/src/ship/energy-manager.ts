@@ -26,6 +26,12 @@ export class EnergyManager implements EnergySource, Updateable {
     private epm = new Map<ShipSystem, EpmEntry>();
     private demand = 0;
     private lastDemand = 0;
+    private granted = 0;
+    /**
+     * The previous tick's energy flow: what every system together asked the reactor for, and what it
+     * granted of that. `granted < demand` is a tick the reactor could not cover.
+     */
+    lastFlow = { demand: 0, granted: 0 };
     private supplyRatio: number | null = null;
     constructor(
         private state: ShipState,
@@ -49,6 +55,7 @@ export class EnergyManager implements EnergySource, Updateable {
         this.demand += value;
         const granted = Math.min(value * this.supplyRatio, this.state.reactor.energy);
         this.state.reactor.energy = this.state.reactor.energy - granted;
+        this.granted += granted;
         const fraction = granted / value;
         if (system) {
             system.energyStarved = fraction < 1;
@@ -81,7 +88,9 @@ export class EnergyManager implements EnergySource, Updateable {
         this.addPowerHeat(generated, generatedPerMinute, reactor);
         reactor.energy = capToRange(0, reactor.design.maxEnergy, reactor.energy + generated);
         this.lastDemand = this.demand;
+        this.lastFlow = { demand: this.demand, granted: this.granted };
         this.demand = 0;
+        this.granted = 0;
         this.supplyRatio = null;
         // `drawEnergy` only flags the *drawing* system — a reactor sitting at zero with
         // nothing currently trying to draw from it would otherwise never get flagged itself, and

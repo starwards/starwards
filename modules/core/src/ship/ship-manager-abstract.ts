@@ -180,6 +180,11 @@ export abstract class ShipManager implements Updateable {
     protected reactorCellManager: ReactorCellManager;
     public signalsJobManager: SignalsJobManager;
 
+    /** Calls `listener` for every defect this ship's systems take, with its cause (e.g. headless recording). */
+    listenToDefects(listener: DamageManager['onDefect']) {
+        this.damageManager.onDefect = listener;
+    }
+
     constructor(
         public readonly spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,

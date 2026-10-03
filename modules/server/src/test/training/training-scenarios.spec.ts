@@ -2,9 +2,16 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { EVENTS_EXT, RecordedEvent } from '../headless-recorder';
+import {
+    EVENTS_EXT,
+    IdleStrategy,
+    Order,
+    ShipManagerPc,
+    ShipModel,
+    parseEventLine,
+    shipConfigurations,
+} from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
-import { IdleStrategy, Order, ShipModel, shipConfigurations } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID } from '../../scenarios/training';
 import { runTraining, trainingScenarios } from './training-scenarios';
 
@@ -28,8 +35,17 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T1, T1-MK2, T1-predator and T1-noweave', () => {
-        expect(Object.keys(trainingScenarios)).toEqual(['T0', 'T1', 'T1-MK2', 'T1-predator', 'T1-noweave']);
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T1-MK2, T1-predator, T1-noweave and T1-lite', () => {
+        expect(Object.keys(trainingScenarios)).toEqual([
+            'T0',
+            'T0-wide',
+            'T0-constrained',
+            'T1',
+            'T1-MK2',
+            'T1-predator',
+            'T1-noweave',
+            'T1-lite',
+        ]);
     });
 
     it('T0: a dragonfly-MK1 that plays dead, capped to the GVTS top speed', () => {
@@ -55,6 +71,18 @@ describe('training ladder', () => {
         expect(state.order).toBe(Order.ATTACK);
         expect(state.orderTargetId).toBe(TRAINING_PLAYER_ID);
         expect(state.labNoCombatWeave ?? false).toBe(noCombatWeave);
+        expect(state.capsule.integrity).toBe(1);
+    });
+
+    it('T1-lite: a dragonfly-MK1 holding its ground, capped to the GVTS top speed, capsule 70% breached', () => {
+        const { state, model } = targetOf('T1-lite');
+        const cap = shipConfigurations.gravitas.smartPilot.maxSpeed;
+
+        expect(model).toBe('dragonfly-MK1');
+        expect(state.order).toBe(Order.NONE);
+        expect(state.idleStrategy).toBe(IdleStrategy.STAND_GROUND);
+        expect(state.smartPilot.design.maxSpeed).toBe(cap);
+        expect(state.capsule.integrity).toBeCloseTo(0.3);
     });
 });
 
@@ -102,9 +130,11 @@ describe('runTraining', () => {
                     .readFileSync(result.recording!.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
                     .split('\n')
                     .filter((line) => line)
-                    .map((line) => JSON.parse(line) as RecordedEvent)
+                    .map((line) => parseEventLine(line)!)
                     .flatMap((e) =>
-                        e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID ? [e.explosionId] : [],
+                        e.kind === 'blast_hit' && e.objectId === TRAINING_TARGET_ID
+                            ? [(e.data as { explosionId: string }).explosionId]
+                            : [],
                     ),
             );
             expect(targetBlasts.size).toBeGreaterThan(0);
@@ -112,5 +142,71 @@ describe('runTraining', () => {
         } finally {
             await rmDirRetrying(dir);
         }
+    });
+});
+
+describe('runTraining with a crewed player', () => {
+    jest.setTimeout(30_000);
+
+    it('a crewed GVTS is a ShipManagerPc that does nothing unless a hook drives it', async () => {
+        let manager: unknown;
+        const result = await runTraining(trainingScenarios.T0, {
+            seed: 1,
+            timeoutSeconds: 5,
+            crewedPlayer: true,
+            beforeTick: (game) => {
+                manager ??= game.shipManagers.get(TRAINING_PLAYER_ID);
+            },
+        });
+
+        expect(manager).toBeInstanceOf(ShipManagerPc);
+        expect(result.killed).toBe(false);
+        // The magazine still loads a round into the gun, so `shellsFired` can read 1 here.
+        expect(result.secondsFiring).toBe(0);
+    });
+
+    it('awaits beforeTick once per tick, before the tick runs', async () => {
+        let calls = 0;
+        let pending = false;
+        let lastGame: HeadlessGame | undefined;
+        const secondsSeen: number[] = [];
+        await runTraining(trainingScenarios.T0, {
+            seed: 1,
+            timeoutSeconds: 1,
+            beforeTick: async (game) => {
+                expect(pending).toBe(false);
+                pending = true;
+                calls++;
+                lastGame = game;
+                const before = game.seconds;
+                secondsSeen.push(before);
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                expect(game.seconds).toBe(before);
+                pending = false;
+            },
+        });
+
+        expect(lastGame).toBeDefined();
+        expect(calls).toBe(Math.round(lastGame!.seconds * SERVER_TICK_HZ));
+        expect(new Set(secondsSeen).size).toBe(calls);
+    });
+
+    it('a hook that fires the chain gun at the target drives the crewed GVTS', async () => {
+        const result = await runTraining(trainingScenarios.T0, {
+            seed: 1,
+            timeoutSeconds: 2,
+            crewedPlayer: true,
+            beforeTick: (game) => {
+                const crew = game.shipManagers.get(TRAINING_PLAYER_ID);
+                if (!crew) {
+                    throw new Error('GVTS missing');
+                }
+                crew.setTarget(TRAINING_TARGET_ID);
+                crew.state.chainGuns[0].isFiring = true;
+            },
+        });
+
+        expect(result.secondsFiring).toBeGreaterThan(0);
+        expect(result.shellsFired).toBeGreaterThan(1);
     });
 });

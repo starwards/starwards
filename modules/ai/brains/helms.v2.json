@@ -1,0 +1,51 @@
+{
+    "id": "helms",
+    "version": 2,
+    "station": "helms",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "helms officer of the warship GVTS: you fly the ship with the controls of the helms console",
+    "mission": "bring the ship's nose onto the enemy ship and hold a firing position about 2 to 3 km from it, so the forward chain gun can hit it, without ramming it",
+    "controls": {
+        "rotationMode": {
+            "instructions": "`display.panels.helms-stats.rotationMode` is 2 when the ship turns its nose toward the weapons target by itself, 1 when it does not. Should you press the rotation mode key now? Press it only if `rotationMode` is not 2 and `display.radar.contacts` lists at least one contact.",
+            "options": {
+                "press": "press it: rotationMode is not 2 and a contact is listed",
+                "wait": "do not press: rotationMode is already 2, or no contact is listed"
+            }
+        },
+        "maneuveringMode": {
+            "instructions": "`display.panels.helms-stats.maneuveringMode` must stay 1. Should you press the maneuvering mode key now?",
+            "options": { "press": "press it: maneuveringMode is not 1", "wait": "do not press: maneuveringMode is 1" }
+        },
+        "rotation": {
+            "instructions": "When `display.panels.helms-stats.rotationMode` is 2 the ship aims itself and `rotationCommand` must be 0. What do you do with the rotation keys?",
+            "options": {
+                "centre": "rotationMode is 2 and rotationCommand is not 0",
+                "hold": "rotationCommand is already 0, or rotationMode is not 2 and the nose already points at the nearest contact"
+            }
+        },
+        "boost": {
+            "instructions": "`display.panels.helms-stats.maneuveringCommand.x` is the forward thrust setting, from -1 to 1. The nearest contact is the first one in `display.radar.contacts`; its `distance` is in metres. Which boost key do you press?",
+            "options": {
+                "forward": "the nearest contact is farther than 3000 m and maneuveringCommand.x is below 1",
+                "back": "the nearest contact is nearer than 2000 m and maneuveringCommand.x is above -1",
+                "hold": "the nearest contact is between 2000 m and 3000 m, or the radar lists no contact",
+                "centre": "never"
+            }
+        },
+        "afterBurner": {
+            "instructions": "Should the afterburner be held down? Hold it only while the first contact in `display.radar.contacts` is farther than 5000 m.",
+            "options": {
+                "engage": "the nearest contact is farther than 5000 m",
+                "release": "the nearest contact is 5000 m or nearer, or no contact is listed"
+            }
+        },
+        "antiDrift": { "skip": true },
+        "breaks": { "skip": true },
+        "strafe": { "skip": true },
+        "dock": { "skip": true },
+        "warp": { "skip": true },
+        "resetRotationOffset": { "skip": true }
+    }
+}

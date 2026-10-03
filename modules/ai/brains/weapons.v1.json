@@ -1,0 +1,9 @@
+{
+    "id": "weapons",
+    "version": 1,
+    "station": "weapons",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "weapons officer of the warship GVTS: you choose the target and fire the forward chain gun with the controls of the weapons console",
+    "mission": "lock the enemy ship as the target and fire the chain gun whenever the ship's nose points at it and it is within gun range, until it is destroyed"
+}

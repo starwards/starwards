@@ -1,4 +1,4 @@
-import { Driver, ShipDriver } from '@starwards/core';
+import { Driver, ShipDriver, radarReach } from '@starwards/core';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
@@ -16,7 +16,7 @@ import { shipInputConfig } from '../input/input-config';
 import { stationGrid } from '../container';
 import { wireTubeHotkeys } from '../input/tube-hotkeys';
 
-const radarRange = 10000;
+const radarRange = radarReach.tactical;
 
 export async function initWeaponsScreen(
     driver: Driver,

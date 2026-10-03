@@ -50,3 +50,46 @@ export function parseFrameLine(line: string): RecordingFrameLine | null {
         return null;
     }
 }
+
+/** File extension of the sidecar written beside a `.sgr` recording; replay readers never open it. */
+export const EVENTS_EXT = '.events.jsonl';
+
+/**
+ * One timed line of a recording's sidecar. Any module can add its own kinds: the sidecar is kept
+ * out of the `.sgr` so replay readers, which treat every non-header line as a frame, never see them.
+ */
+export interface RecordingEventLine {
+    /** Game time (seconds) of the tick the event was recorded on. */
+    t: number;
+    /** Event kind, chosen by the recording module (e.g. `fire_start`, `blast_hit`, `decision`). */
+    kind: string;
+    /** Space object the event concerns, when it concerns one. */
+    objectId?: string;
+    /** Kind-specific JSON payload. */
+    data?: unknown;
+}
+
+export function encodeEventLine(event: RecordingEventLine): string {
+    return JSON.stringify(event) + '\n';
+}
+
+/**
+ * Parses a single sidecar line. Returns `null` (instead of throwing) for a malformed or truncated
+ * line, same contract as {@link parseFrameLine}.
+ */
+export function parseEventLine(line: string): RecordingEventLine | null {
+    try {
+        const parsed = JSON.parse(line) as Partial<RecordingEventLine> | null;
+        if (
+            !parsed ||
+            typeof parsed.t !== 'number' ||
+            typeof parsed.kind !== 'string' ||
+            (parsed.objectId !== undefined && typeof parsed.objectId !== 'string')
+        ) {
+            return null;
+        }
+        return parsed as RecordingEventLine;
+    } catch {
+        return null;
+    }
+}

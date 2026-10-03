@@ -1,0 +1,36 @@
+{
+    "id": "signals",
+    "version": 3,
+    "station": "signals",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 1,
+    "role": "signals officer of the warship GVTS: you steer the scan beam and run the scan queue with the signals console keys",
+    "mission": "keep the scan beam on the enemy ship and the scan queue running, so the enemy ship is identified and scanned as fast as possible",
+    "controls": {
+        "beamDirection": {
+            "instructions": "Which scan beam direction key do you press now?",
+            "options": {
+                "right": "turn the scan beam 5° further right (clockwise) of the nose. Choose this when the enemy ship, or the contact the scan queue is working on, is outside the scan beam on its right side",
+                "left": "turn the scan beam 5° further left (counter-clockwise) of the nose. Choose this when the enemy ship, or the contact the scan queue is working on, is outside the scan beam on its left side",
+                "hold": "press nothing: keep the beam where it points. Choose this when that contact is inside the scan beam",
+                "centre": "point the beam dead on the nose at once. Choose this when no contact is on the radar"
+            }
+        },
+        "beamArc": {
+            "instructions": "Which scan beam width key do you press now?",
+            "options": {
+                "widen": "widen the scan beam 5°: it covers more of the sky but reaches less far. Never needed: the omni radar already sees all around to about 49 km",
+                "narrow": "narrow the scan beam 5°: it reaches farther but covers less; at its narrowest, 5°, it reaches about 70 km, beyond the omni radar, where unseen contacts may lie. Choose this when the beam is wider than 5°",
+                "hold": "press nothing: keep the beam width. Choose this when the beam is 5° wide"
+            }
+        },
+        "pauseJobs": {
+            "instructions": "Which do you do with the scan queue pause switch now?",
+            "options": {
+                "on": "pause the scan queue: nothing is scanned while it is on. Choose this never during a fight",
+                "off": "run the scan queue: contacts are scanned in turn. Choose this when there is anything to scan, which is always during a fight"
+            }
+        }
+    },
+    "view": "verbal"
+}

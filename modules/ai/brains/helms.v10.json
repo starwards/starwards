@@ -1,0 +1,96 @@
+{
+    "id": "helms",
+    "version": 10,
+    "station": "helms",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 0.5,
+    "role": "helms officer of the warship GVTS, flying it with the helms console keys",
+    "mission": "get behind the enemy ship and stay about 500 m behind it, moving with it: the console says the contact is itself moving away from us when we are behind it. The forward chain gun hits a target that moves away from us; shells fired at a target coming toward us or crossing are swept off it",
+    "controls": {
+        "rotationMode": {
+            "instructions": "Which do you do with the rotation mode key now?",
+            "options": {
+                "press": "switch the rotation mode between 1 (manual: the rotation keys turn the ship) and 2 (target: the ship keeps its nose on the weapons target by itself). The ship only accepts 2 while weapons holds a target lock; otherwise the press does nothing. the console says which rotation mode is on. Choose this when rotation mode is not TARGET and the console lists an enemy ship",
+                "wait": "keep the current rotation mode. Choose this when rotation mode is already TARGET, or no ship is listed"
+            }
+        },
+        "maneuveringMode": {
+            "instructions": "Which do you do with the maneuvering mode key now?",
+            "options": {
+                "press": "step the maneuvering mode 1 → 2 → 0 → 1. In 1 (velocity) boost and strafe set the ship's own speed. In 2 (target) the ship flies alongside the weapons target, matching its velocity, and boost and strafe move the ship toward, away from or around the target relative to it. In 0 (direct) boost and strafe fire the thrusters raw. Mode 2 needs a weapons lock. the console says which maneuvering mode is on. Choose this when rotation mode is TARGET (so weapons has a lock) and maneuvering mode is not TARGET",
+                "wait": "keep the current maneuvering mode. Choose this when maneuvering mode is already TARGET, or rotation mode is not TARGET yet"
+            }
+        },
+        "rotation": {
+            "instructions": "Which rotation key do you press now?",
+            "options": {
+                "right": "turn the nose further clockwise: raises the turn rate one step. Ignored while rotation mode is TARGET. Choose this when rotation mode is VELOCITY and the enemy ship is more than 5° right of the nose: point the nose at it before weapons can lock",
+                "left": "turn the nose further counter-clockwise: lowers the turn rate one step. Ignored while rotation mode is TARGET. Choose this when rotation mode is VELOCITY and the enemy ship is more than 5° left of the nose",
+                "hold": "press nothing: keep the current turn rate. Choose this when rotation mode is TARGET (the nose follows the target by itself)",
+                "centre": "stop turning: set the turn rate to 0. Choose this when rotation mode is VELOCITY and the enemy ship is within 5° of the nose"
+            }
+        },
+        "boost": {
+            "instructions": "Which boost key do you press now?",
+            "options": {
+                "forward": "raise forward thrust one step: in maneuvering mode TARGET the ship closes on the target faster; in mode VELOCITY it speeds up along its nose. Choose this when the enemy ship is farther than 600 m, or it is opening",
+                "back": "lower forward thrust one step: in maneuvering mode 2 the ship drops back from the target; in mode 1 it slows and then reverses. Choose this when the enemy ship is nearer than 400 m and closing",
+                "hold": "press nothing: keep the current thrust. Choose this when no ship is on the radar",
+                "centre": "set thrust to 0: in maneuvering mode 2 the ship keeps its current distance to the target; in mode 1 it coasts. Choose this when the nearest ship is between 400 m and 600 m away"
+            }
+        },
+        "strafe": {
+            "instructions": "Which strafe key do you press now?",
+            "options": {
+                "right": "slide one step (0.05) more to the right: in maneuvering mode TARGET the ship circles the target to the right, faster the larger the strafe setting. Choose this when the enemy is itself moving across, to our left, or moving away or toward us slanting to our left, and strafe is set below 0.40: circling brings us onto its tail line",
+                "left": "slide one step (0.05) more to the left: in maneuvering mode TARGET the ship circles the target to the left, faster the larger the strafe setting. Choose this when the enemy is itself moving across, to our right, or moving away or toward us slanting to our right, and strafe is set above -0.40: circling brings us onto its tail line",
+                "hold": "press nothing: keep the current sideways thrust. Choose this while still circling toward its tail line and strafe is already set to 0.40 or more either way",
+                "centre": "stop sliding sideways: strafe back to 0. Choose this when the enemy is itself moving away from us, straight (we are on its tail line), or is not moving"
+            }
+        },
+        "afterBurner": {
+            "instructions": "Which do you do with the afterburner key now?",
+            "options": {
+                "engage": "hold it: top speed rises from 450 to 600 m/s while afterburner fuel lasts; for catching up with a target. Choose this when the enemy ship is farther than 2000 m and within 15° of the nose",
+                "release": "let go: normal thrust, saves afterburner fuel. Choose this when the enemy ship is 2000 m away or nearer, or more than 15° off the nose"
+            }
+        },
+        "antiDrift": {
+            "instructions": "Which do you do with the anti-drift key now?",
+            "options": {
+                "engage": "hold it: the thrusters cancel sideways drift, which fights maneuvering mode 2",
+                "release": "let go: no drift correction"
+            }
+        },
+        "breaks": {
+            "instructions": "Which do you do with the brakes key now?",
+            "options": {
+                "engage": "hold it: the thrusters brake the ship toward a standstill, which fights maneuvering mode 2",
+                "release": "let go: no braking"
+            }
+        },
+        "warp": {
+            "instructions": "Which warp key do you press now?",
+            "options": {
+                "up": "engage or raise warp: the ship travels far and fast and leaves the fight",
+                "down": "lower warp",
+                "none": "press neither: stay at normal flight"
+            }
+        },
+        "dock": {
+            "instructions": "Which do you do with the dock key now?",
+            "options": {
+                "press": "dock with a nearby friendly station; there is none in this fight",
+                "wait": "do not dock"
+            }
+        },
+        "resetRotationOffset": {
+            "instructions": "Which do you do with the rotation offset reset key now?",
+            "options": {
+                "press": "re-centre the aim offset of rotation mode 2 on the target itself",
+                "wait": "leave the aim offset. Choose this when the nose already follows the target"
+            }
+        }
+    },
+    "view": "verbal"
+}

@@ -1,0 +1,17 @@
+{
+    "name": "engineer-random",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference"
+        },
+        {
+            "station": "engineer",
+            "policy": "random"
+        }
+    ]
+}

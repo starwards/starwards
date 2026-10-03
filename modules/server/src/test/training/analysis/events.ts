@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 
-import { EVENTS_EXT, RecordedEvent } from '../../headless-recorder';
+import { EVENTS_EXT, RecordingEventLine, parseEventLine } from '@starwards/core/internal';
 import { RECORDING_EXT } from '../../../recording/game-recorder';
 import { Store } from './store';
 import { median } from '../gunnery-metrics';
@@ -89,19 +89,13 @@ export async function computeEvents(
     // frame-derived ones (a burst shorter than the frame interval never reaches a frame), and its
     // blast hits exist nowhere else.
     const recorded = readRecordedEvents(runId);
-    for (const event of recorded ?? []) {
-        if (event.kind === 'blast_hit') {
-            batch.add(
-                runId,
-                event.t,
-                event.kind,
-                event.objectId,
-                { explosionId: event.explosionId, damageType: event.damageType },
-                'recorded',
-            );
-        } else {
-            batch.add(runId, event.t, event.kind, event.objectId, { gun: event.mount }, 'recorded');
-        }
+    for (const event of recorded?.events ?? []) {
+        batch.add(runId, event.t, event.kind, event.objectId ?? null, recordedDetail(event), 'recorded');
+    }
+    if (recorded?.malformed) {
+        // A truncated last line is expected from an interrupted run; surface the count instead of
+        // aborting ingest, so the rest of the sidecar still counts.
+        batch.add(runId, 0, 'sidecar_malformed', null, { lines: recorded.malformed }, 'recorded');
     }
     for (const obj of ships) {
         await computeBooleanEdges(store, batch, runId, obj.object_id, '/destroyed', 'destroyed', undefined);
@@ -128,19 +122,42 @@ export async function computeEvents(
     await batch.flush(store);
 }
 
-/** `null` when `recordingPath` has no `.events.jsonl` sidecar (e.g. a live-server recording). */
-function readRecordedEvents(recordingPath: string): RecordedEvent[] | null {
+/**
+ * `detail_json` of a sidecar event: its `data` verbatim, except fire edges, whose `mount` is stored
+ * as `gun` to match the frame-derived fire events that metrics and checks read interchangeably.
+ */
+function recordedDetail(event: RecordingEventLine): unknown {
+    if (event.kind === 'fire_start' || event.kind === 'fire_stop') {
+        return { gun: (event.data as { mount?: number } | undefined)?.mount };
+    }
+    return event.data ?? {};
+}
+
+/**
+ * `null` when `recordingPath` has no `.events.jsonl` sidecar (e.g. a live-server recording);
+ * otherwise its parsed events and the number of lines that did not parse.
+ */
+function readRecordedEvents(recordingPath: string): { events: RecordingEventLine[]; malformed: number } | null {
     const sidecar = recordingPath.endsWith(RECORDING_EXT)
         ? recordingPath.slice(0, -RECORDING_EXT.length) + EVENTS_EXT
         : null;
     if (!sidecar || !fs.existsSync(sidecar)) {
         return null;
     }
-    return fs
-        .readFileSync(sidecar, 'utf8')
-        .split('\n')
-        .filter((line) => line.trim())
-        .map((line) => JSON.parse(line) as RecordedEvent);
+    const events: RecordingEventLine[] = [];
+    let malformed = 0;
+    for (const line of fs.readFileSync(sidecar, 'utf8').split('\n')) {
+        if (!line.trim()) {
+            continue;
+        }
+        const event = parseEventLine(line);
+        if (event) {
+            events.push(event);
+        } else {
+            malformed++;
+        }
+    }
+    return { events, malformed };
 }
 
 async function computeBooleanEdges(

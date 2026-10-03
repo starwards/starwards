@@ -166,6 +166,32 @@ jobs:
                   path: test-results
                   if-no-files-found: ignore
 
+    AI-Controls:
+        # $0 harness check: the reference crew must kill on T0, the idle crew must not.
+        # No Jev seat runs here; the Jev client refuses to start when CI is set.
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+                  cache: 'npm'
+            - run: npm ci
+            - run: npm run build:core
+            - run: npm run build:server
+            - run: >-
+                  npm --prefix modules/ai run train -- --scenario T0 --seeds 8 --timeout 180 --workers 4
+                  --crew crews/reference.json --crew crews/idle.json --out ai-controls
+                  --expect-kills reference=7-8 --expect-kills idle=0-0
+            - name: Store report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ai-controls
+                  path: modules/ai/ai-controls/*.md
+                  if-no-files-found: ignore
+
     coverage-core:
         # Coverage gate scoped to modules/core only. Started at a low
         # threshold so it passes against current main; ratchet up by +5pp

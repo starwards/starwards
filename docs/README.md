@@ -65,6 +65,7 @@ purpose; do not read as current.
 | [`INTEGRATION.md`](INTEGRATION.md) | Index of integration surfaces: Node-RED, MCP server, Docker, Open Stage Control, MQTT, extending. |
 | [`integration/node-red.md`](integration/node-red.md) | Node-RED nodes, example flows, connection lifecycle. |
 | [`integration/mcp-server.md`](integration/mcp-server.md) | MCP server seating an LLM at a sandboxed station. |
+| [`integration/ai-crew.md`](integration/ai-crew.md) | Station brains (`modules/ai`): button-level bots, their headless training and decision recordings. |
 | [`integration/docker.md`](integration/docker.md) | Docker Compose services for MQTT/Node-RED. |
 | [`integration/open-stage-control.md`](integration/open-stage-control.md) | Touchscreen/MIDI control surfaces bridged via Node-RED. |
 | [`integration/mqtt.md`](integration/mqtt.md) | Pub/sub bridging for external systems. |

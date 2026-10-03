@@ -1,0 +1,126 @@
+{
+    "name": "recommended",
+    "crew": "recommended",
+    "commit": "ee138505",
+    "date": "2026-10-02",
+    "levels": [
+        {
+            "id": "L0",
+            "seeds": {
+                "first": 1,
+                "count": 8
+            },
+            "timeoutSeconds": 180,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T0",
+                    "runs": 8,
+                    "kills": 7,
+                    "medianSeconds": 132.59999999999766,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-tag",
+                    "brain": "helms@16/jev",
+                    "runs": 8,
+                    "meanScore": 0.6027356045176877,
+                    "sdScore": 0.1939745276265421,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-hold",
+                    "brain": "helms@16/jev",
+                    "runs": 8,
+                    "meanScore": 0.5362746459316956,
+                    "sdScore": 0.13117942249894826,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-intercept",
+                    "brain": "helms@16/jev",
+                    "runs": 8,
+                    "meanScore": 0.5569675925925947,
+                    "sdScore": 0.36343339476031034,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "weapons-acquire",
+                    "brain": "weapons@15/jev",
+                    "runs": 8,
+                    "meanScore": 83.46908552388241,
+                    "sdScore": 46.89051314599662,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "weapons-range",
+                    "brain": "weapons@15/jev",
+                    "runs": 8,
+                    "meanScore": 83.74244730424931,
+                    "sdScore": 42.39549309992584,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "engineer-power-budget",
+                    "brain": "engineer@10/jev",
+                    "runs": 8,
+                    "meanScore": 0.7135929895282049,
+                    "sdScore": 0.038669084092421105,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "engineer-damage-control",
+                    "brain": "engineer@10/jev",
+                    "runs": 8,
+                    "meanScore": 0.6610879672488627,
+                    "sdScore": 0.16817377110692538,
+                    "refused": 0,
+                    "fallbacks": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "signals-scan",
+                    "brain": "signals@3/jev",
+                    "runs": 8,
+                    "meanScore": 0.5097921681170337,
+                    "sdScore": 0.03976126072628689,
+                    "refused": 0,
+                    "fallbacks": 0
+                }
+            ]
+        },
+        {
+            "id": "L1",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 180,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T1-lite",
+                    "runs": 16,
+                    "kills": 10,
+                    "medianSeconds": 61.59999999999779,
+                    "refused": 0,
+                    "fallbacks": 0
+                }
+            ]
+        }
+    ]
+}
