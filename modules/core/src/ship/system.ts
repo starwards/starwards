@@ -169,7 +169,8 @@ export abstract class SystemState extends Schema {
 
 /**
  * `x` in `SystemState.powerDrawFactor`'s `(power / NORMAL)^(x - 1)`. At 2, MAX gives 2× output
- * for 4× energy draw; LOW gives 0.5× output for 0.5× draw. Design call, see #2305.
+ * for 4× energy draw; LOW gives 0.5× output for 0.25× draw — energy per unit of output equals
+ * `power / NORMAL`. Design call, see #2305.
  */
 export const POWER_DRAW_EXPONENT = 2;
 
