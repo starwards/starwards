@@ -1,4 +1,5 @@
 import { Answer, Policy } from './brain';
+import { RepairProtocolStats, repairProtocols } from '@starwards/core/internal';
 
 import { Control } from './controls';
 
@@ -55,19 +56,32 @@ const PURSUIT_METERS = 1500;
 const FLUNG_SPEED = 0.9 * MAX_SPEED;
 
 /**
+ * How the reference engineer varies, for validating an engineer score against known-better and
+ * known-worse play: `jumpStart` jump-starts a dry reactor, `repair` queues the repair protocol for a
+ * defect the damage report shows.
+ */
+export type EngineerStyle = { jumpStart: boolean; repair: boolean };
+
+const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: false };
+
+/**
  * Hand-written rules that press the same buttons a brain does, for helms, weapons and engineer. It
  * is the positive control of the harness: it shows a kill is reachable through the button
  * interface, so a brain that fails is failing at judgement, not at the interface. Signals rests.
  * Each seat gets its own instance: helms remembers the last radar fix to tell the target's
  * velocity, and whether the target has fired back.
  */
-export function makeReferencePolicy(decisionSeconds: number): Policy {
+export function makeReferencePolicy(
+    decisionSeconds: number,
+    engineer: EngineerStyle = REFERENCE_ENGINEER,
+    name = 'reference',
+): Policy {
     let lastFix: { id: string; position: XY } | undefined;
     let targetVelocity: XY = { x: 0, y: 0 };
     let seconds = 0;
     let armed = false;
     return {
-        name: 'reference',
+        name,
         answer(_request, controls, shown) {
             const display = shown as Display;
             const ship = nearestShip(display);
@@ -81,7 +95,8 @@ export function makeReferencePolicy(decisionSeconds: number): Policy {
             const answers: Record<string, Answer> = {};
             for (const control of controls) {
                 const choice =
-                    referenceChoice(control, display, ship, targetVelocity, seconds, standoff) ?? control.rest;
+                    referenceChoice(control, display, ship, targetVelocity, seconds, standoff, engineer) ??
+                    control.rest;
                 answers[control.id] = { choice, source: 'rule' };
             }
             return Promise.resolve({ answers });
@@ -96,6 +111,7 @@ function referenceChoice(
     targetVelocity: XY,
     seconds: number,
     standoff: number,
+    engineer: EngineerStyle,
 ) {
     const heading = display.radar?.ownShip?.heading ?? 0;
     const helms = display.panels['helms-stats'] as Helms | undefined;
@@ -157,7 +173,7 @@ function referenceChoice(
         case 'systemPower':
         case 'systemCoolant':
         case 'cycleRepairPriority':
-            return engineerChoice(command, control.id.slice(command.length + 1), display);
+            return engineerChoice(command, control.id.slice(command.length + 1), display, engineer);
         default:
             return undefined;
     }
@@ -165,7 +181,8 @@ function referenceChoice(
 
 type SystemStatus = { pointer: string; power: number; coolantFactor: number; heat: number };
 type Engineering = { energy: number; maxEnergy: number; energyCells: number };
-type RepairSlot = { protocolId: string; priority: string };
+type RepairSlot = { protocolId: string; priority: string; refusalReason?: string };
+type Defect = { system: string; field: string };
 
 /** Below this share of the energy store the thrusters drop to low power and the reactor bursts. */
 const LOW_STORE = 0.75;
@@ -175,6 +192,8 @@ const HIGH_STORE = 0.9;
 const REACTOR_BURST_HEAT = 50;
 /** Below this share of the store, with a cell left, the engineer jump-starts the reactor. */
 const JUMP_START_STORE = 0.1;
+/** The repairing engineer queues a repair only while the store holds more than this share. */
+const REPAIR_STORE = 0.3;
 const SHUTDOWN = 0;
 const LOW = 0.25;
 const NORMAL = 0.5;
@@ -184,9 +203,10 @@ const MAX = 1;
  * The engineer of the wave-defence harness, through the console: warp, docking and tubes shut
  * down; the reactor at normal power, bursting to full while the store is low and it is still cool;
  * thrusters at low power while the store is low; coolant shared in proportion to each system's
- * heat; and a reactor jump-start when the store runs dry.
+ * heat; and a reactor jump-start when the store runs dry. A repairing engineer also queues, one at a
+ * time, a field repair for a defect the damage report shows.
  */
-function engineerChoice(command: string, key: string, display: Display) {
+function engineerChoice(command: string, key: string, display: Display, style: EngineerStyle) {
     const systems = (display.panels['full-systems-status'] ?? []) as unknown as SystemStatus[];
     const engineering = display.panels['engineering-status'] as Engineering | undefined;
     if (!engineering) {
@@ -194,15 +214,17 @@ function engineerChoice(command: string, key: string, display: Display) {
     }
     const store = engineering.energy / engineering.maxEnergy;
     if (command === 'cycleRepairPriority') {
-        const slot = ((display.panels['repair-queue'] as { slots?: RepairSlot[] } | undefined)?.slots ?? []).find(
-            (s) => s.protocolId === key,
-        );
-        return key === 'reactorJumpStart' &&
-            slot?.priority === 'OFF' &&
-            store < JUMP_START_STORE &&
-            engineering.energyCells > 0
-            ? 'raise'
-            : 'none';
+        const slots = (display.panels['repair-queue'] as { slots?: RepairSlot[] } | undefined)?.slots ?? [];
+        const slot = slots.find((s) => s.protocolId === key);
+        if (key === 'reactorJumpStart') {
+            return style.jumpStart &&
+                slot?.priority === 'OFF' &&
+                store < JUMP_START_STORE &&
+                engineering.energyCells > 0
+                ? 'raise'
+                : 'none';
+        }
+        return style.repair && store > REPAIR_STORE && repairToQueue(display, slots) === key ? 'raise' : 'none';
     }
     const system = systems.find((s) => s.pointer === key);
     if (!system) {
@@ -214,6 +236,32 @@ function engineerChoice(command: string, key: string, display: Display) {
     }
     const goal = powerGoal(key, system, store);
     return goal === undefined ? 'hold' : towards(system.power, goal, 0.01);
+}
+
+/**
+ * The first idle field repair, in catalogue order, that fixes a defect the damage report shows -- none
+ * while another repair is queued or running.
+ */
+function repairToQueue(display: Display, slots: readonly RepairSlot[]) {
+    if (slots.some((s) => s.priority !== 'OFF')) {
+        return undefined;
+    }
+    const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
+    const catalogue: Record<string, RepairProtocolStats | undefined> = repairProtocols;
+    return slots.find((slot) => {
+        const protocol = catalogue[slot.protocolId];
+        return (
+            slot.priority === 'OFF' &&
+            !slot.refusalReason &&
+            protocol?.tier === 'field' &&
+            protocol.targets.some((t) => defects.some((d) => systemKey(d.system) === t.system && d.field === t.field))
+        );
+    })?.protocolId;
+}
+
+/** `/chainGuns/0` -> `chainGuns`. */
+function systemKey(pointer: string) {
+    return pointer.split('/')[1];
 }
 
 function powerGoal(pointer: string, system: SystemStatus, store: number) {

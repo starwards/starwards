@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { ENGINEER_POLICIES, makeEngineerPolicy } from '../brain/engineer-policies';
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
@@ -21,7 +22,8 @@ const crewConfigSchema = z
             z
                 .object({
                     station: z.string(),
-                    policy: z.enum(['jev', 'reference', 'idle']),
+                    /** The `ENGINEER_POLICIES` are scripted engineers for validating an engineer score. */
+                    policy: z.enum(['jev', 'reference', 'idle', ...ENGINEER_POLICIES]),
                     /** Brain file; defaults to the module's `<station>.v1.json`. */
                     brain: z.string().optional(),
                 })
@@ -69,7 +71,9 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
                 ? jevPolicy(spec, client!)
                 : seat.policy === 'reference'
                   ? makeReferencePolicy(spec.decisionSeconds)
-                  : idlePolicy;
+                  : seat.policy === 'idle'
+                    ? idlePolicy
+                    : makeEngineerPolicy(seat.policy, spec.decisionSeconds);
         return { station: seat.station, spec, policy };
     });
     return { name: config.name, seats, usesJev, jevUsage: client?.usage };
