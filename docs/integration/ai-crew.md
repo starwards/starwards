@@ -540,9 +540,11 @@ dataset column. Per frame, over the player ship's systems:
 - demand `a` comes from what the other seats request: smart-pilot commands, TARGET modes, afterburner,
   weapons' fire decisions or a held lock, tube commands; radar demand comes from unresolved contacts;
   the reactor is always demanded;
-- supply `e = min(1, power / NORMAL) × hacked`, or 0 when broken or energy-starved;
+- supply `e = power / NORMAL × hacked`, or 0 when broken or energy-starved, uncapped: energy draw grows
+  as (power / NORMAL)², so overdrive pays through the reserve;
+- need `n = 1 + a·(MAX/NORMAL − 1)`: NORMAL power when nothing is asked, MAX when fully asked;
 - `K = D60 · ((1 − λ)·S + λ·R)`, where:
-    - `S = Σa·e / Σa`;
+    - `S = Σa·min(e, n) / Σa·n`;
     - `R = 1 − exp(−k·store / N0(1 + β·r))`, with store = energy share + 0.3 per cell;
     - `D60` is the mean demand-weighted intactness over the next 60 s;
     - `λ = min(0.6, λ0 + λ1·r)`.
@@ -560,16 +562,13 @@ matched-seed runs of the scripted engineers (`crews/engineer-*.json`):
 - it reports each KPI Δ next to the paired outcome Δs (kills, own integrity kept), and how often the
   KPI's sign agrees with the outcome's.
 
-Status on 420 runs, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`: wherever kills or time-to-kill
-separate two engineers, the KPI's ordering agrees in sign (reference over idle, all-max and random on
-T1 and T1-MK2). Where nothing is fought, an all-shutdown engineer banks a full store and outscores idle,
-which is accepted (no demand, K = D·R). Open: repairs clear damage the KPI barely registers, and the E1
-rungs (energy-bound, almost no kills) are gated on survival and damage per exposure second, which
-reward not fighting. The `engineer_kpi30` label is in the dataset; its per-scenario stats are in the
-report.
-
-The score is not yet a training target. The supply cap stays until energy draw becomes a curve in power
-(#2305).
+Status on 420 runs recorded after #2306, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`: wherever
+kills or time-to-kill separate two engineers, the KPI's ordering agrees in sign; reference over all-max
+now separates on outcomes in T0-constrained, T1 and T1-MK2, and the KPI never ranks all-max above
+reference. E1 rungs (energy-bound, almost no kills) are gated on damage per exposure second; there the
+KPI sides with reference on E1-MK2 against the damage rate (reference kills more) and does not separate
+reference from all-max on E1-predator. Repairs are not credited separately. idle > all-shutdown is
+required only where outcomes separate them (T0-constrained, pooled).
 
 ## Radar heatmaps
 

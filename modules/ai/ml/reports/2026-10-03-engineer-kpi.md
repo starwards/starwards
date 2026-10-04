@@ -1,25 +1,31 @@
-# Engineer KPI, phase 1 validation, 2026-10-03
+# Engineer KPI validation, 2026-10-03
 
 KPI definition: `src/scoring/engineer-kpi.ts`. Validator: `npm run score:engineer` (`--free-reserve` also fits
-the reserve weights, for reference). Runs: 420 headless, all in `training-archive/2026-10-03/engineer-kpi/`:
-5 scenarios × seeds 1–12 × 7 engineer policies, with helms and weapons on reference. Jev spend $0.
+the reserve weights, for reference). Runs: 420 headless, all in `training-archive/2026-10-03/engineer-kpi-2306/`,
+recorded at `fe2d23bd` on master `21ba4281` (#2306: energy draw ∝ (power / NORMAL)², per unit of output
+at x = 2): 5 scenarios × seeds 1–12 × 7 engineer policies, with helms and weapons on reference. Jev spend $0.
 
-- T1, T1-MK2 and T0-constrained were recorded at `d3cbe0e4`.
 - E1-MK2 and E1-predator are energy-bound: the GVTS reactor runs at 50% output and starts at 30–60%
   energy with one cell, against an attacking dragonfly-MK2 or predator.
+- `training-archive/2026-10-03/engineer-kpi/` holds the same matrix recorded before #2306 (flat draw);
+  its numbers are not comparable with these and are not used for engineer labels.
 
 ## Design
 
 - **Demand** comes from the other seats' requests: smart-pilot commands, a TARGET mode, afterburner,
   weapons' fire decisions (1) or a held lock (0.5), and tube commands.
-- **Supply** is `min(1, power / NORMAL) × hacked`. Lift the cap and refit once #2305 lands.
+- **Supply** is `power / NORMAL × hacked`, uncapped. Each system **needs** `1 + a·(MAX/NORMAL − 1)`:
+  NORMAL power when nothing is asked, MAX when fully asked. Service credits supply up to the need,
+  `S = Σa·min(e, n) / Σa·n`. Overdrive costs (power / NORMAL)² in energy, so it pays through the reserve.
 - **Integrity** looks 60 s ahead.
 - **Pairing:** two runs of a seed are compared over their common time.
 - **Risk** is a logistic with non-negative coefficients (damage pins at 0).
 - **Reserve counts the reactor's energy only**; energy cells are a fallback, not reserve.
 - **Reserve is set by design:** λ0 0.3 and λ1 0.4. The store to hold rises from 0.25 at no risk to 0.5 at
   full risk (N0 0.25, β 1), and holding it earns R = 0.9 (k = ln 10). Only ε is fitted (0.01).
-- **For reference only**, the free reserve fit gives `{k 0.5, N0 1, β 0, λ0 0.2, λ1 0}`.
+- **Repairs are not credited separately.**
+- **Gates:** kills and seconds saved; E1 rungs (almost no kills) on damage per exposure second only.
+  idle > all-shutdown is required only where outcomes separate them.
 
 ## Energy held (store share, cells excluded)
 
@@ -27,41 +33,50 @@ EVIDENCE, mean over frames:
 
 | scenario       | reference | idle | all-max | all-shutdown |
 | -------------- | --------- | ---- | ------- | ------------ |
-| E1-MK2         | 0.17      | 0.03 | 0.02    | 0.40         |
-| E1-predator    | 0.07      | 0.02 | 0.02    | 0.40         |
-| T0-constrained | 0.83      | 0.74 | 0.12    | 0.17         |
-| T1             | 0.64      | 0.27 | 0.11    | 0.97         |
-| T1-MK2         | 0.45      | 0.21 | 0.12    | 0.97         |
+| E1-MK2         | 0.31      | 0.03 | 0.01    | 0.43         |
+| E1-predator    | 0.12      | 0.02 | 0.01    | 0.43         |
+| T0-constrained | 0.84      | 0.74 | 0.01    | 0.19         |
+| T1             | 0.69      | 0.27 | 0.05    | 1.00         |
+| T1-MK2         | 0.56      | 0.21 | 0.05    | 1.00         |
 
-The reference engineer holds more energy than idle in every scenario.
+All-max now drains the store in every scenario (0.01–0.05), which it did not before #2306 (0.02–0.12).
 
 ## KPI against outcome
 
-- **Gating outcomes:** the kill, and seconds saved to the end of the run.
-- **Damage rate** is own integrity lost per second a hostile is within twice its gun range. It is
-  reported but does not gate.
+EVIDENCE, paired over seeds 1–12, 95% bootstrap CI:
 
-| scenario            | contrast            | KPI Δ                                            | outcome                              | agrees          |
-| ------------------- | ------------------- | ------------------------------------------------ | ------------------------------------ | --------------- |
-| T1                  | reference − idle    | 0.177 ✓                                          | reference better (kills 0.667, 66 s) | yes (8/9 seeds) |
-| T1                  | reference − all-max | 0.420 ✓                                          | reference better                     | yes (9/9)       |
-| T1-MK2              | reference − idle    | 0.070 ✓                                          | reference better (kills 0.5, 112 s)  | yes (4/6)       |
-| T1-MK2              | reference − all-max | 0.144 ✓                                          | reference better                     | yes (6/6)       |
-| T0-constrained      | idle − all-shutdown | 0.630 ✓                                          | idle better                          | yes (8/8)       |
-| T0-constrained      | reference − random  | 0.403 ✓                                          | reference better                     | yes (9/9)       |
-| E1-MK2, E1-predator | all contrasts       | reference ranks above idle, all-max and random ✓ | no separation (almost no kills)      | informational   |
+| scenario       | contrast            | KPI Δ                  | gated outcome                                | agrees |
+| -------------- | ------------------- | ---------------------- | -------------------------------------------- | ------ |
+| T0-constrained | reference − all-max | 0.306 [0.269, 0.336] ✓ | reference better (kills +0.917, 197 s)       | 11/11  |
+| T0-constrained | idle − all-shutdown | 0.336 [0.313, 0.358] ✓ | idle better (kills +0.667)                   | 8/8    |
+| T1             | reference − all-max | 0.333 [0.292, 0.380] ✓ | reference better (kills +0.833, 86 s)        | 10/10  |
+| T1             | reference − idle    | 0.159 [0.115, 0.206] ✓ | reference better (kills +0.750)              | 9/10   |
+| T1-MK2         | reference − all-max | 0.189 [0.129, 0.252] ✓ | reference better (kills +0.667, 143 s)       | 8/8    |
+| T1-MK2         | reference − idle    | 0.072 [0.027, 0.115] ✓ | reference better (kills +0.667)              | 6/8    |
+| E1-MK2         | reference − all-max | 0.171 [0.103, 0.241] ✓ | **all-max better** (damage rate −0.001)      | 5/12   |
+| E1-predator    | reference − all-max | 0.018 [−0.024, 0.052]  | reference better (damage rate +0.002)        | 10/12  |
+| E1-predator    | reference − idle    | 0.057 [0.042, 0.071] ✓ | reference better (damage rate +0.003)        | 12/12  |
+| all            | reference − all-max | 0.204 [0.166, 0.240] ✓ | reference better (kills +0.567, 101 s)       | 34/34  |
+| all            | idle − all-shutdown | −0.061 [−0.113, −0.005] ✗ | idle better (kills +0.150)                | 9/9    |
 
-Wherever the outcomes separate two policies, the KPI's ordering agrees in sign. In every such case
-except one, its CI also excludes 0. The exception is idle − all-shutdown pooled: KPI 0.053
-[−0.023, 0.136] while outcomes say idle is better. That comes from E1 and T1-MK2, where all-shutdown
-scores above idle on the KPI and the outcomes do not separate.
+- **Reference > all-max** now separates on outcomes in T0-constrained, T1, T1-MK2 and pooled, and the KPI
+  agrees on every decided seed. Before #2306, T0-constrained did not separate on outcomes (kills +0.333,
+  CI from 0). The KPI never ranks all-max above reference in any scenario.
+- **E1-MK2:** damage rate favours all-max while reference kills more (+0.417 [0.167, 0.667]). The KPI
+  sides with the kills. The same disagreement held before #2306.
+- **E1-predator:** outcomes favour reference, but the KPI CI spans 0 (before #2306: 0.044 ✓). INFERENCE:
+  the need curve credits all-max's overdrive while its reserve is already near zero for both.
+- **idle − all-shutdown pooled is ✗** (−0.061) where outcomes say idle (T0-constrained carries it,
+  KPI ✓ there). It comes from E1 and T1-MK2, where outcomes do not separate the pair.
+- **Predictive constraint NOT met:** fit-seed within-tercile r of K with outcome is −0.040 (h 60) and
+  −0.026 (h 120); held-out +0.101 and +0.150. Only ε is fitted, so this is a property of the design
+  weights under the new mechanics, not a fit failure.
 
-## Round 6: repairs and survival gating
+## Round 6 (before #2306): repairs and survival gating
 
 - **No demand:** K = D·R when Σa < 0.1. The rule is kept but cannot trigger while the reactor is
   always demanded.
-- **E1 rungs** are gated on survival (seconds until own integrity < 0.5) and on damage per second of
-  exposure.
+- **E1 rungs** are gated on damage per second of exposure; survival is reported only.
 - **The repairs table** compares reference-repairing with the reference engineer on seeds where the
   reference run took a defect.
 
@@ -108,170 +123,155 @@ idle > all-shutdown there (all ✓), against that gate.
 The label carries variance only in the fight rungs: T1, T1-MK2, T1-lite, T0-constrained, W-multi and
 the E1 rungs. The benchmark and T0 rungs sit at 0.95–1.0 and teach little.
 
-## Open design questions (stopping here as instructed)
-
-1. **Repair credit.** The backlog that repairs clear is about 0.5–0.7 of a system, out of a demand sum
-   of about 14 (helm, guns, reactor, radar, …), so the ratio D moves about 0.04. Weighting by severity
-   or extending the horizon does not change that ratio. Options:
-    - a separate repair term, e.g. backlog-seconds cleared;
-    - normalising D by the demanded systems that can take defects;
-    - accepting that repairs matter little in 5-minute duels.
-2. **Survival gating on E1 rewards not fighting**, the same flaw as "integrity kept". Gate E1 on damage
-   per exposure second only? It favours reference on E1-predator but idle and all-max on E1-MK2.
-   Alternatively, make E1 winnable so kills can gate.
-3. **All-shutdown above idle where nothing is fought** (E1, T1-MK2) is accepted by the user's rule. Should
-   idle > all-shutdown therefore be required only where outcomes separate them, which is T0-constrained
-   and pooled (both hold)?
-
 ## Full validator output
 
 runs 420; scenarios E1-MK2, E1-predator, T0-constrained, T1, T1-MK2; fit seeds 1,2,3,4,5,6,7,8; held-out 9,10,11,12
 
-risk model (fit seeds, P(integrity loss ≥ 0.02 in 30 s)): `{"bias":-4.803,"coef":[2.323,0.527,1.997,0,0.883]}` over threats, proximity, blastRate, damage, unscanned
+risk model (fit seeds, P(integrity loss ≥ 0.02 in 30 s)): `{"bias":-5.277,"coef":[2.286,0.738,1.901,0,1.334]}` over threats, proximity, blastRate, damage, unscanned
 
-weights: `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}`; weakest standardised fit-seed contrast -3.600; predictive constraint met
+weights: `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}`; weakest standardised fit-seed contrast -4.707; predictive constraint NOT met
 
-risk tercile cuts: 0.124, 0.360. Frame share per tercile:
+risk tercile cuts: 0.074, 0.356. Frame share per tercile:
 
-| scenario       | low  | mid  | high |
-| -------------- | ---- | ---- | ---- |
-| E1-MK2         | 0.21 | 0.32 | 0.46 |
-| E1-predator    | 0.64 | 0.10 | 0.26 |
-| T0-constrained | 0.31 | 0.69 | 0.00 |
-| T1             | 0.17 | 0.39 | 0.44 |
-| T1-MK2         | 0.29 | 0.29 | 0.42 |
+| scenario | low | mid | high |
+| --- | --- | --- | --- |
+| E1-MK2 | 0.22 | 0.30 | 0.48 |
+| E1-predator | 0.59 | 0.11 | 0.30 |
+| T0-constrained | 0.38 | 0.62 | 0.00 |
+| T1 | 0.16 | 0.42 | 0.42 |
+| T1-MK2 | 0.30 | 0.31 | 0.40 |
 
 ### All seeds
 
 Paired Δ mean K over each pair's common time, 95% bootstrap CI over seeds. ✓ above 0, ✗ below.
 
-| scenario       | reference − idle            | idle − all-shutdown            | reference − all-max         | reference − random          | reference − never-jump-start | reference-repairing − reference | reference − all-max (high risk) |
-| -------------- | --------------------------- | ------------------------------ | --------------------------- | --------------------------- | ---------------------------- | ------------------------------- | ------------------------------- |
-| E1-MK2         | 0.127 [0.083, 0.175] n=12 ✓ | -0.174 [-0.200, -0.146] n=12 ✗ | 0.121 [0.069, 0.179] n=12 ✓ | 0.081 [0.053, 0.120] n=12 ✓ | 0.028 [0.018, 0.037] n=12 ✓  | -0.009 [-0.038, 0.020] n=12     | 0.162 [0.108, 0.221] n=12 ✓     |
-| E1-predator    | 0.043 [0.029, 0.057] n=12 ✓ | -0.109 [-0.132, -0.088] n=12 ✗ | 0.044 [0.031, 0.057] n=12 ✓ | 0.028 [0.009, 0.046] n=12 ✓ | 0.027 [0.020, 0.035] n=12 ✓  | -0.017 [-0.028, -0.007] n=12 ✗  | 0.107 [0.072, 0.140] n=12 ✓     |
-| T0-constrained | -0.018 [-0.051, 0.014] n=12 | 0.630 [0.603, 0.654] n=12 ✓    | 0.190 [0.054, 0.342] n=12 ✓ | 0.403 [0.316, 0.502] n=12 ✓ | 0.000 [0.000, 0.000] n=12    | -0.013 [-0.026, -0.003] n=12 ✗  | –                               |
-| T1             | 0.177 [0.135, 0.217] n=12 ✓ | 0.039 [-0.059, 0.135] n=12     | 0.420 [0.341, 0.506] n=12 ✓ | 0.370 [0.285, 0.459] n=12 ✓ | 0.052 [0.019, 0.087] n=12 ✓  | -0.011 [-0.045, 0.020] n=12     | 0.395 [0.285, 0.521] n=12 ✓     |
-| T1-MK2         | 0.070 [0.014, 0.129] n=12 ✓ | -0.123 [-0.161, -0.082] n=12 ✗ | 0.144 [0.075, 0.210] n=12 ✓ | 0.128 [0.047, 0.208] n=12 ✓ | 0.026 [0.009, 0.045] n=12 ✓  | 0.048 [-0.009, 0.107] n=12      | 0.068 [-0.036, 0.177] n=12      |
-| all            | 0.080 [0.055, 0.105] n=60 ✓ | 0.053 [-0.023, 0.136] n=60     | 0.184 [0.136, 0.237] n=60 ✓ | 0.202 [0.151, 0.253] n=60 ✓ | 0.027 [0.018, 0.036] n=60 ✓  | -0.001 [-0.015, 0.017] n=60     | 0.183 [0.129, 0.237] n=48 ✓     |
+| scenario | reference − idle | idle − all-shutdown | reference − all-max | reference − random | reference − never-jump-start | reference-repairing − reference | reference − all-max (high risk) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| E1-MK2 | 0.201 [0.154, 0.246] n=12 ✓ | -0.231 [-0.252, -0.206] n=12 ✗ | 0.171 [0.103, 0.241] n=12 ✓ | 0.116 [0.059, 0.175] n=12 ✓ | 0.017 [0.008, 0.028] n=12 ✓ | 0.004 [-0.015, 0.024] n=12 | 0.245 [0.184, 0.312] n=11 ✓ |
+| E1-predator | 0.057 [0.042, 0.071] n=12 ✓ | -0.150 [-0.174, -0.128] n=12 ✗ | 0.018 [-0.024, 0.052] n=12 | 0.026 [0.008, 0.045] n=12 ✓ | 0.010 [0.004, 0.015] n=12 ✓ | 0.003 [-0.006, 0.010] n=12 | 0.106 [0.068, 0.141] n=12 ✓ |
+| T0-constrained | 0.031 [0.013, 0.046] n=12 ✓ | 0.336 [0.313, 0.358] n=12 ✓ | 0.306 [0.269, 0.336] n=12 ✓ | 0.244 [0.203, 0.298] n=12 ✓ | 0.000 [0.000, 0.000] n=12 | -0.002 [-0.006, -0.000] n=12 ✗ | – |
+| T1 | 0.159 [0.115, 0.206] n=12 ✓ | -0.078 [-0.149, -0.010] n=12 ✗ | 0.333 [0.292, 0.380] n=12 ✓ | 0.297 [0.246, 0.349] n=12 ✓ | 0.030 [0.012, 0.051] n=12 ✓ | 0.023 [-0.008, 0.052] n=12 | 0.354 [0.294, 0.409] n=12 ✓ |
+| T1-MK2 | 0.072 [0.027, 0.115] n=12 ✓ | -0.182 [-0.215, -0.150] n=12 ✗ | 0.189 [0.129, 0.252] n=12 ✓ | 0.121 [0.040, 0.189] n=12 ✓ | 0.020 [0.006, 0.036] n=12 ✓ | 0.045 [-0.005, 0.097] n=12 | 0.209 [0.132, 0.292] n=12 ✓ |
+| all | 0.104 [0.083, 0.128] n=60 ✓ | -0.061 [-0.113, -0.005] n=60 ✗ | 0.204 [0.166, 0.240] n=60 ✓ | 0.161 [0.126, 0.195] n=60 ✓ | 0.015 [0.009, 0.022] n=60 ✓ | 0.015 [0.001, 0.029] n=60 ✓ | 0.228 [0.190, 0.267] n=47 ✓ |
 
 reference − idle by risk tercile:
 
-| scenario       | low                         | mid                         | high                        |
-| -------------- | --------------------------- | --------------------------- | --------------------------- |
-| E1-MK2         | -0.003 [-0.013, 0.009] n=3  | 0.110 [-0.007, 0.244] n=12  | 0.153 [0.104, 0.206] n=12 ✓ |
-| E1-predator    | -0.005 [-0.013, 0.003] n=12 | -0.026 [-0.053, 0.001] n=12 | 0.073 [0.041, 0.103] n=12 ✓ |
-| T0-constrained | –                           | -0.018 [-0.052, 0.014] n=12 | –                           |
-| T1             | 0.121 [-0.011, 0.233] n=5   | 0.189 [0.096, 0.287] n=12 ✓ | 0.076 [-0.028, 0.173] n=12  |
-| T1-MK2         | 0.046 [-0.030, 0.122] n=2   | 0.073 [0.010, 0.136] n=12 ✓ | -0.009 [-0.087, 0.077] n=12 |
-| all            | 0.028 [-0.005, 0.065] n=22  | 0.065 [0.026, 0.109] n=60 ✓ | 0.073 [0.032, 0.112] n=48 ✓ |
+| scenario | low | mid | high |
+| --- | --- | --- | --- |
+| E1-MK2 | -0.018 [-0.018, -0.018] n=1 ✗ | 0.039 [-0.008, 0.086] n=12 | 0.253 [0.200, 0.304] n=12 ✓ |
+| E1-predator | -0.009 [-0.015, -0.002] n=12 ✗ | -0.025 [-0.049, 0.004] n=12 | 0.092 [0.062, 0.124] n=12 ✓ |
+| T0-constrained | – | 0.031 [0.013, 0.045] n=12 ✓ | – |
+| T1 | 0.151 [0.055, 0.247] n=5 ✓ | 0.155 [0.105, 0.203] n=12 ✓ | 0.103 [0.041, 0.170] n=12 ✓ |
+| T1-MK2 | 0.031 [-0.002, 0.078] n=4 | 0.064 [0.025, 0.106] n=12 ✓ | 0.035 [-0.018, 0.093] n=12 |
+| all | 0.034 [0.001, 0.076] n=22 ✓ | 0.053 [0.031, 0.076] n=60 ✓ | 0.121 [0.086, 0.155] n=48 ✓ |
 
 ### Held-out seeds
 
 Paired Δ mean K over each pair's common time, 95% bootstrap CI over seeds. ✓ above 0, ✗ below.
 
-| scenario       | reference − idle            | idle − all-shutdown           | reference − all-max         | reference − random          | reference − never-jump-start | reference-repairing − reference | reference − all-max (high risk) |
-| -------------- | --------------------------- | ----------------------------- | --------------------------- | --------------------------- | ---------------------------- | ------------------------------- | ------------------------------- |
-| E1-MK2         | 0.127 [0.044, 0.234] n=4 ✓  | -0.184 [-0.212, -0.161] n=4 ✗ | 0.143 [0.059, 0.265] n=4 ✓  | 0.065 [0.025, 0.111] n=4 ✓  | 0.025 [0.007, 0.041] n=4 ✓   | -0.012 [-0.050, 0.037] n=4      | 0.188 [0.118, 0.311] n=4 ✓      |
-| E1-predator    | 0.048 [0.038, 0.057] n=4 ✓  | -0.091 [-0.122, -0.048] n=4 ✗ | 0.049 [0.039, 0.058] n=4 ✓  | 0.025 [0.004, 0.048] n=4 ✓  | 0.023 [0.016, 0.030] n=4 ✓   | -0.015 [-0.031, -0.000] n=4 ✗   | 0.124 [0.102, 0.155] n=4 ✓      |
-| T0-constrained | -0.021 [-0.053, 0.034] n=4  | 0.605 [0.576, 0.634] n=4 ✓    | 0.066 [-0.042, 0.253] n=4   | 0.369 [0.203, 0.532] n=4 ✓  | 0.000 [0.000, 0.000] n=4     | -0.019 [-0.040, 0.000] n=4      | –                               |
-| T1             | 0.149 [0.085, 0.197] n=4 ✓  | 0.047 [-0.111, 0.192] n=4     | 0.436 [0.324, 0.544] n=4 ✓  | 0.366 [0.203, 0.494] n=4 ✓  | 0.061 [0.000, 0.122] n=4     | -0.019 [-0.099, 0.060] n=4      | 0.438 [0.285, 0.628] n=4 ✓      |
-| T1-MK2         | 0.148 [0.079, 0.196] n=4 ✓  | -0.163 [-0.220, -0.099] n=4 ✗ | 0.230 [0.109, 0.340] n=4 ✓  | 0.190 [0.084, 0.317] n=4 ✓  | 0.034 [0.000, 0.073] n=4     | 0.004 [-0.083, 0.133] n=4       | 0.246 [0.146, 0.310] n=4 ✓      |
-| all            | 0.090 [0.053, 0.131] n=20 ✓ | 0.043 [-0.082, 0.180] n=20    | 0.185 [0.110, 0.267] n=20 ✓ | 0.203 [0.130, 0.285] n=20 ✓ | 0.028 [0.012, 0.047] n=20 ✓  | -0.012 [-0.040, 0.021] n=20     | 0.249 [0.176, 0.335] n=16 ✓     |
+| scenario | reference − idle | idle − all-shutdown | reference − all-max | reference − random | reference − never-jump-start | reference-repairing − reference | reference − all-max (high risk) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| E1-MK2 | 0.183 [0.102, 0.285] n=4 ✓ | -0.244 [-0.260, -0.233] n=4 ✗ | 0.155 [-0.006, 0.333] n=4 | 0.095 [0.006, 0.184] n=4 ✓ | 0.016 [0.001, 0.032] n=4 ✓ | -0.008 [-0.039, 0.017] n=4 | 0.225 [0.131, 0.368] n=4 ✓ |
+| E1-predator | 0.061 [0.048, 0.071] n=4 ✓ | -0.131 [-0.162, -0.089] n=4 ✗ | 0.044 [0.030, 0.053] n=4 ✓ | 0.023 [0.020, 0.027] n=4 ✓ | 0.012 [-0.001, 0.020] n=4 | 0.004 [-0.007, 0.012] n=4 | 0.131 [0.102, 0.154] n=4 ✓ |
+| T0-constrained | 0.039 [0.028, 0.058] n=4 ✓ | 0.319 [0.298, 0.340] n=4 ✓ | 0.317 [0.296, 0.337] n=4 ✓ | 0.215 [0.159, 0.296] n=4 ✓ | 0.000 [0.000, 0.000] n=4 | -0.002 [-0.004, 0.000] n=4 | – |
+| T1 | 0.116 [0.039, 0.186] n=4 ✓ | -0.074 [-0.211, 0.020] n=4 | 0.365 [0.266, 0.465] n=4 ✓ | 0.304 [0.199, 0.404] n=4 ✓ | 0.022 [0.000, 0.044] n=4 | -0.007 [-0.060, 0.046] n=4 | 0.319 [0.171, 0.437] n=4 ✓ |
+| T1-MK2 | 0.123 [0.094, 0.152] n=4 ✓ | -0.213 [-0.267, -0.153] n=4 ✗ | 0.224 [0.104, 0.343] n=4 ✓ | 0.131 [0.078, 0.214] n=4 ✓ | 0.018 [0.000, 0.045] n=4 | 0.032 [-0.046, 0.125] n=4 | 0.270 [0.119, 0.421] n=4 ✓ |
+| all | 0.104 [0.075, 0.141] n=20 ✓ | -0.068 [-0.157, 0.031] n=20 | 0.221 [0.154, 0.290] n=20 ✓ | 0.153 [0.101, 0.211] n=20 ✓ | 0.014 [0.006, 0.022] n=20 ✓ | 0.004 [-0.018, 0.027] n=20 | 0.236 [0.170, 0.308] n=16 ✓ |
 
 reference − idle by risk tercile:
 
-| scenario       | low                        | mid                         | high                        |
-| -------------- | -------------------------- | --------------------------- | --------------------------- |
-| E1-MK2         | –                          | 0.001 [-0.152, 0.139] n=4   | 0.145 [0.037, 0.245] n=4 ✓  |
-| E1-predator    | -0.003 [-0.006, 0.003] n=4 | -0.027 [-0.057, 0.008] n=4  | 0.087 [0.034, 0.131] n=4 ✓  |
-| T0-constrained | –                          | -0.021 [-0.054, 0.033] n=4  | –                           |
-| T1             | 0.055 [-0.122, 0.233] n=2  | 0.258 [0.109, 0.443] n=4 ✓  | -0.004 [-0.209, 0.129] n=4  |
-| T1-MK2         | 0.046 [-0.030, 0.122] n=2  | 0.146 [0.106, 0.185] n=4 ✓  | 0.100 [-0.050, 0.212] n=4   |
-| all            | 0.024 [-0.038, 0.101] n=8  | 0.071 [0.009, 0.145] n=20 ✓ | 0.082 [0.016, 0.141] n=16 ✓ |
+| scenario | low | mid | high |
+| --- | --- | --- | --- |
+| E1-MK2 | -0.018 [-0.018, -0.018] n=1 ✗ | -0.006 [-0.075, 0.040] n=4 | 0.221 [0.152, 0.318] n=4 ✓ |
+| E1-predator | -0.016 [-0.021, -0.009] n=4 ✗ | -0.034 [-0.064, -0.004] n=4 ✗ | 0.094 [0.068, 0.120] n=4 ✓ |
+| T0-constrained | – | 0.039 [0.028, 0.058] n=4 ✓ | – |
+| T1 | 0.043 [-0.026, 0.112] n=2 | 0.131 [0.058, 0.190] n=4 ✓ | 0.058 [-0.022, 0.144] n=4 |
+| T1-MK2 | 0.011 [-0.003, 0.025] n=2 | 0.072 [0.024, 0.118] n=4 ✓ | 0.104 [0.014, 0.167] n=4 ✓ |
+| all | 0.003 [-0.018, 0.033] n=9 | 0.040 [0.009, 0.075] n=20 ✓ | 0.119 [0.074, 0.166] n=16 ✓ |
 
 ### Energy held (store share without cells)
 
-| scenario       | reference | reference-repairing | idle | never-jump-start | all-max | random | all-shutdown |
-| -------------- | --------- | ------------------- | ---- | ---------------- | ------- | ------ | ------------ |
-| E1-MK2         | 0.17      | 0.12                | 0.03 | 0.14             | 0.02    | 0.08   | 0.40         |
-| E1-predator    | 0.07      | 0.07                | 0.02 | 0.05             | 0.02    | 0.05   | 0.40         |
-| T0-constrained | 0.83      | 0.82                | 0.74 | 0.83             | 0.12    | 0.10   | 0.17         |
-| T1             | 0.64      | 0.51                | 0.27 | 0.55             | 0.11    | 0.19   | 0.97         |
-| T1-MK2         | 0.45      | 0.42                | 0.21 | 0.35             | 0.12    | 0.18   | 0.97         |
+| scenario | reference | reference-repairing | idle | never-jump-start | all-max | random | all-shutdown |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| E1-MK2 | 0.31 | 0.26 | 0.03 | 0.29 | 0.01 | 0.06 | 0.43 |
+| E1-predator | 0.12 | 0.11 | 0.02 | 0.10 | 0.01 | 0.05 | 0.43 |
+| T0-constrained | 0.84 | 0.87 | 0.74 | 0.84 | 0.01 | 0.07 | 0.19 |
+| T1 | 0.69 | 0.57 | 0.27 | 0.55 | 0.05 | 0.14 | 1.00 |
+| T1-MK2 | 0.56 | 0.55 | 0.21 | 0.40 | 0.05 | 0.15 | 1.00 |
 
 ### KPI against outcome
 
-Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: survival — seconds until own integrity < 0.5 — or damage rate); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.
+Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: damage rate; survival — seconds until own integrity < 0.5 — is reported only); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.
 
-| scenario       | contrast                        | KPI Δ                          | kill Δ                      | seconds saved                     | survival Δ (s)                       | damage-rate Δ                  | gated on              | outcome separates   | agreement |
-| -------------- | ------------------------------- | ------------------------------ | --------------------------- | --------------------------------- | ------------------------------------ | ------------------------------ | --------------------- | ------------------- | --------- |
-| E1-MK2         | reference − idle                | 0.127 [0.083, 0.175] n=12 ✓    | 0.167 [0.000, 0.417] n=12   | 37.896 [0.000, 93.150] n=12       | -69.808 [-129.417, -14.392] n=12 ✗   | -0.001 [-0.001, -0.000] n=12 ✗ | survival, damage rate | idle better         | 4/12      |
-| E1-MK2         | idle − all-shutdown             | -0.174 [-0.200, -0.146] n=12 ✗ | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -123.167 [-184.750, -55.167] n=12 ✗  | -0.000 [-0.001, 0.001] n=12    | survival, damage rate | all-shutdown better | 10/12     |
-| E1-MK2         | reference − all-max             | 0.121 [0.069, 0.179] n=12 ✓    | 0.167 [0.000, 0.417] n=12   | 37.896 [0.000, 93.150] n=12       | -113.475 [-168.583, -58.392] n=12 ✗  | -0.001 [-0.001, -0.000] n=12 ✗ | survival, damage rate | all-max better      | 2/12      |
-| E1-MK2         | reference − random              | 0.081 [0.053, 0.120] n=12 ✓    | 0.167 [0.000, 0.417] n=12   | 37.896 [0.000, 93.150] n=12       | -111.929 [-169.288, -54.325] n=12 ✗  | -0.000 [-0.001, 0.000] n=12    | survival, damage rate | random better       | 3/12      |
-| E1-MK2         | reference − never-jump-start    | 0.028 [0.018, 0.037] n=12 ✓    | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -19.000 [-57.583, 0.583] n=12        | -0.000 [-0.000, 0.000] n=12    | survival, damage rate | no                  | 3/10      |
-| E1-MK2         | reference-repairing − reference | -0.009 [-0.038, 0.020] n=12    | -0.167 [-0.417, 0.000] n=12 | -37.896 [-93.150, 0.000] n=12     | 24.333 [-0.917, 64.583] n=12         | 0.000 [-0.000, 0.000] n=12     | survival, damage rate | no                  | 6/12      |
-| E1-predator    | reference − idle                | 0.043 [0.029, 0.057] n=12 ✓    | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -30.083 [-77.417, -4.250] n=12 ✗     | 0.002 [0.001, 0.002] n=12 ✓    | survival, damage rate | reference better    | 1/12      |
-| E1-predator    | idle − all-shutdown             | -0.109 [-0.132, -0.088] n=12 ✗ | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -177.083 [-246.333, -106.417] n=12 ✗ | -0.001 [-0.002, -0.000] n=12 ✗ | survival, damage rate | all-shutdown better | 10/12     |
-| E1-predator    | reference − all-max             | 0.044 [0.031, 0.057] n=12 ✓    | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -74.333 [-143.833, -6.500] n=12 ✗    | 0.001 [0.000, 0.002] n=12 ✓    | survival, damage rate | reference better    | 4/12      |
-| E1-predator    | reference − random              | 0.028 [0.009, 0.046] n=12 ✓    | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -38.250 [-84.917, -10.167] n=12 ✗    | 0.001 [0.000, 0.002] n=12 ✓    | survival, damage rate | reference better    | 4/12      |
-| E1-predator    | reference − never-jump-start    | 0.027 [0.020, 0.035] n=12 ✓    | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | 0.000 [0.000, 0.000] n=12            | 0.001 [0.001, 0.002] n=12 ✓    | survival, damage rate | reference better    | 11/12     |
-| E1-predator    | reference-repairing − reference | -0.017 [-0.028, -0.007] n=12 ✗ | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -0.250 [-2.583, 2.500] n=12          | -0.000 [-0.001, 0.000] n=12    | survival, damage rate | no                  | 3/12      |
-| T0-constrained | reference − idle                | -0.018 [-0.051, 0.014] n=12    | 0.083 [0.000, 0.250] n=12   | 1.692 [-27.299, 44.625] n=12      | 0.000 [0.000, 0.000] n=12            | 0.000 [0.000, 0.000] n=12      | kill, seconds saved   | no                  | 7/9       |
-| T0-constrained | idle − all-shutdown             | 0.630 [0.603, 0.654] n=12 ✓    | 0.667 [0.417, 0.917] n=12 ✓ | 155.442 [93.246, 217.444] n=12 ✓  | 0.000 [0.000, 0.000] n=12            | -0.000 [-0.000, 0.000] n=12    | kill, seconds saved   | idle better         | 8/8       |
-| T0-constrained | reference − all-max             | 0.190 [0.054, 0.342] n=12 ✓    | 0.333 [0.000, 0.667] n=12   | 44.356 [-51.153, 136.067] n=12    | 0.000 [0.000, 0.000] n=12            | 0.000 [0.000, 0.000] n=12      | kill, seconds saved   | no                  | 7/10      |
-| T0-constrained | reference − random              | 0.403 [0.316, 0.502] n=12 ✓    | 0.750 [0.500, 1.000] n=12 ✓ | 157.133 [102.472, 207.304] n=12 ✓ | 0.000 [0.000, 0.000] n=12            | 0.000 [0.000, 0.000] n=12      | kill, seconds saved   | reference better    | 9/9       |
-| T0-constrained | reference − never-jump-start    | 0.000 [0.000, 0.000] n=12      | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | 0.000 [0.000, 0.000] n=12            | 0.000 [0.000, 0.000] n=12      | kill, seconds saved   | no                  | –         |
-| T0-constrained | reference-repairing − reference | -0.013 [-0.026, -0.003] n=12 ✗ | 0.000 [-0.250, 0.250] n=12  | -1.031 [-51.907, 51.022] n=12     | 0.000 [0.000, 0.000] n=12            | 0.000 [0.000, 0.000] n=12      | kill, seconds saved   | no                  | 3/5       |
-| T1             | reference − idle                | 0.177 [0.135, 0.217] n=12 ✓    | 0.667 [0.417, 0.917] n=12 ✓ | 65.918 [29.313, 105.154] n=12 ✓   | -29.222 [-69.726, 4.479] n=12        | 0.000 [-0.001, 0.001] n=12     | kill, seconds saved   | reference better    | 8/9       |
-| T1             | idle − all-shutdown             | 0.039 [-0.059, 0.135] n=12     | 0.083 [0.000, 0.250] n=12   | 19.119 [0.000, 57.358] n=12       | -34.131 [-95.917, 15.369] n=12       | 0.000 [-0.001, 0.001] n=12     | kill, seconds saved   | no                  | 1/1       |
-| T1             | reference − all-max             | 0.420 [0.341, 0.506] n=12 ✓    | 0.750 [0.500, 0.917] n=12 ✓ | 85.038 [43.746, 129.117] n=12 ✓   | -60.353 [-110.604, -15.526] n=12 ✗   | 0.000 [-0.000, 0.001] n=12     | kill, seconds saved   | reference better    | 9/9       |
-| T1             | reference − random              | 0.370 [0.285, 0.459] n=12 ✓    | 0.667 [0.333, 0.917] n=12 ✓ | 62.917 [-13.017, 124.233] n=12    | -17.764 [-54.597, 4.653] n=12        | 0.000 [-0.001, 0.001] n=12     | kill, seconds saved   | reference better    | 9/10      |
-| T1             | reference − never-jump-start    | 0.052 [0.019, 0.087] n=12 ✓    | 0.167 [0.000, 0.417] n=12   | 9.775 [0.000, 28.696] n=12        | 0.000 [0.000, 0.000] n=12            | 0.000 [-0.000, 0.000] n=12     | kill, seconds saved   | no                  | 2/2       |
-| T1             | reference-repairing − reference | -0.011 [-0.045, 0.020] n=12    | -0.167 [-0.417, 0.000] n=12 | -14.240 [-59.269, 29.753] n=12    | -0.476 [-9.536, 11.083] n=12         | -0.000 [-0.001, -0.000] n=12 ✗ | kill, seconds saved   | no                  | 6/9       |
-| T1-MK2         | reference − idle                | 0.070 [0.014, 0.129] n=12 ✓    | 0.500 [0.250, 0.833] n=12 ✓ | 112.388 [50.975, 179.321] n=12 ✓  | 4.711 [-5.289, 14.167] n=12          | 0.001 [-0.000, 0.002] n=12     | kill, seconds saved   | reference better    | 4/6       |
-| T1-MK2         | idle − all-shutdown             | -0.123 [-0.161, -0.082] n=12 ✗ | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -233.167 [-250.250, -214.833] n=12 ✗ | -0.002 [-0.003, -0.000] n=12 ✗ | kill, seconds saved   | no                  | –         |
-| T1-MK2         | reference − all-max             | 0.144 [0.075, 0.210] n=12 ✓    | 0.417 [0.167, 0.667] n=12 ✓ | 89.958 [32.624, 156.049] n=12 ✓   | -51.926 [-111.829, 2.404] n=12       | -0.000 [-0.002, 0.001] n=12    | kill, seconds saved   | reference better    | 6/6       |
-| T1-MK2         | reference − random              | 0.128 [0.047, 0.208] n=12 ✓    | 0.500 [0.250, 0.833] n=12 ✓ | 112.388 [50.975, 179.321] n=12 ✓  | -15.971 [-59.763, 14.442] n=12       | -0.001 [-0.003, 0.000] n=12    | kill, seconds saved   | reference better    | 4/6       |
-| T1-MK2         | reference − never-jump-start    | 0.026 [0.009, 0.045] n=12 ✓    | 0.000 [0.000, 0.000] n=12   | 0.000 [0.000, 0.000] n=12         | -1.417 [-4.250, 0.000] n=12          | 0.000 [-0.000, 0.001] n=12     | kill, seconds saved   | no                  | –         |
-| T1-MK2         | reference-repairing − reference | 0.048 [-0.009, 0.107] n=12     | 0.083 [-0.250, 0.417] n=12  | -28.865 [-91.679, 31.024] n=12    | -1.417 [-7.417, 3.167] n=12          | 0.000 [0.000, 0.001] n=12 ✓    | kill, seconds saved   | no                  | 6/9       |
-| all            | reference − idle                | 0.080 [0.055, 0.105] n=60 ✓    | 0.283 [0.167, 0.400] n=60 ✓ | 43.579 [22.038, 66.340] n=60 ✓    | -24.881 [-44.535, -8.298] n=60 ✗     | 0.000 [0.000, 0.001] n=60 ✓    | kill, seconds saved   | reference better    | 21/26     |
-| all            | idle − all-shutdown             | 0.053 [-0.023, 0.136] n=60     | 0.150 [0.067, 0.250] n=60 ✓ | 34.912 [15.535, 57.166] n=60 ✓    | -113.509 [-145.209, -81.862] n=60 ✗  | -0.001 [-0.001, -0.000] n=60 ✗ | kill, seconds saved   | idle better         | 9/9       |
-| all            | reference − all-max             | 0.184 [0.136, 0.237] n=60 ✓    | 0.333 [0.200, 0.467] n=60 ✓ | 51.449 [24.071, 78.032] n=60 ✓    | -60.018 [-84.153, -35.274] n=60 ✗    | 0.000 [-0.000, 0.000] n=60     | kill, seconds saved   | reference better    | 24/27     |
-| all            | reference − random              | 0.202 [0.151, 0.253] n=60 ✓    | 0.417 [0.283, 0.550] n=60 ✓ | 74.067 [48.189, 102.495] n=60 ✓   | -36.783 [-57.639, -17.934] n=60 ✗    | -0.000 [-0.000, 0.000] n=60    | kill, seconds saved   | reference better    | 24/27     |
-| all            | reference − never-jump-start    | 0.027 [0.018, 0.036] n=60 ✓    | 0.033 [0.000, 0.083] n=60   | 1.955 [0.000, 5.739] n=60         | -4.083 [-12.083, 0.083] n=60         | 0.000 [0.000, 0.001] n=60 ✓    | kill, seconds saved   | no                  | 2/2       |
-| all            | reference-repairing − reference | -0.001 [-0.015, 0.017] n=60    | -0.050 [-0.150, 0.050] n=60 | -16.406 [-37.553, 3.549] n=60     | 4.438 [-1.583, 13.867] n=60          | 0.000 [-0.000, 0.000] n=60     | kill, seconds saved   | no                  | 17/25     |
+| scenario | contrast | KPI Δ | kill Δ | seconds saved | survival Δ (s) | damage-rate Δ | gated on | outcome separates | agreement |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1-MK2 | reference − idle | 0.201 [0.154, 0.246] n=12 ✓ | 0.417 [0.167, 0.667] n=12 ✓ | 77.061 [20.283, 138.774] n=12 ✓ | -47.869 [-105.082, 3.499] n=12 | -0.001 [-0.001, 0.000] n=12 | damage rate | no | 3/11 |
+| E1-MK2 | idle − all-shutdown | -0.231 [-0.252, -0.206] n=12 ✗ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | -123.167 [-184.750, -55.167] n=12 ✗ | -0.000 [-0.001, 0.001] n=12 | damage rate | no | 9/12 |
+| E1-MK2 | reference − all-max | 0.171 [0.103, 0.241] n=12 ✓ | 0.417 [0.167, 0.667] n=12 ✓ | 77.061 [20.283, 138.774] n=12 ✓ | -67.192 [-119.596, -20.438] n=12 ✗ | -0.001 [-0.001, -0.000] n=12 ✗ | damage rate | all-max better | 5/12 |
+| E1-MK2 | reference − random | 0.116 [0.059, 0.175] n=12 ✓ | 0.417 [0.167, 0.667] n=12 ✓ | 77.061 [20.283, 138.774] n=12 ✓ | -79.099 [-145.431, -13.632] n=12 ✗ | -0.000 [-0.001, 0.001] n=12 | damage rate | no | 6/12 |
+| E1-MK2 | reference − never-jump-start | 0.017 [0.008, 0.028] n=12 ✓ | 0.083 [0.000, 0.250] n=12 | 1.462 [0.000, 4.387] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 ✓ | damage rate | reference better | 5/6 |
+| E1-MK2 | reference-repairing − reference | 0.004 [-0.015, 0.024] n=12 | -0.167 [-0.417, 0.000] n=12 | -32.507 [-75.503, -3.317] n=12 ✗ | 2.417 [-5.833, 14.000] n=12 | 0.000 [-0.000, 0.000] n=12 | damage rate | no | 5/10 |
+| E1-predator | reference − idle | 0.057 [0.042, 0.071] n=12 ✓ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | -30.333 [-77.500, -4.250] n=12 ✗ | 0.003 [0.002, 0.004] n=12 ✓ | damage rate | reference better | 12/12 |
+| E1-predator | idle − all-shutdown | -0.150 [-0.174, -0.128] n=12 ✗ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | -177.083 [-246.333, -106.417] n=12 ✗ | -0.001 [-0.002, -0.000] n=12 ✗ | damage rate | all-shutdown better | 9/12 |
+| E1-predator | reference − all-max | 0.018 [-0.024, 0.052] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | -77.583 [-147.917, -12.583] n=12 ✗ | 0.002 [0.002, 0.003] n=12 ✓ | damage rate | reference better | 10/12 |
+| E1-predator | reference − random | 0.026 [0.008, 0.045] n=12 ✓ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | -78.583 [-145.000, -18.500] n=12 ✗ | 0.002 [0.001, 0.002] n=12 ✓ | damage rate | reference better | 10/12 |
+| E1-predator | reference − never-jump-start | 0.010 [0.004, 0.015] n=12 ✓ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | 0.001 [0.000, 0.002] n=12 ✓ | damage rate | reference better | 7/12 |
+| E1-predator | reference-repairing − reference | 0.003 [-0.006, 0.010] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | -0.000 [-3.250, 3.167] n=12 | -0.000 [-0.001, 0.000] n=12 | damage rate | no | 5/12 |
+| T0-constrained | reference − idle | 0.031 [0.013, 0.046] n=12 ✓ | 0.250 [0.000, 0.500] n=12 | 41.794 [-15.425, 104.790] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | kill, seconds saved | no | 7/11 |
+| T0-constrained | idle − all-shutdown | 0.336 [0.313, 0.358] n=12 ✓ | 0.667 [0.417, 0.917] n=12 ✓ | 155.442 [93.246, 217.444] n=12 ✓ | 0.000 [0.000, 0.000] n=12 | -0.000 [-0.000, 0.000] n=12 | kill, seconds saved | idle better | 8/8 |
+| T0-constrained | reference − all-max | 0.306 [0.269, 0.336] n=12 ✓ | 0.917 [0.750, 1.000] n=12 ✓ | 197.236 [155.453, 225.215] n=12 ✓ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | kill, seconds saved | reference better | 11/11 |
+| T0-constrained | reference − random | 0.244 [0.203, 0.298] n=12 ✓ | 0.917 [0.750, 1.000] n=12 ✓ | 197.236 [155.453, 225.215] n=12 ✓ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | kill, seconds saved | reference better | 11/11 |
+| T0-constrained | reference − never-jump-start | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | kill, seconds saved | no | – |
+| T0-constrained | reference-repairing − reference | -0.002 [-0.006, -0.000] n=12 ✗ | -0.167 [-0.417, 0.000] n=12 | -36.883 [-90.308, 1.810] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | kill, seconds saved | no | 4/5 |
+| T1 | reference − idle | 0.159 [0.115, 0.206] n=12 ✓ | 0.750 [0.500, 1.000] n=12 ✓ | 66.881 [36.232, 101.857] n=12 ✓ | -13.621 [-56.771, 31.444] n=12 | 0.000 [-0.000, 0.001] n=12 | kill, seconds saved | reference better | 9/10 |
+| T1 | idle − all-shutdown | -0.078 [-0.149, -0.010] n=12 ✗ | 0.083 [0.000, 0.250] n=12 | 19.119 [0.000, 57.358] n=12 | -34.131 [-95.917, 15.369] n=12 | 0.000 [-0.001, 0.001] n=12 | kill, seconds saved | no | 1/1 |
+| T1 | reference − all-max | 0.333 [0.292, 0.380] n=12 ✓ | 0.833 [0.583, 1.000] n=12 ✓ | 86.000 [49.174, 124.847] n=12 ✓ | -23.901 [-69.875, 33.000] n=12 | 0.001 [0.000, 0.001] n=12 ✓ | kill, seconds saved | reference better | 10/10 |
+| T1 | reference − random | 0.297 [0.246, 0.349] n=12 ✓ | 0.833 [0.583, 1.000] n=12 ✓ | 86.000 [49.174, 124.847] n=12 ✓ | 1.239 [-44.503, 48.847] n=12 | 0.000 [0.000, 0.001] n=12 ✓ | kill, seconds saved | reference better | 10/10 |
+| T1 | reference − never-jump-start | 0.030 [0.012, 0.051] n=12 ✓ | 0.333 [0.083, 0.583] n=12 ✓ | 28.000 [5.489, 53.862] n=12 ✓ | -1.833 [-5.500, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 ✓ | kill, seconds saved | reference better | 4/4 |
+| T1 | reference-repairing − reference | 0.023 [-0.008, 0.052] n=12 | -0.500 [-0.750, -0.250] n=12 ✗ | -35.119 [-78.781, 10.967] n=12 | -8.621 [-22.121, 3.546] n=12 | -0.000 [-0.001, -0.000] n=12 ✗ | kill, seconds saved | reference better | 5/10 |
+| T1-MK2 | reference − idle | 0.072 [0.027, 0.115] n=12 ✓ | 0.667 [0.417, 0.917] n=12 ✓ | 142.586 [82.404, 203.476] n=12 ✓ | 5.378 [-4.693, 15.224] n=12 | 0.001 [0.000, 0.002] n=12 ✓ | kill, seconds saved | reference better | 6/8 |
+| T1-MK2 | idle − all-shutdown | -0.182 [-0.215, -0.150] n=12 ✗ | 0.000 [0.000, 0.000] n=12 | 0.000 [0.000, 0.000] n=12 | -233.167 [-250.250, -214.833] n=12 ✗ | -0.002 [-0.003, -0.000] n=12 ✗ | kill, seconds saved | no | – |
+| T1-MK2 | reference − all-max | 0.189 [0.129, 0.252] n=12 ✓ | 0.667 [0.417, 0.917] n=12 ✓ | 142.586 [82.404, 203.476] n=12 ✓ | -76.354 [-136.988, -23.757] n=12 ✗ | -0.001 [-0.002, 0.001] n=12 | kill, seconds saved | reference better | 8/8 |
+| T1-MK2 | reference − random | 0.121 [0.040, 0.189] n=12 ✓ | 0.667 [0.417, 0.917] n=12 ✓ | 142.586 [82.404, 203.476] n=12 ✓ | -23.438 [-64.225, 2.661] n=12 | -0.001 [-0.002, 0.000] n=12 | kill, seconds saved | reference better | 7/8 |
+| T1-MK2 | reference − never-jump-start | 0.020 [0.006, 0.036] n=12 ✓ | 0.083 [0.000, 0.250] n=12 | 14.444 [0.000, 43.333] n=12 | 0.000 [0.000, 0.000] n=12 | 0.000 [-0.000, 0.001] n=12 | kill, seconds saved | no | 1/1 |
+| T1-MK2 | reference-repairing − reference | 0.045 [-0.005, 0.097] n=12 | 0.000 [-0.333, 0.333] n=12 | -27.039 [-105.374, 44.850] n=12 | -1.417 [-8.833, 3.667] n=12 | 0.000 [-0.000, 0.001] n=12 | kill, seconds saved | no | 4/10 |
+| all | reference − idle | 0.104 [0.083, 0.128] n=60 ✓ | 0.417 [0.300, 0.550] n=60 ✓ | 65.664 [41.913, 91.016] n=60 ✓ | -17.289 [-36.394, -0.812] n=60 ✗ | 0.001 [0.000, 0.001] n=60 ✓ | kill, seconds saved | reference better | 27/34 |
+| all | idle − all-shutdown | -0.061 [-0.113, -0.005] n=60 ✗ | 0.150 [0.067, 0.250] n=60 ✓ | 34.912 [15.286, 57.738] n=60 ✓ | -113.509 [-145.833, -80.643] n=60 ✗ | -0.001 [-0.001, -0.000] n=60 ✗ | kill, seconds saved | idle better | 9/9 |
+| all | reference − all-max | 0.204 [0.166, 0.240] n=60 ✓ | 0.567 [0.433, 0.683] n=60 ✓ | 100.577 [74.339, 126.870] n=60 ✓ | -49.006 [-72.311, -25.359] n=60 ✗ | 0.000 [-0.000, 0.001] n=60 | kill, seconds saved | reference better | 34/34 |
+| all | reference − random | 0.161 [0.126, 0.195] n=60 ✓ | 0.567 [0.433, 0.683] n=60 ✓ | 100.577 [74.339, 126.870] n=60 ✓ | -35.976 [-62.019, -12.303] n=60 ✗ | 0.000 [-0.000, 0.001] n=60 | kill, seconds saved | reference better | 33/34 |
+| all | reference − never-jump-start | 0.015 [0.009, 0.022] n=60 ✓ | 0.100 [0.033, 0.183] n=60 ✓ | 8.781 [1.845, 17.744] n=60 ✓ | -0.367 [-1.100, 0.000] n=60 | 0.000 [0.000, 0.001] n=60 ✓ | kill, seconds saved | reference better | 6/6 |
+| all | reference-repairing − reference | 0.015 [0.001, 0.029] n=60 ✓ | -0.167 [-0.283, -0.050] n=60 ✗ | -26.310 [-47.775, -4.546] n=60 ✗ | -1.524 [-5.265, 2.243] n=60 | -0.000 [-0.000, 0.000] n=60 | kill, seconds saved | reference better | 16/30 |
 
 ### Repairs: reference-repairing − reference where there is damage to fix
 
 Seeds whose reference run took a defect; KPI Δ and demanded damage backlog Δ (Σa·sev, lower is better) over their common time.
 
-| scenario       | seeds with damage | KPI Δ                          | backlog Δ                      |
-| -------------- | ----------------- | ------------------------------ | ------------------------------ |
-| E1-MK2         | 12                | -0.009 [-0.038, 0.020] n=12    | -0.420 [-0.574, -0.271] n=12 ✗ |
-| E1-predator    | 12                | -0.017 [-0.028, -0.007] n=12 ✗ | 0.081 [-0.116, 0.285] n=12     |
-| T0-constrained | 5                 | -0.032 [-0.051, -0.013] n=5 ✗  | 0.176 [-0.002, 0.386] n=5      |
-| T1             | 12                | -0.011 [-0.045, 0.020] n=12    | -0.701 [-1.434, -0.050] n=12 ✗ |
-| T1-MK2         | 12                | 0.048 [-0.009, 0.107] n=12     | 0.050 [-0.448, 0.588] n=12     |
-| all            | 53                | -0.001 [-0.018, 0.018] n=53    | -0.208 [-0.438, 0.011] n=53    |
+| scenario | seeds with damage | KPI Δ | backlog Δ |
+| --- | --- | --- | --- |
+| E1-MK2 | 12 | 0.004 [-0.015, 0.024] n=12 | -0.634 [-0.961, -0.321] n=12 ✗ |
+| E1-predator | 12 | 0.003 [-0.006, 0.010] n=12 | -0.534 [-0.802, -0.239] n=12 ✗ |
+| T0-constrained | 5 | -0.006 [-0.012, -0.001] n=5 ✗ | -0.005 [-0.012, -0.000] n=5 ✗ |
+| T1 | 12 | 0.023 [-0.008, 0.052] n=12 | -0.751 [-1.234, -0.241] n=12 ✗ |
+| T1-MK2 | 12 | 0.045 [-0.005, 0.097] n=12 | -0.187 [-0.725, 0.394] n=12 |
+| all | 53 | 0.017 [0.002, 0.033] n=53 ✓ | -0.477 [-0.674, -0.273] n=53 ✗ |
 
 ### Leave one scenario out (risk curve and weights fit on the other scenarios, all seeds)
 
-| held out       | weights                                                                                 | reference − idle            | idle − all-shutdown            | reference − all-max (high risk) |
-| -------------- | --------------------------------------------------------------------------------------- | --------------------------- | ------------------------------ | ------------------------------- |
-| E1-MK2         | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.127 [0.083, 0.176] n=12 ✓ | -0.172 [-0.198, -0.145] n=12 ✗ | 0.158 [0.105, 0.216] n=12 ✓     |
-| E1-predator    | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.2}`  | 0.040 [0.027, 0.053] n=12 ✓ | -0.134 [-0.151, -0.115] n=12 ✗ | 0.102 [0.069, 0.135] n=12 ✓     |
-| T0-constrained | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.05}` | -0.004 [-0.035, 0.024] n=12 | 0.614 [0.580, 0.644] n=12 ✓    | 0.056 [-0.001, 0.143] n=10      |
-| T1             | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.175 [0.133, 0.215] n=12 ✓ | 0.056 [-0.042, 0.152] n=12     | 0.396 [0.286, 0.519] n=12 ✓     |
-| T1-MK2         | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.070 [0.014, 0.129] n=12 ✓ | -0.118 [-0.157, -0.077] n=12 ✗ | 0.068 [-0.035, 0.177] n=12      |
+| held out | weights | reference − idle | idle − all-shutdown | reference − all-max (high risk) |
+| --- | --- | --- | --- | --- |
+| E1-MK2 | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.199 [0.153, 0.244] n=12 ✓ | -0.226 [-0.247, -0.202] n=12 ✗ | 0.242 [0.181, 0.308] n=11 ✓ |
+| E1-predator | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.057 [0.043, 0.072] n=12 ✓ | -0.152 [-0.175, -0.130] n=12 ✗ | 0.102 [0.068, 0.134] n=12 ✓ |
+| T0-constrained | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.042 [0.024, 0.057] n=12 ✓ | 0.340 [0.312, 0.367] n=12 ✓ | 0.140 [0.067, 0.206] n=10 ✓ |
+| T1 | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.155 [0.112, 0.201] n=12 ✓ | -0.065 [-0.136, 0.002] n=12 | 0.349 [0.289, 0.406] n=12 ✓ |
+| T1-MK2 | `{"k":2.302585092994046,"n0":0.25,"beta":1,"lambda0":0.3,"lambda1":0.4,"epsilon":0.01}` | 0.071 [0.026, 0.114] n=12 ✓ | -0.176 [-0.209, -0.145] n=12 ✗ | 0.204 [0.127, 0.286] n=12 ✓ |
 
 ### Predictive validity
 
 Within-risk-tercile Pearson r of frame K with the outcome (1 if the opponent dies by t+h, minus own integrity lost by t+h).
 
-| set            | h   | mean r | low    | mid   | high   |
-| -------------- | --- | ------ | ------ | ----- | ------ |
-| fit seeds      | 60  | -0.018 | -0.065 | 0.119 | -0.106 |
-| fit seeds      | 120 | 0.060  | 0.106  | 0.177 | -0.103 |
-| held-out seeds | 60  | 0.073  | 0.007  | 0.193 | 0.019  |
-| held-out seeds | 120 | 0.135  | 0.003  | 0.273 | 0.129  |
+| set | h | mean r | low | mid | high |
+| --- | --- | --- | --- | --- | --- |
+| fit seeds | 60 | -0.040 | -0.168 | 0.104 | -0.056 |
+| fit seeds | 120 | -0.026 | -0.229 | 0.170 | -0.019 |
+| held-out seeds | 60 | 0.101 | 0.078 | 0.290 | -0.064 |
+| held-out seeds | 120 | 0.150 | 0.071 | 0.373 | 0.007 |

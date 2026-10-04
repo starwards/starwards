@@ -259,8 +259,11 @@ function paired(runs: readonly Scored[], a: PolicyName, b: PolicyName, keep: Kee
 /** Below this own integrity a run counts as no longer surviving (the GVTS is non-expendable). */
 const SURVIVAL_INTEGRITY = 0.5;
 
-/** Scenarios whose fights almost never end in a kill: gated on survival and damage rate instead. */
-const SURVIVAL_GATED = /^E1-/;
+/**
+ * Scenarios whose fights almost never end in a kill: gated on damage per exposure second instead. Survival
+ * is reported but does not gate, since a ship that does not fight is shot less.
+ */
+const RATE_GATED = /^E1-/;
 
 function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
     const by = new Map(runs.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
@@ -485,7 +488,7 @@ async function main() {
     out('### KPI against outcome');
     out();
     out(
-        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: survival — seconds until own integrity < 0.5 — or damage rate); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
+        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: damage rate; survival — seconds until own integrity < 0.5 — is reported only); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
     );
     out();
     out(
@@ -507,19 +510,15 @@ async function main() {
             const saved = bootstrap(rows.map((r) => r.saved));
             const survived = bootstrap(rows.map((r) => r.survived));
             const rate = bootstrap(rows.map((r) => r.damageRate));
-            const bySurvival = SURVIVAL_GATED.test(s);
-            const [g1, g2] = bySurvival ? [survived, rate] : [kill, saved];
+            const byRate = RATE_GATED.test(s);
+            const [g1, g2] = byRate ? [rate, rate] : [kill, saved];
             const outcome = (r: (typeof rows)[number]) =>
-                bySurvival
-                    ? Math.sign(Math.round(r.survived)) || Math.sign(r.damageRate)
-                    : r.kill !== 0
-                      ? Math.sign(r.kill)
-                      : Math.sign(Math.round(r.saved));
+                byRate ? Math.sign(r.damageRate) : r.kill !== 0 ? Math.sign(r.kill) : Math.sign(Math.round(r.saved));
             const decided = rows.filter((r) => outcome(r) !== 0);
             const agree = decided.filter((r) => Math.sign(r.kpi) === outcome(r)).length;
             const separates = g1.lo > 0 || g2.lo > 0 ? `${a} better` : g1.hi < 0 || g2.hi < 0 ? `${b} better` : 'no';
             out(
-                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(survived)} | ${ci(rate)} | ${bySurvival ? 'survival, damage rate' : 'kill, seconds saved'} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
+                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(survived)} | ${ci(rate)} | ${byRate ? 'damage rate' : 'kill, seconds saved'} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
             );
         }
     }
