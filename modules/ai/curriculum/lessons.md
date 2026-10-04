@@ -208,15 +208,20 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
   the reactor and the crew runs out of energy. Range of 3.5–4 km plus an engineer seat gets 4–6/16;
   final reference 5/16.
 
-### Scoring — snapshot scorer v2 (2026-10-03)
+### Scoring — snapshot scorer v2 (2026-10-04)
 
 - **Lesson:** the scorer's per-seat scores are now tactical T/O/V and the engineer score, validated on
   matched-seed runs (the model's out-of-fold scores keep every pooled policy ordering the labels hold,
-  `modules/ai/ml/reports/2026-10-03-v2.md`). `stations.helms` is unvalidated, signals has no score. A
+  `modules/ai/ml/reports/2026-10-04-v2.md`). `stations.helms` is unvalidated, signals has no score. A
   rate over actions (K_w) is computed from events, not predicted: a frame barely shows a habit.
   Backwards rule for a new scorer version: v2 replaces v1 unless a scenario regresses beyond noise: Δ loss (v2 − v1, 95% bootstrap CI over runs) counts as a regression only when the whole CI lies above a noise floor (0.002 logloss for `kill60`, 0.0005 mse for `damage30`; the calibration floor alone costs up to 0.001 logloss) on at least 5 runs. A CI above the floor on fewer runs is reported as insufficient evidence.
+- **Lesson:** a game-mechanics change (#2306: energy draw ∝ (power / NORMAL)²) invalidates the labels
+  that encode it. Engineer labels come only from runs recorded after it (split by `codeCommit`); the
+  other heads pool both and report loss per mechanics. Under the new mechanics all-max drains the store
+  (0.01–0.05) and loses to reference on kills in T0-constrained, T1 and T1-MK2.
 - **Reuse:** compare crews on `tactical.opportunity` (helms), `tactical.conversion` and
-  `RunScore.weapons` (weapons) before `stations.helms`.
+  `RunScore.weapons` (weapons) before `stations.helms`. Before reusing scorer labels across a mechanics
+  change, re-record the matched-seed validation runs and re-validate the label against outcomes.
 
 Copy this block for every candidate run on a level.
 

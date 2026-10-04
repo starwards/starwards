@@ -475,13 +475,16 @@ parity fixture), trained by `modules/ai/ml` on the training archive; see
 the evaluation protocol (seed and leave-one-scenario-out holdouts, persistence baseline, calibration,
 backwards benchmark, behavioural orderings). Artefacts are read by feature name, so v1 still scores.
 
-Current models (`modules/ai/ml/reports/2026-10-03-v2.md`), trained on 2778 runs:
+Current models (`modules/ai/ml/reports/2026-10-04-v2.md`), trained on 3606 runs:
 
-- Every head comes from v2. v2 replaces v1 unless a scenario regresses beyond noise: Δ loss (v2 − v1, 95% bootstrap CI over runs) counts as a regression only when the whole CI lies above a noise floor (0.002 logloss for `kill60`, 0.0005 mse for `damage30`; the calibration floor alone costs up to 0.001 logloss) on at least 5 runs. A CI above the floor on fewer runs is reported as insufficient evidence. Pooled v2 beats v1 (kill60 logloss 0.226 → 0.139, damage30 mse
-  0.0124 → 0.0026); no scenario regresses beyond noise; T1-noweave damage30 (+0.0028, 2 runs) is
+- Every head comes from v2. v2 replaces v1 unless a scenario regresses beyond noise: Δ loss (v2 − v1, 95% bootstrap CI over runs) counts as a regression only when the whole CI lies above a noise floor (0.002 logloss for `kill60`, 0.0005 mse for `damage30`; the calibration floor alone costs up to 0.001 logloss) on at least 5 runs. A CI above the floor on fewer runs is reported as insufficient evidence. Pooled v2 beats v1 (kill60 logloss 0.217 → 0.138, damage30 mse
+  0.0102 → 0.0021); no scenario regresses beyond noise; T1-noweave damage30 (+0.0030, 2 runs) is
   insufficient evidence.
-- Persistence gain (1 − loss / loss of the label's own past value): kill60 0.76, damage30 0.76, T 0.64,
-  O 0.77, V 0.53, helms 0.65, engineer 0.72.
+- Runs are split by energy mechanics (`codeCommit` before or after #2306, `POWER_DRAW_COMMITS` in
+  `ml/train.py`). `engineer_kpi30` is labelled only from power-draw runs; the other heads train on both
+  and report loss per mechanics.
+- Persistence gain (1 − loss / loss of the label's own past value): kill60 0.78, damage30 0.81, T 0.65,
+  O 0.75, V 0.54, helms 0.65, engineer 0.65.
 - The weapons station score K_w is not a snapshot field: it is a rate over rounds fired, computed
   exactly from the recorded `shot`/`damage` events (`weaponsScore`; `RunScore.weapons` from
   `scoreRun`). Weapons' snapshot share is `tactical.conversion`.

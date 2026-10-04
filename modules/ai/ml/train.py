@@ -47,7 +47,12 @@ CAL_EPS = 0.001
 # (the calibration floor alone costs up to -log(1 - CAL_EPS) ≈ 0.001 logloss), on at least this many runs
 NOISE_FLOOR = {"binary": 0.002, "regression": 0.0005}
 MIN_EVIDENCE_RUNS = 5
-VALIDATION_SOURCES = ("engineer-kpi/", "weapons-score/")
+VALIDATION_SOURCES = ("engineer-kpi-2306/", "weapons-score/")
+# Energy mechanics a run was recorded under. Since #2306 energy draw grows as (power / NORMAL)² per unit of
+# output; these code commits recorded under the merged mechanics (warp fix included). Every other commit
+# predates it (flat draw). Engineer heads train and test only on power-draw runs.
+POWER_DRAW_COMMITS = {"fe2d23bd", "d32e1f50"}
+POWER_DRAW_ONLY = {"engineer_kpi30"}
 
 
 def ece(y, p, bins=10):
@@ -220,6 +225,7 @@ def main():
     ap.add_argument("--version", default="v2")
     ap.add_argument("--baseline", default="v1")
     ap.add_argument("--date", default=datetime.date.today().isoformat())
+    ap.add_argument("--compare", action="append", default=[], help="earlier artefact to score on the same test rows")
     args = ap.parse_args()
     np.random.seed(SEED)
 
@@ -232,6 +238,9 @@ def main():
     df["seed"] = df["seed"].fillna(-1)
     df["day"] = df["day"].astype(str)
     df["source"] = df["source"].astype(str)
+    df["mechanics"] = np.where(df["code_commit"].astype(str).isin(POWER_DRAW_COMMITS), "power-draw", "flat-draw")
+    for label in POWER_DRAW_ONLY:
+        df.loc[df.mechanics != "power-draw", label] = np.nan
     df["crew"] = df["group"].astype(str).str.replace(r"^(engineer|weapons)-", "", regex=True)
 
     # seed holdout: per scenario, the top 20% of distinct seeds; live runs (no seed) stay in train
@@ -308,6 +317,33 @@ def main():
             rep.append(f"| {name} | {allrows} | {fmt(metrics(task, yte[has_past], p[has_past])) if has_past.any() else '–'} |")
         gain = skill(task, yte[has_past], pte[has_past], ppers[has_past]) if has_past.any() else float("nan")
         rep.append(f"\n**Persistence gain** (1 − loss {args.version} / loss persistence, test rows with persistence): {gain:.3f}\n")
+        mech = []
+        for mname, part in te.assign(_p=pte).groupby("mechanics"):
+            y = part[label].to_numpy(float)
+            mech.append(f"| {mname} | {part.run_id.nunique()} | {len(part)} | {f4(loss(task, y, part._p.to_numpy()))} | {f4(loss(task, y, np.full(len(y), ytr.mean())))} |")
+        rep.append(f"Per energy mechanics (test, {loss_name(task)}):\n\n| mechanics | runs | rows | {args.version} | constant |\n|---|---|---|---|---|\n" + "\n".join(mech) + "\n")
+        for name in args.compare:
+            other = json.loads((MODELS / f"{name}.json").read_text())
+            if label not in other["models"]:
+                continue
+            idx = [features.index(f) for f in other["features"]]
+            pc = te.assign(_p=pte, _o=eval_export(other["models"][label], te[features].to_numpy(float)[:, idx]))
+            groups = [(f"{a} / {b}", g) for (a, b), g in pc.groupby(["mechanics", "scenario"])] + list(pc.groupby("mechanics")) + [("all", pc)]
+            rows = []
+            for grp, part in groups:
+                if part.run_id.nunique() < 2:
+                    continue
+                per = [(g[label].to_numpy(float), g._p.to_numpy(), g._o.to_numpy()) for _, g in part.groupby("run_id")]
+                d = paired_loss_delta(task, per)
+                lo, hi = boot_ci(per, lambda ps: paired_loss_delta(task, ps))
+                if lo > NOISE_FLOOR[task]:
+                    verdict = "**regressed**" if part.run_id.nunique() >= MIN_EVIDENCE_RUNS else "worse, insufficient evidence"
+                else:
+                    verdict = "better" if hi < 0 else "no regression"
+                y = part[label].to_numpy(float)
+                rows.append(f"| {grp} | {part.run_id.nunique()} | {f4(loss(task, y, part._o.to_numpy()))} | {f4(loss(task, y, part._p.to_numpy()))} | {f4(d)} [{f4(lo)}, {f4(hi)}] | {verdict} |")
+            rep.append(f"Against `{name}` on the same test rows ({loss_name(task)}; Δ = {args.version} − {name}, 95% CI over runs; regressed = CI above {NOISE_FLOOR[task]} on >= {MIN_EVIDENCE_RUNS} runs):\n\n"
+                       f"| mechanics / scenario | runs | {name} | {args.version} | Δ | {args.version} is |\n|---|---|---|---|---|---|\n" + "\n".join(rows) + "\n")
         if task == "binary":
             rep.append("Reliability (test, 10 bins):\n\n| bin | rows | mean p | observed |\n|---|---|---|---|\n" + "\n".join(f"| {b} | {n} | {p:.3f} | {o:.3f} |" for b, n, p, o in reliability(yte, pte)) + "\n")
 
@@ -398,10 +434,10 @@ def main():
 
 ORDERINGS = [
     # (source prefix, head, a, b, scenarios where the ordering is required; None = every scenario with both crews)
-    ("engineer-kpi/", "engineer_kpi30", "reference", "idle", None),
-    ("engineer-kpi/", "engineer_kpi30", "reference", "all-max", None),
-    ("engineer-kpi/", "engineer_kpi30", "reference", "random", None),
-    ("engineer-kpi/", "engineer_kpi30", "idle", "all-shutdown", {"T0-constrained", "all"}),
+    ("engineer-kpi-2306/", "engineer_kpi30", "reference", "idle", None),
+    ("engineer-kpi-2306/", "engineer_kpi30", "reference", "all-max", None),
+    ("engineer-kpi-2306/", "engineer_kpi30", "reference", "random", None),
+    ("engineer-kpi-2306/", "engineer_kpi30", "idle", "all-shutdown", {"T0-constrained", "all"}),
     ("weapons-score/", "tactical45", "reference", "idle", None),
     ("weapons-score/", "conversion45", "reference", "idle", None),
     ("weapons-score/", "conversion45", "reference", "wrong-ammo", None),
