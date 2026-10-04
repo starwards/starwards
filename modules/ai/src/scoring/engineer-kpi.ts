@@ -22,6 +22,7 @@ import { integrity } from './features';
  * - demand `a_s` in [0, 1] from what the other seats request (see {@link demandOf}), never from what
  *   the ship achieved, so a shut-down ship still registers what it was asked for;
  * - need `n_s = 1 + a_s·(MAX / NORMAL − 1)`: NORMAL power when nothing is asked, MAX when fully asked;
+ *   the reactor's standing demand needs NORMAL only;
  * - service `S = Σ a·min(e, n) / Σ a·n`: supply is credited up to the need, never beyond;
  * - reserve `R = 1 − exp(−k·store / N(r))`, store = the reactor's energy share, `N(r) = N0·(1 + β·r)`.
  *   Energy cells are a fallback, not reserve: an unspent cell while the store runs dry is a failure;
@@ -149,9 +150,12 @@ export function supply(state: { broken: boolean; power: number; hacked: number; 
 
 const MAX_SUPPLY = PowerLevel.MAX / PowerLevel.NORMAL;
 
-/** Supply a system needs under demand `a`: NORMAL power when nothing is asked, MAX when fully asked. */
-export function needOf(a: number) {
-    return 1 + a * (MAX_SUPPLY - 1);
+/**
+ * Supply a system needs under demand `a`: NORMAL power when nothing is asked, MAX when fully asked. The
+ * reactor's demand is standing, not a seat's request, so it never asks for overdrive.
+ */
+export function needOf(a: number, kind?: string) {
+    return kind === 'reactor' ? 1 : 1 + a * (MAX_SUPPLY - 1);
 }
 
 /** Reads one frame for the player ship `playerId`; `undefined` when it is gone. */
@@ -293,7 +297,7 @@ export function components(
         for (const s of o.systems) {
             const a = demandOf(s.kind, demand);
             sumA += a;
-            const need = needOf(a);
+            const need = needOf(a, s.kind);
             sumAn += a * need;
             sumAe += a * Math.min(s.e, need);
             sumAsev += a * s.sev;

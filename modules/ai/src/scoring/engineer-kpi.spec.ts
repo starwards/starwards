@@ -56,6 +56,7 @@ describe('engineer KPI formula', () => {
         expect(needOf(0)).toBe(1);
         expect(needOf(0.5)).toBeCloseTo(1.5, 9);
         expect(needOf(1)).toBe(2);
+        expect(needOf(1, 'reactor')).toBe(1);
     });
 
     it('blends service and reserve by risk, lambda capped at 0.6', () => {

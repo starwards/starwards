@@ -542,7 +542,8 @@ dataset column. Per frame, over the player ship's systems:
   the reactor is always demanded;
 - supply `e = power / NORMAL × hacked`, or 0 when broken or energy-starved, uncapped: energy draw grows
   as (power / NORMAL)², so overdrive pays through the reserve;
-- need `n = 1 + a·(MAX/NORMAL − 1)`: NORMAL power when nothing is asked, MAX when fully asked;
+- need `n = 1 + a·(MAX/NORMAL − 1)`: NORMAL power when nothing is asked, MAX when fully asked; the reactor's
+  standing demand needs NORMAL only;
 - `K = D60 · ((1 − λ)·S + λ·R)`, where:
     - `S = Σa·min(e, n) / Σa·n`;
     - `R = 1 − exp(−k·store / N0(1 + β·r))`, with store = energy share + 0.3 per cell;

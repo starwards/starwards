@@ -8,7 +8,7 @@
  * Two runs of a seed are compared over the same stretch of game time: from the start to the earlier
  * of their ends (a kill, the ship's loss, or the timeout), so a run that wins early is never averaged
  * against a run's long calm tail. Each run's weight-free components are cached beside its recording
- * as `<run>.ekpi3.json`.
+ * as `<run>.ekpi4.json`.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -63,7 +63,7 @@ function args(name: string) {
 }
 
 async function loadRun(sgr: string): Promise<{ frames: Frame[]; end: number; lost: boolean }> {
-    const cache = sgr.replace(/\.sgr$/, '.ekpi3.json');
+    const cache = sgr.replace(/\.sgr$/, '.ekpi4.json');
     if (fs.existsSync(cache))
         return JSON.parse(fs.readFileSync(cache, 'utf8')) as { frames: Frame[]; end: number; lost: boolean };
     const recorded = await readFrames(sgr);
@@ -316,14 +316,33 @@ function effect(deltas: readonly number[]) {
     return m / sd;
 }
 
-/** Within-tercile Pearson r of frame K with the h-second outcome, averaged over terciles. */
+/**
+ * Own integrity lost per second a hostile is in range over (t, t+h], negated so higher is better; null
+ * when the run ends first. The outcome of rate-gated rungs, where kills almost never happen.
+ */
+function rateOutcome(r: Scored, i: number, h: number) {
+    const f = r.frames;
+    let j = i;
+    while (j < f.length - 1 && f[j + 1].t <= f[i].t + h + 1e-6) j++;
+    if (f[j].t < f[i].t + h - 1e-6) return null;
+    const exposed = f.slice(i + 1, j + 1).filter((x) => x.features.threats > 0).length;
+    return exposed ? -(f[i].integrity - f[j].integrity) / exposed : 0;
+}
+
+/**
+ * Within-tercile Pearson r of frame K with the h-second outcome, averaged over terciles. The outcome is
+ * the run outcome (kill minus own integrity lost), or on rate-gated rungs the damage rate, matching the
+ * outcome gates.
+ */
 function predictive(runs: readonly Scored[], cuts: readonly [number, number], h: 60 | 120) {
     const corr: number[] = [];
     for (const k of [0, 1, 2] as const) {
         const keep = tercile(cuts, k);
         const pairs = runs.flatMap((r) =>
             r.k.flatMap((x, i) => {
-                const y = (h === 60 ? r.outcomes.outcome60 : r.outcomes.outcome120)[i];
+                const y = RATE_GATED.test(r.scenario)
+                    ? rateOutcome(r, i, h)
+                    : (h === 60 ? r.outcomes.outcome60 : r.outcomes.outcome120)[i];
                 return keep(r.r[i]) && y !== null ? [[x, y] as const] : [];
             }),
         );
@@ -570,7 +589,7 @@ async function main() {
     out('### Predictive validity');
     out();
     out(
-        'Within-risk-tercile Pearson r of frame K with the outcome (1 if the opponent dies by t+h, minus own integrity lost by t+h).',
+        'Within-risk-tercile Pearson r of frame K with the outcome (1 if the opponent dies by t+h, minus own integrity lost by t+h; on E1 rungs, minus own integrity lost per exposure second).',
     );
     out();
     out('| set | h | mean r | low | mid | high |');
