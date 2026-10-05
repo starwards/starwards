@@ -14,7 +14,7 @@ A ship's vision is the union of its radar **sectors**. Each radar contributes on
 
 Each radar design sweeps a constant area (`area = range² · arc`): widening the arc shortens the reach and vice versa. Effectiveness scales the area, so reach scales with √effectiveness; malfunction blends toward a floor area, and an unpowered radar sees nothing at all.
 
-All visibility gates (signals job queueing/progress, scan promotion and demotion, weapons target retention) ask one field-of-view test — `SpaceManager.isVisible` — so nothing treats radar as a circle.
+All visibility gates (signals job queueing/progress, scan promotion and demotion, weapons target retention) ask one field-of-view test — `SpaceManager.isVisible` — so nothing treats radar as a circle. One exception: promoting a contact past BASIC additionally requires the scan beam specifically — see Signals Jobs below.
 
 ## Scan Levels (Partial)
 
@@ -40,6 +40,8 @@ The Signals station operates through a job queue (up to `maxJobs`, 9 on the demo
 The station's lever is order. Prioritizing a job moves it to the front of the queue and marks it, so trimming under damage evicts unprioritized jobs first.
 
 **Scan:** Upgrade target scan level. Auto-managed — every object in the ship's field of view below the top tier gets a scan job appended, so the station prioritizes rather than submits. Deterministic: no die roll. One tier per `scanBaseDuration` (5s) of unbroken line of sight, divided by signals effectiveness, so a half-powered station takes 10s per tier. Losing sight of the target resets its progress.
+
+UFO → Basic only needs the omni's detection. Basic → Full (and re-promotion from Snapshot) additionally needs a radar flagged `isScanBeam` aimed and ranged on the target — the omni alone never pushes a contact past Basic ([#2307](https://github.com/starwards/starwards/issues/2307)). A job stuck on this gate shows `DORMANT`, same as one whose target left the field of view, until the beam swings onto it. Narrowing the beam below its `defaultArc` also scales scan speed up (`defaultArc / arc`); widening it past `defaultArc` scales speed down.
 
 Two defectibles degrade the station, both normally 1: `jobSpeedFactor` scales progress per tick, and both factors shrink `currentMaxJobs` (9 → 3 → 1), so a damaged station tracks fewer contacts at once. The system counts as `broken` once `jobSpeedFactor` reaches 0. Promotion itself is deterministic — no roll.
 

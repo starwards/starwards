@@ -43,6 +43,12 @@ export type RadarDesign = TurretDesign & {
      * (`RadarDesignState.malfunctionArea`) via `radarRangeFromArea(area, arc)`.
      */
     malfunctionRange: number;
+    /**
+     * marks this radar as the signals station's deep-scan beam, as opposed to an omni radar.
+     * `SignalsJobManager` requires a scan-beam sector to cover the target before a BASIC contact
+     * can be promoted to FULL — the omni alone only ever establishes detection and BASIC.
+     */
+    isScanBeam?: boolean;
 };
 
 export class RadarDesignState extends TurretDesignState implements RadarDesign {
@@ -54,6 +60,7 @@ export class RadarDesignState extends TurretDesignState implements RadarDesign {
     @gameField('float32') energyCost = 0;
     @gameField('float32') rangeEaseFactor = 0;
     @gameField('float32') malfunctionRange = 0;
+    @gameField('boolean') isScanBeam = false;
 
     /**
      * sweep area the radar can spread over its arc, derived live from `range` and `defaultArc`

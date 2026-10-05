@@ -1,0 +1,21 @@
+{
+    "name": "reference-signals",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        },
+        {
+            "station": "signals",
+            "policy": "reference"
+        }
+    ]
+}

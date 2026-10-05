@@ -37,6 +37,7 @@ export const dragonflyMK1OmniRadar = {
 
 export const dragonflyMK1ScanBeam = {
     modelName: 'Lancet-20 Directional Scan Beam',
+    isScanBeam: true,
     isInternal: false,
     isElectronics: true,
     damage50: 20,

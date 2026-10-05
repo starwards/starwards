@@ -13,7 +13,12 @@ type Contact = {
     type?: string;
     radius?: number;
 };
-type Radar = { ownShip?: { heading?: number; position?: XY }; contacts?: Contact[] };
+type Radar = {
+    ownShip?: { heading?: number; position?: XY };
+    contacts?: Contact[];
+    /** Bearing relative to the nose, degrees. */
+    scanBeam?: { bearing: number; arc: number } | null;
+};
 type Display = { panels: Record<string, Record<string, unknown> | undefined>; radar?: Radar };
 type Helms = { rotationMode?: number; maneuveringMode?: number; maneuveringCommand?: Partial<XY> };
 
@@ -170,6 +175,8 @@ function referenceChoice(
                     (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))
                 ? 'engage'
                 : 'release';
+        case 'beamDirection':
+            return beamChoice(display);
         case 'systemPower':
         case 'systemCoolant':
         case 'cycleRepairPriority':
@@ -351,6 +358,25 @@ const SHIP_RADIUS_METERS = 5;
 /** A ship, or an unscanned blip the size of one -- not a shell or a blast. */
 function isShip(contact: Contact) {
     return contact.type === 'Spaceship' || (contact.type === undefined && (contact.radius ?? 0) >= SHIP_RADIUS_METERS);
+}
+
+/** Degrees the beam may sit off its contact before signals steers it. */
+const BEAM_SLACK_DEGREES = 5;
+
+/**
+ * Signals steers the scan beam onto the most threatening ship it has not scanned to FULL: the nearest,
+ * since every hostile here closes to fight. Deep scans past BASIC need the beam on the contact. The
+ * queue order is not the reference's to set while the brain cannot address a job (#2308).
+ */
+function beamChoice(display: Display) {
+    const beam = display.radar?.scanBeam;
+    const heading = display.radar?.ownShip?.heading ?? 0;
+    const next = (display.radar?.contacts ?? [])
+        .filter((c) => isShip(c) && c.scanLevel !== 'FULL')
+        .sort((a, b) => a.distance - b.distance)[0];
+    if (!beam || !next) return 'hold';
+    const off = delta(delta(next.bearing, heading), beam.bearing);
+    return Math.abs(off) <= BEAM_SLACK_DEGREES ? 'hold' : off > 0 ? 'right' : 'left';
 }
 
 /** The nearest contact that is a ship. */
