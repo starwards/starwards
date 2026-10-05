@@ -12,6 +12,11 @@ import { z } from 'zod';
 export const calloutFills = ['lockedOffNose', 'gunSkew', 'farContact'] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
+const calloutsSchema = z.record(
+    z.string().refine((k) => k !== 'silence', 'silence is always an option'),
+    z.object({ say: z.string(), when: z.string(), fill: z.enum(calloutFills).optional() }).strict(),
+);
+
 /**
  * A brain: everything tunable about how one station is played, as one versioned data file.
  *
@@ -76,12 +81,16 @@ export const brainSpecSchema = z
          * station's own display when the callout is said; a display that does not show the value says
          * nothing.
          */
-        callouts: z
-            .record(
-                z.string().refine((k) => k !== 'silence', 'silence is always an option'),
-                z.object({ say: z.string(), when: z.string(), fill: z.enum(calloutFills).optional() }).strict(),
-            )
-            .optional(),
+        callouts: calloutsSchema.optional(),
+        /**
+         * A fused brain, playing a multiplexed station (`tactical`: helms and weapons), names its
+         * member seats here. Every decision and command it makes is tagged with the seat that owns it,
+         * and what one seat needs from another is never implicit: a seat's `callouts` are asked as the
+         * question `callout:<seat>` and said on the crew channel as that seat, so the brain hears them
+         * at its next decision exactly as the separate seat would (`hears: ["weapons.target_locked"]`),
+         * and the fused brain splits back into per-seat brains along these lines.
+         */
+        seats: z.record(z.string(), z.object({ callouts: calloutsSchema.optional() }).strict()).optional(),
     })
     .strict();
 

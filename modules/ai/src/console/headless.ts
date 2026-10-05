@@ -7,6 +7,7 @@ import {
     handleJsonPointerCommand,
     repairCommands,
 } from '@starwards/core/internal';
+import { openStation, withMultiplexedStations } from '@starwards/mcp/src/sandbox/multiplex';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { RadarView } from '@starwards/mcp/src/radar/radar-view';
@@ -47,10 +48,6 @@ const shipCommands: ReadonlyArray<StateCommand<unknown, ShipState, void>> = Obje
  * through the same JSON-pointer handler and typed commands the ship and space rooms apply.
  */
 export function headlessStation(game: HeadlessGame, shipId: string, station: string, clock: SimClock) {
-    const entry = getStationsManifest(shipId).stations[station];
-    if (!entry?.enabled) {
-        throw new Error(`station "${station}" is not open on ${shipId}`);
-    }
     const manager = game.shipManagers.get(shipId);
     if (!manager) {
         throw new Error(`no ship ${shipId} in ${game.mapName}`);
@@ -75,8 +72,10 @@ export function headlessStation(game: HeadlessGame, shipId: string, station: str
         sendJsonCmd: (pointer, value) => void handleJsonPointerCommand({ value }, pointer, spaceState),
         command: (cmd, value) => cmd.setValue(spaceState, value),
     };
-    return new StationSession(station, entry, shipDriver, spaceDriver, {
-        radar: new RadarView(game.spaceManager.spatialIndex, spaceState),
-        wait: clock.wait,
-    });
+    const radar = new RadarView(game.spaceManager.spatialIndex, spaceState);
+    return openStation(
+        withMultiplexedStations(getStationsManifest(shipId)),
+        station,
+        (seat, entry) => new StationSession(seat, entry, shipDriver, spaceDriver, { radar, wait: clock.wait }),
+    );
 }

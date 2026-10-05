@@ -215,7 +215,11 @@ export class ChainGunManager implements Updateable {
         const loadingDelta =
             chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor * chainGun.effectiveness * deltaSeconds;
         const loadingEnergy =
-            chainGun.design.bulletsPerSecond * chainGun.effectiveness * deltaSeconds * chainGun.design.energyCost;
+            chainGun.design.bulletsPerSecond *
+            chainGun.effectiveness *
+            deltaSeconds *
+            chainGun.design.energyCost *
+            chainGun.powerDrawFactor;
         if (loadingDelta > 0) {
             // const loadAction = this.calcLoadAction();
             if (

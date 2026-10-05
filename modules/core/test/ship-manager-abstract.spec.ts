@@ -235,5 +235,36 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
             }
             expect(state.reactor.energy).to.equal(0);
         });
+
+        // #2305: energy per unit of radar output must rise with power, not stay constant.
+        it('radar energy draw rises more than proportionally with power', () => {
+            const { spaceMgr, shipMgr } = createShipSetup();
+            const state = shipMgr.state;
+
+            if (state.warp) state.warp.power = PowerLevel.SHUTDOWN;
+            state.maneuvering.power = PowerLevel.SHUTDOWN;
+            for (const chainGun of state.chainGuns) chainGun.power = PowerLevel.SHUTDOWN;
+            for (const thruster of state.thrusters) thruster.power = PowerLevel.SHUTDOWN;
+            for (const tube of state.tubes) tube.power = PowerLevel.SHUTDOWN;
+            for (const radar of state.radars.slice(1)) radar.power = PowerLevel.SHUTDOWN;
+            state.reactor.power = PowerLevel.SHUTDOWN; // no income — the store is the whole supply
+
+            const drawnAt = (power: PowerLevel) => {
+                state.radars[0].power = power;
+                state.reactor.energy = state.reactor.design.maxEnergy; // @range clamps any higher assignment
+                const before = state.reactor.energy;
+                for (const id of makeIterationsData(1, 1)) {
+                    shipMgr.update(id);
+                    spaceMgr.update(id);
+                }
+                return before - state.reactor.energy;
+            };
+
+            const drawnAtNormal = drawnAt(PowerLevel.NORMAL);
+            const drawnAtMax = drawnAt(PowerLevel.MAX);
+
+            // x = 2: draw ∝ power² ⇒ MAX/NORMAL draw ratio = (MAX/NORMAL)² = 4, for 2× output.
+            expect(drawnAtMax).to.be.closeTo(drawnAtNormal * 4, drawnAtNormal * 0.01);
+        });
     }
 });

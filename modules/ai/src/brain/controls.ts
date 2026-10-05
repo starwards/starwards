@@ -7,7 +7,8 @@ export type Display = { panels: Record<string, unknown>; radar?: unknown };
 
 /** The station's affordances, as `get_capabilities` reports them. */
 export type Capabilities = {
-    commands: ReadonlyArray<{ command: string; count?: number; systems?: readonly string[] }>;
+    /** `seat`: the member seat that works the command, on a multiplexed station. */
+    commands: ReadonlyArray<{ command: string; count?: number; systems?: readonly string[]; seat?: string }>;
 };
 
 /** One command for the station console, in `execute_command` form. */
@@ -24,6 +25,8 @@ export type Control = {
     options: Record<string, string>;
     /** The option that changes nothing: what an absent player does. */
     rest: string;
+    /** The member seat that works this control, on a multiplexed station. */
+    seat?: string;
     press(option: string): Press | undefined;
 };
 
@@ -59,7 +62,10 @@ export function stationControls({ display, capabilities, burstSeconds }: ExpandC
     for (const [group, members] of groups) {
         controls.push(groupControl(group, members));
     }
-    return controls;
+    return controls.map((c) => {
+        const seat = offered.get(c.command)?.seat;
+        return seat === undefined ? c : { ...c, seat };
+    });
 }
 
 type Key = { suffix: string; args: Record<string, unknown>; fill: string | number | undefined };

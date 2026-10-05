@@ -365,4 +365,49 @@ describe('ChainGunManager', () => {
             expect(projectiles.length).to.equal(0);
         });
     });
+
+    // #2305: energy per unit of output must rise with power, not stay constant.
+    it('chain gun loading energy draw rises more than proportionally with power', () => {
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = '1';
+        const die = new MockDie();
+        const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+        die.expectedRoll = 1;
+        spaceMgr.insert(shipObj);
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+        const state = shipMgr.state;
+        if (state.warp) state.warp.power = 0;
+        state.maneuvering.power = 0;
+        for (const thruster of state.thrusters) thruster.power = 0;
+        for (const tube of state.tubes) tube.power = 0;
+        for (const radar of state.radars) radar.power = 0;
+        for (const chainGun of state.chainGuns.slice(1)) chainGun.power = 0;
+        state.reactor.power = 0; // no income — the store is the whole supply
+
+        const chainGun = state.chainGuns[0];
+        chainGun.loadAmmo = true;
+        switchToAvailableAmmo(chainGun, state.magazine);
+
+        const drawnAt = (power: number) => {
+            chainGun.power = power;
+            chainGun.loading = 0;
+            chainGun.loadedProjectile = 'None';
+            state.reactor.energy = state.reactor.design.maxEnergy; // @range clamps any higher assignment
+            const before = state.reactor.energy;
+            for (const id of makeIterationsData(1, 1)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+            return before - state.reactor.energy;
+        };
+
+        const drawnAtNormal = drawnAt(0.5); // PowerLevel.NORMAL
+        const drawnAtMax = drawnAt(1); // PowerLevel.MAX
+
+        // x = 2: draw ∝ power² ⇒ MAX/NORMAL draw ratio = (MAX/NORMAL)² = 4, for 2× output.
+        expect(drawnAtMax).to.be.closeTo(drawnAtNormal * 4, drawnAtNormal * 0.01);
+    });
 });

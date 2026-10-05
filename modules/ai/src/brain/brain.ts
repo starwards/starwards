@@ -1,7 +1,7 @@
 import { BrainRequest, buildRequest } from './request';
 import { BrainSpec, specHash } from './spec';
-import { CALLOUT_QUESTION, Heard, Said, calloutSaid } from './callout';
 import { Capabilities, Control, Display, Press, stationControls } from './controls';
+import { Heard, Said, calloutSaid, calloutSources } from './callout';
 
 import { verbalReader } from './verbal';
 import { whatIfForecaster } from '../whatif/forecast';
@@ -28,20 +28,22 @@ export type Policy = {
     answer(request: BrainRequest, controls: readonly Control[], display: Display): Promise<Answers>;
 };
 
-/** One control's outcome at one decision, as recorded beside the game. */
-type Decision = Answer & { control: string; press?: Press };
+/** One control's outcome at one decision, as recorded beside the game; `seat` is the member seat a fused brain decided it for. */
+type Decision = Answer & { control: string; seat?: string; press?: Press };
 
 type DecisionResult = {
     request: BrainRequest;
     decisions: Decision[];
     presses: Press[];
-    /** What this seat says on the crew channel, if it chose to speak and its display supplies the values. */
-    callout?: Said;
+    /** What this brain says on the crew channel, if it chose to speak and its display supplies the values: one per callout question. */
+    callouts: Said[];
     meta: {
         brain: string;
         version: number;
         specHash: string;
         policy: string;
+        /** The member seats of a fused brain. */
+        seats?: string[];
         model?: string;
         inputTokens?: number;
         latencyMs?: number;
@@ -83,22 +85,36 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 if (!answer) {
                     continue;
                 }
-                decisions.push({ control: control.id, ...answer, press: control.press(answer.choice) });
+                decisions.push({
+                    control: control.id,
+                    ...(control.seat === undefined ? {} : { seat: control.seat }),
+                    ...answer,
+                    press: control.press(answer.choice),
+                });
             }
-            const callout = answered.answers[CALLOUT_QUESTION];
-            if (callout && CALLOUT_QUESTION in request.questions) {
-                decisions.push({ control: CALLOUT_QUESTION, ...callout });
+            const callouts: Said[] = [];
+            for (const { question, seat } of calloutSources(spec)) {
+                const answer = answered.answers[question];
+                if (!answer) {
+                    continue;
+                }
+                decisions.push({ control: question, ...(seat === undefined ? {} : { seat }), ...answer });
+                const said = calloutSaid(spec, answer.choice, display, question);
+                if (said) {
+                    callouts.push(said);
+                }
             }
             return {
                 request,
                 decisions,
                 presses: decisions.flatMap((d) => (d.press ? [d.press] : [])),
-                callout: callout && calloutSaid(spec, callout.choice, display),
+                callouts,
                 meta: {
                     brain: spec.id,
                     version: spec.version,
                     specHash: hash,
                     policy: policy.name,
+                    ...(spec.seats ? { seats: Object.keys(spec.seats) } : {}),
                     model: answered.model,
                     inputTokens: answered.inputTokens,
                     latencyMs: answered.latencyMs,
