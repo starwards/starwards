@@ -31,6 +31,8 @@ describe('HeadlessRecorder', () => {
     /** Ground truth from live state: the first tick each explosion overlaps the target. */
     const targetOverlaps: { explosionId: string; t: number }[] = [];
     let decisionAt: number | undefined;
+    /** Ground truth from live state: every projectile id seen after a tick. */
+    const projectileIds = new Set<string>();
 
     beforeAll(async () => {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), 'headless-recorder-'));
@@ -45,6 +47,9 @@ describe('HeadlessRecorder', () => {
                 recorder.record('decision', TRAINING_PLAYER_ID, decision);
             }
             await recorder.capture();
+            for (const p of game.spaceManager.state.getAll('Projectile')) {
+                projectileIds.add(p.id);
+            }
             const target = game.spaceManager.state.get(TRAINING_TARGET_ID);
             if (!target || target.destroyed) {
                 break;
@@ -123,6 +128,36 @@ describe('HeadlessRecorder', () => {
                 : [],
         );
         expect(hits).toEqual(targetOverlaps);
+    });
+
+    it('records every projectile once as a shot, with its shooter and ammo, and how it ended', () => {
+        const events = readEvents();
+        const shots = events.filter((e) => e.kind === 'shot');
+        expect(new Set(shots.map((e) => e.objectId))).toEqual(projectileIds);
+        expect(shots.length).toBe(projectileIds.size);
+        const gvts = shots.filter((e) => (e.data as { shipId: string }).shipId === TRAINING_PLAYER_ID);
+        expect(gvts.length).toBeGreaterThan(0);
+        expect(gvts[0].data).toMatchObject({ ammo: 'HiExpShell', targetId: TRAINING_TARGET_ID });
+        const ends = events.filter((e) => e.kind === 'projectile_end');
+        expect(ends.length).toBeGreaterThan(0);
+        for (const e of ends) {
+            expect(projectileIds.has(e.objectId!)).toBe(true);
+            expect(['detonate', 'impact', 'expire', 'shotDown']).toContain((e.data as { reason: string }).reason);
+        }
+        // a HiExp shell's proximity fuze is also its time fuze: it always ends in a blast
+        const gvtsShells = new Set(gvts.map((e) => e.objectId));
+        const gvtsEnds = ends.filter((e) => gvtsShells.has(e.objectId));
+        expect(gvtsEnds.length).toBeGreaterThan(0);
+        expect(gvtsEnds.every((e) => (e.data as { reason: string }).reason === 'detonate')).toBe(true);
+    });
+
+    it('records each weapon hit on a ship with who fired it and what it did', () => {
+        const hits = readEvents().filter((e) => e.kind === 'damage' && e.objectId === TRAINING_TARGET_ID);
+        expect(hits.length).toBeGreaterThan(0);
+        for (const h of hits) {
+            expect(h.data).toMatchObject({ shooterId: TRAINING_PLAYER_ID, damageType: 'HiExp', delivery: 'explosion' });
+        }
+        expect(hits.some((h) => (h.data as { plateLoss: number }).plateLoss > 0)).toBe(true);
     });
 
     it('records defects on ships with the system and cause', () => {

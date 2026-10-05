@@ -2,6 +2,7 @@ import { RunScore, scoreRun } from '../scoring/run-score';
 import { TrainingResult, runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
 
 import { ControlStats } from '../crew/crew';
+import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { headlessCrew } from '../crew/crew';
 import { loadCrew } from '../crew/crew-config';
@@ -16,6 +17,8 @@ type CrewRunOptions = {
     outDir: string;
     intervalSimSeconds: number;
     jevRequestsPerMinute?: number;
+    /** Acts on the game before the crew each tick: a scripted actor outside the station consoles. */
+    script?: (game: HeadlessGame) => void;
 };
 
 /** A training run's outcome together with how the crew played it. */
@@ -58,7 +61,10 @@ export async function runCrewTraining(crewPath: string, options: CrewRunOptions)
         seed: options.seed,
         timeoutSeconds: options.timeoutSeconds,
         crewedPlayer: true,
-        beforeTick: crew.beforeTick,
+        beforeTick: (game, recorder) => {
+            options.script?.(game);
+            return crew.beforeTick(game, recorder);
+        },
         recording: { dir: path.join(options.outDir, plan.name), intervalSimSeconds: options.intervalSimSeconds },
     });
     const score = result.recording

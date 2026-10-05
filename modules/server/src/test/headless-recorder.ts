@@ -3,6 +3,8 @@ import * as path from 'node:path';
 
 import {
     EVENTS_EXT,
+    Explosion,
+    Projectile,
     RecordingEventLine,
     ShipManager,
     ShipManagerPc,
@@ -16,6 +18,8 @@ import { HeadlessGame } from './headless-game';
 import { RECORDING_EXT } from '../recording/game-recorder';
 import { schemaToString } from '../serialization/game-state-serialization';
 
+type Flying = { shipId: string; x: number; y: number; health: number };
+
 /**
  * Writes a {@link HeadlessGame} run in the server's recording format (`.sgr`), one frame
  * every `intervalSimSeconds` of game time -- not wall time, since a headless run is far faster
@@ -28,7 +32,11 @@ import { schemaToString } from '../serialization/game-state-serialization';
  * {@link RecordingEventLine}s to a sidecar `<name>.events.jsonl`, leaving the `.sgr` untouched so
  * replay keeps working. So is every system defect (`defect`, data `{ system, cause }`, cause
  * `hit`/`overheat`/`warp`), and with each frame each player ship's previous-tick energy flow
- * (`energy`, data `{ demand, granted }`). Other modules add their own kinds through {@link HeadlessRecorder.record}.
+ * (`energy`, data `{ demand, granted }`). Every projectile is written once as it appears (`shot`, objectId the
+ * projectile, data `{ shipId, ammo, warhead, targetId, x, y, vx, vy, ttl }`; `targetId` is the shooter's weapons
+ * target for an unguided round) and once as it goes (`projectile_end`, data `{ reason }`: `detonate` into a blast,
+ * `impact` on a hull, `shotDown`, or `expire`), and every weapon hit a ship takes (`damage`, objectId the victim, data
+ * `DamageReport`). Other modules add their own kinds through {@link HeadlessRecorder.record}.
  */
 export class HeadlessRecorder {
     readonly filePath: string;
@@ -38,6 +46,10 @@ export class HeadlessRecorder {
     private readonly firing = new Map<string, boolean>();
     private readonly blastHits = new BlastOverlaps();
     private readonly defectListeners = new WeakSet<ShipManager>();
+    private readonly flying = new Map<string, Flying>();
+    private gone: { id: string; last: Flying; t: number; waited: boolean }[] = [];
+    private readonly blasts = new Set<string>();
+    private impactsThisTick = new Set<string>();
     private pendingEvents: RecordingEventLine[] = [];
 
     constructor(
@@ -72,11 +84,11 @@ export class HeadlessRecorder {
     }
 
     /**
-     * Queues a sidecar event stamped with the current game time. It is written with the next frame,
+     * Queues a sidecar event stamped with game time `t` (default: now). It is written with the next frame,
      * so a sidecar never runs ahead of the `.sgr` it belongs to.
      */
-    record(kind: string, objectId: string | undefined, data?: unknown) {
-        this.pendingEvents.push({ t: this.game.seconds, kind, objectId, data });
+    record(kind: string, objectId: string | undefined, data?: unknown, t = this.game.seconds) {
+        this.pendingEvents.push({ t, kind, objectId, data });
     }
 
     /**
@@ -86,6 +98,7 @@ export class HeadlessRecorder {
     async capture(force = false) {
         this.observeFiring();
         this.observeBlastHits();
+        this.observeProjectiles();
         this.listenToDefects();
         if (!force && this.game.seconds + 1e-9 < this.nextFrameAt) {
             return;
@@ -116,8 +129,69 @@ export class HeadlessRecorder {
                 manager.listenToDefects((system, cause) =>
                     this.record('defect', objectId, { system: system.name, cause }),
                 );
+                manager.listenToDamage((report) => {
+                    this.impactsThisTick.add(report.sourceId);
+                    this.record('damage', objectId, report);
+                });
             }
         }
+    }
+
+    /**
+     * A detonating round's blast enters space a tick after the round leaves it, so a round that is gone
+     * is classified once the next tick's new blasts are known.
+     */
+    private observeProjectiles() {
+        const state = this.game.spaceManager.state;
+        const newBlasts: Explosion[] = [];
+        for (const e of state.getAll('Explosion')) {
+            if (!this.blasts.has(e.id)) {
+                this.blasts.add(e.id);
+                newBlasts.push(e);
+            }
+        }
+        const near = (last: Flying) =>
+            newBlasts.some(
+                (e) => e.shipId === last.shipId && Math.hypot(e.position.x - last.x, e.position.y - last.y) < 200,
+            );
+        const stillPending: typeof this.gone = [];
+        for (const g of this.gone) {
+            if (near(g.last)) this.record('projectile_end', g.id, { reason: 'detonate' }, g.t);
+            else if (g.waited)
+                this.record('projectile_end', g.id, { reason: g.last.health <= 0 ? 'shotDown' : 'expire' }, g.t);
+            else stillPending.push({ ...g, waited: true });
+        }
+        this.gone = stillPending;
+        const live = new Set<string>();
+        for (const p of state.getAll('Projectile')) {
+            if (p.destroyed) continue;
+            live.add(p.id);
+            if (!this.flying.has(p.id)) this.recordShot(p);
+            this.flying.set(p.id, { shipId: p.shipId, x: p.position.x, y: p.position.y, health: p.health });
+        }
+        for (const [id, last] of this.flying) {
+            if (live.has(id)) continue;
+            this.flying.delete(id);
+            if (this.impactsThisTick.has(id)) this.record('projectile_end', id, { reason: 'impact' });
+            else if (near(last)) this.record('projectile_end', id, { reason: 'detonate' });
+            else this.gone.push({ id, last, t: this.game.seconds, waited: false });
+        }
+        this.impactsThisTick = new Set();
+    }
+
+    private recordShot(p: Projectile) {
+        const shooter = this.game.shipManagers.get(p.shipId);
+        this.record('shot', p.id, {
+            shipId: p.shipId,
+            ammo: p.model,
+            warhead: p.warhead,
+            targetId: p.targetId ?? shooter?.state.weaponsTarget.targetId ?? null,
+            x: p.position.x,
+            y: p.position.y,
+            vx: p.velocity.x,
+            vy: p.velocity.y,
+            ttl: p.secondsToLive,
+        });
     }
 
     private recordEnergyFlow() {

@@ -185,6 +185,11 @@ export abstract class ShipManager implements Updateable {
         this.damageManager.onDefect = listener;
     }
 
+    /** Calls `listener` for every weapon hit this ship takes, with its source and effect (e.g. headless recording). */
+    listenToDamage(listener: DamageManager['onDamage']) {
+        this.damageManager.onDamage = listener;
+    }
+
     constructor(
         public readonly spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,
