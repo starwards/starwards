@@ -8,6 +8,7 @@ import {
 
 import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
+import { RadarSectorValues } from '../space/radar-sector';
 import { SpaceObject } from '../space';
 import { SpatialIndex } from './space-manager';
 import { XY } from './xy';
@@ -20,6 +21,28 @@ import { XY } from './xy';
  * detectability floor instead of duplicating the constant.
  */
 export const MIN_RADAR_DETECT_FACTOR = 0.025;
+
+/**
+ * Whether `sector`'s wedge covers `bearing` at all, regardless of range.
+ */
+function sectorCoversBearing(sector: RadarSectorValues, bearing: number): boolean {
+    return sector.arc >= 360 || toPositiveDegreesDelta(bearing - (sector.direction - sector.arc / 2)) < sector.arc;
+}
+
+/**
+ * Whether a single radar sector, in isolation, would reach a target at `bearing`/`distance` —
+ * the per-sector test behind `FieldOfView.rangeAtBearing`'s cross-sector union, exposed so a
+ * caller can check one specific radar's sector rather than a ship's merged view (e.g. whether the
+ * signals beam, as opposed to the omni, currently covers a deep-scan target).
+ */
+export function sectorCovers(sector: RadarSectorValues, bearing: number, distance: number, targetRadius = 0): boolean {
+    return (
+        sector.range > EPSILON &&
+        sector.arc > EPSILON &&
+        sectorCoversBearing(sector, bearing) &&
+        distance <= sector.range + targetRadius
+    );
+}
 
 type VisibleObject = {
     object: SpaceObject | null;
@@ -83,9 +106,7 @@ export class FieldOfView {
     private rangeAtBearing(bearing: number): number {
         let range = 0;
         for (const sector of this.validSectors()) {
-            const covered =
-                sector.arc >= 360 || toPositiveDegreesDelta(bearing - (sector.direction - sector.arc / 2)) < sector.arc;
-            if (covered && sector.range > range) {
+            if (sectorCoversBearing(sector, bearing) && sector.range > range) {
                 range = sector.range;
             }
         }

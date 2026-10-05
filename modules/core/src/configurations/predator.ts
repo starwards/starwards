@@ -40,6 +40,7 @@ export const predatorOmniRadar = {
 
 export const predatorScanBeam = {
     modelName: 'Lancet-50 Directional Scan Beam',
+    isScanBeam: true,
     isInternal: false,
     isElectronics: true,
     damage50: 20,

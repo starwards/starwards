@@ -9,9 +9,10 @@ export enum JobStatus {
     /** The single job the station is working right now. */
     IN_PROGRESS,
     /**
-     * Retained but not workable — the target is out of the ship's field of view, or there is
-     * nothing left to reveal at its current scan level. Clients must not present a dormant job
-     * as next up: the station will skip it.
+     * Retained but not progressable — the target is out of the ship's field of view, there is
+     * nothing left to reveal at its current scan level, or (past BASIC) the signals beam isn't
+     * aimed and ranged on it. Clients must not present a dormant job as next up: the station will
+     * skip it.
      */
     DORMANT,
 }
