@@ -15,8 +15,9 @@ async function main() {
     const recording = arg('recording');
     if (!recording) throw new Error('usage: score --recording <path.sgr> [--every <seconds>] [--ship <id>]');
     const every = Number(arg('every') ?? 1);
-    const f = (v: number) => v.toFixed(2).padStart(6);
-    process.stdout.write(`scorer ${scorer.version}\n     t   kill damage  value  helms weapons engineer signals\n`);
+    const f = (v: number) => v.toFixed(2).padStart(7);
+    const columns = ['kill', 'damage', 'value', 'T', 'O', 'V', 'helms', 'weapons', 'engineer'];
+    process.stdout.write(`scorer ${scorer.version}\n${'t'.padStart(6)}${columns.map((c) => c.padStart(7)).join('')}\n`);
     let next = 0;
     for (const { t, saved } of await readFrames(recording)) {
         if (t + 1e-6 < next) continue;
@@ -24,7 +25,7 @@ async function main() {
         const s = scoreSnapshot(saved, arg('ship'));
         process.stdout.write(
             s
-                ? `${t.toFixed(0).padStart(6)}${f(s.overall.kill)} ${f(s.overall.damage)}${f(s.overall.value)}${f(s.stations.helms)}  ${f(s.stations.weapons)}   ${f(s.stations.engineer)}  ${f(s.stations.signals)}\n`
+                ? `${t.toFixed(0).padStart(6)}${[...Object.values(s.overall), ...Object.values(s.tactical), ...Object.values(s.stations)].map(f).join('')}\n`
                 : `${t.toFixed(0).padStart(6)}  (no player or no opponent)\n`,
         );
     }
