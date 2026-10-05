@@ -15,7 +15,7 @@ function display(beamBearing: number, contacts: Seen[], heading = 0): Display {
             scanBeam: { bearing: beamBearing, arc: 20, range: 5000 },
             contacts: contacts.map((c) => ({ name: c.id, type: 'Spaceship', position: { x: 0, y: 0 }, ...c })),
         },
-    } as Display;
+    };
 }
 
 async function beam(shown: Display) {
