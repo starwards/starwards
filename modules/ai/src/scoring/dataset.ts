@@ -12,8 +12,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { FEATURE_NAMES, extractFeatures, findDuel } from './features';
-import { LABELS, labelsAt, summarize } from './labels';
-import { components, engineerKpi30, observe } from './engineer-kpi';
+import { LABELS, LabelName, duelLabelsAt, runLabels, summarize } from './labels';
 import { readEvents, readFrames } from './recording';
 
 interface ManifestLine {
@@ -26,6 +25,7 @@ interface ManifestLine {
     frames: number;
     stations?: Record<string, { brain: string; version: number; policy: string }>;
     outcome?: { scenario?: string; killed?: boolean } | null;
+    codeCommit?: string;
 }
 
 function arg(name: string) {
@@ -45,6 +45,8 @@ const META = [
     'live',
     'policy',
     ...STATIONS.map((s) => `policy_${s}`),
+    'code_commit',
+    'weapons_events',
     'frame',
     't',
     'target_id',
@@ -64,35 +66,22 @@ function crewPolicy(stations: ManifestLine['stations']) {
 }
 
 /**
- * `engineer_kpi30` by frame index, for the frames the player ship is alive in (see `engineer-kpi.ts`).
+ * Commits whose headless recorder wrote `shot` and `damage` events (archive `commits.json`). A run from
+ * another commit carries them only if its sidecar shows any; otherwise its tactical and weapons labels
+ * are censored.
  */
-function engineerLabels(
-    frames: { t: number; saved: Parameters<typeof observe>[1] }[],
-    events: ReturnType<typeof readEvents>,
-    playerId: string | undefined,
-) {
-    const labels = new Map<number, number | null>();
-    if (!playerId) return labels;
-    const seen = frames.flatMap((f, i) => {
-        const o = observe(f.t, f.saved, playerId);
-        return o ? [{ i, o }] : [];
-    });
-    if (!seen.length) return labels;
-    const cs = components(
-        seen.map((s) => s.o),
-        events,
-        playerId,
-    );
-    const kpi30 = engineerKpi30(cs);
-    seen.forEach((s, j) => labels.set(s.i, kpi30[j]));
-    return labels;
-}
+const WEAPONS_EVENT_COMMITS = new Set(['26e162b0', '465503bc', 'b9e17467', '964e85ef']);
+const WEAPONS_EVENT_KINDS = new Set(['shot', 'damage', 'projectile_end']);
 
 async function rowsFor(day: string, archive: string, line: ManifestLine) {
     const sgr = path.join(archive, day, line.path);
     const frames = await readFrames(sgr);
+    const events = readEvents(sgr);
     const duels = frames.map((f) => findDuel(f.saved));
-    const engineer = engineerLabels(frames, readEvents(sgr), duels.find((d) => d)?.player.id);
+    const playerId = duels.find((d) => d)?.player.id;
+    const weaponsEvents =
+        WEAPONS_EVENT_COMMITS.has(line.codeCommit ?? '') || events.some((e) => WEAPONS_EVENT_KINDS.has(e.kind));
+    const run = playerId ? runLabels(frames, events, playerId, weaponsEvents) : [];
     const pinned = new Map<string, ReturnType<typeof summarize>[]>();
     const rows: (string | number | boolean | null)[][] = [];
     const scenario = line.outcome?.scenario ?? path.basename(line.path).replace(/_seed\d+\.sgr$|\.sgr$/, '');
@@ -107,6 +96,8 @@ async function rowsFor(day: string, archive: string, line: ManifestLine) {
         line.live,
         crewPolicy(line.stations),
         ...STATIONS.map((s) => line.stations?.[s]?.policy ?? 'none'),
+        line.codeCommit ?? '',
+        weaponsEvents,
     ];
     frames.forEach((frame, i) => {
         const duel = duels[i];
@@ -117,16 +108,8 @@ async function rowsFor(day: string, archive: string, line: ManifestLine) {
             summaries = frames.map((f) => summarize(f.t, f.saved, duel.player.id, duel.target.id));
             pinned.set(key, summaries);
         }
-        const labels = labelsAt(summaries, i);
-        rows.push([
-            ...meta,
-            i,
-            frame.t,
-            duel.target.id,
-            ...extractFeatures(duel),
-            ...LABELS.map((l) => labels[l]),
-            engineer.get(i) ?? null,
-        ]);
+        const labels: Record<LabelName, number | null> = { ...duelLabelsAt(summaries, i), ...run[i] };
+        rows.push([...meta, i, frame.t, duel.target.id, ...extractFeatures(duel), ...LABELS.map((l) => labels[l])]);
     });
     return rows;
 }
@@ -139,7 +122,7 @@ async function main() {
     const limit = Number(arg('limit') ?? Infinity);
     const out = path.resolve(arg('out') ?? path.join(archive, 'datasets', `snapshots-${days.join('_')}.csv`));
     fs.mkdirSync(path.dirname(out), { recursive: true });
-    const header = [...META, ...FEATURE_NAMES, ...LABELS, 'engineer_kpi30'];
+    const header = [...META, ...FEATURE_NAMES, ...LABELS];
     const hash = crypto.createHash('sha256');
     const write = (cells: (string | number | boolean | null)[]) => {
         const text = cells.map(csvCell).join(',') + '\n';
@@ -178,7 +161,7 @@ async function main() {
         rows,
         skipped,
         features: FEATURE_NAMES,
-        labels: [...LABELS, 'engineer_kpi30'],
+        labels: LABELS,
         sha256: hash.digest('hex'),
     };
     fs.writeFileSync(out.replace(/\.csv$/, '.manifest.json'), JSON.stringify(manifest, null, 2));

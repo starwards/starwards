@@ -40,6 +40,8 @@ describe('run score', () => {
         const score = scoreFrames(frames, { killed: false, seconds: 4, timeoutSeconds: 4, playerId: 'GVTS' })!;
         expect(score.value).toBeCloseTo((3 * valueOf(far) + valueOf(aimed)) / 4, 9);
         expect(score.helms).toBeCloseTo((3 * helmsOf(far) + helmsOf(aimed)) / 4, 9);
+        // K_w is read from shot events, never predicted: none recorded, none scored
+        expect(score.weapons).toBeNull();
     });
 
     it('counts the time a kill saved as 1, so an early kill scores above a late one and above none', () => {

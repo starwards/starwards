@@ -13,6 +13,11 @@ import {
     createTrainingT0Map,
     createTrainingT1Map,
 } from '../../scenarios/training';
+import {
+    WeaponsMultiParams,
+    createTrainingWeaponsMultiMap,
+    createTrainingWeaponsOutrangedMap,
+} from '../../scenarios/training-weapons';
 import { ingest, storePathFor } from './analysis/store';
 
 import { HeadlessRecorder } from '../headless-recorder';
@@ -146,6 +151,31 @@ const energyBound = (name: string, model: ShipModel, reactorOutput: number): Tra
         createTrainingT1Map(params, model, { playerEnergy: params.playerEnergy, playerCells: 1, reactorOutput }),
 });
 
+/** Weapons rung with a threat, a harmless decoy and an ally to choose between (calibration only). */
+const W_MULTI: TrainingScenario<WeaponsMultiParams> = {
+    name: 'W-multi',
+    description:
+        'GVTS vs a dragonfly-MK2 attacking it (4-7 km), a PLAY_DEAD unarmed dragonfly-MK1 decoy (3-6 km, 30-90 degrees off) and a PLAY_DEAD allied dragonfly-MK1 600 m off the threat (calibration only)',
+    params: fc.record({
+        distance: fc.integer({ min: 4000, max: 7000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        decoyDistance: fc.integer({ min: 3000, max: 6000 }),
+        decoyOffset: fc.integer({ min: 30, max: 90 }),
+    }),
+    createMap: createTrainingWeaponsMultiMap,
+};
+
+/** Weapons rung the gun cannot reach: a dragonfly-MK1 fleeing at the GVTS top speed from 10-14 km (calibration only). */
+const W_OUTRANGED: TrainingScenario<T0Params> = {
+    name: 'W-outranged',
+    description: 'GVTS vs a dragonfly-MK1 fleeing at its top speed from 10-14 km, any bearing (calibration only)',
+    params: fc.record({
+        distance: fc.integer({ min: 10_000, max: 14_000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+    }),
+    createMap: createTrainingWeaponsOutrangedMap,
+};
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     'T0-wide': T0_WIDE as TrainingScenario<never>,
@@ -167,6 +197,8 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
         { standGround: true, capsuleIntegrity: 0.3 },
         'holding its ground with its capsule 70% breached',
     ) as TrainingScenario<never>,
+    'W-multi': W_MULTI as TrainingScenario<never>,
+    'W-outranged': W_OUTRANGED as TrainingScenario<never>,
 };
 
 /**
