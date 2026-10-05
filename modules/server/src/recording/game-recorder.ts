@@ -5,6 +5,7 @@ import * as readline from 'node:readline';
 import {
     RecordingHeader,
     createLogger,
+    currentEnergyModel,
     encodeFrameLine,
     encodeHeader,
     parseFrameLine,
@@ -85,6 +86,7 @@ export class GameRecorder {
             mapName: savedGame.mapName,
             startedAt,
             intervalMs: this.intervalMs,
+            energyModel: currentEnergyModel(),
         };
         this.lastWrittenT = null;
         this.baseSeconds = this.manager.totalSeconds;

@@ -238,7 +238,10 @@ def main():
     df["seed"] = df["seed"].fillna(-1)
     df["day"] = df["day"].astype(str)
     df["source"] = df["source"].astype(str)
-    df["mechanics"] = np.where(df["code_commit"].astype(str).isin(POWER_DRAW_COMMITS), "power-draw", "flat-draw")
+    # recorded exponent decides; runs archived before headers carried it fall back to the commit set
+    exponent = pd.to_numeric(df["power_draw_exponent"], errors="coerce") if "power_draw_exponent" in df else pd.Series(np.nan, index=df.index)
+    by_commit = df["code_commit"].astype(str).isin(POWER_DRAW_COMMITS)
+    df["mechanics"] = np.where(exponent.notna(), np.where(exponent != 1, "power-draw", "flat-draw"), np.where(by_commit, "power-draw", "flat-draw"))
     for label in POWER_DRAW_ONLY:
         df.loc[df.mechanics != "power-draw", label] = np.nan
     df["crew"] = df["group"].astype(str).str.replace(r"^(engineer|weapons)-", "", regex=True)
