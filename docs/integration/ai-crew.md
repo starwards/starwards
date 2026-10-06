@@ -475,16 +475,17 @@ parity fixture), trained by `modules/ai/ml` on the training archive; see
 the evaluation protocol (seed and leave-one-scenario-out holdouts, persistence baseline, calibration,
 backwards benchmark, behavioural orderings). Artefacts are read by feature name, so v1 still scores.
 
-Current models (`modules/ai/ml/reports/2026-10-04-v2.md`), trained on 3606 runs:
+Current models (`modules/ai/ml/reports/2026-10-04-v2.md`, `2026-10-05-engineer-v2.md`), trained on 3606 runs:
 
-- Every head comes from v2. v2 replaces v1 unless a scenario regresses beyond noise: Δ loss (v2 − v1, 95% bootstrap CI over runs) counts as a regression only when the whole CI lies above a noise floor (0.002 logloss for `kill60`, 0.0005 mse for `damage30`; the calibration floor alone costs up to 0.001 logloss) on at least 5 runs. A CI above the floor on fewer runs is reported as insufficient evidence. Pooled v2 beats v1 (kill60 logloss 0.217 → 0.138, damage30 mse
+- Every head comes from v3, which is v2 with the `engineer_kpi30` label recomputed under the 2026-10-05
+  engineer score (every other head is bit-identical to v2). v2 replaces v1 unless a scenario regresses beyond noise: Δ loss (v2 − v1, 95% bootstrap CI over runs) counts as a regression only when the whole CI lies above a noise floor (0.002 logloss for `kill60`, 0.0005 mse for `damage30`; the calibration floor alone costs up to 0.001 logloss) on at least 5 runs. A CI above the floor on fewer runs is reported as insufficient evidence. Pooled v2 beats v1 (kill60 logloss 0.217 → 0.138, damage30 mse
   0.0102 → 0.0022); no scenario regresses beyond noise; T1-noweave damage30 (+0.0028, 2 runs) is
   insufficient evidence.
 - Runs are split by energy mechanics (`codeCommit` before or after #2306, `POWER_DRAW_COMMITS` in
   `ml/train.py`). `engineer_kpi30` is labelled only from power-draw runs; the other heads train on both
   and report loss per mechanics.
 - Persistence gain (1 − loss / loss of the label's own past value): kill60 0.78, damage30 0.80, T 0.64,
-  O 0.76, V 0.54, helms 0.65, engineer 0.65.
+  O 0.76, V 0.54, helms 0.65, engineer 0.67.
 - The weapons station score K_w is not a snapshot field: it is a rate over rounds fired, computed
   exactly from the recorded `shot`/`damage` events (`weaponsScore`; `RunScore.weapons` from
   `scoreRun`). Weapons' snapshot share is `tactical.conversion`.
@@ -571,9 +572,11 @@ dataset column. Per frame, over the player ship's systems:
   as (power / NORMAL)², so overdrive pays through the reserve;
 - need `n = 1 + a·(MAX/NORMAL − 1)`: NORMAL power when nothing is asked, MAX when fully asked; the reactor's
   standing demand needs NORMAL only;
-- `K = D60 · ((1 − λ)·S + λ·R)`, where:
+- `K = D60 · ((1 − λ)·S + λ·R·min(1, S / S0))`, where:
     - `S = Σa·min(e, n) / Σa·n`;
-    - `R = 1 − exp(−k·store / N0(1 + β·r))`, with store = energy share + 0.3 per cell;
+    - `R = 1 − exp(−k·store / N0(1 + β·r))`, with store = the reactor's energy share;
+    - `S0` = 0.3 (`DELIVERY_FULL`): the reserve is credited in proportion to delivery below it, so a ship
+      that powers nothing earns no reserve credit;
     - `D60` is the mean demand-weighted intactness over the next 60 s;
     - `λ = min(0.6, λ0 + λ1·r)`.
 
@@ -581,22 +584,24 @@ Risk `r` is a logistic with non-negative coefficients over hostiles in range, ne
 lost integrity and unscanned contacts. It is fitted to own integrity loss in the next 30 s.
 
 The reserve counts the reactor's energy only; energy cells are a fallback. It is set by design: λ0 0.3 and λ1 0.4. The store to hold rises from 0.25 calm to 0.5 at full
-risk, and holding it earns R = 0.9 (N0 0.25, β 1, k ln 10). Only ε is fitted.
+risk, and holding it earns R = 0.9 (N0 0.25, β 1, k ln 10). ε is 0: a system nobody asks anything of does
+not score.
 
 `npm --prefix modules/ai run score:engineer -- --runs <train out dir> ...` validates the score on
 matched-seed runs of the scripted engineers (`crews/engineer-*.json`):
 
 - it compares paired runs over their common time;
 - it reports each KPI Δ next to the paired outcome Δs (kills, own integrity kept), and how often the
-  KPI's sign agrees with the outcome's.
+  KPI's sign agrees with the outcome's;
+- it ranks every pair of policies by the graded outcome (hostile integrity dealt minus own integrity lost)
+  and reports the Spearman r of the K gap with it per scenario, on fit and held-out seeds, with the risk
+  curve's calibration and a leave-one-scenario-out table.
 
-Status on 420 runs recorded after #2306, in `modules/ai/ml/reports/2026-10-03-engineer-kpi.md`: wherever
-kills or time-to-kill separate two engineers, the KPI's ordering agrees in sign; reference over all-max
-now separates on outcomes in T0-constrained, T1 and T1-MK2, and the KPI never ranks all-max above
-reference. E1 rungs (energy-bound, almost no kills) are gated on damage per exposure second; there the
-KPI sides with reference on E1-MK2 against the damage rate (reference kills more) and does not separate
-reference from all-max on E1-predator. Repairs are not credited separately. idle > all-shutdown is
-required only where outcomes separate them (T0-constrained, pooled).
+Status (`modules/ai/ml/reports/2026-10-05-engineer-v2.md`): K ranks the seven scripted engineers by the
+graded outcome with Spearman r 0.67 on seeds 1-12 and 0.72 on fresh seeds 13-20 (0.43 and 0.53 before),
+and idle > all-shutdown now holds on every scenario. Reference over all-max does not separate on
+E1-predator: the graded outcome does not separate it either. Repairs are not credited separately. The
+frame-level predictive validity inside a risk tercile is not improved (report).
 
 `engineer_kpi30` is the training target of `stations.engineer` since v2, labelled only from runs recorded
 after #2306.

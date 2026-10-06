@@ -49,9 +49,9 @@ NOISE_FLOOR = {"binary": 0.002, "regression": 0.0005}
 MIN_EVIDENCE_RUNS = 5
 VALIDATION_SOURCES = ("engineer-kpi-2306/", "weapons-score/")
 # Energy mechanics a run was recorded under. Since #2306 energy draw grows as (power / NORMAL)² per unit of
-# output; these code commits recorded under the merged mechanics (warp fix included). Every other commit
+# output; these code commits recorded under the merged mechanics (warp fix included; 6310123b is master after #2321). Every other commit
 # predates it (flat draw). Engineer heads train and test only on power-draw runs.
-POWER_DRAW_COMMITS = {"fe2d23bd", "d32e1f50"}
+POWER_DRAW_COMMITS = {"fe2d23bd", "d32e1f50", "6310123b"}
 POWER_DRAW_ONLY = {"engineer_kpi30"}
 
 

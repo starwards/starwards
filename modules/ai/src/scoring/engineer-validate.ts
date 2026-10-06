@@ -8,7 +8,7 @@
  * Two runs of a seed are compared over the same stretch of game time: from the start to the earlier
  * of their ends (a kill, the ship's loss, or the timeout), so a run that wins early is never averaged
  * against a run's long calm tail. Each run's weight-free components are cached beside its recording
- * as `<run>.ekpi4.json`.
+ * as `<run>.ekpi5.json`.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -25,6 +25,7 @@ import {
     riskOf,
 } from './engineer-kpi';
 import { readEvents, readFrames } from './recording';
+import { integrity } from './features';
 
 const PLAYER = 'GVTS';
 const POLICIES = [
@@ -38,8 +39,11 @@ const POLICIES = [
 ] as const;
 type PolicyName = (typeof POLICIES)[number];
 
-/** One frame: K's components, and whether the opponent is still alive. */
-type Frame = EngineerComponents & { readonly targetAlive: boolean };
+/**
+ * One frame: K's components, whether the opponent is still alive, and the hostiles' mean integrity (the
+ * ships hostile to the player in the first frame; 0 once one is destroyed or gone).
+ */
+type Frame = EngineerComponents & { readonly targetAlive: boolean; readonly hostile: number };
 
 interface Run {
     readonly scenario: string;
@@ -56,6 +60,9 @@ interface Outcomes {
     /** 1 if the opponent dies by t+h, minus own integrity lost by t+h; null when the run ends first otherwise. */
     readonly outcome60: (number | null)[];
     readonly outcome120: (number | null)[];
+    /** Hostile integrity dealt over (t, t+h] minus own integrity lost; null when the run ends first otherwise. */
+    readonly graded60: (number | null)[];
+    readonly graded120: (number | null)[];
 }
 
 function args(name: string) {
@@ -63,15 +70,25 @@ function args(name: string) {
 }
 
 async function loadRun(sgr: string): Promise<{ frames: Frame[]; end: number; lost: boolean }> {
-    const cache = sgr.replace(/\.sgr$/, '.ekpi4.json');
+    const cache = sgr.replace(/\.sgr$/, '.ekpi5.json');
     if (fs.existsSync(cache))
         return JSON.parse(fs.readFileSync(cache, 'utf8')) as { frames: Frame[]; end: number; lost: boolean };
     const recorded = await readFrames(sgr);
+    const first = recorded[0]?.saved.fragment.space;
+    const faction = first?.getShip(PLAYER)?.faction;
+    const hostiles = first ? [...first.getAll('Spaceship')].filter((s) => s.faction !== faction).map((s) => s.id) : [];
     const seen = recorded.flatMap((f) => {
         const o = observe(f.t, f.saved, PLAYER);
         if (!o) return [];
         const alive = [...f.saved.fragment.space.getAll('Spaceship')].some((s) => s.id !== PLAYER && !s.destroyed);
-        return [{ o, alive }];
+        const hostile = hostiles.length
+            ? hostiles.reduce((sum, id) => {
+                  const ship = f.saved.fragment.ship.get(id);
+                  const body = f.saved.fragment.space.getShip(id);
+                  return sum + (ship && body && !body.destroyed ? integrity(ship) : 0);
+              }, 0) / hostiles.length
+            : 0;
+        return [{ o, alive, hostile }];
     });
     const cs = components(
         seen.map((s) => s.o),
@@ -79,7 +96,7 @@ async function loadRun(sgr: string): Promise<{ frames: Frame[]; end: number; los
         PLAYER,
     );
     const run = {
-        frames: cs.map((c, i) => ({ ...c, targetAlive: seen[i].alive })),
+        frames: cs.map((c, i) => ({ ...c, targetAlive: seen[i].alive, hostile: seen[i].hostile })),
         end: recorded.at(-1)?.t ?? 0,
         lost: seen.length < recorded.length,
     };
@@ -92,10 +109,11 @@ function outcomesOf(run: Run & { lost: boolean }): Outcomes {
     const at = (i: number, h: number) => {
         const t = f[i].t;
         const killed = f.findIndex((x, j) => j > i && !x.targetAlive && x.t <= t + h);
-        if (killed >= 0) return { kill: 1, loss: f[i].integrity - f[killed].integrity };
-        if (run.end < t + h) return run.lost ? { kill: 0, loss: f[i].integrity } : null;
+        if (killed >= 0)
+            return { kill: 1, loss: f[i].integrity - f[killed].integrity, dealt: f[i].hostile - f[killed].hostile };
+        if (run.end < t + h) return run.lost ? { kill: 0, loss: f[i].integrity, dealt: 0 } : null;
         const last = f.findLastIndex((x) => x.t <= t + h);
-        return { kill: 0, loss: f[i].integrity - f[last].integrity };
+        return { kill: 0, loss: f[i].integrity - f[last].integrity, dealt: f[i].hostile - f[last].hostile };
     };
     return {
         hurt30: f.map((_, i) => {
@@ -109,6 +127,14 @@ function outcomesOf(run: Run & { lost: boolean }): Outcomes {
         outcome120: f.map((_, i) => {
             const o = at(i, 120);
             return o ? o.kill - o.loss : null;
+        }),
+        graded60: f.map((_, i) => {
+            const o = at(i, 60);
+            return o ? o.dealt - o.loss : null;
+        }),
+        graded120: f.map((_, i) => {
+            const o = at(i, 120);
+            return o ? o.dealt - o.loss : null;
         }),
     };
 }
@@ -267,7 +293,15 @@ const RATE_GATED = /^E1-/;
 
 function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
     const by = new Map(runs.map((r) => [`${r.scenario}/${r.seed}/${r.policy}`, r]));
-    const rows: { kpi: number; kill: number; saved: number; survived: number; damageRate: number }[] = [];
+    const rows: {
+        kpi: number;
+        kill: number;
+        saved: number;
+        survived: number;
+        damageRate: number;
+        lost: number;
+        graded: number;
+    }[] = [];
     for (const x of runs.filter((r) => r.policy === a)) {
         const y = by.get(`${x.scenario}/${x.seed}/${b}`);
         if (!y || !x.frames.length || !y.frames.length) continue;
@@ -277,6 +311,12 @@ function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
             const exposed = within.filter((f) => f.features.threats > 0).length;
             const lost = r.frames[0].integrity - (within.at(-1) ?? r.frames[0]).integrity;
             return exposed ? lost / exposed : 0;
+        };
+        const ownLoss = (r: Scored) =>
+            r.frames[0].integrity - (r.frames.filter((f) => f.t <= until).at(-1) ?? r.frames[0]).integrity;
+        const gradedOf = (r: Scored) => {
+            const last = r.frames.filter((f) => f.t <= until).at(-1) ?? r.frames[0];
+            return r.frames[0].hostile - last.hostile - (r.frames[0].integrity - last.integrity);
         };
         const avg = (r: Scored) => mean(r.k.filter((_, i) => r.frames[i].t <= until));
         /** Seconds until own integrity fell below half, or the pair's common end. */
@@ -288,6 +328,8 @@ function pairedOutcomes(runs: readonly Scored[], a: PolicyName, b: PolicyName) {
             saved: y.end - x.end,
             survived: survival(x) - survival(y),
             damageRate: rate(y) - rate(x),
+            lost: ownLoss(y) - ownLoss(x),
+            graded: gradedOf(x) - gradedOf(y),
         });
     }
     return rows;
@@ -362,13 +404,112 @@ function predictive(runs: readonly Scored[], cuts: readonly [number, number], h:
 }
 
 /**
+ * Outcome of frame `i` over (t, t+h] for the predictive check: the gate's outcome (`gate`), own integrity
+ * lost (`raw`), or hostile integrity dealt minus own integrity lost (`graded`).
+ */
+function outcomeAt(r: Scored, i: number, h: 60 | 120, mode: 'gate' | 'raw' | 'graded' = 'gate') {
+    if (mode === 'graded') return (h === 60 ? r.outcomes.graded60 : r.outcomes.graded120)[i];
+    if (mode === 'raw') {
+        const f = r.frames;
+        let j = i;
+        while (j < f.length - 1 && f[j + 1].t <= f[i].t + h + 1e-6) j++;
+        return f[j].t < f[i].t + h - 1e-6 ? null : -(f[i].integrity - f[j].integrity);
+    }
+    return RATE_GATED.test(r.scenario)
+        ? rateOutcome(r, i, h)
+        : (h === 60 ? r.outcomes.outcome60 : r.outcomes.outcome120)[i];
+}
+
+interface Moment {
+    readonly scenario: string;
+    readonly seed: number;
+    readonly k: number;
+    readonly r: number;
+    readonly y: number;
+}
+
+/**
+ * Frames with K and the outcome both measured against the other policies at the same moment: the K and
+ * the outcome of a frame minus their means over the policies of the same scenario and seed at the same
+ * second. Every policy faces the same opponent, so what is left is what the engineer's choices changed;
+ * the stretch of the fight (store drains, damage lands later) is removed. Moments with fewer than three
+ * policies are dropped.
+ */
+function moments(runs: readonly Scored[], h: 60 | 120, mode: 'gate' | 'raw' | 'graded' = 'gate'): Moment[] {
+    const groups = new Map<string, { run: Scored; i: number; y: number }[]>();
+    for (const run of runs) {
+        run.frames.forEach((f, i) => {
+            const y = outcomeAt(run, i, h, mode);
+            if (y === null) return;
+            const key = `${run.scenario}/${run.seed}/${Math.round(f.t)}`;
+            const g = groups.get(key);
+            if (g) g.push({ run, i, y });
+            else groups.set(key, [{ run, i, y }]);
+        });
+    }
+    const out: Moment[] = [];
+    for (const g of groups.values()) {
+        if (g.length < 3) continue;
+        const mk = mean(g.map((x) => x.run.k[x.i]));
+        const my = mean(g.map((x) => x.y));
+        for (const x of g)
+            out.push({
+                scenario: x.run.scenario,
+                seed: x.run.seed,
+                k: x.run.k[x.i] - mk,
+                r: x.run.r[x.i],
+                y: x.y - my,
+            });
+    }
+    return out;
+}
+
+/** Pearson r and its 95% CI over seeds (resampled seeds, from per-seed sufficient statistics) of K with the outcome. */
+function seedCorr(ms: readonly Moment[], keep: Keep) {
+    const bySeed = new Map<number, number[]>();
+    for (const m of ms) {
+        if (!keep(m.r)) continue;
+        const s = bySeed.get(m.seed) ?? [0, 0, 0, 0, 0, 0];
+        s[0]++;
+        s[1] += m.k;
+        s[2] += m.y;
+        s[3] += m.k * m.k;
+        s[4] += m.y * m.y;
+        s[5] += m.k * m.y;
+        bySeed.set(m.seed, s);
+    }
+    const stats = [...bySeed.values()];
+    const corr = (xs: readonly number[][]) => {
+        const t = [0, 0, 0, 0, 0, 0];
+        for (const x of xs) x.forEach((v, j) => (t[j] += v));
+        const [n, sx, sy, sxx, syy, sxy] = t;
+        const vx = sxx - (sx * sx) / n;
+        const vy = syy - (sy * sy) / n;
+        return n > 20 && vx > 1e-12 && vy > 1e-15 ? (sxy - (sx * sy) / n) / Math.sqrt(vx * vy) : NaN;
+    };
+    const r = corr(stats);
+    const next = rng(20261005);
+    const draws: number[] = [];
+    for (let b = 0; b < 500 && stats.length; b++) {
+        const c = corr(stats.map(() => stats[Math.floor(next() * stats.length)]));
+        if (Number.isFinite(c)) draws.push(c);
+    }
+    draws.sort((a, c) => a - c);
+    return {
+        r,
+        lo: draws.length > 20 ? draws[Math.floor(0.025 * draws.length)] : NaN,
+        hi: draws.length > 20 ? draws[Math.floor(0.975 * draws.length)] : NaN,
+    };
+}
+
+/**
  * The reserve is set by design: `λ0` 0.3, `λ1` 0.4, and the store the engineer should hold rising from
  * 0.25 at no risk to 0.5 at full risk (`N0` 0.25, `β` 1) with `k = ln 10`, so holding that store earns
  * R = 0.9. Only `ε` is fitted. `--free-reserve` also fits the reserve weights, for reference.
  */
 const FREE_RESERVE = process.argv.includes('--free-reserve');
-/** `--epsilon <x>` pins ε instead of fitting it. */
-const EPSILONS = args('epsilon').length ? args('epsilon').map(Number) : [0.01, 0.05, 0.2];
+/** ε is 0: a system nobody asks anything of does not score. `--epsilon <x ...>` fits it over the given values instead. */
+const EPSILONS = args('epsilon').length ? args('epsilon').map(Number) : [0];
 
 function grid(): EngineerWeights[] {
     const out: EngineerWeights[] = [];
@@ -410,6 +551,122 @@ function fit(runs: readonly LoadedRun[]) {
         if (!best || (ok && !best.predictive) || s > best.score) best = { w, score: s, predictive: ok };
     }
     return best && { ...best, risk };
+}
+
+/** Below this graded-outcome gap two policies count as tied and the pair is not scored. */
+const TIE = 0.02;
+
+interface Ranked {
+    readonly seed: number;
+    readonly kpi: number;
+    readonly graded: number;
+}
+
+/**
+ * Every pair of policies on one scenario and seed, over the pair's common time: the K gap and the gap in
+ * the graded outcome (hostile integrity dealt minus own integrity lost). Pairs whose outcome gap is below
+ * {@link TIE} are dropped.
+ */
+function rankedPairs(runs: readonly Scored[]): Map<string, Ranked[]> {
+    const by = new Map<string, Scored[]>();
+    for (const r of runs) by.set(`${r.scenario}/${r.seed}`, [...(by.get(`${r.scenario}/${r.seed}`) ?? []), r]);
+    const out = new Map<string, Ranked[]>();
+    for (const [key, group] of by) {
+        const scenario = key.split('/')[0];
+        for (let i = 0; i < group.length; i++) {
+            for (let j = i + 1; j < group.length; j++) {
+                const [x, y] = [group[i], group[j]];
+                const until = Math.min(x.end, y.end);
+                const view = (r: Scored) => {
+                    const within = r.frames.filter((f) => f.t <= until);
+                    const last = within.at(-1) ?? r.frames[0];
+                    return {
+                        k: mean(r.k.filter((_, n) => r.frames[n].t <= until)),
+                        graded: r.frames[0].hostile - last.hostile - (r.frames[0].integrity - last.integrity),
+                    };
+                };
+                const [vx, vy] = [view(x), view(y)];
+                const graded = vx.graded - vy.graded;
+                if (!Number.isFinite(vx.k - vy.k) || Math.abs(graded) < TIE) continue;
+                out.set(scenario, [...(out.get(scenario) ?? []), { seed: x.seed, kpi: vx.k - vy.k, graded }]);
+            }
+        }
+    }
+    return out;
+}
+
+function ranks(xs: readonly number[]) {
+    const order = xs.map((x, i) => [x, i] as const).sort((a, c) => a[0] - c[0]);
+    const out = new Array<number>(xs.length);
+    for (let i = 0; i < order.length;) {
+        let j = i;
+        while (j + 1 < order.length && order[j + 1][0] === order[i][0]) j++;
+        for (let n = i; n <= j; n++) out[order[n][1]] = (i + j) / 2;
+        i = j + 1;
+    }
+    return out;
+}
+
+function spearman(rows: readonly Ranked[]) {
+    if (rows.length < 5) return NaN;
+    const a = ranks(rows.map((r) => r.kpi));
+    const b = ranks(rows.map((r) => r.graded));
+    const ma = mean(a);
+    const mb = mean(b);
+    let sab = 0;
+    let saa = 0;
+    let sbb = 0;
+    a.forEach((x, i) => {
+        sab += (x - ma) * (b[i] - mb);
+        saa += (x - ma) ** 2;
+        sbb += (b[i] - mb) ** 2;
+    });
+    return saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : NaN;
+}
+
+/** Spearman r of K gap with outcome gap, its 95% CI over seeds, and the share of pairs ordered the same way. */
+function rankingValidity(rows: readonly Ranked[]) {
+    const bySeed = new Map<number, Ranked[]>();
+    for (const r of rows) bySeed.set(r.seed, [...(bySeed.get(r.seed) ?? []), r]);
+    const groups = [...bySeed.values()];
+    const next = rng(20261005);
+    const draws: number[] = [];
+    for (let b = 0; b < 500 && groups.length; b++) {
+        const c = spearman(groups.flatMap(() => groups[Math.floor(next() * groups.length)]));
+        if (Number.isFinite(c)) draws.push(c);
+    }
+    draws.sort((a, c) => a - c);
+    return {
+        n: rows.length,
+        r: spearman(rows),
+        lo: draws.length > 20 ? draws[Math.floor(0.025 * draws.length)] : NaN,
+        hi: draws.length > 20 ? draws[Math.floor(0.975 * draws.length)] : NaN,
+        sign: mean(rows.map((r) => Number(Math.sign(r.kpi) === Math.sign(r.graded)))),
+    };
+}
+
+/** Reliability of the risk curve against `hurt30` over `runs`: 10 equal-count bins, ECE and Brier skill against `baseRate`. */
+function calibration(runs: readonly LoadedRun[], model: RiskModel, baseRate: number) {
+    const pts = runs.flatMap((run) =>
+        run.frames.flatMap((f, i) => {
+            const y = run.outcomes.hurt30[i];
+            return y === null ? [] : [{ p: riskOf(f.features, model), y }];
+        }),
+    );
+    pts.sort((a, c) => a.p - c.p);
+    const bins = Array.from({ length: 10 }, (_, b) =>
+        pts.slice(Math.floor((b * pts.length) / 10), Math.floor(((b + 1) * pts.length) / 10)),
+    );
+    const rows = bins.map((b) => ({ n: b.length, p: mean(b.map((x) => x.p)), y: mean(b.map((x) => x.y)) }));
+    const brier = mean(pts.map((x) => (x.p - x.y) ** 2));
+    const brierBase = mean(pts.map((x) => (baseRate - x.y) ** 2));
+    return {
+        n: pts.length,
+        rows,
+        ece: pts.length ? rows.reduce((sum, r) => sum + (r.n / pts.length) * Math.abs(r.p - r.y), 0) : NaN,
+        brier,
+        skill: 1 - brier / brierBase,
+    };
 }
 
 const fmt = (x: number, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : '–');
@@ -507,13 +764,13 @@ async function main() {
     out('### KPI against outcome');
     out();
     out(
-        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: damage rate; survival — seconds until own integrity < 0.5 — is reported only); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
+        'Per pair of runs on one seed, positive = first policy better: KPI Δ; kill Δ (1/0); seconds saved to the end of the run (kill or timeout); damage-rate Δ (own integrity lost per second a hostile was within twice its gun range, lower better); integrity lost Δ (own integrity lost over the common time, lower better; reported, not gated); graded Δ (hostile integrity dealt minus own integrity lost over the common time, positive better for the first policy; reported, not gated). 95% bootstrap CIs. Outcomes separate the pair when the kill or seconds-saved CI excludes 0 (E1 rungs, which almost never end in a kill: damage rate; survival — seconds until own integrity < 0.5 — is reported only); elsewhere the KPI ordering is informational. Agreement: seeds where the KPI Δ has the sign of the kill Δ, or of seconds saved when kills tie.',
     );
     out();
     out(
-        '| scenario | contrast | KPI Δ | kill Δ | seconds saved | survival Δ (s) | damage-rate Δ | gated on | outcome separates | agreement |',
+        '| scenario | contrast | KPI Δ | kill Δ | seconds saved | survival Δ (s) | damage-rate Δ | integrity lost Δ | graded Δ | gated on | outcome separates | agreement |',
     );
-    out('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+    out('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     for (const s of [...scenarios, 'all']) {
         const sub = all.filter((r) => s === 'all' || r.scenario === s);
         for (const [a, b] of [
@@ -529,6 +786,8 @@ async function main() {
             const saved = bootstrap(rows.map((r) => r.saved));
             const survived = bootstrap(rows.map((r) => r.survived));
             const rate = bootstrap(rows.map((r) => r.damageRate));
+            const lost = bootstrap(rows.map((r) => r.lost));
+            const graded = bootstrap(rows.map((r) => r.graded));
             const byRate = RATE_GATED.test(s);
             const [g1, g2] = byRate ? [rate, rate] : [kill, saved];
             const outcome = (r: (typeof rows)[number]) =>
@@ -537,7 +796,7 @@ async function main() {
             const agree = decided.filter((r) => Math.sign(r.kpi) === outcome(r)).length;
             const separates = g1.lo > 0 || g2.lo > 0 ? `${a} better` : g1.hi < 0 || g2.hi < 0 ? `${b} better` : 'no';
             out(
-                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(survived)} | ${ci(rate)} | ${byRate ? 'damage rate' : 'kill, seconds saved'} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
+                `| ${s} | ${a} − ${b} | ${ci(bootstrap(rows.map((r) => r.kpi)))} | ${ci(kill)} | ${ci(saved)} | ${ci(survived)} | ${ci(rate)} | ${ci(lost)} | ${ci(graded)} | ${byRate ? 'damage rate' : 'kill, seconds saved'} | ${separates} | ${decided.length ? `${agree}/${decided.length}` : '–'} |`,
             );
         }
     }
@@ -568,28 +827,83 @@ async function main() {
     }
     out();
 
-    out('### Leave one scenario out (risk curve and weights fit on the other scenarios, all seeds)');
+    const fitRuns = runs.filter((r) => trainSeeds.has(r.seed));
+    out('### Leave one scenario out');
     out();
-    out('| held out | weights | reference − idle | idle − all-shutdown | reference − all-max (high risk) |');
-    out('| --- | --- | --- | --- | --- |');
+    out(
+        'The risk curve and weights are fit on the other scenarios fit seeds only. "held" scores the held scenario on its held-out seeds: neither the scenario nor the seed was seen. "all" scores every seed of the held scenario.',
+    );
+    out();
+    out(
+        '| held out | seeds | reference − idle | idle − all-shutdown | reference − all-max | reference − all-max (high risk) | risk Brier skill | risk ECE |',
+    );
+    out('| --- | --- | --- | --- | --- | --- | --- | --- |');
+    const baseRate = (rs: readonly LoadedRun[]) =>
+        mean(rs.flatMap((r) => r.outcomes.hurt30.filter((y): y is number => y !== null)));
     for (const s of scenarios) {
-        const f = fit(runs.filter((r) => r.scenario !== s));
+        const f = fit(fitRuns.filter((r) => r.scenario !== s));
         if (!f) continue;
-        const held = score(
-            runs.filter((r) => r.scenario === s),
-            f.w,
-            f.risk,
-        );
         const c = terciles(score(runs, f.w, f.risk));
-        out(
-            `| ${s} | \`${JSON.stringify(f.w)}\` | ${ci(bootstrap(paired(held, 'reference', 'idle')))} | ${ci(bootstrap(paired(held, 'idle', 'all-shutdown')))} | ${ci(bootstrap(paired(held, 'reference', 'all-max', tercile(c, 2))))} |`,
+        for (const [label, seedsOf] of [
+            ['held', (r: LoadedRun) => !trainSeeds.has(r.seed)],
+            ['all', () => true],
+        ] as const) {
+            const heldRuns = runs.filter((r) => r.scenario === s && seedsOf(r));
+            const held = score(heldRuns, f.w, f.risk);
+            const cal = calibration(heldRuns, f.risk, baseRate(fitRuns.filter((r) => r.scenario !== s)));
+            out(
+                `| ${s} | ${label} | ${ci(bootstrap(paired(held, 'reference', 'idle')))} | ${ci(bootstrap(paired(held, 'idle', 'all-shutdown')))} | ${ci(bootstrap(paired(held, 'reference', 'all-max')))} | ${ci(bootstrap(paired(held, 'reference', 'all-max', tercile(c, 2))))} | ${fmt(cal.skill)} | ${fmt(cal.ece)} |`,
+            );
+        }
+    }
+    out();
+    out('### Risk curve calibration');
+    out();
+    out(
+        `The risk curve is a probability of own integrity loss >= 0.02 in 30 s. Fit seeds base rate ${fmt(baseRate(fitRuns))}. Equal-count bins over the held-out seeds (predicted mean to observed rate); Brier skill is 1 - Brier / Brier of the constant base rate (positive: better than the constant).`,
+    );
+    out();
+    out('| scenario | Brier skill | ECE | n | bins (predicted to observed) |');
+    out('| --- | --- | --- | --- | --- |');
+    const heldAll = runs.filter((r) => !trainSeeds.has(r.seed));
+    for (const s of [...scenarios, 'all']) {
+        const cal = calibration(
+            heldAll.filter((r) => s === 'all' || r.scenario === s),
+            fitted.risk,
+            baseRate(fitRuns),
         );
+        out(
+            `| ${s} | ${fmt(cal.skill)} | ${fmt(cal.ece)} | ${cal.n} | ${cal.rows.map((b) => `${fmt(b.p, 2)}to${fmt(b.y, 2)}`).join(' ')} |`,
+        );
+    }
+    out();
+    out('### Policy-ranking validity');
+    out();
+    out(
+        `Every pair of the seven policies on one scenario and seed, over the pair's common time: the K gap against the gap in the graded outcome (hostile integrity dealt minus own integrity lost; a kill counts 1). Pairs whose outcome gap is below ${TIE} are dropped. Spearman r over pairs, 95% CI over seeds; sign = share of pairs whose K gap has the sign of the outcome gap. This is the check that K ranks engineers the way the game does, including idle against all-shutdown and reference against all-max on every scenario.`,
+    );
+    out();
+    out('| set | scenario | pairs | Spearman r [CI] | sign |');
+    out('| --- | --- | --- | --- | --- |');
+    for (const [name, set] of [
+        ['fit seeds', all.filter((r) => trainSeeds.has(r.seed))],
+        ['held-out seeds', test],
+    ] as const) {
+        const pairsBy = rankedPairs(set);
+        for (const sc of [...scenarios, 'all']) {
+            const v = rankingValidity(sc === 'all' ? [...pairsBy.values()].flat() : (pairsBy.get(sc) ?? []));
+            out(`| ${name} | ${sc} | ${v.n} | ${fmt(v.r, 2)} [${fmt(v.lo, 2)}, ${fmt(v.hi, 2)}] | ${fmt(v.sign, 2)} |`);
+        }
     }
     out();
     out('### Predictive validity');
     out();
     out(
-        'Within-risk-tercile Pearson r of frame K with the outcome (1 if the opponent dies by t+h, minus own integrity lost by t+h; on E1 rungs, minus own integrity lost per exposure second).',
+        'Frame K against the outcome over the next h seconds: the opponent dies (1/0) minus own integrity lost; on E1 rungs minus own integrity lost per second a hostile was in range. Pearson r within each risk tercile; the mean of the three.',
+    );
+    out();
+    out(
+        '**Pooled (legacy)**: every frame of every scenario in one correlation. It mixes the outcome scales of the scenarios and the stretch of each fight (the store drains while damage lands later), so it can be near 0 or positive while K is negatively related to the outcome inside a scenario.',
     );
     out();
     out('| set | h | mean r | low | mid | high |');
@@ -603,6 +917,30 @@ async function main() {
             out(`| ${name} | ${h} | ${fmt(p.mean)} | ${p.byTercile.map((x) => fmt(x)).join(' | ')} |`);
         }
     }
+    out();
+    out(
+        '**Within-moment** (h = 120): K and the outcome of every frame minus their means over the policies of the same scenario and seed at the same second (at least three policies). Every policy faces the same opponent, so what is left is what the choices of the engineer changed. r [95% CI over seeds] per risk tercile; mean of the terciles that have data. Outcome rows: gate (as above), raw (E1 rungs: minus own integrity lost, not per exposure second) and graded (every scenario: hostile integrity dealt minus own integrity lost).',
+    );
+    out();
+    out('| set | scenario | low | mid | high | mean |');
+    out('| --- | --- | --- | --- | --- | --- |');
+    const rc = (x: ReturnType<typeof seedCorr>) =>
+        Number.isFinite(x.r) ? `${fmt(x.r, 2)} [${fmt(x.lo, 2)}, ${fmt(x.hi, 2)}]` : '–';
+    for (const [name, set] of [
+        ['fit seeds', all.filter((r) => trainSeeds.has(r.seed))],
+        ['held-out seeds', test],
+    ] as const) {
+        for (const mode of ['gate', 'raw', 'graded'] as const) {
+            const ms = moments(set, 120, mode);
+            for (const sc of mode === 'raw' ? scenarios.filter((x) => RATE_GATED.test(x)) : [...scenarios, 'all']) {
+                const sub = ms.filter((m) => sc === 'all' || m.scenario === sc);
+                const cs = ([0, 1, 2] as const).map((k) => seedCorr(sub, tercile(cuts, k)));
+                const ok = cs.map((c) => c.r).filter(Number.isFinite);
+                out(`| ${name} | ${sc} ${mode} | ${cs.map(rc).join(' | ')} | ${fmt(mean(ok), 2)} |`);
+            }
+        }
+    }
+    out();
     const report = lines.join('\n') + '\n';
     const target = args('out')[0];
     if (target) fs.writeFileSync(target, report);

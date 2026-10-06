@@ -29,8 +29,11 @@ import { integrity } from './features';
  * - integrity `D_t = 1 − Σ(a+ε)·sev / Σ(a+ε)`, sev 1 when broken, else the largest defect fraction off
  *   normal (hacking excluded), and its look-ahead `D60` = mean D over [t, t+60 s] of the run, so
  *   damage an action causes (an overheat) lands on the frames that caused it;
- * - `K = D60·((1 − λ)·S + λ·R)`, `λ = min(0.6, λ0 + λ1·r)`; `K = D60·R` when `Σ a < 0.1` (unreachable
- *   while the reactor is always demanded).
+ * - `K = D60·((1 − λ)·S + λ·R·min(1, S / S0))`, `λ = min(0.6, λ0 + λ1·r)`: the reserve is insurance on what
+ *   the ship delivers, not a second source of score. It is credited in proportion to delivery until the
+ *   service reaches `S0` ({@link DELIVERY_FULL}), so a ship that powers nothing earns no reserve credit
+ *   however much energy it holds. `K = D60·R` when `Σ a < 0.1` (unreachable while the reactor is always
+ *   demanded).
  *
  * Risk `r` in [0, 1] is a logistic of raw danger fitted to whether the ship loses integrity in the
  * next 30 s ({@link RISK_MODEL}). The label `engineer_kpi30` is the mean K over (t, t+30 s].
@@ -55,7 +58,7 @@ export const ENGINEER_WEIGHTS: EngineerWeights = {
     beta: 1,
     lambda0: 0.3,
     lambda1: 0.4,
-    epsilon: 0.01,
+    epsilon: 0,
 };
 
 /** Raw danger, in {@link RiskModel} coefficient order. */
@@ -75,6 +78,12 @@ export interface RiskModel {
 export const RISK_MODEL: RiskModel = { bias: -4.803, coef: [2.323, 0.527, 1.997, 0, 0.883] };
 
 const LAMBDA_CAP = 0.6;
+/**
+ * Service at which the reserve is credited in full. Below it the credit shrinks in proportion: the held
+ * energy of a ship that delivers (almost) nothing is not an engineer's reserve. Results are unchanged for
+ * any value from 0.1 to 0.3 (the only ships below it are shut down).
+ */
+export const DELIVERY_FULL = 0.3;
 /** Below this total demand nothing is asked of the systems and only reserve counts: K = D·R. */
 const MIN_DEMAND = 0.1;
 /** Half-width of the window requests are read over, seconds. */
@@ -352,7 +361,7 @@ export function kpiOf(
     const reserve = 1 - Math.exp((-w.k * c.store) / (w.n0 * (1 + w.beta * r)));
     if (c.sumA < MIN_DEMAND) return d60 * reserve;
     const lambda = Math.min(LAMBDA_CAP, w.lambda0 + w.lambda1 * r);
-    return d60 * ((1 - lambda) * c.service + lambda * reserve);
+    return d60 * ((1 - lambda) * c.service + lambda * reserve * Math.min(1, c.service / DELIVERY_FULL));
 }
 
 /** K of every frame of a run under `w` and `risk`. */
