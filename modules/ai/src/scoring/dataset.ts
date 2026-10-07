@@ -2,10 +2,11 @@
  * Builds the snapshot-scoring dataset: one row per recorded frame (1 Hz) with the scorer's features
  * and the future-of-run labels, from training-archive manifests.
  *
- *   npm --prefix modules/ai run score:dataset -- [--archive <dir>] [--days 2026-10-02,...] [--out <file.csv>] [--limit N]
+ *   npm --prefix modules/ai run score:dataset -- [--archive <dir>] [--days 2026-10-02,...] [--out <file.csv>] [--limit N] [--exclude <path prefix>,...]
  *
  * Defaults: archive `../training-archive` beside the repo, every `<day>/manifest.jsonl` in it, output
  * `<archive>/datasets/snapshots-<days>.csv` plus a `.manifest.json` with row counts and a content hash.
+ * `--exclude` leaves out the runs whose manifest path starts with a prefix (e.g. a confirmation set kept out of training).
  */
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
@@ -123,6 +124,7 @@ async function main() {
         arg('days')?.split(',') ?? fs.readdirSync(archive).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
     ).sort();
     const limit = Number(arg('limit') ?? Infinity);
+    const excluded = (arg('exclude') ?? '').split(',').filter(Boolean);
     const out = path.resolve(arg('out') ?? path.join(archive, 'datasets', `snapshots-${days.join('_')}.csv`));
     fs.mkdirSync(path.dirname(out), { recursive: true });
     const header = [...META, ...FEATURE_NAMES, ...LABELS];
@@ -143,6 +145,7 @@ async function main() {
             .split('\n')
             .filter((l) => l.trim())
             .map((l) => JSON.parse(l) as ManifestLine)
+            .filter((l) => !excluded.some((prefix) => l.path.startsWith(prefix)))
             .sort((a, c) => (a.path < c.path ? -1 : 1));
         for (const line of lines) {
             if (runs >= limit) break;

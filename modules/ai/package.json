@@ -17,6 +17,7 @@
         "score:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/dataset.ts",
         "score": "node -r ts-node/register/transpile-only ./src/scoring/cli.ts",
         "score:engineer": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/engineer-validate.ts",
+        "score:helms": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/helms-validate.ts",
         "score:weapons-runs": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-runs.ts",
         "score:weapons": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-validate.ts",
         "heatmap:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/heatmap/dataset.ts",
