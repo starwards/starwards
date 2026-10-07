@@ -4,6 +4,7 @@ import { ScorerArtefact, evaluate, featureSelector } from './model';
 import { SavedGame } from '@starwards/core/internal';
 import v1 from './models/v1.json';
 import v2 from './models/v2.json';
+import v3 from './models/v3.json';
 
 /**
  * Snapshot score, every value in [0, 1], higher is better for the player unless noted. Three layers:
@@ -35,11 +36,15 @@ export interface SnapshotScore {
     readonly stations: { readonly helms: number; readonly engineer: number };
 }
 
-/** Every exported artefact, by version; `v1` stays for regression comparison. */
-export const scorers: Record<'v1' | 'v2', ScorerArtefact> = { v1: v1 as ScorerArtefact, v2: v2 as ScorerArtefact };
+/** Every exported artefact, by version; `v1` and `v2` stay for regression comparison. */
+export const scorers: Record<'v1' | 'v2' | 'v3', ScorerArtefact> = {
+    v1: v1 as ScorerArtefact,
+    v2: v2 as ScorerArtefact,
+    v3: v3 as ScorerArtefact,
+};
 
 /** The artefact `scoreSnapshot` reads. */
-export const scorer = scorers.v2;
+export const scorer = scorers.v3;
 
 const select = featureSelector(scorer, FEATURE_NAMES);
 

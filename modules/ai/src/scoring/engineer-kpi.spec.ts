@@ -1,4 +1,5 @@
 import {
+    DELIVERY_FULL,
     ENGINEER_WEIGHTS,
     EngineerComponents,
     EngineerWeights,
@@ -37,8 +38,7 @@ const k = (over: Partial<EngineerComponents>, weights = w) => engineerKpiSeries(
 
 describe('engineer KPI formula', () => {
     it('earns 0.9 of the reserve for holding the store risk calls for: 0.25 calm, 0.5 at full risk', () => {
-        const reserveOnly = { ...ENGINEER_WEIGHTS, lambda0: 0.6, lambda1: 0 };
-        const reserveAt = (store: number, features = calm) => k({ service: 0, store, features }, reserveOnly) / 0.6;
+        const reserveAt = (store: number, features = calm) => k({ sumA: 0, store, features }, ENGINEER_WEIGHTS);
         expect(reserveAt(0.25)).toBeCloseTo(0.9, 3);
         expect(reserveAt(0.5, danger)).toBeCloseTo(0.9, 3);
         expect(reserveAt(0.2) - reserveAt(0.04)).toBeGreaterThan(0.4);
@@ -59,7 +59,7 @@ describe('engineer KPI formula', () => {
         expect(needOf(1, 'reactor')).toBe(1);
     });
 
-    it('blends service and reserve by risk, lambda capped at 0.6', () => {
+    it('blends service and reserve by risk, lambda capped at 0.6, once the ship delivers', () => {
         const reserve = 1 - Math.exp(-2 / 0.5);
         expect(k({ service: 0.5 })).toBeCloseTo(0.8 * 0.5 + 0.2 * reserve, 6);
         const reserveAtRisk = 1 - Math.exp(-2 / (0.5 * 2));
@@ -68,6 +68,21 @@ describe('engineer KPI formula', () => {
             0.4 * 0.5 + 0.6 * reserveAtRisk,
             6,
         );
+    });
+
+    it('earns no reserve credit for a ship that delivers nothing, and a share of it while it delivers little', () => {
+        expect(k({ service: 0, store: 1 })).toBe(0);
+        const full = k({ service: DELIVERY_FULL, store: 1 }) - 0.8 * DELIVERY_FULL;
+        const half = k({ service: DELIVERY_FULL / 2, store: 1 }) - 0.8 * (DELIVERY_FULL / 2);
+        expect(half).toBeCloseTo(full / 2, 6);
+    });
+
+    it('ranks a ship that delivers above a shut-down ship holding the same full reserve', () => {
+        expect(k({ service: 0.2, store: 1 })).toBeGreaterThan(k({ service: 0, store: 1 }));
+    });
+
+    it('scores only the reserve while no system is asked for anything', () => {
+        expect(k({ sumA: 0, service: 0, store: 1 })).toBeCloseTo(1 - Math.exp(-2 / 0.5), 6);
     });
 
     it('charges damage to the frames up to 60 s before it lands', () => {
