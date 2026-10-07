@@ -26,6 +26,7 @@ interface ManifestLine {
     stations?: Record<string, { brain: string; version: number; policy: string }>;
     outcome?: { scenario?: string; killed?: boolean } | null;
     codeCommit?: string;
+    energyModel?: { powerDrawExponent: number } | null;
 }
 
 function arg(name: string) {
@@ -46,6 +47,7 @@ const META = [
     'policy',
     ...STATIONS.map((s) => `policy_${s}`),
     'code_commit',
+    'power_draw_exponent',
     'weapons_events',
     'frame',
     't',
@@ -97,6 +99,7 @@ async function rowsFor(day: string, archive: string, line: ManifestLine) {
         crewPolicy(line.stations),
         ...STATIONS.map((s) => line.stations?.[s]?.policy ?? 'none'),
         line.codeCommit ?? '',
+        line.energyModel?.powerDrawExponent ?? '',
         weaponsEvents,
     ];
     frames.forEach((frame, i) => {
