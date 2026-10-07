@@ -1,0 +1,8 @@
+{
+    "name": "helms-idle",
+    "seats": [
+        { "station": "helms", "policy": "idle" },
+        { "station": "weapons", "policy": "reference" },
+        { "station": "engineer", "policy": "reference" }
+    ]
+}

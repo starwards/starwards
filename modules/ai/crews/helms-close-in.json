@@ -1,0 +1,8 @@
+{
+    "name": "helms-close-in",
+    "seats": [
+        { "station": "helms", "policy": "close-in" },
+        { "station": "weapons", "policy": "reference" },
+        { "station": "engineer", "policy": "reference" }
+    ]
+}

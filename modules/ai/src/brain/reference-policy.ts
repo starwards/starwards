@@ -70,6 +70,19 @@ export type EngineerStyle = { jumpStart: boolean; repair: boolean };
 const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: false };
 
 /**
+ * How the reference helms varies, for validating a helms score against known-better and known-worse
+ * play: where it parks (`standoff` before the target has fired, `armedStandoff` after), and the
+ * lateral weave it flies across the parking spot once it has been fired on.
+ */
+export type HelmsStyle = { standoff: number; armedStandoff: number; weaveMeters: number };
+
+const REFERENCE_HELMS: HelmsStyle = {
+    standoff: STANDOFF_METERS,
+    armedStandoff: ARMED_STANDOFF_METERS,
+    weaveMeters: WEAVE_METERS,
+};
+
+/**
  * Hand-written rules that press the same buttons a brain does, for helms, weapons and engineer. It
  * is the positive control of the harness: it shows a kill is reachable through the button
  * interface, so a brain that fails is failing at judgement, not at the interface. Signals rests.
@@ -80,6 +93,7 @@ export function makeReferencePolicy(
     decisionSeconds: number,
     engineer: EngineerStyle = REFERENCE_ENGINEER,
     name = 'reference',
+    helms: HelmsStyle = REFERENCE_HELMS,
 ): Policy {
     let lastFix: { id: string; position: XY } | undefined;
     let targetVelocity: XY = { x: 0, y: 0 };
@@ -96,12 +110,20 @@ export function makeReferencePolicy(
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
             armed ||= underFire(display);
-            const standoff = armed ? ARMED_STANDOFF_METERS : STANDOFF_METERS;
+            const standoff = armed ? helms.armedStandoff : helms.standoff;
+            const weaveMeters = armed ? helms.weaveMeters : 0;
             const answers: Record<string, Answer> = {};
             for (const control of controls) {
                 const choice =
-                    referenceChoice(control, display, ship, targetVelocity, seconds, standoff, engineer) ??
-                    control.rest;
+                    referenceChoice(
+                        control,
+                        display,
+                        ship,
+                        targetVelocity,
+                        seconds,
+                        { standoff, weaveMeters },
+                        engineer,
+                    ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
             }
             return Promise.resolve({ answers });
@@ -109,15 +131,19 @@ export function makeReferencePolicy(
     };
 }
 
+/** Where the helms parks now, and how wide it weaves across the spot. */
+type Parking = { standoff: number; weaveMeters: number };
+
 function referenceChoice(
     control: Control,
     display: Display,
     ship: Contact | undefined,
     targetVelocity: XY,
     seconds: number,
-    standoff: number,
+    parking: Parking,
     engineer: EngineerStyle,
 ) {
+    const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
     const helms = display.panels['helms-stats'] as Helms | undefined;
     const targeting = display.panels['targeting-status'];
@@ -160,7 +186,7 @@ function referenceChoice(
             const wanted =
                 helms &&
                 (ship
-                    ? parkingCommand(display, helms, ship, targetVelocity, heading, seconds, standoff)
+                    ? parkingCommand(display, helms, ship, targetVelocity, heading, seconds, parking)
                     : closeIn(helms));
             const axis = command === 'boost' ? 'x' : 'y';
             const current = Number(helms?.maneuveringCommand?.[axis] ?? 0);
@@ -310,7 +336,7 @@ function parkingCommand(
     targetVelocity: XY,
     heading: number,
     seconds: number,
-    standoff: number,
+    { standoff, weaveMeters }: Parking,
 ) {
     const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
     const fromTarget = sub(own, ship.position);
@@ -318,7 +344,6 @@ function parkingCommand(
     const behind = speed > STILL_SPEED ? scale(targetVelocity, -1 / speed) : scale(fromTarget, 1 / ship.distance);
     const across = { x: -behind.y, y: behind.x };
     const phase = 2 * Math.PI * WEAVE_HZ * seconds;
-    const weaveMeters = standoff > STANDOFF_METERS ? WEAVE_METERS : 0;
     const spot = add(scale(behind, standoff), scale(across, weaveMeters * Math.sin(phase)));
     const gap = sub(spot, fromTarget);
     const weave = scale(across, weaveMeters * 2 * Math.PI * WEAVE_HZ * Math.cos(phase));
