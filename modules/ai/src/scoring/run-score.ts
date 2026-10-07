@@ -90,7 +90,7 @@ export async function scoreRun(recording: string, outcome: RunOutcome) {
 }
 
 /** A station score of a crew's seat. */
-export type SeatScores = Partial<Record<'helms' | 'weapons' | 'tactical' | 'engineer', number | null>>;
+type SeatScores = Partial<Record<'helms' | 'weapons' | 'tactical' | 'engineer', number | null>>;
 
 /**
  * The station scores a crew is judged by, from its seats' stations. A crew with a Tactical station (the short

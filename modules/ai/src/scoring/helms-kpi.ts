@@ -276,14 +276,14 @@ const NONE: Term = { d: 0, s: 0 };
 const clip01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** Whether a standoff from `target` is justified: it is armed and outguns us or is winning. */
-export function standoffJustified(o: HelmsObservation, target: HelmsHostile, shape: HelmsShape = HELMS_SHAPE) {
+function standoffJustified(o: HelmsObservation, target: HelmsHostile, shape: HelmsShape = HELMS_SHAPE) {
     return (
         target.armed && (target.gunRange >= o.own.gunRange || o.own.integrity < target.integrity - shape.losingMargin)
     );
 }
 
 /** The evasion term from the hostile rounds on course in the window and how many of them hit. */
-export function evasionTerm(onCourse: number, hits: number, fireHalf: number): Term {
+function evasionTerm(onCourse: number, hits: number, fireHalf: number): Term {
     return onCourse ? { d: onCourse / (onCourse + fireHalf), s: 1 - hits / onCourse } : NONE;
 }
 
@@ -466,7 +466,7 @@ export function helmsScoreOf(c: HelmsComponents, w: HelmsWeights = HELMS_WEIGHTS
     return den > MIN_DEMAND ? num / den : null;
 }
 
-export const HELMS_HORIZON = 30;
+const HELMS_HORIZON = 30;
 
 /**
  * `helms_score30` of every frame: the demand-weighted mean of the terms over (t, t+30 s], `null` when the

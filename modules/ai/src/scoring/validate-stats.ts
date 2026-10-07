@@ -17,7 +17,7 @@ export function rng(seed: number) {
     };
 }
 
-export interface Interval {
+interface Interval {
     readonly mean: number;
     readonly lo: number;
     readonly hi: number;
@@ -49,7 +49,7 @@ export const fmt = (x: number, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : '�
 export const ci = (b: Interval) =>
     b.n ? `${fmt(b.mean)} [${fmt(b.lo)}, ${fmt(b.hi)}] n=${b.n}${b.lo > 0 ? ' ✓' : b.hi < 0 ? ' ✗' : ''}` : '–';
 
-export function ranks(xs: readonly number[]) {
+function ranks(xs: readonly number[]) {
     const order = xs.map((x, i) => [x, i] as const).sort((a, c) => a[0] - c[0]);
     const out = new Array<number>(xs.length);
     for (let i = 0; i < order.length;) {
@@ -68,7 +68,7 @@ export interface RankedPair {
     readonly y: number;
 }
 
-export function spearman(rows: readonly RankedPair[]) {
+function spearman(rows: readonly RankedPair[]) {
     if (rows.length < 5) return NaN;
     const a = ranks(rows.map((r) => r.x));
     const b = ranks(rows.map((r) => r.y));

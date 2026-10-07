@@ -690,6 +690,7 @@ async function main() {
                 'position-only',
                 'evasion-only',
                 'helms10-v3',
+                'helms-head',
                 'tactical-opportunity',
             ] as const) {
                 const d = col(pairedRows(sub, 'reference', 'close-in', variant, w), (r) => r.score);
