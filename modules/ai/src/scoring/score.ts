@@ -5,6 +5,7 @@ import { SavedGame } from '@starwards/core/internal';
 import v1 from './models/v1.json';
 import v2 from './models/v2.json';
 import v3 from './models/v3.json';
+import v4 from './models/v4.json';
 
 /**
  * Snapshot score, every value in [0, 1], higher is better for the player unless noted. Three layers:
@@ -16,8 +17,9 @@ import v3 from './models/v3.json';
  *   ceiling) over the next 45 s; shared by helms and weapons.
  * - `tactical.opportunity`: expected O, the share of those 45 s with a firing solution (helms' part of T).
  * - `tactical.conversion`: expected V = T / O where O > 0 (weapons' part of T).
- * - `stations.helms`: expected share of the next 10 s in firing position. Not validated against
- *   outcomes or policy orderings; where it and `tactical.opportunity` disagree, read the latter.
+ * - `stations.helms`: expected helms score over the next 30 s (`helms-kpi.ts`): position against the
+ *   target, damage avoided under fire, collisions, waypoint course and warp, each only where something is
+ *   demanded of the helm. The v3 position-only head (`helms10`) is still in the artefact for comparison.
  * - `stations.engineer`: expected engineer score K over the next 30 s.
  *
  * The weapons station score K_w is not here: it is a rate over the rounds a crew fires, read exactly
@@ -36,15 +38,16 @@ export interface SnapshotScore {
     readonly stations: { readonly helms: number; readonly engineer: number };
 }
 
-/** Every exported artefact, by version; `v1` and `v2` stay for regression comparison. */
-export const scorers: Record<'v1' | 'v2' | 'v3', ScorerArtefact> = {
+/** Every exported artefact, by version; `v1`, `v2` and `v3` stay for regression comparison. */
+export const scorers: Record<'v1' | 'v2' | 'v3' | 'v4', ScorerArtefact> = {
     v1: v1 as ScorerArtefact,
     v2: v2 as ScorerArtefact,
     v3: v3 as ScorerArtefact,
+    v4: v4 as ScorerArtefact,
 };
 
 /** The artefact `scoreSnapshot` reads. */
-export const scorer = scorers.v3;
+export const scorer = scorers.v4;
 
 const select = featureSelector(scorer, FEATURE_NAMES);
 
@@ -59,6 +62,6 @@ export function scoreSnapshot(saved: SavedGame, playerId?: string): SnapshotScor
     return {
         overall: { kill, damage, value: kill * (1 - damage) },
         tactical: { score: at('tactical45'), opportunity: at('opportunity45'), conversion: at('conversion45') },
-        stations: { helms: at('helms10'), engineer: at('engineer_kpi30') },
+        stations: { helms: at('helms_score30'), engineer: at('engineer_kpi30') },
     };
 }

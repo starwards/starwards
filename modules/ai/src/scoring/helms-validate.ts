@@ -4,7 +4,7 @@
  * and prints a markdown report.
  *
  *   npm --prefix modules/ai run score:helms -- --runs <train out dir> [--runs <dir> ...] [--fit-max-seed 8]
- *       [--held-scenario T1-predator] [--evasion-weight 1] [--max-seed N] [--label name] [--out report.md]
+ *       [--held-scenario T1-predator] [--evasion-weight 1] [--fire-half 30] [--head v4] [--max-seed N] [--label name] [--out report.md]
  *
  * Every table compares the score against what the game did: the graded outcome of a run (hostile integrity
  * dealt minus own integrity lost; a kill counts 1), over the stretch of game time two runs share, so a run that
@@ -58,6 +58,8 @@ interface Heads {
     readonly v1: number | null;
     readonly v2: number | null;
     readonly v3: number | null;
+    /** The v4 helms head (`helms_score30`), the trained `stations.helms`. */
+    readonly v4?: number | null;
     readonly opportunity: number | null;
 }
 
@@ -107,11 +109,32 @@ async function loadRun(sgr: string): Promise<Omit<Run, 'scenario' | 'seed' | 'po
         ? (JSON.parse(fs.readFileSync(cache, 'utf8')) as CachedRun)
         : await readRun(sgr, cache);
     const cs = helmsComponents(cached.observations, cached.events, PLAYER, SHAPE);
+    const v4 = args('head').includes('v4') ? await loadHead(sgr, cached.extras.length) : undefined;
     return {
-        frames: cs.map((c, i) => ({ c, ...cached.extras[i] })),
+        frames: cs.map((c, i) => {
+            const extra = cached.extras[i];
+            return { c, ...extra, heads: v4 ? { ...extra.heads, v4: v4[i] ?? null } : extra.heads };
+        }),
         end: cached.end,
         lost: cached.lost,
     };
+}
+
+/** The v4 helms head on every frame the player ship is in, cached beside the recording as `<run>.hhead4.json`. */
+async function loadHead(sgr: string, expected: number): Promise<(number | null)[]> {
+    const cache = sgr.replace(/\.sgr$/, '.hhead4.json');
+    if (fs.existsSync(cache)) return JSON.parse(fs.readFileSync(cache, 'utf8')) as (number | null)[];
+    const select = featureSelector(scorers.v4, FEATURE_NAMES);
+    const out: (number | null)[] = [];
+    for (const f of await readFrames(sgr)) {
+        const body = f.saved.fragment.space.getShip(PLAYER);
+        if (!f.saved.fragment.ship.get(PLAYER) || !body || body.destroyed) continue;
+        const duel = findDuel(f.saved, PLAYER);
+        out.push(duel ? evaluate(scorers.v4.models.helms_score30, select(extractFeatures(duel))) : null);
+    }
+    if (out.length !== expected) throw new Error(`${sgr}: ${out.length} head frames for ${expected} observations`);
+    fs.writeFileSync(cache, JSON.stringify(out));
+    return out;
 }
 
 async function readRun(sgr: string, cache: string): Promise<CachedRun> {
@@ -195,6 +218,7 @@ const VARIANTS = [
     'helms10-v1',
     'helms10-v2',
     'helms10-v3',
+    'helms-head',
     'tactical-opportunity',
 ] as const;
 type Variant = (typeof VARIANTS)[number];
@@ -228,6 +252,8 @@ function frameParts(f: Frame, variant: Variant, w: HelmsWeights): Parts {
             return f.heads.v2 === null ? { num: 0, den: 0 } : { num: f.heads.v2, den: 1 };
         case 'helms10-v3':
             return f.heads.v3 === null ? { num: 0, den: 0 } : { num: f.heads.v3, den: 1 };
+        case 'helms-head':
+            return f.heads.v4 == null ? { num: 0, den: 0 } : { num: f.heads.v4, den: 1 };
         case 'tactical-opportunity':
             return f.heads.opportunity === null ? { num: 0, den: 0 } : { num: f.heads.opportunity, den: 1 };
     }
@@ -547,7 +573,7 @@ async function main() {
     out();
     out('Time-mean over each run, demand-weighted for the rule score. All seeds.');
     out();
-    for (const variant of ['helms', 'helms10-v3'] as const) {
+    for (const variant of ['helms', 'helms10-v3', 'helms-head'] as const) {
         out(`${variant}:`);
         out();
         out(`| scenario | ${POLICIES.join(' | ')} |`);
@@ -712,7 +738,7 @@ async function main() {
     out();
     out('| variant | set | scenario | n | ECE [CI] | Brier skill [CI] |');
     out('| --- | --- | --- | --- | --- | --- |');
-    for (const variant of ['helms', 'helms10-v3'] as const) {
+    for (const variant of ['helms', 'helms10-v3', 'helms-head'] as const) {
         const fitPoints = calPoints(fitRuns, variant, w);
         const base = mean(fitPoints.map((p) => p.y));
         const map = isotonic(fitPoints.map((p) => ({ x: p.p, y: p.y })));
@@ -753,7 +779,14 @@ async function main() {
         'Within-moment: the frame score and the 60 s graded outcome of each frame minus their means over the policies of the same scenario and seed at the same second (at least three policies). Every policy faces the same opponent, so what is left is what the helm did; the stretch of the fight is removed. Pearson r [95% CI over seeds].',
     );
     out();
-    const variantsShown: Variant[] = ['helms', 'position-only', 'evasion-only', 'helms10-v3', 'tactical-opportunity'];
+    const variantsShown: Variant[] = [
+        'helms',
+        'position-only',
+        'evasion-only',
+        'helms10-v3',
+        'helms-head',
+        'tactical-opportunity',
+    ];
     out(`| set | scenario | ${variantsShown.join(' | ')} |`);
     out(`| --- | --- |${variantsShown.map(() => ' --- |').join('')}`);
     for (const [name, set] of [
