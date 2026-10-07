@@ -1,7 +1,7 @@
 import { Faction, IdleStrategy, SavedGame, Spaceship, Vec2 } from '@starwards/core/internal';
+import { scoreFrames, seatScores } from './run-score';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
-import { scoreFrames, seatScores } from './run-score';
 import { scoreSnapshot } from './score';
 
 function snapshot(distance: number, bearing: number, withTarget = true): SavedGame {

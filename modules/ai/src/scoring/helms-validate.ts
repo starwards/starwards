@@ -15,23 +15,24 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { RecordingEventLine } from '@starwards/core/internal';
 import { FEATURE_NAMES, extractFeatures, findDuel, integrity } from './features';
 import {
     HELMS_SHAPE,
     HELMS_WEIGHTS,
-    HelmsShape,
     HelmsComponents,
     HelmsObservation,
+    HelmsShape,
     HelmsWeights,
     TERMS,
     helmsComponents,
-    termsOf,
     observeHelms,
+    termsOf,
 } from './helms-kpi';
 import { MomentPoint, RankedPair, bootstrap, ci, fmt, mean, rankingValidity, rng, seedCorr } from './validate-stats';
 import { evaluate, featureSelector } from './model';
 import { readEvents, readFrames } from './recording';
+
+import { RecordingEventLine } from '@starwards/core/internal';
 import { scorers } from './score';
 
 function args(name: string) {
@@ -503,7 +504,7 @@ function calPoints(runs: readonly Run[], variant: Variant, w: HelmsWeights): Cal
         const g = graded60(run);
         return run.frames.flatMap((f, i) => {
             const p = frameValue(f, variant, w);
-            return p === null || g[i] === null ? [] : [{ seed: run.seed, p, y: Number((g[i] as number) > WINNING) }];
+            return p === null || g[i] === null ? [] : [{ seed: run.seed, p, y: Number(g[i] > WINNING) }];
         });
     });
 }

@@ -1,7 +1,7 @@
 import { Answer, Policy } from './brain';
+import { HelmsStyle, makeReferencePolicy } from './reference-policy';
 
 import { Control } from './controls';
-import { HelmsStyle, makeReferencePolicy } from './reference-policy';
 
 /**
  * Scripted helms for validating a helms score: each is the reference helms with one known change, so a

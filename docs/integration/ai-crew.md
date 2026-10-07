@@ -452,7 +452,7 @@ without both. Every value is in [0, 1], in three layers:
 | `tactical.score`       | expected tactical score T over the next 45 s, shared by helms and weapons (`tactical45`) |
 | `tactical.opportunity` | expected O, helms' share of T: time with a firing solution (`opportunity45`)             |
 | `tactical.conversion`  | expected V = T / O, weapons' share of T (`conversion45`, censored where O = 0)           |
-| `stations.helms`       | expected share of the next 10 s in firing position (`helms10`); not validated            |
+| `stations.helms`       | expected helms score over the next 30 s (`helms_score30`), see [Helms score](#helms-score) |
 | `stations.engineer`    | expected engineer score K over the next 30 s (`engineer_kpi30`)                          |
 
 T, O, V and K_w are defined in `scoring/weapons-kpi.ts` and the weapons report; K in
@@ -605,6 +605,38 @@ frame-level predictive validity inside a risk tercile is not improved (report).
 
 `engineer_kpi30` is the training target of `stations.engineer` since v2, labelled only from runs recorded
 after #2306.
+
+### Helms score
+
+`stations.helms` is the trained snapshot model of this score (v4). The helms score proper is
+`modules/ai/src/scoring/helms-kpi.ts`. It reads a recording's frames and sidecar and ground truth (hostile
+armament, rounds in flight), so it is a training and evaluation heuristic, never an in-seat indicator. It is
+limited to what the helms seat controls and has terms, each with a demand `d` in [0, 1] and a score `s` in [0, 1];
+the frame's score is `Σ w·d·s / Σ w·d`, and a frame where nothing is demanded has no score (not 0, not 1):
+
+- `position`: the helm's share of the firing solution against the weapons-locked hostile, else the nearest.
+  Demand while weapons could fire. Gun band 500 m to 3 km, nose line within 100 m. The band's far edge moves to
+  5 km (a standoff) only against an armed target that outranges us or while we are losing; otherwise a standoff
+  decays with distance outside the band.
+- `evasion`: damage avoided under fire. Of the hostile shells fired in the last 20 s that would have hit had the
+  ship kept the velocity it had when they were fired, the share that did not hit. Demand grows with the number
+  of such shells (`n / (n + 30)`). Weave frequency is not scored.
+- `collision`: unintended collisions only; demand while a body is on course to touch the hull within 20 s.
+  Docking is not scored.
+- `waypoint`: closing speed on a waypoint of the ship's faction, while no hostile is within 8 km. Verbal orders
+  are not demand.
+- `warp`: the warp level held while a hostile is within 8 km. The frequency is the engineer's.
+
+A thrust shortfall from power is the engineer's and is not in the score; flight mode and commands are scored
+through their effect on position and evasion. Weights: all 1, except that the evasion weight and the demand scale
+(30) were fitted on seeds 1-8 of five scenarios. A crew with a Tactical station is scored as one seat by the
+tactical score (`seatScores` in `run-score.ts`).
+
+`npm --prefix modules/ai run score:helms -- --runs <train out dir> ...` validates it on matched-seed runs of the
+scripted helms (`crews/helms-<policy>.json`: reference, idle, close-in, no-weave, far-off, charge, helms-random;
+weapons and engineer are the reference): policy-ranking validity against the graded outcome, policy contrasts with
+the close-in falsification test, calibration, leave-one-scenario-out and within-moment predictive validity.
+Status and the numbers: `modules/ai/ml/reports/2026-10-07-helms-score.md`.
 
 ## Radar heatmaps
 

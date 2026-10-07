@@ -1,9 +1,18 @@
 import {
+    AmmoType,
+    Faction,
+    IdleStrategy,
+    RecordingEventLine,
+    Spaceship,
+    Vec2,
+    ammoDesigns,
+} from '@starwards/core/internal';
+import {
+    HELMS_SHAPE,
     HELMS_WEIGHTS,
     HelmsComponents,
     HelmsHostile,
     HelmsObservation,
-    HELMS_SHAPE,
     TERMS,
     chosenTarget,
     helmsComponents,
@@ -14,15 +23,6 @@ import {
     positionTerm,
     situationTerms,
 } from './helms-kpi';
-import {
-    AmmoType,
-    Faction,
-    IdleStrategy,
-    RecordingEventLine,
-    Spaceship,
-    Vec2,
-    ammoDesigns,
-} from '@starwards/core/internal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 
@@ -105,15 +105,14 @@ describe('helms score: position', () => {
 
 describe('helms score: evasion', () => {
     const base = (t: number) => frame({ t });
-    const shot = (t: number, over: Record<string, unknown> = {}): RecordingEventLine =>
-        ({
-            t,
-            kind: 'shot',
-            objectId: `shell${t}`,
-            // fired from 2 km at +x towards the ship at the origin, 500 m/s, fuse 4 s
-            data: { shipId: 'enemy', ammo: 'HiExpShell', x: 2000, y: 0, vx: -500, vy: 0, ttl: 4, ...over },
-        }) as RecordingEventLine;
-    const hit = (t: number): RecordingEventLine => ({ t, kind: 'blast_hit', objectId: 'GVTS', data: {} }) as never;
+    const shot = (t: number, over: Record<string, unknown> = {}): RecordingEventLine => ({
+        t,
+        kind: 'shot',
+        objectId: `shell${t}`,
+        // fired from 2 km at +x towards the ship at the origin, 500 m/s, fuse 4 s
+        data: { shipId: 'enemy', ammo: 'HiExpShell', x: 2000, y: 0, vx: -500, vy: 0, ttl: 4, ...over },
+    });
+    const hit = (t: number): RecordingEventLine => ({ t, kind: 'blast_hit', objectId: 'GVTS', data: {} });
     const frames = Array.from({ length: 40 }, (_, t) => base(t));
 
     it('counts a round that would have hit as dodged when nothing hits, and as a hit when something does', () => {
@@ -164,7 +163,7 @@ describe('helms score: collision, waypoint, warp', () => {
 
     it('reads a collision from the damage events of the next 10 s', () => {
         const events: RecordingEventLine[] = [
-            { t: 5, kind: 'damage', objectId: 'GVTS', data: { damageType: 'Collision', delivery: 'impact' } } as never,
+            { t: 5, kind: 'damage', objectId: 'GVTS', data: { damageType: 'Collision', delivery: 'impact' } },
         ];
         const obs = Array.from({ length: 30 }, (_, t) =>
             frame({ t, obstacles: [{ x: 600, y: 0, vx: 0, vy: 0, radius: 50 }] }, []),

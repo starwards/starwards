@@ -1,8 +1,8 @@
 import { RecordingEventLine, SavedGame } from '@starwards/core/internal';
 import { TACTICAL_WEIGHTS, observeTactical, tacticalSeries } from './weapons-kpi';
 import { components, engineerKpi30, observe } from './engineer-kpi';
-import { helmsComponents, helmsScore30, observeHelms } from './helms-kpi';
 import { duelOf, geometry, inFiringPosition, integrity } from './features';
+import { helmsComponents, helmsScore30, observeHelms } from './helms-kpi';
 
 /**
  * Training targets for the snapshot scorer, read from the future of the same run. Definitions

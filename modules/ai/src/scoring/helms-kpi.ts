@@ -7,8 +7,9 @@ import {
     isShellAmmo,
     shellAmmoTypes,
 } from '@starwards/core/internal';
-import { integrity } from './features';
 import { observeTactical, shellReaches } from './weapons-kpi';
+
+import { integrity } from './features';
 import { offNose } from '../brain/verbal';
 
 /**

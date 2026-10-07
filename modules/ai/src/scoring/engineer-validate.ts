@@ -24,8 +24,9 @@ import {
     observe,
     riskOf,
 } from './engineer-kpi';
+import { RankedPair, bootstrap, ci, fmt, mean, seedCorr as pointsCorr, rankingValidity } from './validate-stats';
 import { readEvents, readFrames } from './recording';
-import { RankedPair, bootstrap, ci, fmt, mean, rankingValidity, seedCorr as pointsCorr } from './validate-stats';
+
 import { integrity } from './features';
 
 const PLAYER = 'GVTS';
