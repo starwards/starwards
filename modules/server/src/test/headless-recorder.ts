@@ -9,6 +9,7 @@ import {
     ShipManager,
     ShipManagerPc,
     Spaceship,
+    currentEnergyModel,
     encodeEventLine,
     encodeFrameLine,
     encodeHeader,
@@ -75,6 +76,7 @@ export class HeadlessRecorder {
                 seed: game.seed,
                 params,
                 hz,
+                energyModel: currentEnergyModel(),
             }),
         );
     }

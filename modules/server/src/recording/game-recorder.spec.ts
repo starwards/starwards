@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { GameRecorder, RecordingConflictError } from './game-recorder';
-import { parseFrameLine, waitFor } from '@starwards/core/internal';
+import { POWER_DRAW_EXPONENT, parseFrameLine, parseHeader, waitFor } from '@starwards/core/internal';
 import { makeDriver } from '../test/driver';
 
 async function readLines(filePath: string): Promise<string[]> {
@@ -39,6 +39,7 @@ describe('GameRecorder', () => {
         const lines = await readLines(path.join(tmpDir, filename));
         expect(lines).toHaveLength(2); // header + frame 0
         expect(parseFrameLine(lines[1])).not.toBeNull();
+        expect(parseHeader(lines[0]).energyModel).toEqual({ powerDrawExponent: POWER_DRAW_EXPONENT });
 
         await recorder.stopRecording();
     });

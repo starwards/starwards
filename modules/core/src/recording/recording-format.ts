@@ -1,3 +1,5 @@
+import { POWER_DRAW_EXPONENT } from '../ship/system';
+
 export interface RecordingHeader {
     format: 'starwards-recording';
     version: 1;
@@ -10,7 +12,17 @@ export interface RecordingHeader {
     params?: unknown;
     /** Headless runs only: simulation ticks per sim-second. */
     hz?: number;
+    /** Energy-model parameters the run was simulated under, so readers split runs by mechanics, not by commit. */
+    energyModel?: EnergyModel;
 }
+
+export interface EnergyModel {
+    /** See `POWER_DRAW_EXPONENT`. */
+    powerDrawExponent: number;
+}
+
+/** The energy model this build simulates; every recorder writes it into its header. */
+export const currentEnergyModel = (): EnergyModel => ({ powerDrawExponent: POWER_DRAW_EXPONENT });
 
 export interface RecordingFrameLine {
     /** game time (seconds) this frame was captured at, relative to the recording's first frame. */
