@@ -133,7 +133,7 @@ describe('helms score: evasion', () => {
         const cs = helmsComponents(frames, [shot(1), shot(2), shot(3), shot(4), hit(5)], 'GVTS');
         const at = cs[10].terms.evasion;
         expect(at.s).toBeCloseTo(0.75, 6);
-        expect(at.d).toBeCloseTo(4 / 7, 6);
+        expect(at.d).toBeCloseTo(4 / 34, 6);
         expect(cs[0].terms.evasion.d).toBe(0);
         // the window forgets rounds older than 20 s
         expect(cs[39].terms.evasion.d).toBe(0);

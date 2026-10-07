@@ -70,7 +70,14 @@ export interface HelmsWeights {
 }
 
 /** Equal weights by design. Only `evasion` and `fireHalf` are open to fitting (see the report). */
-export const HELMS_WEIGHTS: HelmsWeights = { position: 1, evasion: 1, collision: 1, waypoint: 1, warp: 1, fireHalf: 3 };
+export const HELMS_WEIGHTS: HelmsWeights = {
+    position: 1,
+    evasion: 1,
+    collision: 1,
+    waypoint: 1,
+    warp: 1,
+    fireHalf: 30,
+};
 
 /** Set by design; the validation report tests none of them against alternatives except where it says so. */
 export const HELMS_SHAPE: HelmsShape = {
