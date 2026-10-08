@@ -615,9 +615,8 @@ limited to what the helms seat controls and has terms, each with a demand `d` in
 the frame's score is `Σ w·d·s / Σ w·d`, and a frame where nothing is demanded has no score (not 0, not 1):
 
 - `position`: the helm's share of the firing solution against the weapons-locked hostile, else the nearest.
-  Demand while weapons could fire. Gun band 500 m to 3 km, nose line within 100 m. The band's far edge moves to
-  5 km (a standoff) only against an armed target that outranges us or while we are losing; otherwise a standoff
-  decays with distance outside the band.
+  Demand while weapons could fire. Gun band 500 m to 3 km, nose line within 100 m; a standoff is rated by the
+  band alone (decaying with distance beyond it), not judged.
 - `evasion`: damage avoided under fire. Of the hostile shells fired in the last 20 s that would have hit had the
   ship kept the velocity it had when they were fired, the share that did not hit. Demand grows with the number
   of such shells (`n / (n + 30)`). Weave frequency is not scored.

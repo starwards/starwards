@@ -252,6 +252,7 @@ def main():
     ap.add_argument("--baseline", default="v1")
     ap.add_argument("--date", default=datetime.date.today().isoformat())
     ap.add_argument("--compare", action="append", default=[], help="earlier artefact to score on the same test rows")
+    ap.add_argument("--relabel", help="CSV (run_id,frame,helms_score30) from score:helms-labels that replaces the dataset's helms_score30 column")
     ap.add_argument("--inherit", help="artefact whose heads are copied unchanged (not retrained), except those named by --train")
     ap.add_argument("--train", action="append", default=[], help="with --inherit: the heads to train; every other head is copied")
     args = ap.parse_args()
@@ -259,6 +260,8 @@ def main():
 
     df = pd.read_csv(args.dataset, low_memory=False)
     manifest = json.loads(Path(args.dataset.replace(".csv", ".manifest.json")).read_text())
+    if args.relabel:
+        df = df.drop(columns="helms_score30").merge(pd.read_csv(args.relabel), on=["run_id", "frame"], how="left")
     cols = list(df.columns)
     features = cols[cols.index(META_END) + 1 : cols.index(next(iter(LABELS)))]
     assert features == manifest["features"], "dataset feature list differs from its manifest"

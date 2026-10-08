@@ -33,16 +33,13 @@ const hostile = (over: Partial<HelmsHostile> = {}): HelmsHostile => ({
     vx: 0,
     vy: 0,
     radius: 11,
-    gunRange: 4500,
-    armed: true,
-    integrity: 1,
     ...over,
 });
 
 /** The ship at the origin, nose on +x (angle 0), against `hostiles`. */
 const frame = (over: Partial<HelmsObservation> = {}, hostiles: HelmsHostile[] = [hostile()]): HelmsObservation => ({
     t: 0,
-    own: { x: 0, y: 0, vx: 0, vy: 0, radius: 11, angle: 0, integrity: 1, gunRange: 8000, canFire: true },
+    own: { x: 0, y: 0, vx: 0, vy: 0, radius: 11, angle: 0, integrity: 1, canFire: true },
     hostiles,
     lockedId: null,
     obstacles: [],
@@ -68,23 +65,10 @@ describe('helms score: position', () => {
         expect(s(frame({}, [hostile({ x: -2000 })]))).toBeLessThan(wide);
     });
 
-    it('moves the far edge of the band out for a standoff only against an armed target that outguns us or is winning', () => {
-        const at = (h: Partial<HelmsHostile>, own: Partial<HelmsObservation['own']> = {}) => {
-            const o = frame({}, [hostile({ x: 4000, ...h })]);
-            return positionTerm({ ...o, own: { ...o.own, ...own } });
-        };
-        // a fighter outgunned by our 8 km gun, and us unhurt: no standoff
-        expect(at({}).justified).toBe(false);
-        expect(at({}).term.s).toBeCloseTo(Math.exp(-1000 / 3000), 6);
-        // it outranges us
-        expect(at({ gunRange: 9000 })).toMatchObject({ justified: true, term: { s: 1 } });
-        // we are losing
-        expect(at({ integrity: 0.9 }, { integrity: 0.5 }).justified).toBe(true);
-        // not armed: no standoff is justified
-        expect(at({ gunRange: 9000, armed: false }, { integrity: 0.1 }).justified).toBe(false);
-        // the edge is STANDOFF_HIGH, not further
-        const far = positionTerm(frame({}, [hostile({ x: HELMS_SHAPE.standoffHigh + 3000, gunRange: 9000 })]));
-        expect(far.term.s).toBeCloseTo(Math.exp(-1), 6);
+    it('does not judge a standoff: the band alone rates where the ship parks', () => {
+        const o = (x: number) => frame({}, [hostile({ x })]);
+        expect(s(o(HELMS_SHAPE.bandHigh))).toBe(1);
+        expect(s(o(HELMS_SHAPE.bandHigh + 3000))).toBeCloseTo(Math.exp(-1), 6);
     });
 
     it('is placed against the weapons-locked hostile, else the nearest', () => {
@@ -197,7 +181,6 @@ describe('helms score: collision, waypoint, warp', () => {
 describe('helms score: composition', () => {
     const terms = (over: Partial<HelmsComponents['terms']>): HelmsComponents => ({
         t: 0,
-        standoffJustified: false,
         distance: null,
         integrity: 1,
         onCourse: 0,
@@ -254,8 +237,7 @@ describe('helms score from a game', () => {
     it('sees the hostile, its range and arms, and the ship that can fire', () => {
         const o = observeHelms(0, game().saveGame(), 'GVTS')!;
         expect(o.hostiles).toHaveLength(1);
-        expect(o.hostiles[0]).toMatchObject({ id: 'target', gunRange: 4500, armed: true });
-        expect(o.own.gunRange).toBe(8000);
+        expect(o.hostiles[0]).toMatchObject({ id: 'target' });
         expect(o.own.canFire).toBe(true);
         expect(o.warpLevel).toBe(0);
     });

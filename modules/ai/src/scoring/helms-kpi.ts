@@ -1,12 +1,4 @@
-import {
-    DockingMode,
-    RecordingEventLine,
-    SavedGame,
-    ShipState,
-    XY,
-    isShellAmmo,
-    shellAmmoTypes,
-} from '@starwards/core/internal';
+import { DockingMode, RecordingEventLine, SavedGame, XY, isShellAmmo } from '@starwards/core/internal';
 import { observeTactical, shellReaches } from './weapons-kpi';
 
 import { integrity } from './features';
@@ -27,10 +19,8 @@ import { offNose } from '../brain/verbal';
  *   else the nearest one. Demand 1 while the ship's weapons could fire. `s = band(distance)·aim`: the
  *   gun band (500 m to `bandHigh`) is 1, short of it `d/500`, beyond it decaying over
  *   `bandDecay`; `aim` is 1 while the nose line passes within {@link AIM_HALF_WIDTH} of the
- *   target, then decays. The band's far edge moves to `standoffHigh` (standoff) only when the
- *   target is armed and either its guns outrange ours or we are losing (our integrity below its by
- *   `losingMargin`); a standoff held from a target we out-gun and are not losing to earns the
- *   band's decay like any distance outside it.
+ *   target, then decays. A standoff is not judged: where the ship parks is rated by the band alone.
+ *
  * - `evasion`: damage avoided under fire. Of the hostile rounds fired in the last {@link EVASION_WINDOW}
  *   seconds that would have hit the ship had it kept the velocity it had when they were fired, the share
  *   that did not hit it; a hit by a round that was not on course counts as a hit. Demand grows with the
@@ -54,10 +44,8 @@ import { offNose } from '../brain/verbal';
 /** The position term's geometry (metres, except the margin): defaults are {@link HELMS_SHAPE}. */
 export interface HelmsShape {
     readonly bandHigh: number;
-    readonly standoffHigh: number;
     readonly bandDecay: number;
     readonly aimDecay: number;
-    readonly losingMargin: number;
 }
 
 export interface HelmsWeights {
@@ -83,10 +71,8 @@ export const HELMS_WEIGHTS: HelmsWeights = {
 /** Set by design; the validation report tests none of them against alternatives except where it says so. */
 export const HELMS_SHAPE: HelmsShape = {
     bandHigh: 3000,
-    standoffHigh: 5000,
     bandDecay: 3000,
     aimDecay: 400,
-    losingMargin: 0.1,
 };
 
 /** Gun band, metres: the forward chain gun reaches the target (as `features.ts` `GUN_BAND_METERS`). */
@@ -123,11 +109,6 @@ export interface HelmsHostile {
     readonly vx: number;
     readonly vy: number;
     readonly radius: number;
-    /** Longest chain-gun shell range, 0 with no gun. */
-    readonly gunRange: number;
-    /** A working chain gun and a shell to fire. */
-    readonly armed: boolean;
-    readonly integrity: number;
 }
 
 /** What one frame shows, before windows over neighbouring frames and events. */
@@ -141,7 +122,6 @@ export interface HelmsObservation {
         readonly radius: number;
         readonly angle: number;
         readonly integrity: number;
-        readonly gunRange: number;
         /** Weapons could fire: a working gun with a shell, or a missile ready. */
         readonly canFire: boolean;
     };
@@ -154,18 +134,6 @@ export interface HelmsObservation {
     readonly warpLevel: number;
 }
 
-function gunRangeOf(ship: ShipState) {
-    return Math.max(0, ...[...ship.chainGuns].map((g) => g.design.maxShellRange));
-}
-
-function hasShell(ship: ShipState) {
-    return shellAmmoTypes.some((a) => ship.magazine.getCount(a) > 0);
-}
-
-function armedShip(ship: ShipState) {
-    return [...ship.chainGuns].some((g) => !g.broken) && hasShell(ship);
-}
-
 /** Reads one frame for the player ship `playerId`; `undefined` when it is gone. */
 export function observeHelms(t: number, saved: SavedGame, playerId: string): HelmsObservation | undefined {
     const ship = saved.fragment.ship.get(playerId);
@@ -175,7 +143,6 @@ export function observeHelms(t: number, saved: SavedGame, playerId: string): Hel
     const obstacles: Body[] = [];
     for (const other of saved.fragment.space.getAll('Spaceship')) {
         if (other.id === playerId || other.destroyed) continue;
-        const state = saved.fragment.ship.get(other.id);
         const where = {
             x: other.position.x,
             y: other.position.y,
@@ -185,14 +152,8 @@ export function observeHelms(t: number, saved: SavedGame, playerId: string): Hel
         };
         if (other.faction === body.faction) {
             obstacles.push(where);
-        } else if (state) {
-            hostiles.push({
-                id: other.id,
-                ...where,
-                gunRange: gunRangeOf(state),
-                armed: armedShip(state),
-                integrity: integrity(state),
-            });
+        } else {
+            hostiles.push({ id: other.id, ...where });
         }
     }
     for (const kind of ['Asteroid', 'Derelict'] as const) {
@@ -229,7 +190,6 @@ export function observeHelms(t: number, saved: SavedGame, playerId: string): Hel
             radius: body.radius,
             angle: body.angle,
             integrity: integrity(ship),
-            gunRange: gunRangeOf(ship),
             canFire,
         },
         hostiles,
@@ -263,8 +223,6 @@ export type TermName = (typeof TERMS)[number];
 export interface HelmsComponents {
     readonly t: number;
     readonly terms: Record<TermName, Term>;
-    /** Whether the position term judged a standoff as justified. */
-    readonly standoffJustified: boolean;
     readonly distance: number | null;
     readonly integrity: number;
     /** Hostile rounds on course in the evasion window, and how many of them hit. */
@@ -274,13 +232,6 @@ export interface HelmsComponents {
 
 const NONE: Term = { d: 0, s: 0 };
 const clip01 = (v: number) => Math.min(1, Math.max(0, v));
-
-/** Whether a standoff from `target` is justified: it is armed and outguns us or is winning. */
-function standoffJustified(o: HelmsObservation, target: HelmsHostile, shape: HelmsShape = HELMS_SHAPE) {
-    return (
-        target.armed && (target.gunRange >= o.own.gunRange || o.own.integrity < target.integrity - shape.losingMargin)
-    );
-}
 
 /** The evasion term from the hostile rounds on course in the window and how many of them hit. */
 function evasionTerm(onCourse: number, hits: number, fireHalf: number): Term {
@@ -296,15 +247,14 @@ export function termsOf(c: HelmsComponents, w: HelmsWeights): Record<TermName, T
 export function positionTerm(
     o: HelmsObservation,
     shape: HelmsShape = HELMS_SHAPE,
-): { term: Term; justified: boolean; distance: number | null } {
+): { term: Term; distance: number | null } {
     const target = chosenTarget(o);
-    if (!target || !o.own.canFire) return { term: NONE, justified: false, distance: null };
+    if (!target || !o.own.canFire) return { term: NONE, distance: null };
     const sight = XY.difference({ x: target.x, y: target.y }, { x: o.own.x, y: o.own.y });
     const distance = XY.lengthOf(sight);
     const off = Math.abs(offNose(XY.angleOf(sight), o.own.angle));
     const miss = off >= 90 ? distance : distance * Math.sin((off * Math.PI) / 180);
-    const justified = standoffJustified(o, target, shape);
-    const high = justified ? shape.standoffHigh : shape.bandHigh;
+    const high = shape.bandHigh;
     const band =
         distance < BAND_LOW
             ? distance / BAND_LOW
@@ -312,7 +262,7 @@ export function positionTerm(
               ? 1
               : Math.exp(-(distance - high) / shape.bandDecay);
     const aim = miss <= AIM_HALF_WIDTH ? 1 : Math.exp(-(miss - AIM_HALF_WIDTH) / shape.aimDecay);
-    return { term: { d: 1, s: band * aim }, justified, distance };
+    return { term: { d: 1, s: band * aim }, distance };
 }
 
 const nearestGap = (o: HelmsObservation, things: readonly Body[]) =>
@@ -444,7 +394,6 @@ export function helmsComponents(
                 evasion: evasionTerm(n, hits, HELMS_WEIGHTS.fireHalf),
                 ...situationTerms(o, collided),
             },
-            standoffJustified: position.justified,
             distance: position.distance,
             integrity: o.own.integrity,
             onCourse: n,

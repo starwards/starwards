@@ -19,6 +19,7 @@ py -3.14 -m venv .venv && .venv/Scripts/pip install -r requirements.txt
 # 3. train, evaluate and export (v1.json stays as the backwards baseline)
 .venv/Scripts/python train.py --dataset ../../../../training-archive/datasets/snapshots-2026-10-04-v2.csv --version v2 --baseline v1 [--compare <earlier artefact>]
 
+#    a change to a score label alone: npm --prefix modules/ai run score:helms-labels -- --days ... --out labels.csv, then train.py --relabel labels.csv (no dataset rebuild)
 #    v4 keeps every v3 head unchanged and trains one new head:
 #    ... train.py --dataset ... --version v4 --baseline v1 --compare v1 --compare v2 --compare v3 --inherit v3 --train helms_score30
 
