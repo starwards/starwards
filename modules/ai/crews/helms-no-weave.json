@@ -1,0 +1,8 @@
+{
+    "name": "helms-no-weave",
+    "seats": [
+        { "station": "helms", "policy": "no-weave" },
+        { "station": "weapons", "policy": "reference" },
+        { "station": "engineer", "policy": "reference" }
+    ]
+}

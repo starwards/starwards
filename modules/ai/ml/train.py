@@ -35,6 +35,7 @@ LABELS = {
     "conversion45": ("regression", "tactical", 45),
     "helms10": ("regression", "helms", 10),
     "engineer_kpi30": ("regression", "engineer", 30),
+    "helms_score30": ("regression", "helms", 30),
 }
 OVERALL = ["kill60", "damage30"]
 META_END = "target_id"
@@ -47,11 +48,11 @@ CAL_EPS = 0.001
 # (the calibration floor alone costs up to -log(1 - CAL_EPS) ≈ 0.001 logloss), on at least this many runs
 NOISE_FLOOR = {"binary": 0.002, "regression": 0.0005}
 MIN_EVIDENCE_RUNS = 5
-VALIDATION_SOURCES = ("engineer-kpi-2306/", "weapons-score/")
+VALIDATION_SOURCES = ("engineer-kpi-2306/", "weapons-score/", "helms-score/")
 # Energy mechanics a run was recorded under. Since #2306 energy draw grows as (power / NORMAL)² per unit of
 # output; these code commits recorded under the merged mechanics (warp fix included; 6310123b is master after #2321). Every other commit
 # predates it (flat draw). Engineer heads train and test only on power-draw runs.
-POWER_DRAW_COMMITS = {"fe2d23bd", "d32e1f50", "6310123b"}
+POWER_DRAW_COMMITS = {"fe2d23bd", "d32e1f50", "6310123b", "9f79cc38"}
 POWER_DRAW_ONLY = {"engineer_kpi30"}
 
 
@@ -194,6 +195,31 @@ def persistence_predict(task, past, train_y, train_past):
     return np.array([np.nan if np.isnan(v) else table.get(v, float(np.mean(train_y))) for v in past])
 
 
+def against(rep, args, name, label, task, features, te, pte):
+    """Appends the table of the model's loss against the earlier artefact `name` on the same test rows, per mechanics and scenario."""
+    other = json.loads((MODELS / f"{name}.json").read_text())
+    if label not in other["models"]:
+        return
+    idx = [features.index(f) for f in other["features"]]
+    pc = te.assign(_p=pte, _o=eval_export(other["models"][label], te[features].to_numpy(float)[:, idx]))
+    groups = [(f"{a} / {b}", g) for (a, b), g in pc.groupby(["mechanics", "scenario"])] + list(pc.groupby("mechanics")) + [("all", pc)]
+    rows = []
+    for grp, part in groups:
+        if part.run_id.nunique() < 2:
+            continue
+        per = [(g[label].to_numpy(float), g._p.to_numpy(), g._o.to_numpy()) for _, g in part.groupby("run_id")]
+        d = paired_loss_delta(task, per)
+        lo, hi = boot_ci(per, lambda ps: paired_loss_delta(task, ps))
+        if lo > NOISE_FLOOR[task]:
+            verdict = "**regressed**" if part.run_id.nunique() >= MIN_EVIDENCE_RUNS else "worse, insufficient evidence"
+        else:
+            verdict = "better" if hi < 0 else "no regression"
+        y = part[label].to_numpy(float)
+        rows.append(f"| {grp} | {part.run_id.nunique()} | {f4(loss(task, y, part._o.to_numpy()))} | {f4(loss(task, y, part._p.to_numpy()))} | {f4(d)} [{f4(lo)}, {f4(hi)}] | {verdict} |")
+    rep.append(f"Against `{name}` on the same test rows ({loss_name(task)}; Δ = {args.version} − {name}, 95% CI over runs; regressed = CI above {NOISE_FLOOR[task]} on >= {MIN_EVIDENCE_RUNS} runs):\n\n"
+               f"| mechanics / scenario | runs | {name} | {args.version} | Δ | {args.version} is |\n|---|---|---|---|---|---|\n" + "\n".join(rows) + "\n")
+
+
 def calibration_runs(d):
     """The held-out calibration fold: 20% of d's runs, drawn once with the fixed seed."""
     runs = np.array(sorted(d.run_id.unique()))
@@ -226,11 +252,16 @@ def main():
     ap.add_argument("--baseline", default="v1")
     ap.add_argument("--date", default=datetime.date.today().isoformat())
     ap.add_argument("--compare", action="append", default=[], help="earlier artefact to score on the same test rows")
+    ap.add_argument("--relabel", help="CSV (run_id,frame,helms_score30) from score:helms-labels that replaces the dataset's helms_score30 column")
+    ap.add_argument("--inherit", help="artefact whose heads are copied unchanged (not retrained), except those named by --train")
+    ap.add_argument("--train", action="append", default=[], help="with --inherit: the heads to train; every other head is copied")
     args = ap.parse_args()
     np.random.seed(SEED)
 
     df = pd.read_csv(args.dataset, low_memory=False)
     manifest = json.loads(Path(args.dataset.replace(".csv", ".manifest.json")).read_text())
+    if args.relabel:
+        df = df.drop(columns="helms_score30").merge(pd.read_csv(args.relabel), on=["run_id", "frame"], how="left")
     cols = list(df.columns)
     features = cols[cols.index(META_END) + 1 : cols.index(next(iter(LABELS)))]
     assert features == manifest["features"], "dataset feature list differs from its manifest"
@@ -244,7 +275,7 @@ def main():
     df["mechanics"] = np.where(exponent.notna(), np.where(exponent != 1, "power-draw", "flat-draw"), np.where(by_commit, "power-draw", "flat-draw"))
     for label in POWER_DRAW_ONLY:
         df.loc[df.mechanics != "power-draw", label] = np.nan
-    df["crew"] = df["group"].astype(str).str.replace(r"^(engineer|weapons)-", "", regex=True)
+    df["crew"] = df["group"].astype(str).str.replace(r"^(engineer|weapons|helms)-", "", regex=True)
 
     # seed holdout: per scenario, the top 20% of distinct seeds; live runs (no seed) stay in train
     seeded = df[df.seed >= 0]
@@ -278,6 +309,19 @@ def main():
         tr, te = train[train[label].notna()], test[test[label].notna()]
         if tr.run_id.nunique() < 5 or te.empty:
             rep.append(f"## {label}\n\nToo few labelled runs to train ({tr.run_id.nunique()} train, {te.run_id.nunique()} test).\n")
+            continue
+        if args.inherit and label not in args.train:
+            inherited = json.loads((MODELS / f"{args.inherit}.json").read_text())
+            assert inherited["features"] == features, f"{args.inherit} was trained on other features: it cannot be inherited"
+            if label not in inherited["models"]:
+                continue
+            art = inherited["models"][label]
+            pte = eval_export(art, te[features].to_numpy(float))
+            yte = te[label].to_numpy(float)
+            rep.append(f"## {label} ({layer}, {task}): inherited from `{args.inherit}`\n\nCopied unchanged, not retrained. Test rows {len(te)} ({te.run_id.nunique()} runs); test {loss_name(task)} {loss(task, yte, pte):.4f}.\n")
+            for name in args.compare:
+                against(rep, args, name, label, task, features, te, pte)
+            artefact["models"][label] = art
             continue
         ytr, yte = tr[label].to_numpy(float), te[label].to_numpy(float)
         rep.append(f"## {label} ({layer}, {task})\n\nRows: train {len(tr)} ({tr.run_id.nunique()} runs), test {len(te)} ({te.run_id.nunique()} runs); "
@@ -326,27 +370,7 @@ def main():
             mech.append(f"| {mname} | {part.run_id.nunique()} | {len(part)} | {f4(loss(task, y, part._p.to_numpy()))} | {f4(loss(task, y, np.full(len(y), ytr.mean())))} |")
         rep.append(f"Per energy mechanics (test, {loss_name(task)}):\n\n| mechanics | runs | rows | {args.version} | constant |\n|---|---|---|---|---|\n" + "\n".join(mech) + "\n")
         for name in args.compare:
-            other = json.loads((MODELS / f"{name}.json").read_text())
-            if label not in other["models"]:
-                continue
-            idx = [features.index(f) for f in other["features"]]
-            pc = te.assign(_p=pte, _o=eval_export(other["models"][label], te[features].to_numpy(float)[:, idx]))
-            groups = [(f"{a} / {b}", g) for (a, b), g in pc.groupby(["mechanics", "scenario"])] + list(pc.groupby("mechanics")) + [("all", pc)]
-            rows = []
-            for grp, part in groups:
-                if part.run_id.nunique() < 2:
-                    continue
-                per = [(g[label].to_numpy(float), g._p.to_numpy(), g._o.to_numpy()) for _, g in part.groupby("run_id")]
-                d = paired_loss_delta(task, per)
-                lo, hi = boot_ci(per, lambda ps: paired_loss_delta(task, ps))
-                if lo > NOISE_FLOOR[task]:
-                    verdict = "**regressed**" if part.run_id.nunique() >= MIN_EVIDENCE_RUNS else "worse, insufficient evidence"
-                else:
-                    verdict = "better" if hi < 0 else "no regression"
-                y = part[label].to_numpy(float)
-                rows.append(f"| {grp} | {part.run_id.nunique()} | {f4(loss(task, y, part._o.to_numpy()))} | {f4(loss(task, y, part._p.to_numpy()))} | {f4(d)} [{f4(lo)}, {f4(hi)}] | {verdict} |")
-            rep.append(f"Against `{name}` on the same test rows ({loss_name(task)}; Δ = {args.version} − {name}, 95% CI over runs; regressed = CI above {NOISE_FLOOR[task]} on >= {MIN_EVIDENCE_RUNS} runs):\n\n"
-                       f"| mechanics / scenario | runs | {name} | {args.version} | Δ | {args.version} is |\n|---|---|---|---|---|---|\n" + "\n".join(rows) + "\n")
+            against(rep, args, name, label, task, features, te, pte)
         if task == "binary":
             rep.append("Reliability (test, 10 bins):\n\n| bin | rows | mean p | observed |\n|---|---|---|---|\n" + "\n".join(f"| {b} | {n} | {p:.3f} | {o:.3f} |" for b, n, p, o in reliability(yte, pte)) + "\n")
 
@@ -445,6 +469,12 @@ ORDERINGS = [
     ("weapons-score/", "conversion45", "reference", "idle", None),
     ("weapons-score/", "conversion45", "reference", "wrong-ammo", None),
     ("weapons-score/", "tactical45", "torpedo-reference", "reference", {"W-outranged"}),
+    ("helms-score/", "helms_score30", "reference", "idle", None),
+    ("helms-score/", "helms_score30", "reference", "random", None),
+    ("helms-score/", "helms_score30", "reference", "charge", None),
+    ("helms-score/", "helms_score30", "reference", "close-in", None),
+    ("helms-score/", "helms_score30", "reference", "no-weave", None),
+    ("helms-score/", "helms_score30", "reference", "far-off", None),
 ]
 
 

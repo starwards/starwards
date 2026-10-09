@@ -10,7 +10,7 @@ reports in `reports/` are committed.
 ```bash
 # 1. dataset: one row per recorded frame, from every <day>/manifest.jsonl in the training archive
 npm --prefix modules/ai run score:dataset            # -> training-archive/datasets/snapshots-<days>.csv + .manifest.json
-#    options: --archive <dir> --days 2026-10-02,... --out <file.csv> --limit <runs>
+#    options: --archive <dir> --days 2026-10-02,... --out <file.csv> --limit <runs> --exclude <path prefix>,...
 
 # 2. environment (once): Python 3.14
 cd modules/ai/ml
@@ -18,6 +18,10 @@ py -3.14 -m venv .venv && .venv/Scripts/pip install -r requirements.txt
 
 # 3. train, evaluate and export (v1.json stays as the backwards baseline)
 .venv/Scripts/python train.py --dataset ../../../../training-archive/datasets/snapshots-2026-10-04-v2.csv --version v2 --baseline v1 [--compare <earlier artefact>]
+
+#    a change to a score label alone: npm --prefix modules/ai run score:helms-labels -- --days ... --out labels.csv, then train.py --relabel labels.csv (no dataset rebuild)
+#    v4 keeps every v3 head unchanged and trains one new head:
+#    ... train.py --dataset ... --version v4 --baseline v1 --compare v1 --compare v2 --compare v3 --inherit v3 --train helms_score30
 
 # 4. check parity and the TS side
 npx jest --selectProjects=ai modules/ai/src/scoring      # from the repo root

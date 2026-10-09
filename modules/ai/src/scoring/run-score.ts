@@ -88,3 +88,23 @@ function weaponsOf(
 export async function scoreRun(recording: string, outcome: RunOutcome) {
     return scoreFrames(await readFrames(recording), outcome, readEvents(recording));
 }
+
+/** A station score of a crew's seat. */
+type SeatScores = Partial<Record<'helms' | 'weapons' | 'tactical' | 'engineer', number | null>>;
+
+/**
+ * The station scores a crew is judged by, from its seats' stations. A crew with a Tactical station (the short
+ * crew, helms and weapons fused) is scored as one seat by the tactical score (helms opportunity × weapons
+ * conversion); helms and weapons have no score of their own there. Any other crew has helms, weapons and engineer
+ * scores for the seats it has.
+ */
+export function seatScores(run: RunScore, stations: readonly string[]): SeatScores {
+    const out: SeatScores = {};
+    if (stations.includes('tactical')) out.tactical = run.tactical;
+    else {
+        if (stations.includes('helms')) out.helms = run.helms;
+        if (stations.includes('weapons')) out.weapons = run.weapons;
+    }
+    if (stations.includes('engineer')) out.engineer = run.engineer;
+    return out;
+}

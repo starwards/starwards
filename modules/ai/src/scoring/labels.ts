@@ -2,6 +2,7 @@ import { RecordingEventLine, SavedGame } from '@starwards/core/internal';
 import { TACTICAL_WEIGHTS, observeTactical, tacticalSeries } from './weapons-kpi';
 import { components, engineerKpi30, observe } from './engineer-kpi';
 import { duelOf, geometry, inFiringPosition, integrity } from './features';
+import { helmsComponents, helmsScore30, observeHelms } from './helms-kpi';
 
 /**
  * Training targets for the snapshot scorer, read from the future of the same run. Definitions
@@ -20,7 +21,9 @@ import { duelOf, geometry, inFiringPosition, integrity } from './features';
  * Stations
  * - `helms10`: share of the frames in (t, t+10 s] where the player is in firing position (gun band and
  *   nose line within 100 m of the target). Censored when the window is not complete (incl. a kill).
- *   Not validated against outcomes or policy orderings.
+ *   Position only, not validated against outcomes: `helms_score30` replaces it as the helms station score.
+ * - `helms_score30`: demand-weighted mean of the helms score's terms over (t, t+30 s] (`helms-kpi.ts`);
+ *   censored when the run ends first or nothing was demanded of the helm in the window.
  * - `engineer_kpi30`: mean engineer score K over (t, t+30 s] (`engineer-kpi.ts`).
  *
  * The weapons station score K_w is no label: it is read exactly from a run's events (`RunScore.weapons`).
@@ -36,6 +39,7 @@ export const LABELS = [
     'conversion45',
     'helms10',
     'engineer_kpi30',
+    'helms_score30',
 ] as const;
 export type LabelName = (typeof LABELS)[number];
 
@@ -85,7 +89,7 @@ export function duelLabelsAt(future: readonly FrameSummary[], i: number) {
 const clip01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /**
- * Tactical, weapons and engineer labels of every frame of a run (by frame index), for the player
+ * Tactical, weapons, engineer and helms labels of every frame of a run (by frame index), for the player
  * `playerId`. `weaponsEvents` false censors the tactical labels.
  */
 export function runLabels(
@@ -99,6 +103,7 @@ export function runLabels(
         opportunity45: null as number | null,
         conversion45: null as number | null,
         engineer_kpi30: null as number | null,
+        helms_score30: null as number | null,
     }));
     const seen = frames.flatMap((f, i) => {
         const o = observe(f.t, f.saved, playerId);
@@ -113,6 +118,20 @@ export function runLabels(
             ),
         );
         seen.forEach((s, j) => (out[s.i].engineer_kpi30 = kpi[j]));
+    }
+    const flown = frames.flatMap((f, i) => {
+        const o = observeHelms(f.t, f.saved, playerId);
+        return o ? [{ i, o }] : [];
+    });
+    if (flown.length) {
+        const score = helmsScore30(
+            helmsComponents(
+                flown.map((s) => s.o),
+                events,
+                playerId,
+            ),
+        );
+        flown.forEach((s, j) => (out[s.i].helms_score30 = score[j]));
     }
     if (!weaponsEvents) return out;
     const tactical = frames.flatMap((f, i) => {

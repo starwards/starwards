@@ -24,7 +24,9 @@ import {
     observe,
     riskOf,
 } from './engineer-kpi';
+import { RankedPair, bootstrap, ci, fmt, mean, seedCorr as pointsCorr, rankingValidity } from './validate-stats';
 import { readEvents, readFrames } from './recording';
+
 import { integrity } from './features';
 
 const PLAYER = 'GVTS';
@@ -175,38 +177,6 @@ async function loadRuns(dirs: readonly string[]) {
     }
     process.stderr.write('\n');
     return runs;
-}
-
-const mean = (xs: readonly number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : NaN);
-
-/** Deterministic generator, so the report's intervals reproduce. */
-function rng(seed: number) {
-    let state = seed >>> 0;
-    return () => {
-        state = (state + 0x6d2b79f5) >>> 0;
-        let t = state;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
-
-function bootstrap(deltas: readonly number[], resamples = 2000) {
-    if (!deltas.length) return { mean: NaN, lo: NaN, hi: NaN, n: 0 };
-    const next = rng(20261003);
-    const means: number[] = [];
-    for (let b = 0; b < resamples; b++) {
-        let s = 0;
-        for (let i = 0; i < deltas.length; i++) s += deltas[Math.floor(next() * deltas.length)];
-        means.push(s / deltas.length);
-    }
-    means.sort((a, c) => a - c);
-    return {
-        mean: mean(deltas),
-        lo: means[Math.floor(0.025 * resamples)],
-        hi: means[Math.floor(0.975 * resamples)],
-        n: deltas.length,
-    };
 }
 
 /** Logistic regression of `hurt30` on the raw risk features, by projected gradient descent with non-negative coefficients. */
@@ -464,44 +434,6 @@ function moments(runs: readonly Scored[], h: 60 | 120, mode: 'gate' | 'raw' | 'g
     return out;
 }
 
-/** Pearson r and its 95% CI over seeds (resampled seeds, from per-seed sufficient statistics) of K with the outcome. */
-function seedCorr(ms: readonly Moment[], keep: Keep) {
-    const bySeed = new Map<number, number[]>();
-    for (const m of ms) {
-        if (!keep(m.r)) continue;
-        const s = bySeed.get(m.seed) ?? [0, 0, 0, 0, 0, 0];
-        s[0]++;
-        s[1] += m.k;
-        s[2] += m.y;
-        s[3] += m.k * m.k;
-        s[4] += m.y * m.y;
-        s[5] += m.k * m.y;
-        bySeed.set(m.seed, s);
-    }
-    const stats = [...bySeed.values()];
-    const corr = (xs: readonly number[][]) => {
-        const t = [0, 0, 0, 0, 0, 0];
-        for (const x of xs) x.forEach((v, j) => (t[j] += v));
-        const [n, sx, sy, sxx, syy, sxy] = t;
-        const vx = sxx - (sx * sx) / n;
-        const vy = syy - (sy * sy) / n;
-        return n > 20 && vx > 1e-12 && vy > 1e-15 ? (sxy - (sx * sy) / n) / Math.sqrt(vx * vy) : NaN;
-    };
-    const r = corr(stats);
-    const next = rng(20261005);
-    const draws: number[] = [];
-    for (let b = 0; b < 500 && stats.length; b++) {
-        const c = corr(stats.map(() => stats[Math.floor(next() * stats.length)]));
-        if (Number.isFinite(c)) draws.push(c);
-    }
-    draws.sort((a, c) => a - c);
-    return {
-        r,
-        lo: draws.length > 20 ? draws[Math.floor(0.025 * draws.length)] : NaN,
-        hi: draws.length > 20 ? draws[Math.floor(0.975 * draws.length)] : NaN,
-    };
-}
-
 /**
  * The reserve is set by design: `λ0` 0.3, `λ1` 0.4, and the store the engineer should hold rising from
  * 0.25 at no risk to 0.5 at full risk (`N0` 0.25, `β` 1) with `k = ln 10`, so holding that store earns
@@ -556,21 +488,15 @@ function fit(runs: readonly LoadedRun[]) {
 /** Below this graded-outcome gap two policies count as tied and the pair is not scored. */
 const TIE = 0.02;
 
-interface Ranked {
-    readonly seed: number;
-    readonly kpi: number;
-    readonly graded: number;
-}
-
 /**
  * Every pair of policies on one scenario and seed, over the pair's common time: the K gap and the gap in
  * the graded outcome (hostile integrity dealt minus own integrity lost). Pairs whose outcome gap is below
  * {@link TIE} are dropped.
  */
-function rankedPairs(runs: readonly Scored[]): Map<string, Ranked[]> {
+function rankedPairs(runs: readonly Scored[]): Map<string, RankedPair[]> {
     const by = new Map<string, Scored[]>();
     for (const r of runs) by.set(`${r.scenario}/${r.seed}`, [...(by.get(`${r.scenario}/${r.seed}`) ?? []), r]);
-    const out = new Map<string, Ranked[]>();
+    const out = new Map<string, RankedPair[]>();
     for (const [key, group] of by) {
         const scenario = key.split('/')[0];
         for (let i = 0; i < group.length; i++) {
@@ -588,61 +514,11 @@ function rankedPairs(runs: readonly Scored[]): Map<string, Ranked[]> {
                 const [vx, vy] = [view(x), view(y)];
                 const graded = vx.graded - vy.graded;
                 if (!Number.isFinite(vx.k - vy.k) || Math.abs(graded) < TIE) continue;
-                out.set(scenario, [...(out.get(scenario) ?? []), { seed: x.seed, kpi: vx.k - vy.k, graded }]);
+                out.set(scenario, [...(out.get(scenario) ?? []), { seed: x.seed, x: vx.k - vy.k, y: graded }]);
             }
         }
     }
     return out;
-}
-
-function ranks(xs: readonly number[]) {
-    const order = xs.map((x, i) => [x, i] as const).sort((a, c) => a[0] - c[0]);
-    const out = new Array<number>(xs.length);
-    for (let i = 0; i < order.length;) {
-        let j = i;
-        while (j + 1 < order.length && order[j + 1][0] === order[i][0]) j++;
-        for (let n = i; n <= j; n++) out[order[n][1]] = (i + j) / 2;
-        i = j + 1;
-    }
-    return out;
-}
-
-function spearman(rows: readonly Ranked[]) {
-    if (rows.length < 5) return NaN;
-    const a = ranks(rows.map((r) => r.kpi));
-    const b = ranks(rows.map((r) => r.graded));
-    const ma = mean(a);
-    const mb = mean(b);
-    let sab = 0;
-    let saa = 0;
-    let sbb = 0;
-    a.forEach((x, i) => {
-        sab += (x - ma) * (b[i] - mb);
-        saa += (x - ma) ** 2;
-        sbb += (b[i] - mb) ** 2;
-    });
-    return saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : NaN;
-}
-
-/** Spearman r of K gap with outcome gap, its 95% CI over seeds, and the share of pairs ordered the same way. */
-function rankingValidity(rows: readonly Ranked[]) {
-    const bySeed = new Map<number, Ranked[]>();
-    for (const r of rows) bySeed.set(r.seed, [...(bySeed.get(r.seed) ?? []), r]);
-    const groups = [...bySeed.values()];
-    const next = rng(20261005);
-    const draws: number[] = [];
-    for (let b = 0; b < 500 && groups.length; b++) {
-        const c = spearman(groups.flatMap(() => groups[Math.floor(next() * groups.length)]));
-        if (Number.isFinite(c)) draws.push(c);
-    }
-    draws.sort((a, c) => a - c);
-    return {
-        n: rows.length,
-        r: spearman(rows),
-        lo: draws.length > 20 ? draws[Math.floor(0.025 * draws.length)] : NaN,
-        hi: draws.length > 20 ? draws[Math.floor(0.975 * draws.length)] : NaN,
-        sign: mean(rows.map((r) => Number(Math.sign(r.kpi) === Math.sign(r.graded)))),
-    };
 }
 
 /** Reliability of the risk curve against `hurt30` over `runs`: 10 equal-count bins, ECE and Brier skill against `baseRate`. */
@@ -668,10 +544,6 @@ function calibration(runs: readonly LoadedRun[], model: RiskModel, baseRate: num
         skill: 1 - brier / brierBase,
     };
 }
-
-const fmt = (x: number, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : '–');
-const ci = (b: ReturnType<typeof bootstrap>) =>
-    b.n ? `${fmt(b.mean)} [${fmt(b.lo)}, ${fmt(b.hi)}] n=${b.n}${b.lo > 0 ? ' ✓' : b.hi < 0 ? ' ✗' : ''}` : '–';
 
 async function main() {
     const runs = await loadRuns(args('runs').map((d) => path.resolve(d)));
@@ -924,7 +796,7 @@ async function main() {
     out();
     out('| set | scenario | low | mid | high | mean |');
     out('| --- | --- | --- | --- | --- | --- |');
-    const rc = (x: ReturnType<typeof seedCorr>) =>
+    const rc = (x: ReturnType<typeof pointsCorr>) =>
         Number.isFinite(x.r) ? `${fmt(x.r, 2)} [${fmt(x.lo, 2)}, ${fmt(x.hi, 2)}]` : '–';
     for (const [name, set] of [
         ['fit seeds', all.filter((r) => trainSeeds.has(r.seed))],
@@ -934,7 +806,7 @@ async function main() {
             const ms = moments(set, 120, mode);
             for (const sc of mode === 'raw' ? scenarios.filter((x) => RATE_GATED.test(x)) : [...scenarios, 'all']) {
                 const sub = ms.filter((m) => sc === 'all' || m.scenario === sc);
-                const cs = ([0, 1, 2] as const).map((k) => seedCorr(sub, tercile(cuts, k)));
+                const cs = ([0, 1, 2] as const).map((k) => pointsCorr(sub.filter((m) => tercile(cuts, k)(m.r))));
                 const ok = cs.map((c) => c.r).filter(Number.isFinite);
                 out(`| ${name} | ${sc} ${mode} | ${cs.map(rc).join(' | ')} | ${fmt(mean(ok), 2)} |`);
             }

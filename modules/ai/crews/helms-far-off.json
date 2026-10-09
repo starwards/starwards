@@ -1,0 +1,8 @@
+{
+    "name": "helms-far-off",
+    "seats": [
+        { "station": "helms", "policy": "far-off" },
+        { "station": "weapons", "policy": "reference" },
+        { "station": "engineer", "policy": "reference" }
+    ]
+}

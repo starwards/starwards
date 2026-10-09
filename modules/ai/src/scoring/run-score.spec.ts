@@ -1,7 +1,7 @@
 import { Faction, IdleStrategy, SavedGame, Spaceship, Vec2 } from '@starwards/core/internal';
+import { scoreFrames, seatScores } from './run-score';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
-import { scoreFrames } from './run-score';
 import { scoreSnapshot } from './score';
 
 function snapshot(distance: number, bearing: number, withTarget = true): SavedGame {
@@ -62,5 +62,18 @@ describe('run score', () => {
 
     it('is undefined when no frame holds both ships', () => {
         expect(scoreFrames([{ t: 0, saved: alone }], { killed: false, seconds: 5, timeoutSeconds: 5 })).toBeUndefined();
+    });
+});
+
+describe('seat scores', () => {
+    const run = { helms: 0.4, weapons: 0.5, tactical: 0.6, engineer: 0.7 } as never;
+
+    it('scores a crew with a tactical station as one seat by the tactical score', () => {
+        expect(seatScores(run, ['tactical', 'engineer'])).toEqual({ tactical: 0.6, engineer: 0.7 });
+    });
+
+    it('scores helms and weapons separately in a full crew, and only the seats there are', () => {
+        expect(seatScores(run, ['helms', 'weapons', 'engineer'])).toEqual({ helms: 0.4, weapons: 0.5, engineer: 0.7 });
+        expect(seatScores(run, ['helms'])).toEqual({ helms: 0.4 });
     });
 });
