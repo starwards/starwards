@@ -27,8 +27,10 @@ Owner decisions (Amir, 2026-10-03):
   brain only where it beats them.
 - Weapons seat: `reference`. Jev weapons v17 with reference helms against all-reference, T1-lite seeds
   17–48: 28/32 vs 29/32, run value 0.765 vs 0.777, sign p 1.00; L0 T0 7/8 vs 8/8. No paired win.
-- Engineer seat: `reference` (cools the gun and keeps energy up; without it T1 is 0/16).
-- `T1` must become winnable by bots. The reference crew (helms, weapons, engineer) wins 5/16.
+- Engineer seat: `reference` (cools the gun, backs it off to low power while hot, keeps energy up;
+  without it T1 is 0/16).
+- `T1` must become winnable by bots. The reference crew (helms, weapons, engineer) wins 10/16 (seeds
+  1–16) and 19/32 (seeds 17–48); the uncrewed NPC GVTS, which draws free energy, wins 12/16.
 - Jev budget: $25.
 
 ## What a brain is
@@ -278,7 +280,7 @@ npm run read -- --recording <out>/<crew>/T0_seed1.sgr --station helms --t 40
 
 - `train` plays a training rung (`modules/server/src/test/training`; `T1-lite`, a dragonfly that
   holds its ground and fires back with its capsule 70% breached, is the middle rung between `T0` and
-  `T1`, which the reference crew wins 5/16) with a crewed player ship,
+  `T1`, which the reference crew wins 10/16) with a crewed player ship,
   every crew on the same seeds, and writes `<out>/<scenario>-crews.md` (kills, time to kill,
   decisions, fallbacks, refused commands, input tokens and cost per crew; per control: choice counts
   and mean confidence) and `<out>/<scenario>-crews.json`.
@@ -366,19 +368,22 @@ and acceptance thresholds (kill rate, median time to kill per rung).
 | L0b   | variance                               | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                            | 1–16  | 75%                 |
 | L1    | threat                                 | `T1-lite`                                                           | 1–16  | 75%                 |
 | L2    | internal                               | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70 | 1–8   | 50%                 |
-| L3–L6 | enemies, threat ladder, mission, space | placeholders, not built                                             |       |                     |
+| L3    | threat                                 | `T1`: a dragonfly-MK1 attacking from 2–8 km                         | 1–16  | 50%                 |
+| L4–L7 | enemies, heavier hulls, mission, space | placeholders, not built                                             |       |                     |
 
 `T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
 `T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds.
 
 Suite baselines with every station radar cut to its reach:
 
-| Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` |
-| ------------- | ------------ | ------------- | ------------- | ------------------- |
-| `reference`   | 8/8, 80.6 s  | 16/16, 80.6 s | 13/16, 46.9 s | 6/8, 93.4 s         |
-| `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          |
+| Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` | L3 `T1`        |
+| ------------- | ------------ | ------------- | ------------- | ------------------- | -------------- |
+| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 13/16, 37.8 s | 7/8, 104.3 s        | 10/16, 131.7 s |
+| `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          | not played     |
+| `idle`        | 0/8          | not played    | 0/16          | not played          | 0/16           |
 
-Reports: `training-archive/2026-10-02/suite/reference-221925/`, `recommended-081501/` (L0) and
+Reports: `training-archive/2026-10-09/suite/reference-210935/` and `idle-211042/` (L3),
+`training-archive/2026-10-02/suite/recommended-081501/` (L0) and
 `recommended-083320/` (L1). The recommended crew fails both levels it played (L0 accept needs a
 median ≤ 120 s, L1 needs 75%).
 
@@ -444,16 +449,16 @@ over one `SavedGame` frame: fast, deterministic, no Python at runtime. It scores
 player ship against its opponent (the nearest ship of another faction) and returns `undefined`
 without both. Every value is in [0, 1], in three layers:
 
-| field                  | meaning (label it is trained on)                                                         |
-| ---------------------- | ---------------------------------------------------------------------------------------- |
-| `overall.kill`         | calibrated P(target killed within 60 s) (`kill60`)                                       |
-| `overall.damage`       | expected drop of the player's integrity over 30 s, lower is better (`damage30`)          |
-| `overall.value`        | `kill × (1 - damage)`, a composition, not trained                                        |
-| `tactical.score`       | expected tactical score T over the next 45 s, shared by helms and weapons (`tactical45`) |
-| `tactical.opportunity` | expected O, helms' share of T: time with a firing solution (`opportunity45`)             |
-| `tactical.conversion`  | expected V = T / O, weapons' share of T (`conversion45`, censored where O = 0)           |
+| field                  | meaning (label it is trained on)                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `overall.kill`         | calibrated P(target killed within 60 s) (`kill60`)                                         |
+| `overall.damage`       | expected drop of the player's integrity over 30 s, lower is better (`damage30`)            |
+| `overall.value`        | `kill × (1 - damage)`, a composition, not trained                                          |
+| `tactical.score`       | expected tactical score T over the next 45 s, shared by helms and weapons (`tactical45`)   |
+| `tactical.opportunity` | expected O, helms' share of T: time with a firing solution (`opportunity45`)               |
+| `tactical.conversion`  | expected V = T / O, weapons' share of T (`conversion45`, censored where O = 0)             |
 | `stations.helms`       | expected helms score over the next 30 s (`helms_score30`), see [Helms score](#helms-score) |
-| `stations.engineer`    | expected engineer score K over the next 30 s (`engineer_kpi30`)                          |
+| `stations.engineer`    | expected engineer score K over the next 30 s (`engineer_kpi30`)                            |
 
 T, O, V and K_w are defined in `scoring/weapons-kpi.ts` and the weapons report; K in
 [Engineer score](#engineer-score). Integrity is the mean of armor health ratio, `healthRatio` and capsule
