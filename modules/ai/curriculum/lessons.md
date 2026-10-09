@@ -261,6 +261,10 @@ Not filed. Draft text:
 > median 131.7 s. The NPC GVTS's health also never fell below 1 on any seed while the crew's fell to
 > 0.51–0.88 on 11/16 (cause not traced). Either calibrate T1 with a player-ship GVTS flown by the
 > automation, or give NPC energy a finite budget, before reading the NPC figure as a crew target.
+>
+> The NPC figure holds after the energy-scaling change (#2306): a rerun on master `f408e9b6`
+> (2026-10-10, `training-archive/2026-10-10/t1/npc-calibration/`) gives identical per-seed results
+> (12/16, median TTK 73 s, median 102 blast hits). Free energy makes the NPC insensitive to the change.
 
 Copy this block for every candidate run on a level.
 
