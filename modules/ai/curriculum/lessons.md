@@ -71,11 +71,12 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 
 ## Rungs
 
-### T1 is unwinnable; use T1-lite
+### Add a rung once `reference` wins it
 
-- **Evidence:** every crew including `reference` loses T1; `reference` 13/16 on T1-lite (180 s).
-- **Reuse:** never read a T1 loss as a brain result. Add a rung to the ladder only once `reference`
-  wins it, so a failure there says something about the brain.
+- **Evidence:** `reference` won T1 5/16 with an engineer seat (2026-10-03) and 10/16 once the engineer
+  backs the gun off while hot (2026-10-09); `idle` 0/16. T1-lite stays the rung where it wins 13/16.
+- **Reuse:** a rung joins the ladder only once `reference` wins it, so a failure there says something
+  about the brain; read a brain's result against the reference's, not against 16/16.
 
 ### Results at 8 seeds do not hold at 16
 
@@ -222,6 +223,48 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 - **Reuse:** compare crews on `tactical.opportunity` (helms), `tactical.conversion` and
   `RunScore.weapons` (weapons) before `stations.helms`. Before reusing scorer labels across a mechanics
   change, re-record the matched-seed validation runs and re-validate the label against outcomes.
+
+### L3 — `reference`, chain gun power backoff (2026-10-09)
+
+- **Change:** the reference engineer drops the chain gun to low power at heat 60 and back to normal
+  below 40, the NPC automation's hysteresis (`reference-policy.ts`, `powerGoal`).
+- **Level:** T1 seeds 1–16: 10/16, median 131.7 s, run value 0.249 (before: 5/16, 138.5 s, 0.228).
+  Fresh seeds 17–48: 19/32, run value 0.264 (before: 10/32, 0.200). Suite report:
+  `training-archive/2026-10-09/suite/reference-210935/`; `idle` 0/16 (`idle-211042/`); diagnosis runs
+  and rejected variants in `training-archive/2026-10-09/t1-tactics/` (README lists each).
+- **Regression suite:** every earlier level and benchmark ok. Faster kills on L0 T0 (80.6 → 74.1 s,
+  run value +0.038, 7 up / 1 down), L0b (80.6 → 65.1 s, 14 up / 2 down, sign p 0.004) and L1
+  (46.9 → 37.8 s); L2 7/8 (was 6/8); `engineer-power-budget` 0.644 → 0.775 (8 of 8 seeds up).
+- **Decision:** accepted; baselines `reference` (L0–L3) and `idle` (L3) saved. Plateau on L3: 0 of 2.
+- **Lesson:** under fire the gun was the binding resource, not position. The NPC GVTS holds its gun at
+  heat 45–58 at low power; the reference held it at 85–90 at normal power, waiting at the hold line.
+  Low power halves the rate of fire but quarters the heat per second, so a heat-bound gun fires more
+  shells. Variants that did not beat 10/16 beyond noise (seeds 1–16): constant low power 8/16
+  (17/32 fresh); armed standoff 2 km 4/16 (without backoff), 3 km 6/16, 5 km 8/16; weapons hold heat
+  95 9/16; repairing engineer 9/16; earlier jump-start (25% / 40% store) 9/16 / 7/16; reactor repair
+  on a reactor defect: power-train reset 10/16, containment-field tuning 12/16 but 17/32 fresh;
+  switching ammo when the loaded type runs out never fired; a signals seat changes nothing (identical
+  runs: the blip-radius filter already keeps shells out of the lock).
+- **Reuse:** before tuning a seat's tactics, check which resource binds (gun heat, energy, ammo) in
+  the recording; the NPC automation (`automation-manager.ts`) is a ready list of resource rules.
+
+### Balance issue draft: the NPC GVTS draws free energy (2026-10-09)
+
+Not filed. Draft text:
+
+> **T1 calibration overstates what a crew can do: NPC ships draw free energy.** `ShipManagerNpc`
+> replaces `drawEnergy` with `() => 1` (#2208), so the uncrewed GVTS that calibrates T1 never spends
+> its store. In `training-archive/2026-10-03/t1/npc-calibration/` its store stays at 1000 on all 16
+> seeds, including seeds where hits cut reactor efficiency to 0.4 (seed 3) and 0.1 (seed 4). The
+> crewed `reference` (2026-10-09, same seeds) loses reactor efficiency to 0 on 11/16 seeds and runs
+> the store below 250 on 8/16 (to 0 on seeds 2 and 9). Result: NPC 12/16, median 73 s; crew 10/16,
+> median 131.7 s. The NPC GVTS's health also never fell below 1 on any seed while the crew's fell to
+> 0.51–0.88 on 11/16 (cause not traced). Either calibrate T1 with a player-ship GVTS flown by the
+> automation, or give NPC energy a finite budget, before reading the NPC figure as a crew target.
+>
+> The NPC figure holds after the energy-scaling change (#2306): a rerun on master `f408e9b6`
+> (2026-10-10, `training-archive/2026-10-10/t1/npc-calibration/`) gives identical per-seed results
+> (12/16, median TTK 73 s, median 102 blast hits). Free energy makes the NPC insensitive to the change.
 
 Copy this block for every candidate run on a level.
 

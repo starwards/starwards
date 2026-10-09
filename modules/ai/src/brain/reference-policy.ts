@@ -227,6 +227,13 @@ const REACTOR_BURST_HEAT = 50;
 const JUMP_START_STORE = 0.1;
 /** The repairing engineer queues a repair only while the store holds more than this share. */
 const REPAIR_STORE = 0.3;
+/**
+ * The chain gun drops to low power at this heat and returns to normal once below the release heat,
+ * as the NPC automation backs off its guns: low power halves the rate of fire and quarters the heat
+ * per second, so a gun held at the heat limit fires more shells at low power than at normal.
+ */
+const GUN_BACKOFF_HEAT = 60;
+const GUN_RELEASE_HEAT = 40;
 const SHUTDOWN = 0;
 const LOW = 0.25;
 const NORMAL = 0.5;
@@ -235,7 +242,7 @@ const MAX = 1;
 /**
  * The engineer of the wave-defence harness, through the console: warp, docking and tubes shut
  * down; the reactor at normal power, bursting to full while the store is low and it is still cool;
- * thrusters at low power while the store is low; coolant shared in proportion to each system's
+ * thrusters at low power while the store is low; the chain gun at low power while hot; coolant shared in proportion to each system's
  * heat; and a reactor jump-start when the store runs dry. A repairing engineer also queues, one at a
  * time, a field repair for a defect the damage report shows.
  */
@@ -303,6 +310,9 @@ function powerGoal(pointer: string, system: SystemStatus, store: number) {
     }
     if (pointer === '/reactor') {
         return store < LOW_STORE && system.heat < REACTOR_BURST_HEAT ? MAX : NORMAL;
+    }
+    if (pointer.startsWith('/chainGuns/')) {
+        return system.heat >= GUN_BACKOFF_HEAT ? LOW : system.heat < GUN_RELEASE_HEAT ? NORMAL : undefined;
     }
     if (pointer.startsWith('/thrusters/')) {
         return store < LOW_STORE ? LOW : store > HIGH_STORE ? NORMAL : undefined;

@@ -1,7 +1,7 @@
 ---
 name: starwards-brain-training
 description: Train and tune a station brain (modules/ai) in the headless game -- use when asked to improve how a bot plays a station, to compare brain versions, to explain why a brain decided something, or to run Jev crews on a training rung
-version: 2026-10-02
+version: 2026-10-09
 related_skills:
     - starwards-recording-analysis (the game side of a recorded run)
     - starwards-balance-check (when the question is the game's balance, not the brain)
@@ -74,8 +74,9 @@ The ladder (`modules/ai/curriculum/ladder.json`) orders levels by complexity axi
 ## Rungs
 
 `T0` (target plays dead) for the basics; `T1-lite` (stand-ground target that fires back, capsule
-70% breached; calibration only) to see whether a change holds up under fire. `T1` is unwinnable for
-every crew including `reference`: a loss there says nothing about a brain.
+70% breached; calibration only) to see whether a change holds up under fire; `T1` (attacking
+dragonfly, curriculum L3) where `reference` wins 10/16: read a brain's T1 result against that, and a
+single seed's loss as noise.
 
 ## Crew talk
 

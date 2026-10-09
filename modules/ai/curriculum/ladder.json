@@ -60,6 +60,18 @@
         },
         {
             "id": "L3",
+            "axis": "threat",
+            "changed": "The target attacks: a dragonfly-MK1 closing and firing from 2-8 km, its capsule whole (T1).",
+            "status": "built",
+            "rungs": ["T1"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 180,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5 }
+        },
+        {
+            "id": "L4",
             "axis": "enemies",
             "changed": "Two or more enemies at once: target choice and order.",
             "status": "placeholder",
@@ -71,9 +83,9 @@
             "accept": { "killRate": 0.5 }
         },
         {
-            "id": "L4",
+            "id": "L5",
             "axis": "threat",
-            "changed": "Threat ladder: attacking dragonfly-MK1 (T1), then MK2 and predator hulls.",
+            "changed": "Heavier attackers: dragonfly-MK2, then predator hulls.",
             "status": "placeholder",
             "rungs": [],
             "benchmarks": [],
@@ -83,7 +95,7 @@
             "accept": { "killRate": 0.5 }
         },
         {
-            "id": "L5",
+            "id": "L6",
             "axis": "mission",
             "changed": "A mission beyond the kill: escort, reach a waypoint, survive a wave.",
             "status": "placeholder",
@@ -95,7 +107,7 @@
             "accept": { "killRate": 0.5 }
         },
         {
-            "id": "L6",
+            "id": "L7",
             "axis": "space",
             "changed": "Cluttered space: asteroids, stations, contacts beyond the helms radar.",
             "status": "placeholder",
