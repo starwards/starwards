@@ -185,6 +185,7 @@ jobs:
   teardown:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
+    environment: teardown # gives the OIDC token an environment subject for Tailscale
     permissions:
       contents: read
       deployments: write
