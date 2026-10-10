@@ -8,10 +8,13 @@ import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import {
     T0Lab,
     T0Params,
+    T2Params,
     TRAINING_PLAYER_ID,
+    TRAINING_TARGET2_ID,
     TRAINING_TARGET_ID,
     createTrainingT0Map,
     createTrainingT1Map,
+    createTrainingT2Map,
 } from '../../scenarios/training';
 import {
     WeaponsMultiParams,
@@ -25,13 +28,19 @@ import { computeChecks } from './analysis/checks';
 import { computeEvents } from './analysis/events';
 import { extractMetrics } from './analysis/extract';
 import fc from 'fast-check';
+import { killedAt } from './analysis/metrics';
 
 export interface TrainingResult {
     readonly scenario: string;
     readonly seed: number;
     readonly params: unknown;
+    /** Every enemy of the rung destroyed. */
     readonly killed: boolean;
-    /** Sim-seconds to kill; the timeout when not killed. */
+    /** Enemies destroyed, of {@link enemies}. */
+    readonly kills: number;
+    /** Enemies on the rung: 1, or the attackers of a multi-enemy rung. */
+    readonly enemies: number;
+    /** Sim-seconds to the last kill; the timeout when not every enemy was killed. */
     readonly seconds: number;
     /** First sim-second the target's armor was fully stripped, if ever. */
     readonly armorStrippedAt: number | null;
@@ -68,6 +77,8 @@ interface TrainingScenario<P> {
     readonly description: string;
     readonly params: fc.Arbitrary<P>;
     createMap(params: P): GameMap;
+    /** Ids of every enemy the run must destroy; the first is the target the per-target metrics read. Default: the one target. */
+    readonly enemies?: readonly string[];
 }
 
 const T0_PLAY_DEAD_DRAGONFLY: TrainingScenario<T0Params> = {
@@ -151,6 +162,20 @@ const energyBound = (name: string, model: ShipModel, reactorOutput: number): Tra
         createTrainingT1Map(params, model, { playerEnergy: params.playerEnergy, playerCells: 1, reactorOutput }),
 });
 
+/** Two T1 attackers at once, from different bearings and ranges: target choice and order. */
+const T2_TWO_ATTACKERS: TrainingScenario<T2Params> = {
+    name: 'T2',
+    description: 'GVTS vs two dragonfly-MK1s attacking it, each 2-8 km, the second 45-180 degrees round from the first',
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        distance2: fc.integer({ min: 2000, max: 8000 }),
+        offset: fc.integer({ min: 45, max: 180 }),
+    }),
+    createMap: createTrainingT2Map,
+    enemies: [TRAINING_TARGET_ID, TRAINING_TARGET2_ID],
+};
+
 /** Weapons rung with a threat, a harmless decoy and an ally to choose between (calibration only). */
 const W_MULTI: TrainingScenario<WeaponsMultiParams> = {
     name: 'W-multi',
@@ -181,6 +206,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'T0-wide': T0_WIDE as TrainingScenario<never>,
     'T0-constrained': T0_CONSTRAINED as TrainingScenario<never>,
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
+    T2: T2_TWO_ATTACKERS as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
     'T1-noweave': t1WithHull(
@@ -247,6 +273,11 @@ export async function runTraining<P>(
         throw new Error('GVTS missing');
     }
     const dt = 1 / hz;
+    const enemies = scenario.enemies ?? [TRAINING_TARGET_ID];
+    const alive = (id: string) => {
+        const enemy = game.api.getObject(id);
+        return enemy !== undefined && !enemy.destroyed;
+    };
 
     const scratchDir = recording?.dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'starwards-training-'));
     const intervalSimSeconds = recording?.intervalSimSeconds ?? SCRATCH_INTERVAL_SECONDS;
@@ -267,11 +298,11 @@ export async function runTraining<P>(
         await beforeTick?.(game, recorder);
         game.tick(dt);
         await recorder.capture();
-        const target = game.api.getObject(TRAINING_TARGET_ID);
-        if (!target || target.destroyed) {
+        const living = enemies.filter(alive);
+        if (!living.length) {
             break;
         }
-        const targetObject = game.spaceManager.state.get(TRAINING_TARGET_ID);
+        const targetObject = game.spaceManager.state.get(living[0]);
         if (targetObject) {
             gunnery.push(sampleGunnery(gvts.state, targetObject));
         }
@@ -287,7 +318,11 @@ export async function runTraining<P>(
         playerId: TRAINING_PLAYER_ID,
         targetId: TRAINING_TARGET_ID,
     });
+    const kills = (await Promise.all(enemies.map((id) => killedAt(store, recorder.filePath, id)))).filter(
+        (t) => t !== null,
+    ).length;
     await store.close();
+    const outcome = { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
 
     const wallSeconds = (Date.now() - started) / 1000;
     if (recording) {
@@ -295,7 +330,7 @@ export async function runTraining<P>(
             scenario: scenario.name,
             seed,
             params,
-            ...metrics,
+            ...outcome,
             ...gunneryFractions(gunnery),
             hz,
             failedChecks,
@@ -309,7 +344,7 @@ export async function runTraining<P>(
         scenario: scenario.name,
         seed,
         params,
-        ...metrics,
+        ...outcome,
         ...gunneryFractions(gunnery),
         hz,
         failedChecks,

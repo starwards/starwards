@@ -12,7 +12,7 @@ import {
     shipConfigurations,
 } from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
-import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID } from '../../scenarios/training';
+import { TRAINING_PLAYER_ID, TRAINING_TARGET2_ID, TRAINING_TARGET_ID } from '../../scenarios/training';
 import { runTraining, trainingScenarios } from './training-scenarios';
 
 import { RECORDING_EXT } from '../../recording/game-recorder';
@@ -35,12 +35,13 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T0-wide, T0-constrained, T1, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi and W-outranged', () => {
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi and W-outranged', () => {
         expect(Object.keys(trainingScenarios)).toEqual([
             'T0',
             'T0-wide',
             'T0-constrained',
             'T1',
+            'T2',
             'T1-MK2',
             'T1-predator',
             'T1-noweave',
@@ -78,6 +79,23 @@ describe('training ladder', () => {
         expect(state.capsule.integrity).toBe(1);
     });
 
+    it('T2: two dragonfly-MK1s attacking the GVTS from different bearings, the GVTS ordered on the first', () => {
+        const scenario = trainingScenarios.T2;
+        const [params] = fc.sample(scenario.params, { seed: 1, numRuns: 1 });
+        const game = HeadlessGame.start(scenario.createMap(params), 1);
+        game.tick(1 / SERVER_TICK_HZ);
+        game.tick(1 / SERVER_TICK_HZ);
+        for (const id of [TRAINING_TARGET_ID, TRAINING_TARGET2_ID]) {
+            const ship = game.api.getShip(id);
+            expect(game.spaceManager.state.getShip(id)?.model).toBe('dragonfly-MK1');
+            expect(ship?.state.order).toBe(Order.ATTACK);
+            expect(ship?.state.orderTargetId).toBe(TRAINING_PLAYER_ID);
+        }
+        expect(game.api.getShip(TRAINING_PLAYER_ID)?.state.orderTargetId).toBe(TRAINING_TARGET_ID);
+        const [first, second] = [TRAINING_TARGET_ID, TRAINING_TARGET2_ID].map((id) => game.api.getObject(id)!.position);
+        expect(Math.hypot(first.x - second.x, first.y - second.y)).toBeGreaterThan(1000);
+    });
+
     it('T1-lite: a dragonfly-MK1 holding its ground, capped to the GVTS top speed, capsule 70% breached', () => {
         const { state, model } = targetOf('T1-lite');
         const cap = shipConfigurations.gravitas.smartPilot.maxSpeed;
@@ -103,6 +121,12 @@ describe('runTraining', () => {
         expect(result.inRangeFraction).toBeLessThanOrEqual(1);
         expect(result.killZoneFraction).toBeGreaterThanOrEqual(0);
         expect(result.killZoneFraction).toBeLessThanOrEqual(1);
+    });
+
+    it('counts every enemy of a multi-enemy rung: a run is killed only when all are', async () => {
+        const result = await runTraining(trainingScenarios.T2, { seed: 1, timeoutSeconds: 3 });
+
+        expect(result).toMatchObject({ scenario: 'T2', killed: false, kills: 0, enemies: 2 });
     });
 
     it('without a `recording` option still analyzes via a scratch recording, then cleans it up', async () => {

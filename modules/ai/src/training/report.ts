@@ -84,7 +84,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         const sum = (f: (r: CrewRunResult) => number) => runs.reduce((a, r) => a + f(r), 0);
         const tokens = sum((r) => r.inputTokens);
         lines.push(
-            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(meanOf(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
+            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(meanOf(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
         );
     }
     if (crews.length > 1) {
@@ -131,8 +131,16 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     );
     for (const r of results) {
         lines.push(
-            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
+            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
         );
     }
     return lines.join('\n') + '\n';
+}
+
+/** On a multi-enemy rung, the enemies killed over all runs, partial runs included. */
+function partialKills(runs: readonly CrewRunResult[]) {
+    const enemies = runs.reduce((n, r) => n + (r.enemies ?? 1), 0);
+    return enemies > runs.length
+        ? ` (enemies ${runs.reduce((n, r) => n + (r.kills ?? (r.killed ? 1 : 0)), 0)}/${enemies})`
+        : '';
 }

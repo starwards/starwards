@@ -19,9 +19,9 @@ export type EngineerPolicyName = (typeof ENGINEER_POLICIES)[number];
 export function makeEngineerPolicy(name: EngineerPolicyName, decisionSeconds: number): Policy {
     switch (name) {
         case 'reference-repairing':
-            return makeReferencePolicy(decisionSeconds, { jumpStart: true, repair: true }, name);
+            return makeReferencePolicy(decisionSeconds, { jumpStart: true, repair: 'all' }, name);
         case 'never-jump-start':
-            return makeReferencePolicy(decisionSeconds, { jumpStart: false, repair: false }, name);
+            return makeReferencePolicy(decisionSeconds, { jumpStart: false, repair: 'reactor' }, name);
         case 'all-max':
             return powerPolicy(name, () => 'raise');
         case 'all-shutdown':
