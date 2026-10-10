@@ -16,6 +16,7 @@ import { RangeIndicators } from '../radar/range-indicators';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
 import { isOwnWaypoint } from '../radar/waypoint-radar-visibility';
+import { isWeaponsTargetOutOfRange } from '../radar/weapons-target-radar-visibility';
 
 WebFont.load({
     custom: {
@@ -146,6 +147,24 @@ export async function drawHelmsRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         () => 0.5,
     );
     allElements.addChild(waypointsOutOfRange.renderRoot);
+
+    // weapons target beyond radar range: pin it to the rim like an out-of-range waypoint (#2330)
+    const weaponsTargetOutOfRange = new ObjectsLayer(
+        root,
+        spaceDriver,
+        16,
+        () => green,
+        tacticalDrawFunctions,
+        shipTarget,
+        (o) => isWeaponsTargetOutOfRange(o, shipDriver.state.weaponsTarget.targetId, camera, p.range),
+        (o) =>
+            root.worldToScreen(
+                XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(o.position, camera)))),
+            ),
+        () => 0.5,
+        shipDriver.state.faction,
+    );
+    allElements.addChild(weaponsTargetOutOfRange.renderRoot);
 
     function onRadarShapeChange() {
         overallMask.clear();
