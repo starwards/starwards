@@ -266,6 +266,53 @@ Not filed. Draft text:
 > (2026-10-10, `training-archive/2026-10-10/t1/npc-calibration/`) gives identical per-seed results
 > (12/16, median TTK 73 s, median 102 blast hits). Free energy makes the NPC insensitive to the change.
 
+### L4 — `reference`, reactor repair and thruster shutdown (2026-10-10)
+
+- **Level:** `T2`, two T1 dragonfly-MK1s attacking at once (each 2–8 km, 45–180° apart), 300 s; a run
+  is a kill only when both die. Calibration, seeds 1–16: uncrewed NPC GVTS 0/16 (enemies 0/32),
+  `idle` 0/16, `reference` before 0/16 (enemies 6/32; seeds 17–48: 1/32, 13/64).
+- **Change:** the reference engineer queues a field repair for a reactor defect (store above 30%), and
+  while the damage report shows a reactor defect shuts the thrusters down below 40% of the store, back
+  on above 50% (`reference-policy.ts`, `REFERENCE_ENGINEER`, `powerGoal`).
+- **Level result:** seeds 1–16: 2/16, median 237.3 s, enemies 9/32, run value 0.043 (before 0.006);
+  seeds 17–48: 0/32, enemies 23/64. Enemies killed per seed over seeds 1–48: 18 up / 6 down, sign
+  p 0.023. Suite report: `training-archive/2026-10-10/suite/reference-015256/`; `idle` 0/16
+  (`idle-015811/`); diagnosis runs and rejected variants in `training-archive/2026-10-10/l4/` (README
+  lists each).
+- **Regression suite:** every earlier level and benchmark ok. L3 `T1` 10/16 → 12/16 (seeds 17–48:
+  19/32 → 23/32); L2 7/8 → 6/8 (within noise); L1 13/16, L0, L0b unchanged.
+- **Decision:** accepted; baselines `reference` (L0–L4) and `idle` (L4) saved. L4 accept (25%) not met.
+- **Lesson:** two attackers break the reactor early (efficiency 0 at 17–183 s) and the store runs dry
+  (below 50 at 102–251 s); the thrusters draw about 85% of the energy (460 of 550 per minute in
+  seed 1), so the gun starves before the second kill. Repairing alone (9/32 enemies) or shutting the
+  thrusters alone (11/32) does not separate; together the store holds the 30% a repair needs. Repairing
+  every system costs L1 (13/16 → 11/16); the reactor alone does not. Shutting the thrusters on a low
+  store without a reactor defect costs L2 (7/8 → 2/8: the ship starts short and must fly). Variants that
+  did not beat the baseline beyond noise: weapons switching to the nearest ship, helms parking on the
+  ship the nose holds, parking beyond the target away from the other, armed standoff 5 or 6 km, no weave
+  (2/16 but 12/64 fresh), holding still (0/32), a 600 s timeout (6/32: attrition, not time, binds).
+- **Walls:**
+    - **Wrecks look like ships.** A destroyed dragonfly leaves a derelict hull of the same radius under a
+      new id; unscanned, the radar cannot tell it from the live attacker, and weapons locked it after the
+      first kill on 3 of 6 seeds. Cycling targets visits every corporal object (shells too) in insertion
+      order, so pressing `next` or `clear` then `next` lands on shells or the wreck long before the
+      second attacker. A wreck marker (a new blip where a hull vanished) did not help (6/32) because of
+      that cycling. The ships-only filter needs a BASIC scan; with the reference signals seat it changed
+      nothing (5/32): its beam goes to the nearest unscanned blip, often the wreck.
+    - **Seats aim at different ships.** Helms parks on the nearest ship; weapons holds whatever its cycle
+      locked. Helms cannot read the lock (no `targeting-status` on its console); inferring it from the
+      ship nearest the nose did not separate (6/32). A seat that names the target for both (a captain)
+      is the missing piece, as is a target-designation command weapons could use without cycling.
+    - **Contacts flicker.** With three ships firing, shells crowd the 200-contact radar list (nearest
+      first), so the far attacker drops off a seat's display for seconds at a time.
+    - **NPC calibration does not transfer.** The uncrewed GVTS chases its ordered target, which flies
+      ahead out of shell reach, while its forward gun only has the other attacker, behind it, as an
+      opportunity target: it never fires (0/16), unlike T1 (12/16). An NPC figure for L4 needs automation
+      that switches its order to a reachable hostile.
+- **Reuse:** on a multi-enemy level, read the energy series before tactics: the second kill is
+  energy-bound. Fix target selection through a designation path (captain seat or signals-backed
+  ships-only lock), not by cycling.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

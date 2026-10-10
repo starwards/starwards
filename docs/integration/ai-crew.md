@@ -27,10 +27,13 @@ Owner decisions (Amir, 2026-10-03):
   brain only where it beats them.
 - Weapons seat: `reference`. Jev weapons v17 with reference helms against all-reference, T1-lite seeds
   17–48: 28/32 vs 29/32, run value 0.765 vs 0.777, sign p 1.00; L0 T0 7/8 vs 8/8. No paired win.
-- Engineer seat: `reference` (cools the gun, backs it off to low power while hot, keeps energy up;
-  without it T1 is 0/16).
-- `T1` must become winnable by bots. The reference crew (helms, weapons, engineer) wins 10/16 (seeds
-  1–16) and 19/32 (seeds 17–48); the uncrewed NPC GVTS, which draws free energy, wins 12/16.
+- Engineer seat: `reference` (cools the gun, backs it off to low power while hot, keeps energy up,
+  repairs the reactor and shuts the thrusters down on a low store while it is damaged; without an
+  engineer T1 is 0/16).
+- `T1` must become winnable by bots. The reference crew (helms, weapons, engineer) wins 12/16 (seeds
+  1–16) and 23/32 (seeds 17–48); the uncrewed NPC GVTS, which draws free energy, wins 12/16.
+- `T2` (two T1 attackers, curriculum L4) is not yet won: reference 2/16 (seeds 1–16, 9/32 attackers
+  killed) and 0/32 (seeds 17–48, 23/64); the uncrewed NPC GVTS 0/16.
 - Jev budget: $25.
 
 ## What a brain is
@@ -280,7 +283,7 @@ npm run read -- --recording <out>/<crew>/T0_seed1.sgr --station helms --t 40
 
 - `train` plays a training rung (`modules/server/src/test/training`; `T1-lite`, a dragonfly that
   holds its ground and fires back with its capsule 70% breached, is the middle rung between `T0` and
-  `T1`, which the reference crew wins 10/16) with a crewed player ship,
+  `T1`, which the reference crew wins 12/16; `T2` sends two `T1` attackers) with a crewed player ship,
   every crew on the same seeds, and writes `<out>/<scenario>-crews.md` (kills, time to kill,
   decisions, fallbacks, refused commands, input tokens and cost per crew; per control: choice counts
   and mean confidence) and `<out>/<scenario>-crews.json`.
@@ -362,27 +365,31 @@ energy, ammo and heat), `enemies`, `mission`, `space`. Each level names its rung
 benchmarks, seeds, timeout, plateau criterion (no gain in its metric beyond seed noise for N versions)
 and acceptance thresholds (kill rate, median time to kill per rung).
 
-| Level | Axis                                   | Plays                                                               | Seeds | Accept              |
-| ----- | -------------------------------------- | ------------------------------------------------------------------- | ----- | ------------------- |
-| L0    | baseline                               | `T0` and every station benchmark                                    | 1–8   | 7/8, median ≤ 120 s |
-| L0b   | variance                               | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                            | 1–16  | 75%                 |
-| L1    | threat                                 | `T1-lite`                                                           | 1–16  | 75%                 |
-| L2    | internal                               | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70 | 1–8   | 50%                 |
-| L3    | threat                                 | `T1`: a dragonfly-MK1 attacking from 2–8 km                         | 1–16  | 50%                 |
-| L4–L7 | enemies, heavier hulls, mission, space | placeholders, not built                                             |       |                     |
+| Level | Axis                          | Plays                                                               | Seeds | Accept              |
+| ----- | ----------------------------- | ------------------------------------------------------------------- | ----- | ------------------- |
+| L0    | baseline                      | `T0` and every station benchmark                                    | 1–8   | 7/8, median ≤ 120 s |
+| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                            | 1–16  | 75%                 |
+| L1    | threat                        | `T1-lite`                                                           | 1–16  | 75%                 |
+| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70 | 1–8   | 50%                 |
+| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                         | 1–16  | 50%                 |
+| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s         | 1–16  | 25%                 |
+| L5–L7 | heavier hulls, mission, space | placeholders, not built                                             |       |                     |
 
 `T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
-`T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds.
+`T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds. On `T2`
+(`createTrainingT2Map`) a run counts as a kill only when both attackers die; reports also count
+attackers killed (`kills` of `enemies` per run), and per-target columns read the first attacker.
 
 Suite baselines with every station radar cut to its reach:
 
-| Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` | L3 `T1`        |
-| ------------- | ------------ | ------------- | ------------- | ------------------- | -------------- |
-| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 13/16, 37.8 s | 7/8, 104.3 s        | 10/16, 131.7 s |
-| `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          | not played     |
-| `idle`        | 0/8          | not played    | 0/16          | not played          | 0/16           |
+| Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` | L3 `T1`        | L4 `T2`       |
+| ------------- | ------------ | ------------- | ------------- | ------------------- | -------------- | ------------- |
+| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 13/16, 37.8 s | 6/8, 100.7 s        | 12/16, 136.7 s | 2/16, 237.3 s |
+| `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          | not played     | not played    |
+| `idle`        | 0/8          | not played    | 0/16          | not played          | 0/16           | 0/16          |
 
-Reports: `training-archive/2026-10-09/suite/reference-210935/` and `idle-211042/` (L3),
+Reports: `training-archive/2026-10-10/suite/reference-015256/` and `idle-015811/` (L4),
+`training-archive/2026-10-09/suite/idle-211042/` (L3),
 `training-archive/2026-10-02/suite/recommended-081501/` (L0) and
 `recommended-083320/` (L1). The recommended crew fails both levels it played (L0 accept needs a
 median ≤ 120 s, L1 needs 75%).
