@@ -93,15 +93,19 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      id-token: write # Tailscale workload identity federation
     environment:
       name: ${{ needs.build-push.outputs.release }}
       url: https://${{ needs.build-push.outputs.host }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: tailscale/github-action@v3
+      - uses: tailscale/github-action@v4
         with:
-          authkey: ${{ secrets.TS_AUTH_KEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:CI
+          ping: 100.67.69.53
 
       - name: Install kubectl
         run: |
@@ -184,10 +188,14 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      id-token: write # Tailscale workload identity federation
     steps:
-      - uses: tailscale/github-action@v3
+      - uses: tailscale/github-action@v4
         with:
-          authkey: ${{ secrets.TS_AUTH_KEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:CI
+          ping: 100.67.69.53
 
       - name: Install kubectl
         run: |
