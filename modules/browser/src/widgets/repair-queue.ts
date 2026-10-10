@@ -12,7 +12,13 @@ import {
 import { FolderApi, Pane } from 'tweakpane';
 import { Model, addBarBlade, addBareBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readNumberProp, readProp } from '../property-wrappers';
-import { getRepairProtocolHotkey, getRepairProtocolModeHotkey, isRepairSlotVisible } from './repair-queue-logic';
+import {
+    getRepairProtocolHotkey,
+    getRepairProtocolModeHotkey,
+    isRepairSlotVisible,
+    repairSlotExpansion,
+    wantsRepairSlotOpen,
+} from './repair-queue-logic';
 
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
@@ -256,6 +262,19 @@ function drawSlot(
         // a display station has no room for two rows that are blank until something goes wrong
         hideWhile(energyBlade.element, energyStarved, (starved) => !starved, cleanup);
         hideWhile(noticeBlade.element, refusalReason, (reason) => !reason, cleanup);
+        // collapsed unless running/cancelling or carrying a notice (plan card M3.11)
+        let wasOpen: boolean | undefined;
+        const applyExpansion = () => {
+            const open = wantsRepairSlotOpen(priority.getValue(), refusalReason.getValue());
+            const expanded = repairSlotExpansion(wasOpen, open);
+            wasOpen = open;
+            if (expanded !== undefined) {
+                row.expanded = expanded;
+            }
+        };
+        cleanup(priority.onChange(applyExpansion));
+        cleanup(refusalReason.onChange(applyExpansion));
+        applyExpansion();
     }
     if (interactive) {
         addButton(

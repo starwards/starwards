@@ -1,4 +1,4 @@
-import { RepairProtocolStats, ShipState, hasProtocolEquipment, repairProtocols } from '@starwards/core';
+import { RepairPriority, RepairProtocolStats, ShipState, hasProtocolEquipment, repairProtocols } from '@starwards/core';
 
 /**
  * Whether a catalog protocol's row should render at all in the repair-queue widget. Equipment fit
@@ -89,4 +89,22 @@ export function getRepairProtocolModeHotkey(
     }
     const raise = getRepairProtocolHotkey(protocolId, catalog);
     return raise ? raise.replace('alt+', 'ctrl+alt+') : undefined;
+}
+
+/**
+ * Whether a repair-queue folder should be open (plan card M3.11): the active protocol (RUNNING or
+ * CANCELLING), or a slot with a refusal notice — a refused raise or a force-stop must still say why
+ * (issues #2136, #2247), and that text lives inside the folder. Everything else starts collapsed.
+ */
+export function wantsRepairSlotOpen(priority: RepairPriority | undefined, refusalReason: string | undefined): boolean {
+    return priority === RepairPriority.RUNNING || priority === RepairPriority.CANCELLING || !!refusalReason;
+}
+
+/**
+ * Expansion is re-driven only when `wantsRepairSlotOpen` *flips*; otherwise returns `undefined`
+ * (leave as is), so a folder the user toggled by hand stays that way until its slot next starts,
+ * stops or gets/clears a notice. `wasOpen` is `undefined` on first draw.
+ */
+export function repairSlotExpansion(wasOpen: boolean | undefined, open: boolean): boolean | undefined {
+    return wasOpen === open ? undefined : open;
 }
