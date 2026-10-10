@@ -86,83 +86,129 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
     // ship still on record. Cleared once the server confirms the pair (entry.shipId catches up).
     const pendingShipByStation = new Map<string, string>();
 
+    type RowElements = {
+        row: JQuery<HTMLElement>;
+        label: JQuery<HTMLElement>;
+        shipSelect: JQuery<HTMLElement>;
+        typeSelect: JQuery<HTMLElement>;
+    };
+    // Rows are updated in place, keyed by station id — never rebuilt — so a dropdown the GM has
+    // focused/open survives other stations joining, leaving or being assigned (issue #2336).
+    const rows = new Map<string, RowElements>();
+
+    /** Replaces a select's options only when they actually changed, then syncs its value. */
+    function syncOptions(select: JQuery<HTMLElement>, options: [value: string, text: string][], selected: string) {
+        const current = select
+            .children('option')
+            .toArray()
+            .map((o) => `${o.value}\u0000${o.textContent ?? ''}`)
+            .join('\u0001');
+        const wanted = options.map(([value, text]) => `${value}\u0000${text}`).join('\u0001');
+        if (current !== wanted) {
+            select.empty();
+            for (const [value, text] of options) {
+                select.append($('<option />').attr('value', value).text(text));
+            }
+        }
+        if (select.val() !== selected) {
+            select.val(selected);
+        }
+    }
+
+    function createRow(stationId: string): RowElements {
+        const row = $('<div />')
+            .attr('data-id', `Station Roster Row ${stationId}`)
+            .css({ display: 'flex', alignItems: 'center', gap: '0.4em', padding: '0.15em 0' });
+        const label = $('<span />');
+        const shipSelect = $('<select />').attr('data-id', 'Station Roster Ship');
+        const typeSelect = $('<select />').attr('data-id', 'Station Roster Type');
+
+        shipSelect.on('change', () => {
+            const entry = adminDriver.state.stations.get(stationId);
+            if (!entry) {
+                return;
+            }
+            const newShipId = String(shipSelect.val() ?? '');
+            if (!newShipId) {
+                pendingShipByStation.delete(stationId);
+                adminDriver.assignStation({ stationId, shipId: '', stationType: '' });
+                return;
+            }
+            pendingShipByStation.set(stationId, newShipId);
+            if (entry.stationType) {
+                // moving an already-typed station (self-assigned, or a prior GM pick) to a
+                // new ship: carry its type over rather than making the GM re-pick it. The
+                // server is the final authority (`GameManager.isValidStationSlot`), so a
+                // type the new ship's manifest doesn't support is just a safe no-op.
+                adminDriver.assignStation({ stationId, shipId: newShipId, stationType: entry.stationType });
+            } else {
+                // no type yet: widen the type dropdown for the new ship and wait for a pick
+                render();
+            }
+        });
+        typeSelect.on('change', () => {
+            const entry = adminDriver.state.stations.get(stationId);
+            const selectedShipId = pendingShipByStation.get(stationId) ?? entry?.shipId ?? '';
+            const stationType = String(typeSelect.val() ?? '');
+            if (selectedShipId && stationType) {
+                adminDriver.assignStation({ stationId, shipId: selectedShipId, stationType });
+            }
+        });
+
+        row.append(label, shipSelect, typeSelect);
+        return { row, label, shipSelect, typeSelect };
+    }
+
     function render() {
-        list.empty();
         const playerShipIds = [...adminDriver.state.playerShipIds];
+        const seen = new Set<string>();
+        let previous: JQuery<HTMLElement> | null = null;
         for (const entry of adminDriver.state.stations.values()) {
+            seen.add(entry.id);
             if (pendingShipByStation.get(entry.id) === entry.shipId) {
                 pendingShipByStation.delete(entry.id);
             }
             const selectedShipId = pendingShipByStation.get(entry.id) ?? entry.shipId;
             const selectedType = selectedShipId === entry.shipId ? entry.stationType : '';
 
-            const row = $('<div />')
-                .attr('data-id', `Station Roster Row ${entry.id}`)
-                .css({ display: 'flex', alignItems: 'center', gap: '0.4em', padding: '0.15em 0' });
-            row.append($('<span />').text(`${entry.connected ? '●' : '○'} ${entry.id}`));
+            let elements = rows.get(entry.id);
+            if (!elements) {
+                elements = createRow(entry.id);
+                rows.set(entry.id, elements);
+                // only new rows are placed; existing rows are never moved (moving blurs a focused select)
+                if (previous) {
+                    elements.row.insertAfter(previous);
+                } else {
+                    list.prepend(elements.row);
+                }
+            }
+            const { row, label, shipSelect, typeSelect } = elements;
+            previous = row;
 
-            const shipSelect = $('<select />').attr('data-id', 'Station Roster Ship');
-            shipSelect.append($('<option value="">unassigned</option>'));
+            label.text(`${entry.connected ? '●' : '○'} ${entry.id}`);
+
             const shipOptions =
                 selectedShipId && !playerShipIds.includes(selectedShipId)
                     ? [...playerShipIds, selectedShipId]
                     : playerShipIds;
-            for (const shipId of shipOptions) {
-                shipSelect.append(
-                    $('<option />')
-                        .attr('value', shipId)
-                        .prop('selected', shipId === selectedShipId)
-                        .text(shipId),
-                );
-            }
+            syncOptions(
+                shipSelect,
+                [['', 'unassigned'], ...shipOptions.map((id): [string, string] => [id, id])],
+                selectedShipId,
+            );
 
-            const typeSelect = $('<select />').attr('data-id', 'Station Roster Type');
             const enabledTypes = manifests.getEnabledTypes(selectedShipId) ?? [];
             const typeOptions =
                 selectedType && !enabledTypes.includes(selectedType) ? [...enabledTypes, selectedType] : enabledTypes;
             typeSelect.prop('disabled', !selectedShipId);
-            typeSelect.append($('<option value="">-</option>'));
-            for (const type of typeOptions) {
-                typeSelect.append(
-                    $('<option />')
-                        .attr('value', type)
-                        .prop('selected', type === selectedType)
-                        .text(type),
-                );
+            syncOptions(typeSelect, [['', '-'], ...typeOptions.map((t): [string, string] => [t, t])], selectedType);
+        }
+        for (const [stationId, { row }] of [...rows]) {
+            if (!seen.has(stationId)) {
+                row.remove();
+                rows.delete(stationId);
+                pendingShipByStation.delete(stationId);
             }
-
-            shipSelect.on('change', () => {
-                const newShipId = String(shipSelect.val() ?? '');
-                if (!newShipId) {
-                    pendingShipByStation.delete(entry.id);
-                    adminDriver.assignStation({ stationId: entry.id, shipId: '', stationType: '' });
-                    return;
-                }
-                pendingShipByStation.set(entry.id, newShipId);
-                if (entry.stationType) {
-                    // moving an already-typed station (self-assigned, or a prior GM pick) to a
-                    // new ship: carry its type over rather than making the GM re-pick it. The
-                    // server is the final authority (`GameManager.isValidStationSlot`), so a
-                    // type the new ship's manifest doesn't support is just a safe no-op.
-                    adminDriver.assignStation({
-                        stationId: entry.id,
-                        shipId: newShipId,
-                        stationType: entry.stationType,
-                    });
-                } else {
-                    // no type yet: widen the type dropdown for the new ship and wait for a pick
-                    render();
-                }
-            });
-            typeSelect.on('change', () => {
-                const stationType = String(typeSelect.val() ?? '');
-                if (selectedShipId && stationType) {
-                    adminDriver.assignStation({ stationId: entry.id, shipId: selectedShipId, stationType });
-                }
-            });
-
-            row.append(shipSelect, typeSelect);
-            list.append(row);
         }
     }
     render();
