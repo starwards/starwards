@@ -1,6 +1,6 @@
-import { RepairProtocolMode, RepairProtocolStats, demoShip, makeShipState } from '@starwards/core';
+import { RepairPriority, RepairProtocolMode, RepairProtocolStats, demoShip, makeShipState } from '@starwards/core';
 
-import { isRepairSlotVisible } from '../src/widgets/repair-queue-logic';
+import { isRepairSlotVisible, repairSlotExpansion, wantsRepairSlotOpen } from '../src/widgets/repair-queue-logic';
 
 const chainGunProtocol: RepairProtocolStats = {
     name: 'Needs a chain gun',
@@ -67,5 +67,34 @@ describe('isRepairSlotVisible (issue #2247 review: hide protocols the ship can n
         const state = makeShipState('s', demoShip);
 
         expect(isRepairSlotVisible(state, 'not-a-real-protocol', catalog)).toBe(true);
+    });
+});
+
+describe('repair-queue folder expansion (plan card M3.11)', () => {
+    it('opens only RUNNING / CANCELLING slots, or a slot carrying a notice', () => {
+        expect(wantsRepairSlotOpen(RepairPriority.RUNNING, '')).toBe(true);
+        expect(wantsRepairSlotOpen(RepairPriority.CANCELLING, '')).toBe(true);
+        for (const p of [
+            RepairPriority.OFF,
+            RepairPriority.LOW,
+            RepairPriority.MEDIUM,
+            RepairPriority.HIGH,
+            undefined,
+        ]) {
+            expect(wantsRepairSlotOpen(p, '')).toBe(false);
+        }
+        expect(wantsRepairSlotOpen(RepairPriority.OFF, 'not docked')).toBe(true);
+    });
+    it('first draw: collapsed unless wanted open', () => {
+        expect(repairSlotExpansion(undefined, false)).toBe(false);
+        expect(repairSlotExpansion(undefined, true)).toBe(true);
+    });
+    it('expands on becoming active, collapses on finishing', () => {
+        expect(repairSlotExpansion(false, true)).toBe(true);
+        expect(repairSlotExpansion(true, false)).toBe(false);
+    });
+    it('leaves a manual toggle alone while the rule input is unchanged', () => {
+        expect(repairSlotExpansion(false, false)).toBeUndefined();
+        expect(repairSlotExpansion(true, true)).toBeUndefined();
     });
 });
