@@ -37,8 +37,12 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
     );
     const statusBlade = addTextBlade(pane, restockingProp, { label: 'Restock' }, panelCleanup.add);
     statusBlade.element.classList.add('status', 'tp-rotv', 'sw-mode');
-    const applyRestockingTheme = () =>
-        (statusBlade.element.dataset.status = isRestockingAmmo(shipDriver.state) ? 'OK' : '');
+    // shown only while restock is active: a resting label ('IDLE') read as a fault to players (#2340)
+    const applyRestockingTheme = () => {
+        const restocking = isRestockingAmmo(shipDriver.state);
+        statusBlade.element.dataset.status = restocking ? 'OK' : '';
+        statusBlade.hidden = !restocking;
+    };
     panelCleanup.add(restockingProp.onChange(applyRestockingTheme));
     applyRestockingTheme();
 
