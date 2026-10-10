@@ -768,7 +768,9 @@ export class SpaceManager implements Updateable {
                 !object.destroyed
             ) {
                 let positionChange: XY | null = null;
-                if (Projectile.isInstance(subject)) {
+                if (this.isOwnFire(subject, object)) {
+                    // a ship's own projectiles and blasts never damage or push it (issue #2345)
+                } else if (Projectile.isInstance(subject)) {
                     // A proximity fuze reacts to solid contacts, not to blast clouds. Without this
                     // guard, a sustained cannonade leaves a trail of still-expanding Explosion
                     // bodies along the firing line; a later shell physically collides with that
@@ -808,6 +810,13 @@ export class SpaceManager implements Updateable {
             }
         }
     }
+    private isOwnFire(subject: SpaceObject, object: SpaceObject) {
+        return (
+            (Projectile.isInstance(subject) && subject.shipId !== '' && subject.shipId === object.id) ||
+            (Explosion.isInstance(object) && object.shipId !== '' && object.shipId === subject.id)
+        );
+    }
+
     /**
      * An explosion is a region of space, not a body — it has no momentum to trade. Colliding
      * with it affects the object it strikes (see calcSolidCollision's Explosion branch); the
