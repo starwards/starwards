@@ -104,7 +104,6 @@ const hulls: HullExpectation[] = [
             ClusterMissile: 4,
             FragMissile: 8,
             ElecMissile: 6,
-            TandemMissile: 4,
         },
         targeting: { maxRange: 40_000, shortRange: 20_000 },
         radarRanges: [70_000, 50_000],
