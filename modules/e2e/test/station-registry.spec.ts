@@ -158,6 +158,85 @@ test.describe('GM station assignment', () => {
         await stationContext.close();
     });
 
+    // Issue #2336: the GM screen is already open when a new station joins — the roster must
+    // show it and accept a ship + type assignment live, without reloading the GM screen.
+    test('a station joining after the GM screen opened appears live and accepts assignment', async ({
+        page,
+        browser,
+    }) => {
+        test.slow();
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        const roster = page.locator('[data-id="Station Roster"]');
+        await expect(roster).toBeVisible({ timeout: 10000 });
+
+        const stationContext = await browser.newContext();
+        const stationPage = await stationContext.newPage();
+        setupPageErrorHandlers(stationPage);
+        await navigateToScreen(stationPage, '/station.html', { baseURL: gameDriver.baseURL });
+        const waitingId = stationPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]');
+        await expect(waitingId).toBeVisible({ timeout: 10000 });
+        const stationId = (await waitingId.textContent())?.trim();
+
+        const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
+        await expect(row).toBeVisible({ timeout: 10000 });
+        await expect(row).toContainText('●');
+
+        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
+        await expect(row.locator('[data-id="Station Roster Type"] option[value="helms"]')).toHaveCount(1, {
+            timeout: 10000,
+        });
+        await row.locator('[data-id="Station Roster Type"]').selectOption('helms');
+
+        await expect
+            .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
+            .toBe('GVTS');
+        await expect(row.locator('[data-id="Station Roster Ship"]')).toHaveValue('GVTS', { timeout: 5000 });
+        await expect(row.locator('[data-id="Station Roster Type"]')).toHaveValue('helms', { timeout: 5000 });
+        await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 25000 });
+
+        await stationContext.close();
+    });
+
+    // Issue #2336: roster rows update in place — a dropdown the GM is using must not be torn
+    // down and rebuilt (closing it, dropping the pick) when another station joins.
+    test('a focused roster dropdown survives another station joining', async ({ page, browser }) => {
+        test.slow();
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        const roster = page.locator('[data-id="Station Roster"]');
+        await expect(roster).toBeVisible({ timeout: 10000 });
+
+        const stationContext = await browser.newContext();
+        const stationPage = await stationContext.newPage();
+        setupPageErrorHandlers(stationPage);
+        await navigateToScreen(stationPage, '/station.html', { baseURL: gameDriver.baseURL });
+        const waitingId = stationPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]');
+        await expect(waitingId).toBeVisible({ timeout: 10000 });
+        const stationId = (await waitingId.textContent())?.trim();
+
+        const shipSelect = roster.locator(
+            `[data-id="Station Roster Row ${stationId}"] [data-id="Station Roster Ship"]`,
+        );
+        await expect(shipSelect).toBeVisible({ timeout: 10000 });
+        await shipSelect.selectOption('GVTS'); // no type yet: a pending, client-only pick
+        const handle = await shipSelect.elementHandle();
+        await shipSelect.focus();
+
+        const otherContext = await browser.newContext();
+        const otherPage = await otherContext.newPage();
+        setupPageErrorHandlers(otherPage);
+        await navigateToScreen(otherPage, '/station.html', { baseURL: gameDriver.baseURL });
+        const otherWaitingId = otherPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]');
+        await expect(otherWaitingId).toBeVisible({ timeout: 10000 });
+        const otherId = (await otherWaitingId.textContent())?.trim();
+        await expect(roster.locator(`[data-id="Station Roster Row ${otherId}"]`)).toBeVisible({ timeout: 10000 });
+
+        expect(await handle!.evaluate((el) => el.isConnected && el === document.activeElement)).toBe(true);
+        await expect(shipSelect).toHaveValue('GVTS');
+
+        await otherContext.close();
+        await stationContext.close();
+    });
+
     // Issue #2242: a stopped game must fall back to the waiting screen instead of keeping a
     // (now player-less) assigned screen up. `GameManager`'s reconciliation clears the specific
     // `shipId` the instant `playerShipIds` empties, but leaves `stationType` set — that's the
