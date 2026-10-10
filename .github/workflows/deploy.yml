@@ -104,7 +104,7 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
-          tags: tag:CI
+          tags: tag:ci
           ping: 100.67.69.53
 
       - name: Install kubectl
@@ -195,7 +195,7 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
-          tags: tag:CI
+          tags: tag:ci
           ping: 100.67.69.53
 
       - name: Install kubectl
