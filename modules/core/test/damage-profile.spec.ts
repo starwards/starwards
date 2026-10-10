@@ -52,7 +52,7 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         expect(scrape(ammoDesigns.FragShell.explosion.damageFactor, 'Frag')).to.be.greaterThan(
             scrape(ammoDesigns.HiExpShell.explosion.damageFactor, 'HiExp'),
         );
-        expect(scrape(ammoDesigns.ClusterMissile.explosion.damageFactor, 'Frag')).to.be.greaterThan(
+        expect(scrape(ammoDesigns.ClusterFragMissile.explosion.damageFactor, 'Frag')).to.be.greaterThan(
             scrape(ammoDesigns.HiExpMissile.explosion.damageFactor, 'HiExp'),
         );
     });
@@ -68,7 +68,7 @@ describe('damage profiles and projectile designs (design invariants)', () => {
     });
 
     it('shrapnel clouds out-size any blast wave', () => {
-        const fragBlasts = [ammoDesigns.FragMissile.explosion, ammoDesigns.ClusterMissile.warheads.Frag.explosion];
+        const fragBlasts = [ammoDesigns.FragMissile.explosion, ammoDesigns.ClusterFragMissile.explosion];
         for (const frag of fragBlasts) {
             expect(blastSize(frag)).to.be.greaterThan(blastSize(ammoDesigns.HiExpMissile.explosion));
         }
@@ -76,11 +76,11 @@ describe('damage profiles and projectile designs (design invariants)', () => {
 
     it('all frag warheads share the same intensity — they differ only in cloud size and linger time', () => {
         const shell = ammoDesigns.FragShell.explosion;
-        const clusterFrag = ammoDesigns.ClusterMissile.warheads.Frag.explosion;
+        const clusterFrag = ammoDesigns.ClusterFragMissile.explosion;
         const dedicated = ammoDesigns.FragMissile.explosion;
         expect(clusterFrag.damageFactor).to.equal(shell.damageFactor);
         expect(dedicated.damageFactor).to.equal(shell.damageFactor);
-        // the dedicated missile's edge over the cluster mode is a bigger cloud that lingers longer
+        // the dedicated missile's edge over the cluster Frag type is a bigger cloud that lingers longer
         expect(blastSize(dedicated)).to.be.greaterThan(blastSize(clusterFrag));
         expect(dedicated.secondsToLive).to.be.greaterThan(clusterFrag.secondsToLive);
     });
@@ -102,19 +102,13 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         expect(new Explosion().damageType).to.equal('Collision');
     });
 
-    describe('cluster missile warhead modes', () => {
-        it('default damageType matches the default warhead mode', () => {
-            const p = new Projectile('ClusterMissile');
-            expect(p.damageType).to.equal(p.design.warheads![p.warhead].damageType);
-        });
-
-        it('Frag mode: big lingering shrapnel cloud, second only to the dedicated Frag missile', () => {
-            const p = new Projectile('ClusterMissile');
-            p.warhead = 'Frag';
+    describe('cluster missile ammo types', () => {
+        it('ClusterFragMissile: big lingering shrapnel cloud, second only to the dedicated Frag missile', () => {
+            const p = new Projectile('ClusterFragMissile');
             expect(p.damageType).to.equal('Frag');
             const explosion = p.makeExplosion();
             for (const at of ammoTypes) {
-                if (at === 'ClusterMissile' || at === 'FragMissile') continue;
+                if (at === 'ClusterFragMissile' || at === 'FragMissile') continue;
                 const design = ammoDesigns[at];
                 if (design.delivery === 'explosion') {
                     expect(blastSize(explosion)).to.be.greaterThan(blastSize(design.explosion));
@@ -123,14 +117,13 @@ describe('damage profiles and projectile designs (design invariants)', () => {
             expect(blastSize(explosion)).to.be.lessThan(blastSize(ammoDesigns.FragMissile.explosion));
         });
 
-        it('ArmPen mode: an impact warhead sharing its per-event numbers with the ArmPen shell', () => {
-            const p = new Projectile('ClusterMissile');
-            p.warhead = 'ArmPen';
+        it('ClusterArmPenMissile: an impact warhead sharing its per-event numbers with the ArmPen shell', () => {
+            const p = new Projectile('ClusterArmPenMissile');
             expect(p.damageType).to.equal('ArmPen');
-            const clusterAP = p.warheadDesign;
+            const clusterAP = p.design;
             const shell = ammoDesigns.ArmPenShell;
             if (clusterAP.delivery !== 'impact' || shell.delivery !== 'impact') {
-                throw new Error('cluster ArmPen mode and ArmPenShell should be impact delivery');
+                throw new Error('ClusterArmPenMissile and ArmPenShell should be impact delivery');
             }
             expect(clusterAP.damage).to.equal(shell.damage);
             expect(clusterAP.damage).to.be.lessThan(
@@ -138,11 +131,9 @@ describe('damage profiles and projectile designs (design invariants)', () => {
             );
         });
 
-        it('warhead mode is ignored by single-warhead designs', () => {
-            const p = new Projectile('HiExpMissile');
-            p.warhead = 'ArmPen';
-            expect(p.damageType).to.equal('HiExp');
-            expect(p.makeExplosion().damageFactor).to.equal(ammoDesigns.HiExpMissile.explosion.damageFactor);
+        it('both cluster types fly the same carrier', () => {
+            expect(ammoDesigns.ClusterArmPenMissile.homing).to.deep.equal(ammoDesigns.ClusterFragMissile.homing);
+            expect(ammoDesigns.ClusterArmPenMissile.radius).to.equal(ammoDesigns.ClusterFragMissile.radius);
         });
     });
 });

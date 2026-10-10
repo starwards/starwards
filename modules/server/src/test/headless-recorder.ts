@@ -34,7 +34,7 @@ type Flying = { shipId: string; x: number; y: number; health: number };
  * replay keeps working. So is every system defect (`defect`, data `{ system, cause }`, cause
  * `hit`/`overheat`/`warp`), and with each frame each player ship's previous-tick energy flow
  * (`energy`, data `{ demand, granted }`). Every projectile is written once as it appears (`shot`, objectId the
- * projectile, data `{ shipId, ammo, warhead, targetId, x, y, vx, vy, ttl }`; `targetId` is the shooter's weapons
+ * projectile, data `{ shipId, ammo, targetId, x, y, vx, vy, ttl }`; `targetId` is the shooter's weapons
  * target for an unguided round) and once as it goes (`projectile_end`, data `{ reason }`: `detonate` into a blast,
  * `impact` on a hull, `shotDown`, or `expire`), and every weapon hit a ship takes (`damage`, objectId the victim, data
  * `DamageReport`). Other modules add their own kinds through {@link HeadlessRecorder.record}.
@@ -186,7 +186,6 @@ export class HeadlessRecorder {
         this.record('shot', p.id, {
             shipId: p.shipId,
             ammo: p.model,
-            warhead: p.warhead,
             targetId: p.targetId ?? shooter?.state.weaponsTarget.targetId ?? null,
             x: p.position.x,
             y: p.position.y,

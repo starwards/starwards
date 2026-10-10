@@ -15,8 +15,8 @@ import {
     SpaceObject,
     Spaceship,
     TargetedStatus,
-    ammoTypes,
     applyRadarSectors,
+    magazineStocks,
     playerScanLevel,
     sampleRadarAreaFactor,
     toPositiveDegreesDelta,
@@ -102,7 +102,7 @@ export function resetShipState(state: ShipState) {
         slot.refusalReason = '';
         slot.mode = RepairProtocolMode.Responsive;
     }
-    for (const at of ammoTypes) {
+    for (const at of magazineStocks) {
         state.magazine.setCount(at, state.magazine.getMax(at));
     }
     // Reset non-@gameField command properties that Schema.clone() does not copy.
@@ -510,7 +510,7 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected updateAmmo() {
-        for (const at of ammoTypes) {
+        for (const at of magazineStocks) {
             this.state.magazine[`count_${at}`] = Math.min(
                 this.state.magazine[`count_${at}`],
                 this.state.magazine[`max_${at}`],

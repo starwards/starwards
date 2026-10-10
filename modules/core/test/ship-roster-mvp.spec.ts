@@ -1,6 +1,6 @@
-import { ShipDesign, ShipDirectionConfig, ammoTypes, shipConfigurations } from '../src';
+import { ShipDesign, ShipDirectionConfig, magazineStocks, shipConfigurations } from '../src';
 
-type MissileCounts = Partial<Record<(typeof ammoTypes)[number], number>>;
+type MissileCounts = Partial<Record<(typeof magazineStocks)[number], number>>;
 
 type HullExpectation = {
     key: string;
@@ -341,7 +341,7 @@ describe('ship roster MVP hull configurations (issue #2042)', () => {
         expect(design.magazine.max_HiExpShell).toBe(hull.shells.HiExpShell);
         expect(design.magazine.max_ArmPenShell).toBe(hull.shells.ArmPenShell);
         expect(design.magazine.max_FragShell).toBe(hull.shells.FragShell);
-        for (const ammo of ammoTypes) {
+        for (const ammo of magazineStocks) {
             if (ammo.endsWith('Missile')) {
                 const expected = hull.missiles[ammo] ?? 0;
                 expect(design.magazine[`max_${ammo}`]).toBe(expected);

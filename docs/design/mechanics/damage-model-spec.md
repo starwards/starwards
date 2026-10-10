@@ -40,7 +40,8 @@ Every knob below lives in data files, so balance is tunable without code changes
 
 **General explanation:** every round carries one of five damage types. The type determines the
 damage profile (how systems are affected) and which row of the armor table applies. The type is
-a property of the warhead, so the ClusterMissile switches type with its selected mode.
+a property of the warhead: the cluster missile's two warheads are two ammo types
+(`ClusterFragMissile`, `ClusterArmPenMissile`).
 
 **Terms:**
 
@@ -269,8 +270,8 @@ Breaking a system takes roughly 10-20 defects (varies per system); repair is Eng
 ## 8. Ammo catalog
 
 **General explanation:** nine ammo types (three chain-gun shells, six missiles; the
-ClusterMissile is one magazine slot with two selectable warhead modes; the tube chooses the
-mode, switchable until detonation). Impact rounds carry a flat **damage**
+the cluster missile is two ammo types, `ClusterFragMissile` and `ClusterArmPenMissile`, drawing
+on one shared `ClusterMissile` magazine stock; the tube's ammo cycle visits each as its own stop). Impact rounds carry a flat **damage**
 number; explosion rounds carry a per-second `damageFactor` plus blast size/linger. Defect
 output per event follows the damage number via spillover (section 4) — there is no separate
 defect column. All damage numbers are proposed values pending playtest, and the impact
@@ -287,8 +288,8 @@ defect count).
 | HiExpMissile       | HiExp  | explosion | multi       | 50/s   | 350m x 0.35s |
 | ArmPenMissile      | ArmPen | impact    | single      | **60** | none         |
 | FragMissile        | Frag   | explosion | multi ext.  | 10/s   | 800m x 1.6s  |
-| Cluster, Frag mode | Frag   | explosion | multi ext.  | 10/s   | 750m x 1s    |
-| Cluster, AP mode   | ArmPen | impact    | **multi**   | 30     | none         |
+| ClusterFragMissile | Frag   | explosion | multi ext.  | 10/s   | 750m x 1s    |
+| ClusterArmPenMissile | ArmPen | impact  | **multi**   | 30     | none         |
 | TandemMissile      | Tandem | impact    | single      | **50** | none         |
 | ElecMissile        | Elec   | impact    | electronics | 25     | none         |
 
@@ -314,7 +315,7 @@ flight; the ArmPenShell is contact-fuzed.
 | HiExpMissile   | 600       | 720 deg/s | 78s         | proximity                                |
 | ArmPenMissile  | 960       | 504 deg/s | 42s         | **contact**                              |
 | FragMissile    | 600       | 720 deg/s | 78s         | proximity                                |
-| ClusterMissile | 600       | 720 deg/s | 78s         | by mode: Frag proximity / AP **contact** |
+| ClusterFragMissile / ClusterArmPenMissile | 600 | 720 deg/s | 78s | Frag proximity / ArmPen **contact** |
 | TandemMissile  | 420       | 936 deg/s | 60s         | **contact**                              |
 | ElecMissile    | 780       | 720 deg/s | 96s         | **contact**                              |
 

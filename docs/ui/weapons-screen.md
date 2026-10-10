@@ -42,7 +42,6 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 - **Widget**: `drawTubesStatus()` - pane `Tubes`, one sub-header per tube (`T0 · STBD`: index and the direction the tube is fitted to)
 - **Per Tube Display**:
   - `Loaded` / `Loading`: the loaded projectile, or the one being loaded while empty (upper-case mode text, e.g. `HI-EXP MSL`); a `Next` row appears only while the selected ammo differs from it
-  - `Warhead`: cluster warhead mode, only on tubes that can load cluster munitions
   - segmented loading counter (ten cells, solid fill, no number)
   - annunciators `READY` (a projectile is loaded), `SAFE` (safety locked; lit amber — toggling it stays possible on the GM screen), `AUTO` (auto load)
 - **Features**:

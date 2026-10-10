@@ -1,4 +1,4 @@
-import { AmmoType, ammoTypes } from '../space/projectile';
+import { MagazineStock, magazineStocks } from '../space/projectile';
 
 import { IterationData } from '../updateable';
 import { Magazine } from './magazine';
@@ -18,7 +18,7 @@ import { ShipState } from './ship-state';
  * ships restock alike, per the issue's "do not special-case isPlayerShip".
  */
 export class AmmoManager {
-    private readonly progress = new Map<AmmoType, number>();
+    private readonly progress = new Map<MagazineStock, number>();
 
     constructor(private state: ShipState) {}
 
@@ -27,12 +27,12 @@ export class AmmoManager {
             return;
         }
         const magazine = this.state.magazine;
-        for (const at of ammoTypes) {
+        for (const at of magazineStocks) {
             this.accrue(magazine, at, deltaSeconds);
         }
     }
 
-    private accrue(magazine: Magazine, at: AmmoType, deltaSeconds: number) {
+    private accrue(magazine: Magazine, at: MagazineStock, deltaSeconds: number) {
         const max = magazine.getMax(at);
         const count = magazine.getCount(at);
         if (count >= max) {
@@ -54,5 +54,7 @@ export class AmmoManager {
  * can never drift from the server's actual accrual condition.
  */
 export function isRestockingAmmo(state: ShipState): boolean {
-    return state.docking.isDocked && ammoTypes.some((at) => state.magazine.getCount(at) < state.magazine.getMax(at));
+    return (
+        state.docking.isDocked && magazineStocks.some((at) => state.magazine.getCount(at) < state.magazine.getMax(at))
+    );
 }

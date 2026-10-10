@@ -1,7 +1,6 @@
-import { ClusterWarheadMode, ShipDriver, clusterWarheadModes, getDirectionConfigFromAngle } from '@starwards/core';
+import { ShipDriver, getDirectionConfigFromAngle } from '@starwards/core';
 import {
     addAnnunciatorBlade,
-    addListBlade,
     addSegmentedBarBlade,
     addSubheader,
     createWidgetPane,
@@ -35,18 +34,6 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
             panelCleanup.add,
         );
         addMountAmmoRows(tubeFolder, shipDriver, `/tubes/${tube.index}`, panelCleanup);
-        // cluster munitions carry two selectable warheads; tubes that cannot load them have no mode to pick
-        if (tube.design.isAmmoEnabled('ClusterMissile')) {
-            addListBlade(
-                tubeFolder,
-                readWriteProp<ClusterWarheadMode>(shipDriver, `/tubes/${tube.index}/clusterWarhead`),
-                {
-                    label: 'Warhead',
-                    options: clusterWarheadModes.map((mode) => ({ value: mode, text: mode })),
-                },
-                panelCleanup.add,
-            ).element.classList.add('sw-mode');
-        }
         addSegmentedBarBlade(tubeFolder, readNumberProp(shipDriver, `/tubes/${tube.index}/loading`), panelCleanup.add);
         const loadedProp = readProp<string>(shipDriver, `/tubes/${tube.index}/loadedProjectile`);
         addAnnunciatorBlade(

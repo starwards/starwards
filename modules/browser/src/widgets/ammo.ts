@@ -1,4 +1,4 @@
-import { ShipDriver, ammoTypes, isRestockingAmmo } from '@starwards/core';
+import { ShipDriver, isRestockingAmmo, magazineStocks } from '@starwards/core';
 import { addInlineBarBlade, addSubheader, addTextBlade, applyThresholdTheme, createWidgetPane } from '../panel';
 import { aggregate, readNumberProp, readProp } from '../property-wrappers';
 
@@ -30,8 +30,8 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
     // `dynamicDuration`.
     const dockingModeProp = readProp<number>(shipDriver, '/docking/mode');
     const magazineCapacityProp = readProp<number>(shipDriver, '/magazine/capacity');
-    const countProps = ammoTypes.map((at) => readProp<number>(shipDriver, `/magazine/count_${at}`));
-    const maxProps = ammoTypes.map((at) => readProp<number>(shipDriver, `/magazine/design/max_${at}`));
+    const countProps = magazineStocks.map((at) => readProp<number>(shipDriver, `/magazine/count_${at}`));
+    const maxProps = magazineStocks.map((at) => readProp<number>(shipDriver, `/magazine/design/max_${at}`));
     const restockingProp = aggregate([dockingModeProp, magazineCapacityProp, ...countProps, ...maxProps], () =>
         isRestockingAmmo(shipDriver.state) ? 'RESTOCKING' : 'IDLE',
     );

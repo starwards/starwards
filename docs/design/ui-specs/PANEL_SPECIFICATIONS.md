@@ -79,7 +79,6 @@ Interactive UI control panels using Tweakpane library.
 **Per-Tube Fields:**
 | Field         | Type       | Editable | Description              |
 | ------------- | ---------- | -------- | ------------------------ |
-| `Warhead`     | List       | ✅        | Cluster warhead mode (cluster-capable tubes only) |
 | loading       | Segmented bar | ❌     | Loading progress         |
 | `Ready`       | Annunciator | ❌       | Projectile loaded        |
 | `Safe`        | Annunciator | ✅       | Safety lock (caution tone) |

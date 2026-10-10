@@ -1,4 +1,11 @@
-import { JobStatus, RepairPriority, StationWidget, System, ammoTypes, helmsRadarReach } from '@starwards/core/internal';
+import {
+    JobStatus,
+    RepairPriority,
+    StationWidget,
+    System,
+    helmsRadarReach,
+    magazineStocks,
+} from '@starwards/core/internal';
 
 import { StationSession } from './sandbox/session';
 import { describeContact } from './contacts';
@@ -188,7 +195,7 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             return { fitted: false };
         }
         const counts: Record<string, { count: number; max: number }> = {};
-        for (const ammo of ammoTypes) {
+        for (const ammo of magazineStocks) {
             counts[ammo] = {
                 count: (magazine as unknown as Record<string, number>)[`count_${ammo}`],
                 max: (magazine.design as unknown as Record<string, number>)[`max_${ammo}`],

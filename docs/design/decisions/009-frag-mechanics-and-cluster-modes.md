@@ -4,6 +4,9 @@
 **Status:** Accepted. Item 4's warhead numbers superseded by
 [010](010-blast-size-and-surface-factors.md): all frag warheads share `damageFactor 10`, blast
 size is encoded in `expansionSpeed × secondsToLive` (not `blastFactor`, which is knockback only).
+Item 4's mechanism (per-tube `clusterWarhead`, `Projectile.warhead`) superseded by issue #2333:
+the two modes are now two ammo types (`ClusterFragMissile`, `ClusterArmPenMissile`) sharing the
+`ClusterMissile` magazine stock.
 
 ## Context
 

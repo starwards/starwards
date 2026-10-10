@@ -30,19 +30,19 @@ Every checked invariant held at every checked application — see "Checked, per 
 |---|---|---|---|---|---|---|---|---|---|---|
 | composite | ArmPenShell | ArmPen | Engages | 2 | 0 | 60.00 | 2 | — | — | — |
 | composite | ArmPenMissile | ArmPen | Engages | 2 | 0 | 100.00 | 1 | — | 1 / 90.00 | — |
-| composite | ClusterMissile:ArmPen | ArmPen | Engages | 2 | 0 | 60.00 | 2 | — | — | — |
+| composite | ClusterArmPenMissile | ArmPen | Engages | 2 | 0 | 60.00 | 2 | — | — | — |
 | composite | ElecMissile | Elec | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 10 / 500.00 | — |
 | whipple | ArmPenShell | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 45.00 | — |
 | whipple | ArmPenMissile | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 90.00 | — |
-| whipple | ClusterMissile:ArmPen | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 45.00 | — |
+| whipple | ClusterArmPenMissile | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 45.00 | — |
 | whipple | ElecMissile | Elec | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 10 / 500.00 | — |
 | hardened | ArmPenShell | ArmPen | Engages | 1 | 0 | 30.00 | 4 | — | — | — |
 | hardened | ArmPenMissile | ArmPen | Engages | 1 | 0 | 60.00 | 2 | — | — | — |
-| hardened | ClusterMissile:ArmPen | ArmPen | Engages | 1 | 0 | 30.00 | 4 | — | — | — |
+| hardened | ClusterArmPenMissile | ArmPen | Engages | 1 | 0 | 30.00 | 4 | — | — | — |
 | hardened | ElecMissile | Elec | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 10 / 500.00 | — |
 | faraday | ArmPenShell | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 45.00 | — |
 | faraday | ArmPenMissile | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 90.00 | — |
-| faraday | ClusterMissile:ArmPen | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 45.00 | — |
+| faraday | ClusterArmPenMissile | ArmPen | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | — | 1 / 45.00 | — |
 | faraday | ElecMissile | Elec | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | — | — | — |
 
 ## Explosion ammo (one real per-plate detonation event, `damageFactor` — not a full per-shot total across every plate a real blast reaches)
@@ -53,19 +53,19 @@ Every checked invariant held at every checked application — see "Checked, per 
 | composite | FragShell | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | composite | HiExpMissile | HiExp | Engages | 1 | 0 | 50.00 | 2 | 5 / 3.13 | — | — |
 | composite | FragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
-| composite | ClusterMissile:Frag | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
+| composite | ClusterFragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | whipple | HiExpShell | HiExp | Engages | 0.25 | 0 | 5.00 | 20 | 5 / 1.25 | — | — |
 | whipple | FragShell | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | whipple | HiExpMissile | HiExp | Engages | 0.25 | 0 | 12.50 | 8 | 5 / 3.13 | — | — |
 | whipple | FragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
-| whipple | ClusterMissile:Frag | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
+| whipple | ClusterFragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | hardened | HiExpShell | HiExp | Engages | 0.5 | 0 | 10.00 | 10 | 5 / 1.25 | — | — |
 | hardened | FragShell | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | hardened | HiExpMissile | HiExp | Engages | 0.5 | 0 | 25.00 | 4 | 5 / 3.13 | — | — |
 | hardened | FragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
-| hardened | ClusterMissile:Frag | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
+| hardened | ClusterFragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | faraday | HiExpShell | HiExp | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | 5 / 1.25 | 4 / 80.00 | — |
 | faraday | FragShell | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
 | faraday | HiExpMissile | HiExp | Transparent | 0 | 1 | 0.00 | n/a (no erosion) | 5 / 3.13 | 4 / 200.00 | — |
 | faraday | FragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
-| faraday | ClusterMissile:Frag | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |
+| faraday | ClusterFragMissile | Frag | Blocked | 0 | 0 | 0.00 | n/a (no erosion) | 5 / 5.00 | — | — |

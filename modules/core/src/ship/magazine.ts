@@ -1,13 +1,13 @@
+import { AmmoType, MagazineStock, magazineStock } from '../space/projectile';
 import { DesignState, SystemState, defectible } from './system';
 import { commandable, gameField } from '../game-field';
 
-import { AmmoType } from '../space/projectile';
 import { belowThreshold } from '../logic/formulas';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type MagazineDesign = {
-    [T in AmmoType as `max_${T}`]: number;
+    [T in MagazineStock as `max_${T}`]: number;
 } & {
     modelName?: string;
     isInternal: boolean;
@@ -103,16 +103,17 @@ export class Magazine extends SystemState {
         return belowThreshold(this.capacity, this.design.capacityBrokenThreshold);
     }
 
-    getCount(m: AmmoType): number {
-        return this[`count_${m}`];
+    // the cluster ammo types share the ClusterMissile stock (see magazineStock)
+    getCount(m: AmmoType | MagazineStock): number {
+        return this[`count_${magazineStock(m)}`];
     }
 
-    setCount(m: AmmoType, value: number): void {
-        this[`count_${m}`] = value;
+    setCount(m: AmmoType | MagazineStock, value: number): void {
+        this[`count_${magazineStock(m)}`] = value;
     }
 
-    getMax(m: AmmoType): number {
-        return this[`max_${m}`];
+    getMax(m: AmmoType | MagazineStock): number {
+        return this[`max_${magazineStock(m)}`];
     }
 
     @range((t: Magazine) => [0, t.design.max_HiExpShell])

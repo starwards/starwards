@@ -693,7 +693,7 @@ export class SpaceManager implements Updateable {
     // contact-fuzed warhead: exactly one damage event at the point of impact, no explosion object
     private resolveProjectileContactDamage(projectile: Projectile, hit: SpaceObject, deltaSeconds: number) {
         projectile.destroyed = true;
-        const warhead = projectile.warheadDesign;
+        const warhead = projectile.design;
         if (warhead.delivery !== 'impact') {
             return;
         }

@@ -147,6 +147,7 @@ export {
     getSectorName,
     ammoDesigns,
     ammoTypes,
+    magazineStocks,
     sectorSize,
     spaceCommands,
 } from './space';

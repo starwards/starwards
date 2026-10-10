@@ -1,13 +1,13 @@
-import { AmmoType, ammoDesigns, missileAmmoTypes, shellAmmoTypes } from '@starwards/core';
+import { MagazineStock, ShellAmmoType, ammoDesigns, magazineStocks, shellAmmoTypes } from '@starwards/core';
 
 /** A labelled section of the Magazine widget. */
-type AmmoGroup = { title: string; ammo: AmmoType[] };
+type AmmoGroup = { title: string; ammo: MagazineStock[] };
 
 /** The magazine capacities the grouping reads — `MagazineDesignState`'s `max_*` fields. */
-type AmmoCapacities = Record<`max_${AmmoType}`, number>;
+type AmmoCapacities = Record<`max_${MagazineStock}`, number>;
 
 /** The gun bore a design name leads with (`30mm HiExp shell`), or nothing for ammo that has none. */
-function caliber(ammo: AmmoType): string {
+function caliber(ammo: ShellAmmoType): string {
     return /^\d+mm/i.exec(ammoDesigns[ammo].name)?.[0] ?? '';
 }
 
@@ -16,9 +16,11 @@ function caliber(ammo: AmmoType): string {
  * room for. Nine flat rows read poorly at the weapons station.
  */
 export function ammoGroups(capacities: AmmoCapacities): AmmoGroup[] {
-    const carried = (ammo: AmmoType) => capacities[`max_${ammo}`] > 0;
-    const shells = shellAmmoTypes.filter(carried) as AmmoType[];
-    const missiles = missileAmmoTypes.filter(carried) as AmmoType[];
+    const carried = (ammo: MagazineStock) => capacities[`max_${ammo}`] > 0;
+    const shells = shellAmmoTypes.filter(carried);
+    const missiles = magazineStocks.filter(
+        (ammo) => !(shellAmmoTypes as readonly string[]).includes(ammo) && carried(ammo),
+    );
     return [
         { title: `Shells ${shells.length > 0 ? caliber(shells[0]) : ''}`.trim(), ammo: shells },
         { title: 'Missiles', ammo: missiles },

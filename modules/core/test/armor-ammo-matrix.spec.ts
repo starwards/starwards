@@ -9,7 +9,6 @@ import {
     ammoDesigns,
     ammoTypes,
     armorModels,
-    clusterWarheadModes,
     damageProfiles,
     demoShip,
     makeShipState,
@@ -98,7 +97,6 @@ describe('armor x ammo QA matrix (issue #2035)', () => {
         armorModelNames,
         ammoTypes,
         ammoDesigns,
-        clusterWarheadModes,
         createFixture,
     });
     const row = (armor: ArmorModelName, ammo: string) => matrix.rows.find((r) => r.armor === armor && r.ammo === ammo);

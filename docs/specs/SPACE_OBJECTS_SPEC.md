@@ -548,9 +548,6 @@ export class Projectile extends SpaceObjectBase {
     @gameField('string')
     public model: AmmoType = 'HiExpShell';
     
-    @gameField('string')
-    public warhead: ClusterWarheadMode = 'Frag';
-    
     // collisionDamage is not overridden — inherits SpaceObjectBase default (10)
     
     constructor(model?: AmmoType) {
