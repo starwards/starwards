@@ -2,6 +2,7 @@ import { Capabilities, Display, stationControls } from './controls';
 import { EngineerPolicyName, makeEngineerPolicy } from './engineer-policies';
 
 import { BrainRequest } from './request';
+import { makeReferencePolicy } from './reference-policy';
 
 const capabilities: Capabilities = {
     commands: [
@@ -77,5 +78,51 @@ describe('scripted engineers', () => {
         expect(busy['cycleRepairPriority:feedSystemOverhaul']).toBe('none');
         const low = await choices('reference-repairing', display(200, defect));
         expect(low['cycleRepairPriority:feedSystemOverhaul']).toBe('none');
+    });
+});
+
+describe('reference engineer', () => {
+    const referenceCapabilities: Capabilities = {
+        commands: [{ command: 'systemPower', systems: ['/thrusters/0'] }, { command: 'cycleRepairPriority' }],
+    };
+    const reactorDefect = { system: '/reactor', field: 'effeciencyFactor' };
+    const gunDefect = { system: '/chainGuns/0', field: 'rateOfFireFactor' };
+
+    function shown(energy: number, defects: { system: string; field: string }[], thrusterPower = 0.25): Display {
+        return {
+            panels: {
+                'full-systems-status': [{ pointer: '/thrusters/0', power: thrusterPower, coolantFactor: 0, heat: 0 }],
+                'engineering-status': { energy, maxEnergy: 1000, energyCells: 2 },
+                'repair-queue': {
+                    slots: ['feedSystemOverhaul', 'powerTrainReset'].map((protocolId) => ({
+                        protocolId,
+                        priority: 'OFF',
+                        refusalReason: '',
+                    })),
+                },
+                'damage-report': defects.map((d) => ({ ...d, value: 0.5, normal: 1 })),
+            },
+        };
+    }
+
+    async function referenceChoices(seen: Display) {
+        const controls = stationControls({ display: seen, capabilities: referenceCapabilities, burstSeconds: 2 });
+        const { answers } = await makeReferencePolicy(2).answer({} as BrainRequest, controls, seen);
+        return Object.fromEntries(Object.entries(answers).map(([id, a]) => [id, a.choice]));
+    }
+
+    it('repairs the reactor and leaves other systems to a repairing engineer', async () => {
+        const reactor = await referenceChoices(shown(800, [gunDefect, reactorDefect]));
+        expect(reactor['cycleRepairPriority:powerTrainReset']).toBe('raise');
+        expect(reactor['cycleRepairPriority:feedSystemOverhaul']).toBe('none');
+        expect((await referenceChoices(shown(800, [gunDefect])))['cycleRepairPriority:feedSystemOverhaul']).toBe(
+            'none',
+        );
+    });
+
+    it('shuts the thrusters down on a low store only while the reactor is damaged', async () => {
+        expect((await referenceChoices(shown(300, [reactorDefect])))['systemPower:/thrusters/0']).toBe('lower');
+        expect((await referenceChoices(shown(300, [])))['systemPower:/thrusters/0']).toBe('hold');
+        expect((await referenceChoices(shown(450, [reactorDefect], 0)))['systemPower:/thrusters/0']).toBe('hold');
     });
 });

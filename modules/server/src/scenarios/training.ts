@@ -12,6 +12,8 @@ import {
 
 export const TRAINING_PLAYER_ID = 'GVTS';
 export const TRAINING_TARGET_ID = 'target';
+/** The second attacker on the multi-enemy rung (T2). */
+export const TRAINING_TARGET2_ID = 'target2';
 
 /** T0 layout: GVTS at the origin, one PLAY_DEAD dragonfly-MK1 at `distance` metres on `bearing` degrees. */
 export interface T0Params {
@@ -146,3 +148,34 @@ export function createTrainingT1Map(
 }
 
 export const training_t1: GameMap = createTrainingT1Map({ distance: 5000, bearing: 0 });
+
+/** T2 layout: the T1 attacker at `distance`/`bearing`, a second one at `distance2` metres, `offset` degrees round from it. */
+export interface T2Params extends T0Params {
+    readonly distance2: number;
+    readonly offset: number;
+}
+
+/**
+ * Training rung 2: two T1 attackers at once -- dragonfly-MK1s on ATTACK orders against the GVTS from
+ * different bearings and ranges, so the crew chooses which to fight first. The GVTS starts ordered to
+ * attack the first; uncrewed, its automation reacquires the nearest hostile when that one dies.
+ */
+export function createTrainingT2Map(params: T2Params): GameMap {
+    return {
+        name: 'training_t2',
+        init: (game) => {
+            game.addPlayerSpaceship(
+                new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
+            );
+            const layout: [string, XY][] = [
+                [TRAINING_TARGET_ID, XY.byLengthAndDirection(params.distance, params.bearing)],
+                [TRAINING_TARGET2_ID, XY.byLengthAndDirection(params.distance2, params.bearing + params.offset)],
+            ];
+            for (const [id, position] of layout) {
+                game.addNpcSpaceship(new Spaceship().init(id, Vec2.make(position), 'dragonfly-MK1', Faction.Raiders));
+                game.orderAttack(id, TRAINING_PLAYER_ID);
+            }
+            game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
+        },
+    };
+}
