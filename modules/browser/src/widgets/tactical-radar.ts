@@ -101,7 +101,7 @@ export async function drawTacticalRadar(
     const asimuthCircle = azimuthCircle(
         root,
         () => trackedShip,
-        () => 6000,
+        () => p.range * 1.2,
     );
     root.addLayer(asimuthCircle);
     const shipTarget = trackTargetObject(spaceDriver, shipDriver);
