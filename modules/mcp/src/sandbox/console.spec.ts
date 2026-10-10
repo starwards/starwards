@@ -1,6 +1,6 @@
-import { Driver, StationWidget } from '@starwards/core/internal';
+import { Asteroid, Driver, Projectile, SpaceObject, StationWidget, Vec2 } from '@starwards/core/internal';
 import { NotPermittedError, StationSession } from './session';
-import { observeStation, radarContacts, shipStatus, stationCapabilities } from './console';
+import { observeStation, radarContacts, radarPriority, shipStatus, stationCapabilities } from './console';
 
 import { fetchStationsManifest } from './manifest';
 import { makeDriver } from '@starwards/server/src/test/driver';
@@ -8,6 +8,25 @@ import { maps } from '@starwards/server';
 import { widgetReaders } from '../readers';
 
 const { test_map_1 } = maps;
+
+describe('radarPriority', () => {
+    function at<T extends SpaceObject>(object: T, id: string, x: number): T {
+        object.id = id;
+        object.position = new Vec2(x, 0);
+        return object;
+    }
+
+    it('pages every ship before any shell, so a capped page never drops a far ship for near shells', () => {
+        const objects = [
+            at(new Projectile(), 'shell-near', 100),
+            at(new Asteroid(), 'far-rock', 9000),
+            at(new Projectile(), 'shell-mid', 500),
+            at(new Asteroid(), 'near-rock', 1000),
+        ];
+        const ranked = objects.sort((a, b) => radarPriority(a, b, { x: 0, y: 0 })).map((o) => o.id);
+        expect(ranked).toEqual(['near-rock', 'far-rock', 'shell-near', 'shell-mid']);
+    });
+});
 
 describe('station console', () => {
     const gameDriver = makeDriver();

@@ -1,5 +1,13 @@
 import { InvalidCommandError, NotPermittedError, StationSession } from './session';
-import { StationWidget, isRadarWidget, stationCommands, stationWidgets } from '@starwards/core/internal';
+import {
+    Projectile,
+    SpaceObject,
+    StationWidget,
+    XY,
+    isRadarWidget,
+    stationCommands,
+    stationWidgets,
+} from '@starwards/core/internal';
 import { helmsRadarRange, scanBeamStatus, widgetReaders } from '../readers';
 
 import { MultiplexedSession } from './multiplex';
@@ -48,7 +56,18 @@ export function stationCapabilities(session: StationSession) {
     };
 }
 
-/** Everything the seat's radar shows, nearest first. Throws `NotPermittedError` for a seat without a radar. */
+/**
+ * Radar paging order: every non-projectile before any projectile, each nearest first, so a capped
+ * page never loses a ship to shells in a gunfight (#2331).
+ */
+export function radarPriority(a: SpaceObject, b: SpaceObject, observer: { x: number; y: number }) {
+    const shells = Number(Projectile.isInstance(a)) - Number(Projectile.isInstance(b));
+    return (
+        shells || XY.lengthOf(XY.difference(a.position, observer)) - XY.lengthOf(XY.difference(b.position, observer))
+    );
+}
+
+/** Everything the seat's radar shows, nearest first; projectiles are paged after everything else. Throws `NotPermittedError` for a seat without a radar. */
 export function radarContacts(session: StationSession, { offset, limit }: { offset: number; limit: number }) {
     if (!session.isGameMaster && !session.radarWidgets.length) {
         throw new NotPermittedError(`station "${session.stationName}" has no radar`);
@@ -63,10 +82,9 @@ export function radarContacts(session: StationSession, { offset, limit }: { offs
               ship: ownShip,
               warpLevel: session.shipDriver.state.warp?.currentLevel,
           });
-    const contacts = [...visible]
+    const ranked = [...visible]
         .filter((o) => o.id !== session.shipDriver.id)
-        .map((o) => describeContact(o, session.viewFaction, ownShip.position))
-        .sort((a, b) => a.distance - b.distance);
+        .sort((a, b) => radarPriority(a, b, ownShip.position));
     return {
         ownShip: {
             id: ownShip.id,
@@ -75,9 +93,12 @@ export function radarContacts(session: StationSession, { offset, limit }: { offs
         },
         radarRange: session.widgets.includes('helms-radar') ? helmsRadarRange(session) : undefined,
         scanBeam: session.widgets.includes('long-range-radar') ? scanBeamStatus(session) : undefined,
-        total: contacts.length,
+        total: ranked.length,
         offset,
-        contacts: contacts.slice(offset, offset + limit),
+        contacts: ranked
+            .slice(offset, offset + limit)
+            .map((o) => describeContact(o, session.viewFaction, ownShip.position))
+            .sort((a, b) => a.distance - b.distance),
     };
 }
 
