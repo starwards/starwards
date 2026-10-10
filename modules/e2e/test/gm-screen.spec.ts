@@ -37,11 +37,32 @@ test.describe('GM Screen', () => {
         // The GM screen dynamically adds per-ship widgets. Wait for at least
         // one ship widget to appear in the layout's registered widget menu.
         const menuContainer = page.locator('#menuContainer');
-        await expect(menuContainer).toBeVisible({ timeout: 10000 });
+        await expect(menuContainer).toBeAttached({ timeout: 10000 });
+    });
+
+    test('widget menu starts hidden and the toggle shows/hides it (issue #2335)', async ({ page }) => {
+        const menuContainer = page.locator('#menuContainer');
+        const layoutContainer = page.locator('#layoutContainer');
+        const toggle = page.locator('#menuToggle');
+        await expect(toggle).toBeVisible({ timeout: 10000 });
+        await expect(menuContainer).toBeHidden();
+        const fullWidth = (await layoutContainer.boundingBox())?.width ?? 0;
+
+        await toggle.click();
+        await expect(menuContainer).toBeVisible();
+        await expect(menuContainer.locator('li[data-id]').first()).toBeVisible({ timeout: 15000 });
+        await expect(async () => {
+            const width = (await layoutContainer.boundingBox())?.width ?? 0;
+            expect(width).toBeLessThan(fullWidth);
+        }).toPass({ timeout: 5000 });
+
+        await toggle.click();
+        await expect(menuContainer).toBeHidden();
     });
 
     test('registers a per-ship repair queue widget in the dashboard menu (issue #2212, A1)', async ({ page }) => {
         const shipId = single_ship.testShipId;
+        await page.locator('#menuToggle').click();
         const menuContainer = page.locator('#menuContainer');
         await expect(menuContainer.locator(`[data-id="menu-${shipId} repair queue"]`)).toBeVisible({
             timeout: 15000,
@@ -54,7 +75,7 @@ test.describe('GM Screen', () => {
 
         // Wait for all initial ship widgets to be registered (GVTS long range radar is last)
         const menuContainer = page.locator('#menuContainer');
-        await expect(menuContainer.locator('[data-id="menu-GVTS long range radar"]')).toBeVisible({
+        await expect(menuContainer.locator('[data-id="menu-GVTS long range radar"]')).toBeAttached({
             timeout: 15000,
         });
 

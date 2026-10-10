@@ -83,6 +83,34 @@ body {
     top: 0;
     left: 0;
     background: #222;
+    overflow-y: auto;
+}
+
+.menu-collapsed #menuContainer {
+    display: none;
+}
+
+.menu-collapsed #layoutContainer {
+    width: 100%;
+    left: 0;
+}
+
+#menuToggle {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    z-index: 10;
+    padding: 2px 6px;
+    font-size: 11px;
+    color: #bbb;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+#menuToggle:hover {
+    opacity: 1;
 }
 
 #menuContainer li {
