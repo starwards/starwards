@@ -15,17 +15,17 @@ import { expect } from 'chai';
 
 const FRONT_HIT_ARC: [number, number] = [...FRONT_ARC];
 
-// an intact reactive cell defeats an ArmPen impact outright (see attack-resolution-manager.spec.ts:49-61)
+// an intact hardened slab stops an ArmPen impact (penetration 0, no surface effect)
 // -- zero system defects, zero surface scrape. The perfect "shot scratched armor and nothing more" fixture.
-const reactiveOverComposite: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100 },
+const hardenedOverComposite: ArmorLayerDesign[] = [
+    { type: 'hardened', plateMaxHealth: 1000 },
     { type: 'composite', plateMaxHealth: 1000 },
 ];
 
 function setUpDefender(spaceManager: SpaceManager, id: string) {
     const ship = new Spaceship();
     ship.id = id;
-    const state = makeShipState(ship.id, { ...demoShip, armor: { numberOfPlates: 12, layers: reactiveOverComposite } });
+    const state = makeShipState(ship.id, { ...demoShip, armor: { numberOfPlates: 12, layers: hardenedOverComposite } });
     spaceManager.insert(ship);
     const damageManager = new DamageManager(ship, state, spaceManager, new MockDie());
     return damageManager;

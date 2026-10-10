@@ -3,7 +3,6 @@ import {
     compositeArmor,
     faradayArmor,
     hardenedArmor,
-    reactiveArmor,
     weaponDamageTypes,
     whippleArmor,
     withFaradayLayer,
@@ -11,7 +10,7 @@ import {
 
 import { expect } from 'chai';
 
-const allModels = { compositeArmor, whippleArmor, hardenedArmor, reactiveArmor, faradayArmor } as const;
+const allModels = { compositeArmor, whippleArmor, hardenedArmor, faradayArmor } as const;
 
 describe('armor model stats validity', () => {
     it('every armor model defines plateDamage and penetration for every damage type', () => {
@@ -51,47 +50,27 @@ describe('armor model presets (issue #1929)', () => {
     it('Composite is the baseline, weak to penetrators', () => {
         expect(compositeArmor.plateDamage_HiExp).to.equal(1);
         expect(compositeArmor.plateDamage_ArmPen).to.equal(2);
-        expect(compositeArmor.plateDamage_Tandem).to.equal(1);
         expect(compositeArmor.penetration_ArmPen).to.equal(0);
-        expect(compositeArmor.penetration_Tandem).to.equal(0);
     });
 
     it('Frag never interacts with any armor — 0/0 across all models', () => {
-        for (const model of [compositeArmor, whippleArmor, hardenedArmor, reactiveArmor, faradayArmor]) {
+        for (const model of [compositeArmor, whippleArmor, hardenedArmor, faradayArmor]) {
             expect(model.plateDamage_Frag).to.equal(0);
             expect(model.penetration_Frag).to.equal(0);
         }
     });
 
-    it('Whipple blunts blast, blocks shaped charges; kinetic penetrators punch straight through', () => {
+    it('Whipple blunts blast; kinetic penetrators punch straight through', () => {
         expect(whippleArmor.plateDamage_HiExp).to.equal(0.25);
         expect(whippleArmor.plateDamage_Frag).to.equal(0);
         expect(whippleArmor.plateDamage_ArmPen).to.equal(0);
         expect(whippleArmor.penetration_ArmPen).to.equal(1);
-        // the standoff screen pre-detonates shaped charges — Tandem is defeated
-        expect(whippleArmor.plateDamage_Tandem).to.equal(0);
-        expect(whippleArmor.penetration_Tandem).to.equal(0);
     });
 
-    it('Hardened stops kinetic penetrators but the shaped-charge jet burns through', () => {
+    it('Hardened stops kinetic penetrators', () => {
         expect(hardenedArmor.plateDamage_HiExp).to.equal(0.5);
         expect(hardenedArmor.plateDamage_ArmPen).to.equal(1);
         expect(hardenedArmor.penetration_ArmPen).to.equal(0);
-        expect(hardenedArmor.plateDamage_Tandem).to.equal(2);
-        expect(hardenedArmor.penetration_Tandem).to.equal(0);
-    });
-
-    it('Reactive cells react to warheads (pop, no penetration); only Tandem gets through', () => {
-        expect(reactiveArmor.singleUsePlates).to.equal(true);
-        for (const key of ['HiExp', 'ArmPen', 'Elec'] as const) {
-            expect(reactiveArmor[`plateDamage_${key}`]).to.equal(1);
-            expect(reactiveArmor[`penetration_${key}`]).to.equal(0);
-        }
-        expect(reactiveArmor.plateDamage_Tandem).to.equal(1);
-        expect(reactiveArmor.penetration_Tandem).to.equal(1);
-        // shrapnel does not activate the reactive cells
-        expect(reactiveArmor.plateDamage_Frag).to.equal(0);
-        expect(reactiveArmor.penetration_Frag).to.equal(0);
     });
 
     it('every non-Faraday passive model lets Elec hits bypass the plates', () => {
@@ -104,7 +83,7 @@ describe('armor model presets (issue #1929)', () => {
     it('pure Faraday blocks Elec but lets physical types through — except Frag, which never penetrates', () => {
         expect(faradayArmor.penetration_Elec).to.equal(0);
         expect(faradayArmor.plateDamage_Elec).to.equal(0);
-        for (const key of ['HiExp', 'ArmPen', 'Tandem'] as const) {
+        for (const key of ['HiExp', 'ArmPen'] as const) {
             expect(faradayArmor[`plateDamage_${key}`]).to.equal(0);
             expect(faradayArmor[`penetration_${key}`]).to.equal(1);
         }

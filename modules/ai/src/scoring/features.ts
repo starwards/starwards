@@ -115,7 +115,7 @@ export function scanLevel({ playerBody, targetBody }: Pick<Duel, 'playerBody' | 
 }
 
 const SHELLS = ['HiExpShell', 'ArmPenShell', 'FragShell'] as const;
-const MISSILES = ['HiExpMissile', 'ArmPenMissile', 'FragMissile', 'ClusterMissile', 'TandemMissile', 'ElecMissile'];
+const MISSILES = ['HiExpMissile', 'ArmPenMissile', 'FragMissile', 'ClusterMissile', 'ElecMissile'];
 
 function ammoFraction(ship: ShipState, kinds: readonly string[]) {
     const magazine = ship.magazine as unknown as Record<string, number> & { design: Record<string, number> };

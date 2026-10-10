@@ -26,7 +26,6 @@ class MagazineDesignState extends DesignState implements MagazineDesign {
     @gameField('uint16') max_ArmPenMissile = 0;
     @gameField('uint16') max_FragMissile = 0;
     @gameField('uint16') max_ClusterMissile = 0;
-    @gameField('uint16') max_TandemMissile = 0;
     @gameField('uint16') max_ElecMissile = 0;
     @gameField('float32') capacityBrokenThreshold = 0;
     @gameField('float32') capacityDamageFactor = 0;
@@ -77,11 +76,6 @@ export class Magazine extends SystemState {
     @tweakable('number')
     @gameField('uint16')
     count_ClusterMissile = 0;
-
-    @range((t: Magazine) => [0, t.max_TandemMissile])
-    @tweakable('number')
-    @gameField('uint16')
-    count_TandemMissile = 0;
 
     @range((t: Magazine) => [0, t.max_ElecMissile])
     @tweakable('number')
@@ -154,11 +148,6 @@ export class Magazine extends SystemState {
     @range((t: Magazine) => [0, t.design.max_ClusterMissile])
     get max_ClusterMissile() {
         return Math.round(this.design.max_ClusterMissile * this.capacity);
-    }
-
-    @range((t: Magazine) => [0, t.design.max_TandemMissile])
-    get max_TandemMissile() {
-        return Math.round(this.design.max_TandemMissile * this.capacity);
     }
 
     @range((t: Magazine) => [0, t.design.max_ElecMissile])

@@ -12,7 +12,7 @@ import {
 import { RecordingEventLine } from '@starwards/core/internal';
 import { compositeArmor } from '@starwards/core/src/configurations/armor-models';
 
-const types = ['HiExp', 'ArmPen', 'Frag', 'Tandem', 'Elec'] as const;
+const types = ['HiExp', 'ArmPen', 'Frag', 'Elec'] as const;
 const fighter = (over: Partial<ShipReading> = {}): ShipReading => ({
     id: 'enemy',
     faction: 1,

@@ -7,7 +7,7 @@ const demoShipConfig = shipConfigurations['demo-ship'];
 const layeredArmor = {
     numberOfPlates: 12,
     layers: [
-        { type: 'reactive' as const, plateMaxHealth: 100 },
+        { type: 'whipple' as const, plateMaxHealth: 100 },
         { type: 'composite' as const, plateMaxHealth: 1000 },
     ],
 };
@@ -21,7 +21,7 @@ describe('armor layer stacks', () => {
         expect(() =>
             makeShipState('test-ship', {
                 ...demoShipConfig,
-                armor: { numberOfPlates: 12, layers: [{ type: 'reactive', plateMaxHealth: 100 }] },
+                armor: { numberOfPlates: 12, layers: [{ type: 'whipple', plateMaxHealth: 100 }] },
             }),
         ).to.throw();
     });
@@ -30,9 +30,7 @@ describe('armor layer stacks', () => {
         const state = makeLayeredState();
         for (const plate of state.armor.armorPlates) {
             expect(plate.layers.length).to.equal(2);
-            expect(plate.layers[0].design.singleUsePlates).to.equal(true);
-            expect(plate.layers[1].design.singleUsePlates).to.equal(false);
-            expect(plate.layers[0].design.modelName).to.equal('reactive');
+            expect(plate.layers[0].design.modelName).to.equal('whipple');
             expect(plate.layers[1].design.modelName).to.equal('composite');
             expect(plate.layers[0].design.plateMaxHealth).to.equal(100);
             expect(plate.layers[1].design.plateMaxHealth).to.equal(1000);

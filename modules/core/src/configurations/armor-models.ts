@@ -11,9 +11,6 @@ export type ArmorModelStats = {
     // When the armor does not engage a type (plateDamage 0), only 0 (blocked) or 1 (full bypass)
     // are meaningful — fractional penetration applies to engaging hits only (validated in armor-models.spec).
     [T in WeaponDamageType as `penetration_${T}`]: number;
-} & {
-    // reactive cells: an engaging hit zeroes the plate.
-    singleUsePlates?: boolean;
 };
 
 // plateDamage: multiplier on plate erosion only, 0 = armor does not engage the hit.
@@ -28,14 +25,11 @@ export const compositeArmor: ArmorModelStats = {
     plateDamage_ArmPen: 2,
     // frag never interacts with armor plates (any model) — its damage is the surface scrape only
     plateDamage_Frag: 0,
-    plateDamage_Tandem: 1,
     plateDamage_Elec: 0,
     penetration_HiExp: 0,
     penetration_ArmPen: 0,
     penetration_Frag: 0,
-    penetration_Tandem: 0,
     penetration_Elec: 1,
-    singleUsePlates: false,
 };
 
 export const whippleArmor: ArmorModelStats = {
@@ -44,15 +38,11 @@ export const whippleArmor: ArmorModelStats = {
     // a kinetic penetrator punches straight through the thin standoff shield without noticing it
     plateDamage_ArmPen: 0,
     plateDamage_Frag: 0,
-    // ...but the screen pre-detonates shaped charges (Tandem) — its historic role
-    plateDamage_Tandem: 0,
     plateDamage_Elec: 0,
     penetration_HiExp: 0,
     penetration_ArmPen: 1,
     penetration_Frag: 0,
-    penetration_Tandem: 0,
     penetration_Elec: 1,
-    singleUsePlates: false,
 };
 
 export const hardenedArmor: ArmorModelStats = {
@@ -61,48 +51,23 @@ export const hardenedArmor: ArmorModelStats = {
     // the slab genuinely stops kinetic penetrators — normal engagement, no shortcut
     plateDamage_ArmPen: 1,
     plateDamage_Frag: 0,
-    // ...but a shaped-charge jet (Tandem) burns through thick solid armor double-speed
-    plateDamage_Tandem: 2,
     plateDamage_Elec: 0,
     penetration_HiExp: 0,
     penetration_ArmPen: 0,
     penetration_Frag: 0,
-    penetration_Tandem: 0,
     penetration_Elec: 1,
-    singleUsePlates: false,
-};
-
-export const reactiveArmor: ArmorModelStats = {
-    // reactive cells react to any warhead (HiExp/ArmPen/Elec): the cell pops and defeats the hit —
-    // nothing penetrates, but the cell is spent (exposure is measured before the pop)
-    plateDamage_HiExp: 1,
-    plateDamage_ArmPen: 1,
-    // shrapnel does not activate the reactive cells: no cell consumed, but the scrape lands
-    plateDamage_Frag: 0,
-    // tandem precursor pops the cell and the main charge lands at full force
-    plateDamage_Tandem: 1,
-    plateDamage_Elec: 1,
-    penetration_HiExp: 0,
-    penetration_ArmPen: 0,
-    penetration_Frag: 0,
-    penetration_Tandem: 1,
-    penetration_Elec: 0,
-    singleUsePlates: true,
 };
 
 export const faradayArmor: ArmorModelStats = {
     plateDamage_HiExp: 0,
     plateDamage_ArmPen: 0,
     plateDamage_Frag: 0,
-    plateDamage_Tandem: 0,
     plateDamage_Elec: 0,
     penetration_HiExp: 1,
     penetration_ArmPen: 1,
     // shrapnel cannot penetrate even the basic hull layer — frag affects surface equipment only
     penetration_Frag: 0,
-    penetration_Tandem: 1,
     penetration_Elec: 0,
-    singleUsePlates: false,
 };
 
 // A Faraday cage layered over any other armor model: blocks Elec hits instead of letting them bypass.
@@ -114,7 +79,6 @@ export const armorModels = {
     composite: compositeArmor,
     whipple: whippleArmor,
     hardened: hardenedArmor,
-    reactive: reactiveArmor,
     faraday: faradayArmor,
 } as const satisfies Record<string, ArmorModelStats>;
 

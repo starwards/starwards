@@ -8,18 +8,16 @@ import {
 } from '../src';
 
 /**
- * The three per-layer outcomes named by the design spec, plus the reactive-cell pop variant:
+ * The three per-layer outcomes named by the design spec:
  * - Blocked: the round stops at this layer; deeper layers never see it. The armor defeated the hit.
  * - Transparent: the round passes through untouched to the next layer in.
  * - Engages: plates erode; damage continues inward scaled by the layer's exposure.
- * - Pops: single-use cells + impact delivery — the cell zeroes itself by rule and the hit is
- *   defeated (unless it fully penetrates); erosion is NOT a damage measurement on these rows.
  */
-type CellOutcome = 'Blocked' | 'Transparent' | 'Engages' | 'Pops (defeats hit)' | 'Pops (penetrated)';
+type CellOutcome = 'Blocked' | 'Transparent' | 'Engages';
 
 /** what a single application of a damage event was observed to do, across both channels */
 export type Observation = {
-    /** health lost on the tested (outer) layer; meaningless as a damage figure on pop rows */
+    /** health lost on the tested (outer) layer */
     erosion: number;
     outerHealthAfter: number;
     surfaceHits: number;
@@ -32,7 +30,6 @@ export type Fixture = {
     fire: (damageType: WeaponDamageType, delivery: 'impact' | 'explosion', amount: number) => Observation;
     response: (damageType: WeaponDamageType) => ArmorResponse;
     factors: (damageType: WeaponDamageType) => { plateDamageFactor: number; penetrationFactor: number };
-    singleUsePlates: boolean;
 };
 
 type MatrixRow = {
@@ -47,7 +44,6 @@ type MatrixRow = {
     erosion: number;
     /** applications on the same plate until the tested layer breaks; null = never (capped) */
     applicationsToBreach: number | null;
-    popped: boolean;
     surfaceHits: number;
     surfaceDamage: number;
     penetrationHits: number;
@@ -59,19 +55,6 @@ type Matrix = { rows: MatrixRow[] };
 
 const MAX_APPLICATIONS = 50;
 export const PLATE_MAX_HEALTH = 100;
-
-/**
- * Design-spec rule, reproduced verbatim (the design repo is unreachable from here — see
- * modules/core/test/armor-ammo-matrix.spec.ts's header comment for the source quotation):
- * a *deflecting* armor model (currently only Reactive) cancels the surface scrape of a
- * *deflectable* damage type — every type except Tandem (its precursor defeats the deflection)
- * and Frag (a cloud is not a round, nothing to push away) — but only while the deflecting layer
- * is the outermost INTACT layer in the hit arc. This property (`deflectsSurfaceEffect`) does not
- * exist in `ArmorModelStats` or `resolveWeaponAttack` — see the "Deflection" section of the
- * generated report for what that means for the anomaly count below.
- */
-const DEFLECTING_ARMOR_MODELS: readonly ArmorModelName[] = ['reactive'];
-const NON_DEFLECTABLE_TYPES: readonly WeaponDamageType[] = ['Tandem', 'Frag'];
 
 type AmmoRow = { key: string; damageType: WeaponDamageType; delivery: 'impact' | 'explosion'; amount: number };
 
@@ -101,15 +84,12 @@ function rowsForAmmo(
     ];
 }
 
-function classify(response: ArmorResponse, singleUsePlates: boolean, delivery: 'impact' | 'explosion'): CellOutcome {
+function classify(response: ArmorResponse): CellOutcome {
     if (response.kind === 'block') {
         return 'Blocked';
     }
     if (response.kind === 'bypass') {
         return 'Transparent';
-    }
-    if (singleUsePlates && delivery === 'impact') {
-        return response.penetration >= 1 ? 'Pops (penetrated)' : 'Pops (defeats hit)';
     }
     return 'Engages';
 }
@@ -129,12 +109,7 @@ function invalidValueAnomalies(obs: Observation): string[] {
 }
 
 /** invariants that must hold on every hit while the tested layer is still intact going in */
-function intactAnomalies(
-    outcome: CellOutcome,
-    armor: ArmorModelName,
-    damageType: WeaponDamageType,
-    obs: Observation,
-): string[] {
+function intactAnomalies(outcome: CellOutcome, obs: Observation): string[] {
     const anomalies = invalidValueAnomalies(obs);
     switch (outcome) {
         case 'Blocked':
@@ -158,43 +133,16 @@ function intactAnomalies(
                 anomalies.push('layer classified as Engages but no plate erosion observed');
             }
             break;
-        case 'Pops (defeats hit)':
-            if (obs.outerHealthAfter !== 0) {
-                anomalies.push('impact on single-use cells did not pop them');
-            }
-            if (obs.penetrationHits > 0) {
-                anomalies.push('defeated (popped) hit still reached systems through the penetration channel');
-            }
-            break;
-        case 'Pops (penetrated)':
-            if (obs.outerHealthAfter !== 0) {
-                anomalies.push('impact on single-use cells did not pop them');
-            }
-            if (obs.penetrationHits === 0) {
-                anomalies.push('fully-penetrating round popped the cell but no system took damage');
-            }
-            break;
-    }
-    const deflecting = DEFLECTING_ARMOR_MODELS.includes(armor);
-    const deflectable = !NON_DEFLECTABLE_TYPES.includes(damageType);
-    if (deflecting && deflectable && (obs.surfaceHits > 0 || obs.surfaceDamage > 0)) {
-        anomalies.push(
-            `deflection gap: ${armor} is specced to deflect ${damageType}'s surface scrape while intact ` +
-                `(deflectsSurfaceEffect), but observed ${obs.surfaceHits} surface hit(s) / ${obs.surfaceDamage.toFixed(2)} dmg — ` +
-                'this property is not implemented in ArmorModelStats/resolveWeaponAttack (src gap, tracked separately, not a regression in this harness)',
-        );
     }
     return anomalies;
 }
 
-/** the layer just broke (erosion breach) or popped — the exposure chain should now be fully open */
+/** the layer just broke (erosion breach) — the exposure chain should now be fully open */
 function postBreachAnomalies(outcome: CellOutcome, obs: Observation): string[] {
     const anomalies = invalidValueAnomalies(obs);
-    const opensPenetration =
-        outcome === 'Engages' || outcome === 'Pops (defeats hit)' || outcome === 'Pops (penetrated)';
-    if (opensPenetration && obs.penetrationHits === 0 && obs.surfaceHits === 0) {
+    if (outcome === 'Engages' && obs.penetrationHits === 0 && obs.surfaceHits === 0) {
         anomalies.push(
-            'broken/popped layer still blocks all system damage — expected the exposure chain to fully open ' +
+            'broken layer still blocks all system damage — expected the exposure chain to fully open ' +
                 '(max(penetration, broken) = 1) once the layer is down, but this application produced neither a surface nor a penetration hit',
         );
     }
@@ -219,8 +167,7 @@ export function buildArmorAmmoMatrix({
     for (const modelName of armorModelNames) {
         for (const ammoRow of ammoRows) {
             const fixture = createFixture(modelName);
-            const outcome = classify(fixture.response(ammoRow.damageType), fixture.singleUsePlates, ammoRow.delivery);
-            const popped = outcome === 'Pops (defeats hit)' || outcome === 'Pops (penetrated)';
+            const outcome = classify(fixture.response(ammoRow.damageType));
             const { plateDamageFactor, penetrationFactor } = fixture.factors(ammoRow.damageType);
 
             const anomalies = new Set<string>();
@@ -228,7 +175,7 @@ export function buildArmorAmmoMatrix({
 
             // every application below lands on the same plate, accumulating like repeated real fire
             const first = fixture.fire(ammoRow.damageType, ammoRow.delivery, ammoRow.amount);
-            record(intactAnomalies(outcome, modelName, ammoRow.damageType, first));
+            record(intactAnomalies(outcome, first));
 
             let applicationsToBreach: number | null = null;
             if (first.outerHealthAfter <= 0) {
@@ -238,7 +185,7 @@ export function buildArmorAmmoMatrix({
                 let health = first.outerHealthAfter;
                 while (health > 0 && applications < MAX_APPLICATIONS) {
                     const obs = fixture.fire(ammoRow.damageType, ammoRow.delivery, ammoRow.amount);
-                    record(intactAnomalies(outcome, modelName, ammoRow.damageType, obs));
+                    record(intactAnomalies(outcome, obs));
                     health = obs.outerHealthAfter;
                     applications++;
                 }
@@ -246,7 +193,7 @@ export function buildArmorAmmoMatrix({
             }
 
             // the intact→broken transition is the interesting state change: one more hit against
-            // the now-broken/popped layer, checked against a different invariant (channel open)
+            // the now-broken layer, checked against a different invariant (channel open)
             if (applicationsToBreach !== null) {
                 const postBreach = fixture.fire(ammoRow.damageType, ammoRow.delivery, ammoRow.amount);
                 record(postBreachAnomalies(outcome, postBreach));
@@ -262,7 +209,6 @@ export function buildArmorAmmoMatrix({
                 penetrationFactor,
                 erosion: first.erosion,
                 applicationsToBreach,
-                popped,
                 surfaceHits: first.surfaceHits,
                 surfaceDamage: first.surfaceDamage,
                 penetrationHits: first.penetrationHits,
@@ -285,12 +231,8 @@ function tableFor(rows: MatrixRow[], breachHeader: string): string[] {
     );
     lines.push('|---|---|---|---|---|---|---|---|---|---|---|');
     for (const row of rows) {
-        const erosion = row.popped ? '— (cell popped, not damage)' : row.erosion.toFixed(2);
-        const breach = row.popped
-            ? '1 (pop)'
-            : row.erosion === 0
-              ? 'n/a (no erosion)'
-              : (row.applicationsToBreach ?? `> ${MAX_APPLICATIONS}`);
+        const erosion = row.erosion.toFixed(2);
+        const breach = row.erosion === 0 ? 'n/a (no erosion)' : (row.applicationsToBreach ?? `> ${MAX_APPLICATIONS}`);
         lines.push(
             `| ${row.armor} | ${row.ammo} | ${row.damageType} | ${row.outcome} | ${row.plateDamageFactor} | ${row.penetrationFactor} | ${erosion} | ${breach} | ${channelCell(row.surfaceHits, row.surfaceDamage)} | ${channelCell(row.penetrationHits, row.penetrationDamage)} | ${row.anomalies.join('; ') || '—'} |`,
         );
@@ -318,36 +260,19 @@ export function matrixToMarkdown(matrix: Matrix): string {
     lines.push('- **Blocked** — the round stops at this layer; the armor defeated the hit.');
     lines.push('- **Transparent** — the round passes through untouched; systems behind take full damage.');
     lines.push('- **Engages** — plates erode; damage leaks inward through penetration/broken sections.');
-    lines.push(
-        '- **Pops** — reactive single-use cells vs impact delivery: one cell zeroes itself by rule and the hit is defeated (exposure measured pre-pop), unless the round fully penetrates (Tandem). The erosion column on these rows is a rule effect, not a damage measurement — no damage figure exists for a pop.',
-    );
     lines.push('');
     lines.push(
         'The surface channel (HiExp/Frag scrape on hull-mounted systems) bypasses the armor walk entirely — a Blocked outcome with surface damage is normal, not a leak. Zero plate erosion is one of the normal outcomes, not by itself an anomaly.',
     );
     lines.push('');
     lines.push(
-        "**Checked, per cell:** every pre-breach application (not just the first) is checked against its classification's invariant (erosion present/absent, penetration channel present/absent, pop occurred); once a layer breaks or a cell pops, one further application checks that the exposure chain opened (penetration or surface damage now lands). **Not checked:** erosion *magnitude* against the `plateDamage` factor — e.g. that hardened's Tandem row erodes at exactly 2× its ArmPen row. That relationship is pinned by a dedicated regression test in the spec file, not by this generic scan, so a magnitude-only regression would not appear as an anomaly here.",
-    );
-    lines.push('');
-    lines.push('## Deflection (design spec vs. code — see scope note below)');
-    lines.push('');
-    lines.push(
-        'The design spec defines **deflection**: a deflecting armor (Reactive) pushes an incoming round away before its blast develops, cancelling the surface scrape — for every damage type except Tandem (its precursor defeats the deflection) and Frag (a cloud cannot be pushed away) — but only while the deflecting layer is the outermost **intact** layer in the hit arc. The armor-identity writeup sells this as part of Reactive\'s specialty ("deflects HiExp scrape").',
-    );
-    lines.push('');
-    lines.push(
-        '`deflectsSurfaceEffect` does not exist in `ArmorModelStats`, and `resolveWeaponAttack` applies the surface channel unconditionally, before the armor walk runs. This sweep encodes the spec rule directly (Reactive deflects HiExp/ArmPen/Elec, not Tandem/Frag) and flags any cell that violates it as a **deflection gap** anomaly below — currently every Reactive × HiExp cell, since ArmPen and Elec have no surface effect to deflect in the first place and so cannot expose the gap. Fixing this is a `src`-level change and out of scope for this harness; the flag exists so the gap stays visible instead of reading as "no anomalies" until it is fixed.',
-    );
-    lines.push('');
-    lines.push(
-        '**Scope note:** because of this rule, "0 anomalies flagged" on a future run does not mean "the code is internally self-consistent" — it means "the code matches the design spec at every checked cell", which is the stronger and correct claim for a QA tool, but a different one than earlier revisions of this report made.',
+        "**Checked, per cell:** every pre-breach application (not just the first) is checked against its classification's invariant (erosion present/absent, penetration channel present/absent); once a layer breaks, one further application checks that the exposure chain opened (penetration or surface damage now lands). **Not checked:** erosion *magnitude* against the `plateDamage` factor — so a magnitude-only regression would not appear as an anomaly here.",
     );
     lines.push('');
     lines.push('## Methodology and scope');
     lines.push('');
     lines.push(
-        `Rig: a single plate whose outer layer is the tested model (${PLATE_MAX_HEALTH} health, the demo-ship baseline) over a composite backing layer that is pre-broken, so observed system damage is governed solely by the tested layer (\`makeArmor\` requires a composite innermost layer; an intact one engages HiExp/ArmPen/Tandem and would zero the chain for every model). Each application drives \`AttackResolutionManager.resolveWeaponAttack\` — the exact resolution path a real hit takes — and records plate erosion plus resolved system hits on both channels, split structurally using the documented "surface hits first, then penetration hits" ordering (not by comparing damage amounts). Resolved damage amounts are recorded pre-defect-roll; defects and system breakage are out of scope.`,
+        `Rig: a single plate whose outer layer is the tested model (${PLATE_MAX_HEALTH} health, the demo-ship baseline) over a composite backing layer that is pre-broken, so observed system damage is governed solely by the tested layer (\`makeArmor\` requires a composite innermost layer; an intact one engages HiExp/ArmPen and would zero the chain for every model). Each application drives \`AttackResolutionManager.resolveWeaponAttack\` — the exact resolution path a real hit takes — and records plate erosion plus resolved system hits on both channels, split structurally using the documented "surface hits first, then penetration hits" ordering (not by comparing damage amounts). Resolved damage amounts are recorded pre-defect-roll; defects and system breakage are out of scope.`,
     );
     lines.push('');
     lines.push(
@@ -365,7 +290,7 @@ export function matrixToMarkdown(matrix: Matrix): string {
         lines.push('## No anomalies flagged');
         lines.push('');
         lines.push(
-            'Every checked invariant held at every checked application — see "Checked, per cell" above for exactly what that covers, and the scope note above for what "0 anomalies" does and does not claim.',
+            'Every checked invariant held at every checked application — see "Checked, per cell" above for exactly what that covers.',
         );
     }
     lines.push('');

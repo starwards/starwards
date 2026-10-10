@@ -1,5 +1,8 @@
 # Damage Model — as implemented
 
+> **Removed (M3.7):** the Tandem missile / damage type and the Reactive armor model (single-use
+> cells, pop rule) are no longer in the game. Mentions of them below are historical.
+
 > **Status: as-built record.** This describes the armor × ammo damage model in the shape the
 > code implements today — spillover-based defect counts and victim selection. It is the
 > reference for reading `ship/attack-resolution-manager.ts`, `ship/damage-manager.ts` and

@@ -73,7 +73,6 @@ export const gravitasChaingun = {
     use_ArmPenMissile: false,
     use_FragMissile: false,
     use_ClusterMissile: false,
-    use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 0.09,
@@ -116,7 +115,6 @@ export const gravitasMagazine = {
     max_ArmPenMissile: 20,
     max_FragMissile: 8,
     max_ClusterMissile: 4,
-    max_TandemMissile: 4,
     max_ElecMissile: 6,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
@@ -218,7 +216,6 @@ export const gravitasTube = {
     use_ArmPenMissile: true,
     use_FragMissile: true,
     use_ClusterMissile: true,
-    use_TandemMissile: true,
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,

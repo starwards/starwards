@@ -32,7 +32,6 @@ export const ammoScenes: Record<string, Scene> = {
             ship.magazine.count_ArmPenMissile = Math.round(ship.magazine.max_ArmPenMissile * 0.3);
             ship.magazine.count_FragMissile = Math.round(ship.magazine.max_FragMissile * 0.2);
             ship.magazine.count_ClusterMissile = Math.round(ship.magazine.max_ClusterMissile * 0.3);
-            ship.magazine.count_TandemMissile = Math.round(ship.magazine.max_TandemMissile * 0.3);
             ship.magazine.count_ElecMissile = Math.round(ship.magazine.max_ElecMissile * 0.3);
 
             const mockContainer = createMockContainer(container, 250, 200);
@@ -54,7 +53,6 @@ export const ammoScenes: Record<string, Scene> = {
             ship.magazine.count_ArmPenMissile = 0;
             ship.magazine.count_FragMissile = 0;
             ship.magazine.count_ClusterMissile = 0;
-            ship.magazine.count_TandemMissile = 0;
             ship.magazine.count_ElecMissile = 0;
 
             const mockContainer = createMockContainer(container, 250, 200);

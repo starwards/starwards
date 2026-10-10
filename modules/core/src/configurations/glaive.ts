@@ -71,7 +71,6 @@ export const glaiveChaingun = {
     use_ArmPenMissile: false,
     use_FragMissile: false,
     use_ClusterMissile: false,
-    use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 0.11,
@@ -109,7 +108,6 @@ export const glaiveMagazine = {
     max_ArmPenMissile: 20,
     max_FragMissile: 0,
     max_ClusterMissile: 0,
-    max_TandemMissile: 2,
     max_ElecMissile: 0,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
@@ -209,7 +207,6 @@ export const glaiveTube = {
     use_ArmPenMissile: true,
     use_FragMissile: false,
     use_ClusterMissile: false,
-    use_TandemMissile: true,
     use_ElecMissile: false,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,

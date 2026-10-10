@@ -43,7 +43,6 @@ export class ChaingunDesignState extends TurretDesignState implements ChaingunDe
     @gameField('boolean') use_ArmPenMissile = false;
     @gameField('boolean') use_FragMissile = false;
     @gameField('boolean') use_ClusterMissile = false;
-    @gameField('boolean') use_TandemMissile = false;
     @gameField('boolean') use_ElecMissile = false;
 
     isAmmoEnabled(m: AmmoType): boolean {
