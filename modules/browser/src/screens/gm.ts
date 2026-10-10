@@ -54,7 +54,13 @@ beginStationRegistrationWithRetry(driver, 'gm', '');
 runScreenLifecycle(driver, statusTracker, Status.CONNECTED, (wrapperEl) => initScreen(wrapperEl));
 
 async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardown> {
-    wrapperEl.append('<ul id="menuContainer"></ul><div id="layoutContainer"></div>');
+    // The widget menu (drag a widget into the layout) is rarely needed on the GM screen, so it starts
+    // hidden and the layout takes the full width; a toggle button brings it back (#2335, #881).
+    wrapperEl.addClass('menu-collapsed');
+    wrapperEl.append(
+        '<ul id="menuContainer"></ul><div id="layoutContainer"></div>' +
+            '<button id="menuToggle" type="button" title="Show/hide widget menu">widgets</button>',
+    );
     const adminDriver = await driver.getAdminDriver();
     const dropUi = mountDropUi();
     const stopDrop = installFileDrop(() => adminDriver, dropUi.ui);
@@ -130,6 +136,11 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
     drawGmStatusChip(adminDriver);
 
     dashboard.setup();
+    const menuToggle = wrapperEl.find('#menuToggle');
+    menuToggle.on('click', () => {
+        wrapperEl.toggleClass('menu-collapsed');
+        dashboard.updateSize();
+    });
     if (!gmWidgets) {
         return () => {
             stopDropUi();
