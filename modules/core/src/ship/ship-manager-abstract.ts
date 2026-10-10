@@ -1,8 +1,10 @@
 import {
     ChainGun,
+    Derelict,
     Docking,
     Faction,
     Order,
+    Projectile,
     Radar,
     RadarSectorValues,
     Reactor,
@@ -305,7 +307,15 @@ export abstract class ShipManager implements Updateable {
         const iterable: Iterable<SpaceObject> = this.state.weaponsTarget.shipOnly
             ? this.spaceManager.state.getAll('Spaceship')
             : this.spaceManager.state;
-        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id && v.isCorporal);
+        // Projectiles are never weapons targets. A wreck is skipped once the crew has identified it
+        // (BASIC) — below that it is just a blip, and skipping it would classify it for free.
+        let result = new Iterator(iterable).filter(
+            (v) =>
+                v.id !== this.state.id &&
+                v.isCorporal &&
+                !Projectile.isInstance(v) &&
+                !(Derelict.isInstance(v) && playerScanLevel(v, this.state.faction) >= ScanLevel.BASIC),
+        );
         // shipOnly/enemyOnly assert type/faction, which the crew only knows once Signals has
         // scanned a contact to BASIC — below that, cycling would classify it just by landing on it.
         if (this.state.weaponsTarget.shipOnly) {

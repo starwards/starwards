@@ -1,9 +1,11 @@
 import {
     Asteroid,
+    Derelict,
     Explosion,
     Faction,
     Order,
     PowerLevel,
+    Projectile,
     ScanLevel,
     ShipManagerNpc,
     ShipManagerPc,
@@ -272,6 +274,62 @@ describe('ShipManager weapons target cycling is gated on scan level', () => {
         mgr.state.weaponsTarget.nextTargetCommand = true;
         mgr.handleTargetCommands();
         expect(mgr.state.weaponsTarget.targetId).to.equal('friend');
+    });
+
+    it('cycling skips an identified wreck and lands on the live hostile, even with both filters off (#2329)', () => {
+        for (const enemyOnly of [true, false]) {
+            const { spaceMgr, makeShipMgr, flush } = setup();
+            const { mgr } = makeShipMgr('a', Faction.Gravitas);
+            const wreck = new Derelict().init(
+                'wreck',
+                new Vec2(0, 1000),
+                demoShipConfig.radius,
+                Faction.Raiders,
+                'Dead',
+                0,
+            );
+            wreck.scanLevels[Number(Faction.Gravitas)] = ScanLevel.BASIC;
+            spaceMgr.insert(wreck);
+            const { obj: enemy } = makeShipMgr('e', Faction.Raiders, 2000, 0);
+            enemy.scanLevels[Number(Faction.Gravitas)] = ScanLevel.BASIC;
+            flush();
+            mgr.state.weaponsTarget.shipOnly = false;
+            mgr.state.weaponsTarget.enemyOnly = enemyOnly;
+            for (let i = 0; i < 3; i++) {
+                mgr.state.weaponsTarget.nextTargetCommand = true;
+                mgr.handleTargetCommands();
+                expect(mgr.state.weaponsTarget.targetId, `enemyOnly=${String(enemyOnly)} step ${i}`).to.equal('e');
+            }
+        }
+    });
+
+    it('an unscanned wreck stays cyclable with filters off — skipping it would classify the blip', () => {
+        const { spaceMgr, makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        spaceMgr.insert(new Derelict().init('wreck', new Vec2(1000, 0), demoShipConfig.radius, Faction.Raiders, '', 0));
+        flush();
+        mgr.state.weaponsTarget.shipOnly = false;
+        mgr.state.weaponsTarget.enemyOnly = false;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal('wreck');
+    });
+
+    it('cycling never lands on a projectile, even with both filters off (#2329)', () => {
+        const { spaceMgr, makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        const shell = new Projectile().init('shell', new Vec2(0, 500));
+        shell.radius = 10;
+        spaceMgr.insert(shell);
+        makeShipMgr('u', Faction.Raiders, 2000, 0);
+        flush();
+        mgr.state.weaponsTarget.shipOnly = false;
+        mgr.state.weaponsTarget.enemyOnly = false;
+        for (let i = 0; i < 3; i++) {
+            mgr.state.weaponsTarget.nextTargetCommand = true;
+            mgr.handleTargetCommands();
+            expect(mgr.state.weaponsTarget.targetId).to.equal('u');
+        }
     });
 
     it('an NPC under attack orders still acquires the player as weapons target with only UFO-level intel on it', () => {
