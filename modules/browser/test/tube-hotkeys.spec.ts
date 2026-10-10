@@ -1,9 +1,10 @@
 jest.mock('@maulingmonkey/gamepad', () => ({}));
 
+import { nextClusterWarheadMode, wireTubeHotkeys } from '../src/input/tube-hotkeys';
 import { InputManager } from '../src/input/input-manager';
 import { ShipDriver } from '@starwards/core';
+import { readWriteProp } from '../src/property-wrappers';
 import { shipInputConfig } from '../src/input/input-config';
-import { wireTubeHotkeys } from '../src/input/tube-hotkeys';
 
 jest.mock('../src/property-wrappers', () => ({
     readWriteProp: jest.fn((_driver: unknown, pointer: string) => ({ pointer })),
@@ -75,7 +76,9 @@ describe('wireTubeHotkeys', () => {
         wireTubeHotkeys(input, fakeShipDriver([0]));
 
         const labels = input.getInputDescriptions().map((d) => d.label);
-        expect(labels).toEqual(expect.arrayContaining(['Tube 0 Safety', 'Tube 0 Load', 'Tube 0 Change Ammo']));
+        expect(labels).toEqual(
+            expect.arrayContaining(['Tube 0 Safety', 'Tube 0 Load', 'Tube 0 Change Ammo', 'Tube 0 Cluster Mode']),
+        );
         expect(labels.some((label) => label.startsWith('Tube 1'))).toBe(false);
     });
 
@@ -87,5 +90,59 @@ describe('wireTubeHotkeys', () => {
 
         const labels = input.getInputDescriptions().map((d) => d.label);
         expect(labels.some((label) => label.startsWith(`Tube ${slotCount}`))).toBe(false);
+    });
+
+    test('binds a per-tube cluster-mode hotkey that cycles that tube warhead mode (#2261)', () => {
+        const modes: Record<string, string> = { '/tubes/0/clusterWarhead': 'Frag', '/tubes/1/clusterWarhead': 'Frag' };
+        jest.mocked(readWriteProp).mockImplementation(((_driver: unknown, pointer: string) => ({
+            pointer,
+            getValue: () => modes[pointer],
+            setValue: (v: string) => {
+                modes[pointer] = v;
+            },
+        })) as unknown as typeof readWriteProp);
+        const input = new InputManager();
+        const clickSpy = jest.spyOn(input, 'addClickAction');
+
+        wireTubeHotkeys(input, fakeShipDriver([0, 1]));
+
+        expect(input.getInputDescriptions()).toEqual(
+            expect.arrayContaining([
+                {
+                    input: shipInputConfig.tubeClusterWarhead[0].toUpperCase(),
+                    label: 'Tube 0 Cluster Mode',
+                    inputType: 'keyboard',
+                },
+                {
+                    input: shipInputConfig.tubeClusterWarhead[1].toUpperCase(),
+                    label: 'Tube 1 Cluster Mode',
+                    inputType: 'keyboard',
+                },
+            ]),
+        );
+        const tube1Click = clickSpy.mock.calls.find(([, key]) => key === shipInputConfig.tubeClusterWarhead[1])![0];
+        tube1Click();
+        expect(modes).toEqual({ '/tubes/0/clusterWarhead': 'Frag', '/tubes/1/clusterWarhead': 'ArmPen' });
+        tube1Click();
+        expect(modes['/tubes/1/clusterWarhead']).toBe('Frag');
+    });
+
+    test('cluster-mode hotkeys avoid bare ctrl+digit (browser tab switch) and every other tube binding', () => {
+        const all = [
+            ...shipInputConfig.tubeSafety,
+            ...shipInputConfig.tubeLoad,
+            ...shipInputConfig.tubeChangeAmmo,
+            ...shipInputConfig.tubeClusterWarhead,
+            shipInputConfig.tubeIsFiring,
+        ];
+        expect(new Set(all).size).toBe(all.length);
+        for (const key of shipInputConfig.tubeClusterWarhead) {
+            expect(key).not.toMatch(/^ctrl\+\d$/);
+        }
+    });
+
+    test('nextClusterWarheadMode wraps around', () => {
+        expect(nextClusterWarheadMode('Frag')).toBe('ArmPen');
+        expect(nextClusterWarheadMode('ArmPen')).toBe('Frag');
     });
 });
