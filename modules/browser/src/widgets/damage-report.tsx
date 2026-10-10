@@ -44,12 +44,18 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
     }
     return (
         <div className="sw-damage__entry sw-damage__entry--caution">
-            {name} — {status}
+            <span className="sw-damage__name">{name}</span>
+            <span className="sw-damage__status">{status}</span>
         </div>
     );
 }
 function SystemOfflineReport({ name }: { name: string }) {
-    return <div className="sw-damage__entry sw-damage__entry--warning">{name} — OFFLINE</div>;
+    return (
+        <div className="sw-damage__entry sw-damage__entry--warning">
+            <span className="sw-damage__name">{name}</span>
+            <span className="sw-damage__status">OFFLINE</span>
+        </div>
+    );
 }
 
 function AllReports({ driver }: { driver: ShipDriver }) {

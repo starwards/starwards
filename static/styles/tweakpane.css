@@ -1051,11 +1051,28 @@ body[data-station='dradis'] .tp-btnv_b {
     letter-spacing: 0.05em;
     color: var(--sw-frame);
 }
+/* each entry is a two-line block (system name, then status) behind a left bar in its alert colour,
+   so every entry has the same shape whatever its text length, and entries are split by a rule */
 :root .sw-damage__entry {
-    padding: 1px 0;
+    display: flex;
+    flex-direction: column;
+    padding: 3px 0 3px 8px;
+    border-left: 2px solid currentColor;
     color: var(--sw-label);
     text-transform: uppercase;
     overflow-wrap: anywhere;
+}
+:root .sw-damage__entry + .sw-damage__entry {
+    margin-top: 4px;
+}
+:root .sw-damage__entry:not(:last-child) {
+    box-shadow: 0 3px 0 -2px var(--sw-frame);
+}
+:root .sw-damage__name {
+    font-weight: 700;
+}
+:root .sw-damage__status {
+    padding-left: 1ch;
 }
 :root .sw-damage__entry--caution {
     color: var(--sw-caution);
