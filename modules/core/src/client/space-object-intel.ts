@@ -52,7 +52,8 @@ export function scanCycleTargets(
  *
  * The type is disclosed only from BASIC up, where the player has earned it. A name is a
  * player-facing surface, so naming an unscanned contact by type would classify it for free.
- * A ship's callsign wins when it has one, which is BASIC-gated for the same reason.
+ * A ship's callsign wins when it has one, which is BASIC-gated for the same reason; a wreck's
+ * callsign is suffixed so it never reads as the live ship (#2329).
  *
  * Single override point: the planned relay-owned naming database replaces names here.
  */
@@ -64,8 +65,12 @@ export function objectDisplayName(
     if (!object || scanLevel < ScanLevel.BASIC) {
         return id;
     }
-    if ((Spaceship.isInstance(object) || Derelict.isInstance(object)) && object.callsign) {
+    if (Spaceship.isInstance(object) && object.callsign) {
         return object.callsign;
+    }
+    // a wreck keeps its dead ship's callsign, marked so it never reads as the live ship
+    if (Derelict.isInstance(object) && object.callsign) {
+        return `${object.callsign} (wreck)`;
     }
     return `${object.type} ${object.id}`;
 }

@@ -42,8 +42,8 @@ describe('objectDisplayName', () => {
         expect(objectDisplayName(undefined, 'gone', ScanLevel.FULL)).toEqual('gone');
     });
 
-    test('a derelict keeps its dead ship callsign instead of a generic label', () => {
-        expect(objectDisplayName(derelict('12', 'Dragonfly'), '12', ScanLevel.BASIC)).toEqual('Dragonfly');
+    test('a derelict keeps its dead ship callsign, marked as a wreck so it never reads as the live ship', () => {
+        expect(objectDisplayName(derelict('12', 'Dragonfly'), '12', ScanLevel.BASIC)).toEqual('Dragonfly (wreck)');
     });
 
     test('a callsign-less derelict falls back to the type', () => {
