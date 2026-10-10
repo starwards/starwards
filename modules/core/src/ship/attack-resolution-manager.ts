@@ -192,11 +192,6 @@ export class AttackResolutionManager {
      * multiplicatively down the stack. The area's final exposure is each plate's chain weighted
      * by how many of the hit's degrees landed on it, averaged over the area's full angular width
      * for a blast (including plates outside it) and over the hit's own width for an impact.
-     *
-     * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell across the
-     * whole hit pops and the hit is defeated for that plate (exposure measured pre-pop) unless
-     * the round fully penetrates (Tandem). Explosions erode the cells like ordinary plates — no
-     * pop, no defeat.
      */
     private walkArmorLayers(
         damage: AttackDamage,
@@ -214,7 +209,6 @@ export class AttackResolutionManager {
         if (hitSize <= 0) {
             return { exposure: 0, breachHit: false };
         }
-        const cellBudget = { popped: false };
         let exposureSum = 0;
         let breachHit = false;
         for (const [plate, overlap] of hits) {
@@ -228,7 +222,7 @@ export class AttackResolutionManager {
             // total by that plate's fraction of the hit is a no-op there, but matters on the rare
             // impact that straddles a plate seam.
             const amount = damage.delivery === 'explosion' ? damage.amount : damage.amount * (overlap / hitSize);
-            const chain = this.walkPlateLayers(plate, damage, amount, cellBudget);
+            const chain = this.walkPlateLayers(plate, damage, amount);
             exposureSum += chain * overlap;
         }
         // A blast covers part of the area, so it is weighted by its share of the area's width. An
@@ -239,12 +233,7 @@ export class AttackResolutionManager {
     }
 
     /** walks a single plate's own layer stack, independent of every other plate in the hit */
-    private walkPlateLayers(
-        plate: ArmorPlate,
-        damage: AttackDamage,
-        amount: number,
-        cellBudget: { popped: boolean },
-    ): number {
+    private walkPlateLayers(plate: ArmorPlate, damage: AttackDamage, amount: number): number {
         let chain = 1;
         for (const layer of plate.layers) {
             if (chain <= 0) {
@@ -256,22 +245,6 @@ export class AttackResolutionManager {
             }
             if (response.kind === 'block') {
                 chain *= layer.broken ? 1 : 0;
-                continue;
-            }
-            if (layer.design.singleUsePlates && damage.delivery === 'impact') {
-                const bareBeforePop = layer.broken ? 1 : 0;
-                if (!cellBudget.popped && !layer.broken) {
-                    // a single reactive cell sacrifices itself to defeat the whole hit
-                    layer.health = 0;
-                    cellBudget.popped = true;
-                    chain *= Math.max(response.penetration, bareBeforePop);
-                    if (response.penetration < 1) {
-                        // exposure measured pre-pop; deeper layers on this plate never see this round
-                        return chain;
-                    }
-                    continue;
-                }
-                chain *= Math.max(response.penetration, bareBeforePop);
                 continue;
             }
             layer.health = Math.max(layer.health - amount * response.plateFactor * chain, 0);

@@ -36,7 +36,6 @@ const FRONT_HIT_ARC: [number, number] = [...FRONT_ARC];
 
 // real ammo numbers (§8 table): contact rounds carry a flat damage, blast rounds a damageFactor
 const ARM_PEN_MISSILE_DAMAGE = ammoDesigns.ArmPenMissile.damage; // 60
-const TANDEM_MISSILE_DAMAGE = ammoDesigns.TandemMissile.damage; // 50
 const ELEC_MISSILE_DAMAGE = ammoDesigns.ElecMissile.damage; // 25
 const HI_EXP_MISSILE_BLAST = ammoDesigns.HiExpMissile.explosion.damageFactor; // 50
 
@@ -80,13 +79,8 @@ function breachLayer(state: ShipState, layerIdx: number) {
 
 const compositeOnly: ArmorLayerDesign[] = [{ type: 'composite', plateMaxHealth: 1000 }];
 
-const reactiveOverComposite: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100 },
-    { type: 'composite', plateMaxHealth: 1000 },
-];
-
 const fullStack: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100 },
+    { type: 'hardened', plateMaxHealth: 100 },
     { type: 'whipple', plateMaxHealth: 500 },
     { type: 'composite', plateMaxHealth: 1000 },
 ];
@@ -189,13 +183,12 @@ describe('spec §9 worked examples', () => {
     });
 
     describe('Frag missile vs any stack', () => {
-        // §9: "Frag missile vs anyone: armor row 0/0 everywhere. Plates never touched, ERA never
-        // wakes ... thrusters, radar, guns get sanded no matter what armor the ship wears."
-        it('plates and cells untouched on a full Reactive > Whipple > Composite stack, externals sanded', () => {
+        // §9: "Frag missile vs anyone: armor row 0/0 everywhere. Plates never touched ... thrusters, radar, guns get sanded no matter what armor the ship wears."
+        it('plates untouched on a full Hardened > Whipple > Composite stack, externals sanded', () => {
             const { state, damageManager } = setUpLayeredShip(fullStack);
             const damaged = damageManager.takeWeaponDamage(frontDamage(100, 'Frag', 'explosion'));
             for (const plate of state.armor.armorPlates) {
-                expect(plate.layers[0].health).to.equal(100); // reactive cells never wake
+                expect(plate.layers[0].health).to.equal(100);
                 expect(plate.layers[1].health).to.equal(500);
                 expect(plate.layers[2].health).to.equal(1000);
             }
@@ -213,19 +206,7 @@ describe('spec §9 worked examples', () => {
         });
     });
 
-    describe('ElecMissile: Reactive pops it, Composite lets it through', () => {
-        // §9: "ElecMissile vs Reactive: contact, armor row 1/0 pop: a cell dies, the dart is
-        // defeated, electronics safe, one cell spent."
-        it('vs Reactive outer: one cell pops, electronics safe', () => {
-            const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
-            const damaged = damageManager.takeWeaponDamage(frontDamage(ELEC_MISSILE_DAMAGE, 'Elec', 'impact'));
-            const popped = frontPlates(state).filter((plate) => plate.layers[0].health <= 0).length;
-            expect(popped).to.equal(1);
-            expect(damaged).to.equal(false);
-            expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
-            expect(state.smartPilot.offsetFactor).to.equal(0);
-        });
-
+    describe('ElecMissile: Composite lets it through', () => {
         // §9: "Same missile vs Composite: 0/1 transparent, so every electronics system
         // ship-wide rolls once at x2."
         it('vs plain Composite: bypass, ship-wide electronics roll at x2, non-electronics untouched', () => {
@@ -250,45 +231,14 @@ describe('spec §9 worked examples', () => {
         });
     });
 
-    describe('sequenced fire vs Reactive > Whipple > Composite', () => {
-        // §9: "Tandem missiles pop the Reactive cells in the target arc (Whipple beneath would
-        // pre-detonate them...)" — the precursor pops a cell, the main charge penetrates the
-        // reactive layer (penetration 1) but the intact Whipple screen pre-detonates it
-        it('(a) Tandem pops a cell and continues, but the intact Whipple screen pre-detonates it', () => {
+    describe('sequenced fire vs Hardened > Whipple > Composite', () => {
+        // with the outer slab stripped, ArmPen passes the Whipple screen untouched (0/1) and
+        // erodes the Composite core at 2x
+        it('(b) ArmPen after the outer slab in arc is broken: transits Whipple, erodes the Composite core at x2', () => {
             const { state, damageManager } = setUpLayeredShip(fullStack);
-            const damaged = damageManager.takeWeaponDamage(frontDamage(TANDEM_MISSILE_DAMAGE, 'Tandem', 'impact'));
-            const popped = frontPlates(state).filter((plate) => plate.layers[0].health <= 0).length;
-            expect(popped).to.equal(1);
-            // whipple blocks Tandem (plateDamage 0 / penetration 0): no erosion, walk stops
-            for (const plate of state.armor.armorPlates) {
-                expect(plate.layers[1].health).to.equal(500);
-                expect(plate.layers[2].health).to.equal(1000);
-            }
-            expect(damaged).to.equal(false);
-            expect(state.smartPilot.offsetFactor).to.equal(0);
-        });
-
-        // §9: "ArmPen was the wrong opener (each round costs a Reactive cell)"
-        it('(b) ArmPen while cells remain: costs one cell, walk stops, inner layers untouched', () => {
-            const { state, damageManager } = setUpLayeredShip(fullStack);
+            breachLayer(state, 0); // outer hardened slab in the arc already broken
             const damaged = damageManager.takeWeaponDamage(frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'));
-            const popped = frontPlates(state).filter((plate) => plate.layers[0].health <= 0).length;
-            expect(popped).to.equal(1);
-            for (const plate of state.armor.armorPlates) {
-                expect(plate.layers[1].health).to.equal(500);
-                expect(plate.layers[2].health).to.equal(1000);
-            }
-            expect(damaged).to.equal(false);
-        });
-
-        // §9: "...but becomes the right finisher: with the cells stripped it passes the Whipple
-        // screen untouched (0/1) and erodes the Composite core at 2x." — nothing popped, so the
-        // round is not defeated and continues the walk inward
-        it('(b) ArmPen after all cells in arc are spent: transits Whipple, erodes the Composite core at x2', () => {
-            const { state, damageManager } = setUpLayeredShip(fullStack);
-            breachLayer(state, 0); // all reactive cells in the arc already spent
-            const damaged = damageManager.takeWeaponDamage(frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'));
-            // exposure 1 through the spent reactive layer, chained through the composite's
+            // exposure 1 through the broken hardened layer, chained through the composite's
             // broken ratio (0 — intact): plates soak it, no internal damage yet
             expect(damaged).to.equal(false);
             expect(state.smartPilot.offsetFactor).to.equal(0);
@@ -304,15 +254,14 @@ describe('spec §9 worked examples', () => {
             }
         });
 
-        // §9: "HiExp ... slowly grinds the Reactive cells"
-        it('(c) HiExp erodes cells without popping them, and armor damage persists across update ticks', () => {
+        it('(c) HiExp grinds the outer slab, and armor damage persists across update ticks', () => {
             const { ship, state, spaceManager, damageManager } = setUpLayeredShip(fullStack);
             const manager = new ShipManagerPc(ship, state, spaceManager, new MockDie());
             damageManager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
             // a blast's amount is not divided by the touched-plate count (unlike impact): every
-            // plate takes the same flat erosion, eroding its reactive cells (issue #2236)
+            // plate takes the same flat erosion, at hardened's plateDamage_HiExp 0.5 (issue #2236)
             for (const plate of frontPlates(state)) {
-                expect(plate.layers[0].health).to.be.closeTo(100 - 40, 0.1);
+                expect(plate.layers[0].health).to.be.closeTo(100 - 40 * 0.5, 0.1);
             }
             // scratch the whipple screen too, then run the ship update loop
             frontPlates(state)[0].layers[1].health = 490;
@@ -320,12 +269,12 @@ describe('spec §9 worked examples', () => {
             // armor does not heal — every layer stays at its damaged value until explicit repair
             expect(frontPlates(state)[0].layers[1].health).to.equal(490);
             for (const plate of frontPlates(state)) {
-                expect(plate.layers[0].health).to.be.closeTo(100 - 40, 0.1);
+                expect(plate.layers[0].health).to.be.closeTo(100 - 40 * 0.5, 0.1);
             }
         });
 
         // §6 exposure chains multiplicatively — 3-layer extension of the armor-walk pin:
-        // reactive half-broken (0.5) × whipple fully broken (1) × composite fully broken (1) = 0.5
+        // hardened half-broken (0.5) × whipple fully broken (1) × composite fully broken (1) = 0.5
         it('(d) exposure chains multiplicatively across all three layers', () => {
             const { state, damageManager } = setUpLayeredShip(fullStack);
             const plates = frontPlates(state);
@@ -342,22 +291,6 @@ describe('spec §9 worked examples', () => {
             // At exposure 1 it would take two rolls (0.10) — this pins the 0.5 chain.
             expect(state.warp!.damageFactor).to.be.closeTo(0.05, 0.0001);
             expect(state.smartPilot.offsetFactor).to.be.closeTo(0.01, 0.0001);
-        });
-
-        // §6/§9: an intact blocking layer stops the walk — even with every other layer bared
-        it('(e) an intact blocking Whipple screen zeroes system damage entirely', () => {
-            const { state, damageManager } = setUpLayeredShip(fullStack);
-            for (const plate of frontPlates(state)) {
-                plate.layers[0].health = 0; // cells spent
-                plate.layers[2].health = 0; // core bared
-            }
-            const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'Tandem', 'impact'));
-            expect(damaged).to.equal(false);
-            for (const plate of frontPlates(state)) {
-                expect(plate.layers[1].health).to.equal(500); // block never erodes
-            }
-            expect(state.smartPilot.offsetFactor).to.equal(0);
-            expect(state.warp!.damageFactor).to.equal(0);
         });
     });
 });

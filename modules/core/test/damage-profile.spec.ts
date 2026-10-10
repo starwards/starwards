@@ -35,11 +35,6 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         }
     });
 
-    it('Tandem is a weaker ArmPen sharing its single-system scope', () => {
-        expect(damageProfiles.Tandem.systemScope).to.equal(damageProfiles.ArmPen.systemScope);
-        expect(damageProfiles.Tandem.systemDamageFactor).to.be.lessThan(damageProfiles.ArmPen.systemDamageFactor);
-    });
-
     it('Elec is the only electronics-scoped profile and hits its scope hardest', () => {
         for (const type of weaponDamageTypes) {
             expect(damageProfiles[type].systemScope === 'electronics', type).to.equal(type === 'Elec');

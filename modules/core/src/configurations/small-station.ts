@@ -73,7 +73,6 @@ export const smallStationMagazine = {
     max_ArmPenMissile: 0,
     max_FragMissile: 0,
     max_ClusterMissile: 0,
-    max_TandemMissile: 0,
     max_ElecMissile: 0,
     damage50: 20,
     capacityBrokenThreshold: 0.15,

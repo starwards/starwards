@@ -45,29 +45,31 @@ function frontPlates(state: ShipState) {
     return [...state.armor.platesInRange(FRONT_HIT_ARC)].map(([, plate]) => plate);
 }
 
-const reactiveOverComposite: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100 },
+const hardenedOverComposite: ArmorLayerDesign[] = [
+    { type: 'hardened', plateMaxHealth: 1000 },
     { type: 'composite', plateMaxHealth: 1000 },
 ];
 
 describe('AttackResolutionManager', () => {
     it('resolves armor engagement (delivery + layer walk) before any system is handed damage', () => {
-        const { state, resolution } = setUpLayeredShip(reactiveOverComposite);
-        // ArmPen impact vs an intact reactive cell: the round is defeated by the pop, so the
-        // resolution produces no system hits at all — but the armor engagement (the pop) is
-        // still a resolved side effect, independent of whether any system ever takes damage.
+        const { state, resolution } = setUpLayeredShip(hardenedOverComposite);
+        // ArmPen impact vs an intact hardened slab: the slab stops the round, so the resolution
+        // produces no system hits at all — but the armor engagement (erosion) is still a
+        // resolved side effect, independent of whether any system ever takes damage.
         const result = resolution.resolveWeaponAttack(frontDamage(50, 'ArmPen', 'impact'));
         expect(result.hits).to.deep.equal([]);
         expect(result.damagedExternals).to.equal(false);
-        expect(frontPlates(state).filter((plate) => plate.layers[0].health <= 0).length).to.equal(1);
+        for (const plate of frontPlates(state)) {
+            expect(plate.layers[0].health).to.be.lessThan(1000);
+        }
         for (const plate of state.armor.armorPlates) {
             expect(plate.layers[1].health).to.equal(1000);
         }
     });
 
     it('splits resolved damage into the penetration channel and the surface channel', () => {
-        const { resolution } = setUpLayeredShip(reactiveOverComposite);
-        // HiExp explosion vs an intact reactive cell: the cell erodes but does not break, so the
+        const { resolution } = setUpLayeredShip(hardenedOverComposite);
+        // HiExp explosion vs an intact hardened slab: the slab erodes but does not break, so the
         // penetration channel stays shut (no internal hits) while the surface channel still
         // scrapes every hull-mounted system in the arc.
         const result = resolution.resolveWeaponAttack(frontDamage(40, 'HiExp', 'explosion'));

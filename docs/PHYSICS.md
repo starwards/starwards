@@ -138,7 +138,7 @@ Weapons are designed for specific effectiveness ranges:
 3. **Long Range:** Self-propelled torpedoes
    - Homing capability: 504–936°/s rotation, depending on the missile (see `homing.rotationCapacity` per missile in `modules/core/src/space/projectile.ts`)
    - Flight time varies by warhead (see `secondsToLive` per missile in `modules/core/src/space/projectile.ts`)
-   - Fuze varies by warhead: proximity detonation at 100m (HiExp, Frag, Cluster), or contact (ArmPen, Tandem, Elec)
+   - Fuze varies by warhead: proximity detonation at 100m (HiExp, Frag, Cluster), or contact (ArmPen, Elec)
 
 **Chaingun Selection:** External chain-powered for blowback-free operation, variable motor speed controls rate of fire, misfires don't jam (round ejects, new round loads).
 
@@ -173,7 +173,7 @@ takeWeaponDamage(damage: AttackDamage) {
 - **block** — stops the walk; only already-broken sections leak inward
 - **engage** — plates erode (`damage.amount × plateFactor × chain`) and damage leaks through via `max(penetration, brokenLayerRatio)`
 
-Exposure chains multiplicatively across the stack; the final chain scales system damage for the area. Per-plate chains are averaged by the degrees of the hit on each plate: over the area's full width for a blast (it covers part of the area), over the hit's own width for an impact (a contact round is one point through the plate it struck, so a stripped plate exposes it fully). Reactive layers (`singleUsePlates`) trigger on impact delivery only: one cell pops and defeats the whole hit (exposure measured pre-pop) unless the round fully penetrates (Tandem); explosions erode reactive cells like ordinary plates.
+Exposure chains multiplicatively across the stack; the final chain scales system damage for the area. Per-plate chains are averaged by the degrees of the hit on each plate: over the area's full width for a blast (it covers part of the area), over the hit's own width for an impact (a contact round is one point through the plate it struck, so a stripped plate exposes it fully).
 
 Resolved hits are applied through `damageSystem()`: the damage profile's `systemScope` picks targets (a single random system, all systems in the exposed area, or ship-wide electronics — decided during resolution), and each application is walked off in `damage50`-sized steps of probabilistic `@defectible` rolls (each capped at 50%) — no direct health subtraction on systems.
 

@@ -52,12 +52,13 @@ function frontPlates(state: ShipState) {
     return [...state.armor.platesInRange(FRONT_HIT_ARC)].map(([, plate]) => plate);
 }
 
-function countBrokenLayer(state: ShipState, layerIdx: number): number {
-    return frontPlates(state).filter((plate) => plate.layers[layerIdx].health <= 0).length;
-}
+const thinWhippleOverComposite: ArmorLayerDesign[] = [
+    { type: 'whipple', plateMaxHealth: 100 },
+    { type: 'composite', plateMaxHealth: 1000 },
+];
 
-const reactiveOverComposite: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100 },
+const faradayOverComposite: ArmorLayerDesign[] = [
+    { type: 'faraday', plateMaxHealth: 500 },
     { type: 'composite', plateMaxHealth: 1000 },
 ];
 
@@ -72,47 +73,10 @@ const hardenedOverComposite: ArmorLayerDesign[] = [
 ];
 
 describe('layered armor resolution walk', () => {
-    it('ArmPen impact vs Reactive over Composite: pops one cell, walk stops, composite untouched', () => {
-        const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
-        const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen', 'impact'));
-        expect(countBrokenLayer(state, 0)).to.equal(1);
-        for (const plate of state.armor.armorPlates) {
-            expect(plate.layers[1].health).to.equal(1000);
-        }
-        expect(damaged).to.equal(false);
-        expect(state.smartPilot.offsetFactor).to.equal(0);
-    });
-
     // FRONT_HIT_ARC spans exactly 6 plates. For impact delivery, each plate's own share of a hit
     // is 1/6 of damage.amount (none of these hits is confined to a single plate). Explosion
     // delivery does not divide by this count -- see issue #2236.
     const FRONT_PLATE_COUNT = 6;
-
-    it('Tandem impact vs Reactive over Composite: pops a cell AND continues into the composite', () => {
-        const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
-        damageManager.takeWeaponDamage(frontDamage(50, 'Tandem', 'impact'));
-        expect(countBrokenLayer(state, 0)).to.equal(1);
-        // penetration_Tandem 1 vs reactive → chain stays 1; composite erodes at its Tandem
-        // plateFactor (1) using each plate's own 1/6 share of the 50 damage
-        for (const plate of frontPlates(state)) {
-            expect(plate.layers[1].health).to.be.closeTo(1000 - 50 / FRONT_PLATE_COUNT, 0.1);
-        }
-    });
-
-    it('HiExp explosion vs Reactive over Composite: cells erode (no pop), composite untouched, externals scraped', () => {
-        const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
-        const damaged = damageManager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
-        expect(countBrokenLayer(state, 0)).to.equal(0);
-        // unlike impact, a blast's amount is not divided by the touched-plate count: every plate
-        // inside the blast radius takes the same flat erosion (issue #2236)
-        for (const plate of frontPlates(state)) {
-            expect(plate.layers[0].health).to.be.closeTo(100 - 40, 0.1);
-            expect(plate.layers[1].health).to.equal(1000);
-        }
-        // intact cells, penetration 0 → chain 0 → no internal damage; the surface scrape lands
-        expect(damaged).to.equal(true);
-        expect(state.smartPilot.offsetFactor).to.equal(0);
-    });
 
     it('ArmPen impact transits Whipple untouched and erodes Composite at x2', () => {
         const { state, damageManager } = setUpLayeredShip(whippleOverComposite);
@@ -135,12 +99,12 @@ describe('layered armor resolution walk', () => {
     });
 
     it('an intact blocking outer layer zeroes system damage even over a fully broken inner layer', () => {
-        // Tandem vs Whipple is 0/0 (blocked) while it engages composite
-        const { state, damageManager } = setUpLayeredShip(whippleOverComposite);
+        // Elec vs Faraday is 0/0 (blocked)
+        const { state, damageManager } = setUpLayeredShip(faradayOverComposite);
         for (const plate of frontPlates(state)) {
             plate.layers[1].health = 0;
         }
-        const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'Tandem', 'impact'));
+        const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'Elec', 'impact'));
         expect(damaged).to.equal(false);
         for (const plate of frontPlates(state)) {
             expect(plate.layers[0].health).to.equal(500);
@@ -150,13 +114,13 @@ describe('layered armor resolution walk', () => {
 
     it('exposure chains multiplicatively across layers', () => {
         // outer hardened half-broken (3 of 6 front plates), inner composite fully broken:
-        // single-scope exposure = 0.5 × 1 = 0.5 of the hit. Tandem 3.5 × damage50 × factor 1 × 0.5
-        // = 1.75 smartPilot damage50 steps → 2 defect rolls, all succeeding with MockDie
+        // single-scope exposure = 0.5 × 1 = 0.5 of the hit. ArmPen (3.5 / 1.5) × damage50 × factor 1.5
+        // × 0.5 = 1.75 smartPilot damage50 steps → 2 defect rolls, all succeeding with MockDie
         // (expectedRoll 0) → smartPilot offset 0.02. The amount lands mid-step on purpose: the
         // hit spans FRONT_ARC's 179.99°, so its exposure is a hair above 0.5, and an amount on a
         // step boundary would flip the roll count.
         const { state, damageManager } = setUpLayeredShip(hardenedOverComposite);
-        const amount = 3.5 * state.smartPilot.design.damage50;
+        const amount = (3.5 / 1.5) * state.smartPilot.design.damage50;
         const plates = frontPlates(state);
         for (const [i, plate] of plates.entries()) {
             if (i < 3) {
@@ -164,7 +128,7 @@ describe('layered armor resolution walk', () => {
             }
             plate.layers[1].health = 0;
         }
-        const damaged = damageManager.takeWeaponDamage(frontDamage(amount, 'Tandem', 'impact'));
+        const damaged = damageManager.takeWeaponDamage(frontDamage(amount, 'ArmPen', 'impact'));
         expect(damaged).to.equal(true);
         expect(state.smartPilot.offsetFactor).to.be.closeTo(0.02, 0.0001);
     });
@@ -183,7 +147,7 @@ describe('layered armor resolution walk', () => {
         }
 
         it('erodes the outermost layer with intact health per plate', () => {
-            const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
+            const { state, damageManager } = setUpLayeredShip(thinWhippleOverComposite);
             const plates = frontPlates(state);
             plates[0].layers[0].health = 0;
             damageManager.takeCollisionDamage(collision(50));
@@ -194,7 +158,7 @@ describe('layered armor resolution walk', () => {
         });
 
         it('reaches systems only where a plate is fully broken (all layers)', () => {
-            const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
+            const { state, damageManager } = setUpLayeredShip(thinWhippleOverComposite);
             const plates = frontPlates(state);
             plates[0].layers[0].health = 0;
             const partiallyBroken = damageManager.takeCollisionDamage(collision(1));

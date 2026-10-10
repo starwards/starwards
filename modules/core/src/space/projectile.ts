@@ -13,7 +13,6 @@ export const missileAmmoTypes = [
     'ArmPenMissile',
     'FragMissile',
     'ClusterMissile',
-    'TandemMissile',
     'ElecMissile',
 ] as const;
 export const ammoTypes = [...shellAmmoTypes, ...missileAmmoTypes] as const;
@@ -258,23 +257,6 @@ export const ammoDesigns = {
                 damage: 30,
             },
         },
-    },
-    TandemMissile: {
-        name: 'Tandem missile',
-        radius: 2,
-        damageType: 'Tandem',
-        delivery: 'impact',
-        fuze: { type: 'contact' },
-        heatPerShot: 25,
-        homing: {
-            secondsToLive: 60,
-            rotationCapacity: 936,
-            velocityCapacity: 420,
-            maxSpeed: 420,
-            sprint: TERMINAL_SPRINT,
-        },
-        // ArmPen's slightly weaker sibling — its value is the armor matchups
-        damage: 50,
     },
     ElecMissile: {
         name: 'Elec missile',

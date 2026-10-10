@@ -1,4 +1,4 @@
-export const weaponDamageTypes = ['HiExp', 'ArmPen', 'Frag', 'Tandem', 'Elec'] as const;
+export const weaponDamageTypes = ['HiExp', 'ArmPen', 'Frag', 'Elec'] as const;
 export type WeaponDamageType = (typeof weaponDamageTypes)[number];
 
 // 'Collision' carries no weapon profile — flat kinetic damage (collisions, bare explosions)
@@ -48,14 +48,6 @@ export const damageProfiles: Readonly<Record<WeaponDamageType, DamageProfile>> =
         systemScope: 'multi',
         hitsInternal: false,
         systemDamageFactor: 0.5,
-    },
-    // a slightly weaker ArmPen (factor 1 vs 1.5) whose niche is defeating reactive armor
-    Tandem: {
-        surfaceEffect: false,
-        surfaceDamageFactor: 0,
-        systemScope: 'single',
-        hitsInternal: true,
-        systemDamageFactor: 1,
     },
     Elec: {
         surfaceEffect: false,

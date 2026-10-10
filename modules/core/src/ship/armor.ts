@@ -33,16 +33,11 @@ export class ArmorLayerDesignState extends DesignState implements ArmorModelStat
     @gameField('float32') plateDamage_HiExp = 0;
     @gameField('float32') plateDamage_ArmPen = 0;
     @gameField('float32') plateDamage_Frag = 0;
-    @gameField('float32') plateDamage_Tandem = 0;
     @gameField('float32') plateDamage_Elec = 0;
     @gameField('float32') penetration_HiExp = 0;
     @gameField('float32') penetration_ArmPen = 0;
     @gameField('float32') penetration_Frag = 0;
-    @gameField('float32') penetration_Tandem = 0;
     @gameField('float32') penetration_Elec = 0;
-    @tweakable('boolean')
-    @gameField('boolean')
-    singleUsePlates = false;
 
     plateDamage(t: WeaponDamageType): number {
         return this[`plateDamage_${t}`];

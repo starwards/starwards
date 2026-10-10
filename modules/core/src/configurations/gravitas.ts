@@ -73,7 +73,6 @@ export const gravitasChaingun = {
     use_ArmPenMissile: false,
     use_FragMissile: false,
     use_ClusterMissile: false,
-    use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 0.09,
@@ -116,7 +115,6 @@ export const gravitasMagazine = {
     max_ArmPenMissile: 20,
     max_FragMissile: 8,
     max_ClusterMissile: 4,
-    max_TandemMissile: 0,
     max_ElecMissile: 6,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
@@ -213,12 +211,11 @@ export const gravitasTube = {
     use_HiExpShell: false,
     use_ArmPenShell: false,
     use_FragShell: false,
-    // every missile ammo type except Tandem (cut from the player hull)
+    // the only hull with every missile ammo type
     use_HiExpMissile: true,
     use_ArmPenMissile: true,
     use_FragMissile: true,
     use_ClusterMissile: true,
-    use_TandemMissile: false,
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,

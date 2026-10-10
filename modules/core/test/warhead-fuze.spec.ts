@@ -33,7 +33,7 @@ function makeShip(id: string, x = 0, y = 0) {
     return ship;
 }
 
-const contactFuzedAmmo = ['ArmPenShell', 'ArmPenMissile', 'TandemMissile', 'ElecMissile'] as const;
+const contactFuzedAmmo = ['ArmPenShell', 'ArmPenMissile', 'ElecMissile'] as const;
 const proximityFuzedAmmo = ['HiExpShell', 'FragShell', 'HiExpMissile', 'FragMissile'] as const;
 
 // spec §8 warhead table: impact rounds carry a flat damage number; explosion rounds
@@ -43,7 +43,6 @@ const proximityFuzedAmmo = ['HiExpShell', 'FragShell', 'HiExpMissile', 'FragMiss
 const impactDamagePins = {
     ArmPenShell: 30,
     ArmPenMissile: 60,
-    TandemMissile: 50,
     ElecMissile: 25,
 } as const;
 const explosionPins = {

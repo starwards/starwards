@@ -266,7 +266,7 @@ export function observeTactical(t: number, saved: SavedGame, playerId: string): 
             targetId: ship.weaponsTarget.targetId,
             tubesReady:
                 [...ship.tubes].some((tube) => shipNormal(tube) > 0) &&
-                ['HiExpMissile', 'ArmPenMissile', 'FragMissile', 'ClusterMissile', 'TandemMissile', 'ElecMissile'].some(
+                ['HiExpMissile', 'ArmPenMissile', 'FragMissile', 'ClusterMissile', 'ElecMissile'].some(
                     (a) => ship.magazine.getCount(a as AmmoType) > 0,
                 ),
         },
@@ -336,7 +336,7 @@ export function threatShares(enemies: readonly ShipReading[]): Map<string, numbe
  * broken or penetrated plates (½·0.1 each; a blast reaches the capsule at {@link BLAST_CAPSULE_ODDS}, a
  * single-system round picks one internal system). Δcap: surface scrapes on external systems through
  * {@link ShipReading.surfaceExposure}. The blast geometry is measured; every other constant is a rule
- * value. Reactive armor is out of scope (#1970).
+ * value.
  */
 export function ammoValue(ammo: AmmoType, target: ShipReading) {
     const design = ammoDesigns[ammo];

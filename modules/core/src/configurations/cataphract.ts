@@ -74,7 +74,6 @@ export const cataphractChaingun = {
     use_ArmPenMissile: false,
     use_FragMissile: false,
     use_ClusterMissile: false,
-    use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 0.09,
@@ -118,7 +117,6 @@ export const cataphractMagazine = {
     max_ArmPenMissile: 20,
     max_FragMissile: 0,
     max_ClusterMissile: 0,
-    max_TandemMissile: 2,
     max_ElecMissile: 2,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
@@ -218,7 +216,6 @@ export const cataphractTube = {
     use_ArmPenMissile: true,
     use_FragMissile: false,
     use_ClusterMissile: false,
-    use_TandemMissile: true,
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,

@@ -48,14 +48,7 @@ describe('tubeArmorer', () => {
         launches
             .slice(1)
             .forEach((t, i) => expect(t - launches[i]).toBeGreaterThanOrEqual(LAUNCH_INTERVAL_SECONDS - 0.1));
-        for (const m of [
-            'HiExpMissile',
-            'ArmPenMissile',
-            'FragMissile',
-            'ClusterMissile',
-            'TandemMissile',
-            'ElecMissile',
-        ] as const)
+        for (const m of ['HiExpMissile', 'ArmPenMissile', 'FragMissile', 'ClusterMissile', 'ElecMissile'] as const)
             ship.magazine.setCount(m, 0);
         ship.tubes.forEach((t) => {
             t.loading = 0;

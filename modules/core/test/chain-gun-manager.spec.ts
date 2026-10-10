@@ -198,7 +198,7 @@ describe('ChainGunManager', () => {
             shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
             const tube = shipMgr.state.tubes[0];
-            // demo-ship tube ammo order: HiExpMissile, ArmPenMissile, FragMissile, ClusterMissile, TandemMissile, ElecMissile
+            // demo-ship tube ammo order: HiExpMissile, ArmPenMissile, FragMissile, ClusterMissile, ElecMissile
             tube.projectile = 'FragMissile';
 
             const cycle = () => {
@@ -215,7 +215,7 @@ describe('ChainGunManager', () => {
             expect(tube.clusterWarhead).to.equal(clusterWarheadModes[1]);
 
             cycle();
-            expect(tube.projectile).to.equal('TandemMissile');
+            expect(tube.projectile).to.equal('ElecMissile');
             expect(tube.clusterWarhead).to.equal(clusterWarheadModes[0]);
         });
 

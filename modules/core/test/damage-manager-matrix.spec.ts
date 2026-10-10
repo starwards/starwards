@@ -3,7 +3,6 @@ import {
     AttackDamage,
     Damage,
     DamageManager,
-    Explosion,
     FRONT_ARC,
     SpaceManager,
     Spaceship,
@@ -14,7 +13,6 @@ import {
     faradayArmor,
     hardenedArmor,
     makeShipState,
-    reactiveArmor,
     whippleArmor,
     withFaradayLayer,
 } from '../src';
@@ -22,7 +20,6 @@ import {
 import { MockDie } from './ship-test-harness';
 import { ShipDie } from '../src/ship/ship-die';
 import { ShipState } from '../src/ship/ship-state';
-import { Vec2 } from '../src';
 import { expect } from 'chai';
 
 interface Fixture {
@@ -46,12 +43,11 @@ function setUpShip(armorStats: ArmorModelStats = compositeArmor): Fixture {
 }
 
 // per-type default delivery mirrors the ammo catalog (projectile.ts): contact-fuzed rounds
-// (ArmPen/Tandem/Elec) are impact, blast rounds (HiExp/Frag) are explosion
+// (ArmPen/Elec) are impact, blast rounds (HiExp/Frag) are explosion
 const defaultDelivery: Record<WeaponDamageType, 'impact' | 'explosion'> = {
     HiExp: 'explosion',
     ArmPen: 'impact',
     Frag: 'explosion',
-    Tandem: 'impact',
     Elec: 'impact',
 };
 
@@ -73,63 +69,6 @@ function frontDamage(
 }
 
 describe('damage-manager × armor design stats (issue #1929)', () => {
-    describe('Reactive armor (single-use cells)', () => {
-        it('ArmPen pops cells but is defeated — no system damage on the popping hit', () => {
-            const { state, damageManager } = setUpShip(reactiveArmor);
-            const initialHealthy = state.armor.numberOfHealthyPlates;
-            const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
-            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
-            expect(damaged).to.equal(false);
-            expect(state.smartPilot.offsetFactor).to.equal(0);
-        });
-
-        it('HiExp explosion erodes reactive cells like ordinary plates — no pop, blast survives', () => {
-            const { state, spaceManager, damageManager } = setUpShip(reactiveArmor);
-            const explosion = new Explosion().init('d-1', new Vec2(0, 0), 20);
-            spaceManager.insert(explosion);
-            spaceManager.forceFlushEntities();
-            const before = state.armor.armorPlates[0].layers[0].health;
-            damageManager.takeWeaponDamage(frontDamage(50, 'HiExp', 'explosion'));
-            // erosion at plateDamage_HiExp (1) — cells wear down instead of popping. Unlike
-            // impact, a blast's amount is not divided by the touched-plate count: every plate in
-            // the blast radius takes the same flat erosion (issue #2236)
-            expect(before - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(50, 0.001);
-            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
-            expect(explosion.destroyed).to.equal(false);
-        });
-
-        it('Tandem impact pops exactly one cell', () => {
-            const { state, damageManager } = setUpShip(reactiveArmor);
-            const initialHealthy = state.armor.numberOfHealthyPlates;
-            damageManager.takeWeaponDamage(frontDamage(50, 'Tandem'));
-            expect(initialHealthy - state.armor.numberOfHealthyPlates).to.equal(1);
-        });
-
-        it('a follow-up hit on the bared section gets through', () => {
-            const { damageManager } = setUpShip(reactiveArmor);
-            damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
-            const damaged = damageManager.takeWeaponDamage({ ...frontDamage(50, 'ArmPen'), id: 'd-2' });
-            expect(damaged).to.equal(true);
-        });
-
-        it('Elec pops cells and is blocked — electronics untouched', () => {
-            const { state, damageManager } = setUpShip(reactiveArmor);
-            const initialHealthy = state.armor.numberOfHealthyPlates;
-            const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'Elec'));
-            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
-            expect(damaged).to.equal(false);
-            expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
-        });
-
-        it('Tandem consumes cells and exposes internals fully', () => {
-            const { state, damageManager } = setUpShip(reactiveArmor);
-            const initialHealthy = state.armor.numberOfHealthyPlates;
-            const damagedInternals = damageManager.takeWeaponDamage(frontDamage(50, 'Tandem'));
-            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
-            expect(damagedInternals).to.equal(true);
-        });
-    });
-
     describe('Elec hits and the Faraday layer', () => {
         it('Composite armor + Elec hit → bypasses plates entirely', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
@@ -198,27 +137,6 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             // internals untouched — the scrape only reaches hull-mounted systems
             expect(state.smartPilot.offsetFactor).to.equal(0);
             expect(state.warp!.damageFactor).to.equal(0);
-        });
-
-        it('HiExp vs Reactive: the scrape lands on externals while cells erode, nothing penetrates', () => {
-            const { state, damageManager } = setUpShip(reactiveArmor);
-            const before = state.armor.armorPlates[0].layers[0].health;
-            // amount below plateMaxHealth (100) — the cells erode but hold
-            const damaged = damageManager.takeWeaponDamage(frontDamage(90, 'HiExp'));
-            expect(damaged).to.equal(true);
-            expect(state.armor.armorPlates[0].layers[0].health).to.be.lessThan(before);
-            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
-            // internals untouched — the cells hold while intact, only the scrape lands
-            expect(state.smartPilot.offsetFactor).to.equal(0);
-        });
-
-        it('Frag vs Reactive scrapes without consuming cells', () => {
-            const { state, damageManager } = setUpShip(reactiveArmor);
-            const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'Frag'));
-            expect(damaged).to.equal(true);
-            // reactive cells do not react to shrapnel — no cell consumed
-            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
-            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
         });
     });
 
