@@ -16,12 +16,17 @@ function fromBase64(base64: string): Uint8Array {
     return bytes;
 }
 
+/** The bytes of a recording payload (base64 of gzip), using only web platform APIs. */
+export async function decodeRecordedBytes(serialized: string): Promise<Uint8Array> {
+    return await gunzip(fromBase64(serialized));
+}
+
 /**
  * Decodes a recording frame (`schemaToString` output: base64 of gzipped Colyseus snapshot) using only
  * web platform APIs, so it runs in browsers as well as Node.
  */
 export async function decodeFrame<T extends Schema>(ctor: Constructor<T>, serialized: string): Promise<T> {
     const obj = new ctor();
-    new Decoder(obj).decode((await gunzip(fromBase64(serialized))) as never);
+    new Decoder(obj).decode((await decodeRecordedBytes(serialized)) as never);
     return obj;
 }

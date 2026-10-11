@@ -8,13 +8,18 @@ import {
     handleJsonPointerCommand,
     lockCommands,
     repairCommands,
+    shipRoomKey,
 } from '@starwards/core/internal';
 
-import { Room } from '@colyseus/core';
+import { RecordingSerializer, recordingSerializerFor } from '../recording/recording-serializer';
+import { Room, Serializer } from '@colyseus/core';
 
 const { error: logError } = createLogger('ship-room');
 
 export class ShipRoom extends Room<ShipState> {
+    /** set before `setState`, which would otherwise install a plain `SchemaSerializer` */
+    private recordingSerializer: RecordingSerializer | null = null;
+
     constructor() {
         super();
         this.autoDispose = false;
@@ -22,6 +27,7 @@ export class ShipRoom extends Room<ShipState> {
 
     public onCreate({ manager }: { manager: ShipManager }) {
         this.roomId = manager.spaceObject.id;
+        this.recordingSerializer = recordingSerializerFor(shipRoomKey(manager.spaceObject.id));
         this.setState(manager.state);
         // repair is a player-controlled mechanic (RepairManager is only constructed for
         // ShipManagerPc) — an NPC ship has nothing to drain these commands, so registering them
@@ -48,5 +54,13 @@ export class ShipRoom extends Room<ShipState> {
                 logError(`onMessage for message="${JSON.stringify(message)}" not registered.`);
             }
         });
+    }
+
+    public override setSerializer(serializer: Serializer<ShipState>) {
+        super.setSerializer(this.recordingSerializer ?? serializer);
+    }
+
+    public onDispose() {
+        if (this.recordingSerializer) RecordingSerializer.live.delete(this.recordingSerializer);
     }
 }

@@ -12,6 +12,9 @@ async function readLines(filePath: string): Promise<string[]> {
     return content.split('\n').filter((l) => l.length > 0);
 }
 
+/** these cases pin the v1 (keyframes only) behavior; delta recording has its own spec */
+const keyframesOnly = () => false;
+
 describe('GameRecorder', () => {
     const gameDriver = makeDriver();
     let tmpDir: string;
@@ -33,7 +36,7 @@ describe('GameRecorder', () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
 
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20, keyframesOnly);
         const filename = await recorder.startRecording();
 
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
@@ -50,7 +53,7 @@ describe('GameRecorder', () => {
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
         const blocked = path.join(tmpDir, 'a-file');
         await fs.writeFile(blocked, 'not a directory', 'utf-8');
-        const recorder = new GameRecorder(gameDriver.gameManager, path.join(blocked, 'recordings'), 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, path.join(blocked, 'recordings'), 15, keyframesOnly);
 
         await expect(recorder.startRecording()).rejects.not.toBeInstanceOf(RecordingConflictError);
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
@@ -59,7 +62,7 @@ describe('GameRecorder', () => {
     it('rejects starting a second recording while one is already running', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20, keyframesOnly);
         await recorder.startRecording();
         await expect(recorder.startRecording()).rejects.toThrow();
         await recorder.stopRecording();
@@ -68,7 +71,7 @@ describe('GameRecorder', () => {
     it('dedupes frames while paused (totalSeconds not advancing)', async () => {
         gameDriver.pauseGameCommand(); // speed = 0, so background sim ticks never advance totalSeconds
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         const filename = await recorder.startRecording();
 
         await new Promise((res) => setTimeout(res, 200)); // let several intervals fire
@@ -82,7 +85,7 @@ describe('GameRecorder', () => {
     it('writes monotonically increasing t once the game advances', async () => {
         gameDriver.gameManager.state.speed = 1;
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         const filename = await recorder.startRecording();
 
         await waitFor(
@@ -106,7 +109,7 @@ describe('GameRecorder', () => {
     it('auto-finalizes (stops itself, clears the flag) once the game stops', async () => {
         gameDriver.gameManager.state.speed = 1;
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         await recorder.startRecording();
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
 
@@ -124,7 +127,7 @@ describe('GameRecorder', () => {
     it('never appends to a finalized file, even while the timer keeps firing', async () => {
         gameDriver.gameManager.state.speed = 1;
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         const filename = await recorder.startRecording();
         await recorder.stopRecording();
 
@@ -136,7 +139,7 @@ describe('GameRecorder', () => {
     it('stopRecording is idempotent', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         await recorder.startRecording();
         await recorder.stopRecording();
         await expect(recorder.stopRecording()).resolves.not.toThrow();
@@ -146,7 +149,7 @@ describe('GameRecorder', () => {
     it('lists recordings newest first', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         const older = await recorder.startRecording();
         await recorder.stopRecording();
         await new Promise((res) => setTimeout(res, 5)); // distinct startedAt / filename
@@ -159,7 +162,7 @@ describe('GameRecorder', () => {
     it('listRecordings summarizes name / mapName / startedAt / duration / frame count', async () => {
         gameDriver.gameManager.state.speed = 1;
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         const filename = await recorder.startRecording();
 
         await waitFor(
@@ -182,7 +185,7 @@ describe('GameRecorder', () => {
     it('summarizes a format-v2 file by its keyframes only, also with a truncated delta tail', async () => {
         gameDriver.gameManager.state.speed = 1;
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
-        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         const filename = await recorder.startRecording();
         await waitFor(
             async () => {
