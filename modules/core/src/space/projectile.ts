@@ -133,6 +133,13 @@ export type MissileDesign = ProjectileDesign & {
 // its target, defeating leisurely maneuvering solutions in the terminal phase
 const TERMINAL_SPRINT = { range: 3_000, speedMultiplier: 2.5 } as const;
 
+/**
+ * Delayed launch (issue #2342, agreed 2026-07-12 for bridge drama): a missile leaves the tube
+ * as an unpowered, un-fuzed body drifting at `armingDistance / armingSeconds` relative to the
+ * launcher, then arms and ignites `armingSeconds` later, `armingDistance` off the hull.
+ */
+export const MISSILE_LAUNCH = { armingSeconds: 2, armingDistance: 1 } as const;
+
 export const ammoDesigns = {
     HiExpShell: {
         name: '30mm HiExp shell',
@@ -319,6 +326,14 @@ export class Projectile extends SpaceObjectBase implements Craft {
 
     @gameField('uint16')
     public health = 10;
+
+    /** Seconds until the fuze and homing thrust engage; a missile is inert while this is above 0. */
+    @gameField('float32')
+    public armingSeconds = 0;
+
+    get armed() {
+        return this.armingSeconds <= 0;
+    }
     // manual override for the detonation explosion (tests/GM); normally built
     // from the warhead design at detonation time — see makeExplosion()
     public _explosion?: Explosion;

@@ -1,6 +1,7 @@
 import { Die, EnergySource, HeatSink } from './ship-manager-abstract';
 import {
     Faction,
+    MISSILE_LAUNCH,
     Projectile,
     ScanLevel,
     SpaceObject,
@@ -279,15 +280,20 @@ export class ChainGunManager implements Updateable {
                 chainGun.getGlobalBearing(this.state),
                 chainGun.design.bulletDegreesDeviation,
             );
+            // a missile is ejected unpowered and drifts clear of the hull before it arms (issue #2342)
+            const isMissile = !!projectile.design.homing;
+            const launchSpeed = isMissile
+                ? MISSILE_LAUNCH.armingDistance / MISSILE_LAUNCH.armingSeconds
+                : chainGun.design.bulletSpeed;
             projectile.velocity = Vec2.sum(
                 this.spaceObject.velocity,
-                XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, projectile.angle),
+                XY.rotate({ x: launchSpeed, y: 0 }, projectile.angle),
             );
             const shellPosition = Vec2.make(
                 XY.sum(
                     this.spaceObject.position, // position of ship
                     XY.byLengthAndDirection(this.spaceObject.radius + projectile.radius + EPSILON, projectile.angle), // muzzle related to ship
-                    XY.byLengthAndDirection(projectile.radius * 2, projectile.angle), // some initial distance
+                    XY.byLengthAndDirection(isMissile ? 0 : projectile.radius * 2, projectile.angle), // some initial distance
                 ),
             );
             projectile.init(uniqueId('shell'), shellPosition);
@@ -302,6 +308,7 @@ export class ChainGunManager implements Updateable {
             if (projectile.design.homing) {
                 projectile.targetId = this.state.weaponsTarget.targetId;
                 projectile.secondsToLive = projectile.design.homing.secondsToLive;
+                projectile.armingSeconds = MISSILE_LAUNCH.armingSeconds;
             } else {
                 projectile.secondsToLive = chainGun.shellSecondsToLive;
             }
