@@ -52,7 +52,13 @@ jobs:
                   path: /tmp/jest-cache
                   key: jest-${{ matrix.shard }}-${{ github.sha }}
                   restore-keys: jest-${{ matrix.shard }}-
-            - run: npm run test -- --maxWorkers=4 --shard=${{ matrix.shard }}/3 --cacheDirectory=/tmp/jest-cache --reporters=default --reporters=jest-junit
+            # weighted split (scripts/ci-shard.mjs); jest --shard splits by path hash and left one shard 3x slower
+            - name: Run unit tests
+              shell: bash
+              run: |
+                  set -f
+                  files=$(node scripts/ci-shard.mjs unit ${{ matrix.shard }} 3)
+                  npm run test -- --maxWorkers=4 --cacheDirectory=/tmp/jest-cache --reporters=default --reporters=jest-junit --runTestsByPath $files
               env:
                   JEST_JUNIT_OUTPUT_DIR: ./test-results
                   JEST_JUNIT_OUTPUT_NAME: junit-${{ matrix.shard }}.xml
@@ -137,8 +143,14 @@ jobs:
               if: steps.changes.outputs.code == 'true'
             - run: npm --prefix modules/browser run build
               if: steps.changes.outputs.code == 'true'
-            - run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
+            # weighted split (scripts/ci-shard.mjs); playwright --shard splits by order and left shards 3x apart
+            - name: Run e2e tests
               if: steps.changes.outputs.code == 'true'
+              shell: bash
+              run: |
+                  set -f
+                  files=$(node scripts/ci-shard.mjs e2e ${{ matrix.shard }} 4)
+                  npm run test:e2e -- $files
             - name: Store test results
               uses: actions/upload-artifact@v4
               if: steps.changes.outputs.code == 'true'
