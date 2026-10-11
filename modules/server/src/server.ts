@@ -33,6 +33,19 @@ function recordingsDirPath(env: Record<string, string | undefined> = process.env
     return env.STARWARDS_RECORDINGS_DIR || DEFAULT_RECORDINGS_DIR;
 }
 
+const DEFAULT_RECORDING_INTERVAL_MS = 1000;
+
+/** live-game recording frame interval; set STARWARDS_RECORDING_INTERVAL_MS (e.g. 100) for smoother replays */
+export function recordingIntervalMs(env: Record<string, string | undefined> = process.env): number {
+    const raw = env.STARWARDS_RECORDING_INTERVAL_MS;
+    if (!raw) return DEFAULT_RECORDING_INTERVAL_MS;
+    const value = Number(raw);
+    if (!Number.isInteger(value) || value <= 0) {
+        throw new Error(`STARWARDS_RECORDING_INTERVAL_MS must be a positive integer, got ${JSON.stringify(raw)}`);
+    }
+    return value;
+}
+
 export const HTTP_CONFLICT_STATUS = 409;
 const HTTP_BAD_REQUEST_STATUS = 400;
 const HTTP_NOT_FOUND_STATUS = 404;
@@ -50,7 +63,7 @@ export async function server(
     wsTransportOverrides?: { pingInterval?: number; pingMaxRetries?: number },
     recordingsDir: string = recordingsDirPath(),
 ) {
-    const gameRecorder = new GameRecorder(manager, recordingsDir);
+    const gameRecorder = new GameRecorder(manager, recordingsDir, recordingIntervalMs());
     // reassigned once gameServer.listen() resolves the actual bound port (the caller may pass 0)
     let boundPort = port;
     const app = express();
