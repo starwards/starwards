@@ -279,7 +279,8 @@ jobs:
                   node-version-file: '.nvmrc'
                   cache: 'npm'
             - run: npm ci
-            - run: npm run test:coverage:core
+            # 4 workers like Test-Units (jest's default leaves one of the runner's 4 cores idle)
+            - run: npm run test:coverage:core -- --maxWorkers=4
             - name: Upload coverage report
               if: always()
               uses: actions/upload-artifact@v4
