@@ -26,6 +26,8 @@ describe('wave-defence balance harness', () => {
                 seed: 2,
                 proxy: 'standoff-missiles',
                 maxSimSeconds: WAVE_INTERVAL_SECONDS,
+                // the first wave-1 kill settles it; the rest of the interval cannot undo a kill
+                stopWhen: (raiders) => [...raiders].some((r) => r.wave === 1 && r.fate === 'killed'),
             });
             expect(result.raiders.filter((r) => r.wave === 1 && r.fate === 'killed').length).toBeGreaterThan(0);
         },

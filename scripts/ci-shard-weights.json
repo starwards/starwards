@@ -1,7 +1,7 @@
 {
     "//": "Seconds per test file, measured in CI (2026-10-11). Only shard balance depends on these; a missing file gets the default weight.",
     "unit": {
-        "modules/server/src/test/wave-defence-balance.spec.ts": 212,
+        "modules/server/src/test/wave-defence-balance.spec.ts": 95,
         "modules/core/test/orbit-capture.spec.ts": 82,
         "modules/core/test/automation-heat-management.spec.ts": 75,
         "modules/core/test/automation-order-bolted.spec.ts": 75,
