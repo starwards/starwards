@@ -33,9 +33,12 @@ function recordingsDirPath(env: Record<string, string | undefined> = process.env
     return env.STARWARDS_RECORDINGS_DIR || DEFAULT_RECORDINGS_DIR;
 }
 
-const DEFAULT_RECORDING_INTERVAL_MS = 1000;
+// shortest blast (HiExpMissile warhead, core space/projectile.ts) lives 0.35 / BLAST_LIFETIME_FACTOR ≈ 117 ms;
+// 35 ms guarantees at least 3 frames of it, so explosions are watchable in replays. Each frame is a full
+// snapshot: files are ~29x the size of the old 1000 ms default.
+const DEFAULT_RECORDING_INTERVAL_MS = 35;
 
-/** live-game recording frame interval; set STARWARDS_RECORDING_INTERVAL_MS (e.g. 100) for smoother replays */
+/** live-game recording frame interval; override with STARWARDS_RECORDING_INTERVAL_MS */
 export function recordingIntervalMs(env: Record<string, string | undefined> = process.env): number {
     const raw = env.STARWARDS_RECORDING_INTERVAL_MS;
     if (!raw) return DEFAULT_RECORDING_INTERVAL_MS;
