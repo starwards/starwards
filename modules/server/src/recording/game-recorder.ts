@@ -192,17 +192,15 @@ export class GameRecorder {
 }
 
 /**
- * Reads a recording's header and scans to its last frame for the total length. Counts lines
- * rather than decoding them: every frame line carries a multi-KB encoded snapshot, and only
- * the tail's timestamp is needed.
+ * Reads a recording's header and counts its frame lines for the total length. Delta lines (`base`,
+ * `seg`) and a truncated tail line are not frames, so only lines that parse as a frame count.
  */
 async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
     const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
     const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
     let header: RecordingHeader | null = null;
     let frameCount = 0;
-    let lastLine: string | null = null;
-    let prevLine: string | null = null;
+    let lastT = 0;
     try {
         for await (const line of rl) {
             if (!line) continue;
@@ -210,9 +208,10 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
                 header = parseHeader(line);
                 continue;
             }
-            prevLine = lastLine;
-            lastLine = line;
+            const frame = parseFrameLine(line);
+            if (!frame) continue;
             frameCount++;
+            lastT = frame.t;
         }
     } catch (e) {
         logError(`can't read recording ${filePath}:`, e);
@@ -222,16 +221,11 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
         fileStream.close();
     }
     if (!header) return null;
-    let lastFrame = lastLine === null ? null : parseFrameLine(lastLine);
-    if (!lastFrame && lastLine !== null) {
-        frameCount--; // truncated tail line of an in-progress recording, not a frame
-        lastFrame = prevLine === null ? null : parseFrameLine(prevLine);
-    }
     return {
         name,
         mapName: header.mapName,
         startedAt: header.startedAt,
-        durationSeconds: lastFrame?.t ?? 0,
+        durationSeconds: lastT,
         frameCount,
     };
 }
