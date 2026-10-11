@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import { GameRecorder, RecordingConflictError } from './game-recorder';
 import { POWER_DRAW_EXPONENT, parseFrameLine, parseHeader, waitFor } from '@starwards/core/internal';
 import { makeDriver } from '../test/driver';
+import { writeV2Fixture } from '../test/v2-recording-fixture';
 
 async function readLines(filePath: string): Promise<string[]> {
     const content = await fs.readFile(filePath, 'utf-8');
@@ -176,5 +177,35 @@ describe('GameRecorder', () => {
         expect(recordings[0]).toMatchObject({ name: filename, mapName: 'test_map_1' });
         expect(recordings[0].frameCount).toBeGreaterThanOrEqual(2);
         expect(recordings[0].durationSeconds).toBeGreaterThan(0);
+    });
+
+    it('summarizes a format-v2 file by its keyframes only, also with a truncated delta tail', async () => {
+        gameDriver.gameManager.state.speed = 1;
+        await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const filename = await recorder.startRecording();
+        await waitFor(
+            async () => {
+                const lines = await readLines(path.join(tmpDir, filename));
+                if (lines.length < 4) throw new Error('waiting for more frames');
+            },
+            2000,
+            20,
+        );
+        await recorder.stopRecording();
+        const [v1] = await recorder.listRecordings();
+        const v2Dir = path.join(tmpDir, 'v2');
+        await fs.mkdir(v2Dir);
+        const v2Recorder = new GameRecorder(gameDriver.gameManager, v2Dir);
+        writeV2Fixture(path.join(tmpDir, filename), path.join(v2Dir, 'whole.sgr'));
+        writeV2Fixture(path.join(tmpDir, filename), path.join(v2Dir, 'truncated.sgr'), { truncateTail: true });
+
+        const summaries = await v2Recorder.listRecordings();
+        expect(summaries).toHaveLength(2);
+        for (const summary of summaries) {
+            expect(summary.frameCount).toBe(v1.frameCount);
+            expect(summary.durationSeconds).toBe(v1.durationSeconds);
+        }
+        expect(v1.durationSeconds).toBeGreaterThan(0);
     });
 });

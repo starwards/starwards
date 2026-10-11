@@ -6,6 +6,7 @@ import { decodeRecording, readRecordingHeader } from './decode';
 import { HeadlessGame } from '../../headless-game';
 import { HeadlessRecorder } from '../../headless-recorder';
 import { training_t0 } from '../../../scenarios/training';
+import { writeV2Fixture } from '../../v2-recording-fixture';
 
 describe('decodeRecording', () => {
     let dir: string;
@@ -62,5 +63,17 @@ describe('decodeRecording', () => {
             frames.push(frame);
         }
         expect(frames).toHaveLength(2);
+    });
+
+    it('reads a format-v2 file (delta lines, truncated tail) as exactly its keyframes', async () => {
+        const v2Path = path.join(dir, 'v2.sgr');
+        writeV2Fixture(filePath, v2Path, { truncateTail: true });
+        expect((await readRecordingHeader(v2Path)).deltas).toBe(1);
+
+        const v1 = [];
+        for await (const frame of decodeRecording(filePath)) v1.push(frame);
+        const v2 = [];
+        for await (const frame of decodeRecording(v2Path)) v2.push(frame);
+        expect(v2).toEqual(v1);
     });
 });

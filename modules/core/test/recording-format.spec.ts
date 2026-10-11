@@ -1,4 +1,17 @@
-import { encodeEventLine, encodeFrameLine, encodeHeader, parseEventLine, parseFrameLine, parseHeader } from '../src';
+import {
+    decodeSegment,
+    encodeBaseLine,
+    encodeEventLine,
+    encodeFrameLine,
+    encodeHeader,
+    encodeSegLine,
+    encodeSegment,
+    parseBaseLine,
+    parseEventLine,
+    parseFrameLine,
+    parseHeader,
+    parseSegLine,
+} from '../src';
 
 describe('recording-format', () => {
     it('encodes and parses a header round-trip', () => {
@@ -53,5 +66,60 @@ describe('recording-format sidecar events', () => {
         expect(parseEventLine(JSON.stringify({ t: 1 }))).toBeNull();
         expect(parseEventLine(JSON.stringify({ kind: 'x' }))).toBeNull();
         expect(parseEventLine('null')).toBeNull();
+    });
+});
+
+describe('recording-format v2 delta lines', () => {
+    const patches = [
+        { dt: Math.fround(0.05), room: 0, bytes: new Uint8Array([1, 2, 3]) },
+        { dt: 0.0625, room: 1, bytes: new Uint8Array([]) },
+        { dt: Math.fround(0.1), room: 0, bytes: new Uint8Array([255, 0, 7, 9]) },
+    ];
+
+    it('round-trips a segment', () => {
+        expect(decodeSegment(encodeSegment(patches))).toEqual(patches);
+    });
+
+    it('rejects a truncated segment payload', () => {
+        const bytes = encodeSegment(patches);
+        expect(() => decodeSegment(bytes.subarray(0, bytes.length - 1))).toThrow();
+        expect(() => decodeSegment(bytes.subarray(0, 3))).toThrow();
+    });
+
+    it('parses base and seg lines, and ignores a truncated one', () => {
+        const base = { t: 2, base: { space: 'YQ==', 'ship:S1': 'Yg==' } };
+        const seg = { t: 2, seg: 'YWJj' };
+        expect(parseBaseLine(encodeBaseLine(base))).toEqual(base);
+        expect(parseSegLine(encodeSegLine(seg))).toEqual(seg);
+        const truncated = encodeSegLine(seg).slice(0, 10);
+        expect(parseSegLine(truncated)).toBeNull();
+        expect(parseBaseLine(encodeBaseLine(base).slice(0, 10))).toBeNull();
+    });
+
+    it('keeps each line kind apart: frame readers skip delta lines and vice versa', () => {
+        const baseLine = encodeBaseLine({ t: 1, base: { space: 'YQ==' } });
+        const segLine = encodeSegLine({ t: 1, seg: 'YWJj' });
+        const frameLine = encodeFrameLine({ t: 1, frame: 'YWJj' });
+        expect(parseFrameLine(baseLine)).toBeNull();
+        expect(parseFrameLine(segLine)).toBeNull();
+        expect(parseBaseLine(frameLine)).toBeNull();
+        expect(parseSegLine(frameLine)).toBeNull();
+        expect(parseBaseLine(segLine)).toBeNull();
+        expect(parseSegLine(baseLine)).toBeNull();
+    });
+
+    it('a v2 header is still a version 1 header', () => {
+        const header = {
+            format: 'starwards-recording' as const,
+            version: 1 as const,
+            mapName: 'm',
+            startedAt: '2026-10-12T00:00:00.000Z',
+            intervalMs: 1000,
+            deltas: 1 as const,
+            patchRateMs: 50,
+            rooms: ['space', 'ship:S1'],
+            schemaHash: 'abc',
+        };
+        expect(parseHeader(encodeHeader(header))).toEqual(header);
     });
 });
