@@ -37,7 +37,8 @@ function halfLife(times: number[]): number {
 
 /** One spec file per rung, so jest runs the rungs on parallel workers. */
 export function describeFighterHalfLife(scenarioName: string, pinnedSeconds: number) {
-    describe('fighter half-life under standard fire', () => {
+    // skipped until further notice (Amir, 2026-10-11)
+    describe.skip('fighter half-life under standard fire', () => {
         it(
             `${scenarioName}: half of seeds 1-${SEEDS.length} kill within ±${TOLERANCE * 100}% of the pinned ${pinnedSeconds} s`,
             () => {

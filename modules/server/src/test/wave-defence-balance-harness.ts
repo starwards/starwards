@@ -155,6 +155,8 @@ interface RunOptions {
     readonly maxSimSeconds: number;
     readonly hz?: number;
     readonly proxy?: PlayerProxy;
+    /** Ends the run early once this holds for the raiders so far (checked after every tick). */
+    readonly stopWhen?: (raiders: Iterable<RaiderRecord>) => boolean;
 }
 
 /**
@@ -370,6 +372,7 @@ export function runWaveDefence({
     maxSimSeconds,
     hz = SERVER_TICK_HZ,
     proxy = 'nearest-station',
+    stopWhen,
 }: RunOptions): RunResult {
     const waves: WaveRecord[] = [];
     const raiders = new Map<string, RaiderRecord>();
@@ -502,6 +505,9 @@ export function runWaveDefence({
                 throw new Error(`raider ${id} left play without dying and with no write-off`);
             }
             live.delete(id);
+        }
+        if (stopWhen?.(raiders.values())) {
+            break;
         }
     }
     const last = waves[waves.length - 1];
