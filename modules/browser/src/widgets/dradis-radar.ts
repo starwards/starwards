@@ -1,4 +1,5 @@
-import { Container, UPDATE_PRIORITY } from 'pixi.js';
+import { BLIP_LABEL, DIRECTION_SPRITE_LABEL, dradisNoRadiusDrawFunctions } from '../radar/blips/blip-renderer';
+import { Container, Text, UPDATE_PRIORITY } from 'pixi.js';
 import { Faction, ShipDriver, SpaceDriver, SpaceObject, radarReach } from '@starwards/core';
 import { blue, radarFogOfWar, red, yellow } from '../colors';
 
@@ -11,7 +12,6 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
-import { dradisNoRadiusDrawFunctions } from '../radar/blips/blip-renderer';
 import { waitForShip } from '../ship-logic';
 
 WebFont.load({
@@ -28,6 +28,24 @@ export type FollowController = {
     isFollowing: () => boolean;
     setFollow: (follow: boolean) => void;
 };
+
+function visibleDescendants(root: Container, label: string): Container[] {
+    const result: Container[] = [];
+    const walk = (c: Container) => {
+        if (!c.visible) return;
+        if (c.label === label) result.push(c);
+        for (const child of c.children) walk(child);
+    };
+    walk(root);
+    return result;
+}
+
+/** Test hooks on the canvas (SPEC-0007 test plan): what the blip layer currently draws. */
+function exposeBlipAttributes(canvas: HTMLCanvasElement, blips: Container) {
+    canvas.setAttribute('data-direction-sprites', `${visibleDescendants(blips, DIRECTION_SPRITE_LABEL).length}`);
+    const labels = visibleDescendants(blips, BLIP_LABEL).map((t) => (t as Text).text);
+    canvas.setAttribute('data-labels', JSON.stringify(labels));
+}
 
 type DradisRadar = {
     root: CameraView;
@@ -86,6 +104,7 @@ export async function drawDradisRadar(
         shipDriver.state.faction,
     );
     root.addLayer(blipLayer.renderRoot);
+    root.ticker.add(() => exposeBlipAttributes(root.canvas, blipLayer.renderRoot), null, UPDATE_PRIORITY.UTILITY);
 
     let unfollow: (() => void) | null = null;
     let following = true;

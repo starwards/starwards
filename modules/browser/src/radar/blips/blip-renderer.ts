@@ -9,6 +9,7 @@ import {
     SpaceObject,
     Spaceship,
     Waypoint,
+    objectDisplayName,
 } from '@starwards/core';
 import { radar, selectionColor, white } from '../../colors';
 
@@ -41,8 +42,14 @@ function renderText(y: number, value: string[], color: number) {
     );
     result.y = y;
     result.x = -result.getLocalBounds().width / 2;
+    result.label = BLIP_LABEL;
     return result;
 }
+
+/** Pixi `label` of a blip's name text; radars read visible ones back for their `data-labels` attribute. */
+export const BLIP_LABEL = 'blip-label';
+/** Pixi `label` of a blip's heading sprite; radars count visible ones for their `data-direction-sprites` attribute. */
+export const DIRECTION_SPRITE_LABEL = 'direction-sprite';
 
 const textures = {
     dradis_fighter: 'images/dradis/fighter.png',
@@ -80,6 +87,10 @@ function blipSprite(t: keyof typeof textures, size: number, color: number) {
 
 class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
     protected readonly showRadius: boolean = true;
+    protected readonly showDirection: boolean = true;
+    protected labelText(spaceObject: Spaceship, _scanLevel: ScanLevel) {
+        return `ID: ${spaceObject.id}`;
+    }
     private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
     private directionSprite = blipSprite('dradis_direction', this.blipSize, white);
     private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
@@ -93,6 +104,7 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
         private blipSize: number,
         private spaceObject: Spaceship,
     ) {
+        this.directionSprite.label = DIRECTION_SPRITE_LABEL;
         stage.addChild(this.directionSprite);
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
@@ -105,11 +117,11 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
     redraw(spaceObject: Spaceship, { parent, isSelected, color, alpha, scanLevel }: BlipData): void {
         const identified = scanLevel >= ScanLevel.BASIC;
         this.fighterSprite.visible = identified;
-        this.directionSprite.visible = identified;
+        this.directionSprite.visible = identified && this.showDirection;
         this.text.visible = identified;
         if (identified) {
             this.directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
-            this.text.text = `ID: ${spaceObject.id}`;
+            this.text.text = this.labelText(spaceObject, scanLevel);
             this.text.x = -this.text.getLocalBounds().width / 2;
             this.fighterSprite.tint = color;
             this.fighterSprite.alpha = alpha;
@@ -127,6 +139,9 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
 }
 class DradisDerelictRenderer implements BlipRenderer<Derelict> {
     protected readonly showRadius: boolean = true;
+    protected labelText(spaceObject: Derelict, _scanLevel: ScanLevel) {
+        return `ID: ${spaceObject.id}`;
+    }
     private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
     private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
     private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
@@ -152,7 +167,7 @@ class DradisDerelictRenderer implements BlipRenderer<Derelict> {
         this.fighterSprite.visible = identified;
         this.text.visible = identified;
         if (identified) {
-            this.text.text = `ID: ${spaceObject.id}`;
+            this.text.text = this.labelText(spaceObject, scanLevel);
             this.text.x = -this.text.getLocalBounds().width / 2;
             this.fighterSprite.tint = radar.derelictTint;
             this.fighterSprite.alpha = alpha;
@@ -364,14 +379,22 @@ export const dradisDrawFunctions = {
     Derelict: DradisDerelictRenderer,
 };
 
+/** Dradis station blips: no heading, and the speakable name instead of the raw id (SPEC-0007 D1, D2). */
 class DradisNoRadiusSpaceshipRenderer extends DradisSpaceshipRenderer {
     protected override readonly showRadius = false;
+    protected override readonly showDirection = false;
+    protected override labelText(spaceObject: Spaceship, scanLevel: ScanLevel) {
+        return objectDisplayName(spaceObject, spaceObject.id, scanLevel);
+    }
 }
 class DradisNoRadiusAsteroidRenderer extends DradisAsteroidRenderer {
     protected override readonly showRadius = false;
 }
 class DradisNoRadiusDerelictRenderer extends DradisDerelictRenderer {
     protected override readonly showRadius = false;
+    protected override labelText(spaceObject: Derelict, scanLevel: ScanLevel) {
+        return objectDisplayName(spaceObject, spaceObject.id, scanLevel);
+    }
 }
 
 export const dradisNoRadiusDrawFunctions = {

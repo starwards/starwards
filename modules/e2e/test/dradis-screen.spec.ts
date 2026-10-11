@@ -61,6 +61,19 @@ test.describe('Dradis Screen', () => {
         await expect(page.locator('[data-id="Dradis Radar"]')).toBeVisible({ timeout: 10000 });
     });
 
+    test('blips draw no heading sprite, and labels are speakable names (SPEC-0007 D1, D2)', async ({ page }) => {
+        const radar = page.locator('[data-id="Dradis Radar"]');
+        await expect(radar).toBeVisible({ timeout: 10000 });
+        await expect
+            .poll(async () => JSON.parse((await radar.getAttribute('data-labels')) ?? '[]') as string[])
+            .not.toEqual([]);
+        await expect(radar).toHaveAttribute('data-direction-sprites', '0');
+        const labels = JSON.parse((await radar.getAttribute('data-labels')) ?? '[]') as string[];
+        for (const label of labels) {
+            expect(label).not.toMatch(/^ID:|^\d+$/);
+        }
+    });
+
     test('places waypoint when W is pressed and radar is clicked', async ({ page }) => {
         await placeWaypoint(page);
     });
