@@ -1,0 +1,17 @@
+{
+    "name": "weapons-lock-nearest",
+    "seats": [
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "lock-nearest"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

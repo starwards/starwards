@@ -43,7 +43,7 @@ async function choices(name: ScriptedSeatPolicyName, shown: Display) {
 
 describe('scripted weapons officers', () => {
     it('are all known', () => {
-        expect([...SCRIPTED_SEAT_POLICIES]).toEqual(['spray-fire', 'wrong-ammo', 'no-lock', 'tubes-powered']);
+        expect([...SCRIPTED_SEAT_POLICIES]).toEqual(['spray-fire', 'wrong-ammo', 'no-lock', 'tubes-powered', 'lock-nearest']);
     });
 
     it('spray-fire fires with the nose off the target, where the reference holds', async () => {
@@ -78,5 +78,19 @@ describe('scripted weapons officers', () => {
             },
         };
         expect((await choices('tubes-powered', lowFull))['systemPower:/tubes/0']).toBe('lower');
+    });
+    it('lock-nearest re-cycles only when another ship is over 1 km closer than the lock', async () => {
+        const two = (far: number): Display => {
+            const d = display(true);
+            d.radar!.contacts = [
+                { id: 'enemy', distance: far, bearing: 0, position: { x: far, y: 0 }, type: 'Spaceship', radius: 11 },
+                { id: 'other', distance: 3000, bearing: 90, position: { x: 0, y: 3000 }, type: 'Spaceship', radius: 11 },
+            ];
+            return d;
+        };
+        expect((await choices('lock-nearest', two(5000)))['target']).toBe('next');
+        expect((await choices('lock-nearest', two(3500)))['target']).toBe('none');
+        expect((await choices('lock-nearest', display(false)))['target']).toBe('next');
+        expect((await choices('lock-nearest', display(true)))['target']).toBe('none');
     });
 });
