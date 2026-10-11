@@ -419,3 +419,44 @@ export const tacticalDrawFunctions = {
     Nebula: NebulaRenderer,
     Derelict: TacticalDerelictRenderer,
 };
+
+/** Pixi `label` of a declutter group's count badge. */
+export const GROUP_BADGE_LABEL = 'group-badge';
+
+const groupIconTexture: Partial<Record<string, keyof typeof textures>> = {
+    Asteroid: 'dradis_asteroid',
+    Spaceship: 'dradis_fighter',
+    Derelict: 'dradis_fighter',
+};
+
+/** One Dradis icon standing for a same-kind cluster, with its count badge (SPEC-0007 D3 rung 3). */
+export class DradisGroupMarker {
+    public readonly stage = new Container();
+    private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
+    private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
+    private iconSprite: Sprite | null;
+    private badge = renderText(-this.blipSize / 2, [], white);
+
+    constructor(
+        private blipSize: number,
+        kind: string,
+    ) {
+        const texture = groupIconTexture[kind];
+        this.iconSprite = texture ? blipSprite(texture, blipSize, white) : null;
+        this.badge.label = GROUP_BADGE_LABEL;
+        this.stage.addChild(this.circleBaseSprite);
+        this.stage.addChild(this.circleBevelSprite);
+        if (this.iconSprite) this.stage.addChild(this.iconSprite);
+        this.stage.addChild(this.badge);
+    }
+
+    redraw(x: number, y: number, badge: string, color: number) {
+        this.stage.x = x;
+        this.stage.y = y;
+        this.circleBevelSprite.tint = color;
+        if (this.iconSprite) this.iconSprite.tint = color;
+        this.badge.text = badge;
+        this.badge.style.fill = color;
+        this.badge.x = this.blipSize / 2 - this.badge.getLocalBounds().width;
+    }
+}
