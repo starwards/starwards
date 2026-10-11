@@ -105,6 +105,9 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
         private spaceObject: Spaceship,
     ) {
         this.directionSprite.label = DIRECTION_SPRITE_LABEL;
+        // hidden until the first redraw, which skips blips created off screen
+        this.directionSprite.visible = false;
+        this.text.visible = false;
         stage.addChild(this.directionSprite);
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
@@ -154,6 +157,7 @@ class DradisDerelictRenderer implements BlipRenderer<Derelict> {
         private blipSize: number,
         private spaceObject: Derelict,
     ) {
+        this.text.visible = false;
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
         stage.addChild(this.fighterSprite);

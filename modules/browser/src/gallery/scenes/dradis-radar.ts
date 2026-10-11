@@ -24,6 +24,8 @@ function createShip(id: string, x: number, y: number, faction: Faction, angle: n
     state.spaceship.angle = angle;
     state.spaceship.faction = faction;
     state.spaceship.model = model;
+    // the template hull is too small for another ship's radar to detect at Dradis distances
+    state.spaceship.radius = 40;
     setOmniRadarSector(state.spaceship, 60_000);
     for (const radar of state.radars) {
         radar.power = 1;
