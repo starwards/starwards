@@ -20,7 +20,7 @@ import { repairProtocols, validateRepairCatalog } from '../configurations/repair
 import { ArraySchema } from '@colyseus/schema';
 import { MIN_RADAR_DETECT_FACTOR } from '../logic/field-of-view';
 import { Tube } from './tube';
-import { ammoTypes } from '../space/projectile';
+import { magazineStocks } from '../space/projectile';
 import { validateTurretDesign } from './turret';
 
 /**
@@ -186,7 +186,7 @@ function makeWarp(design: WarpDesign) {
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
     magazine.design.assign(design);
-    for (const projectileModel of ammoTypes) {
+    for (const projectileModel of magazineStocks) {
         magazine[`count_${projectileModel}`] = magazine.design[`max_${projectileModel}`];
     }
     return magazine;

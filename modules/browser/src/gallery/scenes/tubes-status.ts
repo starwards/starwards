@@ -46,16 +46,16 @@ export const tubesStatusScenes: Record<string, Scene> = {
 
     'tubes-status-cluster': {
         name: 'tubes-status-cluster',
-        description: 'Tubes status panel with cluster missiles loaded and warhead modes picked',
+        description: 'Tubes status panel with both cluster missile types loaded',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', demoShip);
             let armPen = true;
             for (const tube of ship.tubes.values()) {
-                tube.projectile = 'ClusterMissile';
-                tube.loadedProjectile = 'ClusterMissile';
+                const cluster = armPen ? 'ClusterArmPenMissile' : 'ClusterFragMissile';
+                tube.projectile = cluster;
+                tube.loadedProjectile = cluster;
                 tube.loading = 1;
                 tube.loadAmmo = true;
-                tube.clusterWarhead = armPen ? 'ArmPen' : 'Frag';
                 armPen = !armPen;
             }
 

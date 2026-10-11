@@ -1,11 +1,4 @@
-import {
-    AmmoType,
-    ArmorModelName,
-    ArmorResponse,
-    ClusterWarheadMode,
-    ProjectileDesign,
-    WeaponDamageType,
-} from '../src';
+import { AmmoType, ArmorModelName, ArmorResponse, ProjectileDesign, WeaponDamageType } from '../src';
 
 /**
  * The three per-layer outcomes named by the design spec:
@@ -58,30 +51,13 @@ export const PLATE_MAX_HEALTH = 100;
 
 type AmmoRow = { key: string; damageType: WeaponDamageType; delivery: 'impact' | 'explosion'; amount: number };
 
-function rowsForAmmo(
-    ammo: AmmoType,
-    design: ProjectileDesign,
-    clusterWarheadModes: readonly ClusterWarheadMode[],
-): AmmoRow[] {
-    if (design.warheads) {
-        return clusterWarheadModes.map((mode) => {
-            const warhead = design.warheads![mode];
-            return {
-                key: `${ammo}:${mode}`,
-                damageType: warhead.damageType,
-                delivery: warhead.delivery,
-                amount: warhead.delivery === 'impact' ? warhead.damage : warhead.explosion.damageFactor,
-            };
-        });
-    }
-    return [
-        {
-            key: ammo,
-            damageType: design.damageType,
-            delivery: design.delivery,
-            amount: design.delivery === 'impact' ? design.damage : design.explosion.damageFactor,
-        },
-    ];
+function rowForAmmo(ammo: AmmoType, design: ProjectileDesign): AmmoRow {
+    return {
+        key: ammo,
+        damageType: design.damageType,
+        delivery: design.delivery,
+        amount: design.delivery === 'impact' ? design.damage : design.explosion.damageFactor,
+    };
 }
 
 function classify(response: ArmorResponse): CellOutcome {
@@ -153,16 +129,14 @@ export function buildArmorAmmoMatrix({
     armorModelNames,
     ammoTypes,
     ammoDesigns,
-    clusterWarheadModes,
     createFixture,
 }: {
     armorModelNames: readonly ArmorModelName[];
     ammoTypes: readonly AmmoType[];
     ammoDesigns: Record<AmmoType, ProjectileDesign>;
-    clusterWarheadModes: readonly ClusterWarheadMode[];
     createFixture: (model: ArmorModelName) => Fixture;
 }): Matrix {
-    const ammoRows = ammoTypes.flatMap((ammo) => rowsForAmmo(ammo, ammoDesigns[ammo], clusterWarheadModes));
+    const ammoRows = ammoTypes.map((ammo) => rowForAmmo(ammo, ammoDesigns[ammo]));
     const rows: MatrixRow[] = [];
     for (const modelName of armorModelNames) {
         for (const ammoRow of ammoRows) {

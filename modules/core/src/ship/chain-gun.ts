@@ -1,4 +1,4 @@
-import { AmmoType, ClusterWarheadMode, ammoTypes, clusterWarheadModes } from '../space/projectile';
+import { AmmoType, MagazineStock, ammoTypes, magazineStock } from '../space/projectile';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
 import { commandable, gameField } from '../game-field';
 
@@ -9,10 +9,10 @@ import { tweakable } from '../tweakable';
 
 export type SelectedProjectileModel = 'None' | AmmoType;
 
-// some stats are mapped from AmmoType,
-// so adding a AmmoType fails compilation
+// some stats are mapped from MagazineStock, so adding one fails compilation;
+// use_ClusterMissile enables both cluster ammo types
 export type ChaingunDesign = TurretDesign & {
-    [T in AmmoType as `use_${T}`]: boolean;
+    [T in MagazineStock as `use_${T}`]: boolean;
 } & {
     modelName?: string;
     isInternal: boolean;
@@ -46,7 +46,7 @@ export class ChaingunDesignState extends TurretDesignState implements ChaingunDe
     @gameField('boolean') use_ElecMissile = false;
 
     isAmmoEnabled(m: AmmoType): boolean {
-        return this[`use_${m}`];
+        return this[`use_${magazineStock(m)}`];
     }
 
     get minShellSecondsToLive(): number {
@@ -117,11 +117,6 @@ export class ChainGun extends Turret {
     }))
     @gameField('string')
     loadedProjectile: SelectedProjectileModel = 'None';
-
-    // warhead mode stamped on cluster munitions at launch — ignored by single-warhead ammo
-    @tweakable({ type: 'string enum', enum: clusterWarheadModes })
-    @gameField('string')
-    clusterWarhead: ClusterWarheadMode = 'Frag';
 
     @gameField(ChaingunDesignState)
     design = new ChaingunDesignState();

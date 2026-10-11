@@ -33,8 +33,8 @@ function makeShip(id: string, x = 0, y = 0) {
     return ship;
 }
 
-const contactFuzedAmmo = ['ArmPenShell', 'ArmPenMissile', 'ElecMissile'] as const;
-const proximityFuzedAmmo = ['HiExpShell', 'FragShell', 'HiExpMissile', 'FragMissile'] as const;
+const contactFuzedAmmo = ['ArmPenShell', 'ArmPenMissile', 'ClusterArmPenMissile', 'ElecMissile'] as const;
+const proximityFuzedAmmo = ['HiExpShell', 'FragShell', 'HiExpMissile', 'FragMissile', 'ClusterFragMissile'] as const;
 
 // spec §8 warhead table: impact rounds carry a flat damage number; explosion rounds
 // carry a per-second damageFactor plus blast size (expansionSpeed × secondsToLive) and linger.
@@ -43,6 +43,7 @@ const proximityFuzedAmmo = ['HiExpShell', 'FragShell', 'HiExpMissile', 'FragMiss
 const impactDamagePins = {
     ArmPenShell: 30,
     ArmPenMissile: 60,
+    ClusterArmPenMissile: 30,
     ElecMissile: 25,
 } as const;
 const explosionPins = {
@@ -50,6 +51,7 @@ const explosionPins = {
     FragShell: { damageFactor: 10, blastSize: 250, secondsToLive: 1 / BLAST_LIFETIME_FACTOR },
     HiExpMissile: { damageFactor: 50, blastSize: 350, secondsToLive: 0.35 / BLAST_LIFETIME_FACTOR },
     FragMissile: { damageFactor: 10, blastSize: 800, secondsToLive: 1.6 / BLAST_LIFETIME_FACTOR },
+    ClusterFragMissile: { damageFactor: 10, blastSize: 750, secondsToLive: 1 / BLAST_LIFETIME_FACTOR },
 } as const;
 
 describe('warhead fuze design (issue #1976)', () => {
@@ -57,7 +59,6 @@ describe('warhead fuze design (issue #1976)', () => {
         for (const model of contactFuzedAmmo) {
             expect(ammoDesigns[model].fuze.type, model).to.equal('contact');
         }
-        expect(ammoDesigns.ClusterMissile.warheads.ArmPen.fuze.type).to.equal('contact');
     });
 
     it('every proximity-fuzed (AoE) warhead is tagged proximity at 100m', () => {
@@ -66,9 +67,6 @@ describe('warhead fuze design (issue #1976)', () => {
             expect(fuze.type, model).to.equal('proximity');
             expect(fuze.type === 'proximity' && fuze.range, model).to.equal(100);
         }
-        const clusterFrag = ammoDesigns.ClusterMissile.warheads.Frag.fuze;
-        expect(clusterFrag.type).to.equal('proximity');
-        expect(clusterFrag.type === 'proximity' && clusterFrag.range).to.equal(100);
     });
 
     it('impact warheads carry the spec §8 flat damage numbers', () => {
@@ -76,8 +74,6 @@ describe('warhead fuze design (issue #1976)', () => {
             const warhead = ammoDesigns[model as keyof typeof impactDamagePins];
             expect(warhead.fuze.type === 'contact' && warhead.damage, model).to.equal(damage);
         }
-        const clusterAP = ammoDesigns.ClusterMissile.warheads.ArmPen;
-        expect(clusterAP.fuze.type === 'contact' && clusterAP.damage).to.equal(30);
     });
 
     it('explosion warheads carry the spec §8 blast numbers', () => {
@@ -93,12 +89,6 @@ describe('warhead fuze design (issue #1976)', () => {
                 1e-9,
             );
         }
-        const clusterFrag = ammoDesigns.ClusterMissile.warheads.Frag;
-        if (clusterFrag.fuze.type !== 'proximity') {
-            throw new Error('cluster Frag mode should be proximity-fuzed');
-        }
-        expect(clusterFrag.explosion.damageFactor).to.equal(10);
-        expect(clusterFrag.explosion.expansionSpeed * clusterFrag.explosion.secondsToLive).to.be.closeTo(750, 1e-9);
     });
 });
 

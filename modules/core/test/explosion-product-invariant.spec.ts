@@ -12,13 +12,6 @@ function* explosionBlocks(): Generator<[string, WarheadDesign & { delivery: 'exp
         if (design.delivery === 'explosion') {
             yield [name, design];
         }
-        if (design.warheads) {
-            for (const [mode, warhead] of Object.entries(design.warheads)) {
-                if (warhead.delivery === 'explosion') {
-                    yield [`${name}.${mode}`, warhead];
-                }
-            }
-        }
     }
 }
 
@@ -28,8 +21,7 @@ describe('explosion secondsToLive * expansionSpeed product invariant (issue #225
         FragShell: 250,
         HiExpMissile: 350,
         FragMissile: 800,
-        ClusterMissile: 750,
-        'ClusterMissile.Frag': 750,
+        ClusterFragMissile: 750,
     };
 
     for (const [name, warhead] of explosionBlocks()) {

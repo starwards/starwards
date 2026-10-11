@@ -1,7 +1,7 @@
-import { AmmoType, missileAmmoTypes } from '@starwards/core';
+import { AmmoType, MagazineStock, missileAmmoTypes } from '@starwards/core';
 
 /** Ammo family name without its kind: `HiExpMissile` is `Hi-Exp`. */
-export function ammoFamilyName(ammo: AmmoType): string {
+export function ammoFamilyName(ammo: AmmoType | MagazineStock): string {
     const family = ammo.replace(/(Shell|Missile)$/, '');
     return family.replace(/([a-z])([A-Z])/g, '$1-$2');
 }

@@ -7,7 +7,7 @@ import {
     Spaceship,
     ammoDesigns,
     ammoTypes,
-    clusterWarheadModes,
+    isClusterAmmo,
 } from '../space';
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, isLineOfFireBlocked, lerp } from '../logic';
@@ -184,23 +184,21 @@ export class ChainGunManager implements Updateable {
         if (chainGun.changeProjectileCommand) {
             chainGun.changeProjectileCommand = false;
             const enabledAmmo = new Iterator(ammoTypes).filter((p) => chainGun.design.isAmmoEnabled(p));
-            const lastWarheadMode = clusterWarheadModes[clusterWarheadModes.length - 1];
-            if (
-                chainGun.projectile === 'ClusterMissile' &&
-                chainGun.design.isAmmoEnabled('ClusterMissile') &&
-                chainGun.clusterWarhead !== lastWarheadMode
-            ) {
-                // cluster munitions carry multiple selectable warheads: the cycle visits each one
-                // as its own stop before moving on to the next ammo type
-                chainGun.clusterWarhead =
-                    clusterWarheadModes[clusterWarheadModes.indexOf(chainGun.clusterWarhead) + 1] ?? lastWarheadMode;
-            } else {
-                chainGun.projectile =
-                    chainGun.projectile === 'None'
-                        ? enabledAmmo.firstOr('None')
-                        : enabledAmmo.elementAfter(chainGun.projectile);
-                chainGun.clusterWarhead = clusterWarheadModes[0];
-            }
+            chainGun.projectile =
+                chainGun.projectile === 'None'
+                    ? enabledAmmo.firstOr('None')
+                    : enabledAmmo.elementAfter(chainGun.projectile);
+        }
+        if (
+            chainGun.projectile !== 'None' &&
+            chainGun.loadedProjectile !== 'None' &&
+            chainGun.projectile !== chainGun.loadedProjectile &&
+            isClusterAmmo(chainGun.projectile) &&
+            isClusterAmmo(chainGun.loadedProjectile)
+        ) {
+            // the cluster types are one carrier with two warheads: switching between them
+            // re-selects the chambered round's warhead instead of unloading it
+            chainGun.loadedProjectile = chainGun.projectile;
         }
         if (!chainGun.effectiveness) {
             chainGun.isFiring = false;
@@ -274,8 +272,6 @@ export class ChainGunManager implements Updateable {
         ) {
             const firedProjectileType = chainGun.loadedProjectile;
             const projectile = new Projectile(firedProjectileType);
-            // stamped on every projectile; only cluster munitions read it (see Projectile.warheadDesign)
-            projectile.warhead = chainGun.clusterWarhead;
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';
             projectile.angle = this.die.getGaussian(

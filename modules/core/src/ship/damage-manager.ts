@@ -1,9 +1,9 @@
 import { AttackDamage, AttackResolutionManager, ResolvedSystemHit } from './attack-resolution-manager';
 import { CAPSULE_DEFECT_STEP, Capsule } from './capsule';
-import { ChainGun, Damage, SmartPilot, SpaceManager, Spaceship, ammoTypes, capToRange, limitPercision } from '..';
+import { ChainGun, Damage, SmartPilot, SpaceManager, Spaceship, capToRange, limitPercision } from '..';
+import { DamageDelivery, magazineStocks } from '../space/projectile';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { WeaponDamageType, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
-import { DamageDelivery } from '../space/projectile';
 
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
@@ -251,8 +251,8 @@ export class DamageManager {
     private damageMagazine(magazine: Magazine, damageId: string) {
         if (this.die.getSuccess('damageMagazine:' + damageId, 0.5)) {
             // todo convert to a defectible property that accumulates damage
-            const idx = this.die.getRollInRange('magazineLostAmmo:' + damageId, 0, ammoTypes.length);
-            const projectileKey = ammoTypes[Math.floor(idx)];
+            const idx = this.die.getRollInRange('magazineLostAmmo:' + damageId, 0, magazineStocks.length);
+            const projectileKey = magazineStocks[Math.floor(idx)];
             magazine.setCount(
                 projectileKey,
                 Math.round(magazine.getCount(projectileKey) * (1 - magazine.design.capacityDamageFactor)),

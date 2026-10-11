@@ -7,7 +7,6 @@ import {
     SpaceManager,
     Spaceship,
     ammoTypes,
-    clusterWarheadModes,
     makeShipState,
     shipConfigurations,
 } from '../src';
@@ -185,8 +184,8 @@ describe('ChainGunManager', () => {
         });
     });
 
-    describe('changeProjectileCommand — cluster warhead cycling', () => {
-        it('cycling onto ClusterMissile visits every warhead mode before advancing to the next ammo type', () => {
+    describe('cluster missile ammo types', () => {
+        function makeShip() {
             const spaceMgr = new SpaceManager();
             const shipObj = new Spaceship();
             shipObj.id = '1';
@@ -196,9 +195,13 @@ describe('ChainGunManager', () => {
             spaceMgr.insert(shipObj);
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+            return shipMgr;
+        }
 
+        it('the cycle visits both cluster types as their own stops before advancing to the next ammo type', () => {
+            const shipMgr = makeShip();
             const tube = shipMgr.state.tubes[0];
-            // demo-ship tube ammo order: HiExpMissile, ArmPenMissile, FragMissile, ClusterMissile, ElecMissile
+            // demo-ship tube ammo order: HiExpMissile, ArmPenMissile, FragMissile, ClusterFragMissile, ClusterArmPenMissile, ElecMissile
             tube.projectile = 'FragMissile';
 
             const cycle = () => {
@@ -207,37 +210,47 @@ describe('ChainGunManager', () => {
             };
 
             cycle();
-            expect(tube.projectile).to.equal('ClusterMissile');
-            expect(tube.clusterWarhead).to.equal(clusterWarheadModes[0]);
-
+            expect(tube.projectile).to.equal('ClusterFragMissile');
             cycle();
-            expect(tube.projectile).to.equal('ClusterMissile');
-            expect(tube.clusterWarhead).to.equal(clusterWarheadModes[1]);
-
+            expect(tube.projectile).to.equal('ClusterArmPenMissile');
             cycle();
             expect(tube.projectile).to.equal('ElecMissile');
-            expect(tube.clusterWarhead).to.equal(clusterWarheadModes[0]);
         });
 
-        it('moves off ClusterMissile immediately if it stops being enabled mid-warhead-cycle', () => {
-            const spaceMgr = new SpaceManager();
-            const shipObj = new Spaceship();
-            shipObj.id = '1';
-            const die = new MockDie();
-            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
-            die.expectedRoll = 1;
-            spaceMgr.insert(shipObj);
-            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+        it('both cluster types draw on one shared magazine stock', () => {
+            const magazine = makeShip().state.magazine;
+            magazine.setCount('ClusterFragMissile', 3);
+            expect(magazine.getCount('ClusterArmPenMissile')).to.equal(3);
+            expect(magazine.getCount('ClusterMissile')).to.equal(3);
+            expect(magazine.getMax('ClusterFragMissile')).to.equal(magazine.getMax('ClusterArmPenMissile'));
+        });
 
+        it('switching between cluster types re-selects the chambered round without unloading it', () => {
+            const shipMgr = makeShip();
             const tube = shipMgr.state.tubes[0];
-            tube.projectile = 'ClusterMissile';
-            tube.clusterWarhead = clusterWarheadModes[0];
+            const magazine = shipMgr.state.magazine;
+            tube.projectile = 'ClusterFragMissile';
+            tube.loadedProjectile = 'ClusterFragMissile';
+            tube.loading = 1;
+            const stock = magazine.getCount('ClusterMissile');
+
+            tube.projectile = 'ClusterArmPenMissile';
+            shipMgr.update([...makeIterationsData(0.001, 1)][0]);
+
+            expect(tube.loadedProjectile).to.equal('ClusterArmPenMissile');
+            expect(tube.loading).to.equal(1);
+            expect(magazine.getCount('ClusterMissile')).to.equal(stock);
+        });
+
+        it('moves off the cluster types immediately if the mount stops allowing cluster', () => {
+            const shipMgr = makeShip();
+            const tube = shipMgr.state.tubes[0];
+            tube.projectile = 'ClusterFragMissile';
             tube.design.use_ClusterMissile = false;
 
             shipMgr.update([...makeIterationsData(0.001, 1)][0]);
 
-            expect(tube.projectile).to.not.equal('ClusterMissile');
+            expect(tube.projectile).to.not.be.oneOf(['ClusterFragMissile', 'ClusterArmPenMissile']);
         });
     });
 

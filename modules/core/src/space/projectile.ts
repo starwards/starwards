@@ -12,7 +12,8 @@ export const missileAmmoTypes = [
     'HiExpMissile',
     'ArmPenMissile',
     'FragMissile',
-    'ClusterMissile',
+    'ClusterFragMissile',
+    'ClusterArmPenMissile',
     'ElecMissile',
 ] as const;
 export const ammoTypes = [...shellAmmoTypes, ...missileAmmoTypes] as const;
@@ -20,8 +21,32 @@ export type ShellAmmoType = (typeof shellAmmoTypes)[number];
 export type MissileAmmoType = (typeof missileAmmoTypes)[number];
 export type AmmoType = (typeof ammoTypes)[number];
 
-export const clusterWarheadModes = ['Frag', 'ArmPen'] as const;
-export type ClusterWarheadMode = (typeof clusterWarheadModes)[number];
+/** The cluster missile's two warheads are two ammo types drawing on one shared magazine stock. */
+export const clusterAmmoTypes = ['ClusterFragMissile', 'ClusterArmPenMissile'] as const;
+export type ClusterAmmoType = (typeof clusterAmmoTypes)[number];
+
+/**
+ * A magazine stock (and mount `use_*` flag): one per ammo type, except the cluster types,
+ * which share the `ClusterMissile` stock.
+ */
+export const magazineStocks = [
+    ...shellAmmoTypes,
+    'HiExpMissile',
+    'ArmPenMissile',
+    'FragMissile',
+    'ClusterMissile',
+    'ElecMissile',
+] as const;
+export type MagazineStock = (typeof magazineStocks)[number];
+
+export function isClusterAmmo(ammo: string): ammo is ClusterAmmoType {
+    return (clusterAmmoTypes as readonly string[]).includes(ammo);
+}
+
+/** The magazine stock `ammo` is drawn from. */
+export function magazineStock(ammo: AmmoType | MagazineStock): MagazineStock {
+    return isClusterAmmo(ammo) ? 'ClusterMissile' : ammo;
+}
 
 /**
  * A cannon shell's blast is physically smaller than a missile's — this scales the shell's
@@ -98,8 +123,6 @@ export type ProjectileDesign = WarheadDesign & {
             speedMultiplier: number;
         };
     };
-    // selectable warheads (cluster munitions): overrides the whole warhead per mode
-    warheads?: Record<ClusterWarheadMode, WarheadDesign>;
 };
 
 export type MissileDesign = ProjectileDesign & {
@@ -206,7 +229,7 @@ export const ammoDesigns = {
             sprint: TERMINAL_SPRINT,
         },
         // dedicated shrapnel warhead. All frag warheads share the same intensity (damageFactor 10);
-        // the missile's edge over the cluster frag mode is size and time: an 800m cloud lingering 1.6s
+        // the missile's edge over ClusterFragMissile is size and time: an 800m cloud lingering 1.6s
         explosion: {
             secondsToLive: 1.6 / BLAST_LIFETIME_FACTOR,
             expansionSpeed: 500 * BLAST_LIFETIME_FACTOR,
@@ -214,10 +237,11 @@ export const ammoDesigns = {
             blastFactor: 1,
         },
     },
-    ClusterMissile: {
-        name: 'Cluster missile',
+    // cluster carrier, Frag warhead: big lingering 750m shrapnel cloud — sands external
+    // systems over a large area. Shares its magazine stock with ClusterArmPenMissile.
+    ClusterFragMissile: {
+        name: 'Cluster missile (Frag)',
         radius: 2,
-        // default warhead mode; the tube can switch modes before launch
         damageType: 'Frag',
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
@@ -235,28 +259,25 @@ export const ammoDesigns = {
             damageFactor: 10,
             blastFactor: 1,
         },
-        warheads: {
-            // big lingering 750m shrapnel cloud — sands external systems over a large area
-            Frag: {
-                damageType: 'Frag',
-                delivery: 'explosion',
-                fuze: { type: 'proximity', range: 100 },
-                explosion: {
-                    secondsToLive: 1 / BLAST_LIFETIME_FACTOR,
-                    expansionSpeed: 750 * BLAST_LIFETIME_FACTOR,
-                    damageFactor: 10,
-                    blastFactor: 1,
-                },
-            },
-            // focused submunitions — the carrier penetrates and its bomblets pepper every
-            // internal system in the struck area; shares its per-event numbers with ArmPenShell
-            ArmPen: {
-                damageType: 'ArmPen',
-                delivery: 'impact',
-                fuze: { type: 'contact' },
-                damage: 30,
-            },
+    },
+    // cluster carrier, ArmPen warhead: focused submunitions — the carrier penetrates and its
+    // bomblets pepper every internal system in the struck area; shares its per-event numbers
+    // with ArmPenShell. Shares its magazine stock with ClusterFragMissile.
+    ClusterArmPenMissile: {
+        name: 'Cluster missile (ArmPen)',
+        radius: 2,
+        damageType: 'ArmPen',
+        delivery: 'impact',
+        fuze: { type: 'contact' },
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 78,
+            rotationCapacity: 720,
+            velocityCapacity: 600,
+            maxSpeed: 600,
+            sprint: TERMINAL_SPRINT,
         },
+        damage: 30,
     },
     ElecMissile: {
         name: 'Elec missile',
@@ -317,12 +338,6 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @gameField('string')
     public model: AmmoType = 'HiExpShell';
 
-    // warhead mode for cluster munitions — ignored by single-warhead designs.
-    // Can be switched until detonation; the explosion is built from the mode in effect.
-    @tweakable({ type: 'string enum', enum: clusterWarheadModes })
-    @gameField('string')
-    public warhead: ClusterWarheadMode = 'Frag';
-
     constructor(model?: AmmoType) {
         super();
         if (model) {
@@ -341,27 +356,23 @@ export class Projectile extends SpaceObjectBase implements Craft {
         return ammoDesigns[this.model];
     }
 
-    get warheadDesign(): WarheadDesign {
-        return this.design.warheads?.[this.warhead] ?? this.design;
-    }
-
     get damageType(): WeaponDamageType {
-        return this.warheadDesign.damageType;
+        return this.design.damageType;
     }
 
     get fuze(): Fuze {
-        return this.warheadDesign.fuze;
+        return this.design.fuze;
     }
 
     get delivery(): DamageDelivery {
-        return this.warheadDesign.delivery;
+        return this.design.delivery;
     }
 
     makeExplosion(): Explosion {
         if (this._explosion) {
             return this._explosion;
         }
-        const warhead = this.warheadDesign;
+        const warhead = this.design;
         if (warhead.delivery !== 'explosion') {
             throw new Error(`contact-fuzed warhead ${this.model} resolves as an impact, not an explosion`);
         }

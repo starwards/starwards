@@ -1,6 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
-import { expectNonInteractiveBar, makeDriver, waitForPropertyValue, waitForShipCondition } from './driver';
+import { expectNonInteractiveBar, makeDriver, waitForPropertyValue } from './driver';
 
 import { DockingMode } from '@starwards/core';
 import { maps } from '@starwards/server';
@@ -53,21 +53,6 @@ test.describe('Weapons Screen', () => {
         const gunPanel = page.locator('[data-id="Chain Gun"]');
         await expect(gunPanel).toBeVisible();
         await expectNonInteractiveBar(gunPanel.locator('.sw-bar').first());
-    });
-
-    test('picking a warhead mode on a tube sets it on the ship state', async ({ page }) => {
-        const tubesPanel = page.locator('[data-id="Tubes"]');
-        await expect(tubesPanel).toBeVisible({ timeout: 10000 });
-
-        const modeLabel = tubesPanel.getByText('Warhead', { exact: true }).first();
-        await expect(modeLabel).toBeVisible();
-        await modeLabel.locator('..').locator('select').selectOption('ArmPen');
-
-        await waitForShipCondition(
-            () => gameDriver.getShip(shipId),
-            (ship) => ship.state.tubes.at(0)?.clusterWarhead === 'ArmPen',
-            3000,
-        );
     });
 
     test('the magazine panel groups shells and missiles', async ({ page }) => {
