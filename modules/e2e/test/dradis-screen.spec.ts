@@ -4,7 +4,7 @@ import { makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
 
-const { single_ship, dradis_dense_field } = maps;
+const { single_ship, dradis_dense_field, dradis_adjacent_fields, dradis_three_field_pairs } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
@@ -488,5 +488,45 @@ test.describe('Dradis declutter (SPEC-0007 D3)', () => {
             )
             .toBe(0);
         expect(await numberAttr(radar, 'data-zoom')).toBeGreaterThan(zoomBefore);
+    });
+
+    test('adjacent fields collapse to one POI with one inset (SPEC-0007 D4)', async ({ page }) => {
+        const radar = await openDradis(page, dradis_adjacent_fields);
+        await expect.poll(() => numberAttr(radar, 'data-pois')).toBe(1);
+        await expect(radar).toHaveAttribute('data-insets', '1');
+    });
+
+    test('three super-clusters show three POIs and two insets (SPEC-0007 D4)', async ({ page }) => {
+        const radar = await openDradis(page, dradis_three_field_pairs);
+        // the pairs sit inside the omni radar's reach; at the default zoom their rows would merge
+        const zoomBefore = await numberAttr(radar, 'data-zoom');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.wheel(0, -1000);
+        await expect.poll(() => numberAttr(radar, 'data-zoom')).toBeCloseTo(zoomBefore * 2, 6);
+        await expect.poll(() => numberAttr(radar, 'data-pois')).toBe(3);
+        await expect(radar).toHaveAttribute('data-insets', '2');
+    });
+
+    test('clicking an inset zooms onto its region and resolves the POI (SPEC-0007 D4)', async ({ page }) => {
+        const radar = await openDradis(page, dradis_adjacent_fields);
+        await expect.poll(() => numberAttr(radar, 'data-insets')).toBe(1);
+        const zoomBefore = await numberAttr(radar, 'data-zoom');
+        const [inset] = JSON.parse((await radar.getAttribute('data-inset-rects')) ?? '[]') as {
+            x: number;
+            y: number;
+            side: number;
+        }[];
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.click(box.x + inset.x + inset.side / 2, box.y + inset.y + inset.side / 2);
+
+        await expect(radar).toHaveAttribute('data-following', 'false');
+        expect(await numberAttr(radar, 'data-zoom')).toBeGreaterThan(zoomBefore);
+        await expect.poll(() => numberAttr(radar, 'data-pois')).toBe(0);
+        await expect(radar).toHaveAttribute('data-insets', '0');
+        // the click selected nothing: no waypoint edit or selection appeared
+        await expect(page.locator('[data-id="Edit Waypoint"]')).toBeHidden();
     });
 });

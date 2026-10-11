@@ -30,7 +30,7 @@ export interface BlipRenderer<T extends SpaceObject> {
     redraw(spaceObject: T, data: BlipData): void;
 }
 
-function renderText(y: number, value: string[], color: number) {
+export function renderText(y: number, value: string[], color: number) {
     const result = new Text(
         value.join('\n'),
         new TextStyle({
@@ -458,5 +458,33 @@ export class DradisGroupMarker {
         this.badge.text = badge;
         this.badge.style.fill = color;
         this.badge.x = this.blipSize / 2 - this.badge.getLocalBounds().width;
+    }
+}
+
+/** Pixi `label` of a POI marker's count badge. */
+export const POI_BADGE_LABEL = 'poi-badge';
+
+/** Rung 4 point of interest: a ring with the super-cluster's total-count badge (SPEC-0007 D4). */
+export class DradisPoiMarker {
+    public readonly stage = new Container();
+    private ring = new Graphics();
+    private badge = renderText(-this.blipSize / 2, [], white);
+
+    constructor(private blipSize: number) {
+        this.badge.label = POI_BADGE_LABEL;
+        this.stage.addChild(this.ring);
+        this.stage.addChild(this.badge);
+    }
+
+    redraw(x: number, y: number, badge: string, color: number) {
+        this.stage.x = x;
+        this.stage.y = y;
+        const r = this.blipSize / 2;
+        this.ring.clear();
+        this.ring.circle(0, 0, r - 2).stroke({ width: 3, color });
+        this.ring.circle(0, 0, r / 3).stroke({ width: 2, color });
+        this.badge.text = badge;
+        this.badge.style.fill = color;
+        this.badge.x = r - this.badge.getLocalBounds().width;
     }
 }

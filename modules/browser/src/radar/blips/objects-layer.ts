@@ -11,7 +11,7 @@ type RenderFunctions<K extends keyof SpaceObjects> = {
         new (stage: Container, blipSize: number, spaceObject: SpaceObjects[T]): BlipRenderer<SpaceObjects[T]>;
     };
 };
-type Selection = { has(o: SpaceObject): boolean };
+export type Selection = { has(o: SpaceObject): boolean };
 type Filter<K extends keyof SpaceObjects> = (o: SpaceObjects[K]) => boolean;
 type Positioning<K extends keyof SpaceObjects> = (o: SpaceObjects[K]) => XY;
 

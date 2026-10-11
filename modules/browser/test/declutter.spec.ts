@@ -3,7 +3,11 @@ import {
     Declutter,
     DeclutterItem,
     Rung,
+    assignSlots,
     groupBadge,
+    insetRect,
+    insetRegion,
+    insetZoom,
     isExempt,
     nudge,
     visibleKind,
@@ -155,5 +159,145 @@ describe('Dradis declutter ladder (SPEC-0007 D3)', () => {
         const d = new Declutter(BLIP);
         expect(d.update([...row('a', 12, 0, 0, 2), ...row('b', 12, 30, 0, 2)], 0).groups).toHaveLength(1);
         expect(d.update([...row('a', 12, 0, 0, 2), ...row('b', 12, 300, 0, 2)], 10).groups).toHaveLength(2);
+    });
+});
+
+describe('Dradis declutter rung 4: POI + inset (SPEC-0007 D4)', () => {
+    const VIEW = { width: 800, height: 600 };
+
+    it('forms a POI only when group boxes still overlap after rung 3', () => {
+        const known = row('k', 12, 100, 100, 2, 'Asteroid');
+        const unknown = row('u', 12, 120, 110, 2, 'unknown');
+        const { groups, pois } = new Declutter(BLIP, true).update([...known, ...unknown], 0, VIEW);
+        expect(groups).toEqual([]);
+        expect(pois).toHaveLength(1);
+        expect(pois[0].memberIds).toHaveLength(24);
+        expect(pois[0].badge).toBe('<100');
+    });
+
+    it('same-kind fields merge into one group, not a POI', () => {
+        const items = [...row('a', 12, 100, 100, 2), ...row('b', 12, 120, 110, 2)];
+        const { groups, pois } = new Declutter(BLIP, true).update(items, 0, VIEW);
+        expect(groups).toHaveLength(1);
+        expect(pois).toEqual([]);
+    });
+
+    it('overlapping full-size icons of different kinds are not a super-cluster', () => {
+        const items = [item('a', 100, 100, 'Asteroid'), item('b', 110, 100, 'unknown')];
+        expect(new Declutter(BLIP, true).update(items, 0, VIEW).pois).toEqual([]);
+    });
+
+    it('groups that overlap by 25% or less stay groups', () => {
+        // 64px boxes 48px apart on one axis overlap by exactly 25%
+        const items = [...row('k', 12, 100, 100, 1, 'Asteroid'), ...row('u', 12, 148, 100, 1, 'unknown')];
+        const { groups, pois } = new Declutter(BLIP, true).update(items, 0, VIEW);
+        expect(pois).toEqual([]);
+        expect(groups).toHaveLength(2);
+    });
+
+    it('rung 4 is off unless enabled (insets never recurse)', () => {
+        const items = [...row('k', 12, 100, 100, 2, 'Asteroid'), ...row('u', 12, 120, 110, 2, 'unknown')];
+        expect(new Declutter(BLIP).update(items, 0, VIEW).pois).toEqual([]);
+    });
+
+    it('the inset region is the padded bounding box of world positions, and the inset zoom fits it', () => {
+        const region = insetRegion([
+            { x: 0, y: 0 },
+            { x: 1000, y: 500 },
+        ]);
+        expect(region).toEqual({ minX: -100, minY: -50, maxX: 1100, maxY: 550 });
+        expect(insetZoom(region, 240)).toBeCloseTo(240 / 1200, 9);
+
+        const known = row('k', 12, 100, 100, 2, 'Asteroid').map((i, n) => ({ ...i, world: { x: n * 10, y: 0 } }));
+        const unknown = row('u', 12, 120, 110, 2, 'unknown').map((i, n) => ({ ...i, world: { x: n * 10, y: 50 } }));
+        const [poi] = new Declutter(BLIP, true).update([...known, ...unknown], 0, VIEW).pois;
+        expect(poi.region).toEqual(insetRegion([...known, ...unknown].map((i) => i.world)));
+    });
+
+    it('inset panels sit on the left edge, sized 30% of the shorter side within 160-320px', () => {
+        expect(insetRect({ width: 800, height: 600 }, 0)).toEqual({ x: 16, y: 16, side: 180 });
+        expect(insetRect({ width: 800, height: 600 }, 1)).toEqual({ x: 16, y: 212, side: 180 });
+        expect(insetRect({ width: 300, height: 300 }, 0).side).toBe(160);
+        expect(insetRect({ width: 2000, height: 2000 }, 0).side).toBe(320);
+        expect(insetRect({ width: 800, height: 600 }, 0, 240).x).toBe(256);
+    });
+
+    it('slot assignment caps at maxInsets by member count and stays stable across frames', () => {
+        const first = assignSlots(
+            [
+                { key: 'a', count: 5, eligible: true },
+                { key: 'b', count: 30, eligible: true },
+                { key: 'c', count: 12, eligible: true },
+            ],
+            new Map(),
+        );
+        expect(DECLUTTER.maxInsets).toBe(2);
+        expect([...first.entries()].sort()).toEqual([
+            ['b', 0],
+            ['c', 1],
+        ]);
+        // 'a' grows past both, but slots do not swap while their POIs persist
+        const second = assignSlots(
+            [
+                { key: 'a', count: 99, eligible: true },
+                { key: 'b', count: 30, eligible: true },
+                { key: 'c', count: 12, eligible: true },
+            ],
+            first,
+        );
+        expect(second).toEqual(first);
+        // 'b' leaves the screen: its slot frees up for 'a'
+        const third = assignSlots(
+            [
+                { key: 'a', count: 99, eligible: true },
+                { key: 'b', count: 30, eligible: false },
+                { key: 'c', count: 12, eligible: true },
+            ],
+            second,
+        );
+        expect([...third.entries()].sort()).toEqual([
+            ['a', 0],
+            ['c', 1],
+        ]);
+    });
+
+    it('three super-clusters give three POIs and two insets, for the two largest', () => {
+        const pair = (p: string, x: number, n: number) => [
+            ...row(`${p}k`, n, x, 100, 1, 'Asteroid'),
+            ...row(`${p}u`, n, x + 10, 110, 1, 'unknown'),
+        ];
+        const items = [...pair('a', 100, 10), ...pair('b', 300, 30), ...pair('c', 500, 20)];
+        const { pois } = new Declutter(BLIP, true).update(items, 0, VIEW);
+        expect(pois).toHaveLength(3);
+        const bySlot = pois.filter((p) => p.slot !== null).sort((x, y) => x.slot! - y.slot!);
+        expect(bySlot.map((p) => p.key[0])).toEqual(['b', 'c']);
+    });
+
+    it('a POI off the canvas gets no inset', () => {
+        const items = [...row('k', 12, -300, 100, 2, 'Asteroid'), ...row('u', 12, -280, 110, 2, 'unknown')];
+        const { pois } = new Declutter(BLIP, true).update(items, 0, VIEW);
+        expect(pois).toHaveLength(1);
+        expect(pois[0].slot).toBeNull();
+    });
+
+    it('a POI holds for the hold time after its overlap clears', () => {
+        const d = new Declutter(BLIP, true);
+        const close = [...row('k', 12, 100, 100, 2, 'Asteroid'), ...row('u', 12, 120, 110, 2, 'unknown')];
+        const apart = [...row('k', 12, 100, 100, 2, 'Asteroid'), ...row('u', 12, 400, 110, 2, 'unknown')];
+        expect(d.update(close, 0, VIEW).pois).toHaveLength(1);
+        expect(d.update(apart, 100, VIEW).pois).toHaveLength(1);
+        const after = d.update(apart, 100 + DECLUTTER.holdMs, VIEW);
+        expect(after.pois).toEqual([]);
+        expect(after.groups).toHaveLength(2);
+    });
+
+    it('a POI that splits into separate super-clusters becomes separate POIs at once', () => {
+        const d = new Declutter(BLIP, true);
+        const pair = (p: string, x: number) => [
+            ...row(`${p}k`, 12, x, 100, 1, `${p}-Asteroid`),
+            ...row(`${p}u`, 12, x + 10, 110, 1, `${p}-unknown`),
+        ];
+        expect(d.update([...pair('a', 100), ...pair('b', 120)], 0, VIEW).pois).toHaveLength(1);
+        expect(d.update([...pair('a', 100), ...pair('b', 400)], 10, VIEW).pois).toHaveLength(2);
     });
 });
