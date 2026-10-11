@@ -266,11 +266,13 @@ jobs:
                   path: modules/ai/ai-controls/*.md
                   if-no-files-found: ignore
 
-    coverage-core:
-        # Coverage gate scoped to modules/core only. Started at a low
-        # threshold so it passes against current main; ratchet up by +5pp
-        # every release until we hit ~70%. See PR5 for backfill plan.
+    coverage-core-shard:
+        # core tests with coverage, split over 3 runners; coverage-core below merges and checks thresholds
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3]
         steps:
             - uses: actions/checkout@v4
             - name: Set up Node.js
@@ -279,8 +281,44 @@ jobs:
                   node-version-file: '.nvmrc'
                   cache: 'npm'
             - run: npm ci
-            # 4 workers like Test-Units (jest's default leaves one of the runner's 4 cores idle)
-            - run: npm run test:coverage:core -- --maxWorkers=4
+            - name: Run core tests with coverage
+              shell: bash
+              run: |
+                  set -f
+                  files=$(node scripts/ci-shard.mjs core ${{ matrix.shard }} 3)
+                  npx jest --maxWorkers=4 --coverage --coverageReporters=json --coverageDirectory=coverage-shard --collectCoverageFrom='modules/core/src/**/*.ts' --runTestsByPath $files
+            - name: Store shard coverage
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-core-shard-${{ matrix.shard }}
+                  path: coverage-shard/coverage-final.json
+                  if-no-files-found: error
+
+    coverage-core:
+        # Coverage gate scoped to modules/core only. Started at a low
+        # threshold so it passes against current main; ratchet up by +5pp
+        # every release until we hit ~70%. See PR5 for backfill plan.
+        # Merges the shards and checks the thresholds from test:coverage:core in package.json;
+        # keeps the required check name.
+        runs-on: ubuntu-latest
+        needs: coverage-core-shard
+        if: always()
+        steps:
+            - name: Fail if any shard failed
+              if: needs.coverage-core-shard.result != 'success'
+              run: exit 1
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+                  cache: 'npm'
+            - run: npm ci
+            - uses: actions/download-artifact@v4
+              with:
+                  pattern: coverage-core-shard-*
+                  path: coverage-shards
+            - run: node scripts/merge-coverage.mjs coverage-shards coverage-core
             - name: Upload coverage report
               if: always()
               uses: actions/upload-artifact@v4
