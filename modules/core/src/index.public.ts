@@ -78,15 +78,29 @@ export { getRange } from './range';
 // --- recording ---
 export {
     EVENTS_EXT,
+    SPACE_ROOM_KEY,
     ReplayRoom,
     SavedGame,
     decodeFrame,
+    decodeRecordedBytes,
+    decodeSegment,
+    encodeSegment,
     deepAssignSchema,
+    parseBaseLine,
     parseEventLine,
     parseFrameLine,
     parseHeader,
+    parseSegLine,
+    reconstructSegment,
+    recordingSchemaHash,
 } from './recording';
-export type { RecordingEventLine, RecordingFrameLine, RecordingHeader } from './recording';
+export type {
+    RecordingBaseLine,
+    RecordingEventLine,
+    RecordingFrameLine,
+    RecordingHeader,
+    RecordingSegLine,
+} from './recording';
 
 // --- ship ---
 export {

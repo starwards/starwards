@@ -280,15 +280,14 @@ class Player {
 
 function startPlayer(root: HTMLElement) {
     const open = (name: string, text: string) => {
-        try {
-            const source = RecordingSource.parse(name, text);
-            new Player(root, source).start().catch((e) => {
-                logError('player failed', e);
-                showEmptyState(root, open, `Failed to start: ${String(e)}`);
-            });
-        } catch (e) {
-            showEmptyState(root, open, `Not a valid recording: ${String(e)}`);
-        }
+        RecordingSource.parse(name, text).then(
+            (source) =>
+                new Player(root, source).start().catch((e) => {
+                    logError('player failed', e);
+                    showEmptyState(root, open, `Failed to start: ${String(e)}`);
+                }),
+            (e) => showEmptyState(root, open, `Not a valid recording: ${String(e)}`),
+        );
     };
     showEmptyState(root, open);
     const params = new URLSearchParams(window.location.search);
