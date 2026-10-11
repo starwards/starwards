@@ -97,7 +97,8 @@ jobs:
               run: exit 1
 
     Test-E2e-Shard:
-        # sharded over 4 runners; Test-E2e below aggregates
+        # shards 1-4 split every other e2e file by weight; 5-6 split the visual gallery by test.
+        # Test-E2e below aggregates.
         runs-on: ubuntu-latest
         container:
             image: mcr.microsoft.com/playwright:v1.61.1-jammy
@@ -105,7 +106,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                shard: [1, 2, 3, 4]
+                shard: [1, 2, 3, 4, 5, 6]
         steps:
             - uses: actions/checkout@v4
             # Skip the heavy build+e2e work on docs-only changes. Fails open:
@@ -149,8 +150,12 @@ jobs:
               shell: bash
               run: |
                   set -f
-                  files=$(node scripts/ci-shard.mjs e2e ${{ matrix.shard }} 4)
-                  npm run test:e2e -- $files
+                  if [ ${{ matrix.shard }} -le 4 ]; then
+                      files=$(node scripts/ci-shard.mjs e2e-rest ${{ matrix.shard }} 4)
+                      npm run test:e2e -- $files
+                  else
+                      npm run test:e2e -- --shard=$(( ${{ matrix.shard }} - 4 ))/2 modules/e2e/test/visual/gallery.spec.ts
+                  fi
             - name: Store test results
               uses: actions/upload-artifact@v4
               if: steps.changes.outputs.code == 'true'
