@@ -219,8 +219,15 @@ export class Declutter {
         for (const item of items) {
             placements.set(item.id, { x: item.x, y: item.y, scale: 1, visible: true });
         }
+        // an icon left on its own while its group's hold runs keeps last frame's group; icons that
+        // still overlap others follow this frame's clusters
+        const alone = new Set(
+            findClusters(items, this.blipSize)
+                .filter((c) => c.length === 1)
+                .map((c) => c[0].id),
+        );
         const heldGroup = (i: DeclutterItem) =>
-            this.held.get(i.id)?.shown === Rung.GROUP ? this.groupOf.get(i.id) : undefined;
+            alone.has(i.id) && this.held.get(i.id)?.shown === Rung.GROUP ? this.groupOf.get(i.id) : undefined;
         const linked = (a: DeclutterItem, b: DeclutterItem) => {
             const g = heldGroup(a);
             return g !== undefined && g === heldGroup(b);

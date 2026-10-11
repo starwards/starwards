@@ -150,4 +150,10 @@ describe('Dradis declutter ladder (SPEC-0007 D3)', () => {
         expect([...placements.keys()].sort()).toEqual(items.map((i) => i.id).sort());
         expect(groups.flatMap((g) => g.memberIds).every((id) => items.some((i) => i.id === id))).toBe(true);
     });
+
+    it('a group that splits into separate dense clusters becomes separate groups at once', () => {
+        const d = new Declutter(BLIP);
+        expect(d.update([...row('a', 12, 0, 0, 2), ...row('b', 12, 30, 0, 2)], 0).groups).toHaveLength(1);
+        expect(d.update([...row('a', 12, 0, 0, 2), ...row('b', 12, 300, 0, 2)], 10).groups).toHaveLength(2);
+    });
 });
