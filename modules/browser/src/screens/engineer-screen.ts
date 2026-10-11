@@ -22,6 +22,7 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawDamageReport } from '../widgets/damage-report';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
+import { drawRadarHeader } from '../widgets/radar-header';
 import { drawRepairQueue } from '../widgets/repair-queue';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
@@ -44,6 +45,7 @@ export async function initEngineerScreen(
     }
     drawDamageReport(grid.left({ scroll: true }), shipDriver);
     const armorSlot = grid.left({ width: 200, bottom: true });
+    drawRadarHeader(grid.center({ fill: true }), 'ENGINEERING', `SHIP ${shipId}`);
     drawFullSystemsStatus(grid.center({ fill: true, scroll: true }), shipDriver, shipDriver.systems, true);
     drawRepairQueue(grid.right({ scroll: true }), shipDriver, false);
     await drawArmorStatus(armorSlot, shipDriver, 200);
