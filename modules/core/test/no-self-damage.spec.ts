@@ -139,7 +139,7 @@ describe('no self-damage from own fire (issue #2345)', () => {
     }
 
     const blastArbs = [
-        fc.constantFrom<AmmoType>('HiExpShell', 'FragShell', 'HiExpMissile', 'FragMissile', 'ClusterMissile'),
+        fc.constantFrom<AmmoType>('HiExpShell', 'FragShell', 'HiExpMissile', 'FragMissile', 'ClusterFragMissile'),
         fc.integer({ min: 5, max: 400 }), // blast radius
         fc.double({ min: 0, max: 1, noNaN: true }), // offset, as a fraction of overlap range
         fc.integer({ min: 0, max: 359 }), // offset direction
@@ -170,7 +170,13 @@ describe('no self-damage from own fire (issue #2345)', () => {
     it('homing turn-back: a missile homing on a target behind the firer passes through it without a hit', () => {
         fc.assert(
             fc.property(
-                fc.constantFrom<AmmoType>('HiExpMissile', 'ArmPenMissile', 'FragMissile', 'ClusterMissile'),
+                fc.constantFrom<AmmoType>(
+                    'HiExpMissile',
+                    'ArmPenMissile',
+                    'FragMissile',
+                    'ClusterFragMissile',
+                    'ClusterArmPenMissile',
+                ),
                 fc.integer({ min: 0, max: 359 }), // firer heading
                 fc.integer({ min: 150, max: 210 }), // target bearing: behind the firer
                 fc.integer({ min: 2_000, max: 4_000 }), // target range
