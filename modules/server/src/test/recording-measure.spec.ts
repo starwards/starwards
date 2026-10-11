@@ -9,10 +9,13 @@ import { makeDriver } from './driver';
 /**
  * SPEC-0006 T6, a measurement and not a CI test: records one live game (real rooms) twice at once,
  * as v1 snapshots every 100 ms and as v2 (1000 ms keyframes + patch deltas), and prints the sizes.
- * Run with `STARWARDS_RECORDING_MEASURE=<output dir>` (and optionally `STARWARDS_RECORDING_MEASURE_SECONDS`).
+ * Run with `STARWARDS_RECORDING_MEASURE=<output dir>`, optionally `STARWARDS_RECORDING_MEASURE_SECONDS` and
+ * `STARWARDS_RECORDING_MEASURE_MAP`.
  */
 const outDir = process.env.STARWARDS_RECORDING_MEASURE;
 const seconds = Number(process.env.STARWARDS_RECORDING_MEASURE_SECONDS ?? 180);
+/** `skirmish` (below), or a map exported by `../maps`, e.g. `two_vs_one`, `wave_defence` */
+const mapName = process.env.STARWARDS_RECORDING_MEASURE_MAP ?? 'skirmish';
 
 const raiders: ShipModel[] = ['dragonfly-MK1', 'predator', 'glaive', 'dragonfly-MK2'];
 const allies: ShipModel[] = ['cataphract', 'dragonfly-MK2'];
@@ -68,7 +71,8 @@ const skirmish: GameMap = (() => {
         async () => {
             process.env.STARWARDS_RECORDING_DELTAS = '1';
             gameDriver.gameManager.state.speed = 1;
-            await gameDriver.gameManager.startGame(skirmish);
+            const maps = (await import('../maps')) as unknown as Record<string, GameMap>;
+            await gameDriver.gameManager.startGame(mapName === 'skirmish' ? skirmish : maps[mapName]);
             const dirA = path.join(outDir!, 'A-v1-100ms');
             const dirB = path.join(outDir!, 'B-v2-1000ms-deltas');
             const a = new GameRecorder(gameDriver.gameManager, dirA, 100, () => false);
