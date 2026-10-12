@@ -1,6 +1,5 @@
 /**
- * Plays the weapons-validation crews (`crews/weapons-<policy>.json`) on matched seeds, seating the
- * scripted tube armorer beside the torpedo-using reference crew, and writes each run's outcome to
+ * Plays the weapons-validation crews (`crews/weapons-<policy>.json`) on matched seeds, and writes each run's outcome to
  * `<out>/<crew>/<scenario>_seed<N>.result.json` beside its recording. Scripted seats only: no Jev.
  *
  *   npm --prefix modules/ai run score:weapons-runs -- --scenario T1 --seeds 12 --out <dir> [--first-seed 1]
@@ -9,10 +8,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID } from '@starwards/server/src/scenarios/training';
-import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { captain } from './captain';
 import { runCrewTraining } from '../training/train-crew';
-import { tubeArmorer } from './tube-armorer';
 
 export const WEAPONS_CREWS = ['reference', 'idle', 'spray-fire', 'wrong-ammo', 'no-lock', 'torpedo-reference'] as const;
 
@@ -22,15 +19,12 @@ function arg(name: string, fallback: string) {
 }
 
 /**
- * Scripted actors outside the consoles: the tube armorer for the torpedo-using crew and, on W-multi, a
- * captain designating the threat for every crew but no-lock (whose flaw is clearing the lock).
+ * Scripted actors outside the consoles: on W-multi, a captain designating the threat for every crew
+ * but no-lock (whose flaw is clearing the lock). The torpedo-using crew differs from the reference
+ * only by its engineer powering the tubes: the reference weapons launches through the console.
  */
 function scriptFor(scenario: string, crew: string) {
-    const scripts = [
-        ...(crew === 'torpedo-reference' ? [tubeArmorer(TRAINING_PLAYER_ID)] : []),
-        ...(scenario === 'W-multi' && crew !== 'no-lock' ? [captain(TRAINING_PLAYER_ID, TRAINING_TARGET_ID)] : []),
-    ];
-    return scripts.length ? (game: HeadlessGame) => scripts.forEach((s) => s(game)) : undefined;
+    return scenario === 'W-multi' && crew !== 'no-lock' ? captain(TRAINING_PLAYER_ID, TRAINING_TARGET_ID) : undefined;
 }
 
 async function main() {

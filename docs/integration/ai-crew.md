@@ -49,10 +49,9 @@ the console has it picks one of the buttons that control physically offers:
 | trigger             | `fire` (a burst of one decision interval) / `hold_fire` | chain gun                                      |
 | per repair protocol | `raise` / `lower` / `none`, `switch_mode` / `none`      | repair queue                                   |
 
-Per-gun and per-system controls are expanded (`fireChainGun:0`, `systemPower:/reactor`). The whole
+Per-gun, per-tube and per-system controls are expanded (`fireChainGun:0`, `tubeSafety:1`, `systemPower:/reactor`); a tube fires only with its safety switched off. The whole
 catalogue, one entry per station command, is [`catalogue.ts`](../../modules/ai/src/brain/catalogue.ts);
-commands left out carry their reason there (tubes cannot fire through the sandbox; signals job
-commands send no job id; waypoint commands are not buttons).
+commands left out carry their reason there (signals job commands send no job id; waypoint commands are not buttons).
 
 All of a decision's questions go to [Jev](https://docs.typesafe.ai) in one request: `state` is the
 display, plus the brain's `role` and `mission`; each control is one choice question. Code turns the
@@ -689,8 +688,7 @@ The module's scripts load that file; the key is never logged or recorded. Withou
 
 ## Limits
 
-- **Tubes and signals job commands are out**, until the station sandbox can release a tube's safety
-  and pass a job id.
+- **Signals job commands are out**, until the station sandbox can pass a job id.
 - **Crew talk is fixed phrases only**: no free speech, no questions to a seat, no human on the channel.
 - **Confidence is uncalibrated** until thresholds are tuned on recorded runs; `minConfidence`
   defaults to 0.

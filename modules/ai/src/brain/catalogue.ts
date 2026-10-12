@@ -44,8 +44,6 @@ export type ValueSource =
     | { panel: string; listKey: 'pointer' | 'index'; path: readonly string[] }
     | { radar: readonly string[] };
 
-const tubesDefect =
-    'tubes cannot fire through the station sandbox (no safety release); loading them only drains energy';
 const jobIdDefect = 'the station sandbox sends `true` instead of a job id, so the command does nothing';
 const helmsStat = (...path: string[]) => ({ panel: 'helms-stats', path });
 
@@ -105,9 +103,15 @@ export const controlCatalogue = {
         read: { panel: 'targeting-status', path: ['shortRangeOnly'] },
         expand: 'single',
     },
-    fireTube: { kind: 'excluded', reason: tubesDefect },
-    loadTube: { kind: 'excluded', reason: tubesDefect },
-    changeTubeAmmo: { kind: 'excluded', reason: tubesDefect },
+    fireTube: { kind: 'burst', expand: 'gun' },
+    loadTube: { kind: 'switch', read: { panel: 'tubes-status', listKey: 'index', path: ['loadAmmo'] }, expand: 'gun' },
+    changeTubeAmmo: { kind: 'press', value: true, expand: 'gun' },
+    // on = locked: a tube fires only with its safety off, and locks again as it fires on the ship-level trigger
+    tubeSafety: {
+        kind: 'switch',
+        read: { panel: 'tubes-status', listKey: 'index', path: ['safetyLocked'] },
+        expand: 'gun',
+    },
     fireChainGun: { kind: 'burst', expand: 'gun' },
     loadChainGun: {
         kind: 'switch',
