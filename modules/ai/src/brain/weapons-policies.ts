@@ -33,7 +33,8 @@ const SHIP_RADIUS_METERS = 5;
 /** lock-nearest re-cycles only when another ship is this much closer than the locked one. */
 const RELOCK_METERS = 1000;
 
-const isShip = (c: Contact) => c.type === 'Spaceship' || (c.type === undefined && (c.radius ?? 0) >= SHIP_RADIUS_METERS);
+const isShip = (c: Contact) =>
+    c.type === 'Spaceship' || (c.type === undefined && (c.radius ?? 0) >= SHIP_RADIUS_METERS);
 
 export function makeScriptedSeatPolicy(name: ScriptedSeatPolicyName, decisionSeconds: number): Policy {
     const reference = makeReferencePolicy(decisionSeconds, undefined, name);
