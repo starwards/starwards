@@ -127,7 +127,10 @@ export class AttackResolutionManager {
      */
     private resolvePenetrationChannel(damage: AttackDamage, exposures: AreaExposure[]): ResolvedSystemHit[] {
         const { profile } = damage;
-        const scaled = { id: damage.id, amount: damage.amount * profile.systemDamageFactor };
+        const scaled = {
+            id: damage.id,
+            amount: damage.amount * profile.systemDamageFactor * (damage.concentration ?? 1),
+        };
         if (profile.systemScope === 'electronics') {
             const worstExposure = exposures.reduce((r, { exposure }) => Math.max(r, exposure), 0);
             if (worstExposure === 0) {
