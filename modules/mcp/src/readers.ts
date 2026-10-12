@@ -175,6 +175,9 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             loading: tube.loading,
             loadAmmo: tube.loadAmmo,
             isFiring: tube.isFiring,
+            safetyLocked: tube.safetyLocked,
+            /** Launch bearing relative to the nose: a tube is fixed and fires along it. */
+            bearing: tube.fittedBearing,
         })),
 
     'gun-status': (s) =>

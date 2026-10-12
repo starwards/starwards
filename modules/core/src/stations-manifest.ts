@@ -82,6 +82,7 @@ export const stationCommands = [
     'fireTube',
     'loadTube',
     'changeTubeAmmo',
+    'tubeSafety',
     'fireChainGun',
     'loadChainGun',
     'changeGunAmmo',

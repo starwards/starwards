@@ -61,6 +61,8 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     fireTube: { kind: 'indexed', collection: 'tubes', field: 'isFiring', value: 'burst' },
     loadTube: { kind: 'indexed', collection: 'tubes', field: 'loadAmmo', value: 'toggle' },
     changeTubeAmmo: { kind: 'indexed', collection: 'tubes', field: 'changeProjectileCommand', value: 'trigger' },
+    // the browser's per-tube hotkeys 1-4: true locks the tube, false releases it to fire
+    tubeSafety: { kind: 'indexed', collection: 'tubes', field: 'safetyLocked', value: 'toggle' },
     fireChainGun: { kind: 'indexed', collection: 'chainGuns', field: 'isFiring', value: 'burst' },
     loadChainGun: { kind: 'indexed', collection: 'chainGuns', field: 'loadAmmo', value: 'toggle' },
     changeGunAmmo: { kind: 'indexed', collection: 'chainGuns', field: 'changeProjectileCommand', value: 'trigger' },

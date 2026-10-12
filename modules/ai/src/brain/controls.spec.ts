@@ -66,7 +66,7 @@ describe('station controls', () => {
     it('offers only commands the station has, and none of the excluded ones', () => {
         const ids = [
             ...controlsById(helmsDisplay, {
-                commands: [{ command: 'boost' }, { command: 'fireTube', count: 2 }],
+                commands: [{ command: 'boost' }, { command: 'placeWaypoint' }],
             }).keys(),
         ];
         expect(ids).toEqual(['boost']);
@@ -111,6 +111,57 @@ describe('station controls', () => {
             command: 'systemPower',
             args: { system: '/radars/0' },
             value: 1,
+        });
+    });
+});
+
+describe('tube controls', () => {
+    it('expands safety, firing, loading and ammo per tube, reading each tube from the tubes panel', () => {
+        const display: Display = {
+            panels: {
+                'tubes-status': [
+                    { index: 0, loadAmmo: true, safetyLocked: true },
+                    { index: 1, loadAmmo: false, safetyLocked: false },
+                ],
+            },
+        };
+        const controls = controlsById(display, {
+            commands: ['fireTube', 'loadTube', 'changeTubeAmmo', 'tubeSafety'].map((command) => ({
+                command,
+                count: 2,
+            })),
+        });
+        expect([...controls.keys()]).toEqual([
+            'fireTube:0',
+            'fireTube:1',
+            'loadTube:0',
+            'loadTube:1',
+            'changeTubeAmmo:0',
+            'changeTubeAmmo:1',
+            'tubeSafety:0',
+            'tubeSafety:1',
+        ]);
+        expect(controls.get('tubeSafety:0')!.rest).toBe('on');
+        expect(controls.get('tubeSafety:0')!.press('off')).toEqual({
+            command: 'tubeSafety',
+            args: { index: 0 },
+            value: false,
+        });
+        expect(controls.get('tubeSafety:1')!.press('off')).toBeUndefined();
+        expect(controls.get('fireTube:1')!.press('fire')).toEqual({
+            command: 'fireTube',
+            args: { index: 1, seconds: 0.5 },
+            value: undefined,
+        });
+        expect(controls.get('loadTube:1')!.press('on')).toEqual({
+            command: 'loadTube',
+            args: { index: 1 },
+            value: true,
+        });
+        expect(controls.get('changeTubeAmmo:0')!.press('press')).toEqual({
+            command: 'changeTubeAmmo',
+            args: { index: 0 },
+            value: true,
         });
     });
 });
