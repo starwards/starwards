@@ -74,7 +74,15 @@ export type Fuze = { type: 'contact' } | { type: 'proximity'; range: number };
 // damage number; proximity rounds are explosion delivery and carry a blast block
 export type DamageDelivery = 'impact' | 'explosion';
 
-export type WarheadDesign = { damageType: WeaponDamageType } & (
+export type WarheadDesign = {
+    damageType: WeaponDamageType;
+    /**
+     * Scales the expected defects each damage event of this round inflicts on every system it
+     * reaches past armor (design KB damage-model spec §4, §8). 1 = plain spillover. Plate erosion
+     * and the surface scrape ignore it.
+     */
+    concentration: number;
+} & (
     | {
           delivery: 'impact';
           fuze: { type: 'contact' };
@@ -138,6 +146,7 @@ export const ammoDesigns = {
         name: '30mm HiExp shell',
         radius: 1,
         damageType: 'HiExp',
+        concentration: 1,
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
         heatPerShot: 5,
@@ -153,6 +162,7 @@ export const ammoDesigns = {
         name: '30mm ArmPen shell',
         radius: 1,
         damageType: 'ArmPen',
+        concentration: 1,
         delivery: 'impact',
         fuze: { type: 'contact' },
         heatPerShot: 5,
@@ -164,6 +174,7 @@ export const ammoDesigns = {
         name: '30mm Frag shell',
         radius: 1,
         damageType: 'Frag',
+        concentration: 1,
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
         heatPerShot: 5,
@@ -179,6 +190,9 @@ export const ammoDesigns = {
         name: 'HiExp missile',
         radius: 2,
         damageType: 'HiExp',
+        // through a breach the missile's blast shreds the section: ~5 capsule defects on a
+        // fighter (#2334 ruling: a dragonfly dies to 3-4 missiles, ArmPen to breach then HiExp)
+        concentration: 20,
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
         heatPerShot: 25,
@@ -201,6 +215,7 @@ export const ammoDesigns = {
         name: 'ArmPen missile',
         radius: 2,
         damageType: 'ArmPen',
+        concentration: 8,
         delivery: 'impact',
         fuze: { type: 'contact' },
         heatPerShot: 25,
@@ -218,6 +233,7 @@ export const ammoDesigns = {
         name: 'Frag missile',
         radius: 2,
         damageType: 'Frag',
+        concentration: 1,
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
         heatPerShot: 25,
@@ -243,6 +259,7 @@ export const ammoDesigns = {
         name: 'Cluster missile (Frag)',
         radius: 2,
         damageType: 'Frag',
+        concentration: 1,
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
         heatPerShot: 25,
@@ -267,6 +284,7 @@ export const ammoDesigns = {
         name: 'Cluster missile (ArmPen)',
         radius: 2,
         damageType: 'ArmPen',
+        concentration: 3,
         delivery: 'impact',
         fuze: { type: 'contact' },
         heatPerShot: 25,
@@ -283,6 +301,7 @@ export const ammoDesigns = {
         name: 'Elec missile',
         radius: 2,
         damageType: 'Elec',
+        concentration: 1,
         delivery: 'impact',
         fuze: { type: 'contact' },
         heatPerShot: 25,
@@ -379,6 +398,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
         const explosion = new Explosion();
         explosion.assign(warhead.explosion);
         explosion.damageType = warhead.damageType;
+        explosion.concentration = warhead.concentration;
         explosion.expansionSpeed *= blastSizeFactor(this.model);
         return explosion;
     }

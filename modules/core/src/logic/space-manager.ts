@@ -61,6 +61,8 @@ export type Damage = {
     delivery: DamageDelivery;
     // id of the ship whose weapon caused this damage; empty for non-weapon damage (plain collisions)
     shipId: string;
+    /** Defect scaling of the round that dealt this (see `WarheadDesign.concentration`); absent = 1. */
+    concentration?: number;
 };
 
 type NoOrder = {
@@ -713,6 +715,7 @@ export class SpaceManager implements Updateable {
                 damageType: projectile.damageType,
                 delivery: 'impact',
                 shipId: projectile.shipId,
+                concentration: warhead.concentration,
             };
             const objectDamage = this.objectDamage.get(hit.id);
             if (objectDamage === undefined) {
@@ -908,6 +911,7 @@ export class SpaceManager implements Updateable {
                 damageType: object.damageType,
                 delivery: Explosion.isInstance(object) ? 'explosion' : 'impact',
                 shipId: Explosion.isInstance(object) ? object.shipId : '',
+                concentration: Explosion.isInstance(object) ? object.concentration : 1,
             };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {
