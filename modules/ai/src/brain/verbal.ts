@@ -57,6 +57,7 @@ type Gun = {
     loadAmmo: boolean;
     isFiring: boolean;
     shellRange?: number;
+    safetyLocked?: boolean;
 };
 
 /** Where a contact was at the previous reading. */
@@ -223,7 +224,7 @@ const panelTemplates = {
     'tubes-status': (p: Gun[]) =>
         p.map(
             (t) =>
-                `Missile tube ${t.index}: ${t.loadedProjectile === 'None' ? `empty, ${t.loadAmmo ? `loading ${t.projectile} ${percent(t.loading)}` : 'not loading'}` : `${t.loadedProjectile} loaded`}.`,
+                `Missile tube ${t.index}: ${t.loadedProjectile === 'None' ? `empty, ${t.loadAmmo ? `loading ${t.projectile} ${percent(t.loading)}` : 'not loading'}` : `${t.loadedProjectile} loaded`}, safety ${t.safetyLocked === false ? 'off' : 'on'}.`,
         ),
     'gun-status': (p: Gun[]) =>
         p.map(

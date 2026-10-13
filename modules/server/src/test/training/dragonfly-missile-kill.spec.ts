@@ -63,12 +63,10 @@ const LIMIT = 4;
 /**
  * Ruling (Amir, 2026-10-04): a dragonfly must not survive more than 3-4 well-aimed Gravitas missiles.
  *
- * Skipped: fails on current balance, not retuned here (#2334). Measured 2026-10-12 on master 0222c28b,
- * seeds 1-16, one bearing per seed: 21-54 missiles to kill (median 41) as ArmPen-to-breach then HiExp;
- * 43-131, one seed > 150, as ArmPen only. One ArmPen breaches a plate; each hit then takes about one
- * capsule defect at best, and the capsule survives 1 / CAPSULE_DEFECT_STEP = 10.
+ * Met by the missile concentration column (#1968). Measured 2026-10-12, seeds 1-16, bearing
+ * (seed * 137) mod 360: 2-4 missiles, median 3 (before: 21-54, median 40).
  */
-describe.skip('balance benchmark: Gravitas missiles vs dragonfly-MK1 (#2334)', () => {
+describe('balance benchmark: Gravitas missiles vs dragonfly-MK1 (#2334)', () => {
     it(
         `dies within ${LIMIT} well-aimed missiles (ArmPen to breach, then HiExp), any seed and bearing`,
         () => {

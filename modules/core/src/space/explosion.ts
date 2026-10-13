@@ -44,6 +44,9 @@ export class Explosion extends SpaceObjectBase {
     @gameField('float32')
     public blastFactor = 1;
 
+    /** server-side only, not synced: the detonating warhead's concentration, carried onto its damage events. */
+    public concentration = 1;
+
     /**
      * Set once this blast lands a hit on an armor section that was already fully broken —
      * drives the distinct hull-penetration render on the client.

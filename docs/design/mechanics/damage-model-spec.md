@@ -12,9 +12,9 @@
 >
 > **The forward design lives in the design KB:**
 > [starwards-design `mechanics/damage-model-spec.md`](https://github.com/starwards/starwards-design/blob/main/mechanics/damage-model-spec.md).
-> That document supersedes this one on intent — notably it replaces the spillover-detail model
-> in §4 with a per-round **Concentration** value, which is **not implemented**. Where the two
-> differ, this page tells you what the code does; the design KB tells you where it is going.
+> That document supersedes this one on intent. Its per-round **Concentration** value is
+> implemented on top of spillover (§4, §8). Where the two differ, this page tells you what the
+> code does; the design KB tells you where it is going.
 >
 > Decision records [006](../decisions/006-damage-profile-unification.md)-[011](../decisions/011-armor-table-rebalance.md)
 > hold the historical rationale.
@@ -117,13 +117,15 @@ target is are the two mechanics below.
   instead of saturating. Expected defects per event = `amount / (2 x damage50)`, so defect
   count follows the damage number linearly; armor attenuation reduces it the same way.
   Whether that comes from independent rolls or an equivalent draw is an implementation choice.
-  There is no per-round defect column: how many malfunctions a round inflicts is fully
-  determined by its damage number, its type's system damage factor, and the target's
-  `damage50`. Explosion streams simply roll every damage event: per-tick amounts are small,
+  Explosion streams simply roll every damage event: per-tick amounts are small,
   and spillover's linearity keeps expected defects proportional to the total delivered damage
   regardless of how the stream is chopped. Rolls per application are bounded
   (`MAX_SPILLOVER_ROLLS = 20`) purely as an overkill guard — beyond it every roll sits at the
   0.5 cap and any real system breaks first.
+- **Concentration**: a per-round multiplier on the penetration-channel amount (default 1),
+  so expected defects per system = `amount x systemDamageFactor x concentration / (2 x damage50)`.
+  It never touches plate erosion or the surface scrape. Explosions carry their warhead's value
+  onto every damage event of the blast.
 - **Victim selection**: for `single`-scope rounds only. The damage event picks one victim
   system at random among the eligible systems in the hit area, **at event time**; all of the
   event's defects land on it. One rod, one victim. If the victim breaks before all defects
@@ -133,6 +135,7 @@ target is are the two mechanics below.
   | Mechanic | Applies to | Effect |
   | ---------------- | ------------------- | ------------------------------------------------------------------------ |
   | Spillover | every damage event | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
+  | Concentration | every round (default 1) | multiplies the penetration-channel amount, so expected defects scale with it |
   | Victim selection | `single` scope only | one victim per event, picked at event time |
 
 **Resulting doctrine:** one HE = everything in the section bleeds; one AP = one system dies.
@@ -273,25 +276,29 @@ Breaking a system takes roughly 10-20 defects (varies per system); repair is Eng
 the cluster missile is two ammo types, `ClusterFragMissile` and `ClusterArmPenMissile`, drawing
 on one shared `ClusterMissile` magazine stock; the tube's ammo cycle visits each as its own stop). Impact rounds carry a flat **damage**
 number; explosion rounds carry a per-second `damageFactor` plus blast size/linger. Defect
-output per event follows the damage number via spillover (section 4) — there is no separate
-defect column. All damage numbers are proposed values pending playtest, and the impact
+output per event follows the damage number via spillover (section 4), scaled by the round's
+**concentration**. All damage numbers are proposed values pending playtest, and the impact
 numbers in particular need a spillover retune (damage now drives both plate erosion and
 defect count).
 
 **Warhead table:**
 
-| Ammo               | Type   | Delivery  | Scope       | Damage | Blast        |
-| ------------------ | ------ | --------- | ----------- | ------ | ------------ |
-| HiExpShell         | HiExp  | explosion | multi       | 20/s   | 200m x 1s    |
-| ArmPenShell        | ArmPen | impact    | single      | 30     | none         |
-| FragShell          | Frag   | explosion | multi ext.  | 10/s   | 250m x 1s    |
-| HiExpMissile       | HiExp  | explosion | multi       | 50/s   | 350m x 0.35s |
-| ArmPenMissile      | ArmPen | impact    | single      | **60** | none         |
-| FragMissile        | Frag   | explosion | multi ext.  | 10/s   | 800m x 1.6s  |
-| ClusterFragMissile | Frag   | explosion | multi ext.  | 10/s   | 750m x 1s    |
-| ClusterArmPenMissile | ArmPen | impact  | **multi**   | 30     | none         |
-| TandemMissile      | Tandem | impact    | single      | **50** | none         |
-| ElecMissile        | Elec   | impact    | electronics | 25     | none         |
+| Ammo                 | Type   | Delivery  | Scope       | Concentration | Damage | Blast        |
+| -------------------- | ------ | --------- | ----------- | ------------- | ------ | ------------ |
+| HiExpShell           | HiExp  | explosion | multi       | 1             | 20/s   | 200m x 1s    |
+| ArmPenShell          | ArmPen | impact    | single      | 1             | 30     | none         |
+| FragShell            | Frag   | explosion | multi ext.  | 1             | 10/s   | 250m x 1s    |
+| HiExpMissile         | HiExp  | explosion | multi       | **20**        | 50/s   | 350m x 0.35s |
+| ArmPenMissile        | ArmPen | impact    | single      | **8**         | **60** | none         |
+| FragMissile          | Frag   | explosion | multi ext.  | 1             | 10/s   | 800m x 1.6s  |
+| ClusterFragMissile   | Frag   | explosion | multi ext.  | 1             | 10/s   | 750m x 1s    |
+| ClusterArmPenMissile | ArmPen | impact    | **multi**   | **3**         | 30     | none         |
+| ElecMissile          | Elec   | impact    | electronics | 1             | 25     | none         |
+
+The HiExpMissile's concentration (20, the KB table says 1) is the #1968 retune: HiExp has no
+penetration through intact plates, so it only matters through a breach, where it makes "ArmPen
+to breach, then HiExp" kill a dragonfly-MK1 in 2-4 missiles
+(`modules/server/src/test/training/dragonfly-missile-kill.spec.ts`).
 
 Reading the damage column through spillover: the ArmPen missile is the assassin — its big
 amount (x1.5 factor) spills into a burst of rolls, several defects into one system per hit.
@@ -310,14 +317,14 @@ impact missiles are contact-fuzed, can be dodged, and dud on timeout). Shells fo
 rule: explosion shells (HiExp, Frag) carry the 100m proximity fuze and detonate at end of
 flight; the ArmPenShell is contact-fuzed.
 
-| Missile        | Max speed | Turn rate | Flight time | Fuze                                     |
-| -------------- | --------- | --------- | ----------- | ---------------------------------------- |
-| HiExpMissile   | 600       | 720 deg/s | 78s         | proximity                                |
-| ArmPenMissile  | 960       | 504 deg/s | 42s         | **contact**                              |
-| FragMissile    | 600       | 720 deg/s | 78s         | proximity                                |
-| ClusterFragMissile / ClusterArmPenMissile | 600 | 720 deg/s | 78s | Frag proximity / ArmPen **contact** |
-| TandemMissile  | 420       | 936 deg/s | 60s         | **contact**                              |
-| ElecMissile    | 780       | 720 deg/s | 96s         | **contact**                              |
+| Missile                                   | Max speed | Turn rate | Flight time | Fuze                                |
+| ----------------------------------------- | --------- | --------- | ----------- | ----------------------------------- |
+| HiExpMissile                              | 600       | 720 deg/s | 78s         | proximity                           |
+| ArmPenMissile                             | 960       | 504 deg/s | 42s         | **contact**                         |
+| FragMissile                               | 600       | 720 deg/s | 78s         | proximity                           |
+| ClusterFragMissile / ClusterArmPenMissile | 600       | 720 deg/s | 78s         | Frag proximity / ArmPen **contact** |
+| TandemMissile                             | 420       | 936 deg/s | 60s         | **contact**                         |
+| ElecMissile                               | 780       | 720 deg/s | 96s         | **contact**                         |
 
 Shells: 5 heat per shot; missiles: 25. Demo ship magazine: 2400 / 1200 / 2000 shells,
 12 / 6 / 8 / 6 / 4 / 4 missiles (HiExp / ArmPen / Frag / Cluster / Tandem / Elec).
@@ -360,15 +367,15 @@ Frag sands the externals the entire time regardless of the stack.
 
 ## 10. Tuning knobs
 
-| Knob                                                 | Where                              | Governs                    |
-| ---------------------------------------------------- | ---------------------------------- | -------------------------- |
-| armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts`   | every armor x type matchup |
-| per-layer `plateMaxHealth`, layer order              | ship design (`ArmorDesign.layers`) | armor stack durability     |
-| profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`          | per-type behavior          |
-| per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`              | every ammo number          |
+| Knob                                                 | Where                               | Governs                    |
+| ---------------------------------------------------- | ----------------------------------- | -------------------------- |
+| armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts`    | every armor x type matchup |
+| per-layer `plateMaxHealth`, layer order              | ship design (`ArmorDesign.layers`)  | armor stack durability     |
+| profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`           | per-type behavior          |
+| per-round: delivery, damage, concentration, blast, homing, heat | `space/projectile.ts`               | every ammo number          |
 | `SURFACE_EFFECT_FACTOR` (0.05)                       | `ship/attack-resolution-manager.ts` | global scrape calibration  |
-| `MAX_SPILLOVER_ROLLS` (20)                           | `ship/damage-manager.ts`           | spillover overkill guard   |
-| `damage50`, defect sizes                             | per-system designs                 | system toughness           |
+| `MAX_SPILLOVER_ROLLS` (20)                           | `ship/damage-manager.ts`            | spillover overkill guard   |
+| `damage50`, defect sizes                             | per-system designs                  | system toughness           |
 
 Fighter-class plates are sized so a standard ArmPen missile breaches a plate in one direct
 hit: the demo ship's composite `plateMaxHealth` is 100, against ArmPenMissile erosion of

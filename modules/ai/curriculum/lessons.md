@@ -337,6 +337,25 @@ Not filed. Draft text:
 - **Reuse:** before more crew tactics on L4, re-run it after the armour retune (starwards-design card M4.7)
   and the ammo retune (#1968); count damage events per attacker, not only kills.
 
+### L4 — `reference` with tubes: missiles through the console (2026-10-12)
+
+- **Level:** `T2`, on top of #2381 (round concentration: 2-4 ideal Gravitas missiles kill a dragonfly-MK1)
+  and #2382 (tube safety through the console; the reference weapons fires a loaded tube at a locked ship
+  1-20 km away within 100 deg of the tube, at most every 10 s).
+- **Change:** the reference engineer powers the tubes at normal while the ship is in a fight (a plate lost or
+  a defect reported) and the store holds more than half; otherwise they stay shut (`TUBE_STORE`, `engaged`).
+- **Level result:** seeds 1-16: 16/16 (enemies 32/32), median 79.0 s, run value 0.735 (baseline 2/16,
+  0.060); seeds 17-48: 32/32 (64/64; baseline 1/32). Accept (25%) met.
+- **Regression suite:** every level and benchmark ok. L1 13/16 to 16/16, L3 13/16 to 16/16, L2 7/8,
+  engineer-power-budget 0.775 (unchanged). Tubes powered from the start instead (`tubes-powered`
+  engineer) also wins L4 16/16 but costs engineer-power-budget 0.775 to 0.665 (0 up / 8 down, p 0.008):
+  that benchmark has no enemy, so powered tubes are waste.
+- **Lesson:** L4 was bound by the gun's kill cost, not by tactics: missiles that hit hard enough break it at
+  once. The gun-only reference (tubes shut) stays at 1/16 on the same build.
+- **Reuse:** the next rung (M3.34) should add a complexity axis that missiles alone do not solve, e.g.
+  limited missile stock, heavier targets or more attackers than tubes. Runs:
+  `training-archive/2026-10-12/l4-missiles/`.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

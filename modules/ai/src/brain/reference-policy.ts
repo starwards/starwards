@@ -30,6 +30,16 @@ const TARGET = 2;
 const FIRE_ARC_DEGREES = 2;
 const FIRE_RANGE_METERS = 8000;
 /**
+ * Missile launch band: past the missile's arming run, inside what it reaches in half its life. A
+ * homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
+ * line: a side tube still fires at a target on the nose.
+ */
+const MISSILE_MIN_RANGE_METERS = 1000;
+const MISSILE_MAX_RANGE_METERS = 20_000;
+const TUBE_ARC_DEGREES = 100;
+/** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
+export const LAUNCH_INTERVAL_SECONDS = 10;
+/**
  * Where the pilot parks: this far straight behind the target's motion. Space caps a shell's speed at
  * its muzzle speed, so a shell chasing a receding target detonates short by ~a quarter of the range,
  * and a blast keeps only a third of its shell's speed, so one fired at an oncoming target is swept
@@ -86,7 +96,8 @@ const REFERENCE_HELMS: HelmsStyle = {
  * Hand-written rules that press the same buttons a brain does, for helms, weapons and engineer. It
  * is the positive control of the harness: it shows a kill is reachable through the button
  * interface, so a brain that fails is failing at judgement, not at the interface. Signals rests.
- * Each seat gets its own instance: helms remembers the last radar fix to tell the target's
+ * Weapons also launches a missile from a loaded tube that bears on its lock, one every
+ * {@link LAUNCH_INTERVAL_SECONDS}. Each seat gets its own instance: helms remembers the last radar fix to tell the target's
  * velocity, and whether the target has fired back.
  */
 export function makeReferencePolicy(
@@ -99,6 +110,7 @@ export function makeReferencePolicy(
     let targetVelocity: XY = { x: 0, y: 0 };
     let seconds = 0;
     let armed = false;
+    let lastLaunch = -Infinity;
     return {
         name,
         answer(_request, controls, shown) {
@@ -112,6 +124,7 @@ export function makeReferencePolicy(
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
+            const launchTube = seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS ? tubeToLaunch(display) : undefined;
             const answers: Record<string, Answer> = {};
             for (const control of controls) {
                 const choice =
@@ -123,8 +136,12 @@ export function makeReferencePolicy(
                         seconds,
                         { standoff, weaveMeters },
                         engineer,
+                        launchTube,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
+                if (control.command === 'fireTube' && choice === 'fire') {
+                    lastLaunch = seconds;
+                }
             }
             return Promise.resolve({ answers });
         },
@@ -142,6 +159,7 @@ function referenceChoice(
     seconds: number,
     parking: Parking,
     engineer: EngineerStyle,
+    launchTube: number | undefined,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
@@ -167,6 +185,11 @@ function referenceChoice(
                 ? 'fire'
                 : 'hold_fire';
         }
+        case 'tubeSafety':
+            // released only to launch; the tube locks again before the next decision's launch check
+            return launchTube !== undefined && control.id === `tubeSafety:${launchTube}` ? 'off' : 'on';
+        case 'fireTube':
+            return launchTube !== undefined && control.id === `fireTube:${launchTube}` ? 'fire' : 'hold_fire';
         case 'rotationMode':
             // the target mode is refused until weapons holds a lock; weapons' radar reaches twice as far
             // as helms', so keep pressing while helms shows nothing: a refused press changes nothing
@@ -229,6 +252,11 @@ const HIGH_STORE = 0.9;
  */
 const THRUSTER_SHUTDOWN_STORE = 0.4;
 const THRUSTER_RESTART_STORE = 0.5;
+/**
+ * Once the ship has been hit (a plate gone or a defect reported) the tubes run at normal power while
+ * the store holds more than this share, so weapons can load missiles; out of a fight they stay shut.
+ */
+const TUBE_STORE = 0.5;
 /** The reactor bursts to full power only while cooler than this. */
 const REACTOR_BURST_HEAT = 50;
 /** Below this share of the store, with a cell left, the engineer jump-starts the reactor. */
@@ -248,8 +276,9 @@ const NORMAL = 0.5;
 const MAX = 1;
 
 /**
- * The engineer of the wave-defence harness, through the console: warp, docking and tubes shut
+ * The engineer of the wave-defence harness, through the console: warp and docking shut
  * down; the reactor at normal power, bursting to full while the store is low and it is still cool;
+ * tubes at normal power once the ship has been hit and while the store holds half;
  * thrusters at low power while the store is low, and shut down while it is lower still and the
  * reactor is damaged; the chain gun at low power while hot; coolant shared in proportion to each
  * system's heat; a reactor jump-start when the store runs dry; and, one at a time, a field repair for
@@ -287,7 +316,7 @@ function engineerChoice(command: string, key: string, display: Display, style: E
     }
     const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
     const reactorDamaged = defects.some((d) => systemKey(d.system) === 'reactor');
-    const goal = powerGoal(key, system, store, reactorDamaged);
+    const goal = powerGoal(key, system, store, reactorDamaged, engaged(display, defects));
     return goal === undefined ? 'hold' : towards(system.power, goal, 0.01);
 }
 
@@ -324,8 +353,11 @@ function systemKey(pointer: string) {
     return pointer.split('/')[1];
 }
 
-function powerGoal(pointer: string, system: SystemStatus, store: number, reactorDamaged: boolean) {
-    if (pointer === '/warp' || pointer === '/docking' || pointer.startsWith('/tubes/')) {
+function powerGoal(pointer: string, system: SystemStatus, store: number, reactorDamaged: boolean, inFight: boolean) {
+    if (pointer.startsWith('/tubes/')) {
+        return inFight && store > TUBE_STORE ? NORMAL : SHUTDOWN;
+    }
+    if (pointer === '/warp' || pointer === '/docking') {
         return SHUTDOWN;
     }
     if (pointer === '/reactor') {
@@ -340,6 +372,12 @@ function powerGoal(pointer: string, system: SystemStatus, store: number, reactor
         return store < LOW_STORE ? LOW : store > HIGH_STORE ? NORMAL : undefined;
     }
     return undefined;
+}
+
+/** Whether the ship is in a fight, as the engineer can tell: it has lost a plate or carries a defect. */
+function engaged(display: Display, defects: readonly Defect[]) {
+    const armor = display.panels['armor-status'] as { numberOfPlates?: number; healthyPlates?: number } | undefined;
+    return defects.length > 0 || (armor !== undefined && (armor.healthyPlates ?? 0) < (armor.numberOfPlates ?? 0));
 }
 
 /** One key press from `current` toward `goal` on an axis, or `hold` within `tolerance` of it. */
@@ -402,6 +440,31 @@ function closeIn(helms: Helms) {
  * fire. Holding pays only while coolant flows to the gun: uncooled, it never cools down.
  */
 const GUN_HOLD_HEAT = 85;
+
+type TubeStatus = { index: number; loadedProjectile: string; loading: number; bearing: number };
+
+/**
+ * The first loaded tube that bears on the locked ship, while that ship is inside the missile's
+ * launch band; none without a lock.
+ */
+function tubeToLaunch(display: Display) {
+    const targetId = display.panels['targeting-status']?.targetId;
+    const target = display.radar?.contacts?.find((c) => c.id === targetId);
+    if (
+        !target ||
+        !isShip(target) ||
+        target.distance < MISSILE_MIN_RANGE_METERS ||
+        target.distance > MISSILE_MAX_RANGE_METERS
+    ) {
+        return undefined;
+    }
+    const relative = delta(target.bearing, display.radar?.ownShip?.heading ?? 0);
+    const tubes = (display.panels['tubes-status'] ?? []) as unknown as TubeStatus[];
+    return tubes.find(
+        (t) =>
+            t.loading >= 1 && t.loadedProjectile !== 'None' && Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES,
+    )?.index;
+}
 
 /** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */
 function gunTooHot(display: Display) {

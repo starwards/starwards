@@ -49,6 +49,7 @@ const defaultStationsManifest: StationsManifest = {
                 'fireTube',
                 'loadTube',
                 'changeTubeAmmo',
+                'tubeSafety',
                 'fireChainGun',
                 'loadChainGun',
                 'changeGunAmmo',
