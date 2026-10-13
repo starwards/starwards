@@ -313,6 +313,30 @@ Not filed. Draft text:
   energy-bound. Fix target selection through a designation path (captain seat or signals-backed
   ships-only lock), not by cycling.
 
+### L4 — `reference` re-measure after the radar fixes, and `lock-nearest` (2026-10-11)
+
+- **Level:** `T2` as above, on master with #2347 (cycling skips wrecks and shells) and #2344 (capped radar keeps ships).
+- **Level result:** `reference` seeds 1–16: 2/16 (enemies ~10/32), median 211.8 s, run value +0.017 vs the
+  c039e482 baseline (4 up / 0 down, sign p 0.125); seeds 17–48: 1/32 (enemies 24/64; baseline 0/32, 23/64).
+  L0–L3 unchanged (L3 13/16). `idle` 0/16; uncrewed NPC 0/16.
+- **Candidate:** weapons `lock-nearest` (re-cycle until the lock holds the nearest ship, 1 km hysteresis),
+  `crews/weapons-lock-nearest.json`. Seeds 1–48: 6/48, enemies 37/96 vs `reference` 33/96, 8 up / 5 down,
+  sign p 0.58. **Decision:** rejected (does not separate).
+- **Walls, re-read on the new recordings (seeds 1–16):**
+    - **Wrecks and the radar cap no longer bind:** weapons locked a wreck on 0/16 seeds (was 3/6); no attacker
+      dropped off a capped contact list. The far attacker still leaves helms' list on every seed (2–38 s):
+      range or field of view, not the cap (inference).
+    - **Energy no longer binds:** with reactor repair and thruster shutdown the store never fell below 14%
+      (seed minima 0.14–0.45) and no energy request went short on any seed. The "energy-bound second kill"
+      lesson of 2026-10-10 is superseded.
+    - **The gun works, the target does not die:** weapons is firing ~70% of decisions, on a lock 70–84% of
+      them, the lock inside 2° and 8 km almost always (median range 1.8–4.5 km). The first attacker takes
+      41–167 damage events per run; on 7/16 seeds the second attacker takes none at all, because the first
+      never dies. Kills are bound by the dragonfly's durability to HiExp shells, which matches the #2334
+      benchmark (median 41 ideal missiles; the capsule survives ~10 post-breach defects).
+- **Reuse:** before more crew tactics on L4, re-run it after the armour retune (starwards-design card M4.7)
+  and the ammo retune (#1968); count damage events per attacker, not only kills.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

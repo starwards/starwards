@@ -9,10 +9,12 @@ import { makeReferencePolicy } from './reference-policy';
  * - `spray-fire`: holds the reference lock but fires every decision, solution or not.
  * - `wrong-ammo`: the reference, firing Frag shells (no plate damage on a fighter's composite armor).
  * - `no-lock`: never holds a target; fires when the nearest ship is in the gun's arc and range.
+ * - `lock-nearest`: the reference, cycling the lock until it holds the nearest ship (the one helms parks
+ *   on) whenever another ship is closer than the locked one by more than `RELOCK_METERS`.
  * - `tubes-powered`: the reference engineer, keeping the missile tubes at normal power while the store
  *   holds more than half, shut below it.
  */
-export const SCRIPTED_SEAT_POLICIES = ['spray-fire', 'wrong-ammo', 'no-lock', 'tubes-powered'] as const;
+export const SCRIPTED_SEAT_POLICIES = ['spray-fire', 'wrong-ammo', 'no-lock', 'tubes-powered', 'lock-nearest'] as const;
 export type ScriptedSeatPolicyName = (typeof SCRIPTED_SEAT_POLICIES)[number];
 
 type Contact = { id: string; distance: number; bearing: number; type?: string; radius?: number };
@@ -28,6 +30,11 @@ const NORMAL_POWER = 0.5;
 /** The tubes-powered engineer shuts the tubes when the store falls to this share, so loading never starves the gun. */
 const TUBE_STORE = 0.5;
 const SHIP_RADIUS_METERS = 5;
+/** lock-nearest re-cycles only when another ship is this much closer than the locked one. */
+const RELOCK_METERS = 1000;
+
+const isShip = (c: Contact) =>
+    c.type === 'Spaceship' || (c.type === undefined && (c.radius ?? 0) >= SHIP_RADIUS_METERS);
 
 export function makeScriptedSeatPolicy(name: ScriptedSeatPolicyName, decisionSeconds: number): Policy {
     const reference = makeReferencePolicy(decisionSeconds, undefined, name);
@@ -71,6 +78,16 @@ function override(name: ScriptedSeatPolicyName, id: string, display: Shown): str
                 ship.distance <= FIRE_RANGE_METERS
                 ? 'fire'
                 : 'hold_fire';
+        }
+        case 'lock-nearest': {
+            if (command !== 'target') return undefined;
+            const contacts = display.radar?.contacts ?? [];
+            const nearest = contacts.filter(isShip).sort((a, b) => a.distance - b.distance)[0];
+            const targetId = (display.panels['targeting-status'] as { targetId?: string } | undefined)?.targetId;
+            const locked = contacts.find((c) => c.id === targetId);
+            if (!targetId || (locked && !isShip(locked))) return 'next';
+            if (!nearest || !locked || locked.id === nearest.id) return 'none';
+            return locked.distance - nearest.distance > RELOCK_METERS ? 'next' : 'none';
         }
         case 'tubes-powered': {
             if (command !== 'systemPower' || !key.startsWith('/tubes/')) return undefined;
