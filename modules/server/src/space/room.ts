@@ -1,5 +1,6 @@
 import {
     GM_SET_VALUE,
+    SPACE_ROOM_KEY,
     SpaceManager,
     SpaceState,
     cmdReceivers,
@@ -12,12 +13,16 @@ import {
     spaceCommands,
 } from '@starwards/core/internal';
 
-import { Room } from '@colyseus/core';
+import { RecordingSerializer, recordingSerializerFor } from '../recording/recording-serializer';
+import { Room, Serializer } from '@colyseus/core';
 
 const { error: logError } = createLogger('space-room');
 
 export class SpaceRoom extends Room<SpaceState> {
     public static id = 'space';
+
+    /** set before `setState`, which would otherwise install a plain `SchemaSerializer` */
+    private recordingSerializer: RecordingSerializer | null = null;
 
     constructor() {
         super();
@@ -26,6 +31,7 @@ export class SpaceRoom extends Room<SpaceState> {
 
     public onCreate({ manager }: { manager: SpaceManager }) {
         this.roomId = SpaceRoom.id;
+        this.recordingSerializer = recordingSerializerFor(SPACE_ROOM_KEY);
         this.setState(manager.state);
         for (const [cmdName, handler] of cmdReceivers(spaceCommands, manager)) {
             this.onMessage(cmdName, handler);
@@ -54,5 +60,13 @@ export class SpaceRoom extends Room<SpaceState> {
                 }
             }
         });
+    }
+
+    public override setSerializer(serializer: Serializer<SpaceState>) {
+        super.setSerializer(this.recordingSerializer ?? serializer);
+    }
+
+    public onDispose() {
+        if (this.recordingSerializer) RecordingSerializer.live.delete(this.recordingSerializer);
     }
 }
