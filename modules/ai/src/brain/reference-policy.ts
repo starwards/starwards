@@ -73,11 +73,11 @@ const FLUNG_SPEED = 0.9 * MAX_SPEED;
 /**
  * How the reference engineer varies, for validating an engineer score against known-better and
  * known-worse play: `jumpStart` jump-starts a dry reactor, `repair` queues the repair protocol for a
- * defect the damage report shows.
+ * defect the damage report shows: on the reactor only, or on any system.
  */
-export type EngineerStyle = { jumpStart: boolean; repair: boolean };
+export type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' };
 
-const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: false };
+const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: 'reactor' };
 
 /**
  * How the reference helms varies, for validating a helms score against known-better and known-worse
@@ -244,6 +244,19 @@ type Defect = { system: string; field: string };
 const LOW_STORE = 0.75;
 /** Above this share the thrusters go back to normal power. */
 const HIGH_STORE = 0.9;
+/**
+ * With the damage report showing a reactor defect, below this share of the store the thrusters shut
+ * down, and stay down until it climbs past {@link THRUSTER_RESTART_STORE}: they draw most of the
+ * ship's energy, and with the reactor shot to pieces the store left goes to the gun and to repairs.
+ * A sound reactor refills the store, so a ship that only starts short keeps flying.
+ */
+const THRUSTER_SHUTDOWN_STORE = 0.4;
+const THRUSTER_RESTART_STORE = 0.5;
+/**
+ * Once the ship has been hit (a plate gone or a defect reported) the tubes run at normal power while
+ * the store holds more than this share, so weapons can load missiles; out of a fight they stay shut.
+ */
+const TUBE_STORE = 0.5;
 /** The reactor bursts to full power only while cooler than this. */
 const REACTOR_BURST_HEAT = 50;
 /** Below this share of the store, with a cell left, the engineer jump-starts the reactor. */
@@ -263,11 +276,13 @@ const NORMAL = 0.5;
 const MAX = 1;
 
 /**
- * The engineer of the wave-defence harness, through the console: warp, docking and tubes shut
+ * The engineer of the wave-defence harness, through the console: warp and docking shut
  * down; the reactor at normal power, bursting to full while the store is low and it is still cool;
- * thrusters at low power while the store is low; the chain gun at low power while hot; coolant shared in proportion to each system's
- * heat; and a reactor jump-start when the store runs dry. A repairing engineer also queues, one at a
- * time, a field repair for a defect the damage report shows.
+ * tubes at normal power once the ship has been hit and while the store holds half;
+ * thrusters at low power while the store is low, and shut down while it is lower still and the
+ * reactor is damaged; the chain gun at low power while hot; coolant shared in proportion to each
+ * system's heat; a reactor jump-start when the store runs dry; and, one at a time, a field repair for
+ * a reactor defect the damage report shows (a repairing engineer, for any system's defect).
  */
 function engineerChoice(command: string, key: string, display: Display, style: EngineerStyle) {
     const systems = (display.panels['full-systems-status'] ?? []) as unknown as SystemStatus[];
@@ -287,7 +302,9 @@ function engineerChoice(command: string, key: string, display: Display, style: E
                 ? 'raise'
                 : 'none';
         }
-        return style.repair && store > REPAIR_STORE && repairToQueue(display, slots) === key ? 'raise' : 'none';
+        return style.repair !== 'none' && store > REPAIR_STORE && repairToQueue(display, slots, style.repair) === key
+            ? 'raise'
+            : 'none';
     }
     const system = systems.find((s) => s.pointer === key);
     if (!system) {
@@ -297,7 +314,9 @@ function engineerChoice(command: string, key: string, display: Display, style: E
         const hottest = Math.max(...systems.map((s) => s.heat));
         return towards(system.coolantFactor, hottest > 0 ? system.heat / hottest : 0, 0.05);
     }
-    const goal = powerGoal(key, system, store);
+    const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
+    const reactorDamaged = defects.some((d) => systemKey(d.system) === 'reactor');
+    const goal = powerGoal(key, system, store, reactorDamaged, engaged(display, defects));
     return goal === undefined ? 'hold' : towards(system.power, goal, 0.01);
 }
 
@@ -305,7 +324,7 @@ function engineerChoice(command: string, key: string, display: Display, style: E
  * The first idle field repair, in catalogue order, that fixes a defect the damage report shows -- none
  * while another repair is queued or running.
  */
-function repairToQueue(display: Display, slots: readonly RepairSlot[]) {
+function repairToQueue(display: Display, slots: readonly RepairSlot[], scope: 'reactor' | 'all') {
     if (slots.some((s) => s.priority !== 'OFF')) {
         return undefined;
     }
@@ -317,7 +336,14 @@ function repairToQueue(display: Display, slots: readonly RepairSlot[]) {
             slot.priority === 'OFF' &&
             !slot.refusalReason &&
             protocol?.tier === 'field' &&
-            protocol.targets.some((t) => defects.some((d) => systemKey(d.system) === t.system && d.field === t.field))
+            protocol.targets.some((t) =>
+                defects.some(
+                    (d) =>
+                        systemKey(d.system) === t.system &&
+                        d.field === t.field &&
+                        (scope === 'all' || t.system === scope),
+                ),
+            )
         );
     })?.protocolId;
 }
@@ -327,8 +353,11 @@ function systemKey(pointer: string) {
     return pointer.split('/')[1];
 }
 
-function powerGoal(pointer: string, system: SystemStatus, store: number) {
-    if (pointer === '/warp' || pointer === '/docking' || pointer.startsWith('/tubes/')) {
+function powerGoal(pointer: string, system: SystemStatus, store: number, reactorDamaged: boolean, inFight: boolean) {
+    if (pointer.startsWith('/tubes/')) {
+        return inFight && store > TUBE_STORE ? NORMAL : SHUTDOWN;
+    }
+    if (pointer === '/warp' || pointer === '/docking') {
         return SHUTDOWN;
     }
     if (pointer === '/reactor') {
@@ -338,9 +367,17 @@ function powerGoal(pointer: string, system: SystemStatus, store: number) {
         return system.heat >= GUN_BACKOFF_HEAT ? LOW : system.heat < GUN_RELEASE_HEAT ? NORMAL : undefined;
     }
     if (pointer.startsWith('/thrusters/')) {
+        if (reactorDamaged && store < THRUSTER_SHUTDOWN_STORE) return SHUTDOWN;
+        if (reactorDamaged && store < THRUSTER_RESTART_STORE) return undefined;
         return store < LOW_STORE ? LOW : store > HIGH_STORE ? NORMAL : undefined;
     }
     return undefined;
+}
+
+/** Whether the ship is in a fight, as the engineer can tell: it has lost a plate or carries a defect. */
+function engaged(display: Display, defects: readonly Defect[]) {
+    const armor = display.panels['armor-status'] as { numberOfPlates?: number; healthyPlates?: number } | undefined;
+    return defects.length > 0 || (armor !== undefined && (armor.healthyPlates ?? 0) < (armor.numberOfPlates ?? 0));
 }
 
 /** One key press from `current` toward `goal` on an axis, or `hold` within `tolerance` of it. */
