@@ -122,6 +122,41 @@ test.describe('Station layout', () => {
             });
         }
     }
+    // #2338: one layout on every station: a caption strip across the top centre, the Systems pane
+    // on every screen (in the right column, except the engineer whose whole centre is the Systems
+    // table), and the armor display (where a station has one) at the bottom of the left column.
+    for (const station of stations) {
+        test(`${station} follows the standard station layout`, async ({ page }) => {
+            setupPageErrorHandlers(page);
+            const viewport = { width: 1280, height: 720 };
+            await page.setViewportSize(viewport);
+            await navigateToScreen(page, `/${station}.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+            const systems = page.locator('.tp-rotv[data-id="Systems"]');
+            await expect(systems).toBeVisible({ timeout: 10000 });
+            await waitForSettledLayout(page);
+
+            const header = await page.locator('.sw-radar-header').boundingBox();
+            expect(header, 'caption strip').not.toBeNull();
+            expect(header!.y, 'caption strip sits at the top').toBeLessThanOrEqual(20);
+            expect(header!.x + header!.width / 2, 'caption strip is centred').toBeGreaterThan(viewport.width * 0.4);
+            expect(header!.x + header!.width / 2, 'caption strip is centred').toBeLessThan(viewport.width * 0.6);
+
+            const box = (await systems.boundingBox())!;
+            if (station === 'engineer') {
+                expect(box.x, 'engineer Systems table fills the centre').toBeGreaterThan(viewport.width * 0.15);
+                expect(box.x + box.width).toBeLessThan(viewport.width * 0.85);
+            } else {
+                expect(box.x, 'Systems pane is in the right column').toBeGreaterThan(viewport.width * 0.7);
+            }
+
+            const armor = page.locator('[data-id="Armor"]');
+            if ((await armor.count()) > 0) {
+                const a = (await armor.boundingBox())!;
+                expect(a.x + a.width, 'armor is in the left column').toBeLessThan(viewport.width * 0.3);
+                expect(a.y + a.height, 'armor is at the bottom').toBeGreaterThan(viewport.height * 0.8);
+            }
+        });
+    }
     for (const station of stations) {
         test(`${station} shows all its content at 1024x768`, async ({ page }) => {
             setupPageErrorHandlers(page);

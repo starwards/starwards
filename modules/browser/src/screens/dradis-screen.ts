@@ -13,8 +13,11 @@ import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
 
 import { drawMapCaption } from '../widgets/map-caption';
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
+import { drawRadarHeader } from '../widgets/radar-header';
+import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { drawWaypointGroups } from '../widgets/waypoint-groups';
+import { isDradisSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { stationGrid } from '../container';
 
@@ -39,11 +42,18 @@ export async function initDradisScreen(
     } = await drawDradisRadar(spaceDriver, shipDriver, container, zoomEvents);
     container.getElement().on('contextmenu', (e) => e.preventDefault());
 
-    const grid = stationGrid(container, { left: 240, right: 240 });
+    const grid = stationGrid(container, { left: 240, right: 256 });
+    drawRadarHeader(grid.center({ fill: true }), 'DRADIS', `SHIP ${shipId}`);
     const placementSlot = grid.left();
     const editSlot = grid.left({ scroll: true });
     const layersSlot = grid.right({ scroll: true });
     const groupsSlot = grid.right({ bottom: true });
+    drawSystemsStatus(
+        grid.right(),
+        shipDriver,
+        shipDriver.systems.filter((s) => isDradisSystem(s.pointer)),
+        true,
+    );
     drawMapCaption(grid.left({ bottom: true }), radarView, cellSize, shipId);
 
     const waypointSelection = new SelectionContainer().init(spaceDriver);
