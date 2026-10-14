@@ -17,13 +17,15 @@ describe('wave-defence balance harness', () => {
     // Re-measured 2026-10-10 over one wave interval (480 sim-s): 10/16 seeds both before and after
     // #2345 (own blasts no longer push the firer), but which seeds kill shifted; seed 1 no longer
     // does, seed 2 kills on both.
+    // Re-measured 2026-10-12 after #2342 (delayed missile launch): still 10/16 seeds, but seed 2 no
+    // longer kills; seeds 4-7 and 11-16 do. Pinned to seed 4.
     // Minutes of game time at 60 Hz. A kill is a combat death, however the kill path works, so this
     // survives the capsule.
     it(
         'wave 1: the crewed standoff GVTS kills at least one raider (seeded; 10/16 seeds measured)',
         () => {
             const result = runWaveDefence({
-                seed: 2,
+                seed: 4,
                 proxy: 'standoff-missiles',
                 maxSimSeconds: WAVE_INTERVAL_SECONDS,
                 // the first wave-1 kill settles it; the rest of the interval cannot undo a kill
