@@ -8,11 +8,11 @@ export interface PatchTap {
 }
 
 /**
- * Delta recording (SPEC-0006) is opt-in until the browser replays it: `STARWARDS_RECORDING_DELTAS=1`.
+ * Delta recording (SPEC-0006) is on unless `STARWARDS_RECORDING_DELTAS=0`.
  * Read when a room is created and when a recording starts.
  */
 export function recordingDeltasEnabled() {
-    return process.env.STARWARDS_RECORDING_DELTAS === '1';
+    return process.env.STARWARDS_RECORDING_DELTAS !== '0';
 }
 
 /**

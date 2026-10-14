@@ -33,15 +33,19 @@ function recordingsDirPath(env: Record<string, string | undefined> = process.env
     return env.STARWARDS_RECORDINGS_DIR || DEFAULT_RECORDINGS_DIR;
 }
 
-// shell blasts (core space/projectile.ts) live 1 / BLAST_LIFETIME_FACTOR ≈ 333 ms, so 100 ms gives them 3+ frames.
-// HiExpMissile blasts (≈117 ms) get only 1–2 frames — accepted to keep files at ~10x the old 1000 ms size,
-// since each frame is a full snapshot. STARWARDS_RECORDING_INTERVAL_MS overrides.
-const DEFAULT_RECORDING_INTERVAL_MS = 100;
+// With deltas (SPEC-0006, on unless STARWARDS_RECORDING_DELTAS=0) the room patches carry the 50 ms
+// detail, so full snapshots are only 1000 ms keyframes. Without them every frame is a full snapshot:
+// shell blasts (core space/projectile.ts) live 1 / BLAST_LIFETIME_FACTOR ≈ 333 ms, so 100 ms gives them
+// 3+ frames. STARWARDS_RECORDING_INTERVAL_MS overrides either.
+const DEFAULT_KEYFRAME_INTERVAL_MS = 1000;
+const DEFAULT_SNAPSHOT_INTERVAL_MS = 100;
 
-/** live-game recording frame interval; override with STARWARDS_RECORDING_INTERVAL_MS */
+/** live-game recording frame (keyframe) interval; override with STARWARDS_RECORDING_INTERVAL_MS */
 export function recordingIntervalMs(env: Record<string, string | undefined> = process.env): number {
     const raw = env.STARWARDS_RECORDING_INTERVAL_MS;
-    if (!raw) return DEFAULT_RECORDING_INTERVAL_MS;
+    if (!raw) {
+        return env.STARWARDS_RECORDING_DELTAS === '0' ? DEFAULT_SNAPSHOT_INTERVAL_MS : DEFAULT_KEYFRAME_INTERVAL_MS;
+    }
     const value = Number(raw);
     if (!Number.isInteger(value) || value <= 0) {
         throw new Error(`STARWARDS_RECORDING_INTERVAL_MS must be a positive integer, got ${JSON.stringify(raw)}`);
