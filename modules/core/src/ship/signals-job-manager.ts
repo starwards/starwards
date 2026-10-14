@@ -14,7 +14,18 @@ import { isSensorInvisible } from '../space/sensor-visibility';
 import { makeId } from '../id';
 import { sectorCovers } from '../logic/field-of-view';
 
+/**
+ * How long a scan job's target may stay hidden behind a nearer object while still in radar
+ * reach before the job is treated as lost. The ship's own cannon shells stream down the bearing
+ * to whatever it is shooting at and shadow it for a few ticks at a time; without this grace every
+ * such flicker restarted the scan. Mirrors `TARGET_OCCLUSION_GRACE_SECONDS` for the weapons lock.
+ */
+export const SCAN_OCCLUSION_GRACE_SECONDS = 1.5;
+
 export class SignalsJobManager implements Updateable {
+    /** Seconds each job's target has been continuously occluded, by job id. */
+    private occludedSeconds = new Map<string, number>();
+
     constructor(
         private state: ShipState,
         private spaceManager: SpaceManager,
@@ -27,6 +38,7 @@ export class SignalsJobManager implements Updateable {
         // processJobQueue below, which scales by deltaSeconds — it doesn't freeze on its own
         // at deltaSeconds 0 (paused) and must be gated explicitly
         if (deltaSeconds > 0) {
+            this.updateOcclusion(deltaSeconds);
             this.updateScanJobs();
         }
         this.trimExcessJobs();
@@ -127,7 +139,7 @@ export class SignalsJobManager implements Updateable {
      * dormant — in place if prioritized, pruned otherwise.
      */
     private isJobWorkable(job: SignalsJob): boolean {
-        if (!this.spaceManager.isVisible(this.state.id, job.targetId)) {
+        if (!this.spaceManager.isVisible(this.state.id, job.targetId) && !this.occludedSeconds.has(job.id)) {
             return false;
         }
         return (
@@ -203,6 +215,10 @@ export class SignalsJobManager implements Updateable {
     }
 
     private processJobQueue(activeJob: SignalsJob, deltaSeconds: number): void {
+        // an occluded target holds its progress but gains none until it is back in sight
+        if (this.occludedSeconds.has(activeJob.id)) {
+            return;
+        }
         const effectiveness = this.getSignalsEffectiveness();
         if (effectiveness <= 0) {
             return;
@@ -291,6 +307,42 @@ export class SignalsJobManager implements Updateable {
             }
             this.pushJob(target.id);
         }
+    }
+
+    /**
+     * Tracks, per job, how long its target has been hidden behind a nearer object while still
+     * within a radar sector's bearing and reach. A job is in `occludedSeconds` only while inside
+     * the grace window; a target out of reach or occluded past the grace is simply not visible.
+     */
+    private updateOcclusion(deltaSeconds: number): void {
+        const occluded = new Map<string, number>();
+        for (const job of this.state.signals.jobs) {
+            if (this.spaceManager.isVisible(this.state.id, job.targetId) || !this.inRadarReach(job.targetId)) {
+                continue;
+            }
+            const seconds = (this.occludedSeconds.get(job.id) ?? 0) + deltaSeconds;
+            if (seconds <= SCAN_OCCLUSION_GRACE_SECONDS) {
+                occluded.set(job.id, seconds);
+            }
+        }
+        this.occludedSeconds = occluded;
+    }
+
+    private inRadarReach(targetId: string): boolean {
+        const ship = this.spaceManager.state.get(this.state.id);
+        const target = this.spaceManager.state.get(targetId);
+        if (!ship || !target || target.destroyed || isSensorInvisible(target)) {
+            return false;
+        }
+        const diff = XY.difference(target.position, ship.position);
+        const distance = XY.lengthOf(diff);
+        const bearing = XY.angleOf(diff);
+        for (const sector of ship.radarSectors) {
+            if (sectorCovers(sector, bearing, distance, target.radius)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private getSignalsEffectiveness(): number {
