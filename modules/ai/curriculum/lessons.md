@@ -356,6 +356,28 @@ Not filed. Draft text:
   limited missile stock, heavier targets or more attackers than tubes. Runs:
   `training-archive/2026-10-12/l4-missiles/`.
 
+### L5 — `reference` and `idle` baselines on `T2-constrained` (2026-10-15)
+
+- **Level:** new, axis `internal` (ruling M3.34): the `T2` attackers with the GVTS starting as on
+  `T0-constrained` (10-30% energy, 250-450 shells per type, chain guns at heat 40-70), seeds 1-16, 300 s.
+  The former placeholders L5-L7 are now L6-L8.
+- **Level result:** `reference` 16/16 (enemies 32/32), median 87.1 s (p10 63.0, p90 167.7), run value 0.669,
+  mean 304 shells per run; `idle` 0/16 (0/32). Against unconstrained `T2` (16/16, 76.0 s, 0.741) the
+  constraints cost about 11 s of median and 0.07 run value, not kills.
+- **Threshold:** accept 75% (12/16). The reference's 16/16 has a 95% lower bound near 81%, so 75% sits just
+  under what a working crew shows with room for seed noise; the gun-only reference reached 1/16 on `T2`,
+  so the bar still demands missile use from a starved store. A rate pinned to 100% would reject a crew on a
+  single unlucky seed.
+- **Regression suite** (reference vs its baseline, L0-L4): every rung ok (L2 7/8, L3 16/16, L4 16/16).
+  `weapons-acquire` reads regressed (38.5 vs 53.8, 0 up / 8 down) and `helms-intercept` crashes ("helms
+  benchmark ships are missing"); both reproduce identically on origin/master without this change, so they
+  predate it.
+- **Lesson:** the internal axis does not bind the reference on two attackers: missiles carry the kills, so a
+  starved store and short magazine only slow it (inference from kills and median; the energy and shell series
+  were not read).
+- **Reuse:** to make L5 discriminate, tighten what missiles depend on (missile stock, tube power with a low
+  store) rather than shells or gun heat.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
