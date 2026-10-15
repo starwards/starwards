@@ -67,6 +67,8 @@ const textures = {
 
 Assets.addBundle('blips', textures);
 const blipAssets = Assets.loadBundle('blips') as Promise<Record<keyof typeof textures, Texture>>;
+/** Settles after every blip sprite made so far has its texture. */
+export const blipTexturesLoaded = blipAssets.then(() => undefined);
 
 function shipBlipTexture(prefix: 'dradis' | 'tactical', model: ShipModel | null): keyof typeof textures {
     return `${prefix}_${resolveShipBlipAsset(model)}`;
