@@ -204,6 +204,34 @@ describe('SignalsJobManager', () => {
             expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
+        it('a momentary occlusion holds the job and its progress instead of restarting it', () => {
+            // own cannon shells streaming down the bearing to the target shadow it for a few ticks
+            // at a time; that must not restart the scan (bridge-testplay M4.11)
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
+            let t = runTicks(spaceMgr, 3, 20, 0.05, shipMgr);
+            const jobId = scanJobs(shipMgr)[0].id;
+
+            const blocker = new Asteroid().init('blocker', Vec2.make({ x: 500, y: 0 }), 30);
+            spaceMgr.insert(blocker);
+            spaceMgr.forceFlushEntities();
+            t = runTicks(spaceMgr, 0.5, 20, t, shipMgr);
+            expect(spaceMgr.isVisible('ship1', 'target1')).to.equal(false);
+            expect(scanJobs(shipMgr).map((job) => job.id)).to.include(jobId);
+
+            blocker.position = Vec2.make({ x: 0, y: -3000 });
+            t = runTicks(spaceMgr, 2.2, 20, t, shipMgr);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+
+        it('sustained occlusion still drops the job', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
+            let t = runTicks(spaceMgr, 1, 20, 0.05, shipMgr);
+            spaceMgr.insert(new Asteroid().init('blocker', Vec2.make({ x: 500, y: 0 }), 30));
+            spaceMgr.forceFlushEntities();
+            t = runTicks(spaceMgr, 3, 20, t, shipMgr);
+            expect(scanJobs(shipMgr).some((job) => job.targetId === 'target1')).to.equal(false);
+        });
+
         it('scans non-ship contacts to BASIC and no further — a rock has no systems to reveal', () => {
             const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
             const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
