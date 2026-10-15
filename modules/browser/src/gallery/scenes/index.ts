@@ -1,6 +1,7 @@
 import { Application } from 'pixi.js';
 import { ammoScenes } from './ammo';
 import { armorScenes } from './armor';
+import { dradisRadarScenes } from './dradis-radar';
 import { engineeringStatusScenes } from './engineering-status';
 import { gmRadarScenes } from './gm-radar';
 import { helmsScenes } from './helms';
@@ -22,6 +23,7 @@ export interface Scene {
 export const scenes: Record<string, Scene> = {
     ...ammoScenes,
     ...armorScenes,
+    ...dradisRadarScenes,
     ...engineeringStatusScenes,
     ...gmRadarScenes,
     ...helmsScenes,

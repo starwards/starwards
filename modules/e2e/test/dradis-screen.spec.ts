@@ -1,10 +1,10 @@
-import { Page, expect, test } from '@playwright/test';
+import { Locator, Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
 
-const { single_ship } = maps;
+const { single_ship, dradis_dense_field, dradis_adjacent_fields, dradis_three_field_pairs } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
@@ -59,6 +59,19 @@ test.describe('Dradis Screen', () => {
 
     test('displays dradis radar', async ({ page }) => {
         await expect(page.locator('[data-id="Dradis Radar"]')).toBeVisible({ timeout: 10000 });
+    });
+
+    test('blips draw no heading sprite, and labels are speakable names (SPEC-0007 D1, D2)', async ({ page }) => {
+        const radar = page.locator('[data-id="Dradis Radar"]');
+        await expect(radar).toBeVisible({ timeout: 10000 });
+        await expect
+            .poll(async () => JSON.parse((await radar.getAttribute('data-labels')) ?? '[]') as string[])
+            .not.toEqual([]);
+        await expect(radar).toHaveAttribute('data-direction-sprites', '0');
+        const labels = JSON.parse((await radar.getAttribute('data-labels')) ?? '[]') as string[];
+        for (const label of labels) {
+            expect(label).not.toMatch(/^ID:|^\d+$/);
+        }
     });
 
     test('places waypoint when W is pressed and radar is clicked', async ({ page }) => {
@@ -436,5 +449,84 @@ test.describe('Dradis Screen', () => {
         await expect(gridToggle).toBeChecked();
         await layersPane.locator('.tp-ckbv_w').nth(0).click();
         await expect(gridToggle).not.toBeChecked();
+    });
+});
+
+async function numberAttr(radar: Locator, name: string) {
+    return Number(await radar.getAttribute(name));
+}
+
+test.describe('Dradis declutter (SPEC-0007 D3)', () => {
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    async function openDradis(page: Page, map: typeof single_ship) {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(map);
+        await navigateToScreen(page, `/dradis.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        const radar = page.locator('[data-id="Dradis Radar"]');
+        await expect(radar).toBeVisible({ timeout: 10000 });
+        return radar;
+    }
+
+    test('a tight asteroid field groups, and zooming in resolves it', async ({ page }) => {
+        const radar = await openDradis(page, dradis_dense_field);
+        await expect.poll(() => numberAttr(radar, 'data-groups')).toBeGreaterThanOrEqual(1);
+
+        const zoomBefore = await numberAttr(radar, 'data-zoom');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await expect
+            .poll(
+                async () => {
+                    await page.mouse.wheel(0, -1000);
+                    return numberAttr(radar, 'data-groups');
+                },
+                { timeout: 10000 },
+            )
+            .toBe(0);
+        expect(await numberAttr(radar, 'data-zoom')).toBeGreaterThan(zoomBefore);
+    });
+
+    test('adjacent fields collapse to one POI with one inset (SPEC-0007 D4)', async ({ page }) => {
+        const radar = await openDradis(page, dradis_adjacent_fields);
+        await expect.poll(() => numberAttr(radar, 'data-pois')).toBe(1);
+        await expect(radar).toHaveAttribute('data-insets', '1');
+    });
+
+    test('three super-clusters show three POIs and two insets (SPEC-0007 D4)', async ({ page }) => {
+        const radar = await openDradis(page, dradis_three_field_pairs);
+        // the pairs sit inside the omni radar's reach; at the default zoom their rows would merge
+        const zoomBefore = await numberAttr(radar, 'data-zoom');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.wheel(0, -1000);
+        await expect.poll(() => numberAttr(radar, 'data-zoom')).toBeCloseTo(zoomBefore * 2, 6);
+        await expect.poll(() => numberAttr(radar, 'data-pois')).toBe(3);
+        await expect(radar).toHaveAttribute('data-insets', '2');
+    });
+
+    test('clicking an inset zooms onto its region and resolves the POI (SPEC-0007 D4)', async ({ page }) => {
+        const radar = await openDradis(page, dradis_adjacent_fields);
+        await expect.poll(() => numberAttr(radar, 'data-insets')).toBe(1);
+        const zoomBefore = await numberAttr(radar, 'data-zoom');
+        const [inset] = JSON.parse((await radar.getAttribute('data-inset-rects')) ?? '[]') as {
+            x: number;
+            y: number;
+            side: number;
+        }[];
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.click(box.x + inset.x + inset.side / 2, box.y + inset.y + inset.side / 2);
+
+        await expect(radar).toHaveAttribute('data-following', 'false');
+        expect(await numberAttr(radar, 'data-zoom')).toBeGreaterThan(zoomBefore);
+        await expect.poll(() => numberAttr(radar, 'data-pois')).toBe(0);
+        await expect(radar).toHaveAttribute('data-insets', '0');
+        // the click selected nothing: no waypoint edit or selection appeared
+        await expect(page.locator('[data-id="Edit Waypoint"]')).toBeHidden();
     });
 });

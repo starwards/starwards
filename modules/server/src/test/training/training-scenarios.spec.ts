@@ -35,13 +35,14 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi and W-outranged', () => {
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T2-constrained, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi and W-outranged', () => {
         expect(Object.keys(trainingScenarios)).toEqual([
             'T0',
             'T0-wide',
             'T0-constrained',
             'T1',
             'T2',
+            'T2-constrained',
             'T1-MK2',
             'T1-predator',
             'T1-noweave',
@@ -94,6 +95,21 @@ describe('training ladder', () => {
         expect(game.api.getShip(TRAINING_PLAYER_ID)?.state.orderTargetId).toBe(TRAINING_TARGET_ID);
         const [first, second] = [TRAINING_TARGET_ID, TRAINING_TARGET2_ID].map((id) => game.api.getObject(id)!.position);
         expect(Math.hypot(first.x - second.x, first.y - second.y)).toBeGreaterThan(1000);
+    });
+
+    it('T2-constrained: the T2 attackers, the GVTS starting short of energy and shells with hot guns', () => {
+        const scenario = trainingScenarios['T2-constrained'];
+        const [params] = fc.sample(scenario.params, { seed: 1, numRuns: 1 });
+        const game = HeadlessGame.start(scenario.createMap(params), 1);
+        for (const id of [TRAINING_TARGET_ID, TRAINING_TARGET2_ID]) {
+            expect(game.spaceManager.state.getShip(id)?.model).toBe('dragonfly-MK1');
+        }
+        const player = game.api.getShip(TRAINING_PLAYER_ID)!.state;
+        expect(player.reactor.energy / player.reactor.design.maxEnergy).toBeLessThanOrEqual(0.3);
+        expect(player.magazine.count_HiExpShell).toBeLessThanOrEqual(450);
+        for (const gun of player.chainGuns) {
+            expect(gun.heat).toBeGreaterThanOrEqual(40);
+        }
     });
 
     it('T1-lite: a dragonfly-MK1 holding its ground, capped to the GVTS top speed, capsule 70% breached', () => {
