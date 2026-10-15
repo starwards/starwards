@@ -160,7 +160,9 @@ describe('formulas', () => {
                         x += v * timeSlice;
                         v += a * timeSlice;
                     }
-                    expect(equasionOfMotion(x0, v0, a, t)).to.be.closeTo(x, Math.abs(x / Math.sqrt(SLICES)));
+                    // tolerance scales with the terms, not the result: x cancels to ~0 when x0 ≈ -½at²
+                    const scale = Math.abs(x0) + Math.abs(v0 * t) + Math.abs(a * t * t);
+                    expect(equasionOfMotion(x0, v0, a, t)).to.be.closeTo(x, scale / Math.sqrt(SLICES));
                 },
             ),
         );
