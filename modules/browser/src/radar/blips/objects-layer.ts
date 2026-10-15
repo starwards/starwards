@@ -11,11 +11,14 @@ type RenderFunctions<K extends keyof SpaceObjects> = {
         new (stage: Container, blipSize: number, spaceObject: SpaceObjects[T]): BlipRenderer<SpaceObjects[T]>;
     };
 };
-type Selection = { has(o: SpaceObject): boolean };
+export type Selection = { has(o: SpaceObject): boolean };
 type Filter<K extends keyof SpaceObjects> = (o: SpaceObjects[K]) => boolean;
 type Positioning<K extends keyof SpaceObjects> = (o: SpaceObjects[K]) => XY;
 
 type Blip<K extends keyof SpaceObjects> = readonly [BlipRenderer<SpaceObjects[K]>, BlipData];
+
+/** A tracked object and its drawn blip, as handed to a layout hook each frame. */
+export type DrawnBlip = { object: SpaceObject; data: BlipData };
 export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
     private stage = new Container();
 
@@ -86,8 +89,22 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
         private readonly getAlpha: (s: SpaceObjects[K]) => number = () => 1,
         private readonly playerFaction?: Faction,
     ) {
-        parent.ticker.add(this.blips.update, UPDATE_PRIORITY.LOW);
+        parent.ticker.add(this.update, UPDATE_PRIORITY.LOW);
     }
+
+    /** Runs after every frame's blip update; may move, scale or hide blip stages. */
+    public layout?: (blips: DrawnBlip[]) => void;
+
+    private update = () => {
+        this.blips.update();
+        if (!this.layout) return;
+        const drawn: DrawnBlip[] = [];
+        for (const [id, [_, data]] of this.blips.contexts) {
+            const object = this.spaceDriver.state.get(id);
+            if (object) drawn.push({ object, data });
+        }
+        this.layout(drawn);
+    };
 
     get renderRoot(): Container {
         return this.stage;

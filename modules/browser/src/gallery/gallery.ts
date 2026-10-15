@@ -1,7 +1,9 @@
 import { Scene, scenes } from './scenes';
 
 import { Application } from 'pixi.js';
+import { DECLUTTER } from '../radar/declutter';
 import { ListBladeApi } from 'tweakpane';
+import { blipTexturesLoaded } from '../radar/blips/blip-renderer';
 import { createPane } from '../panel';
 
 declare global {
@@ -111,10 +113,15 @@ async function loadScene() {
         // Wait for PixiJS to render frames, then stop ticker for stable screenshots
         // preserveDrawingBuffer=true keeps canvas content after ticker stops
         if (window.__PIXI_APP__) {
+            // blip sprites get their texture when the bundle loads; on a loaded runner that is after 10 frames
+            await blipTexturesLoaded;
+            // past the declutter hold too: it runs on wall time, so a frame count alone settles at a
+            // different rung on a loaded CI runner than on an idle one
+            const settleAt = performance.now() + 2 * DECLUTTER.holdMs;
             let frameCount = 0;
             const waitForRender = () => {
                 frameCount++;
-                if (frameCount >= 10) {
+                if (frameCount >= 10 && performance.now() >= settleAt) {
                     window.__PIXI_APP__!.ticker.remove(waitForRender);
                     window.__PIXI_APP__!.ticker.stop();
                     // Force final render to ensure canvas has content
