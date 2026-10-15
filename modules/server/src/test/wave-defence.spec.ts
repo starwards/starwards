@@ -652,6 +652,25 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         );
     }
 
+    /**
+     * Returns a function that holds each ship still at its spawn position, offset 1km apart.
+     * With the `() => 0` rng every raider of a wave spawns on the exact same point (zero jitter);
+     * pinned there, they never push apart, and minutes of overlap collision damage can destroy
+     * the whole wave -- clearing it and spawning the next one early (issue #2385).
+     */
+    function pinApart(ids: readonly string[]) {
+        const pins = ids.map((id, index) => {
+            const obj = gameDriver.spaceManager.state.get(id)!;
+            return { obj, position: Vec2.make(XY.add(obj.position, { x: index * 1000, y: 0 })) };
+        });
+        return () => {
+            for (const { obj, position } of pins) {
+                obj.position = Vec2.make(position);
+                obj.velocity = Vec2.make({ x: 0, y: 0 });
+            }
+        };
+    }
+
     it('converts a raider to a Derelict after its chain guns are broken for 30s continuously (not sooner), then the wave clears', async () => {
         const writeOffs: [string, string][] = [];
         const map = createWaveDefenceMap(() => 0, undefined, {
@@ -758,16 +777,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         gameDriver.gameManager.update(1 / 20);
 
         const wave1Ids = npcWaveIds();
-        const pins = wave1Ids.map((id) => {
-            const obj = gameDriver.spaceManager.state.get(id)!;
-            return { obj, position: Vec2.make(obj.position) };
-        });
-        const pinInPlace = () => {
-            for (const { obj, position } of pins) {
-                obj.position = Vec2.make(position);
-                obj.velocity = Vec2.make({ x: 0, y: 0 });
-            }
-        };
+        const pinInPlace = pinApart(wave1Ids);
 
         for (let i = 0; i < 120 - 1; i++) {
             pinInPlace();
@@ -807,16 +817,7 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         gameDriver.gameManager.update(1 / 20);
 
         const wave1Ids = npcWaveIds();
-        const pins = wave1Ids.map((id) => {
-            const obj = gameDriver.spaceManager.state.get(id)!;
-            return { obj, position: Vec2.make(obj.position) };
-        });
-        const pinInPlace = () => {
-            for (const { obj, position } of pins) {
-                obj.position = Vec2.make(position);
-                obj.velocity = Vec2.make({ x: 0, y: 0 });
-            }
-        };
+        const pinInPlace = pinApart(wave1Ids);
 
         for (let i = 0; i < WAVE_INTERVAL_SECONDS - 1; i++) {
             pinInPlace();

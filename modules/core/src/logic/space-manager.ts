@@ -437,6 +437,9 @@ export class SpaceManager implements Updateable {
         for (const shell of this.state.getAll('Projectile')) {
             if (!shell.freeze) {
                 shell.secondsToLive -= deltaSeconds;
+                if (!shell.armed) {
+                    shell.armingSeconds -= deltaSeconds;
+                }
                 if (shell.secondsToLive <= 0) {
                     if (shell.fuze.type === 'proximity') {
                         this.explodeProjectile(shell);
@@ -487,7 +490,7 @@ export class SpaceManager implements Updateable {
 
     private calcHomingProjectiles(deltaSeconds: number) {
         for (const projectile of this.state.getAll('Projectile')) {
-            if (!projectile.freeze && projectile.design.homing && projectile.targetId) {
+            if (!projectile.freeze && projectile.armed && projectile.design.homing && projectile.targetId) {
                 const [target] = this.getObjectPtr(projectile.targetId);
                 if (target) {
                     const distanceToTarget = XY.distance(target.position, projectile.position) - target.radius;
@@ -774,6 +777,10 @@ export class SpaceManager implements Updateable {
                 if (this.isOwnFire(subject, object)) {
                     // a ship's own projectiles and blasts never damage or push it (issue #2345)
                 } else if (Projectile.isInstance(subject)) {
+                    if (!subject.armed) {
+                        // an unarmed missile (issue #2342) is an inert body: no fuze, no warhead
+                        return;
+                    }
                     // A proximity fuze reacts to solid contacts, not to blast clouds. Without this
                     // guard, a sustained cannonade leaves a trail of still-expanding Explosion
                     // bodies along the firing line; a later shell physically collides with that

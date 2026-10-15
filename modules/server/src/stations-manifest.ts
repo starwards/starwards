@@ -88,7 +88,7 @@ const defaultStationsManifest: StationsManifest = {
         },
         dradis: {
             enabled: true,
-            widgets: ['dradis-radar', 'waypoint-groups', 'waypoint-edit'],
+            widgets: ['dradis-radar', 'waypoint-groups', 'waypoint-edit', 'systems-status'],
             commands: ['placeWaypoint', 'editWaypoint', 'moveWaypoint', 'deleteWaypoint'],
             prompt: 'You keep the navigation picture: you place, name and maintain the waypoints the crew flies by.',
         },

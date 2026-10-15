@@ -8,6 +8,10 @@ export function isHelmsSystem(pointer: string): boolean {
     );
 }
 
+export function isDradisSystem(pointer: string): boolean {
+    return pointer.startsWith('/radars/');
+}
+
 export function isWeaponsSystem(pointer: string): boolean {
     return (
         pointer.startsWith('/tubes/') ||
