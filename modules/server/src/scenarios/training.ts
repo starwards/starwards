@@ -3,6 +3,7 @@ import {
     GameMap,
     IdleStrategy,
     ShipModel,
+    ShipState,
     Spaceship,
     Vec2,
     XY,
@@ -41,6 +42,26 @@ export interface T0Lab {
     readonly playerGunHeat?: number;
 }
 
+/** Starts the GVTS short of energy and shells with hot guns, per the given {@link T0Lab} fields. */
+function constrainPlayer(
+    player: ShipState,
+    { playerEnergy, playerShells, playerGunHeat }: Omit<T0Lab, 'targetModel'>,
+): void {
+    if (playerEnergy !== undefined) {
+        player.reactor.energy = playerEnergy * player.reactor.design.maxEnergy;
+    }
+    if (playerShells !== undefined) {
+        for (const ammo of shellAmmoTypes) {
+            player.magazine[`count_${ammo}`] = Math.min(playerShells, player.magazine.design[`max_${ammo}`]);
+        }
+    }
+    if (playerGunHeat !== undefined) {
+        for (const gun of player.chainGuns) {
+            gun.heat = playerGunHeat;
+        }
+    }
+}
+
 /**
  * Training rung 0: the GVTS is ordered to kill a dragonfly-MK1 that never moves or shoots
  * (PLAY_DEAD, no order). Lab conditions -- no stations, no asteroids, no other ships.
@@ -52,22 +73,12 @@ export function createTrainingT0Map(
     return {
         name: 'training_t0',
         init: (game) => {
-            const player = game.addPlayerSpaceship(
-                new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
-            ).state;
-            if (playerEnergy !== undefined) {
-                player.reactor.energy = playerEnergy * player.reactor.design.maxEnergy;
-            }
-            if (playerShells !== undefined) {
-                for (const ammo of shellAmmoTypes) {
-                    player.magazine[`count_${ammo}`] = Math.min(playerShells, player.magazine.design[`max_${ammo}`]);
-                }
-            }
-            if (playerGunHeat !== undefined) {
-                for (const gun of player.chainGuns) {
-                    gun.heat = playerGunHeat;
-                }
-            }
+            constrainPlayer(
+                game.addPlayerSpaceship(
+                    new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
+                ).state,
+                { playerEnergy, playerShells, playerGunHeat },
+            );
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
             const target = game.addNpcSpaceship(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
@@ -160,12 +171,19 @@ export interface T2Params extends T0Params {
  * different bearings and ranges, so the crew chooses which to fight first. The GVTS starts ordered to
  * attack the first; uncrewed, its automation reacquires the nearest hostile when that one dies.
  */
-export function createTrainingT2Map(params: T2Params): GameMap {
+export function createTrainingT2Map(
+    params: T2Params,
+    /** Calibration only: start the GVTS constrained, as on `T0-constrained` (see {@link T0Lab}). */
+    constraints: Omit<T0Lab, 'targetModel'> = {},
+): GameMap {
     return {
         name: 'training_t2',
         init: (game) => {
-            game.addPlayerSpaceship(
-                new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
+            constrainPlayer(
+                game.addPlayerSpaceship(
+                    new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
+                ).state,
+                constraints,
             );
             const layout: [string, XY][] = [
                 [TRAINING_TARGET_ID, XY.byLengthAndDirection(params.distance, params.bearing)],
