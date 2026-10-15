@@ -176,6 +176,26 @@ const T2_TWO_ATTACKERS: TrainingScenario<T2Params> = {
     enemies: [TRAINING_TARGET_ID, TRAINING_TARGET2_ID],
 };
 
+type T2ConstrainedParams = T2Params & Required<Omit<T0Lab, 'targetModel'>>;
+
+/** T2 with the GVTS starting as on T0-constrained: short of energy and shells, guns already hot. */
+const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
+    ...T2_TWO_ATTACKERS,
+    name: 'T2-constrained',
+    description:
+        'GVTS starting with 10-30% reactor energy, 250-450 shells per type, chain guns at heat 40-70 vs two dragonfly-MK1s attacking it, each 2-8 km, the second 45-180 degrees round from the first',
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        distance2: fc.integer({ min: 2000, max: 8000 }),
+        offset: fc.integer({ min: 45, max: 180 }),
+        playerEnergy: fc.integer({ min: 10, max: 30 }).map((p) => p / 100),
+        playerShells: fc.integer({ min: 250, max: 450 }),
+        playerGunHeat: fc.integer({ min: 40, max: 70 }),
+    }),
+    createMap: (params) => createTrainingT2Map(params, params),
+};
+
 /** Weapons rung with a threat, a harmless decoy and an ally to choose between (calibration only). */
 const W_MULTI: TrainingScenario<WeaponsMultiParams> = {
     name: 'W-multi',
@@ -207,6 +227,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'T0-constrained': T0_CONSTRAINED as TrainingScenario<never>,
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
     T2: T2_TWO_ATTACKERS as TrainingScenario<never>,
+    'T2-constrained': T2_CONSTRAINED as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
     'T1-noweave': t1WithHull(

@@ -84,6 +84,18 @@
         },
         {
             "id": "L5",
+            "axis": "internal",
+            "changed": "The two T2 attackers, but the ship starts short of energy and shells with hot guns, as on T0-constrained (T2-constrained); a run counts as a kill only when both die.",
+            "status": "built",
+            "rungs": ["T2-constrained"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 300,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.75 }
+        },
+        {
+            "id": "L6",
             "axis": "threat",
             "changed": "Heavier attackers: dragonfly-MK2, then predator hulls.",
             "status": "placeholder",
@@ -95,7 +107,7 @@
             "accept": { "killRate": 0.5 }
         },
         {
-            "id": "L6",
+            "id": "L7",
             "axis": "mission",
             "changed": "A mission beyond the kill: escort, reach a waypoint, survive a wave.",
             "status": "placeholder",
@@ -107,7 +119,7 @@
             "accept": { "killRate": 0.5 }
         },
         {
-            "id": "L7",
+            "id": "L8",
             "axis": "space",
             "changed": "Cluttered space: asteroids, stations, contacts beyond the helms radar.",
             "status": "placeholder",
