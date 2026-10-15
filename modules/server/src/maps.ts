@@ -3,9 +3,11 @@ import {
     Faction,
     GameApi,
     GameMap,
+    ScanLevel,
     Spaceship,
     Vec2,
     Waypoint,
+    XY,
     makeId,
     sectorSize,
 } from '@starwards/core/internal';
@@ -118,13 +120,30 @@ export const two_ships = {
     },
 };
 
-/** A row of small asteroids `spacing` m apart, across the line of sight from the origin so none hides another. */
-function addAsteroidRow(game: GameApi, prefix: string, count: number, x: number, y: number, spacing: number) {
+/**
+ * A row of small asteroids `spacing` m apart, centred on `center` and running across the line of
+ * sight from the origin, so none hides another. `scanned` rows are BASIC-scanned by Gravitas.
+ */
+function addAsteroidRow(game: GameApi, prefix: string, count: number, center: XY, spacing: number, scanned = false) {
+    const across = XY.normalize({ x: -center.y, y: center.x });
     for (let i = 0; i < count; i++) {
-        const rock = new Asteroid().init(`${prefix}-${i}`, new Vec2(x, y + (i - (count - 1) / 2) * spacing));
+        const position = XY.add(center, XY.scale(across, (i - (count - 1) / 2) * spacing));
+        const rock = new Asteroid().init(`${prefix}-${i}`, new Vec2(position.x, position.y));
         rock.radius = 30;
+        if (scanned) rock.scanLevels[Faction.Gravitas] = ScanLevel.BASIC;
         game.addObject(rock);
     }
+}
+
+/** Two rows of different visible kind (scanned, unscanned) side by side: their groups overlap into one POI. */
+function addFieldPair(game: GameApi, prefix: string, center: XY) {
+    const across = XY.normalize({ x: -center.y, y: center.x });
+    addAsteroidRow(game, `${prefix}-known`, 12, XY.add(center, XY.scale(across, -350)), 50, true);
+    addAsteroidRow(game, `${prefix}-unknown`, 12, XY.add(center, XY.scale(across, 350)), 50);
+}
+
+function addDradisTestShip(game: GameApi) {
+    game.addPlayerSpaceship(new Spaceship().init(testShipId, new Vec2(0, 0), 'demo-ship', Faction.Gravitas));
 }
 
 /** Dradis declutter (SPEC-0007): 12 asteroids that overlap at the default Dradis zoom. */
@@ -132,7 +151,33 @@ export const dradis_dense_field = {
     name: 'dradis_dense_field',
     testShipId,
     init: (game: GameApi) => {
-        game.addPlayerSpaceship(new Spaceship().init(testShipId, new Vec2(0, 0), 'demo-ship', Faction.Gravitas));
-        addAsteroidRow(game, 'rock', 12, 600, 0, 100);
+        addDradisTestShip(game);
+        addAsteroidRow(game, 'rock', 12, { x: 600, y: 0 }, 100);
+    },
+};
+
+/** Dradis declutter (SPEC-0007 D4): one pair of adjacent fields, collapsing to one POI. */
+export const dradis_adjacent_fields = {
+    name: 'dradis_adjacent_fields',
+    testShipId,
+    init: (game: GameApi) => {
+        addDradisTestShip(game);
+        addFieldPair(game, 'a', { x: 6000, y: 0 });
+    },
+};
+
+/** Dradis declutter (SPEC-0007 D4): three field pairs, separate POIs once zoomed in to twice the default zoom. */
+export const dradis_three_field_pairs = {
+    name: 'dradis_three_field_pairs',
+    testShipId,
+    init: (game: GameApi) => {
+        addDradisTestShip(game);
+        for (const [prefix, bearing] of [
+            ['a', 0],
+            ['b', 120],
+            ['c', 240],
+        ] as const) {
+            addFieldPair(game, prefix, XY.byLengthAndDirection(4000, bearing));
+        }
     },
 };

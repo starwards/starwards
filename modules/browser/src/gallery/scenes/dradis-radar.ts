@@ -1,9 +1,11 @@
 import {
+    Asteroid,
     Derelict,
     Faction,
     ScanLevel,
     ShipModel,
     SpaceObject,
+    XY,
     demoShip,
     makeShipState,
     setOmniRadarSector,
@@ -41,10 +43,10 @@ function scanned<T extends SpaceObject>(o: T, level = ScanLevel.BASIC): T {
 const FIELD_CENTER = { x: 12_000, y: 6_000 };
 const FIELD_SPACING = 1_200;
 
-/** 12 scanned asteroids on a 4x3 grid around `center`, `FIELD_SPACING` metres apart. */
-function asteroidField(center: { x: number; y: number }, prefix = 'rock') {
-    return Array.from({ length: 12 }, (_, i) =>
-        scanned(
+/** `count` asteroids (scanned unless `scan` is false) on a 4-wide grid around `center`, `FIELD_SPACING` metres apart. */
+function asteroidField(center: { x: number; y: number }, prefix = 'rock', count = 12, scan = true) {
+    return Array.from({ length: count }, (_, i) =>
+        (scan ? scanned : (o: Asteroid) => o)(
             createMockAsteroid({
                 id: `${prefix}-${i}`,
                 position: {
@@ -55,6 +57,18 @@ function asteroidField(center: { x: number; y: number }, prefix = 'rock') {
             }),
         ),
     );
+}
+
+/**
+ * A scanned field and an unscanned one beside it, across the line of sight from the origin. They are
+ * different kinds, so rung 3 keeps two groups, and those overlap: rung 4 collapses them to a POI.
+ */
+function fieldPair(center: { x: number; y: number }, prefix: string, count: number) {
+    const across = XY.scale(XY.normalize({ x: -center.y, y: center.x }), 3_400);
+    return [
+        ...asteroidField(center, `${prefix}-known`, count),
+        ...asteroidField(XY.add(center, across), `${prefix}-unknown`, count, false),
+    ];
 }
 
 /** Draws the real Dradis widget around a player ship at the origin; `others` are the remaining contacts. */
@@ -121,6 +135,29 @@ export const dradisRadarScenes: Record<string, Scene> = {
             radar.follow.setFollow(false);
             radar.root.camera.set(FIELD_CENTER);
             radar.root.camera.setZoom(0.08);
+            return radar.root;
+        },
+    },
+
+    'dradis-radar-poi-inset': {
+        name: 'dradis-radar-poi-inset',
+        description:
+            'Two adjacent fields (scanned and unscanned) whose groups still overlap: one POI marker, a leader line and one inset',
+        async setup(container: HTMLElement) {
+            const radar = await dradisScene(container, fieldPair(FIELD_CENTER, 'a', 12));
+            return radar.root;
+        },
+    },
+
+    'dradis-radar-poi-inset-overflow': {
+        name: 'dradis-radar-poi-inset-overflow',
+        description: 'Three separate super-clusters: three POI markers, insets for the two largest only',
+        async setup(container: HTMLElement) {
+            const radar = await dradisScene(container, [
+                ...fieldPair({ x: 20_000, y: 0 }, 'a', 12),
+                ...fieldPair({ x: -10_000, y: 17_000 }, 'b', 8),
+                ...fieldPair({ x: -10_000, y: -17_000 }, 'c', 4),
+            ]);
             return radar.root;
         },
     },
