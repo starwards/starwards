@@ -15,6 +15,8 @@ const scenes = [
     'armor-heavy-damage',
     'armor-critical',
     'armor-sector-damage',
+    // Dradis Radar
+    'dradis-radar-ships',
     // Engineering Status
     'engineering-status-low-energy',
     'engineering-status-full-energy',
