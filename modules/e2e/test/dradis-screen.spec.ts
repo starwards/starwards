@@ -1,10 +1,10 @@
-import { Page, expect, test } from '@playwright/test';
+import { Locator, Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
 
-const { single_ship } = maps;
+const { single_ship, dradis_dense_field } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
@@ -449,5 +449,44 @@ test.describe('Dradis Screen', () => {
         await expect(gridToggle).toBeChecked();
         await layersPane.locator('.tp-ckbv_w').nth(0).click();
         await expect(gridToggle).not.toBeChecked();
+    });
+});
+
+async function numberAttr(radar: Locator, name: string) {
+    return Number(await radar.getAttribute(name));
+}
+
+test.describe('Dradis declutter (SPEC-0007 D3)', () => {
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    async function openDradis(page: Page, map: typeof single_ship) {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(map);
+        await navigateToScreen(page, `/dradis.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        const radar = page.locator('[data-id="Dradis Radar"]');
+        await expect(radar).toBeVisible({ timeout: 10000 });
+        return radar;
+    }
+
+    test('a tight asteroid field groups, and zooming in resolves it', async ({ page }) => {
+        const radar = await openDradis(page, dradis_dense_field);
+        await expect.poll(() => numberAttr(radar, 'data-groups')).toBeGreaterThanOrEqual(1);
+
+        const zoomBefore = await numberAttr(radar, 'data-zoom');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await expect
+            .poll(
+                async () => {
+                    await page.mouse.wheel(0, -1000);
+                    return numberAttr(radar, 'data-groups');
+                },
+                { timeout: 10000 },
+            )
+            .toBe(0);
+        expect(await numberAttr(radar, 'data-zoom')).toBeGreaterThan(zoomBefore);
     });
 });

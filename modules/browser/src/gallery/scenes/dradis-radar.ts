@@ -38,6 +38,25 @@ function scanned<T extends SpaceObject>(o: T, level = ScanLevel.BASIC): T {
     return o;
 }
 
+const FIELD_CENTER = { x: 12_000, y: 6_000 };
+const FIELD_SPACING = 1_200;
+
+/** 12 scanned asteroids on a 4x3 grid around `center`, `FIELD_SPACING` metres apart. */
+function asteroidField(center: { x: number; y: number }, prefix = 'rock') {
+    return Array.from({ length: 12 }, (_, i) =>
+        scanned(
+            createMockAsteroid({
+                id: `${prefix}-${i}`,
+                position: {
+                    x: center.x + ((i % 4) - 1.5) * FIELD_SPACING,
+                    y: center.y + (Math.floor(i / 4) - 1) * FIELD_SPACING,
+                },
+                radius: 200,
+            }),
+        ),
+    );
+}
+
 /** Draws the real Dradis widget around a player ship at the origin; `others` are the remaining contacts. */
 async function dradisScene(container: HTMLElement, others: SpaceObject[]) {
     const player = createShip('player', 0, 0, PLAYER_FACTION, 0);
@@ -75,6 +94,33 @@ export const dradisRadarScenes: Record<string, Scene> = {
                 scanned(wreck),
                 scanned(rock),
             ]);
+            return radar.root;
+        },
+    },
+
+    'dradis-radar-dense-field': {
+        name: 'dradis-radar-dense-field',
+        description:
+            'Dradis at default zoom over a 12-asteroid field: one group icon with a <100 badge; a named ship inside stays individual and full size',
+        async setup(container: HTMLElement) {
+            const viper = createShip('enemy-1', FIELD_CENTER.x - 3_000, FIELD_CENTER.y, Faction.Raiders, 135).spaceship;
+            viper.callsign = 'Viper';
+            const radar = await dradisScene(container, [scanned(viper), ...asteroidField(FIELD_CENTER)]);
+            return radar.root;
+        },
+    },
+
+    'dradis-radar-dense-zoomed': {
+        name: 'dradis-radar-dense-zoomed',
+        description:
+            'The same field zoomed in until the asteroids no longer overlap: every asteroid drawn individually',
+        async setup(container: HTMLElement) {
+            const viper = createShip('enemy-1', FIELD_CENTER.x - 3_000, FIELD_CENTER.y, Faction.Raiders, 135).spaceship;
+            viper.callsign = 'Viper';
+            const radar = await dradisScene(container, [scanned(viper), ...asteroidField(FIELD_CENTER)]);
+            radar.follow.setFollow(false);
+            radar.root.camera.set(FIELD_CENTER);
+            radar.root.camera.setZoom(0.08);
             return radar.root;
         },
     },

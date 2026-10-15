@@ -5,6 +5,7 @@ import { blue, radarFogOfWar, red, yellow } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
+import { DeclutterLayer } from '../radar/blips/declutter-layer';
 import EventEmitter from 'eventemitter3';
 import { GridLayer } from '../radar/grid-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
@@ -21,6 +22,7 @@ WebFont.load({
 });
 
 const DEFAULT_RANGE = radarReach.dradis;
+const BLIP_SIZE = 64;
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
@@ -94,7 +96,7 @@ export async function drawDradisRadar(
     const blipLayer = new ObjectsLayer(
         root,
         spaceDriver,
-        64,
+        BLIP_SIZE,
         getColor,
         dradisNoRadiusDrawFunctions,
         new SelectionContainer().init(spaceDriver),
@@ -103,8 +105,19 @@ export async function drawDradisRadar(
         undefined,
         shipDriver.state.faction,
     );
+    const declutter = new DeclutterLayer(BLIP_SIZE, shipDriver.state.faction);
+    blipLayer.layout = declutter.layout;
+    // group markers sit under the blips, so a named ship inside a group stays on top
+    root.addLayer(declutter.renderRoot);
     root.addLayer(blipLayer.renderRoot);
-    root.ticker.add(() => exposeBlipAttributes(root.canvas, blipLayer.renderRoot), null, UPDATE_PRIORITY.UTILITY);
+    root.ticker.add(
+        () => {
+            exposeBlipAttributes(root.canvas, blipLayer.renderRoot);
+            root.canvas.setAttribute('data-groups', `${declutter.result.groups.length}`);
+        },
+        null,
+        UPDATE_PRIORITY.UTILITY,
+    );
 
     let unfollow: (() => void) | null = null;
     let following = true;

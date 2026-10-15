@@ -117,3 +117,22 @@ export const two_ships = {
         game.addPlayerSpaceship(target);
     },
 };
+
+/** A row of small asteroids `spacing` m apart, across the line of sight from the origin so none hides another. */
+function addAsteroidRow(game: GameApi, prefix: string, count: number, x: number, y: number, spacing: number) {
+    for (let i = 0; i < count; i++) {
+        const rock = new Asteroid().init(`${prefix}-${i}`, new Vec2(x, y + (i - (count - 1) / 2) * spacing));
+        rock.radius = 30;
+        game.addObject(rock);
+    }
+}
+
+/** Dradis declutter (SPEC-0007): 12 asteroids that overlap at the default Dradis zoom. */
+export const dradis_dense_field = {
+    name: 'dradis_dense_field',
+    testShipId,
+    init: (game: GameApi) => {
+        game.addPlayerSpaceship(new Spaceship().init(testShipId, new Vec2(0, 0), 'demo-ship', Faction.Gravitas));
+        addAsteroidRow(game, 'rock', 12, 600, 0, 100);
+    },
+};
