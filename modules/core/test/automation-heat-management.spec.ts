@@ -257,9 +257,10 @@ describe('AI heat-management automation', () => {
     describe('sustained engagement', () => {
         /**
          * Coolant budget (vs the dragonfly-MK1's stock 6) for a hull whose cooling cannot keep up
-         * with sustained fire on its own — the condition under which power backoff has to engage.
+         * with sustained fire on its own — the condition under which power backoff has to engage. Was 3
+         * until #2313 cut shell heatPerShot 5 -> 2; at 3 the mount no longer needed to back off.
          */
-        const STARVED_COOLANT = 3;
+        const STARVED_COOLANT = 2;
 
         function armorHealthSum(state: ReturnType<typeof makeShipState>) {
             let sum = 0;

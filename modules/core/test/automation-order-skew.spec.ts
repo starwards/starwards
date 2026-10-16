@@ -40,10 +40,14 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
 
         // Given seconds of continued engagement the tracked estimate converges on the real defect
         // and the firing line comes back onto the target, at which point the mount opens up.
+        // Judged across the run, not on the last tick: with sustained fire no longer heat-throttled
+        // (#2313) the mount can empty its magazine well before the loop ends.
+        let firedOnTarget = false;
         for (let i = 0; i < 600; i++) {
             runOneTick(shipMgr, spaceMgr);
+            firedOnTarget ||= gun.isFiring && Math.abs(gun.hullBearing) < 1;
         }
         expect(gun.hullBearing).to.be.closeTo(0, 1);
-        expect(gun.isFiring).to.equal(true);
+        expect(firedOnTarget, 'mount opened fire once its firing line was back on target').to.equal(true);
     });
 });
