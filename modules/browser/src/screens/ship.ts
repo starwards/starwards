@@ -87,7 +87,7 @@ async function initScreen(
         dashboard.registerWidget(warpWidget(shipDriver), {}, 'warp');
     }
     dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, 'docking');
-    dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver, driver), {}, 'target info');
+    dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver), {}, 'target info');
     dashboard.setup();
     const input = wireSinglePilotInput(shipDriver);
     const teardownHelp = setupHotkeyHelp(input);

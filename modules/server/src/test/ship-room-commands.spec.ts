@@ -44,6 +44,15 @@ describe('ShipRoom JSON pointer commands', () => {
         expect(shipManager.state.radars[0].power).toBeCloseTo(0.25, 2);
     });
 
+    it('applies a Signals target write and syncs it to other clients of the ship', async () => {
+        const { client, room, shipId } = await connectShip('signals');
+        const { client: viewer, room: viewerRoom } = await connectShip('target-details');
+        const shipManager = driver.serverDriver.getShip(shipId);
+        await client.sendCommand(room, '/signalsTargetId', { value: 'some-contact' });
+        await waitForServer(() => shipManager.state.signalsTargetId === 'some-contact');
+        await viewer.waitForSync(viewerRoom, (state) => state.signalsTargetId === 'some-contact');
+    });
+
     it('caps numeric writes to the @range of the field', async () => {
         const { client, room, shipId } = await connectShip('capper');
         const shipManager = driver.serverDriver.getShip(shipId);

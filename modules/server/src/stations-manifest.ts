@@ -92,6 +92,12 @@ const defaultStationsManifest: StationsManifest = {
             commands: ['placeWaypoint', 'editWaypoint', 'moveWaypoint', 'deleteWaypoint'],
             prompt: 'You keep the navigation picture: you place, name and maintain the waypoints the crew flies by.',
         },
+        'target-details': {
+            enabled: true,
+            prompt:
+                'You read the contact marked on your Signals station: its armor, systems and tubes once fully ' +
+                'scanned. You call its weak points to the crew out loud.',
+        },
         gm: {
             enabled: false,
             gm: true,

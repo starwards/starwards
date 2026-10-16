@@ -14,6 +14,7 @@ module.exports = {
         engineer: [path.resolve(__dirname, 'src', 'screens', 'engineer.ts')],
         dradis: [path.resolve(__dirname, 'src', 'screens', 'dradis.ts')],
         signals: [path.resolve(__dirname, 'src', 'screens', 'signals.ts')],
+        'target-details': [path.resolve(__dirname, 'src', 'screens', 'target-details.ts')],
         station: [path.resolve(__dirname, 'src', 'screens', 'station.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
         input: [path.resolve(__dirname, 'src', 'screens', 'input.ts')],
@@ -99,6 +100,11 @@ module.exports = {
             filename: 'signals.html',
             template: path.resolve(__dirname, 'templates', 'station.html'),
             chunks: ['signals'],
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'target-details.html',
+            template: path.resolve(__dirname, 'templates', 'station.html'),
+            chunks: ['target-details'],
         }),
         new HtmlWebpackPlugin({
             filename: 'station.html',

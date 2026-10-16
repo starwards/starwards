@@ -199,6 +199,13 @@ function ShipOptions({ shipId }: { shipId: string }) {
                     >
                         Dradis
                     </Button>
+                    <Button
+                        key={`target-details-${shipId}`}
+                        palette="primary"
+                        onClick={() => window.location.assign(`target-details.html?ship=${shipId}`)}
+                    >
+                        Target Details
+                    </Button>
                 </>
             }
             style={{ maxWidth: 400, display: 'inline-block', padding: '10px' }}

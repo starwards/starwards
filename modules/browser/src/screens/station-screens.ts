@@ -5,6 +5,7 @@ import { initDradisScreen } from './dradis-screen';
 import { initEngineerScreen } from './engineer-screen';
 import { initHelmsScreen } from './helms-screen';
 import { initSignalsScreen } from './signals-screen';
+import { initTargetDetailsScreen } from './target-details-screen';
 import { initWeaponsScreen } from './weapons-screen';
 
 type StationScreenInit = (driver: Driver, container: ScreenContainer, shipId: string) => Promise<ScreenTeardown>;
@@ -21,4 +22,5 @@ export const stationScreens: Record<string, StationScreenInit> = {
     engineer: initEngineerScreen,
     dradis: initDradisScreen,
     signals: initSignalsScreen,
+    'target-details': initTargetDetailsScreen,
 };
