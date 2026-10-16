@@ -380,11 +380,13 @@ and acceptance thresholds (kill rate, median time to kill per rung).
 (`createTrainingT2Map`) a run counts as a kill only when both attackers die; reports also count
 attackers killed (`kills` of `enemies` per run), and per-target columns read the first attacker. `T2-constrained` is `T2` with `T0-constrained`'s starting energy, shells and gun heat.
 
-Suite baselines with every station radar cut to its reach:
+Suite baselines with every station radar cut to its reach. The `reference` row is the committed
+baseline ([`curriculum/baselines/reference.json`](../../modules/ai/curriculum/baselines/reference.json),
+the numbers `suite` checks regressions against); a re-run lands within seed noise of it:
 
 | Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` | L3 `T1`       | L4 `T2`       | L5 `T2-constrained` |
 | ------------- | ------------ | ------------- | ------------- | ------------------- | ------------- | ------------- | ------------------- |
-| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 16/16, 20.6 s | 7/8, 97.2 s         | 16/16, 43.5 s | 16/16, 76.0 s | 16/16, 87.1 s       |
+| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 16/16, 21.2 s | 7/8, 97.2 s         | 16/16, 38.7 s | 16/16, 79.0 s | 16/16, 87.1 s       |
 | `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          | not played    | not played    | not played          |
 | `idle`        | 0/8          | not played    | 0/16          | not played          | 0/16          | 0/16          | 0/16                |
 
@@ -430,8 +432,14 @@ or benchmark. Lessons, with evidence and reuse notes, go to
 ## Live game
 
 ```bash
-npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS --crew crews/reference.json [--record] [--seconds N] [--out <dir>]
+npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS [--crew crews/reference-signals.json] [--human-seat <station>] [--record] [--seconds N] [--out <dir>]
 ```
+
+`--crew` defaults to the rule-based [`crews/reference-signals.json`](../../modules/ai/crews/reference-signals.json)
+(helms, weapons, engineer, signals; no `TYPESAFE_API_KEY` needed). A Jev crew is opt-in: name it with
+`--crew`, e.g. `crews/recommended.json`. `--human-seat <station>` leaves that station to a human: the
+crew seats every other station and never connects to or registers the human one; a fused seat
+(`tactical`) that would play it is refused.
 
 Run it from Git Bash: PowerShell's npm drops the `--` flags. In PowerShell call the script directly from `modules/ai`: `node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts --url ...`.
 
@@ -448,6 +456,12 @@ server records the game, `<name>` is the recording's, event times follow the rec
 `<name>.sgr` is downloaded beside the sidecar, so `decisions`, `reask` and `analyze` work on it.
 Presses go out as soon as a seat decides: the network is the latency. Held triggers hold for wall
 seconds.
+
+### Single-seat playtest: one human, bots on the other seats
+
+`--human-seat <station>` (`helms`, `weapons`, `engineer`, `signals` or `dradis`) leaves that station
+to a human; the crew plays the rest. Step-by-step guide, glossary, crew table and baseline
+comparison: [`docs/guides/single-seat-playtest.md`](../guides/single-seat-playtest.md).
 
 ## Snapshot scoring
 
