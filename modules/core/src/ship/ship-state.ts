@@ -192,6 +192,14 @@ export class ShipState extends Schema implements Lockable {
     @gameField(Signals)
     signals!: Signals;
 
+    /**
+     * Track id of the contact marked on this ship's Signals station, '' when none. The Signals screen
+     * is its only writer; the Target Details screen shows this contact.
+     */
+    @commandable()
+    @gameField('string')
+    signalsTargetId = '';
+
     /** The ship's core hit-point counter; the ship is lost when it breaks. Not one of `systems()`. */
     @gameField(Capsule)
     capsule!: Capsule;

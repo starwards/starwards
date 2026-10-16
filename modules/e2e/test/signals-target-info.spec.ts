@@ -57,27 +57,18 @@ test.describe('Signals Screen - Target Info panel', () => {
         expect(box.y).toBeLessThan(30);
     });
 
-    // R2: at full scan of a ship contact, the panel must show a directional armor layout and
-    // per-tube loadout — what other stations need to handle the contact as an adversary.
-    test('full scan of a ship contact shows directional armor and tube loadout', async ({ page }) => {
-        gameDriver.getShip(targetShipId).state.tubes[0].loadedProjectile = 'HiExpMissile';
+    // SPEC-0008 §6: target internals moved to the Target Details screen — even at full scan of a ship
+    // contact, the Contact panel draws no armor or tube widgets.
+    test('full scan of a ship contact shows no armor or tube widgets', async ({ page }) => {
         gameDriver.gameManager.spaceManager.factionIntel.setScanLevel(targetShipId, Faction.Gravitas, ScanLevel.FULL);
 
         await waitForRadarReady(page);
         await cycleToShipContact(page);
+        await expect.poll(() => getPropertyValue(page, 'Scan level', 'Contact')).toBe('FULL');
+        await page.waitForTimeout(1500);
 
-        await expect(page.locator('[data-id="Armor"]')).toBeVisible({ timeout: 10000 });
-
-        const tubesPanel = page.locator('[data-id="Target Tubes"]');
-        await expect(tubesPanel).toBeVisible();
-        // gravitas carries two tubes, both labeled "ammo loaded" — read every tube row's input
-        // rather than a single ambiguous label lookup
-        await expect(async () => {
-            const values = await tubesPanel
-                .locator('input')
-                .evaluateAll((inputs) => inputs.map((i) => (i as HTMLInputElement).value));
-            expect(values).toContain('HiExpMissile');
-        }).toPass({ timeout: 5000 });
+        await expect(page.locator('[data-id="Armor"]')).toHaveCount(0);
+        await expect(page.locator('[data-id="Target Tubes"]')).toHaveCount(0);
     });
 
     // A3: lower scan tiers (here: BASIC, same-faction default) must not render the full-scan

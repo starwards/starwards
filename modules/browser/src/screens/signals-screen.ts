@@ -2,7 +2,7 @@ import { Driver, Radar, ShipDriver, SpaceDriver, radarReach, scanCycleTargets } 
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 
 import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
-import { readWriteNumberProp, readWriteProp } from '../property-wrappers';
+import { readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
@@ -30,6 +30,7 @@ export async function initSignalsScreen(
     const spaceDriver = await driver.getSpaceDriver();
 
     const stationTarget = new SelectionContainer().init(spaceDriver);
+    const teardownTargetSync = syncSignalsTarget(shipDriver, stationTarget);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
     const radarRange = radarReach.longRange;
@@ -49,7 +50,7 @@ export async function initSignalsScreen(
     const stationSystems = [...shipDriver.systems.filter((s) => s.pointer === '/signals'), ...radarSystems];
     const scanBeamSlot = grid.left();
     const jobsSlot = grid.left({ scroll: true });
-    drawTargetInfo(grid.right(), driver, spaceDriver, shipDriver, stationTarget);
+    drawTargetInfo(grid.right(), spaceDriver, shipDriver, stationTarget);
     drawSystemsStatus(grid.right({ scroll: true }), shipDriver, stationSystems, true);
     // the scan beam is the ship's steerable radar — the one whose arc has room to trade for reach
     const scanBeam = radarSystems.find(
@@ -59,7 +60,23 @@ export async function initSignalsScreen(
         drawScanBeam(scanBeamSlot, shipDriver, scanBeam.state, scanBeam.pointer);
     }
     drawSignalsJobs(jobsSlot, shipDriver, spaceDriver, stationTarget);
-    return wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
+    const teardownInput = wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
+    return () => {
+        teardownTargetSync();
+        teardownInput();
+    };
+}
+
+/**
+ * Mirrors the station's local selection into `ShipState.signalsTargetId`, which the Target Details
+ * screen follows. Signals is its only writer; a freshly opened station starts with no target.
+ */
+function syncSignalsTarget(shipDriver: ShipDriver, stationTarget: SelectionContainer): () => void {
+    const signalsTargetId = writeProp<string>(shipDriver, '/signalsTargetId');
+    const sync = () => signalsTargetId.setValue(stationTarget.getSingle()?.id ?? '');
+    sync();
+    stationTarget.events.on('changed', sync);
+    return () => stationTarget.events.off('changed', sync);
 }
 
 function wireInput(
@@ -69,7 +86,7 @@ function wireInput(
     stationTarget: SelectionContainer,
     zoomEvents: EventEmitter<ZoomEvent>,
     beamPointer?: string,
-): ScreenTeardown {
+): () => void {
     let currentIndex = -1;
 
     function getTargets() {

@@ -26,7 +26,7 @@ test.describe('Station input mode', () => {
         await cleanupPageState(page);
     });
 
-    for (const station of ['helms', 'weapons', 'engineer', 'signals']) {
+    for (const station of ['helms', 'weapons', 'engineer', 'signals', 'target-details']) {
         test(`${station} is display-only`, async ({ page }) => {
             await navigateToScreen(page, `/${station}.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
             await expect(page.locator(pane).first()).toBeVisible({ timeout: 10000 });
