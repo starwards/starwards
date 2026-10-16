@@ -85,14 +85,14 @@
         {
             "id": "L5",
             "axis": "internal",
-            "changed": "The two T2 attackers, but the ship starts short of energy and shells with hot guns, as on T0-constrained (T2-constrained); a run counts as a kill only when both die.",
+            "changed": "The two T2 attackers, but the ship starts short of energy and shells with hot guns, as on T0-constrained, and with 3-6 missiles of each type (T2-constrained); a run counts as a kill only when both die.",
             "status": "built",
             "rungs": ["T2-constrained"],
             "benchmarks": [],
             "seeds": { "first": 1, "count": 16 },
             "timeoutSeconds": 300,
             "plateau": { "metric": "kills", "versions": 2 },
-            "accept": { "killRate": 0.75 }
+            "accept": { "killRate": 0.625 }
         },
         {
             "id": "L6",

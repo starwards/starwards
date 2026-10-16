@@ -7,6 +7,7 @@ import {
     Spaceship,
     Vec2,
     XY,
+    magazineStocks,
     shellAmmoTypes,
     shipConfigurations,
 } from '@starwards/core/internal';
@@ -40,12 +41,14 @@ export interface T0Lab {
     readonly playerEnergy?: number;
     readonly playerShells?: number;
     readonly playerGunHeat?: number;
+    /** Missiles in each missile stock of the magazine, capped at the hull's maximum. */
+    readonly playerMissiles?: number;
 }
 
 /** Starts the GVTS short of energy and shells with hot guns, per the given {@link T0Lab} fields. */
 function constrainPlayer(
     player: ShipState,
-    { playerEnergy, playerShells, playerGunHeat }: Omit<T0Lab, 'targetModel'>,
+    { playerEnergy, playerShells, playerGunHeat, playerMissiles }: Omit<T0Lab, 'targetModel'>,
 ): void {
     if (playerEnergy !== undefined) {
         player.reactor.energy = playerEnergy * player.reactor.design.maxEnergy;
@@ -53,6 +56,11 @@ function constrainPlayer(
     if (playerShells !== undefined) {
         for (const ammo of shellAmmoTypes) {
             player.magazine[`count_${ammo}`] = Math.min(playerShells, player.magazine.design[`max_${ammo}`]);
+        }
+    }
+    if (playerMissiles !== undefined) {
+        for (const stock of magazineStocks.filter((s) => s.endsWith('Missile'))) {
+            player.magazine[`count_${stock}`] = Math.min(playerMissiles, player.magazine.design[`max_${stock}`]);
         }
     }
     if (playerGunHeat !== undefined) {

@@ -112,7 +112,7 @@ const T0_WIDE: TrainingScenario<T0WideParams> = {
     createMap: (params) => createTrainingT0Map(params, { targetModel: params.targetModel }),
 };
 
-type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel'>>;
+type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel' | 'playerMissiles'>>;
 
 /** T0 with the GVTS starting short of energy and shells, guns already hot (calibration only). */
 const T0_CONSTRAINED: TrainingScenario<T0ConstrainedParams> = {
@@ -178,12 +178,12 @@ const T2_TWO_ATTACKERS: TrainingScenario<T2Params> = {
 
 type T2ConstrainedParams = T2Params & Required<Omit<T0Lab, 'targetModel'>>;
 
-/** T2 with the GVTS starting as on T0-constrained: short of energy and shells, guns already hot. */
+/** T2 with the GVTS starting as on T0-constrained (short of energy and shells, guns already hot) and short of missiles. */
 const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
     ...T2_TWO_ATTACKERS,
     name: 'T2-constrained',
     description:
-        'GVTS starting with 10-30% reactor energy, 250-450 shells per type, chain guns at heat 40-70 vs two dragonfly-MK1s attacking it, each 2-8 km, the second 45-180 degrees round from the first',
+        'GVTS starting with 10-30% reactor energy, 250-450 shells and 3-6 missiles per type, chain guns at heat 40-70 vs two dragonfly-MK1s attacking it, each 2-8 km, the second 45-180 degrees round from the first',
     params: fc.record({
         distance: fc.integer({ min: 2000, max: 8000 }),
         bearing: fc.integer({ min: 0, max: 359 }),
@@ -192,6 +192,7 @@ const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
         playerEnergy: fc.integer({ min: 10, max: 30 }).map((p) => p / 100),
         playerShells: fc.integer({ min: 250, max: 450 }),
         playerGunHeat: fc.integer({ min: 40, max: 70 }),
+        playerMissiles: fc.integer({ min: 3, max: 6 }),
     }),
     createMap: (params) => createTrainingT2Map(params, params),
 };
