@@ -17,7 +17,7 @@
         "picomatch@^4": "^4.0.4",
         "form-data@^4": "^4.0.6",
         "zod": "4.1.12",
-        "@colyseus/core": "0.16.24"
+        "@colyseus/core": "0.16.26"
     },
     "scripts": {
         "predev": "rimraf ./modules/core/cjs/index.js",
@@ -75,7 +75,7 @@
         ]
     },
     "devDependencies": {
-        "@colyseus/loadtest": "^0.16.1",
+        "@colyseus/loadtest": "^0.16.2",
         "@eslint/js": "^9.39.4",
         "@playwright/test": "^1.61.1",
         "@rollup/plugin-sucrase": "^5.1.0",
