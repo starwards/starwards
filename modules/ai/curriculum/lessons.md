@@ -378,6 +378,21 @@ Not filed. Draft text:
 - **Reuse:** to make L5 discriminate, tighten what missiles depend on (missile stock, tube power with a low
   store) rather than shells or gun heat.
 
+### L0 — `reference` benchmark faults after delayed missile launch (2026-10-16)
+
+- **Cause:** both faults bisect to #2375 (delayed missile launch, ac4ddbd1); 72af6a88 just before it
+  reproduces the old baseline exactly. Missiles leave the tube inert and arm 2 s later, so the one HiExp
+  missile the reference weapons seat launches lands at a different time.
+- **`helms-intercept` crash:** on seed 5 that missile now kills the quarry before helms reaches its tail,
+  and the scorer throws "helms benchmark ships are missing". The helms benchmarks meant both ships unarmed
+  but emptied only the shell stocks; they now empty every magazine stock. Score 0.768 (was 0.770): the
+  missile barely moved the course score.
+- **`weapons-acquire` 53.8 -> 38.5:** a legitimate consequence, re-baselined. With tube launches held,
+  scores are identical before and after #2375 on all 8 seeds, so the whole drop is the missile's changed
+  flight, not the gun, the lock or the scorer.
+- **Re-baseline:** L0 saved from this branch; the other L0 items moved by seed noise only (T0 run value
+  0.881 -> 0.862, 0/8 up, also from #2375; `weapons-range` 64.5 -> 61.3, within noise).
+
 Copy this block for every candidate run on a level.
 
 ```markdown
