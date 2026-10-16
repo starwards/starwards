@@ -1,3 +1,5 @@
+import './serialization/detach-state-buffers';
+
 import * as http from 'http';
 import * as maps from './maps';
 import * as path from 'path';
