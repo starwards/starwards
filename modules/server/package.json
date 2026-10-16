@@ -20,7 +20,7 @@
         "analyze": "node -r ts-node/register/transpile-only ./src/test/training/analysis/cli.ts"
     },
     "dependencies": {
-        "@colyseus/core": "^0.16.23",
+        "@colyseus/core": "^0.16.26",
         "@colyseus/monitor": "^0.16.7",
         "@colyseus/schema": "^3.0.76",
         "@colyseus/ws-transport": "^0.16.5",
