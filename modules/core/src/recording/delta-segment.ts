@@ -46,7 +46,7 @@ function strictDecode(decoder: Decoder, bytes: Uint8Array) {
         complaint ??= args;
     };
     try {
-        decoder.decode(bytes as never);
+        decoder.decode(bytes);
     } finally {
         console.error = error;
         console.warn = warn;

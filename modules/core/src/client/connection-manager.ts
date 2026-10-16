@@ -1,6 +1,6 @@
 import { createActor, setup } from 'xstate';
 
-import { ErrorCode } from 'colyseus.js';
+import { ErrorCode } from '@colyseus/sdk';
 import EventEmitter from 'eventemitter3';
 import { createLogger } from '../logger';
 import { isCoded } from './errors';
@@ -172,8 +172,11 @@ export class ConnectionManager {
             if (e instanceof AggregateError && e.errors.length > 0) {
                 e = e.errors[0];
             }
-            if (isCoded(e) && e.code in ErrorCode) {
-                return ErrorCode[e.code];
+            const codeName = isCoded(e)
+                ? Object.keys(ErrorCode).find((k) => ErrorCode[k as keyof typeof ErrorCode] === e.code)
+                : undefined;
+            if (codeName) {
+                return codeName;
             }
             if (e instanceof Error || isErrorLike(e)) {
                 let message = e.message;

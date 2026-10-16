@@ -3,7 +3,7 @@ import { EventEmitter, RoomEventEmitter } from '..';
 import { StateCommand, sendGmJsonCmd, sendJsonCmd } from '../commands';
 
 import EventEmitter2 from 'eventemitter2';
-import { Room } from 'colyseus.js';
+import { Room } from '@colyseus/sdk';
 import { SpaceState } from '../space';
 
 export type SpaceDriver = Awaited<ReturnType<typeof SpaceDriver>>;
@@ -19,7 +19,7 @@ const emitter2Options = {
     delimiter: '/',
     maxListeners: 0,
 };
-export async function SpaceDriver(spaceRoom: Room<SpaceState>) {
+export async function SpaceDriver(spaceRoom: Room<unknown, SpaceState>) {
     const events = new EventEmitter2(emitter2Options) as SpaceEventEmitter;
     // wire objects lifecycle events
     events.on('/*', (e: Event) => {

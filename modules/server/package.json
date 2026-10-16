@@ -20,10 +20,10 @@
         "analyze": "node -r ts-node/register/transpile-only ./src/test/training/analysis/cli.ts"
     },
     "dependencies": {
-        "@colyseus/core": "^0.16.23",
-        "@colyseus/monitor": "^0.16.7",
-        "@colyseus/schema": "^3.0.76",
-        "@colyseus/ws-transport": "^0.16.5",
+        "@colyseus/core": "^0.18.19",
+        "@colyseus/monitor": "^0.18.6",
+        "@colyseus/schema": "^5.0.40",
+        "@colyseus/ws-transport": "^0.18.4",
         "@starwards/core": "0.5.1",
         "express": "^5.2.1",
         "express-async-handler": "^1.2.0",
@@ -31,8 +31,8 @@
         "qrcode": "^1.5.4"
     },
     "devDependencies": {
-        "colyseus.js": "^0.16.22",
         "duckdb": "^1.4.4",
-        "eventemitter3": "^5.0.4"
+        "eventemitter3": "^5.0.4",
+        "@colyseus/sdk": "^0.18.5"
     }
 }

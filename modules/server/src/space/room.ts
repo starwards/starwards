@@ -18,7 +18,7 @@ import { Room, Serializer } from '@colyseus/core';
 
 const { error: logError } = createLogger('space-room');
 
-export class SpaceRoom extends Room<SpaceState> {
+export class SpaceRoom extends Room<{ state: SpaceState }> {
     public static id = 'space';
 
     /** set before `setState`, which would otherwise install a plain `SchemaSerializer` */

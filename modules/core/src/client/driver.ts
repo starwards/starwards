@@ -1,9 +1,11 @@
 import { AdminState, EventEmitter, schemaClasses, sleep } from '..';
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 import { ConnectionManager, ConnectionStateEvent } from './connection-manager';
 
 import { AdminDriver } from './admin';
-import { SchemaConstructor } from 'colyseus.js/lib/serializer/SchemaSerializer';
+// matches the (unexported) SchemaConstructor of @colyseus/sdk
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SchemaConstructor<T> = new (...args: any[]) => T;
 import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
 import { waitForEvents } from '../async-utils';
@@ -31,7 +33,7 @@ export class Driver {
         return this.connectionManager.stateConnected;
     }
     public get errorMessage(): string | null {
-        return this.connectionManager.getErrorMessage();
+        return this.connectionManager.getErrorMessage() ?? null;
     }
     public httpEndpoint: string;
     private rooms: Client;
@@ -51,7 +53,7 @@ export class Driver {
         return room;
     };
 
-    private hookAdminRoomLifecycle = (room: Room<AdminState>) => {
+    private hookAdminRoomLifecycle = (room: Room<unknown, AdminState>) => {
         room.onLeave(() => {
             if (!this.connectionManager.isDestroyed) {
                 this.connectionManager.onConnectionError(new Error(`disconnected from server`));
@@ -77,8 +79,8 @@ export class Driver {
         });
     }
 
-    private async joinRoom<T>(roomId: string, rootSchema: SchemaConstructor<T>): Promise<Room<T>> {
-        return this.rooms.joinById(roomId, {}, rootSchema);
+    private async joinRoom<T>(roomId: string, rootSchema: SchemaConstructor<T>): Promise<Room<unknown, T>> {
+        return this.rooms.joinById<T>(roomId, {}, rootSchema);
     }
 
     clearCache = () => {

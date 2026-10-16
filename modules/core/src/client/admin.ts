@@ -10,7 +10,7 @@ import {
 import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
 import { Primitive } from 'colyseus-events';
-import { Room } from 'colyseus.js';
+import { Room } from '@colyseus/sdk';
 import { RoomEventEmitter } from '..';
 import { sendJsonCmd } from '../commands';
 import { wireEvents } from 'colyseus-events';
@@ -36,7 +36,7 @@ export type RecordingInfo = {
     frameCount: number;
 };
 
-export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminState>) => {
+export const AdminDriver = (endpoint: string) => async (adminRoom: Room<unknown, AdminState>) => {
     const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
     // IMPORTANT: colyseus-events v4 requires passing the room instead of room.state
     // We must wait for the first state sync before calling wireEvents because:

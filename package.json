@@ -16,8 +16,7 @@
         "ws@^7": "^7.5.11",
         "picomatch@^4": "^4.0.4",
         "form-data@^4": "^4.0.6",
-        "zod": "4.1.12",
-        "@colyseus/core": "0.16.24"
+        "zod": "4.1.12"
     },
     "scripts": {
         "predev": "rimraf ./modules/core/cjs/index.js",
@@ -75,7 +74,7 @@
         ]
     },
     "devDependencies": {
-        "@colyseus/loadtest": "^0.16.1",
+        "@colyseus/loadtest": "^0.18.3",
         "@eslint/js": "^9.39.4",
         "@playwright/test": "^1.61.1",
         "@rollup/plugin-sucrase": "^5.1.0",
@@ -141,6 +140,7 @@
         "webpack": "^5.108.3",
         "webpack-cli": "^7.1.0",
         "webpack-dev-server": "^5.2.6",
-        "webpack-merge": "^6.0.1"
+        "webpack-merge": "^6.0.1",
+        "@colyseus/schema": "^5.0.40"
     }
 }

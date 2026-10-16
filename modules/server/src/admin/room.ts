@@ -18,7 +18,7 @@ import { GameManager } from './game-manager';
 
 const { error: logError } = createLogger('admin-room');
 
-export class AdminRoom extends Room<AdminState> {
+export class AdminRoom extends Room<{ state: AdminState }> {
     public static id = 'admin';
     /** Tracks which station a connected client registered as, so `onLeave` can mark it disconnected without the client having said goodbye. */
     private sessionToStation = new Map<string, string>();

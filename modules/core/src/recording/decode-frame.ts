@@ -27,6 +27,6 @@ export async function decodeRecordedBytes(serialized: string): Promise<Uint8Arra
  */
 export async function decodeFrame<T extends Schema>(ctor: Constructor<T>, serialized: string): Promise<T> {
     const obj = new ctor();
-    new Decoder(obj).decode((await decodeRecordedBytes(serialized)) as never);
+    new Decoder(obj).decode(await decodeRecordedBytes(serialized));
     return obj;
 }

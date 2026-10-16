@@ -1,5 +1,5 @@
 import { AdminState, ShipState, SpaceState, schemaClasses, sleep } from '@starwards/core/internal';
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 
 import { makeDriver } from './driver';
 
@@ -8,9 +8,9 @@ import { makeDriver } from './driver';
  */
 class TestClient {
     private client: Client;
-    private adminRoom: Room<AdminState> | null = null;
-    private spaceRoom: Room<SpaceState> | null = null;
-    private shipRooms = new Map<string, Room<ShipState>>();
+    private adminRoom: Room<unknown, AdminState> | null = null;
+    private spaceRoom: Room<unknown, SpaceState> | null = null;
+    private shipRooms = new Map<string, Room<unknown, ShipState>>();
 
     public readonly id: string;
 
@@ -22,7 +22,7 @@ class TestClient {
     /**
      * Connect to the admin room
      */
-    async connectAdmin(): Promise<Room<AdminState>> {
+    async connectAdmin(): Promise<Room<unknown, AdminState>> {
         if (this.adminRoom) return this.adminRoom;
         this.adminRoom = await this.client.joinById('admin', {}, schemaClasses.admin);
         return this.adminRoom;
@@ -31,7 +31,7 @@ class TestClient {
     /**
      * Connect to the space room
      */
-    async connectSpace(): Promise<Room<SpaceState>> {
+    async connectSpace(): Promise<Room<unknown, SpaceState>> {
         if (this.spaceRoom) return this.spaceRoom;
         this.spaceRoom = await this.client.joinById('space', {}, schemaClasses.space);
         return this.spaceRoom;
@@ -40,7 +40,7 @@ class TestClient {
     /**
      * Connect to a specific ship room
      */
-    async connectShip(shipId: string): Promise<Room<ShipState>> {
+    async connectShip(shipId: string): Promise<Room<unknown, ShipState>> {
         if (this.shipRooms.has(shipId)) {
             return this.shipRooms.get(shipId)!;
         }
@@ -62,7 +62,7 @@ class TestClient {
      * @param predicate Optional predicate to check if state is considered synced. If not provided, only checks that state exists.
      * @param timeoutMs Timeout in milliseconds
      */
-    async waitForSync<T>(room: Room<T>, predicate?: (state: T) => boolean, timeoutMs = 5000): Promise<void> {
+    async waitForSync<T>(room: Room<unknown, T>, predicate?: (state: T) => boolean, timeoutMs = 5000): Promise<void> {
         const startTime = Date.now();
 
         // Poll until predicate is satisfied
@@ -91,7 +91,7 @@ class TestClient {
      * @param timeoutMs Timeout in milliseconds
      */
     async waitForShipProperty(
-        room: Room<SpaceState>,
+        room: Room<unknown, SpaceState>,
         shipId: string,
         propertyPath: string,
         expectedValue: number,
@@ -125,7 +125,7 @@ class TestClient {
      * @param timeoutMs Timeout in milliseconds
      */
     async waitForSubsystemProperty(
-        room: Room<ShipState>,
+        room: Room<unknown, ShipState>,
         subsystem: string,
         property: string,
         expectedValue: number,
@@ -152,7 +152,7 @@ class TestClient {
     /**
      * Get current state from a room
      */
-    getState<T>(room: Room<T>): T {
+    getState<T>(room: Room<unknown, T>): T {
         return room.state;
     }
 
