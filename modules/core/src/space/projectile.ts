@@ -156,7 +156,7 @@ export const ammoDesigns = {
         concentration: 1,
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
-        heatPerShot: 5,
+        heatPerShot: 2,
         homing: null,
         explosion: {
             secondsToLive: 1 / BLAST_LIFETIME_FACTOR,
@@ -172,7 +172,7 @@ export const ammoDesigns = {
         concentration: 1,
         delivery: 'impact',
         fuze: { type: 'contact' },
-        heatPerShot: 5,
+        heatPerShot: 2,
         homing: null,
         // anti-armor jab: its power is plate erosion (2x vs Composite), system damage stays occasional
         damage: 30,
@@ -184,7 +184,7 @@ export const ammoDesigns = {
         concentration: 1,
         delivery: 'explosion',
         fuze: { type: 'proximity', range: 100 },
-        heatPerShot: 5,
+        heatPerShot: 2,
         homing: null,
         explosion: {
             secondsToLive: 1 / BLAST_LIFETIME_FACTOR,
