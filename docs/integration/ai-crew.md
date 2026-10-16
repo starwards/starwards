@@ -380,11 +380,13 @@ and acceptance thresholds (kill rate, median time to kill per rung).
 (`createTrainingT2Map`) a run counts as a kill only when both attackers die; reports also count
 attackers killed (`kills` of `enemies` per run), and per-target columns read the first attacker. `T2-constrained` is `T2` with `T0-constrained`'s starting energy, shells and gun heat.
 
-Suite baselines with every station radar cut to its reach:
+Suite baselines with every station radar cut to its reach. The `reference` row is the committed
+baseline ([`curriculum/baselines/reference.json`](../../modules/ai/curriculum/baselines/reference.json),
+the numbers `suite` checks regressions against); a re-run lands within seed noise of it:
 
 | Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` | L3 `T1`       | L4 `T2`       | L5 `T2-constrained` |
 | ------------- | ------------ | ------------- | ------------- | ------------------- | ------------- | ------------- | ------------------- |
-| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 16/16, 20.6 s | 7/8, 97.2 s         | 16/16, 43.5 s | 16/16, 76.0 s | 16/16, 87.1 s       |
+| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 16/16, 21.2 s | 7/8, 97.2 s         | 16/16, 38.7 s | 16/16, 79.0 s | 16/16, 87.1 s       |
 | `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          | not played    | not played    | not played          |
 | `idle`        | 0/8          | not played    | 0/16          | not played          | 0/16          | 0/16          | 0/16                |
 
@@ -457,26 +459,9 @@ seconds.
 
 ### Single-seat playtest: one human, bots on the other seats
 
-Stations: `helms` (Pilot), `weapons`, `engineer`, `signals` (keyboard screens), `relay` (Dradis, mouse;
-the default crew does not play it). From Git Bash at the repo root:
-
-```bash
-npm run dev                                     # server :8080, screens :3000
-curl -X POST -H 'Content-Type: application/json' -d '{"mapName":"training_t1"}' http://localhost:8080/start-game
-# open the human seat, e.g. Pilot: http://localhost:3000/helms.html?ship=GVTS
-npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS --human-seat helms --record --seconds 180
-```
-
-The crew prints the seats it took and, at the end, its stats and the `.sgr` / `.events.jsonl` paths.
-Compare the run with the headless all-bot baseline of the same rung: `training_t1` is `T1` (L3); the
-`reference` crew kills 16/16 on seeds 1–16, median 38.7 s in
-[`curriculum/baselines/reference.json`](../../modules/ai/curriculum/baselines/reference.json) (42.1 s
-re-run at `b3542b97`). Re-run it with
-`npm --prefix modules/ai run suite -- --crew crews/reference.json --levels L3 --baseline reference`.
-Read whether the attacker died
-(`npm --prefix modules/server run analyze -- sql "SELECT t FROM event WHERE kind='despawn' AND object_id='target'" --recording <sgr>`)
-and how long it took. The live map is one fixed spawn (5 km, bearing 0), not the seeded rung, so one
-run is a sample, not a score: a kill within the headless range is parity, no kill in 180 s is a miss.
+`--human-seat <station>` (`helms`, `weapons`, `engineer`, `signals` or `dradis`) leaves that station
+to a human; the crew plays the rest. Step-by-step guide, glossary, crew table and baseline
+comparison: [`docs/guides/single-seat-playtest.md`](../guides/single-seat-playtest.md).
 
 ## Snapshot scoring
 

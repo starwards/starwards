@@ -10,7 +10,7 @@ describe('a crew around a human seat', () => {
     });
 
     it('seats the whole crew when the human takes a station it does not play', () => {
-        const crew = loadCrew(crewFile('reference-signals'), undefined, 'relay');
+        const crew = loadCrew(crewFile('reference-signals'), undefined, 'dradis');
         expect(crew.seats.map((s) => s.station)).toEqual(['helms', 'weapons', 'engineer', 'signals']);
     });
 
@@ -30,5 +30,9 @@ describe('a crew around a human seat', () => {
                 process.env.TYPESAFE_API_KEY = key;
             }
         }
+    });
+
+    it('refuses a human seat that is not a bridge station', () => {
+        expect(() => loadCrew(crewFile('reference-signals'), undefined, 'helm')).toThrow(/helms, weapons/);
     });
 });

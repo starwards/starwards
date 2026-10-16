@@ -60,6 +60,9 @@ export function readCrewFile(filePath: string) {
     };
 }
 
+/** The bridge stations a human may take while the crew plays the rest (`dradis` is the Dradis screen, where a human uses the mouse). */
+export const HUMAN_SEATS = ['helms', 'weapons', 'engineer', 'signals', 'dradis'] as const;
+
 /** `jevUsage` counts what the crew's Jev seats ask from now on; absent for a crew without one. */
 type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean; jevUsage?: JevUsage };
 
@@ -72,6 +75,9 @@ type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean; jevUsage?: 
 export function loadCrew(filePath: string, jevRequestsPerMinute?: number, humanSeat?: string): CrewPlan {
     const config = readCrewFile(filePath);
     if (humanSeat !== undefined) {
+        if (!(HUMAN_SEATS as readonly string[]).includes(humanSeat)) {
+            throw new Error(`unknown human seat "${humanSeat}": pick one of ${HUMAN_SEATS.join(', ')}`);
+        }
         const fused = config.seats.find((s) => s.station !== humanSeat && seatsOf(s.station).includes(humanSeat));
         if (fused) {
             throw new Error(`crew ${config.name}: seat ${fused.station} plays ${humanSeat}, the human seat`);
