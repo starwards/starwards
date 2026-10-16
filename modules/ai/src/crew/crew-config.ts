@@ -12,6 +12,7 @@ import { SeatPlan } from './crew';
 import { jevClient } from '../brain/jev-client';
 import { loadBrainSpec } from '../brain/spec';
 import { makeReferencePolicy } from '../brain/reference-policy';
+import { seatsOf } from '@starwards/mcp/src/sandbox/multiplex';
 import { z } from 'zod';
 
 /** Where the module's own brains live; a crew file names others by a path relative to itself. */
@@ -65,10 +66,18 @@ type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean; jevUsage?: 
 /**
  * Reads a crew file and builds its seats. A Jev seat needs `TYPESAFE_API_KEY`; the client is shared
  * by every seat of the crew so the per-process rate limit covers all of them, and answers from the
- * answer cache the environment names.
+ * answer cache the environment names. A `humanSeat` is left to a human player: the crew seats every
+ * other station, and refuses a fused seat (`tactical`) that would play it.
  */
-export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewPlan {
+export function loadCrew(filePath: string, jevRequestsPerMinute?: number, humanSeat?: string): CrewPlan {
     const config = readCrewFile(filePath);
+    if (humanSeat !== undefined) {
+        const fused = config.seats.find((s) => s.station !== humanSeat && seatsOf(s.station).includes(humanSeat));
+        if (fused) {
+            throw new Error(`crew ${config.name}: seat ${fused.station} plays ${humanSeat}, the human seat`);
+        }
+        config.seats = config.seats.filter((s) => s.station !== humanSeat);
+    }
     const usesJev = config.seats.some((s) => s.policy === 'jev');
     const client = usesJev
         ? meteredJevClient(jevClient({ requestsPerMinute: jevRequestsPerMinute }), answerCacheFromEnv())

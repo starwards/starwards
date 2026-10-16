@@ -430,8 +430,14 @@ or benchmark. Lessons, with evidence and reuse notes, go to
 ## Live game
 
 ```bash
-npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS --crew crews/reference.json [--record] [--seconds N] [--out <dir>]
+npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS [--crew crews/reference-signals.json] [--human-seat <station>] [--record] [--seconds N] [--out <dir>]
 ```
+
+`--crew` defaults to the rule-based [`crews/reference-signals.json`](../../modules/ai/crews/reference-signals.json)
+(helms, weapons, engineer, signals; no `TYPESAFE_API_KEY` needed). A Jev crew is opt-in: name it with
+`--crew`, e.g. `crews/recommended.json`. `--human-seat <station>` leaves that station to a human: the
+crew seats every other station and never connects to or registers the human one; a fused seat
+(`tactical`) that would play it is refused.
 
 Run it from Git Bash: PowerShell's npm drops the `--` flags. In PowerShell call the script directly from `modules/ai`: `node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts --url ...`.
 
@@ -448,6 +454,29 @@ server records the game, `<name>` is the recording's, event times follow the rec
 `<name>.sgr` is downloaded beside the sidecar, so `decisions`, `reask` and `analyze` work on it.
 Presses go out as soon as a seat decides: the network is the latency. Held triggers hold for wall
 seconds.
+
+### Single-seat playtest: one human, bots on the other seats
+
+Stations: `helms` (Pilot), `weapons`, `engineer`, `signals` (keyboard screens), `relay` (Dradis, mouse;
+the default crew does not play it). From Git Bash at the repo root:
+
+```bash
+npm run dev                                     # server :8080, screens :3000
+curl -X POST -H 'Content-Type: application/json' -d '{"mapName":"training_t1"}' http://localhost:8080/start-game
+# open the human seat, e.g. Pilot: http://localhost:3000/helms.html?ship=GVTS
+npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS --human-seat helms --record --seconds 180
+```
+
+The crew prints the seats it took and, at the end, its stats and the `.sgr` / `.events.jsonl` paths.
+Compare the run with the headless all-bot baseline of the same rung: `training_t1` is `T1` (L3); the
+`reference` crew kills 16/16 on seeds 1–16, median 38.7 s in
+[`curriculum/baselines/reference.json`](../../modules/ai/curriculum/baselines/reference.json) (42.1 s
+re-run at `b3542b97`). Re-run it with
+`npm --prefix modules/ai run suite -- --crew crews/reference.json --levels L3 --baseline reference`.
+Read whether the attacker died
+(`npm --prefix modules/server run analyze -- sql "SELECT t FROM event WHERE kind='despawn' AND object_id='target'" --recording <sgr>`)
+and how long it took. The live map is one fixed spawn (5 km, bearing 0), not the seeded rung, so one
+run is a sample, not a score: a kill within the headless range is parity, no kill in 180 s is a miss.
 
 ## Snapshot scoring
 

@@ -41,4 +41,38 @@ describe('a crew of brains on a live server', () => {
             driver.destroy();
         }
     }, 30_000);
+
+    it('leaves the human seat alone while the bots play every other station', async () => {
+        await gameDriver.gameManager.startGame(training_t0);
+        const baseUrl = new URL(gameDriver.url());
+        const driver = new Driver(baseUrl).connect();
+        try {
+            const events: RecordingEventLine[] = [];
+            const crew = loadCrew(path.resolve(__dirname, '../../crews/reference-signals.json'), undefined, 'helms');
+            const live = await liveCrew({
+                driver,
+                baseUrl,
+                shipId: SHIP,
+                seats: crew.seats,
+                write: (e) => events.push(e),
+            });
+            await live.run((t) => t < 10);
+
+            const stations = (kind: string) =>
+                new Set(
+                    events
+                        .filter((e) => e.kind === kind)
+                        .map(
+                            (e) =>
+                                (e.data as { seat?: string; station: string }).seat ??
+                                (e.data as { station: string }).station,
+                        ),
+                );
+            expect([...stations('decision')].sort()).toEqual(['engineer', 'signals', 'weapons']);
+            expect(stations('command').has('helms')).toBe(false);
+            expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
+        } finally {
+            driver.destroy();
+        }
+    }, 30_000);
 });
