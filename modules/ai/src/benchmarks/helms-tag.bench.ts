@@ -1,4 +1,4 @@
-import { Faction, IdleStrategy, Spaceship, Vec2, XY } from '@starwards/core/internal';
+import { Faction, IdleStrategy, Spaceship, Vec2, XY, magazineStocks } from '@starwards/core/internal';
 
 import { Benchmark } from './benchmark';
 import { GameApi } from '@starwards/core/internal';
@@ -18,8 +18,9 @@ const QUARRY_SPEED = 250;
 
 /**
  * Adds a GVTS at the origin and a dragonfly quarry `distance` away on `bearing` that flies no faster
- * than `speed`. Both magazines are empty: weapons can lock (the target modes need it) but no shell
- * flies, so neither blasts nor return fire knock either ship off the course helms is scored on.
+ * than `speed`. Both magazines are empty, missiles included: weapons can lock (the target modes need
+ * it) but no shell or missile flies, so neither blasts nor return fire knock either ship off the
+ * course helms is scored on, or kill the quarry mid-run.
  * Returns the quarry's start.
  */
 export function addShipAndQuarry(game: GameApi, distance: number, bearing: number, speed: number) {
@@ -32,9 +33,7 @@ export function addShipAndQuarry(game: GameApi, distance: number, bearing: numbe
     quarry.state.smartPilot.design.maxSpeed = speed;
     quarry.state.smartPilot.design.maxSpeedFromAfterBurner = speed;
     for (const magazine of [ship.state.magazine, quarry.state.magazine]) {
-        magazine.count_HiExpShell = 0;
-        magazine.count_ArmPenShell = 0;
-        magazine.count_FragShell = 0;
+        for (const stock of magazineStocks) magazine.setCount(stock, 0);
     }
     return start;
 }
