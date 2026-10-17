@@ -1,7 +1,11 @@
 import { MissileAmmoType, Projectile, ScanLevel, missileAmmoTypes } from '@starwards/core';
+import {
+    dradisDrawFunctions,
+    dradisNoRadiusDrawFunctions,
+    tacticalDrawFunctions,
+} from '../src/radar/blips/blip-renderer';
 import { missileGenericCode, missileWarheadPaint } from '../src/colors';
 import { Container } from 'pixi.js';
-import { tacticalDrawFunctions } from '../src/radar/blips/blip-renderer';
 
 jest.mock('pixi.js', () => {
     class FakeContainer {
@@ -130,5 +134,12 @@ describe('missile threat paint on tactical radars (M4.26)', () => {
 
     test('a cannon shell stays a plain dot whatever is known about it', () => {
         expect(paint(new Projectile('HiExpShell'), ScanLevel.FULL).shape).toBe('dot');
+    });
+});
+
+describe('which radars show missiles (M4.26)', () => {
+    test('Dradis draws no projectile blips at all', () => {
+        expect('Projectile' in dradisDrawFunctions).toBe(false);
+        expect('Projectile' in dradisNoRadiusDrawFunctions).toBe(false);
     });
 });

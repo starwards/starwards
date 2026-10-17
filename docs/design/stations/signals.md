@@ -29,7 +29,9 @@ Job queue: max 9 jobs, sequential execution (FIFO). Malfunctions increase durati
 | FULL     | + Systems, damage, armor layout, tube loadout                  |
 | SNAPSHOT | FULL frozen at the moment the faction lost sight of the target |
 
-Built: the scan-job queue is automatic (#1992). Every visible contact below FULL gets a job, and a job raises its target one tier per 5 s of unbroken field of view from any of the ship's radars. Non-ships stop at BASIC. Scan levels are faction-shared, and FULL drops to SNAPSHOT when the faction loses sight. The officer's levers are beam direction and arc, job priority, and pause; the beam extends reach only past the omni radar ([#2307](https://github.com/starwards/starwards/issues/2307)).
+Built: the scan-job queue is automatic (#1992). Every visible contact below FULL gets a job, and a job raises its target one tier per 5 s of unbroken field of view from any of the ship's radars. Non-ships stop at BASIC, except missiles: a missile scan takes 1 s per tier and goes to FULL, which reads its warhead. Scan levels are faction-shared, and FULL drops to SNAPSHOT when the faction loses sight. The officer's levers are beam direction and arc, job priority, and pause; the beam extends reach only past the omni radar ([#2307](https://github.com/starwards/starwards/issues/2307)).
+
+Missile paint (M4.26 ruling): on the Weapons, Helms and Signals radars an unscanned missile is a plain dot, a BASIC missile a hollow diamond labelled `MSL`, and at SNAPSHOT/FULL a filled diamond in its warhead's colour and code (`missileWarheadPaint` in `modules/browser/src/colors.ts`). Dradis shows no projectiles at all. Gallery scenes `missile-paint-*` pin all four radars.
 
 ## Widgets
 
