@@ -165,6 +165,11 @@ describe('GM bot seats', () => {
             assign('GVTS', 'weapons', 'reference');
         });
 
+        // the stop test swaps in its own BotSeats; makeDriver's afterEach stops the game through it
+        afterEach(() => {
+            gameDriver.gameManager.botSeats = fake.seats;
+        });
+
         it('clears bots and awaits stopAll before the game reaches STOPPED', async () => {
             const manager = gameDriver.gameManager;
             let statusAtStopAll: GameStatus | null = null;

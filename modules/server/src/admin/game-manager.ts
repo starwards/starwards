@@ -217,14 +217,8 @@ export class GameManager {
     }
 
     /**
-     * Removes a disconnected, unassigned station's entry once it has sat idle past
-     * {@link STALE_STATION_GRACE_MS} — a technician's abandoned/renamed-away id shouldn't
-     * clutter the roster forever. A disconnected entry that still holds a ship assignment is
-     * left alone: that's the reconnect-sticky assignment the registry exists for.
-     */
-    /**
-     * A GM's bot assignment for a player ship's roster seat. Bots live in `state.bots` only �
-     * never in the station registry � so they and human stations never displace each other.
+     * A GM's bot assignment for a player ship's roster seat. Bots live in `state.bots` only —
+     * never in the station registry — so they and human stations never displace each other.
      * Invalid ship, seat or brain, or a game not RUNNING, is silently ignored.
      */
     private applyBotAssignment({ shipId, seat, brain }: AssignBotArg) {
@@ -273,6 +267,12 @@ export class GameManager {
         }
     }
 
+    /**
+     * Removes a disconnected, unassigned station's entry once it has sat idle past
+     * {@link STALE_STATION_GRACE_MS} — a technician's abandoned/renamed-away id shouldn't
+     * clutter the roster forever. A disconnected entry that still holds a ship assignment is
+     * left alone: that's the reconnect-sticky assignment the registry exists for.
+     */
     private pruneStaleStations() {
         const now = Date.now();
         for (const [stationId, disconnectedAt] of [...this.disconnectedStationSince]) {
