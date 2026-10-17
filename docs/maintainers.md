@@ -13,7 +13,7 @@ The following checks are required on `master`:
 - `Test-Units`
 - `Test-E2e`
 - `Test-Visual`
-- `coverage-core`
+- `AI-Controls`
 
 Set "Require branches to be up to date before merging" so the checks
 have actually run on the merge commit's tree, not on stale parents.
@@ -61,5 +61,5 @@ with explicit `@username` entries so reviews are actually requested.
 
 ## Related
 
-- Test-coverage backfill targets and the coverage ratchet: [testing/coverage-strategy.md](testing/coverage-strategy.md)
+- Test-coverage backfill targets: [testing/coverage-strategy.md](testing/coverage-strategy.md)
 - Why the `@commandable()` whitelist is not adversarial containment: [design/decisions/014-commandable-is-not-containment.md](design/decisions/014-commandable-is-not-containment.md)

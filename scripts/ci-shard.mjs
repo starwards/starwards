@@ -1,6 +1,5 @@
 // Deterministic weighted split of test files across CI shards (longest-processing-time first).
-// Usage: node scripts/ci-shard.mjs <unit|core|e2e|e2e-rest> <index 1-based> <total>
-// `core` is the unit tests under modules/core (what test:coverage:core runs).
+// Usage: node scripts/ci-shard.mjs <unit|e2e|e2e-rest> <index 1-based> <total>
 // `e2e-rest` is every e2e file except the visual gallery, which CI shards on its own by test.
 // Prints jest paths (use with --runTestsByPath) or anchored playwright file filters, one per line.
 // Every shard computes the same split from the same inputs, so the shards are disjoint and complete.
@@ -11,13 +10,13 @@ import { execFileSync } from 'node:child_process';
 const [kind, indexArg, totalArg] = process.argv.slice(2);
 const index = Number(indexArg);
 const total = Number(totalArg);
-if (!['unit', 'core', 'e2e', 'e2e-rest'].includes(kind) || !(index >= 1 && index <= total)) {
-    process.stderr.write('usage: node scripts/ci-shard.mjs <unit|core|e2e|e2e-rest> <index> <total>\n');
+if (!['unit', 'e2e', 'e2e-rest'].includes(kind) || !(index >= 1 && index <= total)) {
+    process.stderr.write('usage: node scripts/ci-shard.mjs <unit|e2e|e2e-rest> <index> <total>\n');
     process.exit(2);
 }
 const GALLERY = 'modules/e2e/test/visual/gallery.spec.ts';
 const root = process.cwd();
-const isJest = kind === 'unit' || kind === 'core';
+const isJest = kind === 'unit';
 const weights = JSON.parse(readFileSync(join(root, 'scripts/ci-shard-weights.json'), 'utf8'))[isJest ? 'unit' : 'e2e'];
 const DEFAULT_WEIGHT = isJest ? 2 : 5;
 
@@ -39,7 +38,6 @@ const listed = isJest
     : walk(join(root, 'modules/e2e'));
 const files = listed
     .map((f) => relative(root, f).split(sep).join('/'))
-    .filter((f) => kind !== 'core' || f.startsWith('modules/core/'))
     .filter((f) => kind !== 'e2e-rest' || f !== GALLERY)
     .sort();
 if (files.length === 0) {
