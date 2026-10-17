@@ -61,6 +61,7 @@ test.describe('Station registry', () => {
         await navigateToScreen(pageB, '/helms.html', { baseURL: gameDriver.baseURL });
 
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
         await expect
@@ -85,6 +86,7 @@ test.describe('Station registry', () => {
         await expect(helmsPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
 
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
         await expect(roster).toContainText('helms');
@@ -110,10 +112,11 @@ test.describe('GM station assignment', () => {
     test('roster and game setup controls are visible before the game starts', async ({ page }) => {
         await gameDriver.gameManager.stopGame();
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
-        await expect(page.locator('[data-id="Station Roster"]')).toBeVisible({ timeout: 10000 });
         const gameSetup = page.locator('[data-id="Game Setup"]');
         await expect(gameSetup).toBeVisible({ timeout: 10000 });
         await expect(gameSetup.locator('button.tp-btnv_b', { hasText: '2v1 Game' })).toBeVisible();
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
+        await expect(page.locator('[data-id="Station Roster"]')).toBeVisible({ timeout: 10000 });
     });
 
     test('GM assigns a generic station to a ship + type, and reassigns it live without reload', async ({
@@ -135,6 +138,7 @@ test.describe('GM station assignment', () => {
         await expect(stationPage.locator('[data-id="lobby-breakout"]')).toBeVisible();
 
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
         const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
@@ -166,6 +170,7 @@ test.describe('GM station assignment', () => {
     }) => {
         test.slow();
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
 
@@ -202,6 +207,7 @@ test.describe('GM station assignment', () => {
     test('a focused roster dropdown survives another station joining', async ({ page, browser }) => {
         test.slow();
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
 
@@ -255,6 +261,7 @@ test.describe('GM station assignment', () => {
         const stationId = (await waitingId.textContent())?.trim();
 
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
         await expect(row).toBeVisible({ timeout: 10000 });
