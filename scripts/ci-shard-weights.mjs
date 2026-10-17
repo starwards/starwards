@@ -3,8 +3,8 @@
 //        node scripts/ci-shard-weights.mjs <dir>
 // Playwright reports one <testsuite> per file; jest-junit tags each <testcase> with file="..."
 // (JEST_JUNIT_ADD_FILE_ATTRIBUTE in ci-cd.yml). A kind with no data keeps its old weights.
-import { join } from 'node:path';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const [dir] = process.argv.slice(2);
 if (!dir) {
