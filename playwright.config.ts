@@ -11,7 +11,10 @@ const config: PlaywrightTestConfig = {
     // Enable parallel execution across test files
     // Each worker runs tests from different files with its own server instance
     // Within a file, tests run serially to respect single-game-per-server constraint
-    workers: '100%',
+    // CI: one worker per 2 cores. A radar station tab under SwiftShader keeps both its renderer main
+    // thread and the GPU process busy (~1 core each, measured), so 1 worker per core starved every tab
+    // and the page lagged the server by 8-20 s (#2407).
+    workers: process.env.CI ? '50%' : '100%',
     fullyParallel: false, // Tests within same file run serially (shared server per file)
     use: {
         trace: 'on-first-retry',
