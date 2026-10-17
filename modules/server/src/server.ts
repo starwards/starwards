@@ -81,8 +81,9 @@ export async function server(
     const bots = new BotSupervisor(
         manager,
         () => `http://localhost:${boundPort}`,
-        () => {},
+        (e) => gameRecorder.appendEvent(e),
     );
+    gameRecorder.onRecordingChange = (on) => bots.setRecording(on);
     manager.botSeats = bots;
     const app = express();
     app.use(express.json() as express.RequestHandler);

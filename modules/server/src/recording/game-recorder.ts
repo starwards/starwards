@@ -2,14 +2,16 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 
-import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import {
+    EVENTS_EXT,
+    RecordingEventLine,
     RecordingHeader,
     SPACE_ROOM_KEY,
     SegmentPatch,
     createLogger,
     currentEnergyModel,
     encodeBaseLine,
+    encodeEventLine,
     encodeFrameLine,
     encodeHeader,
     encodeSegLine,
@@ -18,6 +20,7 @@ import {
     parseHeader,
     recordingSchemaHash,
 } from '@starwards/core/internal';
+import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import { GameManager } from '../admin/game-manager';
 import { createReadStream } from 'node:fs';
 import { gzip } from 'node:zlib';
@@ -33,19 +36,18 @@ export interface RecordingSummary {
     startedAt: string;
     durationSeconds: number;
     frameCount: number;
+    /** The decision sidecar's file name, when this recording has one. */
+    events?: string;
 }
 
 export const RECORDING_EXT = '.sgr';
 
-/** True for a plain recording file name — no directory part, correct extension. */
-export function isRecordingName(name: string): boolean {
-    return (
-        name.endsWith(RECORDING_EXT) &&
-        name.length > RECORDING_EXT.length &&
-        !/[/\\]/.test(name) &&
-        path.basename(name) === name
-    );
+/** True for a plain recording or sidecar file name — no directory part, a known extension. */
+export function isRecordingFileName(name: string): boolean {
+    const ext = [RECORDING_EXT, EVENTS_EXT].find((e) => name.endsWith(e));
+    return !!ext && name.length > ext.length && !/[/\\]/.test(name) && path.basename(name) === name;
 }
+export const isRecordingName = (name: string) => name.endsWith(RECORDING_EXT) && isRecordingFileName(name);
 
 /**
  * A precondition on the game itself, not a failure of the recording machinery — the caller
@@ -101,6 +103,12 @@ export class GameRecorder implements PatchTap {
     /** delta-mode line writes, in file order */
     private writes: Promise<void> = Promise.resolve();
     private onFirstKeyframe: (() => void) | null = null;
+    /** the sidecar events are appended to; null while not recording */
+    private eventsPath: string | null = null;
+    /** sidecar line writes, in order */
+    private eventWrites: Promise<void> = Promise.resolve();
+    /** Told whenever recording starts or ends, so bot workers post decisions only while they are kept. */
+    public onRecordingChange: (on: boolean) => void = () => {};
 
     constructor(
         private manager: GameManager,
@@ -146,6 +154,8 @@ export class GameRecorder implements PatchTap {
         }
         this.lastWrittenT = null;
         this.baseSeconds = this.manager.totalSeconds;
+        this.eventsPath = sidecarPath(this.filePath);
+        this.onRecordingChange(true);
         this.manager.state.isRecordingGame = true;
         this.manager.state.recordingName = filename;
         this.manager.state.recordingSeconds = 0;
@@ -192,12 +202,25 @@ export class GameRecorder implements PatchTap {
      */
     public async stopRecording(): Promise<RecordingSummary | null> {
         this.clearTimer();
+        this.eventsPath = null; // events arriving from here on are dropped
         await this.inFlight;
         await this.endDeltas();
+        await this.eventWrites;
         const filePath = this.filePath;
         this.finalize();
         if (!filePath) return null;
         return await summarizeRecording(filePath, path.basename(filePath));
+    }
+
+    /** Appends a sidecar event stamped on this recording's clock. Dropped when nothing is recording. */
+    public appendEvent(event: Omit<RecordingEventLine, 't'>) {
+        const eventsPath = this.eventsPath;
+        if (!eventsPath) return;
+        const line = encodeEventLine({ t: this.manager.totalSeconds - this.baseSeconds, ...event });
+        // written even if the recording closes meanwhile: it was accepted while recording
+        this.eventWrites = this.eventWrites
+            .then(() => fs.appendFile(eventsPath, line, 'utf-8'))
+            .catch((e: unknown) => logError(`error writing recording event:`, e));
     }
 
     private clearTimer() {
@@ -232,7 +255,9 @@ export class GameRecorder implements PatchTap {
     private finalize() {
         this.clearTimer();
         this.releaseTap();
+        const wasRecording = this.filePath !== null;
         this.filePath = null;
+        this.eventsPath = null;
         this.lastWrittenT = null;
         this.segment = null;
         this.keyframeDue = false;
@@ -240,6 +265,7 @@ export class GameRecorder implements PatchTap {
         this.manager.state.isRecordingGame = false;
         this.manager.state.recordingName = '';
         this.manager.state.recordingSeconds = 0;
+        if (wasRecording) this.onRecordingChange(false);
     }
 
     public async listRecordings(): Promise<RecordingSummary[]> {
@@ -279,7 +305,9 @@ export class GameRecorder implements PatchTap {
 
     private autoFinalizeDeltas() {
         this.clearTimer();
+        this.eventsPath = null;
         this.inFlight = this.endDeltas()
+            .then(() => this.eventWrites)
             .catch((e: unknown) => logError(`error writing recording deltas:`, e))
             .finally(() => {
                 this.finalize();
@@ -429,11 +457,23 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
         fileStream.close();
     }
     if (!header) return null;
-    return {
+    const summary: RecordingSummary = {
         name,
         mapName: header.mapName,
         startedAt: header.startedAt,
         durationSeconds: lastT,
         frameCount,
     };
+    const eventsPath = sidecarPath(filePath);
+    try {
+        await fs.access(eventsPath);
+        summary.events = path.basename(eventsPath);
+    } catch {
+        // no decisions were recorded
+    }
+    return summary;
+}
+
+function sidecarPath(recordingPath: string) {
+    return recordingPath.slice(0, -RECORDING_EXT.length) + EVENTS_EXT;
 }
