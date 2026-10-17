@@ -116,6 +116,8 @@ export class InputManager {
 
     init() {
         if (!this.loop.isStarted()) {
+            // readiness marker: e2e waits on it instead of guessing how long the screen takes to bind keys
+            document.body.dataset.hotkeys = 'bound';
             addEventListener('mmk-gamepad-button-value', this.onButton);
             addEventListener('mmk-gamepad-axis-value', this.onAxis);
             for (const key of this.keys) {
@@ -135,6 +137,7 @@ export class InputManager {
 
     destroy() {
         if (this.loop.isStarted()) {
+            delete document.body.dataset.hotkeys;
             this.loop.stop();
             removeEventListener('mmk-gamepad-axis-value', this.onAxis);
             removeEventListener('mmk-gamepad-button-value', this.onButton);

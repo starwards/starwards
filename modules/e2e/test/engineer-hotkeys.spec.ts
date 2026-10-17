@@ -8,7 +8,7 @@
  * dynamically per system index and are skipped — their state is already
  * covered by the `@tweakable` implicit admission and the engineer screen test.
  */
-import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
+import { cleanupPageState, navigateToScreen, setupPageErrorHandlers, waitForHotkeys } from './test-infrastructure';
 import { makeDriver, waitForShipCondition } from './driver';
 
 import { maps } from '@starwards/server';
@@ -23,7 +23,7 @@ test.describe('Engineer hotkeys', () => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
         await navigateToScreen(page, `/engineer.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
-        await page.waitForTimeout(500);
+        await waitForHotkeys(page);
     });
 
     test.afterEach(async ({ page }) => {

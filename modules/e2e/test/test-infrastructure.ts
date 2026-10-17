@@ -64,7 +64,8 @@ export async function navigateToScreen(
     screenPath: string,
     options: { timeout?: number; baseURL?: string } = {},
 ): Promise<void> {
-    const timeout = options.timeout ?? 5000;
+    // default: the config's navigationTimeout (15s in CI); a fixed 5s failed loaded multi-page tests
+    const timeout = options.timeout;
     const url = options.baseURL ? `${options.baseURL}${screenPath}` : screenPath;
 
     try {
@@ -92,7 +93,7 @@ export async function navigateToScreen(
         // Detect timeout while waiting for server
         if (errorMessage.includes('Timeout') && errorMessage.includes('exceeded')) {
             throw new Error(
-                `Navigation timeout - page did not load in ${timeout}ms. ` +
+                `Navigation timeout - page did not load within ${timeout ? `${timeout}ms` : 'navigationTimeout'}. ` +
                     'Server may be hung or page may be waiting for WebSocket connection.',
             );
         }
@@ -100,4 +101,9 @@ export async function navigateToScreen(
         // Re-throw with original error
         throw error;
     }
+}
+
+/** Waits until the screen's InputManager has bound its hotkeys (`body[data-hotkeys]`), so key presses are not lost. */
+export async function waitForHotkeys(page: Page, timeout = 15000): Promise<void> {
+    await page.locator('body[data-hotkeys="bound"]').waitFor({ state: 'attached', timeout });
 }
