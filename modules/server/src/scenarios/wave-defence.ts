@@ -5,6 +5,7 @@ import {
     GameApi,
     GameMap,
     IdleStrategy,
+    Nebula,
     PowerLevel,
     ShipModel,
     Spaceship,
@@ -30,6 +31,17 @@ export const STATIONS: readonly WaveDefenceStation[] = [
     { id: 'station-large', model: 'large-station', position: new Vec2(0, 34641) },
     { id: 'station-platform', model: 'chaingun-platform', position: new Vec2(30000, -17320) },
     { id: 'station-small', model: 'small-station', position: new Vec2(-30000, -17320) },
+];
+
+/**
+ * Optical-only hazards (issue #2123) placed on the bearings midway between the stations, ~55km
+ * from the formation centre: well clear of the player start (origin) and every station (>=48km),
+ * and a nuisance rather than a wall. Fixed (no rng draw) so wave rng sequences are unchanged.
+ */
+export const NEBULAS: readonly { readonly id: string; readonly position: Vec2; readonly radius: number }[] = [
+    { id: 'nebula-ne', position: new Vec2(47631, 27500), radius: 4000 },
+    { id: 'nebula-nw', position: new Vec2(-47631, 27500), radius: 6000 },
+    { id: 'nebula-s', position: new Vec2(0, -55000), radius: 5000 },
 ];
 
 const WAVE_SPAWN_DISTANCE = 140_000;
@@ -531,6 +543,9 @@ export function createWaveDefenceMap(
                 // Stations never receive an order, so without this the default (PLAY_DEAD) leaves
                 // their chain gun silent against raiders passing in range.
                 stationApi.state.idleStrategy = IdleStrategy.STAND_GROUND;
+            }
+            for (const nebula of NEBULAS) {
+                game.addObject(new Nebula().init(nebula.id, Vec2.make(nebula.position), nebula.radius));
             }
             spawnWave();
         },
