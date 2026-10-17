@@ -264,12 +264,10 @@ export async function server(
             // keeps Jest worker processes alive.  Calling reset(true) here clears the
             // pending timeout and force-flushes the counters before state becomes
             // SHUTTING_DOWN (at which point Stats.persist() becomes a no-op).
-            // @colyseus/core/package.json restricts sub-path exports, so we resolve
-            // Stats.cjs via the package entry-point directory rather than a named export.
-
-            const statsPath = path.join(path.dirname(require.resolve('@colyseus/core')), 'Stats.cjs');
+            // `@colyseus/core/Stats` resolves through the same export conditions as `@colyseus/core`
+            // (the ESM build under node's `module-sync`), so this is the instance the matchmaker uses.
             // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const Stats = require(statsPath) as { reset: (persist?: boolean) => void };
+            const Stats = require('@colyseus/core/Stats') as { reset: (persist?: boolean) => void };
             Stats.reset(true);
             await gameServer.gracefullyShutdown(false);
         },

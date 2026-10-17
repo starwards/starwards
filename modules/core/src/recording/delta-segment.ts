@@ -1,5 +1,6 @@
 import { Decoder, Encoder, Reflection, Schema } from '@colyseus/schema';
 import { RecordingBaseLine, RecordingSegLine, SPACE_ROOM_KEY, decodeSegment } from './recording-format';
+import { ConstructingDecoder } from '../constructing-decoder';
 import { SavedGame } from './saved-game';
 import { ShipState } from '../ship';
 import { SpaceState } from '../space';
@@ -106,7 +107,7 @@ export async function reconstructSegment(
         } else {
             throw new Error(`unknown recorded room ${key}`);
         }
-        const decoder = new Decoder(state);
+        const decoder = new ConstructingDecoder(state);
         try {
             strictDecode(decoder, await decodeRecordedBytes(base.base[key]));
         } catch (e) {

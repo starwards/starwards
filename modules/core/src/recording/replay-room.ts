@@ -1,4 +1,5 @@
 import { Decoder, Encoder, Schema } from '@colyseus/schema';
+import { ConstructingDecoder } from '../constructing-decoder';
 import { deepAssignSchema } from './deep-assign-schema';
 
 type Constructor<T extends Schema> = new () => T;
@@ -21,7 +22,7 @@ export class ReplayRoom<S extends Schema> {
         this.source = new ctor();
         this.encoder = new Encoder(this.source);
         this.state = new ctor();
-        this.serializer = { decoder: new Decoder(this.state) };
+        this.serializer = { decoder: new ConstructingDecoder(this.state) };
     }
 
     readonly onStateChange = Object.assign((cb: () => void) => this.listeners.add(cb), {
