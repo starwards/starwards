@@ -1,15 +1,11 @@
 import { NotPermittedError, StationSession } from './session';
-import { StationCommand, StationEntry, StationsManifest } from '@starwards/core/internal';
+import { StationCommand, StationEntry, StationsManifest, multiplexedStations } from '@starwards/core/internal';
 
 /**
  * Seats one player (or one brain) at several stations at once, under one name. A multiplexed seat
  * reads the union of its members' widgets and works the union of their commands; nothing a member
  * cannot see is added, so its fog of war is exactly the members' together.
  */
-export const multiplexedStations: Record<string, readonly string[]> = {
-    tactical: ['helms', 'weapons'],
-};
-
 function multiplexedEntry(manifest: StationsManifest, members: readonly string[]): StationEntry | undefined {
     const entries = members.map((m) => manifest.stations[m]);
     if (entries.some((e) => !e || e.gm)) {
