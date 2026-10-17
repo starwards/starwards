@@ -72,6 +72,7 @@ describe('player smartgun', () => {
         expect(Math.abs(mount.bearingCommand)).to.be.greaterThan(5);
         expect(Math.abs(mount.bearing - mount.bearingCommand)).to.be.lessThan(1);
         expect(mount.shellRange).to.not.equal(0);
+        expect(shipMgr.state.smartGunStatus).to.equal('tracking');
         expect(mount.shellSecondsToLive).to.be.closeTo(secondsToLive, 0.2);
         expect(mount.isFiring).to.equal(false);
     });
@@ -92,11 +93,12 @@ describe('player smartgun', () => {
     });
 
     it('rests the turret when the target is outside the cone', () => {
-        const { run, mount } = setup(90);
+        const { shipMgr, run, mount } = setup(90);
         mount.bearingCommand = 25;
         run(60);
         expect(mount.bearingCommand).to.equal(0);
         expect(mount.bearing).to.be.closeTo(0, 0.5);
+        expect(shipMgr.state.smartGunStatus).to.equal('resting');
         expect(mount.isFiring).to.equal(false);
     });
 
@@ -106,6 +108,7 @@ describe('player smartgun', () => {
         mount.bearingCommand = 12;
         run(5);
         expect(mount.bearingCommand).to.equal(12);
+        expect(shipMgr.state.smartGunStatus).to.equal('holding');
         expect(mount.isFiring).to.equal(false);
     });
 
@@ -117,6 +120,7 @@ describe('player smartgun', () => {
         run(10);
         expect(mount.bearingCommand).to.equal(-7);
         expect(mount.shellRange).to.equal(0.25);
+        expect(shipMgr.state.smartGunStatus).to.equal('off');
     });
 
     it('never latches a ceasefire on heat: the trigger stays the officer', () => {

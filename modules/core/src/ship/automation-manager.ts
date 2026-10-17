@@ -438,10 +438,12 @@ export class AutomationManager {
      */
     private updatePlayerSmartGun(deltaSecondsAvg: number) {
         if (!this.state.smartGunnery || this.state.chainGuns.length === 0) {
+            this.state.smartGunStatus = 'off';
             return;
         }
         const target = this.shipManager.weaponsTarget;
         if (!target || target.destroyed || !this.spaceManager.isVisible(this.state.id, target.id)) {
+            this.state.smartGunStatus = 'holding';
             return;
         }
         const bearing = this.state.chainGuns.filter((gun) => this.canBearOn(gun, target));
@@ -450,6 +452,7 @@ export class AutomationManager {
                 chainGun.bearingCommand = 0;
             }
         }
+        this.state.smartGunStatus = bearing.length > 0 ? 'tracking' : 'resting';
         if (bearing.length > 0) {
             this.aimAndFire(target, deltaSecondsAvg, bearing, false);
         }

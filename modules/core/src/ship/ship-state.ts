@@ -274,6 +274,14 @@ export class ShipState extends Schema implements Lockable {
     @gameField('boolean')
     smartGunnery = true;
 
+    /**
+     * What the smartgun is doing right now, for the Weapons panel: `off` (toggle off or no guns),
+     * `holding` (no visible target, mounts keep their last command), `resting` (a target, but no
+     * mount can bear), `tracking` (at least one mount is aimed at it). Written by automation.
+     */
+    @gameField('string')
+    smartGunStatus = 'off';
+
     /** Drained by `applyLockCommands` (`lock-commands.ts`) each tick. */
     public lockCommands = Array.of<LockPropertyArg>();
 

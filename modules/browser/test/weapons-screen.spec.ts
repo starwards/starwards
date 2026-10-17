@@ -12,6 +12,7 @@ jest.mock('../src/widgets/tubes-status', () => ({ drawTubesStatus: jest.fn() }))
 jest.mock('../src/widgets/ammo', () => ({ drawAmmoStatus: jest.fn() }));
 jest.mock('../src/widgets/targeting', () => ({ drawTargetingStatus: jest.fn() }));
 jest.mock('../src/widgets/gun', () => ({ drawGunStatus: jest.fn() }));
+jest.mock('../src/widgets/smart-gun', () => ({ drawSmartGunStatus: jest.fn() }));
 jest.mock('../src/input/input-manager', () => ({
     InputManager: jest.fn().mockImplementation(() => ({
         addMomentaryClickAction: jest.fn(),

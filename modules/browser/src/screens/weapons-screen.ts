@@ -6,6 +6,7 @@ import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
 import { drawGunStatus } from '../widgets/gun';
 import { drawRadarHeader } from '../widgets/radar-header';
+import { drawSmartGunStatus } from '../widgets/smart-gun';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
@@ -33,6 +34,7 @@ export async function initWeaponsScreen(
     drawTubesStatus(grid.left(), shipDriver);
     drawAmmoStatus(grid.left({ scroll: true }), shipDriver);
     drawTargetingStatus(grid.right(), shipDriver);
+    drawSmartGunStatus(grid.right(), shipDriver);
     drawGunStatus(grid.right(), shipDriver);
     drawSystemsStatus(
         grid.right({ scroll: true }),
@@ -64,6 +66,7 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         'Fire Chain Gun',
     );
     input.addToggleClickAction(readWriteProp(shipDriver, '/chainGuns/0/loadAmmo'), 'g', 'Load Chain Gun');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/smartGunnery'), 'h', 'Smart Gun');
     input.addMomentaryClickAction(
         writeProp(shipDriver, '/chainGuns/0/changeProjectileCommand'),
         'b',
