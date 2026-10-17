@@ -8,11 +8,11 @@ import {
     stationCommands,
     stationWidgets,
 } from '@starwards/core/internal';
-import { helmsRadarRange, scanBeamStatus, widgetReaders } from '../readers';
+import { helmsRadarRange, scanBeamStatus, widgetReaders } from './readers';
 
 import { MultiplexedSession } from './multiplex';
 import { commandBindings } from './command-map';
-import { describeContact } from '../contacts';
+import { describeContact } from './contacts';
 
 /**
  * What a seat reads and does, as plain functions over a `StationSession`.

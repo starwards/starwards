@@ -25,8 +25,8 @@
         "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts"
     },
     "dependencies": {
+        "@starwards/bots": "0.5.1",
         "@starwards/core": "0.5.1",
-        "@starwards/mcp": "0.5.1",
         "@starwards/server": "0.0.0",
         "zod": "4.1.12"
     }

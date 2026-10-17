@@ -1,11 +1,13 @@
 import { Driver, beginStationRegistration } from '@starwards/core/internal';
 
-import { openStation, seatsOf, withMultiplexedStations } from '@starwards/mcp/src/sandbox/multiplex';
-
-import { RadarView } from '@starwards/mcp/src/radar/radar-view';
-import { StationSession } from '@starwards/mcp/src/sandbox/session';
-
-import { fetchStationsManifest } from '@starwards/mcp/src/sandbox/manifest';
+import {
+    RadarView,
+    StationSession,
+    fetchStationsManifest,
+    openStation,
+    seatsOf,
+    withMultiplexedStations,
+} from '@starwards/bots';
 
 /**
  * Seats a station on a ship of a live game, as the MCP `login` tool does: the server's manifest

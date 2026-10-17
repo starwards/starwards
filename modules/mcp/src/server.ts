@@ -9,14 +9,23 @@ import {
     stationCommands,
     stationWidgets,
 } from '@starwards/core/internal';
-import { InvalidCommandError, NotPermittedError, StationSession } from './sandbox/session';
-import { enabledStations, fetchStationsManifest } from './sandbox/manifest';
-import { openStation, seatsOf, withMultiplexedStations } from './sandbox/multiplex';
-import { radarContacts, shipStatus, stationCapabilities } from './sandbox/console';
+import {
+    InvalidCommandError,
+    NotPermittedError,
+    RadarView,
+    StationSession,
+    enabledStations,
+    fetchStationsManifest,
+    openStation,
+    radarContacts,
+    seatsOf,
+    shipStatus,
+    stationCapabilities,
+    withMultiplexedStations,
+} from '@starwards/bots';
 
 import { CrewChannel } from './comms/channel';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { RadarView } from './radar/radar-view';
 import { z } from 'zod';
 
 const LOGIN_TIMEOUT_MS = 15_000;

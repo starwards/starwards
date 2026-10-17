@@ -12,7 +12,7 @@ import {
     tryGetRange,
 } from '@starwards/core/internal';
 
-import { RadarView } from '../radar/radar-view';
+import { RadarView } from './radar-view';
 
 /** Refused because the seat does not have it. The message names what is missing, so the caller can adapt. */
 export class NotPermittedError extends Error {}

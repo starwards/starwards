@@ -1,6 +1,6 @@
 import { SessionShipDriver, SessionSpaceDriver, StationSession } from './session';
 
-import { RadarView } from '../radar/radar-view';
+import { RadarView } from './radar-view';
 
 describe('StationSession', () => {
     it('holds a burst for the requested seconds through the injected wait, then releases the trigger', async () => {

@@ -12,7 +12,7 @@ import { SeatPlan } from './crew';
 import { jevClient } from '../brain/jev-client';
 import { loadBrainSpec } from '../brain/spec';
 import { makeReferencePolicy } from '../brain/reference-policy';
-import { seatsOf } from '@starwards/mcp/src/sandbox/multiplex';
+import { seatsOf } from '@starwards/bots';
 import { z } from 'zod';
 
 /** Where the module's own brains live; a crew file names others by a path relative to itself. */

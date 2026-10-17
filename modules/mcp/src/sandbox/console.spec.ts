@@ -1,11 +1,18 @@
 import { Asteroid, Driver, Projectile, SpaceObject, StationWidget, Vec2 } from '@starwards/core/internal';
-import { NotPermittedError, StationSession } from './session';
-import { observeStation, radarContacts, radarPriority, shipStatus, stationCapabilities } from './console';
+import {
+    NotPermittedError,
+    StationSession,
+    fetchStationsManifest,
+    observeStation,
+    radarContacts,
+    radarPriority,
+    shipStatus,
+    stationCapabilities,
+    widgetReaders,
+} from '@starwards/bots';
 
-import { fetchStationsManifest } from './manifest';
 import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
-import { widgetReaders } from '../readers';
 
 const { test_map_1 } = maps;
 

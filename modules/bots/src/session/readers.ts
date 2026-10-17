@@ -7,7 +7,7 @@ import {
     magazineStocks,
 } from '@starwards/core/internal';
 
-import { StationSession } from './sandbox/session';
+import { StationSession } from './session';
 import { describeContact } from './contacts';
 
 /**

@@ -1,10 +1,18 @@
 import { Driver, StationsManifest } from '@starwards/core/internal';
-import { MultiplexedSession, openStation, withMultiplexedStations } from './multiplex';
-import { NotPermittedError, SessionShipDriver, SessionSpaceDriver, StationSession } from './session';
-import { observeStation, stationCapabilities } from './console';
+import {
+    MultiplexedSession,
+    NotPermittedError,
+    RadarView,
+    SessionShipDriver,
+    SessionSpaceDriver,
+    StationSession,
+    fetchStationsManifest,
+    observeStation,
+    openStation,
+    stationCapabilities,
+    withMultiplexedStations,
+} from '@starwards/bots';
 
-import { RadarView } from '../radar/radar-view';
-import { fetchStationsManifest } from './manifest';
 import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
 
