@@ -63,6 +63,22 @@ export async function drawArmorStatus(
         });
         // ---
         const plateSize = degToRad * shipDriver.state.armor.degreesPerPlate;
+        // render only when a plate's health or the size changed: 30+ stencil masks redrawn every frame
+        // pegged the main thread under software rendering (#2407)
+        root.ticker.remove(root.render, root);
+        let renderedKey = '';
+        root.ticker.add(
+            () => {
+                const key = `${size()}:${shipDriver.state.armor.armorPlates.map((p) => p.healthRatio).join(',')}`;
+                if (key === renderedKey) return;
+                renderedKey = key;
+                for (const draw of draws) draw();
+                root.render();
+            },
+            null,
+            UPDATE_PRIORITY.LOW,
+        );
+        const draws: (() => void)[] = [];
 
         for (let plateIdx = 0; plateIdx < shipDriver.state.armor.numberOfPlates; plateIdx++) {
             const sprite = new Sprite(texture);
@@ -97,7 +113,7 @@ export async function drawArmorStatus(
                 mask.stroke({ color: 0xff0000, width: 2, alpha: 1 });
             };
 
-            root.ticker.add(draw, null, UPDATE_PRIORITY.LOW);
+            draws.push(draw);
 
             root.stage.addChild(mask);
         }
