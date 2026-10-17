@@ -21,7 +21,7 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
-import { Explosion, Nebula, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
+import { Explosion, HazardCloud, Nebula, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
@@ -362,6 +362,7 @@ export class SpaceManager implements Updateable {
         this.updateCollisionBodies();
         if (deltaSeconds > 0) {
             this.handleCollisions(deltaSeconds);
+            this.applyHazardClouds(deltaSeconds);
         }
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
@@ -647,7 +648,7 @@ export class SpaceManager implements Updateable {
 
     private allowRaycastCollision = (potential: Body) => {
         const object = this.collisionToState.get(potential as Circle);
-        const ignore = !object || this.isProjectile(object);
+        const ignore = !object || this.isProjectile(object) || HazardCloud.isInstance(object);
         return !ignore;
     };
 
@@ -771,6 +772,8 @@ export class SpaceManager implements Updateable {
                 !Waypoint.isInstance(object) &&
                 !Nebula.isInstance(subject) &&
                 !Nebula.isInstance(object) &&
+                !HazardCloud.isInstance(subject) &&
+                !HazardCloud.isInstance(object) &&
                 !object.destroyed
             ) {
                 let positionChange: XY | null = null;
@@ -820,6 +823,57 @@ export class SpaceManager implements Updateable {
             }
         }
     }
+    /**
+     * Hazard cloud effects (M4.40): projectiles inside wear down (extra lifetime burned) and are
+     * destroyed without detonating once worn out; ships inside take hull damage that scales with
+     * speed above the cloud's safe speed, on the plates facing their direction of travel.
+     */
+    private applyHazardClouds(deltaSeconds: number) {
+        for (const cloud of this.state.getAll('HazardCloud')) {
+            const body = this.stateToExtraData.get(cloud)?.body;
+            if (!body) {
+                continue;
+            }
+            for (const potential of this.collisions.getPotentials(body)) {
+                const object = this.collisionToState.get(potential);
+                if (
+                    !object ||
+                    object.destroyed ||
+                    XY.distance(object.position, cloud.position) > cloud.radius + object.radius
+                ) {
+                    continue;
+                }
+                if (Projectile.isInstance(object)) {
+                    object.secondsToLive -= cloud.projectileAttritionRate * deltaSeconds;
+                    if (object.secondsToLive <= 0) {
+                        object.destroyed = true;
+                    }
+                } else if (Spaceship.isInstance(object)) {
+                    const excessSpeed = XY.lengthOf(object.velocity) - cloud.safeSpeed;
+                    if (excessSpeed <= 0) {
+                        continue;
+                    }
+                    const heading = XY.angleOf(object.globalToLocal(object.velocity));
+                    const damage: Damage = {
+                        id: cloud.id,
+                        amount: cloud.hullDamagePerSpeed * excessSpeed * deltaSeconds,
+                        damageSurfaceArc: [limitPercision(heading - 45), limitPercision(heading + 45)],
+                        damageDurationSeconds: deltaSeconds,
+                        damageType: 'Collision',
+                        delivery: 'impact',
+                        shipId: '',
+                    };
+                    const objectDamage = this.objectDamage.get(object.id);
+                    if (objectDamage === undefined) {
+                        this.objectDamage.set(object.id, [damage]);
+                    } else {
+                        objectDamage.push(damage);
+                    }
+                }
+            }
+        }
+    }
+
     private isOwnFire(subject: SpaceObject, object: SpaceObject) {
         return (
             (Projectile.isInstance(subject) && subject.shipId !== '' && subject.shipId === object.id) ||

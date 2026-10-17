@@ -16,6 +16,7 @@ import { SpaceObject, SpaceObjects, Waypoint } from '.';
 import { Asteroid } from './asteroid';
 import { Derelict } from './derelict';
 import { Explosion } from './explosion';
+import { HazardCloud } from './hazard-cloud';
 import { Nebula } from './nebula';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
@@ -35,6 +36,9 @@ export class SpaceState extends Schema implements Lockable {
 
     @gameField({ map: Nebula })
     private readonly Nebula = new MapSchema<Nebula>();
+
+    @gameField({ map: HazardCloud })
+    private readonly HazardCloud = new MapSchema<HazardCloud>();
 
     @gameField({ map: Asteroid })
     private readonly Asteroid = new MapSchema<Asteroid>();
@@ -80,6 +84,7 @@ export class SpaceState extends Schema implements Lockable {
             this.Spaceship.get(id) ??
             this.Explosion.get(id) ??
             this.Nebula.get(id) ??
+            this.HazardCloud.get(id) ??
             this.Waypoint.get(id) ??
             this.Derelict.get(id)
         );
@@ -109,6 +114,7 @@ export class SpaceState extends Schema implements Lockable {
         yield this.Projectile;
         yield this.Explosion;
         yield this.Nebula;
+        yield this.HazardCloud;
         yield this.Asteroid;
         yield this.Spaceship;
         yield this.Waypoint;

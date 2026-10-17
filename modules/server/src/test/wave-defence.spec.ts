@@ -1,6 +1,7 @@
 import {
     CANT_FIGHT_SECONDS,
     DEFAULT_WAVE_TUNING,
+    HAZARD_CLOUDS,
     NEBULAS,
     OUT_OF_PLAY_DISTANCE_METERS,
     OUT_OF_PLAY_SECONDS,
@@ -1007,6 +1008,26 @@ describe('wave_defence nebulas (issue #2123)', () => {
             for (const station of STATIONS) {
                 expect(XY.distance(nebula.position, station.position)).toBeGreaterThan(clearance);
             }
+        }
+    });
+});
+
+describe('wave_defence hazard clouds (M4.40)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    it('places the scenario hazard clouds near the nebulas, clear of the player start and every station', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+
+        const placed = [...gameDriver.spaceManager.state.getAll('HazardCloud')];
+        expect(placed.map((n) => n.id).sort()).toEqual(HAZARD_CLOUDS.map((n) => n.id).sort());
+        for (const cloud of placed) {
+            const clearance = cloud.radius + 5000;
+            expect(XY.distance(cloud.position, XY.zero)).toBeGreaterThan(clearance);
+            for (const station of STATIONS) {
+                expect(XY.distance(cloud.position, station.position)).toBeGreaterThan(clearance);
+            }
+            const nearestNebula = Math.min(...NEBULAS.map((n) => XY.distance(n.position, cloud.position)));
+            expect(nearestNebula).toBeLessThan(15_000);
         }
     });
 });

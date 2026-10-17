@@ -41,6 +41,7 @@ export const radar = {
     mountArc: 0x888888, // Dim gray - static structural firing arc, not a live overlay
     derelictTint: 0x3a3a3a, // Darker than unknownTint - an inert hulk, not just unidentified
     nebulaTint: 0xff66cc, // Pink - a visible optical hazard, not a faction-colored contact
+    hazardCloudTint: 0xffcc00, // Amber - a visible damaging hazard, distinct from the nebula's pink
 };
 
 /** DRADIS grid, finest to coarsest, brightening with each level; the coarsest is amber. */

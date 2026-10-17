@@ -1,6 +1,7 @@
 import {
     Faction,
     FieldOfView,
+    HazardCloud,
     Nebula,
     Projectile,
     SpaceDriver,
@@ -46,7 +47,7 @@ export class RadarView {
                 visible.add(object);
                 continue;
             }
-            if (Nebula.isInstance(object)) {
+            if (Nebula.isInstance(object) || HazardCloud.isInstance(object)) {
                 // a nebula is a visible optical hazard, not a scanned contact: every radar shows
                 // it regardless of field of view, matching the browser's RadarRangeFilter.
                 visible.add(object);

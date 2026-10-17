@@ -3,6 +3,7 @@ import {
     Asteroid,
     Derelict,
     Explosion,
+    HazardCloud,
     Nebula,
     ScanLevel,
     ShipModel,
@@ -251,27 +252,29 @@ class CircleRenderer implements BlipRenderer<SpaceObject> {
 }
 
 /**
- * A nebula is a visible optical hazard, not a scanned contact: it always draws in a fixed
- * semi-transparent pink, ignoring scan level / faction color like a ship or asteroid blip would use.
+ * Nebulas and hazard clouds are visible area hazards, not scanned contacts: they always draw as a
+ * fixed semi-transparent tint, ignoring scan level / faction color like a ship or asteroid blip would use.
  */
-class NebulaRenderer implements BlipRenderer<Nebula> {
-    private shellCircle = new Graphics();
-    private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
-    constructor(
-        stage: Container,
-        private blipSize: number,
-    ) {
-        stage.addChild(this.shellCircle);
-        stage.addChild(this.selectionSprite);
-    }
-    redraw(spaceObject: Nebula, { parent, isSelected, blipSize }: BlipData): void {
-        const radius = Math.max(parent.metersToPixles(spaceObject.radius), 2);
-        this.shellCircle.clear();
-        this.shellCircle.circle(0, 0, radius).fill({ color: radar.nebulaTint, alpha: 0.25 });
-        this.selectionSprite.visible = isSelected;
-        this.selectionSprite.height = blipSize;
-        this.selectionSprite.width = blipSize;
-    }
+function areaHazardRenderer(tint: number) {
+    return class AreaHazardRenderer implements BlipRenderer<Nebula | HazardCloud> {
+        private shellCircle = new Graphics();
+        private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
+        constructor(
+            stage: Container,
+            private blipSize: number,
+        ) {
+            stage.addChild(this.shellCircle);
+            stage.addChild(this.selectionSprite);
+        }
+        redraw(spaceObject: Nebula | HazardCloud, { parent, isSelected, blipSize }: BlipData): void {
+            const radius = Math.max(parent.metersToPixles(spaceObject.radius), 2);
+            this.shellCircle.clear();
+            this.shellCircle.circle(0, 0, radius).fill({ color: tint, alpha: 0.25 });
+            this.selectionSprite.visible = isSelected;
+            this.selectionSprite.height = blipSize;
+            this.selectionSprite.width = blipSize;
+        }
+    };
 }
 class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
     private selectionSprite = blipSprite('tactical_select', this.blipSize, radar.lockBox);
@@ -418,7 +421,8 @@ export const tacticalDrawFunctions = {
     Asteroid: CircleRenderer,
     Projectile: CircleRenderer,
     Explosion: CircleRenderer,
-    Nebula: NebulaRenderer,
+    Nebula: areaHazardRenderer(radar.nebulaTint),
+    HazardCloud: areaHazardRenderer(radar.hazardCloudTint),
     Derelict: TacticalDerelictRenderer,
 };
 

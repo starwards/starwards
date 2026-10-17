@@ -1,4 +1,5 @@
 import { Explosion } from './explosion';
+import { HazardCloud } from './hazard-cloud';
 import { Nebula } from './nebula';
 
 /**
@@ -7,9 +8,9 @@ import { Nebula } from './nebula';
  * every consumer that turns a field of view into a player-facing contact list (radar
  * rendering, MCP `get_radar_contacts`, signals scan-job creation, weapons targeting) filters
  * through this. A transient blast and a passive optical hazard share the same rule for
- * different reasons — an explosion because it is gone before anyone could scan it, a nebula
- * because it is never something a crew scans or locks onto in the first place.
+ * different reasons — an explosion because it is gone before anyone could scan it, a nebula or
+ * hazard cloud because it is never something a crew scans or locks onto in the first place.
  */
 export function isSensorInvisible(object: unknown): boolean {
-    return Explosion.isInstance(object) || Nebula.isInstance(object);
+    return Explosion.isInstance(object) || Nebula.isInstance(object) || HazardCloud.isInstance(object);
 }
