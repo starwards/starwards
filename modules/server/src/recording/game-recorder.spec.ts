@@ -250,6 +250,35 @@ describe('GameRecorder', () => {
             expect(changes).toEqual([true, false]);
         });
 
+        it('completes the sidecar before a recording that ends with its game reports itself done', async () => {
+            const realFs = jest.requireActual<typeof import('node:fs/promises')>('node:fs/promises');
+            const appendFile = realFs.appendFile.bind(realFs);
+            const slowSidecar = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
+                if (typeof file === 'string' && file.endsWith(EVENTS_EXT))
+                    await new Promise((res) => setTimeout(res, 300));
+                return appendFile(file, data, options);
+            });
+            try {
+                gameDriver.gameManager.state.speed = 1;
+                await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+                const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
+                const ended = new Promise<void>((resolve) => {
+                    recorder.onRecordingChange = (on) => {
+                        if (!on) resolve();
+                    };
+                });
+                const filename = await recorder.startRecording();
+                recorder.appendEvent(decision);
+                await gameDriver.gameManager.stopGame();
+                await ended;
+
+                const lines = await readLines(path.join(tmpDir, filename.replace(/\.sgr$/, EVENTS_EXT)));
+                expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
+            } finally {
+                slowSidecar.mockRestore();
+            }
+        });
+
         it('writes no sidecar for a recording without events', async () => {
             gameDriver.pauseGameCommand();
             await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);

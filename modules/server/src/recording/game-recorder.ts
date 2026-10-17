@@ -154,13 +154,14 @@ export class GameRecorder implements PatchTap {
         }
         this.lastWrittenT = null;
         this.baseSeconds = this.manager.totalSeconds;
-        this.eventsPath = sidecarPath(this.filePath);
-        this.onRecordingChange(true);
         this.manager.state.isRecordingGame = true;
         this.manager.state.recordingName = filename;
         this.manager.state.recordingSeconds = 0;
         try {
             await fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
+            // only once the .sgr exists, so a failed start leaves no orphan sidecar
+            this.eventsPath = sidecarPath(this.filePath);
+            this.onRecordingChange(true);
             if (this.deltas && !(await this.firstKeyframe())) {
                 this.deltas = false; // the space room never patched: record keyframes only
             }
@@ -320,6 +321,9 @@ export class GameRecorder implements PatchTap {
         if (!filePath) return;
         const savedGame = this.manager.saveGame();
         if (!savedGame) {
+            // the game ended: the recording is done only once its sidecar is complete
+            this.eventsPath = null;
+            await this.eventWrites;
             this.finalize();
             return;
         }
