@@ -34,7 +34,7 @@ Latest development build (may be unstable): [starwards.exe](https://github.com/s
 
 Testing this build for us? See the [reviewer guide](docs/REVIEWING.md) for a suggested run script and how to send feedback.
 
-If you'd rather build from source, see [developing](#developing) below - `npm run build && npm run pkg` produces the same executable at `dist/exec/starwards-win.exe` (plus a Linux build at `dist/exec/starwards-linux`).
+If you'd rather build from source, see [developing](#developing) below - `npm run build && npm run build:exe` produces the same executable at `dist/exec/starwards-win.exe` (plus a Linux build at `dist/exec/starwards-linux`).
 
 # developing
 

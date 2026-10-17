@@ -149,7 +149,7 @@ ShipState (per ship, separate room)
 | Full build | `npm run build` | Core first, then parallel |
 | Core watch | `cd modules/core && npm run build:watch` | Required for dev |
 | Clean | `npm run clean` | Remove all artifacts |
-| Production | `npm run pkg` | Native executable (Windows) |
+| Production | `npm run build:exe` | Native executable (Windows) |
 
 **Dev workflow (3 terminals):**
 1. `cd modules/core && npm run build:watch`

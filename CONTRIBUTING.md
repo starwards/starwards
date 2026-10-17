@@ -29,8 +29,9 @@ The sub-modules are in the `modules` folder:
 
 Utility scripts are stored in the `scripts` folder:
 
--   `pkg.js` packages and compiles the game server into a single, native executable. used by `npm run pkg` command.
--   `post-build.js` copies artifacts into the `./dist` folder. used by `npm run build` command.
+-   `bundle-server.js` bundles the game server into one CommonJS file, `dist/app/starwards.cjs`. used by `post-build.js` and `build-exe.js`.
+-   `build-exe.js` embeds that bundle and the static files in a Node.js single-executable application. used by `npm run build:exe` command.
+-   `post-build.js` stages `./dist/static` and `./dist/app`. used by `npm run build` command.
 
 ### Installing and running commands
 
@@ -66,7 +67,7 @@ npm run test:e2e -- --update-snapshots
 # this whenever a visual change is intended
 npm run snapshots:ci
 # generate native binary executables. executables will appear in ./dist folder.
-npm run pkg
+npm run build:exe
 ```
 
 ## Looking for something to work on?
