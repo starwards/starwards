@@ -8,6 +8,7 @@ import {
     Order,
     ShipManagerPc,
     ShipModel,
+    magazineStocks,
     parseEventLine,
     shipConfigurations,
 } from '@starwards/core/internal';
@@ -97,7 +98,7 @@ describe('training ladder', () => {
         expect(Math.hypot(first.x - second.x, first.y - second.y)).toBeGreaterThan(1000);
     });
 
-    it('T2-constrained: the T2 attackers, the GVTS starting short of energy and shells with hot guns', () => {
+    it('T2-constrained: the T2 attackers, the GVTS starting short of energy, shells and missiles with hot guns', () => {
         const scenario = trainingScenarios['T2-constrained'];
         const [params] = fc.sample(scenario.params, { seed: 1, numRuns: 1 });
         const game = HeadlessGame.start(scenario.createMap(params), 1);
@@ -109,6 +110,10 @@ describe('training ladder', () => {
         expect(player.magazine.count_HiExpShell).toBeLessThanOrEqual(450);
         for (const gun of player.chainGuns) {
             expect(gun.heat).toBeGreaterThanOrEqual(40);
+        }
+        for (const stock of magazineStocks.filter((s) => s.endsWith('Missile'))) {
+            expect(player.magazine[`count_${stock}`]).toBeGreaterThanOrEqual(3);
+            expect(player.magazine[`count_${stock}`]).toBeLessThanOrEqual(6);
         }
     });
 
