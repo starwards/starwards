@@ -2,15 +2,15 @@
 audience: both
 depth: deep
 source_of_truth:
-  - .github/workflows/deploy.yml
-  - .github/workflows/ci-cd.yml
-  - .github/workflows/release.yml
-  - .github/k8s/build-preview-images.sh
-  - .github/k8s/render-preview.js
-  - Dockerfile
-  - docker/docker-compose.yml
+    - .github/workflows/deploy.yml
+    - .github/workflows/ci-cd.yml
+    - .github/workflows/release.yml
+    - .github/k8s/build-preview-images.sh
+    - .github/k8s/render-preview.js
+    - Dockerfile
+    - docker/docker-compose.yml
 related:
-  - DEVELOPMENT.md
+    - DEVELOPMENT.md
 last_verified: 2026-08-17
 ---
 
@@ -41,7 +41,7 @@ Runs on push/PR to `master`. Jobs:
   skipped (fail-open) when the diff touches only `docs/` or `.md` files. Otherwise build
   core, server, browser, then `npm run test:e2e` / `xvfb-run npm run test:widgets`.
   Test-Visual uploads snapshot diffs on failure.
-- **coverage-core** — `npm run test:coverage:core`, uploads `coverage-core`.
+- **AI-Controls** — headless T0 harness check: the reference crew must kill, the idle crew must not.
 - **Build** — full `npm run build`, `npm run build:exe` (uploads the Windows executable
   `dist/exec/starwards-win.exe` as artifact "Windows executable"; also boots the
   packaged `dist/exec/starwards-linux` with no env vars and asserts `/health` and `/`

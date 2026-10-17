@@ -13,7 +13,7 @@ Unit suites run in seconds, E2E in minutes. Count the test files with `git ls-fi
 
 **CI/CD:** Automated on every push, parallel execution (4 workers)
 
-Where coverage is thin and how the coverage gate moves: [coverage-strategy.md](coverage-strategy.md).
+Where test coverage is thin: [coverage-strategy.md](coverage-strategy.md).
 
 ## Running Tests
 
@@ -89,7 +89,7 @@ test('helm displays heading', async ({ page }) => {
 
 **Tweakpane Testing:** Use `getPropertyValue()`, `waitForPropertyValue()`, and `waitForPropertyFloatValue()` helpers to test PropertyPanel displays. See [E2E Tweakpane Testing](UTILITIES.md#e2e-tweakpane-testing) for details.
 
-**Station registry (issue #2131):** `?ship=` on a station screen is a self-assignment *request*, not a direct binding — the server validates it against the station registry (`AdminState.stations`) and the screen renders whatever ship its own registry entry resolves to (which the tests above rely on succeeding for a single, unambiguous player ship). Each browser tab persists its own registry id (`?station=ID` pins it); see `modules/core/src/stations/` and `modules/e2e/test/station-registry.spec.ts` for the registration/self-assignment/auto-assign test patterns themselves.
+**Station registry (issue #2131):** `?ship=` on a station screen is a self-assignment _request_, not a direct binding — the server validates it against the station registry (`AdminState.stations`) and the screen renders whatever ship its own registry entry resolves to (which the tests above rely on succeeding for a single, unambiguous player ship). Each browser tab persists its own registry id (`?station=ID` pins it); see `modules/core/src/stations/` and `modules/e2e/test/station-registry.spec.ts` for the registration/self-assignment/auto-assign test patterns themselves.
 
 #### UI Testing Best Practices
 

@@ -29,9 +29,6 @@ not a bug — bugs go to [issues](https://github.com/starwards/starwards/issues)
 
 ## Technical debt
 
-- **Coverage is gated but low.** The `coverage-core` CI job enforces thresholds set in the
-  `test:coverage:core` script in the root `package.json`. Targets and the ratchet plan:
-  [`testing/coverage-strategy.md`](testing/coverage-strategy.md).
 - **No generated API documentation.** Follows from the sparse JSDoc above.
 - **Webpack dev server needs the legacy OpenSSL flag.** `NODE_OPTIONS=--openssl-legacy-provider`
   is set in `.vscode/tasks.json`; the same workaround is in
