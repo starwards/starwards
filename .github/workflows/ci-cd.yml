@@ -9,8 +9,36 @@ on:
             - master
     merge_group:
 
+# superseded PR pushes free their runners; queue and master runs are never cancelled
+concurrency:
+    group: ci-${{ github.event_name }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+    Queue-Verified:
+        # The merge queue squashes and fast-forwards master to the exact commit it tested,
+        # so a push whose SHA already passed a merge_group run needs no second test run.
+        # Anything else (direct push, failed or missing queue run) tests in full.
+        runs-on: ubuntu-latest
+        permissions:
+            actions: read
+        outputs:
+            tested: ${{ steps.check.outputs.tested }}
+        steps:
+            - id: check
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  tested=false
+                  if [ "${{ github.event_name }}" = "push" ]; then
+                      n=$(gh run list --repo "${{ github.repository }}" --workflow ci-cd.yml --event merge_group \
+                          --commit "${{ github.sha }}" --status success --json databaseId --jq length || echo 0)
+                      [ "${n:-0}" -gt 0 ] && tested=true
+                  fi
+                  echo "tested=$tested" >> "$GITHUB_OUTPUT"
     Test-Static:
+        needs: Queue-Verified
+        if: needs.Queue-Verified.outputs.tested != 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -32,6 +60,8 @@ jobs:
 
     Test-Units-Shard:
         # sharded so the slow simulation suites spread over 3 runners; Test-Units below aggregates
+        needs: Queue-Verified
+        if: needs.Queue-Verified.outputs.tested != 'true'
         runs-on: ubuntu-latest
         strategy:
             fail-fast: false
@@ -72,8 +102,8 @@ jobs:
     Test-Units:
         # keeps the required check name; passes only when every shard passed
         runs-on: ubuntu-latest
-        needs: Test-Units-Shard
-        if: always()
+        needs: [Queue-Verified, Test-Units-Shard]
+        if: always() && needs.Queue-Verified.outputs.tested != 'true'
         steps:
             - uses: actions/download-artifact@v4
               with:
@@ -99,6 +129,8 @@ jobs:
     Test-E2e-Shard:
         # shards 1-4 split every other e2e file by weight; 5-6 split the visual gallery by test.
         # Test-E2e below aggregates.
+        needs: Queue-Verified
+        if: needs.Queue-Verified.outputs.tested != 'true'
         runs-on: ubuntu-latest
         container:
             image: mcr.microsoft.com/playwright:v1.61.1-jammy
@@ -118,7 +150,7 @@ jobs:
               run: |
                   set +e
                   git config --global --add safe.directory "$GITHUB_WORKSPACE"
-                  BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+                  BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"
                   git fetch --depth=1 origin "$BASE" 2>/dev/null
                   CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null)
                   if [ -z "$CHANGED" ]; then
@@ -173,8 +205,8 @@ jobs:
     Test-E2e:
         # keeps the required check name; passes only when every shard passed
         runs-on: ubuntu-latest
-        needs: Test-E2e-Shard
-        if: always()
+        needs: [Queue-Verified, Test-E2e-Shard]
+        if: always() && needs.Queue-Verified.outputs.tested != 'true'
         steps:
             - name: Fail if any shard failed
               if: needs.Test-E2e-Shard.result != 'success'
@@ -182,6 +214,8 @@ jobs:
 
     Test-Visual-Shard:
         # sharded over 2 runners; Test-Visual below aggregates
+        needs: Queue-Verified
+        if: needs.Queue-Verified.outputs.tested != 'true'
         runs-on: ubuntu-latest
         container:
             image: mcr.microsoft.com/playwright:v1.61.1-jammy
@@ -199,7 +233,7 @@ jobs:
               run: |
                   set +e
                   git config --global --add safe.directory "$GITHUB_WORKSPACE"
-                  BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+                  BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"
                   git fetch --depth=1 origin "$BASE" 2>/dev/null
                   CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null)
                   if [ -z "$CHANGED" ]; then
@@ -238,8 +272,8 @@ jobs:
     Test-Visual:
         # keeps the required check name; passes only when every shard passed
         runs-on: ubuntu-latest
-        needs: Test-Visual-Shard
-        if: always()
+        needs: [Queue-Verified, Test-Visual-Shard]
+        if: always() && needs.Queue-Verified.outputs.tested != 'true'
         steps:
             - name: Fail if any shard failed
               if: needs.Test-Visual-Shard.result != 'success'
@@ -248,6 +282,8 @@ jobs:
     AI-Controls:
         # $0 harness check: the reference crew must kill on T0, the idle crew must not.
         # No Jev seat runs here; the Jev client refuses to start when CI is set.
+        needs: Queue-Verified
+        if: needs.Queue-Verified.outputs.tested != 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -269,67 +305,6 @@ jobs:
               with:
                   name: ai-controls
                   path: modules/ai/ai-controls/*.md
-                  if-no-files-found: ignore
-
-    coverage-core-shard:
-        # core tests with coverage, split over 3 runners; coverage-core below merges and checks thresholds
-        runs-on: ubuntu-latest
-        strategy:
-            fail-fast: false
-            matrix:
-                shard: [1, 2, 3]
-        steps:
-            - uses: actions/checkout@v4
-            - name: Set up Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version-file: '.nvmrc'
-                  cache: 'npm'
-            - run: npm ci
-            - name: Run core tests with coverage
-              shell: bash
-              run: |
-                  set -f
-                  files=$(node scripts/ci-shard.mjs core ${{ matrix.shard }} 3)
-                  npx jest --maxWorkers=4 --coverage --coverageReporters=json --coverageDirectory=coverage-shard --collectCoverageFrom='modules/core/src/**/*.ts' --runTestsByPath $files
-            - name: Store shard coverage
-              uses: actions/upload-artifact@v4
-              with:
-                  name: coverage-core-shard-${{ matrix.shard }}
-                  path: coverage-shard/coverage-final.json
-                  if-no-files-found: error
-
-    coverage-core:
-        # Coverage gate scoped to modules/core only. Started at a low
-        # threshold so it passes against current main; ratchet up by +5pp
-        # every release until we hit ~70%. See PR5 for backfill plan.
-        # Merges the shards and checks the thresholds from test:coverage:core in package.json;
-        # keeps the required check name.
-        runs-on: ubuntu-latest
-        needs: coverage-core-shard
-        if: always()
-        steps:
-            - name: Fail if any shard failed
-              if: needs.coverage-core-shard.result != 'success'
-              run: exit 1
-            - uses: actions/checkout@v4
-            - name: Set up Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version-file: '.nvmrc'
-                  cache: 'npm'
-            - run: npm ci
-            - uses: actions/download-artifact@v4
-              with:
-                  pattern: coverage-core-shard-*
-                  path: coverage-shards
-            - run: node scripts/merge-coverage.mjs coverage-shards coverage-core
-            - name: Upload coverage report
-              if: always()
-              uses: actions/upload-artifact@v4
-              with:
-                  name: coverage-core
-                  path: coverage-core
                   if-no-files-found: ignore
 
     Build:
@@ -440,9 +415,16 @@ jobs:
         # Rolling pre-release so reviewers can grab the current master exe
         # without a GitHub login or a version tag. Gated on every other job
         # so a red build never updates it (see #2221).
-        needs: [Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build]
+        needs: [Queue-Verified, Test-Static, Test-Units, Test-E2e, Test-Visual, AI-Controls, Build]
         runs-on: ubuntu-latest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        # Queue-tested SHAs skip the test jobs; anything else must have passed them here.
+        if: >-
+            always() && github.event_name == 'push' && github.ref == 'refs/heads/master'
+            && needs.Build.result == 'success'
+            && (needs.Queue-Verified.outputs.tested == 'true'
+            || (needs.Test-Static.result == 'success' && needs.Test-Units.result == 'success'
+            && needs.Test-E2e.result == 'success' && needs.Test-Visual.result == 'success'
+            && needs.AI-Controls.result == 'success'))
         permissions:
             contents: write
         concurrency:

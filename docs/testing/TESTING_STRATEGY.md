@@ -46,7 +46,7 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 - Integration with game state
 
 **CI/CD Pipeline:**
-- `.github/workflows/ci-cd.yml` with 7 jobs: Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build, Publish-Master-Prerelease (runs after all the others)
+- `.github/workflows/ci-cd.yml` with 7 jobs: Test-Static, Test-Units, Test-E2e, Test-Visual, AI-Controls, Build, Publish-Master-Prerelease (runs after all the others)
 - Container-based E2E
 - Artifact storage
 
@@ -239,7 +239,7 @@ collectCoverageFrom: ['modules/*/src/**/*.ts', '!modules/browser/**']
 
 ### 6.1 CI/CD Enhancements
 
-**Existing:** 7 jobs (Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build, Publish-Master-Prerelease), container E2E, artifact storage
+**Existing:** 7 jobs (Test-Static, Test-Units, Test-E2e, Test-Visual, AI-Controls, Build, Publish-Master-Prerelease), container E2E, artifact storage
 
 **Proposed:**
 1. **Parallel Jest** - Add `--maxWorkers=4` to unit tests
