@@ -2,6 +2,7 @@ import {
     AdminState,
     REGISTER_STATION_REJECTED,
     RegisterStationArg,
+    assignBot,
     assignStation,
     cmdReceiver,
     createLogger,
@@ -86,6 +87,7 @@ export class AdminRoom extends Room<{ state: AdminState }> {
             },
         );
         this.onMessage(assignStation.cmdName, cmdReceiver(manager, assignStation));
+        this.onMessage(assignBot.cmdName, cmdReceiver(manager, assignBot));
     }
 
     public onLeave(client: Client) {
