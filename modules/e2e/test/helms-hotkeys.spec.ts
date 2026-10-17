@@ -6,7 +6,7 @@
  * surface. Each test proves both that the browser input wiring fires
  * and that the server's @commandable whitelist admits the write.
  */
-import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
+import { cleanupPageState, navigateToScreen, setupPageErrorHandlers, waitForHotkeys } from './test-infrastructure';
 import { makeDriver, waitForShipCondition } from './driver';
 
 import { maps } from '@starwards/server';
@@ -21,8 +21,7 @@ test.describe('Helms hotkeys', () => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
         await navigateToScreen(page, `/helms.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
-        // Ensure the page has received the ship state before pressing keys
-        await page.waitForTimeout(500);
+        await waitForHotkeys(page);
     });
 
     test.afterEach(async ({ page }) => {

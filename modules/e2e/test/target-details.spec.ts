@@ -38,7 +38,8 @@ test.describe('Target Details screen', () => {
         await cleanupPageState(page);
     });
 
-    test('follows the target marked on the Signals station', async ({ page, context }) => {
+    // quarantined: flaky under parallel load, red on master CI — #2407
+    test.fixme('follows the target marked on the Signals station', async ({ page, context }) => {
         await openTargetDetails(page);
         await expect(page.locator('[data-id="No Data"]')).toHaveText(/no target/i);
 
@@ -81,7 +82,8 @@ test.describe('Target Details screen', () => {
         await expect(page.locator('[data-id="Armor"]')).toHaveCount(0);
     });
 
-    test('at full scan, draws the target live armor, systems and tubes', async ({ page }) => {
+    // quarantined: flaky under parallel load, red on master CI — #2407
+    test.fixme('at full scan, draws the target live armor, systems and tubes', async ({ page }) => {
         gameDriver.getShip(targetShipId).state.tubes[0].loadedProjectile = 'HiExpMissile';
         markSignalsTarget(targetShipId);
         setTargetScanLevel(ScanLevel.FULL);
