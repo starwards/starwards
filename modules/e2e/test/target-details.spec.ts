@@ -3,7 +3,6 @@ import { Locator, Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 
 import { getPropertyValue, makeDriver } from './driver';
-import { probeNode, probePage } from './flake-probe';
 import { maps } from '@starwards/server';
 
 // two_ships: two same-faction ships and nothing else, so the Signals target cycle is short.
@@ -11,29 +10,6 @@ const { two_ships } = maps;
 const shipId = two_ships.testShipId;
 const targetShipId = two_ships.testTargetShipId;
 const gameDriver = makeDriver(test);
-const nodeProbe = probeNode();
-let probes: ReturnType<typeof probePage>[] = [];
-let probeSince = 0;
-async function reportProbes(page: Page, title: string, status: string | undefined) {
-    const ship = gameDriver.getShip(shipId).state;
-    const target = gameDriver.getShip(targetShipId).state;
-    const track = await page
-        .locator('[data-id="Target"] input')
-        .evaluateAll((inputs) => inputs.map((i) => (i as HTMLInputElement).value))
-        .catch(() => null);
-    // eslint-disable-next-line no-console
-    console.log(
-        'PROBE',
-        JSON.stringify({
-            title,
-            status,
-            server: { signalsTargetId: ship.signalsTargetId, tube0: target.tubes[0]?.loadedProjectile },
-            pageTarget: track,
-            node: nodeProbe.report(),
-            pages: await Promise.all(probes.map((p) => p.report(probeSince))),
-        }),
-    );
-}
 
 function markSignalsTarget(id: string) {
     gameDriver.getShip(shipId).state.signalsTargetId = id;
@@ -55,14 +31,10 @@ function inputValues(panel: Locator) {
 test.describe('Target Details screen', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
-        probes = [probePage(page, 'target-details')];
-        probeSince = Date.now();
-        nodeProbe.report();
         await gameDriver.gameManager.startGame(two_ships);
     });
 
-    test.afterEach(async ({ page }, testInfo) => {
-        await reportProbes(page, testInfo.title, testInfo.status);
+    test.afterEach(async ({ page }) => {
         await cleanupPageState(page);
     });
 
@@ -72,7 +44,6 @@ test.describe('Target Details screen', () => {
 
         const signals = await context.newPage();
         setupPageErrorHandlers(signals);
-        probes.push(probePage(signals, 'signals'));
         await navigateToScreen(signals, `/signals.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         await expect(signals.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
 
