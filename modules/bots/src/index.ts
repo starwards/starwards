@@ -9,7 +9,7 @@ export { type BrainSpec, brainSpecSchema, loadBrainSpec } from './brain/spec';
 export { offNose, verbalReader } from './brain/verbal';
 export { SCRIPTED_SEAT_POLICIES, makeScriptedSeatPolicy } from './brain/weapons-policies';
 export { crewChannel } from './crew/channel';
-export { REFERENCE_BRAINS_DIR, type SeatPlan, referenceSeatPlan } from './reference-crew';
+export { REFERENCE_BRAINS_DIR, type SeatPlan, referenceSeat, referenceSeatPlan } from './reference-crew';
 export { whatIfForecaster } from './whatif/forecast';
 export * from './session/session';
 export * from './session/console';

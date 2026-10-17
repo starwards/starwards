@@ -12,8 +12,8 @@ import {
     loadBrainSpec,
     makeEngineerPolicy,
     makeHelmsPolicy,
-    makeReferencePolicy,
     makeScriptedSeatPolicy,
+    referenceSeat,
     seatsOf,
 } from '@starwards/bots';
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
@@ -97,21 +97,22 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number, humanS
         if (spec.station !== seat.station) {
             throw new Error(`crew ${config.name}: brain ${spec.id} plays ${spec.station}, not ${seat.station}`);
         }
+        if (seat.policy === 'reference') {
+            return referenceSeat(spec);
+        }
         const policy: Policy =
             seat.policy === 'jev'
                 ? jevPolicy(spec, client!)
-                : seat.policy === 'reference'
-                  ? makeReferencePolicy(spec.decisionSeconds)
-                  : seat.policy === 'idle'
-                    ? idlePolicy
-                    : (HELMS_POLICIES as readonly string[]).includes(seat.policy)
-                      ? makeHelmsPolicy(seat.policy as HelmsPolicyName, spec.decisionSeconds)
-                      : (SCRIPTED_SEAT_POLICIES as readonly string[]).includes(seat.policy)
-                        ? makeScriptedSeatPolicy(
-                              seat.policy as (typeof SCRIPTED_SEAT_POLICIES)[number],
-                              spec.decisionSeconds,
-                          )
-                        : makeEngineerPolicy(seat.policy as (typeof ENGINEER_POLICIES)[number], spec.decisionSeconds);
+                : seat.policy === 'idle'
+                  ? idlePolicy
+                  : (HELMS_POLICIES as readonly string[]).includes(seat.policy)
+                    ? makeHelmsPolicy(seat.policy as HelmsPolicyName, spec.decisionSeconds)
+                    : (SCRIPTED_SEAT_POLICIES as readonly string[]).includes(seat.policy)
+                      ? makeScriptedSeatPolicy(
+                            seat.policy as (typeof SCRIPTED_SEAT_POLICIES)[number],
+                            spec.decisionSeconds,
+                        )
+                      : makeEngineerPolicy(seat.policy as (typeof ENGINEER_POLICIES)[number], spec.decisionSeconds);
         return { station: seat.station, spec, policy };
     });
     return { name: config.name, seats, usesJev, jevUsage: client?.usage };

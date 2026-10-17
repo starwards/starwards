@@ -90,8 +90,8 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 - **Stack**: Colyseus multiplayer, PixiJS v8 graphics, React UI, XState, TypeScript
 - **Monorepo**: `modules/` folder with npm workspaces
-- **Modules**: browser, core, server, node-red, mcp, ai, e2e
-- **Build order**: core → (server, browser, node-red, mcp in parallel); `ai` has no build (ts-node scripts over core, server and mcp source)
+- **Modules**: browser, core, bots, server, node-red, mcp, ai, e2e
+- **Build order**: core → bots → (server, browser, node-red, mcp in parallel); `ai` has no build (ts-node scripts over core, bots and server source)
 - **Scenarios**: Defined in `modules/server/src/maps.ts`
 
 ## Architecture
@@ -180,7 +180,7 @@ filter(o => getScanLevel(o) === UFO)      // ✅ keys on what the player has ear
 
 Filter on scan level. Type filters are legitimate only above `BASIC`, where the player already knows the type. GM surfaces are exempt. The same rule covers removal: a visible collection that drops an entry discloses why it dropped.
 
-**This discipline now spans clients.** `modules/mcp` seats an LLM at a station and answers `get_radar_contacts` from the same `FieldOfView` and the same `playerScanLevel` the browser draws blips with — both live in `modules/core/src/client/`. A perception rule implemented in only one of them is a client that sees what the other cannot: put it in core, and cover it in `modules/mcp/src/radar/radar-view.spec.ts`, which asserts the MCP predicate against the browser's directly.
+**This discipline now spans clients.** `modules/mcp` seats an LLM at a station and answers `get_radar_contacts` from the same `FieldOfView` and the same `playerScanLevel` the browser draws blips with — both live in `modules/core/src/client/`. A perception rule implemented in only one of them is a client that sees what the other cannot: put it in core, and cover it in `modules/bots/src/session/radar-view.spec.ts`, which asserts the MCP predicate against the browser's directly.
 
 ### Managers
 

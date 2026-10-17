@@ -1,4 +1,4 @@
-import { BrainSpec, Policy, REFERENCE_BRAINS_DIR, SeatPlan, loadBrainSpec, makeReferencePolicy } from '@starwards/bots';
+import { BrainSpec, Policy, REFERENCE_BRAINS_DIR, SeatPlan, loadBrainSpec, referenceSeat } from '@starwards/bots';
 import { HeadlessGame, SERVER_TICK_HZ } from '@starwards/server/src/test/headless-game';
 import { JevClient, jevClient } from '../brain/jev-client';
 import { MeteredJevClient, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
@@ -40,7 +40,7 @@ export type BenchmarkRunResult = {
 
 function policyFor(kind: BenchmarkRunOptions['policy'], spec: BrainSpec, jev: () => JevClient): Policy {
     if (kind === 'jev') return jevPolicy(spec, jev());
-    if (kind === 'reference') return makeReferencePolicy(spec.decisionSeconds);
+    if (kind === 'reference') return referenceSeat(spec).policy;
     return idlePolicy;
 }
 

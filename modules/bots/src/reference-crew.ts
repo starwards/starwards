@@ -16,12 +16,16 @@ const referenceBrains: Record<string, unknown> = { helms, weapons, engineer, sig
 /** Where the reference brain files live, for crew files that name them by path. */
 export const REFERENCE_BRAINS_DIR = `${__dirname}/brains`;
 
+/** A seat that plays `spec` with the rule-based reference policy. */
+export function referenceSeat(spec: BrainSpec): SeatPlan {
+    return { station: spec.station, spec, policy: makeReferencePolicy(spec.decisionSeconds) };
+}
+
 /** The rule-based reference brain for a station, as the live bots and the headless curriculum both play it. */
 export function referenceSeatPlan(station: string): SeatPlan {
     const raw = referenceBrains[station];
     if (!raw) {
         throw new Error(`no reference brain for station "${station}"`);
     }
-    const spec = brainSpecSchema.parse(raw);
-    return { station, spec, policy: makeReferencePolicy(spec.decisionSeconds) };
+    return referenceSeat(brainSpecSchema.parse(raw));
 }
