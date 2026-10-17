@@ -56,6 +56,22 @@ test.describe('Target Details screen', () => {
                 .catch((e: unknown) => String(e));
             // eslint-disable-next-line no-console
             console.error('page shows:', JSON.stringify(shown));
+            const visibility = await page.evaluate(() => document.visibilityState).catch(() => 'n/a');
+            const started = Date.now();
+            let lateByMs: number | string = 'never';
+            while (Date.now() - started < 15000) {
+                const track = await getPropertyValue(page, 'Track', 'Target').catch(() => undefined);
+                if (track === targetShipId) {
+                    lateByMs = Date.now() - started;
+                    break;
+                }
+                await page.waitForTimeout(250);
+            }
+            // eslint-disable-next-line no-console
+            console.error(
+                'page timing:',
+                JSON.stringify({ visibility, lateByMs, pages: page.context().pages().length }),
+            );
         }
         await cleanupPageState(page);
     });
