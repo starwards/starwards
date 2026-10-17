@@ -4,7 +4,7 @@
 
 ## What's built
 
-- **pkg.js builds** — creates standalone executables after every change
+- **build-exe.js builds** — creates standalone executables after every change
 - **Docker compose** — containerized deployment option
 - **GitHub Actions CI** — automated build, lint, test pipeline
 - **Versioned downloadable binaries** ([#1295](https://github.com/starwards/starwards/issues/1295)) — GitHub Release binaries on version tags, version shown in the lobby, README download instructions

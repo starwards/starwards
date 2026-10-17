@@ -42,7 +42,7 @@ Runs on push/PR to `master`. Jobs:
   core, server, browser, then `npm run test:e2e` / `xvfb-run npm run test:widgets`.
   Test-Visual uploads snapshot diffs on failure.
 - **coverage-core** — `npm run test:coverage:core`, uploads `coverage-core`.
-- **Build** — full `npm run build`, `npm run pkg` (uploads the Windows executable
+- **Build** — full `npm run build`, `npm run build:exe` (uploads the Windows executable
   `dist/exec/starwards-win.exe` as artifact "Windows executable"; also boots the
   packaged `dist/exec/starwards-linux` with no env vars and asserts `/health` and `/`
   respond before continuing), `npm run build:unity` (uploads `modules/core/unity-schema`
@@ -125,7 +125,7 @@ removes the GitHub Deployment environments whose name is `pr-<N>` or starts with
 
 ## Release ([`.github/workflows/release.yml`](../.github/workflows/release.yml))
 
-On push of a `v*` tag: `npm run build`, `npm run pkg`, then creates a GitHub Release for
+On push of a `v*` tag: `npm run build`, `npm run build:exe`, then creates a GitHub Release for
 that tag with generated release notes and the built `dist/exec/starwards-win.exe` attached
 as the release asset `starwards.exe`. This path is independent of the preview deploy — it
 does not touch GHCR or the cluster.

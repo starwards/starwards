@@ -69,7 +69,7 @@ that had been fine moments earlier. Any module that adds zod must land on the sa
 
 **`@colyseus/core` is pinned to `0.16.26`** via root `overrides`. `0.16.25` was published with an
 unresolved pnpm workspace specifier (`"@colyseus/greeting-banner": "workspace:^"`) that broke every
-lockfile-free install (`scripts/pkg.js`, the Dockerfile's `npm install --omit=dev`); `0.16.26`
+lockfile-free install; `0.16.26`
 republished it as `^2.0.6`. The override stays so `@colyseus/ws-transport`'s own `@colyseus/core`
 range cannot pull in a second copy.
 
