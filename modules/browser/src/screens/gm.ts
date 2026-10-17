@@ -6,6 +6,7 @@ import { ScreenTeardown, runScreenLifecycle } from './station-lifecycle';
 import { installFileDrop, mountDropUi } from '../drop-file';
 
 import { GmWidgets } from '../widgets/gm';
+import GoldenLayout from 'golden-layout';
 import { InputManager } from '../input/input-manager';
 import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
@@ -83,15 +84,22 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
     const gameIsLive = gameStatus === GameStatus.RUNNING;
     const gmWidgets = gameIsLive ? new GmWidgets(driver) : null;
 
-    // Its own row rather than a third tab: the GM has to see what the game is doing without
-    // selecting anything, and a third tab in this column overflows into golden-layout's
-    // dropdown, taking tweak and create with it. Game setup and the station roster get the
-    // same treatment, for the same reason.
-    const controlColumnContent = [
-        { ...getGoldenLayoutItemConfig(gameSetup), height: 15, isClosable: false },
-        { ...getGoldenLayoutItemConfig(gameControls), height: 25, isClosable: false },
-        { ...getGoldenLayoutItemConfig(stationRoster), height: 20, isClosable: false },
-    ];
+    // Game setup (load/save/start/stop), game controls (record/pause/speed) and the station roster
+    // are management panes the GM touches occasionally, so they share ONE tabbed stack (M4.32).
+    // The stack stays separate from tweak/create: a fifth tab there would overflow into
+    // golden-layout's dropdown, so the three tabs use short titles and the column is 25% wide to fit them.
+    const managementStack = {
+        content: [
+            { ...getGoldenLayoutItemConfig(gameSetup), title: 'setup', isClosable: false },
+            { ...getGoldenLayoutItemConfig(gameControls), title: 'controls', isClosable: false },
+            { ...getGoldenLayoutItemConfig(stationRoster), title: 'roster', isClosable: false },
+        ],
+        height: 60,
+        isClosable: false,
+        title: '',
+        type: 'stack' as const,
+    };
+    const controlColumnContent: GoldenLayout.ItemConfigType[] = [managementStack];
     if (gmWidgets) {
         controlColumnContent.unshift({
             content: [
@@ -111,8 +119,8 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
                 gmWidgets
                     ? {
                           content: [
-                              { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
-                              { ...controlColumn, width: 20 },
+                              { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 75, isClosable: false },
+                              { ...controlColumn, width: 25 },
                           ],
                           isClosable: false,
                           title: '',

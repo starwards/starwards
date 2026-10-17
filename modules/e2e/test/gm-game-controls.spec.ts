@@ -9,11 +9,12 @@ const { single_ship } = maps;
 const gameDriver = makeDriver(test);
 
 /**
- * The widget is in the GM's default layout, as the tab after `create`: a GM who has to go find
+ * The widget is in the GM's default layout, as a tab of the management stack (game setup, game controls, station roster): a GM who has to go find
  * it in the widget menu has no way to notice that a recording is running. Selecting the tab also
  * covers the widget's construction — one that throws never renders its pane.
  */
 async function openGameControls(page: Page) {
+    await page.locator('.lm_title', { hasText: 'controls' }).click();
     const controls = page.locator('[data-id="Game Controls"]');
     await expect(controls).toBeVisible({ timeout: 15000 });
     return controls;
