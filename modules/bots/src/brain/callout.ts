@@ -23,7 +23,7 @@ export type Heard = { speaker: string; callout?: string; phrase: string; seconds
 export type Said = { callout: string; phrase: string; seat?: string };
 
 /** The callout question of one seat of a fused brain. */
-export function seatCalloutQuestion(seat: string) {
+function seatCalloutQuestion(seat: string) {
     return `${CALLOUT_QUESTION}:${seat}`;
 }
 

@@ -37,5 +37,3 @@ export function crewChannel({ heardSeconds = 5, repeatSeconds = 10 }: ChannelOpt
         },
     };
 }
-
-export type CrewChannel = ReturnType<typeof crewChannel>;

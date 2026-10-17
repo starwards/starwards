@@ -64,7 +64,7 @@ type Gun = {
 type Sighting = { distance: number; position?: { x: number; y: number } };
 
 /** What the reading needs besides the display: the previous reading, to say what is changing. */
-export type ReadingContext = {
+type ReadingContext = {
     panels: Display['panels'];
     previous: Map<string, Sighting>;
     secondsSincePrevious: number;

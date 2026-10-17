@@ -38,7 +38,7 @@ const MISSILE_MIN_RANGE_METERS = 1000;
 const MISSILE_MAX_RANGE_METERS = 20_000;
 const TUBE_ARC_DEGREES = 100;
 /** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
-export const LAUNCH_INTERVAL_SECONDS = 10;
+const LAUNCH_INTERVAL_SECONDS = 10;
 /**
  * Where the pilot parks: this far straight behind the target's motion. Space caps a shell's speed at
  * its muzzle speed, so a shell chasing a receding target detonates short by ~a quarter of the range,
@@ -75,7 +75,7 @@ const FLUNG_SPEED = 0.9 * MAX_SPEED;
  * known-worse play: `jumpStart` jump-starts a dry reactor, `repair` queues the repair protocol for a
  * defect the damage report shows: on the reactor only, or on any system.
  */
-export type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' };
+type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' };
 
 const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: 'reactor' };
 
