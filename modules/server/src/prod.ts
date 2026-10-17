@@ -1,4 +1,3 @@
-import './pkg-resolve-shim';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -8,12 +7,8 @@ import { VERSION } from '@starwards/core';
 import { createLogger } from '@starwards/core/internal';
 import { exec } from 'child_process';
 import { getNetworkAddresses } from './network-info';
+import { isSingleExecutable } from './app-paths';
 import { server } from './server';
-
-/** Set by the pkg/@yao-pkg packager when running inside a packaged executable. */
-interface PackagedProcess {
-    pkg?: unknown;
-}
 
 const { info: logInfo, error: logError } = createLogger('server:prod');
 
@@ -109,14 +104,14 @@ async function printLanQrCode(url: string): Promise<void> {
 }
 
 async function main() {
-    const isPackaged = !!(process as typeof process & PackagedProcess).pkg;
+    const isPackaged = isSingleExecutable;
     const port = resolvePort(process.env, isPackaged);
 
     installUncaughtExceptionHandler(isPackaged);
     const gameManager = new GameManager();
     try {
-        // this path has to match the setup in scripts/post-build.js and scripts/pkg.js
-        const { addressInfo } = await server(port, path.join(__dirname, '..', '..', '..', '..', 'static'), gameManager);
+        // this path has to match the setup in scripts/post-build.js and scripts/bundle-server.js
+        const { addressInfo } = await server(port, path.join(__dirname, '..', 'static'), gameManager);
         for (const line of formatBanner(addressInfo.port, isPackaged)) {
             logInfo(line);
         }

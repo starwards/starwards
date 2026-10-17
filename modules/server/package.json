@@ -9,7 +9,6 @@
     ],
     "scripts": {
         "clean": "rimraf ./cjs",
-        "postbuild": "npm pack --quiet",
         "prebuild": "npm run clean",
         "build": "tsc -p ./tsconfig.runtime.json",
         "build_watch": "tsc -p ./tsconfig.runtime.json --watch",

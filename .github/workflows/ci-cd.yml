@@ -341,16 +341,16 @@ jobs:
               with:
                   node-version-file: '.nvmrc'
                   cache: 'npm'
-            - name: Cache pkg-fetch node binaries
+            - name: Cache foreign node binaries for the executables
               uses: actions/cache@v4
               with:
-                  path: ~/.pkg-cache
-                  key: pkg-cache-${{ hashFiles('package-lock.json') }}
+                  path: ~/.cache/starwards-node
+                  key: node-binaries-${{ hashFiles('.nvmrc') }}
             - run: node --version
             - run: npm --version
             - run: npm ci
             - run: npm run build
-            - run: npm run pkg
+            - run: npm run build:exe
             - name: Store Windows executable
               uses: actions/upload-artifact@v4
               with:
@@ -392,6 +392,17 @@ jobs:
                       cat /tmp/starwards-body.html
                       exit 1
                   }
+
+                  STATUS=$(curl -s -u admin:admin -o /tmp/starwards-monitor.html -w '%{http_code}' http://localhost:8080/colyseus-monitor/)
+                  if [ "$STATUS" != "200" ]; then
+                      echo "GET /colyseus-monitor/ returned $STATUS, expected 200"
+                      exit 1
+                  fi
+                  BUNDLE=$(curl -s -u admin:admin -o /dev/null -w '%{http_code}' http://localhost:8080/colyseus-monitor/bundle.js)
+                  if [ "$BUNDLE" != "200" ]; then
+                      echo "monitor UI bundle.js returned $BUNDLE, expected 200"
+                      exit 1
+                  fi
 
                   grep -q 'node v24\.' /tmp/starwards-smoke.log || {
                       echo "startup banner did not report node v24.x"

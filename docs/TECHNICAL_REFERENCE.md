@@ -85,38 +85,33 @@ room.State.OnChange += (changes) => { /* handle */ };
 
 ## Native Executable Generation
 
-**Command:** `npm run pkg`
+**Command:** `npm run build:exe` (after `npm run build`)
 
-**Output:** `./dist/exec/` → `starwards-win.exe` and `starwards-linux`, per the two targets in
-`scripts/post-build.js` (`targets: ['node24-win-x64', 'node24-linux-x64']`). pkg names outputs
-by the target axes that actually differ across the list — both targets share the same node
-range and arch, so only the platform suffix is appended; adding a third target with a
-different arch would also start appending `-x64`/etc.
+**Output:** `./dist/exec/` → `starwards-win.exe` and `starwards-linux`. Each is the Node.js binary of
+the running version (`.nvmrc`) with the server injected as a [single-executable application](https://nodejs.org/api/single-executable-applications.html).
+The binary for the platform other than the build host is downloaded from nodejs.org, checked
+against `SHASUMS256.txt` and cached in `~/.cache/starwards-node`.
 
-**Includes:** Game server + all deps + static assets + `@msgpackr-extract`'s native addon (for
-whichever platform's prebuild the build host installed — the other platform falls back to
-msgpackr's pure-JS implementation) + embedded Node.js runtime
+**Includes:** Game server and all deps as one bundle + static assets + `@colyseus/monitor`'s UI +
+embedded Node.js runtime. Left out of the executable: `static/models`, `static/particles`,
+`static/environment`, `static/images/grass.jpg`, `static/images/screen-capture.webm`
+(`EXCLUDED_STATIC` in `scripts/build-exe.js`). `msgpackr-extract`'s native addon is not bundled;
+msgpackr uses its pure-JS implementation.
 
 **Process:**
-1. Build all modules (`npm run build`)
-2. Bundle server with deps
-3. Include `./static/`
-4. Embed Node.js runtime
-5. Generate platform executables
+1. Build all modules (`npm run build`); its `postbuild` stages `dist/static` and bundles `modules/server/src/prod.ts` into `dist/app/starwards.cjs` with esbuild (`scripts/bundle-server.js`)
+2. `node --experimental-sea-config` packs the bundle and assets into a blob
+3. `postject` injects the blob into a copy of each platform's Node.js binary
 
-**Config:**
-```json
-{
-  "pkg": {
-    "assets": ["static/**/*", "node_modules/@msgpackr-extract/**/*.node"],
-    "targets": ["node24-win-x64", "node24-linux-x64"]
-  }
-}
-```
+**Runtime paths:** the executable serves static files from memory (`modules/server/src/embedded-static.ts`)
+and writes recordings and the state snapshot next to the exe (`writableDefault` in
+`modules/server/src/app-paths.ts`). `STARWARDS_RECORDINGS_DIR` and `STARWARDS_SNAPSHOT_FILE` override.
+
+The Docker image runs the same bundle with `node app/starwards.cjs`.
 
 **Features:** No install required | Single file | Fast startup | Cross-platform
 
-**Limitations:** Large size (~50-100 MB) | Native modules need platform builds | Source not editable
+**Limitations:** Large size (~130-160 MB) | Source not editable
 
 ## Input Configuration System
 **Location:** `modules/browser/src/input/input-config.ts`

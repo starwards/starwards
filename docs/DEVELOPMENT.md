@@ -18,7 +18,7 @@ npm test                   # Verify
 | `npm run build`      | Build all modules           |
 | `npm run build:core` | Core only                   |
 | `npm run clean`      | Remove artifacts            |
-| `npm run pkg`        | Native executables (Windows + Linux) |
+| `npm run build:exe`  | Native executables (Windows + Linux) |
 
 **Build order:** core → (server, browser, node-red, mcp in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
 
@@ -28,7 +28,7 @@ npm test                   # Verify
 npm run clean
 npm ci
 npm run build
-npm run pkg      # → dist/exec/starwards-win.exe, dist/exec/starwards-linux (targets in scripts/post-build.js)
+npm run build:exe # → dist/exec/starwards-win.exe, dist/exec/starwards-linux (targets in scripts/build-exe.js)
 ```
 
 **Outputs:**

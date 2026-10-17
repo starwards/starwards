@@ -6,6 +6,7 @@ import * as path from 'path';
 
 import { GameRecorder, RecordingConflictError, isRecordingName } from './recording/game-recorder';
 import { NextFunction, Request, Response } from 'express';
+import { SEA_MONITOR_PREFIX, SEA_STATIC_PREFIX, isSingleExecutable, writableDefault } from './app-paths';
 import { SavedGame, createLogger } from '@starwards/core/internal';
 import { Server, matchMaker } from '@colyseus/core';
 import { schemaToString, stringToSchema } from './serialization/game-state-serialization';
@@ -19,6 +20,7 @@ import { SpaceRoom } from './space/room';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import asyncHandler from 'express-async-handler';
 import basicAuth from 'express-basic-auth';
+import { embeddedStatic } from './embedded-static';
 import express from 'express';
 import { getNetworkInfo } from './network-info';
 import { getStationsManifest } from './stations-manifest';
@@ -29,7 +31,7 @@ const { error: logError } = createLogger('server:http');
 const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
 
 // modules/server/.recordings/ (gitignored) — works from both src/ (ts-node) and cjs/ (compiled)
-const DEFAULT_RECORDINGS_DIR = path.resolve(__dirname, '..', '.recordings');
+const DEFAULT_RECORDINGS_DIR = writableDefault(path.resolve(__dirname, '..', '.recordings'));
 
 function recordingsDirPath(env: Record<string, string | undefined> = process.env): string {
     return env.STARWARDS_RECORDINGS_DIR || DEFAULT_RECORDINGS_DIR;
@@ -94,7 +96,7 @@ export async function server(
     // Serve static files from one or more directories
     const dirs = Array.isArray(staticDirs) ? staticDirs : [staticDirs];
     for (const dir of dirs) {
-        app.use('/', express.static(dir));
+        app.use('/', isSingleExecutable ? embeddedStatic(SEA_STATIC_PREFIX) : express.static(dir));
     }
 
     app.get('/health', (_, res) => {
@@ -115,6 +117,10 @@ export async function server(
 
     // add colyseus monitor
     const auth = basicAuth({ users: { admin: 'admin' }, challenge: true });
+    if (isSingleExecutable) {
+        // the monitor serves its UI from its own __dirname, which bundling erases
+        app.use('/colyseus-monitor', auth, embeddedStatic(SEA_MONITOR_PREFIX));
+    }
     app.use('/colyseus-monitor', auth, monitor());
 
     app.use(express.json()); // for parsing application/json
@@ -266,9 +272,12 @@ export async function server(
             // SHUTTING_DOWN (at which point Stats.persist() becomes a no-op).
             // `@colyseus/core/Stats` resolves through the same export conditions as `@colyseus/core`
             // (the ESM build under node's `module-sync`), so this is the instance the matchmaker uses.
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const Stats = require('@colyseus/core/Stats') as { reset: (persist?: boolean) => void };
-            Stats.reset(true);
+            // A single executable has no node_modules to resolve from, and only tests call close().
+            if (!isSingleExecutable) {
+                // eslint-disable-next-line @typescript-eslint/no-require-imports
+                const Stats = require('@colyseus/core/Stats') as { reset: (persist?: boolean) => void };
+                Stats.reset(true);
+            }
             await gameServer.gracefullyShutdown(false);
         },
     };
