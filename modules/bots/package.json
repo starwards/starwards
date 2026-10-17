@@ -1,0 +1,37 @@
+{
+    "name": "@starwards/bots",
+    "version": "0.5.1",
+    "description": "The reference crew and the station-session layer every Starwards bot plays through",
+    "keywords": [
+        "bots",
+        "game",
+        "spaceship",
+        "larp",
+        "SBS"
+    ],
+    "main": "cjs/index.js",
+    "types": "cjs/index.d.ts",
+    "repository": "git@github.com:starwards/starwards.git",
+    "author": "amir-arad <greenshade@gmail.com>",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
+    "engines": {
+        "node": ">= 18"
+    },
+    "license": "SEE LICENSE IN LICENSE.md",
+    "files": [
+        "cjs"
+    ],
+    "scripts": {
+        "clean": "rimraf ./cjs",
+        "prebuild": "npm run clean",
+        "build": "tsc -p ./tsconfig.runtime.json",
+        "postbuild": "npm pack --quiet"
+    },
+    "dependencies": {
+        "@starwards/core": "0.5.1",
+        "zod": "4.1.12"
+    }
+}

@@ -47,6 +47,9 @@
             // webpack ProvidePlugin polyfill (webpack.common.js), referenced by name only
             "ignoreDependencies": ["buffer"]
         },
+        "modules/bots": {
+            "entry": ["src/index.ts"]
+        },
         "modules/mcp": {
             "entry": ["src/cli.ts"]
         },

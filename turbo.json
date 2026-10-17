@@ -7,12 +7,16 @@
         "@starwards/core#build": {
             "outputs": ["cjs/**", "*.tgz"]
         },
+        "@starwards/bots#build": {
+            "dependsOn": ["@starwards/core#build"],
+            "outputs": ["cjs/**", "*.tgz"]
+        },
         "@starwards/browser#build": {
             "dependsOn": ["@starwards/core#build"],
             "outputs": ["dist/**"]
         },
         "@starwards/server#build": {
-            "dependsOn": ["@starwards/core#build"],
+            "dependsOn": ["@starwards/core#build", "@starwards/bots#build"],
             "outputs": ["cjs/**", "*.tgz"]
         },
         "@starwards/node-red#build": {
@@ -20,7 +24,7 @@
             "outputs": ["dist/**"]
         },
         "@starwards/mcp#build": {
-            "dependsOn": ["@starwards/core#build"],
+            "dependsOn": ["@starwards/core#build", "@starwards/bots#build"],
             "outputs": ["dist/**"]
         }
     }

@@ -51,7 +51,7 @@ module.exports = {
                 'symptom of layering breakage. Within-module cycles are ' +
                 'tolerated for now and tracked separately.',
             severity: 'error',
-            from: { path: '^modules/(browser|server|node-red|mcp|ai)/' },
+            from: { path: '^modules/(browser|server|node-red|mcp|ai|bots)/' },
             to: {
                 circular: true,
                 path: '^modules/core/',
