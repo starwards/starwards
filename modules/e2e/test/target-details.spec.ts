@@ -59,6 +59,35 @@ test.describe('Target Details screen', () => {
                 .catch((e: unknown) => String(e));
             // eslint-disable-next-line no-console
             console.error('page shows:', JSON.stringify(shown));
+            // main-thread health of every open tab: a 1 s window of timer drift and animation frames
+            const health = await Promise.all(
+                page
+                    .context()
+                    .pages()
+                    .map((pg) =>
+                        pg
+                            .evaluate(
+                                () =>
+                                    new Promise<{ driftMs: number; frames: number }>((resolve) => {
+                                        const t0 = performance.now();
+                                        let frames = 0;
+                                        const tick = () => {
+                                            frames++;
+                                            requestAnimationFrame(tick);
+                                        };
+                                        requestAnimationFrame(tick);
+                                        setTimeout(
+                                            () =>
+                                                resolve({ driftMs: Math.round(performance.now() - t0 - 1000), frames }),
+                                            1000,
+                                        );
+                                    }),
+                            )
+                            .catch(() => null),
+                    ),
+            );
+            // eslint-disable-next-line no-console
+            console.error('page health (1s window):', JSON.stringify(health));
             const visibility = await page.evaluate(() => document.visibilityState).catch(() => 'n/a');
             const started = Date.now();
             let lateByMs: number | string = 'never';
