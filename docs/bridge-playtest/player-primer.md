@@ -10,7 +10,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 - Only Engineer sees power/heat/damage; only Signals sees far and identifies contacts (Weapons sees 10 km); gun points where Pilot points; Signals' and Weapons' targets are **separate**. Say contact names aloud ("Asteroid 47").
 - Unknown contact = **UFO** (grey dot, no name). Scan tiers UFO → BASIC (faction, model) → FULL (internals), 5 s per tier at full power, automatic. FULL can go stale to SNAPSHOT — see Signals.
 - Docking: in range of a friendly station, Pilot presses `Z`. Docked: magazine refills (~150 s), energy cells restock, two docked-only repairs unlock. Undock stops restock and **cancels** a running docked-only repair.
-- Scenario (wave defence): three friendly stations (Large, Small, Chaingun Platform). Waves spawn 140 km out, beyond all friendly sensors; waves 1–3 hit stations in order, wave 4+ the station furthest from you. ~4–6 min arrival for Dragonflies and Predators, longer for the slower hulls; next wave 15 s after the last dies, or 8 min after the previous one spawned, whichever comes first — so waves can overlap. Enemies: Dragonfly (fast fighter), Predator (stock version of your hull), Glaive (gun frigate), Cataphract (slow heavy). *(Timings are estimates.)*
+- Scenario (wave defence): three friendly stations (Large, Small, Chaingun Platform). Waves spawn 140 km out, beyond all friendly sensors; waves 1–3 hit stations in order, wave 4+ the station furthest from you. ~4–6 min arrival for Dragonflies and Predators, longer for the slower hulls; next wave 15 s after the last dies, or 8 min after the previous one spawned, whichever comes first — so waves can overlap. Enemies: Dragonfly (fast fighter), Predator (stock version of your hull), Glaive (gun frigate), Cataphract (slow heavy). _(Timings are estimates.)_
 - Defeat: last station destroyed. No win condition.
 - Entry: opening the server address while a game is running puts your tab straight on your seat's waiting screen — a large station ID, plus a **Lobby** button while the GM hasn't assigned you yet. The GM assigns each seat's ship and role from the roster; once assigned and the game is running, your seat shows its station screen automatically. Each tab keeps a 3-character station ID across reloads. `?lobby` on the address keeps a tab on the ship-picking lobby instead. The lobby's `pilot/weapons/signals/engineer/gm.html?ship=` buttons are the manual fallback — a fixed page pinned to a fixed ship, no roster assignment needed.
 - Whatever your seat: no surprises. If something is about to stop working, or you are about to take a lever away from someone, say so **before** it happens — the Captain decides with what they have been told, not with what is true.
@@ -22,6 +22,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 **Job:** decide with what the crew has told you, not with what is true; the whole ship's judgement, none of its screens.
 
 **Decisions**
+
 - **Which station to let die.** Waves 1–3 hit the three friendly stations one each, in order; from wave 4 each hits whichever is furthest from you. The Small Station carries half the plating of the Large Station (the Chaingun Platform sits close behind the Large) and is the one the scenario is built around losing; if you must choose, that is the one to let go first.
 - **When to dock.** Restock takes ~150 s. The next wave spawns 15 s after the last raider dies (or 8 min after the previous one spawned, whichever comes first) and then needs the ~4–6 min above to arrive; that arrival time is your whole window for docking, restocking and getting back to where the next wave lands.
 - **Spending the one repair.** Only one repair runs at a time; a second one waits for it to finish. The Engineer owns the lever, but you own whether the ship can afford that system going dark right now.
@@ -29,6 +30,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 - **The comms protocol.** You have no screen — the reports below are your only information, and your orders are your only levers. Ask for names and bearings, not just "it's coming"; a report you cannot act on is worse than none. Give orders the same way: a name, a place, a number.
 
 **Say / Ask**
+
 - → Pilot: "Take us to Small Station and dock" / "Hold here, nose on Glaive 4."
 - → Weapons: "Target is Glaive 4, gun only" / "Hold fire, we are docking."
 - → Signals: "What is inbound on Large Station, and what is it?" / "Name and bearing on the lead."
@@ -39,6 +41,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 - ← Engineer: "Energy 200 and falling; one long repair or the gun, not both."
 
 **Mistakes**
+
 - Picking a target from one seat's picture without asking whether the other seat sees the same thing.
 - Letting a report stand without a name or bearing — send it back rather than acting on a guess.
 
@@ -49,6 +52,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 **Job:** put the ship where the Captain wants it, pointing where Weapons needs it, minimising the hits you take; dock when told.
 
 **Screen**
+
 - Radar centred on ship.
 - Top-left: energy, afterburner fuel, heading, speed, turn speed, `rotationMode` / `maneuveringMode`, **Reactor energy level** (warns when low).
 - Top-right: thrusters, warp, radars, manoeuvring, smart pilot. Middle-right: warp status.
@@ -56,27 +60,29 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 
 **Keys**
 
-| Key | Does |
-|---|---|
-| `Q` / `E` | Rotate left / right (both = centre) |
-| `A` / `D` | Strafe left / right (both = centre) |
-| `W` / `S` | Boost forward / back (both = centre) |
-| `N` | Cycle rotation mode DIRECT / VELOCITY / TARGET |
-| `M` | Cycle manoeuvring mode DIRECT / VELOCITY / TARGET |
-| `R` / `F` | Warp level up / down (warp ships only) |
-| `Z` | Dock / undock (only when Closest Option shows a station) |
-| `SPACE` | Hotkey help |
+| Key       | Does                                                     |
+| --------- | -------------------------------------------------------- |
+| `Q` / `E` | Rotate left / right (both = centre)                      |
+| `A` / `D` | Strafe left / right (both = centre)                      |
+| `W` / `S` | Boost forward / back (both = centre)                     |
+| `N`       | Cycle rotation mode DIRECT / VELOCITY / TARGET           |
+| `M`       | Cycle manoeuvring mode DIRECT / VELOCITY / TARGET        |
+| `R` / `F` | Warp level up / down (warp ships only)                   |
+| `Z`       | Dock / undock (only when Closest Option shows a station) |
+| `SPACE`   | Hotkey help                                              |
 
 Gamepad only: afterburner (btn 6), anti-drift (7), brakes (5), reset rotation offset (14); axes 0 rotate, 2 strafe, 3 boost.
 
 In space nothing slows you down: whatever speed and spin you build stays until you thrust against it. Two independent switches decide how your keys fight that — `N` for turning, `M` for strafe and boost, and they can differ. In DIRECT the keys are raw thrust: press to push, release to stop pushing, not to stop moving. In VELOCITY they dial a rate the ship holds for you, so taps accumulate and it keeps turning or drifting after you let go; centre it with both keys. TARGET hands that half of the flying to Weapons' target — face it, or match its motion. VELOCITY and TARGET both run on the smart pilot: if Engineer says it is dark, or its effectiveness hits zero, they do nothing at all and DIRECT is your only working mode.
 
 **Say / Ask**
+
 - → Weapons: "Nose on Predator 3, holding" / "Rolling left, hold fire — presenting a fresh side to spread the hits across plates."
 - → Engineer: "Thrusters not responding" / "Need warp in 30 s."
 - → Captain: "Docked" / "Energy red, no thrust."
 
 **Mistakes**
+
 - No steering response: VELOCITY/TARGET with dark smart pilot — `N`/`M` to DIRECT.
 - `Z` with no station in Closest Option does nothing.
 - Full boost during a repair: shared pool; a repair starved 2 s aborts, progress lost.
@@ -88,6 +94,7 @@ In space nothing slows you down: whatever speed and spin you build stays until y
 **Job:** pick the weapon for the range, select the target the Captain names, load before the shot is needed, fire when the Pilot gives the nose. The nose gun is a knife fight — unguided, forward-fixed, 500 m to 8 km, and it only hits where the Pilot points. Missiles home, fly for a minute or more, and reach far past your own 10 km radar: past that you are shooting at Signals' picture, not yours, so ask them before you spend one.
 
 **Screen**
+
 - 10 km tactical radar, gun crosshair, speed lines. Keyboard only.
 - Top-left: **Tubes** (ammo selected, loaded, loading bar, safety, auto-load). Middle-left: **Ammo** (magazine counts).
 - Middle-right: **Targeting** (target ID, three filters). Bottom-left: **Gun** (projectile, loaded, loading, auto-load).
@@ -95,26 +102,27 @@ In space nothing slows you down: whatever speed and spin you build stays until y
 
 **Keys**
 
-| Key | Does |
-|---|---|
-| `]` / `[` | Next / previous target |
-| `'` | Clear target |
-| `P` / `O` / `I` | Filter: ships only / enemies only / short range only |
-| `F` | Fire chaingun (hold) |
-| `G` | Toggle chaingun load |
-| `B` | Change chaingun ammo type |
-| `.` / `,` | Shell burst range further / nearer (`/` centres) |
-| `X` | Fire every tube that is loaded **and** unlocked |
-| `1` `2` | Toggle safety, tube 0 / 1 (`3` `4` on bigger hulls) |
-| `Shift+1` `Shift+2` | Load / unload that tube |
-| `Alt+1` `Alt+2` | Cycle that tube's missile type |
-| `SPACE` | Hotkey help |
+| Key                 | Does                                                 |
+| ------------------- | ---------------------------------------------------- |
+| `]` / `[`           | Next / previous target                               |
+| `'`                 | Clear target                                         |
+| `P` / `O` / `I`     | Filter: ships only / enemies only / short range only |
+| `F`                 | Fire chaingun (hold)                                 |
+| `G`                 | Toggle chaingun load                                 |
+| `B`                 | Change chaingun ammo type                            |
+| `.` / `,`           | Shell burst range further / nearer (`/` centres)     |
+| `X`                 | Fire every tube that is loaded **and** unlocked      |
+| `1` `2`             | Toggle safety, tube 0 / 1 (`3` `4` on bigger hulls)  |
+| `Shift+1` `Shift+2` | Load / unload that tube                              |
+| `Alt+1` `Alt+2`     | Cycle that tube's missile type                       |
+| `SPACE`             | Hotkey help                                          |
 
 Missile: `Alt+1` pick → `Shift+1` load → `1` unlock → `X` fire. Tubes start locked and re-lock after every shot. Unidentified contacts: grey dots, no name.
 
 Every raider in this scenario wears plain composite plating. ArmPen eats it twice as fast — that is your plate-stripper. Elec ignores plating altogether and goes straight for their systems. HiExp is the all-rounder and also scrapes anything mounted on the outside. Frag leaves plating alone and shreds what is bolted on the outside — radars, thrusters, guns — even while the plates hold. Ask Signals what a contact is wearing before you spend a tube.
 
 **Say / Ask**
+
 - → Pilot: "Nose 20 degrees right" / "Target inside minimum range, back off."
 - → Signals: "Which one is the Glaive?" / "Is Contact 12 a ship or a shell?" / "What is it wearing?"
 - → Engineer: "Gun loading slow" / "Tubes not responding."
@@ -122,6 +130,7 @@ Every raider in this scenario wears plain composite plating. ArmPen eats it twic
 - ← Signals: "Composite, plates down 40% on the near side."
 
 **Mistakes**
+
 - `X` does nothing: tube locked or not loaded — Tubes pane, `1`/`2`.
 - Holding `F` continuously: heat and energy drain; fire in bursts.
 - Reporting a target without its name.
@@ -133,6 +142,7 @@ Every raider in this scenario wears plain composite plating. ArmPen eats it twic
 **Job:** identify every contact before it matters; report in words the bridge can act on.
 
 **Screen**
+
 - Long-range radar (50 km default; presets 5–250 km) with scan-job order markers.
 - Middle-right: **Target info** (type, faction, distance, bearing). Top-right: radar systems.
 - Bottom-right: **Scan Beam** readout (bearing, arc, range; steered by hotkeys).
@@ -140,24 +150,26 @@ Every raider in this scenario wears plain composite plating. ArmPen eats it twic
 
 **Keys**
 
-| Key | Does |
-|---|---|
-| `]` / `[` | Next / previous contact (unknowns + identified ships) |
-| `'` | Clear selection |
-| `=` / `-` | Zoom in / out, snapping through 5 / 10 / 25 / 50 / 100 / 250 km presets |
-| Mouse wheel | Zoom continuously (not the preset steps) |
-| `A` / `D` | Swing beam left / right (5° steps) |
-| `W` / `S` | Narrow / widen beam arc (narrower reaches further, both = centre) |
-| `SPACE` | Hotkey help |
+| Key         | Does                                                                    |
+| ----------- | ----------------------------------------------------------------------- |
+| `]` / `[`   | Next / previous contact (unknowns + identified ships)                   |
+| `'`         | Clear selection                                                         |
+| `=` / `-`   | Zoom in / out, snapping through 5 / 10 / 25 / 50 / 100 / 250 km presets |
+| Mouse wheel | Zoom continuously (not the preset steps)                                |
+| `A` / `D`   | Swing beam left / right (5° steps)                                      |
+| `W` / `S`   | Narrow / widen beam arc (narrower reaches further, both = centre)       |
+| `SPACE`     | Hotkey help                                                             |
 
 Scans queue automatically for everything in view; top job runs, one tier per 5 s at full power (10 s at half), up to FULL. Lever: select contact, **Prioritize Target** — a standing order that resumes if the contact fades and returns. Displaced job loses progress. Asteroids and shells stop at BASIC and then leave the queue entirely — they will not clutter it. Under-powered = slower; damaged = jobs can fail. A FULL contact you stop watching can go stale: it demotes to **SNAPSHOT**, meant to freeze what was last seen rather than track it live — right now it keeps showing live data instead (known limitation, accepted). Sitting on the edge of your field of view also resets a contact's scan progress, same as being displaced.
 
 **Say / Ask** (SALUTE order: size, activity, location, unit, time, equipment)
+
 - → Captain: "Three contacts inbound on Small Station, 90 km, unidentified, scanning the lead." Then: "Lead is a Glaive, gun frigate."
 - → Weapons: "Contact 12 is a shell, ignore; Contact 9 is the Dragonfly."
 - → Engineer: "Signals slow, do I have power?"
 
 **Mistakes**
+
 - Assuming Weapons sees your target; give name and bearing.
 - Re-prioritising every few seconds; each swap discards progress.
 - Beam left where it was; it only covers where `A`/`D` point it.
@@ -169,44 +181,46 @@ Scans queue automatically for everything in view; top job runs, one tier per 5 s
 **Job:** keep the whole ship tuned for what it is doing right now — power and coolant are one shared budget, and the split that suits a warp transit is wrong in a firefight. Repair what breaks.
 
 **Screen**
+
 - Top-left: reactor energy, afterburner fuel, hull. Middle-left: warp status and frequency.
 - Centre: **systems table** — status, power, energy/min, heat, coolant slider (mouse works), hacked flag, damaged sub-properties.
 - Top-right: **Damage report**. Bottom-left: armour plates.
-- Middle-right: **Repair Queue** — one fixed row per protocol, showing priority (OFF / LOW / MEDIUM / HIGH / RUNNING / CANCELLING), progress while running, its mode (Responsive / Dark), *repair energy* (insufficient reactor energy) when starved, and a *notice* line (why the last priority raise was refused).
+- Middle-right: **Repair Queue** — one fixed row per protocol, showing priority (OFF / LOW / MEDIUM / HIGH / RUNNING / CANCELLING), progress while running, its mode (Responsive / Dark), _repair energy_ (insufficient reactor energy) when starved, and a _notice_ line (why the last priority raise was refused).
 
 **Keys**
 
 Power/coolant key pairs, one per system in ship order: `1`/`Q`, `2`/`W`, `3`/`E`, `4`/`R`, `5`/`T`, `6`/`Y`, `7`/`U`, `8`/`I`, `9`/`O`, `0`/`P`, `A`/`Z`, `S`/`X`, `D`/`C`, `F`/`V`, `G`/`B`, `H`/`N`, `J`/`M`, `K`/`,`, `L`/`.`. First = power up, second = down; `Shift`+same = coolant ±0.1. **Mapping depends on the ship: `SPACE` before start.**
 
-| Key | Does |
-|---|---|
-| `Alt+1` | Actuator recalibration — 45 s, Dark 15 s: **chaingun dark** |
-| `Alt+2` | Thrust-line purge — 60 s, Dark 20 s: **thrusters dark** |
-| `Alt+3` | Feed-system overhaul — 60 s, Dark 20 s: **magazine dark** |
-| `Alt+4` | Sensor-array degauss — 30 s, Dark 10 s: **radars dark** |
-| `Alt+5` | Radar traverse servo alignment — 30 s, Dark 10 s: **radars dark** |
-| `Alt+6` | Signal-processor retune — 30 s, Dark 10 s: **signals dark** |
-| `Alt+7` | Power-train reset — 90 s, Dark 30 s: **warp + manoeuvring dark** |
-| `Alt+8` | Containment-field tuning — 75 s, Dark 25 s: **warp dark** |
-| `Alt+9` | Fire-control alignment — 45 s, Dark 15 s: **smart pilot dark** (Pilot's VELOCITY and TARGET modes stop working) |
-| `Alt+0` | Hull-wide systems overhaul — 240 s, nothing dark, **docked only** |
-| `Alt+Q` | Armor plate renewal — heals worst plate, repeatable, **docked only** |
-| `Alt+W` | Launcher servo recalibration — 45 s, Dark 15 s: **tubes dark**; re-locks tube safeties |
-| `Alt+E` | Reactor jump-start — 10 s (Dark ~3 s), nothing dark, 1 energy cell (Gravitas carries 2), +30% energy |
-| `Alt+R` | Turret traverse governor tuning — 45 s, Dark 15 s: **thrusters + chainguns + tubes dark** |
-| `Alt+T` | Traverse-limit recalibration — 60 s, Dark 20 s: **thrusters + chainguns + radars + tubes dark** |
-| `Ctrl+Alt+<same key>` | Toggle that row's mode Responsive ↔ Dark (field protocols only; locked once the run starts) |
-| `]` / `[` | Warp standby frequency up / down; `\` commits (warp ships only) |
-| `SPACE` | Hotkey help |
+| Key                   | Does                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `Alt+1`               | Actuator recalibration — 45 s, Dark 15 s: **chaingun dark**                                                     |
+| `Alt+2`               | Thrust-line purge — 60 s, Dark 20 s: **thrusters dark**                                                         |
+| `Alt+3`               | Feed-system overhaul — 60 s, Dark 20 s: **magazine dark**                                                       |
+| `Alt+4`               | Sensor-array degauss — 30 s, Dark 10 s: **radars dark**                                                         |
+| `Alt+5`               | Radar traverse servo alignment — 30 s, Dark 10 s: **radars dark**                                               |
+| `Alt+6`               | Signal-processor retune — 30 s, Dark 10 s: **signals dark**                                                     |
+| `Alt+7`               | Power-train reset — 90 s, Dark 30 s: **warp + manoeuvring dark**                                                |
+| `Alt+8`               | Containment-field tuning — 75 s, Dark 25 s: **warp dark**                                                       |
+| `Alt+9`               | Fire-control alignment — 45 s, Dark 15 s: **smart pilot dark** (Pilot's VELOCITY and TARGET modes stop working) |
+| `Alt+0`               | Hull-wide systems overhaul — 240 s, nothing dark, **docked only**                                               |
+| `Alt+Q`               | Armor plate renewal — heals worst plate, repeatable, **docked only**                                            |
+| `Alt+W`               | Launcher servo recalibration — 45 s, Dark 15 s: **tubes dark**; re-locks tube safeties                          |
+| `Alt+E`               | Reactor jump-start — 10 s (Dark ~3 s), nothing dark, 1 energy cell (Gravitas carries 2), +30% energy            |
+| `Alt+R`               | Turret traverse governor tuning — 45 s, Dark 15 s: **thrusters + chainguns + tubes dark**                       |
+| `Ctrl+Alt+<same key>` | Toggle that row's mode Responsive ↔ Dark (field protocols only; locked once the run starts)                     |
+| `]` / `[`             | Warp standby frequency up / down; `\` commits (warp ships only)                                                 |
+| `SPACE`               | Hotkey help                                                                                                     |
 
 Fifteen protocols (thirteen field, two docked-only), one fixed row each — nothing to submit and no row order to change, only priority. `Alt+<key>` raises priority OFF → LOW → MEDIUM → HIGH (clamps at HIGH); `Alt+Shift+<key>` lowers it back down (clamps at OFF). Either key on the RUNNING protocol starts a wind-down (CANCELLING): progress runs back to 0%, then side effects revert and a spent energy cell refunds; either key during CANCELLING is ignored, the wind-down always finishes. One repair at a time, no pre-emption: the highest-priority pending protocol starts only once nothing else is RUNNING/CANCELLING, ties broken by the row order above. Completion returns the row to OFF with no auto-repeat, so a renewed armour plate needs a fresh `Alt+Q` per plate. Responsive is the default; Dark = zero power on the listed system(s) for the run, restored after. Docked-only protocols have one mode. Starved of energy for a sustained 2 s force-stops the run outright (same revert as a cancel, but instant). One protocol fixes every instance it targets (all six thrusters). A protocol whose tier, energy cell, or equipment isn't available refuses the raise with a reason on its row; a pending protocol that loses availability (e.g. undocking) drops to OFF with a reason — a docked-only row stays visible while undocked, it just refuses.
 
 **Say / Ask**
+
 - → Weapons before `Alt+1`: "Gun dark 15 s, now." → Pilot before `Alt+2`: "Thrusters off 20 s."
 - → Captain: "Energy 200 and falling; one long repair or the gun, not both."
 - → Pilot: "Warp frequency 3 → 5 in ten seconds." (only you see it)
 
 **Mistakes**
+
 - Raising a protocol's priority without telling the owner of the dark system.
 - Repairing the first skewed thruster; wait, one run fixes all six.
-- Ignoring the *notice* line: a refused raise (wrong tier, no cells, missing equipment) is the only sign it didn't take.
+- Ignoring the _notice_ line: a refused raise (wrong tier, no cells, missing equipment) is the only sign it didn't take.

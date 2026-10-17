@@ -29,9 +29,18 @@ export const SCAN_OCCLUSION_GRACE_SECONDS = 1.5;
  */
 export const MISSILE_SCAN_SECONDS = 1;
 
+/**
+ * How long an in-progress deep scan keeps its working slot and progress after the scan beam
+ * stops covering its target (a mount jolt, a careless swing) before it resets. Progress is held,
+ * not gained, during the grace. Same window as the FULL-maintenance grace (M4.19 ruling).
+ */
+export const SCAN_BEAM_GRACE_SECONDS = 0.5;
+
 export class SignalsJobManager implements Updateable {
     /** Seconds each job's target has been continuously occluded, by job id. */
     private occludedSeconds = new Map<string, number>();
+    /** Seconds each in-progress job has been continuously off-beam, by job id (only while inside the grace). */
+    private beamOffSeconds = new Map<string, number>();
 
     constructor(
         private state: ShipState,
@@ -46,6 +55,7 @@ export class SignalsJobManager implements Updateable {
         // at deltaSeconds 0 (paused) and must be gated explicitly
         if (deltaSeconds > 0) {
             this.updateOcclusion(deltaSeconds);
+            this.updateBeamGrace(deltaSeconds);
             this.updateScanJobs();
         }
         this.trimExcessJobs();
@@ -170,7 +180,7 @@ export class SignalsJobManager implements Updateable {
         const jobs = this.state.signals.jobs;
         let active: SignalsJob | undefined;
         for (const job of jobs) {
-            const progressable = this.isJobWorkable(job) && this.canProgress(job);
+            const progressable = this.isJobWorkable(job) && (this.canProgress(job) || this.beamOffSeconds.has(job.id));
             if (progressable && !active) {
                 active = job;
                 job.status = JobStatus.IN_PROGRESS;
@@ -225,9 +235,28 @@ export class SignalsJobManager implements Updateable {
         return undefined;
     }
 
+    /**
+     * Tracks, per in-progress job, how long the scan beam has been off its target while the
+     * target stays in sight. A job is in `beamOffSeconds` only while inside the grace window.
+     */
+    private updateBeamGrace(deltaSeconds: number): void {
+        const off = new Map<string, number>();
+        for (const job of this.state.signals.jobs) {
+            if (job.status !== JobStatus.IN_PROGRESS || !this.isJobWorkable(job) || this.canProgress(job)) {
+                continue;
+            }
+            const seconds = (this.beamOffSeconds.get(job.id) ?? 0) + deltaSeconds;
+            if (seconds <= SCAN_BEAM_GRACE_SECONDS) {
+                off.set(job.id, seconds);
+            }
+        }
+        this.beamOffSeconds = off;
+    }
+
     private processJobQueue(activeJob: SignalsJob, deltaSeconds: number): void {
-        // an occluded target holds its progress but gains none until it is back in sight
-        if (this.occludedSeconds.has(activeJob.id)) {
+        // an occluded target, or one the beam slipped off, holds its progress but gains none
+        // until it is back in sight / back in the beam
+        if (this.occludedSeconds.has(activeJob.id) || !this.canProgress(activeJob)) {
             return;
         }
         const effectiveness = this.getSignalsEffectiveness();

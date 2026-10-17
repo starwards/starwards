@@ -19,6 +19,7 @@ import { JobStatus } from '../src/ship/signals-job';
 import { MISSILE_SCAN_SECONDS } from '../src/ship/signals-job-manager';
 
 import { MockDie } from './ship-test-harness';
+import { SCAN_BEAM_GRACE_SECONDS } from '../src/ship/signals-job-manager';
 import { ShipManager } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
 
@@ -394,6 +395,41 @@ describe('SignalsJobManager', () => {
             const narrowArcProgressPerSecond = shipMgr.state.signals.jobs[0].progress - progressBefore2;
 
             expect(narrowArcProgressPerSecond / defaultArcProgressPerSecond).to.be.closeTo(20 / 5, 0.1);
+        });
+    });
+
+    describe('beam-off-target grace (M4.33)', () => {
+        function swingBeam(shipMgr: ShipManagerPc, bearing: number) {
+            shipMgr.state.radars[1].bearing = bearing;
+            shipMgr.state.radars[1].bearingCommand = bearing;
+        }
+
+        it('a beam briefly knocked off target holds the in-progress scan and its progress', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.BASIC);
+            let t = runTicks(spaceMgr, 2, 20, 0.05, shipMgr);
+            const job = scanJobs(shipMgr)[0];
+            const progress = job.progress;
+            expect(progress).to.be.greaterThan(0);
+
+            swingBeam(shipMgr, 90);
+            t = runTicks(spaceMgr, 0.3, 20, t, shipMgr);
+            expect(job.status).to.equal(JobStatus.IN_PROGRESS);
+            expect(job.progress).to.be.closeTo(progress, 0.0001); // held, not gained
+
+            swingBeam(shipMgr, 0);
+            t = runTicks(spaceMgr, 0.1, 20, t, shipMgr);
+            expect(job.progress).to.be.greaterThan(progress);
+        });
+
+        it('a beam off target past the grace resets the scan', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.BASIC);
+            let t = runTicks(spaceMgr, 2, 20, 0.05, shipMgr);
+            const job = scanJobs(shipMgr)[0];
+
+            swingBeam(shipMgr, 90);
+            t = runTicks(spaceMgr, SCAN_BEAM_GRACE_SECONDS + 0.2, 20, t, shipMgr);
+            expect(job.progress).to.equal(0);
+            expect(job.status).to.not.equal(JobStatus.IN_PROGRESS);
         });
     });
 
