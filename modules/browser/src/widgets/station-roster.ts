@@ -1,16 +1,25 @@
-import { AdminDriver, Driver, StationsManifest, isAssignableSeat } from '@starwards/core';
+import {
+    AdminDriver,
+    BridgeSeat,
+    Driver,
+    StationsManifest,
+    botBrains,
+    isAssignableSeat,
+    rosterSeats,
+} from '@starwards/core';
 
 import $ from 'jquery';
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
 import { hsl } from '../colors';
+import { rosterModel } from './station-roster-model';
 
 /**
- * Roster of every registered station (`AdminState.stations`): connected indicator, and per-row
- * ship/station-type dropdowns the GM uses to bind (or move, or unassign) a station — sending
- * `assignStation` on change (issue #2132). A regular `DashboardWidget` living in the
- * golden-layout grid (see `gm.ts`) — never a floating overlay, which would sit on top of other
- * widgets and eat their clicks.
+ * Seat-first roster: per player ship, each roster seat with its bot dropdown (`assignBot`) and one
+ * client dropdown per screen (`assignStation`), seats with neither tinted UNASSIGNED; below, every
+ * connected client without a ship with an assign-to-screen dropdown. A regular `DashboardWidget`
+ * in the golden-layout grid (see `gm.ts`) — never a floating overlay, which would eat other
+ * widgets' clicks.
  */
 export function stationRosterWidget(driver: Driver, adminDriver: AdminDriver): DashboardWidget {
     class StationRosterComponent {
@@ -29,7 +38,7 @@ export function stationRosterWidget(driver: Driver, adminDriver: AdminDriver): D
 /**
  * The enabled (assignable) station types for a ship, fetched from `/stations-manifest/:shipId`
  * and cached per shipId. Returns `undefined` while the first fetch for that ship is in flight —
- * the caller falls back to just the row's current station type until `onLoaded` fires a re-render.
+ * the caller shows no screens for that ship until `onLoaded` fires a re-render.
  */
 function createManifestCache(driver: Driver, onLoaded: () => void) {
     const cache = new Map<string, string[]>();
@@ -75,26 +84,11 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
         fontSize: '0.8em',
         color: hsl.primary.main(3),
     });
-    const list = $('<div />').attr('data-id', 'Station Roster List');
-    root.append(list);
+    const shipsList = $('<div />');
+    const unassignedList = $('<div />').attr('data-id', 'Roster Unassigned');
+    root.append(shipsList, $('<div />').text('Unassigned clients').css({ marginTop: '0.6em' }), unassignedList);
 
     const manifests = createManifestCache(driver, render);
-    // A ship the GM just picked in a row's dropdown, before a station type has been chosen to
-    // go with it: `assignStation` needs both non-empty at once (see `GameManager`), so this
-    // pick can't be sent yet. Tracked here — outside `entry.shipId`, the server-confirmed value
-    // — purely to drive the type dropdown's options for the *ship being considered*, not the
-    // ship still on record. Cleared once the server confirms the pair (entry.shipId catches up).
-    const pendingShipByStation = new Map<string, string>();
-
-    type RowElements = {
-        row: JQuery<HTMLElement>;
-        label: JQuery<HTMLElement>;
-        shipSelect: JQuery<HTMLElement>;
-        typeSelect: JQuery<HTMLElement>;
-    };
-    // Rows are updated in place, keyed by station id — never rebuilt — so a dropdown the GM has
-    // focused/open survives other stations joining, leaving or being assigned (issue #2336).
-    const rows = new Map<string, RowElements>();
 
     /** Replaces a select's options only when they actually changed, then syncs its value. */
     function syncOptions(select: JQuery<HTMLElement>, options: [value: string, text: string][], selected: string) {
@@ -115,109 +109,171 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
         }
     }
 
-    function createRow(stationId: string): RowElements {
+    const holderId = (shipId: string, screen: string) =>
+        [...adminDriver.state.stations.values()].find((e) => e.shipId === shipId && e.stationType === screen)?.id;
+
+    type SeatRow = {
+        row: JQuery<HTMLElement>;
+        label: JQuery<HTMLElement>;
+        botSelect: JQuery<HTMLElement>;
+        botStatus: JQuery<HTMLElement>;
+        screensCell: JQuery<HTMLElement>;
+        screenSelects: Map<string, JQuery<HTMLElement>>;
+    };
+    // Rows are created once and updated in place, keyed by `ship|seat` and by station id — never
+    // rebuilt or moved — so a dropdown the GM has focused/open survives other updates (issue #2336).
+    const shipBlocks = new Map<string, JQuery<HTMLElement>>();
+    const seatRows = new Map<string, SeatRow>();
+    const unassignedRows = new Map<string, { row: JQuery<HTMLElement>; select: JQuery<HTMLElement> }>();
+
+    function createSeatRow(shipId: string, seat: BridgeSeat): SeatRow {
+        const row = $('<tr />').attr('data-id', `Roster Seat ${shipId} ${seat}`);
+        const label = $('<td />');
+        const botSelect = $('<select />').attr('data-id', `Roster Bot ${shipId} ${seat}`);
+        const botStatus = $('<span />')
+            .attr('data-id', `Roster Bot Status ${shipId} ${seat}`)
+            .css({ marginLeft: '0.4em' });
+        const screensCell = $('<td />');
+        botSelect.on('change', () => adminDriver.assignBot({ shipId, seat, brain: String(botSelect.val() ?? 'none') }));
+        row.append(label, $('<td />').append(botSelect, botStatus), screensCell);
+        return { row, label, botSelect, botStatus, screensCell, screenSelects: new Map() };
+    }
+
+    function createScreenSelect(shipId: string, screen: string) {
+        const select = $('<select />')
+            .attr('data-id', `Roster Screen ${shipId} ${screen}`)
+            .css({ marginRight: '0.3em' });
+        select.on('change', () => {
+            const stationId = String(select.val() ?? '');
+            if (stationId) {
+                adminDriver.assignStation({ stationId, shipId, stationType: screen });
+                return;
+            }
+            const previous = holderId(shipId, screen);
+            if (previous) {
+                adminDriver.assignStation({ stationId: previous, shipId: '', stationType: '' });
+            }
+        });
+        return select;
+    }
+
+    function createShipBlock(shipId: string) {
+        const table = $('<table />').css({ borderCollapse: 'collapse', width: '100%' });
+        table.append($('<tr />').append($('<th>seat</th>'), $('<th>bot</th>'), $('<th>screens</th>')));
+        for (const seat of rosterSeats) {
+            const seatRow = createSeatRow(shipId, seat);
+            seatRows.set(`${shipId}|${seat}`, seatRow);
+            table.append(seatRow.row);
+        }
+        return $('<div />').append($('<div />').attr('data-id', `Roster Ship ${shipId}`).text(shipId), table);
+    }
+
+    function createUnassignedRow(stationId: string) {
+        const select = $('<select />').attr('data-id', 'Roster Unassigned Assign');
+        select.on('change', () => {
+            const [shipId = '', stationType = ''] = String(select.val() ?? '').split('|');
+            if (shipId && stationType) {
+                adminDriver.assignStation({ stationId, shipId, stationType });
+            }
+        });
         const row = $('<div />')
-            .attr('data-id', `Station Roster Row ${stationId}`)
-            .css({ display: 'flex', alignItems: 'center', gap: '0.4em', padding: '0.15em 0' });
-        const label = $('<span />');
-        const shipSelect = $('<select />').attr('data-id', 'Station Roster Ship');
-        const typeSelect = $('<select />').attr('data-id', 'Station Roster Type');
-
-        shipSelect.on('change', () => {
-            const entry = adminDriver.state.stations.get(stationId);
-            if (!entry) {
-                return;
-            }
-            const newShipId = String(shipSelect.val() ?? '');
-            if (!newShipId) {
-                pendingShipByStation.delete(stationId);
-                adminDriver.assignStation({ stationId, shipId: '', stationType: '' });
-                return;
-            }
-            pendingShipByStation.set(stationId, newShipId);
-            if (entry.stationType) {
-                // moving an already-typed station (self-assigned, or a prior GM pick) to a
-                // new ship: carry its type over rather than making the GM re-pick it. The
-                // server is the final authority (`GameManager.isValidStationSlot`), so a
-                // type the new ship's manifest doesn't support is just a safe no-op.
-                adminDriver.assignStation({ stationId, shipId: newShipId, stationType: entry.stationType });
-            } else {
-                // no type yet: widen the type dropdown for the new ship and wait for a pick
-                render();
-            }
-        });
-        typeSelect.on('change', () => {
-            const entry = adminDriver.state.stations.get(stationId);
-            const selectedShipId = pendingShipByStation.get(stationId) ?? entry?.shipId ?? '';
-            const stationType = String(typeSelect.val() ?? '');
-            if (selectedShipId && stationType) {
-                adminDriver.assignStation({ stationId, shipId: selectedShipId, stationType });
-            }
-        });
-
-        row.append(label, shipSelect, typeSelect);
-        return { row, label, shipSelect, typeSelect };
+            .attr('data-id', `Roster Unassigned ${stationId}`)
+            .css({ display: 'flex', gap: '0.4em', padding: '0.15em 0' })
+            .append($('<span />').text(stationId), select);
+        return { row, select };
     }
 
     function render() {
-        const playerShipIds = [...adminDriver.state.playerShipIds];
-        const seen = new Set<string>();
-        let previous: JQuery<HTMLElement> | null = null;
-        for (const entry of adminDriver.state.stations.values()) {
-            seen.add(entry.id);
-            if (pendingShipByStation.get(entry.id) === entry.shipId) {
-                pendingShipByStation.delete(entry.id);
-            }
-            const selectedShipId = pendingShipByStation.get(entry.id) ?? entry.shipId;
-            const selectedType = selectedShipId === entry.shipId ? entry.stationType : '';
+        const stations = [...adminDriver.state.stations.values()];
+        const model = rosterModel({
+            playerShipIds: [...adminDriver.state.playerShipIds],
+            stations,
+            bots: (shipId, seat) => adminDriver.state.bots.get(shipId)?.seats.get(seat),
+            enabledScreens: (shipId) => manifests.getEnabledTypes(shipId) ?? [],
+        });
+        const clientOptions: [string, string][] = [
+            ['', '— none —'],
+            ...stations.map((e): [string, string] => [e.id, `${e.connected ? '●' : '○'} ${e.id}`]),
+        ];
+        const seatOptions: [string, string][] = [['', 'assign to…']];
 
-            let elements = rows.get(entry.id);
-            if (!elements) {
-                elements = createRow(entry.id);
-                rows.set(entry.id, elements);
-                // only new rows are placed; existing rows are never moved (moving blurs a focused select)
-                if (previous) {
-                    elements.row.insertAfter(previous);
-                } else {
-                    list.prepend(elements.row);
+        for (const { shipId, seats } of model.ships) {
+            if (!shipBlocks.has(shipId)) {
+                const block = createShipBlock(shipId);
+                shipBlocks.set(shipId, block);
+                shipsList.append(block);
+            }
+            for (const { seat, bot, screens, unassigned } of seats) {
+                const seatRow = seatRows.get(`${shipId}|${seat}`);
+                if (!seatRow) {
+                    continue;
+                }
+                seatRow.label.text(unassigned ? `${seat} UNASSIGNED` : seat);
+                seatRow.row
+                    .attr('data-unassigned', String(unassigned))
+                    .css('background', unassigned ? `color-mix(in srgb, ${hsl.error} 30%, transparent)` : '');
+                syncOptions(
+                    seatRow.botSelect,
+                    [['none', 'none'], ...botBrains.map((b): [string, string] => [b, b])],
+                    bot?.brain ?? 'none',
+                );
+                seatRow.botStatus.text(
+                    !bot || bot.status === 'running' ? '' : bot.status + (bot.message ? `: ${bot.message}` : ''),
+                );
+                const seen = new Set<string>();
+                for (const { screen, holder } of screens) {
+                    seen.add(screen);
+                    seatOptions.push([`${shipId}|${screen}`, `${shipId} / ${seat} / ${screen}`]);
+                    let select = seatRow.screenSelects.get(screen);
+                    if (!select) {
+                        select = createScreenSelect(shipId, screen);
+                        seatRow.screenSelects.set(screen, select);
+                        seatRow.screensCell.append(select);
+                    }
+                    syncOptions(select, clientOptions, holder?.id ?? '');
+                }
+                for (const [screen, select] of [...seatRow.screenSelects]) {
+                    if (!seen.has(screen)) {
+                        select.remove();
+                        seatRow.screenSelects.delete(screen);
+                    }
                 }
             }
-            const { row, label, shipSelect, typeSelect } = elements;
-            previous = row;
-
-            label.text(`${entry.connected ? '●' : '○'} ${entry.id}`);
-
-            const shipOptions =
-                selectedShipId && !playerShipIds.includes(selectedShipId)
-                    ? [...playerShipIds, selectedShipId]
-                    : playerShipIds;
-            syncOptions(
-                shipSelect,
-                [['', 'unassigned'], ...shipOptions.map((id): [string, string] => [id, id])],
-                selectedShipId,
-            );
-
-            const enabledTypes = manifests.getEnabledTypes(selectedShipId) ?? [];
-            const typeOptions =
-                selectedType && !enabledTypes.includes(selectedType) ? [...enabledTypes, selectedType] : enabledTypes;
-            typeSelect.prop('disabled', !selectedShipId);
-            syncOptions(typeSelect, [['', '-'], ...typeOptions.map((t): [string, string] => [t, t])], selectedType);
         }
-        for (const [stationId, { row }] of [...rows]) {
-            if (!seen.has(stationId)) {
+        for (const [shipId, block] of [...shipBlocks]) {
+            if (!model.ships.some((s) => s.shipId === shipId)) {
+                block.remove();
+                shipBlocks.delete(shipId);
+                for (const seat of rosterSeats) {
+                    seatRows.delete(`${shipId}|${seat}`);
+                }
+            }
+        }
+
+        for (const stationId of model.unassignedClients) {
+            let elements = unassignedRows.get(stationId);
+            if (!elements) {
+                elements = createUnassignedRow(stationId);
+                unassignedRows.set(stationId, elements);
+                unassignedList.append(elements.row);
+            }
+            syncOptions(elements.select, seatOptions, '');
+        }
+        for (const [stationId, { row }] of [...unassignedRows]) {
+            if (!model.unassignedClients.includes(stationId)) {
                 row.remove();
-                rows.delete(stationId);
-                pendingShipByStation.delete(stationId);
+                unassignedRows.delete(stationId);
             }
         }
     }
     render();
-    adminDriver.events.on('/stations', render);
-    adminDriver.events.on('/stations/**', render);
-    adminDriver.events.on('/playerShipIds', render);
+    const paths = ['/stations', '/stations/**', '/playerShipIds', '/bots', '/bots/**'];
+    for (const path of paths) {
+        adminDriver.events.on(path, render);
+    }
     container.on('destroy', () => {
-        adminDriver.events.off('/stations', render);
-        adminDriver.events.off('/stations/**', render);
-        adminDriver.events.off('/playerShipIds', render);
+        for (const path of paths) {
+            adminDriver.events.off(path, render);
+        }
     });
 }
