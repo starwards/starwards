@@ -1,8 +1,8 @@
 import { BridgeSeat, Driver, GameStatus, sleep } from '@starwards/core/internal';
+import { training_t0, two_vs_one } from '../maps';
 
 import { BotSeats } from './game-manager';
 import { makeDriver } from '../test/driver';
-import { two_vs_one } from '../maps';
 
 type Call = ['start', string, BridgeSeat, string, string] | ['stop', string, BridgeSeat] | ['stopAll'];
 
@@ -38,6 +38,21 @@ describe('GM bot seats', () => {
                 admin.assignBot({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
                 await waitUntil(() => manager.state.bots.get('GVTS')?.seats.get('pilot')?.brain === 'reference');
                 expect(manager.state.assignBotCommands).toEqual([]);
+            } finally {
+                driver.destroy();
+            }
+        });
+    });
+
+    describe('server', () => {
+        it('runs the bot the GM seats', async () => {
+            const manager = gameDriver.gameManager;
+            await manager.startGame(training_t0);
+            const driver = new Driver(new URL(gameDriver.url())).connect();
+            try {
+                const admin = await driver.getAdminDriver();
+                admin.assignBot({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
+                await waitUntil(() => admin.state.bots.get('GVTS')?.seats.get('pilot')?.status === 'running', 10_000);
             } finally {
                 driver.destroy();
             }

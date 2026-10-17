@@ -13,6 +13,7 @@ import { schemaToString, stringToSchema } from './serialization/game-state-seria
 
 import { AddressInfo } from 'node:net';
 import { AdminRoom } from './admin/room';
+import { BotSupervisor } from './bots/supervisor';
 import { CleanLocalPresence } from './clean-local-presence';
 import { GameManager } from './admin/game-manager';
 import { ShipRoom } from './ship/room';
@@ -77,6 +78,12 @@ export async function server(
     const gameRecorder = new GameRecorder(manager, recordingsDir, recordingIntervalMs());
     // reassigned once gameServer.listen() resolves the actual bound port (the caller may pass 0)
     let boundPort = port;
+    const bots = new BotSupervisor(
+        manager,
+        () => `http://localhost:${boundPort}`,
+        () => {},
+    );
+    manager.botSeats = bots;
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
@@ -262,6 +269,8 @@ export async function server(
         httpServer,
         addressInfo,
         close: async () => {
+            // Bot workers hold client connections to this server: drain them while it still answers.
+            await bots.stopAll();
             // Close the recording before the transport goes away, so no frame write outlives
             // the server (and races whoever cleans up the recordings directory).
             await gameRecorder.stopRecording();
