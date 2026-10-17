@@ -1,3 +1,4 @@
+import { AddressInfo, createServer } from 'node:net';
 import { ClientStatus, Status, StatusInfo, waitFor } from '../src';
 
 import { makeClient } from './driver';
@@ -13,7 +14,15 @@ const disconnected = Object.freeze({ status: Status.DISCONNECTED, text: 'err: di
 
 describe('client status', () => {
     describe('with no server', () => {
-        const clientDriver = makeClient(() => `http://localhost:1/`);
+        // a port that was just free; not a low port: fetch() refuses "bad ports" (1, 6000, ...) before connecting
+        let closedPort = 0;
+        beforeAll(async () => {
+            const probe = createServer();
+            await new Promise<void>((resolve) => probe.listen(0, '127.0.0.1', resolve));
+            closedPort = (probe.address() as AddressInfo).port;
+            await new Promise((resolve) => probe.close(resolve));
+        });
+        const clientDriver = makeClient(() => `http://127.0.0.1:${closedPort}/`);
         it('getStatus() returns no connection', async () => {
             const status = new ClientStatus(clientDriver.driver);
             await waitForStatus(

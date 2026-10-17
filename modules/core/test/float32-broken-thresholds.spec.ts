@@ -1,5 +1,6 @@
 import { ChainGun, Radar, SmartPilot } from '../src';
 import { Decoder, Encoder, Schema } from '@colyseus/schema';
+import { ConstructingDecoder } from '../src/constructing-decoder';
 import { Magazine } from '../src/ship/magazine';
 import { expect } from 'chai';
 import { handleGmSetValueCommand } from '../src/commands';
@@ -14,7 +15,8 @@ function sync<T extends Broken>(server: T, mirror: T): T {
 
 /** A server restored from a snapshot: every field, design thresholds included, is now float32. */
 function restore<T extends Broken>(fresh: T, mirror: T): T {
-    return sync(fresh, mirror);
+    new ConstructingDecoder(mirror).decode(new Encoder(fresh).encodeAll());
+    return mirror;
 }
 
 /** Each `server` must be encoded only once: a second `Encoder` over the same state skips its children. */

@@ -47,7 +47,6 @@
         "build:watch": "tsup-node --watch"
     },
     "dependencies": {
-        "@colyseus/msgpackr": "^1.11.2",
         "@colyseus/schema": "^5.0.40",
         "colyseus-events": "^4.2.0",
         "debug": "4.4.3",

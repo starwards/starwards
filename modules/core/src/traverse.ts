@@ -10,7 +10,7 @@ export function* getColyseusPrimitivesJsonPointers(state: Colyseus) {
     }
 }
 
-function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyof Schema>[] {
+export function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyof Schema>[] {
     // v3 API: Symbol.metadata on constructor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const constructor = (state as any).constructor;

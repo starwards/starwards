@@ -1,3 +1,5 @@
+// registers the sdk serializer every room decodes with
+import './constructing-serializer';
 import { AdminState, EventEmitter, schemaClasses, sleep } from '..';
 import { Client, Room } from '@colyseus/sdk';
 import { ConnectionManager, ConnectionStateEvent } from './connection-manager';

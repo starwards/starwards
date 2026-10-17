@@ -1,5 +1,7 @@
-import { Decoder, Encoder, Schema } from '@colyseus/schema';
+import { Encoder, Schema } from '@colyseus/schema';
 import { gzip, unzip } from 'node:zlib';
+
+import { ConstructingDecoder } from '@starwards/core/internal';
 
 import { promisify } from 'node:util';
 
@@ -24,7 +26,7 @@ type Constructor<T extends Schema> = new (...args: never[]) => T;
  */
 export function decodedCopy<T extends Schema>(ctor: Constructor<T>, source: T) {
     const copy = new ctor();
-    new Decoder(copy).decode(new Encoder(source.clone()).encodeAll());
+    new ConstructingDecoder(copy).decode(new Encoder(source.clone()).encodeAll());
     return copy;
 }
 
@@ -34,8 +36,7 @@ export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, ser
 
 async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
     const unzipped = await do_unzip(Buffer.from(serialized, 'base64'));
-    // In @colyseus/schema v3, use Decoder class
-    const decoder = new Decoder(obj);
+    const decoder = new ConstructingDecoder(obj);
     decoder.decode(Buffer.from(unzipped));
     return obj;
 }

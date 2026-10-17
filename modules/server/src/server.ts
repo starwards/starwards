@@ -239,6 +239,14 @@ export async function server(
     });
 
     await gameServer.listen(port);
+    // Clients use the endpoint `<host>/colyseus` (the webpack dev proxy forwards that prefix as-is).
+    // Colyseus 0.16 matched `/matchmake/` anywhere in the URL; 0.18 routes exact paths, so strip the
+    // prefix ahead of the router that listen() registered. WS upgrades match the room id by suffix.
+    httpServer.prependListener('request', (req: http.IncomingMessage) => {
+        if (req.url) {
+            req.url = req.url.replace(/^\/+colyseus(?=\/matchmake\/)/, '');
+        }
+    });
     const addressInfo = httpServer.address() as AddressInfo;
     boundPort = addressInfo.port;
     // console.log(`Listening on port ${addressInfo.port}`);
@@ -257,9 +265,9 @@ export async function server(
             // pending timeout and force-flushes the counters before state becomes
             // SHUTTING_DOWN (at which point Stats.persist() becomes a no-op).
             // @colyseus/core/package.json restricts sub-path exports, so we resolve
-            // Stats.js via the package entry-point directory rather than a named export.
+            // Stats.cjs via the package entry-point directory rather than a named export.
 
-            const statsPath = path.join(path.dirname(require.resolve('@colyseus/core')), 'Stats.js');
+            const statsPath = path.join(path.dirname(require.resolve('@colyseus/core')), 'Stats.cjs');
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const Stats = require(statsPath) as { reset: (persist?: boolean) => void };
             Stats.reset(true);
