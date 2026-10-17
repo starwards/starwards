@@ -2,7 +2,7 @@
 // Usage: node scripts/e2e-docker.mjs [--widgets] [playwright args...]
 //   --widgets  run the headed Visual Gallery project (test:widgets) under xvfb instead of test:e2e
 // Env: E2E_DOCKER_IMAGE (default starwards-e2e) names the image; E2E_DOCKER_CPUS (default 4) caps the container; playwright gets the same worker count,
-// since workers: '100%' sees every host core and overloads a capped container into timeouts.
+// since the config's percentage workers count every host core and overload a capped container into timeouts.
 // Host rendering (Windows/macOS, other GPUs and fonts) is not the gallery reference; this is.
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
