@@ -47,6 +47,15 @@ test.describe('Target Details screen', () => {
                     tubes: [...target.tubes].map((t) => t.loadedProjectile),
                 }),
             );
+            // what the page shows, to tell a stale client from a slow render
+            const shown = await page
+                .evaluate(() => ({
+                    inputs: [...document.querySelectorAll('input')].map((i) => i.value),
+                    panels: [...document.querySelectorAll('[data-id]')].map((e) => e.getAttribute('data-id')),
+                }))
+                .catch((e: unknown) => String(e));
+            // eslint-disable-next-line no-console
+            console.error('page shows:', JSON.stringify(shown));
         }
         await cleanupPageState(page);
     });
