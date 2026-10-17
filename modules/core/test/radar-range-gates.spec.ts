@@ -58,11 +58,13 @@ describe('radar range gates honor the beam (I3)', () => {
 
         // in-beam target: bearing 0, distance 3000 (beyond omni 1000, inside beam sector)
         const inBeam = new Asteroid();
+        inBeam.radius = GENERIC_SHIP_RADIUS; // the default radius is random and can fall below the detect floor
         inBeam.id = 'in-beam';
         inBeam.position = Vec2.make({ x: TARGET_DISTANCE, y: 0 });
 
         // out-of-beam target: same distance, bearing 90 — outside the 60°-arc beam AND beyond omni
         const outOfBeam = new Asteroid();
+        outOfBeam.radius = GENERIC_SHIP_RADIUS;
         outOfBeam.id = 'out-of-beam';
         outOfBeam.position = Vec2.make({ x: 0, y: TARGET_DISTANCE });
 
@@ -151,6 +153,8 @@ describe('radar range gates honor the beam (I3)', () => {
         configureRadars(shipMgr);
 
         const target = new Asteroid();
+
+        target.radius = GENERIC_SHIP_RADIUS;
         target.id = 'weapons-target';
         target.position = Vec2.make({ x: TARGET_DISTANCE, y: 0 });
 
