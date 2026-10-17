@@ -92,6 +92,7 @@ jobs:
               env:
                   JEST_JUNIT_OUTPUT_DIR: ./test-results
                   JEST_JUNIT_OUTPUT_NAME: junit-${{ matrix.shard }}.xml
+                  JEST_JUNIT_ADD_FILE_ATTRIBUTE: true
             - name: Store test results
               uses: actions/upload-artifact@v4
               if: always()
