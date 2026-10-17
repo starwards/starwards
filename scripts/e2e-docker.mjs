@@ -1,7 +1,7 @@
 // Runs e2e inside the same Playwright image CI uses (modules/e2e/Dockerfile).
 // Usage: node scripts/e2e-docker.mjs [--widgets] [playwright args...]
 //   --widgets  run the headed Visual Gallery project (test:widgets) under xvfb instead of test:e2e
-// Env: E2E_DOCKER_CPUS (default 4) caps the container; playwright gets the same worker count,
+// Env: E2E_DOCKER_IMAGE (default starwards-e2e) names the image; E2E_DOCKER_CPUS (default 4) caps the container; playwright gets the same worker count,
 // since workers: '100%' sees every host core and overloads a capped container into timeouts.
 // Host rendering (Windows/macOS, other GPUs and fonts) is not the gallery reference; this is.
 import { spawnSync } from 'node:child_process';
@@ -10,7 +10,8 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const image = 'starwards-e2e';
+// E2E_DOCKER_IMAGE: a distinct tag per worktree, so parallel checkouts don't overwrite each other's image
+const image = process.env.E2E_DOCKER_IMAGE ?? 'starwards-e2e';
 const cpus = process.env.E2E_DOCKER_CPUS ?? '4';
 const args = process.argv.slice(2);
 const widgets = args[0] === '--widgets';
