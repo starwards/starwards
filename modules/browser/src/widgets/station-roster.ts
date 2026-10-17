@@ -109,9 +109,6 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
         }
     }
 
-    const holderId = (shipId: string, screen: string) =>
-        [...adminDriver.state.stations.values()].find((e) => e.shipId === shipId && e.stationType === screen)?.id;
-
     type SeatRow = {
         row: JQuery<HTMLElement>;
         label: JQuery<HTMLElement>;
@@ -149,9 +146,10 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
                 adminDriver.assignStation({ stationId, shipId, stationType: screen });
                 return;
             }
-            const previous = holderId(shipId, screen);
-            if (previous) {
-                adminDriver.assignStation({ stationId: previous, shipId: '', stationType: '' });
+            for (const entry of adminDriver.state.stations.values()) {
+                if (entry.shipId === shipId && entry.stationType === screen) {
+                    adminDriver.assignStation({ stationId: entry.id, shipId: '', stationType: '' });
+                }
             }
         });
         return select;
@@ -191,9 +189,11 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
             bots: (shipId, seat) => adminDriver.state.bots.get(shipId)?.seats.get(seat),
             enabledScreens: (shipId) => manifests.getEnabledTypes(shipId) ?? [],
         });
-        const clientOptions: [string, string][] = [
+        const clientOptions = (holder: (typeof stations)[number] | null): [string, string][] => [
             ['', '— none —'],
-            ...stations.map((e): [string, string] => [e.id, `${e.connected ? '●' : '○'} ${e.id}`]),
+            ...stations
+                .filter((e) => e.connected || e === holder)
+                .map((e): [string, string] => [e.id, `${e.connected ? '●' : '○'} ${e.id}`]),
         ];
         const seatOptions: [string, string][] = [['', 'assign to…']];
 
@@ -230,7 +230,7 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
                         seatRow.screenSelects.set(screen, select);
                         seatRow.screensCell.append(select);
                     }
-                    syncOptions(select, clientOptions, holder?.id ?? '');
+                    syncOptions(select, clientOptions(holder), holder?.id ?? '');
                 }
                 for (const [screen, select] of [...seatRow.screenSelects]) {
                     if (!seen.has(screen)) {

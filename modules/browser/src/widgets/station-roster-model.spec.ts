@@ -51,4 +51,20 @@ describe('rosterModel', () => {
         ]);
         expect(m.unassignedClients).toEqual(['on']);
     });
+
+    it('a connected client holds a screen over a stale disconnected entry', () => {
+        const stale = { id: 'old', connected: false, shipId: 'S1', stationType: 'helms' };
+        const live = { id: 'new', connected: true, shipId: 'S1', stationType: 'helms' };
+        const m = model([stale, live]);
+        expect(seatOf(m, 'pilot')?.screens[0]?.holder).toBe(live);
+        expect(m.unassignedClients).toEqual([]);
+    });
+
+    it('lists a connected client on a ship or screen the roster does not show as unassigned', () => {
+        const m = model([
+            { id: 'ghost-ship', connected: true, shipId: 'X', stationType: 'helms' },
+            { id: 'hidden-screen', connected: true, shipId: 'S1', stationType: 'target-details' },
+        ]);
+        expect(m.unassignedClients).toEqual(['ghost-ship', 'hidden-screen']);
+    });
 });
