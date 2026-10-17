@@ -17,7 +17,10 @@ export class ConstructingSchemaSerializer<T extends Schema = Schema> extends Sch
         Object.defineProperty(this, 'decoder', {
             get: () => decoder,
             set: (value: Decoder<T>) => {
-                decoder = value instanceof ConstructingDecoder ? value : new ConstructingDecoder<T>(value.state);
+                decoder =
+                    value instanceof ConstructingDecoder
+                        ? value
+                        : new ConstructingDecoder<T>(value.state, value.context);
             },
             configurable: true,
             enumerable: true,

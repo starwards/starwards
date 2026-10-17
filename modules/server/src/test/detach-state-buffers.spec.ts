@@ -18,9 +18,14 @@ describe('detach-state-buffers', () => {
         const full1 = encoder.encodeAll();
         const full1Bytes = Buffer.from(full1);
         state.value = 200;
-        encoder.encode();
+        const patch1 = encoder.encode();
+        const patch1Bytes = Buffer.from(patch1);
+        state.value = 7;
+        const patch2 = encoder.encode();
         const full2 = encoder.encodeAll();
         expect(Buffer.compare(full1, full2)).not.toBe(0);
+        expect(Buffer.compare(patch1, patch2)).not.toBe(0);
         expect(Buffer.compare(full1, full1Bytes)).toBe(0);
+        expect(Buffer.compare(patch1, patch1Bytes)).toBe(0);
     });
 });

@@ -29,6 +29,15 @@ function inputValues(panel: Locator) {
 }
 
 // first time the server saw the marked target, relative to the Signals page showing it as Contact
+// the game may already be gone when a failed test reaches afterEach
+function serverShip(id: string) {
+    try {
+        return gameDriver.getShip(id).state;
+    } catch {
+        return undefined;
+    }
+}
+
 const probe: { contactAt?: number; serverAt?: number; timer?: ReturnType<typeof setInterval> } = {};
 
 test.describe('Target Details screen', () => {
@@ -38,16 +47,17 @@ test.describe('Target Details screen', () => {
     });
 
     test.afterEach(async ({ page }, testInfo) => {
+        clearInterval(probe.timer);
         if (testInfo.status !== testInfo.expectedStatus) {
             // bisects server vs client when the page never shows the expected target data
-            const ship = gameDriver.getShip(shipId).state;
-            const target = gameDriver.getShip(targetShipId).state;
+            const ship = serverShip(shipId);
+            const target = serverShip(targetShipId);
             // eslint-disable-next-line no-console
             console.error(
                 'server state:',
                 JSON.stringify({
-                    signalsTargetId: ship.signalsTargetId,
-                    tubes: [...target.tubes].map((t) => t.loadedProjectile),
+                    signalsTargetId: ship?.signalsTargetId,
+                    tubes: target ? [...target.tubes].map((t) => t.loadedProjectile) : null,
                 }),
             );
             // what the page shows, to tell a stale client from a slow render
@@ -130,7 +140,7 @@ test.describe('Target Details screen', () => {
         expect(await getPropertyValue(signals, 'Track', 'Contact')).toBe(targetShipId);
         probe.contactAt = Date.now();
         probe.timer = setInterval(() => {
-            if (!probe.serverAt && gameDriver.getShip(shipId).state.signalsTargetId === targetShipId) {
+            if (!probe.serverAt && serverShip(shipId)?.signalsTargetId === targetShipId) {
                 probe.serverAt = Date.now();
             }
         }, 50);
@@ -235,16 +245,17 @@ test.describe('Target internals stay on Target Details', () => {
     });
 
     test.afterEach(async ({ page }, testInfo) => {
+        clearInterval(probe.timer);
         if (testInfo.status !== testInfo.expectedStatus) {
             // bisects server vs client when the page never shows the expected target data
-            const ship = gameDriver.getShip(shipId).state;
-            const target = gameDriver.getShip(targetShipId).state;
+            const ship = serverShip(shipId);
+            const target = serverShip(targetShipId);
             // eslint-disable-next-line no-console
             console.error(
                 'server state:',
                 JSON.stringify({
-                    signalsTargetId: ship.signalsTargetId,
-                    tubes: [...target.tubes].map((t) => t.loadedProjectile),
+                    signalsTargetId: ship?.signalsTargetId,
+                    tubes: target ? [...target.tubes].map((t) => t.loadedProjectile) : null,
                 }),
             );
         }
