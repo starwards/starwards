@@ -99,6 +99,13 @@ Each catalog protocol (`configurations/repair-protocols.ts`) has its own `Repair
 
 Independent of `order`, but not of hull heading (issue #2145).
 
+**Player smartgun (M4.22).** Player ships reuse `AutomationManager.aimAndFire` for the aim and
+fuze maths on the officer's `weaponsTarget`, while `state.smartGunnery` (default on, commandable
+and tweakable) is set. The computer only writes `bearingCommand` and `shellRange`; `isFiring` and
+the ammo selection stay the officer's. Mounts that cannot bear on the target return to bearing 0;
+with no visible target the mounts hold. NPC heat management (power backoff, ceasefire latch) never
+applies to player ships.
+
 Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; whether
 the gun *works* never depends on `order`. An `Order.ATTACK` target has priority whenever it's
 structurally reachable (in range and within some mount's bearing coverage); only while it isn't

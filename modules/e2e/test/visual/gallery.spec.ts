@@ -49,6 +49,11 @@ const scenes = [
     'long-range-radar-zoomed-out',
     'long-range-radar-scan-beam',
     'long-range-radar-job-indicators',
+    // Smart Gun
+    'smart-gun-tracking',
+    'smart-gun-resting',
+    'smart-gun-holding',
+    'smart-gun-off',
     // Targeting
     'targeting-no-target',
     'targeting-ship-target',

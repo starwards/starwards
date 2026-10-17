@@ -377,9 +377,16 @@ export class AutomationManager {
      * Skew is compensated from each mount's own *observed* belief, never the true `bearingSkew`.
      * @see docs/SUBSYSTEMS.md#believed-bearing-skew
      */
-    private aimAndFire(target: SpaceObject, deltaSecondsAvg: number) {
-        for (const chainGun of this.state.chainGuns) {
-            switchToAvailableAmmo(chainGun, this.state.magazine, true);
+    private aimAndFire(
+        target: SpaceObject,
+        deltaSecondsAvg: number,
+        mounts: readonly ChainGun[] = this.state.chainGuns,
+        fire = true,
+    ) {
+        for (const chainGun of mounts) {
+            if (fire) {
+                switchToAvailableAmmo(chainGun, this.state.magazine, true);
+            }
             const { aimPoint, secondsToLive } = solveShellIntercept(this.state, chainGun, target);
             const shipToAimPoint = XY.difference(aimPoint, this.state.position);
             const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
@@ -415,7 +422,39 @@ export class AutomationManager {
             // No unreachable-target gate needed: it outruns the shell, so it displaces further over
             // the fuze than the shell flies, well past the kill zone. Reachability only decides
             // which target gets the swing, in `canBearOn`.
-            chainGun.isFiring = isTargetInKillZone(this.state, chainGun, target);
+            if (fire) {
+                chainGun.isFiring = isTargetInKillZone(this.state, chainGun, target);
+            }
+        }
+    }
+
+    /**
+     * Player smartgun: the computer swings the mounts and dials the fuze onto the officer's
+     * `weaponsTarget` through {@link aimAndFire}'s aim and fuze maths, but never touches
+     * `isFiring` or the ammo selection: the trigger and the ammo type stay the officer's. Mounts
+     * that cannot bear on the target (out of cone, out of the shell envelope) return to rest at
+     * bearing 0; with no visible target the mounts hold their last command (manual works). No heat management here: the
+     * ceasefire latch is NPC-only (`manageHeat`), the officer decides when to stop.
+     */
+    private updatePlayerSmartGun(deltaSecondsAvg: number) {
+        if (!this.state.smartGunnery || this.state.chainGuns.length === 0) {
+            this.state.smartGunStatus = 'off';
+            return;
+        }
+        const target = this.shipManager.weaponsTarget;
+        if (!target || target.destroyed || !this.spaceManager.isVisible(this.state.id, target.id)) {
+            this.state.smartGunStatus = 'holding';
+            return;
+        }
+        const bearing = this.state.chainGuns.filter((gun) => this.canBearOn(gun, target));
+        for (const chainGun of this.state.chainGuns) {
+            if (!bearing.includes(chainGun)) {
+                chainGun.bearingCommand = 0;
+            }
+        }
+        this.state.smartGunStatus = bearing.length > 0 ? 'tracking' : 'resting';
+        if (bearing.length > 0) {
+            this.aimAndFire(target, deltaSecondsAvg, bearing, false);
         }
     }
 
@@ -531,6 +570,9 @@ export class AutomationManager {
             this.aimAndFire(gunneryTarget, id.deltaSecondsAvg);
         } else {
             this.disengageGunnery();
+        }
+        if (this.state.isPlayerShip) {
+            this.updatePlayerSmartGun(id.deltaSecondsAvg);
         }
         // Centralized rather than at each site that stops commanding a heading: those are early
         // returns scattered across `goto()` and the idle path, and one missing the reset would
