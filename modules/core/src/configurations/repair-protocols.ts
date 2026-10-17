@@ -419,23 +419,6 @@ export const turnSpeedGovernorTuning: RepairProtocolStats = {
     tier: 'field',
 };
 
-/**
- * Closes the other half of the R3 coverage gap reported on issue #2255: `bearingLimitFactor`
- * (`Turret`'s "traverse limit" defectible) had no protocol at all — not even `radars`, unlike
- * `turnSpeedFactor` above.
- */
-export const traverseLimitRecalibration: RepairProtocolStats = {
-    name: 'Traverse-limit recalibration',
-    targets: [
-        { system: 'thrusters', field: 'bearingLimitFactor' },
-        { system: 'chainGuns', field: 'bearingLimitFactor' },
-        { system: 'radars', field: 'bearingLimitFactor' },
-        { system: 'tubes', field: 'bearingLimitFactor' },
-    ],
-    modes: fieldModes({ duration: 60, energyDraw: 2, heat: 25 }, ['thrusters', 'chainGuns', 'radars', 'tubes']),
-    tier: 'field',
-};
-
 export const repairProtocols = {
     actuatorRecalibration,
     thrustLinePurge,
@@ -452,10 +435,10 @@ export const repairProtocols = {
     reactorJumpStart,
     // Appended, not interleaved: catalog position drives the engineer screen's hotkey assignment
     // (see `getRepairProtocolHotkey` in `widgets/repair-queue.ts`) — inserting these earlier would
-    // shift every hotkey after them. These two also happen to exactly fill the last two slots of
-    // `REPAIR_PROTOCOL_HOTKEYS` (alt+r, alt+t).
+    // shift every hotkey after them. This fills the second-to-last slot of
+    // `REPAIR_PROTOCOL_HOTKEYS` (alt+r). Traverse loss has no protocol of its own: it follows
+    // from `bearingSkew`, so repairing skew restores both (M4.33).
     turnSpeedGovernorTuning,
-    traverseLimitRecalibration,
 } as const satisfies Record<string, RepairProtocolStats>;
 
 export type RepairProtocolName = keyof typeof repairProtocols;
