@@ -68,6 +68,11 @@ own, `tsc` did not report a mismatch — it exhausted a 4 GB heap trying to comp
 that had been fine moments earlier. Any module that adds zod must land on the same copy; check with
 `npm ls zod --all` and confirm no `modules/*/node_modules/zod` exists.
 
+**State-buffer workaround (#2402)** — `modules/server/src/serialization/detach-state-buffers.ts`
+copies each encoded patch before sending. Keep it until upstream colyseus/colyseus#987 ("detach
+encoded state and patch buffers") ships in a release we use; as of 0.18.19 it is unmerged
+(`state-patch-backpressure.spec.ts` guards it).
+
 Note that npm will keep reinstalling a nested copy while `package-lock.json` still has an entry for
 it, even after the override is added — delete the `modules/*/node_modules/zod` entry from the lockfile
 and reinstall.
