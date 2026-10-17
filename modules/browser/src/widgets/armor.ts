@@ -65,6 +65,7 @@ export async function drawArmorStatus(
         const plateSize = degToRad * shipDriver.state.armor.degreesPerPlate;
         // render only when a plate's health or the size changed: 30+ stencil masks redrawn every frame
         // pegged the main thread under software rendering (#2407)
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- same reference TickerPlugin added
         root.ticker.remove(root.render, root);
         let renderedKey = '';
         root.ticker.add(

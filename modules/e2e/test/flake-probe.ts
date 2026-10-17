@@ -46,7 +46,7 @@ export function probePage(page: Page, name: string) {
                 .catch((e: unknown) => String(e));
             const recent = frames.filter((t) => t >= since);
             let maxFrameGap = 0;
-            for (let i = 1; i < recent.length; i++) maxFrameGap = Math.max(maxFrameGap, recent[i]! - recent[i - 1]!);
+            for (let i = 1; i < recent.length; i++) maxFrameGap = Math.max(maxFrameGap, recent[i] - recent[i - 1]);
             return { name, inPage, wsFramesSince: recent.length, maxWsFrameGapMs: maxFrameGap };
         },
     };

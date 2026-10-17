@@ -3,8 +3,8 @@ import { Locator, Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 
 import { getPropertyValue, makeDriver } from './driver';
-import { maps } from '@starwards/server';
 import { probeNode, probePage } from './flake-probe';
+import { maps } from '@starwards/server';
 
 // two_ships: two same-faction ships and nothing else, so the Signals target cycle is short.
 const { two_ships } = maps;
