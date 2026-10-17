@@ -1,3 +1,4 @@
+import './pkg-resolve-shim';
 import * as os from 'os';
 import * as path from 'path';
 
