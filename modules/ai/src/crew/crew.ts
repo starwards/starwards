@@ -1,10 +1,9 @@
 import {
-    BrainSpec,
     ButtonBrain,
     Capabilities,
     Display,
     Heard,
-    Policy,
+    SeatPlan,
     StationSession,
     buttonBrain,
     crewChannel,
@@ -17,8 +16,6 @@ import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
 
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
 const RADAR_CONTACT_LIMIT = 200;
-/** One seat of a crew: a station, the brain that plays it, and what answers its questions. */
-export type SeatPlan = { station: string; spec: BrainSpec; policy: Policy };
 
 type CrewOptions = {
     shipId: string;

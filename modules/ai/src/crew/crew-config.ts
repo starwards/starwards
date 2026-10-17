@@ -6,7 +6,9 @@ import {
     HELMS_POLICIES,
     HelmsPolicyName,
     Policy,
+    REFERENCE_BRAINS_DIR,
     SCRIPTED_SEAT_POLICIES,
+    SeatPlan,
     loadBrainSpec,
     makeEngineerPolicy,
     makeHelmsPolicy,
@@ -17,12 +19,8 @@ import {
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
-import { SeatPlan } from './crew';
 import { jevClient } from '../brain/jev-client';
 import { z } from 'zod';
-
-/** Where the module's own brains live; a crew file names others by a path relative to itself. */
-const BRAINS_DIR = path.resolve(__dirname, '../../brains');
 
 const crewConfigSchema = z
     .object({
@@ -43,7 +41,7 @@ const crewConfigSchema = z
                         ...HELMS_POLICIES,
                         ...SCRIPTED_SEAT_POLICIES,
                     ]),
-                    /** Brain file; defaults to the module's `<station>.v1.json`. */
+                    /** Brain file, relative to the crew file; defaults to the station's reference brain, `<station>.v1.json` in `@starwards/bots`. */
                     brain: z.string().optional(),
                 })
                 .strict(),
@@ -61,7 +59,7 @@ export function readCrewFile(filePath: string) {
             policy,
             brainPath: brain
                 ? path.resolve(path.dirname(filePath), brain)
-                : path.join(BRAINS_DIR, `${station}.v1.json`),
+                : path.join(REFERENCE_BRAINS_DIR, `${station}.v1.json`),
         })),
     };
 }

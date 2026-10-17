@@ -1,6 +1,14 @@
 import * as path from 'node:path';
 
-import { Capabilities, Display, Policy, brainSpecSchema, buttonBrain, loadBrainSpec } from '@starwards/bots';
+import {
+    Capabilities,
+    Display,
+    Policy,
+    REFERENCE_BRAINS_DIR,
+    brainSpecSchema,
+    buttonBrain,
+    loadBrainSpec,
+} from '@starwards/bots';
 
 import { idlePolicy } from './policies';
 
@@ -64,7 +72,7 @@ describe('a tactical brain', () => {
     });
 
     it('is a clone of the helms and weapons brains: every control and callout wording, unchanged', () => {
-        const fused = loadBrainSpec(path.join(BRAINS, 'tactical.v1.json'));
+        const fused = loadBrainSpec(path.join(REFERENCE_BRAINS_DIR, 'tactical.v1.json'));
         const helms = loadBrainSpec(path.join(BRAINS, 'helms.v19.json'));
         const weapons = loadBrainSpec(path.join(BRAINS, 'weapons.v17.json'));
 
