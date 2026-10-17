@@ -3,6 +3,7 @@ import { atLeastThreshold, capToRange, toDegreesDelta } from '../logic/formulas'
 import { commandable, gameField } from '../game-field';
 
 import { ShipState } from './ship-state';
+import { XY } from '../logic/xy';
 import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
@@ -24,12 +25,19 @@ export type TurretDesign = {
      * mount has no skew surface at all — e.g. an omni radar has no direction to bend.
      */
     maxBearingSkew?: number;
+    /**
+     * how far out the mount sits, as a fraction of the hull radius, along its fitted bearing (1 = on the hull edge). 0 (the default) is the
+     * legacy muzzle: a point on the hull circle, along wherever the mount currently points.
+     * Above 0, shells leave from this fixed point instead (e.g. a platform's edge).
+     */
+    mountRadiusFraction?: number;
 };
 
 export abstract class TurretDesignState extends DesignState implements TurretDesign {
     @gameField('float32') turnSpeed = 0;
     @gameField('float32') bearingLimit = 180;
     @gameField('float32') maxBearingSkew = 0;
+    @gameField('float32') mountRadiusFraction = 0;
 }
 
 /**
@@ -188,6 +196,19 @@ export abstract class Turret extends SystemState {
      */
     getGlobalBearing(parent: ShipState): number {
         return parent.angle + this.hullBearing;
+    }
+
+    /**
+     * world position shells leave from, before the shell's own clearance. With the default
+     * `mountRadiusFraction` 0 this is the hull circle along the mount's current bearing; otherwise a fixed
+     * point `mountRadiusFraction` out from the hull centre along the fitted bearing.
+     */
+    getMuzzlePosition(parent: ShipState): XY {
+        const offset = this.design.mountRadiusFraction * parent.radius;
+        if (offset > 0) {
+            return XY.add(parent.position, XY.byLengthAndDirection(offset, parent.angle + this.fittedBearing));
+        }
+        return XY.add(parent.position, XY.byLengthAndDirection(parent.radius, this.getGlobalBearing(parent)));
     }
 
     /**

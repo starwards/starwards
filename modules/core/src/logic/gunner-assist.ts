@@ -70,7 +70,7 @@ export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
 
 export function getShellExplosionLocation(ship: ShipState, chainGun: ChainGun): XY {
     const fireAngle = chainGun.getGlobalBearing(ship);
-    const fireSource = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, fireAngle));
+    const fireSource = chainGun.getMuzzlePosition(ship);
     const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle));
     const fireTime = chainGun.shellSecondsToLive;
     return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
@@ -110,7 +110,7 @@ export function isLineOfFireBlocked(
         return false;
     }
     const shellRadius = ammoDesigns[mount.projectile].radius;
-    const muzzle = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, mount.getGlobalBearing(ship)));
+    const muzzle = mount.getMuzzlePosition(ship);
     const detonation = getShellExplosionLocation(ship, mount);
     for (const solid of solids) {
         if (

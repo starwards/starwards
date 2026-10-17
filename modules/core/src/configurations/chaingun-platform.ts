@@ -49,10 +49,11 @@ export const chaingunPlatformScanBeam = {
  * 500m) — closing inside it is how a crew beats a static emplacement.
  */
 export const chaingunPlatformChaingun = {
-    modelName: 'Hailstorm 40RPS Chaingun',
+    modelName: 'Hailstorm 20RPS Chaingun',
     isInternal: false,
     isElectronics: true,
-    bulletsPerSecond: 40,
+    // 4 mounts, any bearing within reach of exactly 2: half the old single-gun rate and energy per mount keeps platform DPS
+    bulletsPerSecond: 20,
     bulletSpeed: 2_500,
     bulletDegreesDeviation: 1,
     maxShellRange: 12_000,
@@ -67,10 +68,12 @@ export const chaingunPlatformChaingun = {
     use_ClusterMissile: false,
     use_ElecMissile: false,
     damage50: 20,
-    energyCost: 0.16,
-    // bearingLimit 180 covers the full 360°: the mount alone tracks its target, the hull never turns.
+    energyCost: 0.08,
+    // bearingLimit 90 covers ±90° (180° total); the platform hull never turns.
     turnSpeed: 45,
-    bearingLimit: 180,
+    bearingLimit: 90,
+    // on the hull edge (platform radius below), not the centre
+    mountRadiusFraction: 1,
     maxBearingSkew: 90,
 };
 
@@ -171,7 +174,13 @@ export const chaingunPlatformSignals = {
 
 export const chaingunPlatform = {
     properties: chaingunPlatformProperties,
-    chainGuns: [['FWD', chaingunPlatformChaingun]],
+    // four mounts at the cardinal bearings, each +-90: full 360 coverage, every bearing within reach of at least two mounts.
+    chainGuns: [
+        ['FWD', chaingunPlatformChaingun],
+        ['STBD', chaingunPlatformChaingun],
+        ['AFT', chaingunPlatformChaingun],
+        ['PORT', chaingunPlatformChaingun],
+    ],
     thrusters: [],
     tubes: [],
     radius: 800,

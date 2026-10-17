@@ -56,7 +56,7 @@ export const cataphractScanBeam = {
     maxBearingSkew: 45,
 };
 
-/** Main battery: fitted forward, sweeping 270° — blind only in a 90° cone astern. */
+/** Main battery: fitted forward on a 60° arc (±30°). */
 export const cataphractChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
     isInternal: false,
@@ -79,10 +79,10 @@ export const cataphractChaingun = {
     energyCost: 0.09,
     turnSpeed: 30,
     maxBearingSkew: 90,
-    bearingLimit: 135,
+    bearingLimit: 30,
 };
 
-/** Chin mount: same gun on a narrow 60° forward arc, for close-in work dead ahead. */
+/** Chin mount: same gun and arc as the main battery, kept as a separate design. */
 export const cataphractChinChaingun = {
     ...cataphractChaingun,
     bearingLimit: 30,
