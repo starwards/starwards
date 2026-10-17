@@ -1,11 +1,17 @@
 import {
     AdminState,
+    AssignBotArg,
     AssignStationArg,
+    BotBrain,
+    BotEntry,
+    BotStatus,
+    BridgeSeat,
     GameApi,
     GameMap,
     GameStatus,
     SavedGame,
     ShipApi,
+    ShipBots,
     ShipDie,
     ShipManager,
     ShipManagerNpc,
@@ -18,10 +24,12 @@ import {
     XY,
     createLogger,
     isAssignableSeat,
+    isBotBrain,
     isSlotTaken,
     makeId,
     makeShipState,
     markStationDisconnected,
+    rosterSeats,
     shipConfigurations,
     upsertStationRegistration,
     waitFor,
@@ -36,6 +44,16 @@ const { error: logError } = createLogger('game-manager');
 /** How long a disconnected, unassigned station stays in the registry before being pruned. */
 const STALE_STATION_GRACE_MS = 30_000;
 
+/** What runs the bots the GM seats; the server installs the worker supervisor. */
+export interface BotSeats {
+    start(shipId: string, seat: BridgeSeat, botId: string, brain: BotBrain): void;
+    stop(shipId: string, seat: BridgeSeat): void;
+    /** Stops every bot of every ship and resolves once their workers are gone. */
+    stopAll(): Promise<void>;
+}
+
+const noBots: BotSeats = { start: () => {}, stop: () => {}, stopAll: async () => {} };
+
 export class GameManager {
     public state = new AdminState();
     /** Wall-clock timestamp (`Date.now()`) each currently-disconnected station went offline, for the stale-entry prune below. Cleared on reconnect. */
@@ -45,6 +63,10 @@ export class GameManager {
     private shipManagers = new Map<string, ShipManager>();
     private die = new ShipDie();
     public spaceManager = new SpaceManager();
+    /** Runs the bots seated in `state.bots`. */
+    public botSeats: BotSeats = noBots;
+    /** Server-wide: bot ids stay unique across ships, games and restarts of a seat. */
+    private botCounter = 0;
     private map: GameMap | null = null;
     private deltaSecondsAvg = 1 / 20;
     private _totalSeconds = 0;
@@ -153,6 +175,10 @@ export class GameManager {
             this.applyStationAssignment(arg);
         }
         this.state.assignStationCommands = [];
+        for (const arg of this.state.assignBotCommands) {
+            this.applyBotAssignment(arg);
+        }
+        this.state.assignBotCommands = [];
         // `playerShipIds` is empty or mid-teardown/mid-creation outside RUNNING: reconciling
         // against it would clear every sticky assignment. startGame/loadGame reconcile on entering RUNNING.
         if (this.state.gameStatus === GameStatus.RUNNING) {
@@ -196,6 +222,57 @@ export class GameManager {
      * clutter the roster forever. A disconnected entry that still holds a ship assignment is
      * left alone: that's the reconnect-sticky assignment the registry exists for.
      */
+    /**
+     * A GM's bot assignment for a player ship's roster seat. Bots live in `state.bots` only —
+     * never in the station registry — so they and human stations never displace each other.
+     * Invalid ship, seat or brain, or a game not RUNNING, is silently ignored.
+     */
+    private applyBotAssignment({ shipId, seat, brain }: AssignBotArg) {
+        if (
+            !this.state.isGameRunning ||
+            !this.state.playerShipIds.includes(shipId) ||
+            !rosterSeats.includes(seat as BridgeSeat)
+        ) {
+            return;
+        }
+        const bridgeSeat = seat as BridgeSeat;
+        const current = this.state.bots.get(shipId)?.seats.get(bridgeSeat);
+        if (brain === 'none') {
+            if (current) this.removeBot(shipId, bridgeSeat);
+            return;
+        }
+        if (!isBotBrain(brain) || (current && current.brain === brain && current.status !== 'failed')) {
+            return;
+        }
+        if (current) this.removeBot(shipId, bridgeSeat);
+        let ship = this.state.bots.get(shipId);
+        if (!ship) {
+            ship = new ShipBots();
+            this.state.bots.set(shipId, ship);
+        }
+        const entry = new BotEntry();
+        entry.id = `bot-${bridgeSeat}-${++this.botCounter}`;
+        entry.brain = brain;
+        ship.seats.set(bridgeSeat, entry);
+        this.botSeats.start(shipId, bridgeSeat, entry.id, brain);
+    }
+
+    private removeBot(shipId: string, seat: BridgeSeat) {
+        const ship = this.state.bots.get(shipId);
+        ship?.seats.delete(seat);
+        if (ship && ship.seats.size === 0) this.state.bots.delete(shipId);
+        this.botSeats.stop(shipId, seat);
+    }
+
+    /** Called by the supervisor with what a ship's worker reports; ignores bots that were stopped meanwhile. */
+    public setBotStatus(shipId: string, seat: BridgeSeat, botId: string, status: BotStatus, message = '') {
+        const entry = this.state.bots.get(shipId)?.seats.get(seat);
+        if (entry && entry.id === botId) {
+            entry.status = status;
+            entry.message = message;
+        }
+    }
+
     private pruneStaleStations() {
         const now = Date.now();
         for (const [stationId, disconnectedAt] of [...this.disconnectedStationSince]) {
