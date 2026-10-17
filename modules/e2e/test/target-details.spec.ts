@@ -34,7 +34,20 @@ test.describe('Target Details screen', () => {
         await gameDriver.gameManager.startGame(two_ships);
     });
 
-    test.afterEach(async ({ page }) => {
+    test.afterEach(async ({ page }, testInfo) => {
+        if (testInfo.status !== testInfo.expectedStatus) {
+            // bisects server vs client when the page never shows the expected target data
+            const ship = gameDriver.getShip(shipId).state;
+            const target = gameDriver.getShip(targetShipId).state;
+            // eslint-disable-next-line no-console
+            console.error(
+                'server state:',
+                JSON.stringify({
+                    signalsTargetId: ship.signalsTargetId,
+                    tubes: [...target.tubes].map((t) => t.loadedProjectile),
+                }),
+            );
+        }
         await cleanupPageState(page);
     });
 
@@ -151,7 +164,20 @@ test.describe('Target internals stay on Target Details', () => {
         setTargetScanLevel(ScanLevel.FULL);
     });
 
-    test.afterEach(async ({ page }) => {
+    test.afterEach(async ({ page }, testInfo) => {
+        if (testInfo.status !== testInfo.expectedStatus) {
+            // bisects server vs client when the page never shows the expected target data
+            const ship = gameDriver.getShip(shipId).state;
+            const target = gameDriver.getShip(targetShipId).state;
+            // eslint-disable-next-line no-console
+            console.error(
+                'server state:',
+                JSON.stringify({
+                    signalsTargetId: ship.signalsTargetId,
+                    tubes: [...target.tubes].map((t) => t.loadedProjectile),
+                }),
+            );
+        }
         await cleanupPageState(page);
     });
 
