@@ -1,3 +1,6 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
 import { HTTP_CONFLICT_STATUS } from '../server';
 import { makeDriver } from './driver';
 import supertest from 'supertest';
@@ -12,6 +15,7 @@ interface RecordingSummary {
     name: string;
     mapName: string;
     frameCount: number;
+    events?: string;
 }
 
 describe('recording HTTP API (issue #2101)', () => {
@@ -80,6 +84,29 @@ describe('recording HTTP API (issue #2101)', () => {
 
         await supertest(gameDriver.httpServer).get('/recordings/no-such-recording.sgr').expect(HTTP_NOT_FOUND_STATUS);
         for (const bad of ['notes.txt', '.sgr', '..%2F..%2Fetc%2Fpasswd']) {
+            await supertest(gameDriver.httpServer).get(`/recordings/${bad}`).expect(HTTP_BAD_REQUEST_STATUS);
+        }
+    });
+
+    it("serves and lists a recording's decision sidecar only when it exists", async () => {
+        gameDriver.pauseGameCommand();
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        const { name } = (await supertest(gameDriver.httpServer).post('/start-recording').expect(200))
+            .body as StartRecordingResponse;
+        const stopRes = await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
+        expect((stopRes.body as RecordingSummary).events).toBeUndefined();
+        let listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200)).body as RecordingSummary[];
+        expect(listed[0].events).toBeUndefined();
+
+        const events = name.replace(/\.sgr$/, '.events.jsonl');
+        const line = '{"t":0,"kind":"decision","objectId":"GVTS","data":{}}\n';
+        await fs.writeFile(path.join(gameDriver.recordingsDir, events), line, 'utf-8');
+
+        listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200)).body as RecordingSummary[];
+        expect(listed[0]).toMatchObject({ name, events });
+        const res = await supertest(gameDriver.httpServer).get(`/recordings/${events}`).expect(200);
+        expect(res.text).toEqual(line);
+        for (const bad of ['a.jsonl', '.events.jsonl', '..%2Fa.events.jsonl']) {
             await supertest(gameDriver.httpServer).get(`/recordings/${bad}`).expect(HTTP_BAD_REQUEST_STATUS);
         }
     });

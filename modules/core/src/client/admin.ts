@@ -34,6 +34,8 @@ export type RecordingInfo = {
     startedAt: string;
     durationSeconds: number;
     frameCount: number;
+    /** The decision sidecar's file name, when this recording has one. */
+    events?: string;
 };
 
 export const AdminDriver = (endpoint: string) => async (adminRoom: Room<unknown, AdminState>) => {

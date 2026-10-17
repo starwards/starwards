@@ -47,7 +47,7 @@ export function isRecordingFileName(name: string): boolean {
     const ext = [RECORDING_EXT, EVENTS_EXT].find((e) => name.endsWith(e));
     return !!ext && name.length > ext.length && !/[/\\]/.test(name) && path.basename(name) === name;
 }
-export const isRecordingName = (name: string) => name.endsWith(RECORDING_EXT) && isRecordingFileName(name);
+const isRecordingName = (name: string) => name.endsWith(RECORDING_EXT) && isRecordingFileName(name);
 
 /**
  * A precondition on the game itself, not a failure of the recording machinery — the caller

@@ -4,7 +4,7 @@ import * as http from 'http';
 import * as maps from './maps';
 import * as path from 'path';
 
-import { GameRecorder, RecordingConflictError, isRecordingName } from './recording/game-recorder';
+import { GameRecorder, RecordingConflictError, isRecordingFileName } from './recording/game-recorder';
 import { NextFunction, Request, Response } from 'express';
 import { SEA_MONITOR_PREFIX, SEA_STATIC_PREFIX, isSingleExecutable, writableDefault } from './app-paths';
 import { SavedGame, createLogger } from '@starwards/core/internal';
@@ -176,7 +176,7 @@ export async function server(
         // `name` is client-supplied and joined onto recordingsDir — a path component would
         // escape the directory and read arbitrary files.
         const { name } = req.params;
-        if (!isRecordingName(name)) {
+        if (!isRecordingFileName(name)) {
             logError(`invalid recording name "${name}"`);
             res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             return;

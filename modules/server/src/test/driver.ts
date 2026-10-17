@@ -93,6 +93,10 @@ export function makeDriver({ manualClock = false }: { manualClock?: boolean } = 
             if (!serverInfo) throw new Error('missing serverInfo');
             return serverInfo.httpServer;
         },
+        get recordingsDir() {
+            if (!recordingsDir) throw new Error('missing recordingsDir');
+            return recordingsDir;
+        },
         get sockets() {
             if (!sockets) throw new Error('missing sockets');
             return sockets;
