@@ -2,17 +2,16 @@
 audience: agent
 depth: deep
 source_of_truth:
-    - modules/core/src/ship
+  - modules/core/src/ship
 related:
-    - PHYSICS.md
-    - API_REFERENCE.md
+  - PHYSICS.md
+  - API_REFERENCE.md
 last_verified: 2026-09-03
 ---
 
 # Ship Subsystems
 
 ## Base: SystemState
-
 **Location:** `modules/core/src/ship/system.ts`
 
 **Properties:** `name|design|broken|energyPerMinute|energyStarved|heat:[0,100]|coolantFactor:[0,1]|power:PowerLevel|hacked:HackLevel`
@@ -20,34 +19,32 @@ last_verified: 2026-09-03
 **Computed:** `effectiveness = broken ? 0 : power × hacked` (where HackLevel.OK=1, COMPROMISED=0.5, DISABLED=0; coolantFactor does not affect effectiveness)
 
 **Enums:**
-
 - `PowerLevel: SHUTDOWN=0|LOW=0.25|NORMAL=0.5|HIGH=0.75|MAX=1`
 - `HackLevel: DISABLED=0|COMPROMISED=0.5|OK=1`
 
 ## Common Properties
 
-| Property      | Range   | Purpose                                               | Effect                                                                                                                                                                             |
-| ------------- | ------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| power         | [0,1]   | Power allocation                                      | Multiplies effectiveness                                                                                                                                                           |
-| heat          | [0,100] | Thermal load                                          | Overheat damages system                                                                                                                                                            |
-| coolantFactor | [0,1]   | Cooling allocation                                    | Increases heat dissipation                                                                                                                                                         |
-| hacked        | [0,1]   | Cyber warfare                                         | Reduces effectiveness                                                                                                                                                              |
-| broken        | boolean | Offline status                                        | Zero effectiveness                                                                                                                                                                 |
-| energyStarved | boolean | Reactor couldn't cover this system's last energy draw | No effectiveness change by itself — `getStatus()` (`system.ts`) reports `STARVED`/`DAMAGED_STARVED` so the crew sees _why_ the system did nothing, even when it's otherwise intact |
+| Property | Range | Purpose | Effect |
+|----------|-------|---------|--------|
+| power | [0,1] | Power allocation | Multiplies effectiveness |
+| heat | [0,100] | Thermal load | Overheat damages system |
+| coolantFactor | [0,1] | Cooling allocation | Increases heat dissipation |
+| hacked | [0,1] | Cyber warfare | Reduces effectiveness |
+| broken | boolean | Offline status | Zero effectiveness |
+| energyStarved | boolean | Reactor couldn't cover this system's last energy draw | No effectiveness change by itself — `getStatus()` (`system.ts`) reports `STARVED`/`DAMAGED_STARVED` so the crew sees *why* the system did nothing, even when it's otherwise intact |
 
 **Effectiveness:** Output = maxOutput × effectiveness, where `effectiveness = broken ? 0 : power × hacked` (see `SystemState.effectiveness` in modules/core/src/ship/system.ts). `hacked` is a HackLevel multiplier (OK=1, COMPROMISED=0.5, DISABLED=0), so it scales output directly — not as (1-hacked). coolantFactor does not affect output; it only governs heat dissipation in heat-manager.ts.
 
 **Power draw factor:** `powerDrawFactor = (power / NORMAL)^(POWER_DRAW_EXPONENT - 1)` (`POWER_DRAW_EXPONENT = 2`, see `system.ts`), ×1 at NORMAL. Each system's own energy draw (thrusters, rotation, chain gun loading, radar, warp) is multiplied by this on top of its existing `effectiveness` scaling, so running above NORMAL trades energy efficiency for output — MAX gives 2× output for 4× draw, LOW gives 0.5× output for 0.25× draw (energy per unit of output = `power / NORMAL`). Above NORMAL a system's power heat is computed from what it draws, so the same factor also raises its heat. Keyed on `power` alone, never `hacked`/`broken`, so a hacked or damaged system never becomes cheaper to run. Repair draw is unaffected — it doesn't scale with power (#2305).
 
 **Heat:**
-
 - Accumulation: `heat += usageHeat * dt`
 - Dissipation: `heat -= (coolantFactor × coolantPerFactor) * dt`
 - Overheat: If `heat > 100` → damage → broken
 
-**`energyStarved`:** set by `EnergyManager.drawEnergy` (`energy-manager.ts`) on whichever system's draw the reactor couldn't fully cover (under shortage every draw gets the same supply ratio), cleared the moment that same draw is covered again. The `Reactor` itself is the one exception: `EnergyManager.update()` sets `reactor.energyStarved` directly whenever `reactor.energy` reaches zero, since a reactor with nothing left to give may have nothing currently _drawing_ from it either — without this it would read as fully healthy on the Full Systems Status panel.
+**`energyStarved`:** set by `EnergyManager.drawEnergy` (`energy-manager.ts`) on whichever system's draw the reactor couldn't fully cover (under shortage every draw gets the same supply ratio), cleared the moment that same draw is covered again. The `Reactor` itself is the one exception: `EnergyManager.update()` sets `reactor.energyStarved` directly whenever `reactor.energy` reaches zero, since a reactor with nothing left to give may have nothing currently *drawing* from it either — without this it would read as fully healthy on the Full Systems Status panel.
 
-`RepairProtocolSlot.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for repair protocols specifically: true for every tick a RUNNING slot's declared energy draw isn't fully covered. A partial grant advances the run (progress and heat) at that share; a tick with nothing granted stalls it, and an outage sustained past `ENERGY_STARVATION_GRACE_SECONDS` force-stops it (see `RepairManager.tickRunning`). It's what lets the repair-queue widget show _why_ a progress bar is slow or stalled, before that slot's own `refusalReason` has anything to say.
+`RepairProtocolSlot.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for repair protocols specifically: true for every tick a RUNNING slot's declared energy draw isn't fully covered. A partial grant advances the run (progress and heat) at that share; a tick with nothing granted stalls it, and an outage sustained past `ENERGY_STARVATION_GRACE_SECONDS` force-stops it (see `RepairManager.tickRunning`). It's what lets the repair-queue widget show *why* a progress bar is slow or stalled, before that slot's own `refusalReason` has anything to say.
 
 ### Repair Protocols (issue #2247, modes and cancel speed in #2255)
 
@@ -65,35 +62,34 @@ Each catalog protocol (`configurations/repair-protocols.ts`) has its own `Repair
 
 ## Subsystems Catalog
 
-| System          | Location                                                    | Key Properties                                                                                            | Notes                                                                                                                                                                   |
-| --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reactor**     | `reactor.ts`                                                | energy, effeciencyFactor                                                                                  | Primary energy generation                                                                                                                                               |
-| **Maneuvering** | `maneuvering.ts`                                            | afterBurnerFuel, efficiency (design: rotationCapacity, afterBurnerCharge)                                 | Rotation + afterburner control                                                                                                                                          |
-| **Thrusters**   | `thruster.ts`                                               | fittedBearing, active, afterBurnerActive, availableCapacity, bearingSkew                                  | Directional thrust (Fwd/Back/L/R array); bolted mounts (turnSpeed 0), so `fittedBearing` is what's fixed and `bearing` stays 0                                          |
-| **Radar**       | `radar.ts`                                                  | arc, bearing, malfunctionRangeFactor                                                                      | One vision sector each; a ship carries a `radars` collection and sees their union                                                                                       |
-| **Turret**      | `turret.ts`                                                 | fittedBearing, bearing, bearingCommand, bearingSkew, turnSpeedFactor, bearingLimit, bearingLimitFactor    | The rotating mount shared by radars, chain guns, tubes and thrusters. `turnSpeed = design.turnSpeed * effectiveness * turnSpeedFactor`; `turnSpeed: 0` is a fixed mount |
-| **ChainGun**    | `chain-gun.ts`                                              | isFiring, loadAmmo, loading, rateOfFireFactor                                                             | Rapid-fire kinetic; ship-level fire trigger drives `isFiring` on every mount that can bear, no safety                                                                   |
-| **Tubes**       | `tube.ts`                                                   | index, safetyLocked (inherits fittedBearing, loading, rateOfFireFactor, loadedProjectile from ChainGun)   | Missile launchers (array); `ShipState.fireTubesCommand` fires every loaded, unlocked tube and re-locks each one that fires                                              |
-| **Magazine**    | `magazine.ts`                                               | capacity, missiles                                                                                        | Ammo storage                                                                                                                                                            |
-| **Armor**       | `armor.ts`                                                  | armorPlates[] (each: layers[] of health/maxHealth), layerDesigns[], numberOfHealthyPlates, numberOfPlates | Sectional damage, layered plate stacks                                                                                                                                  |
-| **Targeting**   | `targeting.ts`                                              | targetId, shipOnly, enemyOnly, shortRangeOnly                                                             | Weapon targeting                                                                                                                                                        |
-| **Warp**        | `warp.ts`                                                   | currentLevel, desiredLevel, velocityFactor, damageFactor                                                  | FTL travel                                                                                                                                                              |
-| **Docking**     | `docking.ts`                                                | mode, targetId, rangesFactor                                                                              | Ship-to-ship attach                                                                                                                                                     |
-| **SmartPilot**  | `smart-pilot.ts`                                            | rotationMode, maneuveringMode, rotation, maneuvering                                                      | Autopilot                                                                                                                                                               |
-| **Signals**     | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs                                                  | auto-managed scan job queue, scan levels                                                                                                                                |
+| System | Location | Key Properties | Notes |
+|--------|----------|----------------|-------|
+| **Reactor** | `reactor.ts` | energy, effeciencyFactor | Primary energy generation |
+| **Maneuvering** | `maneuvering.ts` | afterBurnerFuel, efficiency (design: rotationCapacity, afterBurnerCharge) | Rotation + afterburner control |
+| **Thrusters** | `thruster.ts` | fittedBearing, active, afterBurnerActive, availableCapacity, bearingSkew | Directional thrust (Fwd/Back/L/R array); bolted mounts (turnSpeed 0), so `fittedBearing` is what's fixed and `bearing` stays 0 |
+| **Radar** | `radar.ts` | arc, bearing, malfunctionRangeFactor | One vision sector each; a ship carries a `radars` collection and sees their union |
+| **Turret** | `turret.ts` | fittedBearing, bearing, bearingCommand, bearingSkew, turnSpeedFactor, bearingLimit, bearingLimitFactor | The rotating mount shared by radars, chain guns, tubes and thrusters. `turnSpeed = design.turnSpeed * effectiveness * turnSpeedFactor`; `turnSpeed: 0` is a fixed mount |
+| **ChainGun** | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | Rapid-fire kinetic; ship-level fire trigger drives `isFiring` on every mount that can bear, no safety |
+| **Tubes** | `tube.ts` | index, safetyLocked (inherits fittedBearing, loading, rateOfFireFactor, loadedProjectile from ChainGun) | Missile launchers (array); `ShipState.fireTubesCommand` fires every loaded, unlocked tube and re-locks each one that fires |
+| **Magazine** | `magazine.ts` | capacity, missiles | Ammo storage |
+| **Armor** | `armor.ts` | armorPlates[] (each: layers[] of health/maxHealth), layerDesigns[], numberOfHealthyPlates, numberOfPlates | Sectional damage, layered plate stacks |
+| **Targeting** | `targeting.ts` | targetId, shipOnly, enemyOnly, shortRangeOnly | Weapon targeting |
+| **Warp** | `warp.ts` | currentLevel, desiredLevel, velocityFactor, damageFactor | FTL travel |
+| **Docking** | `docking.ts` | mode, targetId, rangesFactor | Ship-to-ship attach |
+| **SmartPilot** | `smart-pilot.ts` | rotationMode, maneuveringMode, rotation, maneuvering | Autopilot |
+| **Signals** | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs | auto-managed scan job queue, scan levels |
 
 ## Pilot Controls
-
 **Location:** `modules/core/src/ship/ship-state.ts`
 
-| Control     | Range  | Effect                           |
-| ----------- | ------ | -------------------------------- |
-| rotation    | [-1,1] | Turn left(-1)/right(1)           |
-| boost       | [-1,1] | Reverse(-1)/forward(1) thrust    |
-| strafe      | [-1,1] | Lateral movement                 |
-| antiDrift   | [0,1]  | Opposes current velocity         |
-| breaks      | [0,1]  | Rapid deceleration               |
-| afterBurner | [0,1]  | Rotation speed boost (high heat) |
+| Control | Range | Effect |
+|---------|-------|--------|
+| rotation | [-1,1] | Turn left(-1)/right(1) |
+| boost | [-1,1] | Reverse(-1)/forward(1) thrust |
+| strafe | [-1,1] | Lateral movement |
+| antiDrift | [0,1] | Opposes current velocity |
+| breaks | [0,1] | Rapid deceleration |
+| afterBurner | [0,1] | Rotation speed boost (high heat) |
 
 **Input mapping:** Keyboard keys and gamepad controls map to these commands via `input-config.ts`. See [Input Configuration System](TECHNICAL_REFERENCE.md#input-configuration-system) for details on step-based keyboard input (0.05 increments) and gamepad axis mapping.
 
@@ -111,12 +107,12 @@ with no visible target the mounts hold. NPC heat management (power backoff, ceas
 applies to player ships.
 
 Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; whether
-the gun _works_ never depends on `order`. An `Order.ATTACK` target has priority whenever it's
+the gun *works* never depends on `order`. An `Order.ATTACK` target has priority whenever it's
 structurally reachable (in range and within some mount's bearing coverage); only while it isn't
 does a free opportunity shot at another hostile happen instead — never in preference to a
 reachable ordered target.
 
-A target no mount can currently bear on is _not_ simply left alone: gunnery claims the hull
+A target no mount can currently bear on is *not* simply left alone: gunnery claims the hull
 heading to bring a mount to bear, weighted by the ship's flight doctrine (`FlightDoctrine` —
 `INTERCEPT` turns readily, `STANDOFF` mostly holds course, `SHADOW` never turns to shoot) and,
 under a MOVE order, capped at `MAX_TRANSIT_HEADING_CONCESSION` degrees off the destination bearing
@@ -131,7 +127,7 @@ by tens of degrees against a fast crosser, and the mount is aimed at the solutio
 decides "commit the swing" now agrees with the aiming it gates.
 
 The shell's fuze is dialled to that same solution. A shot leaves the muzzle, `radius` along the
-firing line ahead of the hull centre, so a dialled range of _r_ detonates at _r_ from the muzzle —
+firing line ahead of the hull centre, so a dialled range of *r* detonates at *r* from the muzzle —
 the range the gunner sets, the range the shell flies and the kill-zone ring drawn on the radar all
 now describe the same distance. On a large hull this was previously an overshoot of the ship's whole
 radius, which is why a big station could miss a target sitting squarely in its envelope.
@@ -198,20 +194,20 @@ against propulsion efficiency when choosing hull heading and standoff distance.
 Each doctrine is a set of `DoctrineWeights` — `aim`, `thrust`, `useGunEnvelope`. The weights
 themselves live in `doctrineWeights` in that file; what they buy:
 
-| Doctrine  | Behavior                                                                                                    |
-| --------- | ----------------------------------------------------------------------------------------------------------- |
-| INTERCEPT | Aim dominates: turns readily to bring a mount to bear, accepting a weak thrust axis to do it                |
-| STANDOFF  | Thrust dominates: mostly holds the efficient heading, giving way only where its thrust cost is already high |
-| SHADOW    | Ignores gunnery entirely — never turns to shoot, and holds `SHADOW_TRACK_RANGE` instead of a gun envelope   |
+| Doctrine | Behavior |
+|----------|----------|
+| INTERCEPT | Aim dominates: turns readily to bring a mount to bear, accepting a weak thrust axis to do it |
+| STANDOFF | Thrust dominates: mostly holds the efficient heading, giving way only where its thrust cost is already high |
+| SHADOW | Ignores gunnery entirely — never turns to shoot, and holds `SHADOW_TRACK_RANGE` instead of a gun envelope |
 
 `ShipState.flightDoctrine` defaults to `AUTO`, which defers to `order` through `doctrineForOrder()`
 in `ship-state.ts`:
 
-| Order        | Doctrine  | Why                                                                                                                                                                                                                                          |
-| ------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FOLLOW       | SHADOW    | Station-keeping, not gunnery                                                                                                                                                                                                                 |
-| MOVE         | INTERCEPT | Its only use of the profile is `goto()`'s transit concession, already capped at `MAX_TRANSIT_HEADING_CONCESSION`; STANDOFF is too weak there — its aim never outweighs the route heading's own thrust cost on a transit flying its best axis |
-| ATTACK, NONE | STANDOFF  | Weighs gunnery against propulsion efficiency                                                                                                                                                                                                 |
+| Order | Doctrine | Why |
+|-------|----------|-----|
+| FOLLOW | SHADOW | Station-keeping, not gunnery |
+| MOVE | INTERCEPT | Its only use of the profile is `goto()`'s transit concession, already capped at `MAX_TRANSIT_HEADING_CONCESSION`; STANDOFF is too weak there — its aim never outweighs the route heading's own thrust cost on a transit flying its best axis |
+| ATTACK, NONE | STANDOFF | Weighs gunnery against propulsion efficiency |
 
 Set `flightDoctrine` explicitly from a scenario or the GM tweak panel for a hull whose armament
 doesn't fit its order's default.
@@ -228,7 +224,7 @@ normalized to [0, 1] and weighted by `doctrineWeights`.
 Unscaled, a mount 36° outside its arc scores 0.2 — barely distinguishable from one 18° out, when
 both are equally unable to fire; `AIM_COST_SCALE` saturates it at 36° so anything past a modest miss
 reads as "cannot bear" outright. `thrustCost` is `1 - velocityCapacity(dir) / maxCapacity` for the
-axis nearest the required acceleration, evaluated at the _predicted_ hull angle
+axis nearest the required acceleration, evaluated at the *predicted* hull angle
 (`angleOf(shipToTarget) + offset`, `rotateToTarget`'s steady state) — using the current angle closes
 the #2083-class feedback loop this arbitration exists to avoid. A ship with no thrust (a station)
 scores 0 everywhere, leaving the decision to `aimCost`.
@@ -252,7 +248,7 @@ candidate dedup, so a candidate list can never split two headings the hysteresis
 `commandHeading()` in `automation-manager.ts` measures how fast the commanded heading is itself
 sweeping and hands that to `rotateToAngle` as the reference rate to damp against; braking against
 absolute turn rate leaves a standing lag the whole pass long for a target crossing abeam. The
-measurement is a one-tick finite difference, so a _step_ in the command (hysteresis flip, mount
+measurement is a one-tick finite difference, so a *step* in the command (hysteresis flip, mount
 switch, target reacquire) enters it as a rate no sweep could produce. Such a sample is rejected and
 the reference re-anchored at rate 0 — clamping would assert the reference really sweeps that fast,
 smoothing would add lag to the very term that exists to remove it.
@@ -280,22 +276,22 @@ every ship including player ships, which never run this code.
 
 ### Orders (priority: high → low)
 
-| Order  | Args               | Behavior                                                                                     |
-| ------ | ------------------ | -------------------------------------------------------------------------------------------- |
-| NONE   | -                  | Uses idle strategy                                                                           |
-| MOVE   | position           | Navigate to coords, stop when in tolerance                                                   |
-| ATTACK | targetId           | Pursue target, hold at optimal distance; that target has firing priority (see Gunnery above) |
-| FOLLOW | targetId, distance | Formation position, match velocity                                                           |
+| Order | Args | Behavior |
+|-------|------|----------|
+| NONE | - | Uses idle strategy |
+| MOVE | position | Navigate to coords, stop when in tolerance |
+| ATTACK | targetId | Pursue target, hold at optimal distance; that target has firing priority (see Gunnery above) |
+| FOLLOW | targetId, distance | Formation position, match velocity |
 
 ### Idle Strategies
 
 Consulted only while `order === Order.NONE`.
 
-| Strategy     | Behavior                                                                                                                                             |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PLAY_DEAD    | Holds fire; no automated movement (the default)                                                                                                      |
-| ROAM         | Fires on hostiles like every other idle strategy; wandering movement is **not yet implemented**, so this currently behaves exactly like STAND_GROUND |
-| STAND_GROUND | Fires on hostiles; never translates, but will turn the hull to bring a mount to bear (see Gunnery above)                                             |
+| Strategy | Behavior |
+|----------|----------|
+| PLAY_DEAD | Holds fire; no automated movement (the default) |
+| ROAM | Fires on hostiles like every other idle strategy; wandering movement is **not yet implemented**, so this currently behaves exactly like STAND_GROUND |
+| STAND_GROUND | Fires on hostiles; never translates, but will turn the hull to bring a mount to bear (see Gunnery above) |
 
 **Task tracking:** `@gameField('string') currentTask` (human-readable status set by the automation manager, e.g., `"Go to 100,200"`, `"Attack <targetId>"`, `"Follow <targetId>"`, `"Dock at  <targetId>"`, `"Undock from  <targetId>"`; empty string `""` when idle)
 
@@ -310,7 +306,6 @@ Every NPC tick (`AutomationManager.manageHeat`, gated on `!isPlayerShip` and `de
 ## System Interactions
 
 ### Power Distribution
-
 ```typescript
 const totalPower = reactor.output × reactor.effectiveness;
 const requestedPower = systems.reduce((sum, sys) => sum + (sys.power × sys.maxPowerDraw), 0);
@@ -322,7 +317,6 @@ if (requestedPower > totalPower) {
 ```
 
 ### Heat Management
-
 ```typescript
 const totalCoolant = ship.design.totalCoolant;
 const totalCoolantFactors = systems.reduce((sum, sys) => sum + sys.coolantFactor, 0);
@@ -334,15 +328,13 @@ systems.forEach(sys => {
 ```
 
 ### Damage Propagation
-
 ```typescript
 // AttackResolutionManager.resolveWeaponAttack (modules/core/src/ship/attack-resolution-manager.ts)
 // delivery + armor engagement + channel split — resolved before any system takes damage
-for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
-    // front / rear
+for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {   // front / rear
     // walk armor layers outermost-in; per damage type each layer bypasses,
     // blocks, or engages (plates erode, damage leaks via max(penetration, brokenRatio))
-    exposure = walkArmorLayers(damage, areaHitRange); // 0..1 leak-through
+    exposure = walkArmorLayers(damage, areaHitRange);   // 0..1 leak-through
 }
 // systemScope picks targets: single random system, all in area, or ship-wide electronics
 const { hits, damagedExternals } = resolveWeaponAttack(damage);
@@ -363,7 +355,6 @@ for (const hit of hits) damageSystem(hit.system, hit.damage, hit.percentageOfBro
 **Armor Uniqueness:** Only repairable at shipyards (major LARP event opportunity). Absorbs orders of magnitude more damage than internal systems.
 
 **Thruster Damage Protocol:** When thruster fails, ship experiences asymmetric thrust. Solution:
-
 1. Switch to Direct mode (manual control)
 2. Rotate 90° to align working thrusters
 3. Return to Velocity mode to counter drift
