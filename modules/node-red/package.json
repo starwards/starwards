@@ -41,7 +41,7 @@
     },
     "dependencies": {
         "@starwards/core": "0.5.1",
-        "colyseus-events": "github:starwards/colyseus-events#feat/schema-5",
+        "colyseus-events": "^4.2.0",
         "@colyseus/schema": "^5.0.40"
     },
     "devDependencies": {

@@ -49,7 +49,7 @@
     "dependencies": {
         "@colyseus/msgpackr": "^1.11.2",
         "@colyseus/schema": "^5.0.40",
-        "colyseus-events": "github:starwards/colyseus-events#feat/schema-5",
+        "colyseus-events": "^4.2.0",
         "debug": "4.4.3",
         "detect-collisions": "^10.10.2025",
         "eventemitter2": "^6.4.9",

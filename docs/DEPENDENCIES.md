@@ -19,7 +19,7 @@ last_verified: 2026-07-04
 | @colyseus/schema | ^5.0.40 | Declared in every module that touches schema, so one copy is installed |
 | @colyseus/sdk | ^0.18.5 | Client SDK (the 0.18 successor of `colyseus.js`); must match server version |
 | @colyseus/ws-transport | ^0.18.4 | Stable WebSocket |
-| colyseus-events | starwards/colyseus-events#feat/schema-5 | Schema 5 support; move to the npm release once published |
+| colyseus-events | ^4.2.0 | First release supporting @colyseus/schema 5 |
 
 ## State & Logic
 

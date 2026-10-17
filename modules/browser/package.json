@@ -24,7 +24,7 @@
         "@tweakpane/plugin-camerakit": "^0.3.0",
         "@tweakpane/plugin-essentials": "^0.2.1",
         "@xstate/react": "^6.1.0",
-        "colyseus-events": "github:starwards/colyseus-events#feat/schema-5",
+        "colyseus-events": "^4.2.0",
         "css-element-queries": "^1.2.3",
         "d3-selection": "^3.0.0",
         "eventemitter2": "^6.4.9",
