@@ -125,7 +125,7 @@ export class ChainGunManager implements Updateable {
             new Circle(
                 XY.clone(
                     XY.add(
-                        this.state.position,
+                        chainGun.getMuzzlePosition(this.state),
                         XY.byLengthAndDirection(muzzleToDetonation / 2, chainGun.getGlobalBearing(this.state)),
                     ),
                 ),
@@ -291,8 +291,16 @@ export class ChainGunManager implements Updateable {
             );
             const shellPosition = Vec2.make(
                 XY.sum(
-                    this.spaceObject.position, // position of ship
-                    XY.byLengthAndDirection(this.spaceObject.radius + projectile.radius + EPSILON, projectile.angle), // muzzle related to ship
+                    // legacy (mountRadiusFraction 0): hull circle along the shot; else the fixed mount point
+                    chainGun.design.mountRadiusFraction > 0
+                        ? chainGun.getMuzzlePosition(this.state)
+                        : this.spaceObject.position,
+                    XY.byLengthAndDirection(
+                        (chainGun.design.mountRadiusFraction > 0 ? 0 : this.spaceObject.radius) +
+                            projectile.radius +
+                            EPSILON,
+                        projectile.angle,
+                    ),
                     XY.byLengthAndDirection(isMissile ? 0 : projectile.radius * 2, projectile.angle), // some initial distance
                 ),
             );

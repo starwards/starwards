@@ -76,7 +76,7 @@ export const glaiveChaingun = {
     energyCost: 0.11,
     turnSpeed: 30,
     maxBearingSkew: 90,
-    bearingLimit: 90,
+    bearingLimit: 30,
 };
 
 export const glaiveReactor = {

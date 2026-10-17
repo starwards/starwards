@@ -366,7 +366,7 @@ describe('AI heat-management automation', () => {
             expect(withoutAutomation.armorLost, 'without automation (baseline)').to.be.greaterThan(0);
             // regression guard: backoff only ever throttles down from the unthrottled baseline, so
             // automation must never deal substantially MORE damage than the baseline — catches e.g.
-            // a future change that silently doubles NPC DPS. Pinned loosely (measured ~5.2 vs ~5.2,
+            // a future change that silently doubles NPC DPS. Pinned loosely (measured ~4 vs ~4 after M4.21 narrowed ship turrets to +-30 degrees (was ~5.2),
             // issue #2236 rebaseline: HiExp blast damage is now a bounded flat per-detonation figure
             // instead of an unbounded per-tick dwell-time integral) to survive minor tuning: on a
             // stock hull, coolant reallocation alone holds heat clear of the backoff threshold, so
@@ -375,8 +375,8 @@ describe('AI heat-management automation', () => {
             expect(withAutomation.armorLost, 'automation must not out-damage the unthrottled baseline').to.be.at.most(
                 withoutAutomation.armorLost * 1.1,
             );
-            expect(withAutomation.armorLost).to.be.closeTo(5.2, 1);
-            expect(withoutAutomation.armorLost).to.be.closeTo(5.2, 1);
+            expect(withAutomation.armorLost).to.be.closeTo(4, 1);
+            expect(withoutAutomation.armorLost).to.be.closeTo(4, 1);
             // the actual point of heat management: with it, heat never approaches the ceasefire
             // threshold; without it, the gun sits pegged at the overheat ceiling for the fight
             expect(withAutomation.maxHeat, 'heat management keeps heat well clear of the ceiling').to.be.lessThan(
