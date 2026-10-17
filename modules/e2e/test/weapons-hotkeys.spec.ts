@@ -7,7 +7,7 @@
  * their effects persist on the server — momentary commands (x, f, alt+1, b)
  * are harder to observe due to the tight server reset cycle.
  */
-import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
+import { cleanupPageState, navigateToScreen, setupPageErrorHandlers, waitForHotkeys } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
 import { makeDriver, waitForShipCondition } from './driver';
 
@@ -25,7 +25,7 @@ test.describe('Weapons hotkeys', () => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
         await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
-        await page.waitForTimeout(500);
+        await waitForHotkeys(page);
     });
 
     test.afterEach(async ({ page }) => {
@@ -195,7 +195,7 @@ test.describe('Weapons hotkeys — multi-tube isolation', () => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(weapons_multi_tube);
         await navigateToScreen(page, `/weapons.html?ship=${twoTubeShipId}`, { baseURL: gameDriver.baseURL });
-        await page.waitForTimeout(500);
+        await waitForHotkeys(page);
     });
 
     test.afterEach(async ({ page }) => {
@@ -263,7 +263,7 @@ test.describe('Weapons hotkeys — multi-gun fan-out', () => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(weapons_multi_gun);
         await navigateToScreen(page, `/weapons.html?ship=${multiGunShipId}`, { baseURL: gameDriver.baseURL });
-        await page.waitForTimeout(500);
+        await waitForHotkeys(page);
     });
 
     test.afterEach(async ({ page }) => {
@@ -288,7 +288,7 @@ test.describe('Weapons hotkeys — zero-tube hull', () => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(weapons_no_tubes);
         await navigateToScreen(page, `/weapons.html?ship=${noTubesShipId}`, { baseURL: gameDriver.baseURL });
-        await page.waitForTimeout(500);
+        await waitForHotkeys(page);
     });
 
     test.afterEach(async ({ page }) => {

@@ -74,16 +74,20 @@ test.describe('Readout skin', () => {
         const label = row.getByText('repair energy', { exact: true });
         const input = label.locator('..').locator('input');
         await expect(input).toHaveValue('insufficient reactor energy');
-        const metrics = await input.evaluate((el) => {
-            const box = el.getBoundingClientRect();
-            const rowBox = el.closest('.tp-lblv')!.getBoundingClientRect();
-            return {
-                truncated: el.scrollWidth > el.clientWidth,
-                overflow: getComputedStyle(el).textOverflow,
-                inside: box.left >= rowBox.left - 1 && box.right <= rowBox.right + 1,
-            };
-        });
-        expect(metrics).toEqual({ truncated: true, overflow: 'ellipsis', inside: true });
+        // re-measured rather than read once: a single read right after the value landed saw the text fit
+        // only in a full 4-worker suite (suspected: station grid layout not yet settled)
+        await expect(async () => {
+            const metrics = await input.evaluate((el) => {
+                const box = el.getBoundingClientRect();
+                const rowBox = el.closest('.tp-lblv')!.getBoundingClientRect();
+                return {
+                    truncated: el.scrollWidth > el.clientWidth,
+                    overflow: getComputedStyle(el).textOverflow,
+                    inside: box.left >= rowBox.left - 1 && box.right <= rowBox.right + 1,
+                };
+            });
+            expect(metrics).toEqual({ truncated: true, overflow: 'ellipsis', inside: true });
+        }).toPass({ timeout: 10000 });
     });
 
     test('dradis keeps working inputs and checkboxes', async ({ page }) => {

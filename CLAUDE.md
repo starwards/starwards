@@ -20,6 +20,8 @@ npm run test:e2e -- modules/e2e/test/visual/specific.spec.ts
 npm run test:e2e -- --update-snapshots       # Update snapshots locally — defaults to mode "changed"
 npm run test:e2e -- --update-snapshots=all   # Rewrite every snapshot, needed when the comparator itself changed
 npm run snapshots:ci                         # Update CI (linux) snapshots via docker — very slow
+npm run test:e2e:docker                      # e2e in the CI image (4 cpus/workers; E2E_DOCKER_CPUS to change)
+npm run test:widgets:docker                  # Visual Gallery (headed, xvfb) in the CI image
 npm run test:widgets                         # Gallery visual tests, headed chromium (add xvfb-run on linux)
 # Gallery baselines exist per project — regenerate BOTH (test:e2e and test:widgets) or the other job fails.
 # Comparator settings and the per-scene sensitivity guard: docs/testing/README.md#gallery-visual-tests
