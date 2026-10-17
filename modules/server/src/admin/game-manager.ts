@@ -297,12 +297,18 @@ export class GameManager {
     }
 
     /**
-     * Clears assignments whose slot is no longer valid (e.g. after a map switch), then
+     * Removes the bots of ships that are no longer player ships, clears assignments whose slot
+     * is no longer valid (e.g. after a map switch), then
      * auto-assigns any now-unassigned station that has exactly one open slot for its type
      * across every current player ship. Called after every register/disconnect batch, and
      * after `startGame`/`loadGame` change `playerShipIds`.
      */
     private reconcileStationAssignments() {
+        for (const [shipId, ship] of [...this.state.bots]) {
+            if (!this.state.playerShipIds.includes(shipId)) {
+                for (const seat of [...ship.seats.keys()]) this.removeBot(shipId, seat as BridgeSeat);
+            }
+        }
         for (const entry of this.state.stations.values()) {
             if (entry.shipId && !this.isValidStationSlot(entry.shipId, entry.stationType)) {
                 entry.shipId = '';
@@ -327,6 +333,8 @@ export class GameManager {
         this.map = null;
         if (this.state.gameStatus === GameStatus.RUNNING) {
             this.state.gameStatus = GameStatus.STOPPING;
+            this.state.bots.clear();
+            await this.botSeats.stopAll();
             // Use registered ship cleanup functions which await pending
             // room creation before disconnecting, preventing race conditions
             // where matchMaker.query() could miss rooms still being created.

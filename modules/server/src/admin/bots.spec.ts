@@ -1,4 +1,4 @@
-import { BridgeSeat, Driver, sleep } from '@starwards/core/internal';
+import { BridgeSeat, Driver, GameStatus, sleep } from '@starwards/core/internal';
 
 import { BotSeats } from './game-manager';
 import { makeDriver } from '../test/driver';
@@ -147,6 +147,69 @@ describe('GM bot seats', () => {
             gameDriver.gameManager.update(0);
             expect(entry('GVTS', 'pilot')?.id).toBe('bot-pilot-1');
             expect(entry('GVTS2', 'sigint')?.id).toBe('bot-sigint-2');
+        });
+    });
+
+    describe('reset', () => {
+        let fake: ReturnType<typeof fakeBotSeats>;
+        const assign = (shipId: string, seat: string, brain: string) => {
+            gameDriver.gameManager.state.assignBotCommands.push({ shipId, seat, brain });
+            gameDriver.gameManager.update(0);
+        };
+
+        beforeEach(async () => {
+            fake = fakeBotSeats();
+            gameDriver.gameManager.botSeats = fake.seats;
+            await gameDriver.gameManager.startGame(two_vs_one);
+            assign('GVTS', 'pilot', 'reference');
+            assign('GVTS', 'weapons', 'reference');
+        });
+
+        it('clears bots and awaits stopAll before the game reaches STOPPED', async () => {
+            const manager = gameDriver.gameManager;
+            let statusAtStopAll: GameStatus | null = null;
+            let resolveStopAll = () => {};
+            manager.botSeats = {
+                ...fake.seats,
+                stopAll: () => {
+                    statusAtStopAll = manager.state.gameStatus;
+                    return new Promise<void>((r) => (resolveStopAll = r));
+                },
+            };
+            const stopping = manager.stopGame();
+            expect(manager.state.bots.size).toBe(0);
+            expect(statusAtStopAll).toBe(GameStatus.STOPPING);
+            await sleep(50);
+            expect(manager.state.gameStatus).toBe(GameStatus.STOPPING);
+            resolveStopAll();
+            await stopping;
+            expect(manager.state.gameStatus).toBe(GameStatus.STOPPED);
+        });
+
+        it('has no bots after loading a game', async () => {
+            const manager = gameDriver.gameManager;
+            const saved = manager.saveGame()!;
+            await manager.loadGame(saved, two_vs_one);
+            expect(manager.state.bots.size).toBe(0);
+            expect(fake.calls).toContainEqual(['stopAll']);
+        });
+
+        it('removes the bots of a ship that leaves the players', async () => {
+            const manager = gameDriver.gameManager;
+            await manager.convertShipType('GVTS', false);
+            manager.update(0);
+            expect(manager.state.bots.size).toBe(0);
+            expect(fake.calls.slice(2)).toEqual(
+                expect.arrayContaining([
+                    ['stop', 'GVTS', 'pilot'],
+                    ['stop', 'GVTS', 'weapons'],
+                ]),
+            );
+            expect(fake.calls.filter((c) => c[0] === 'stop')).toHaveLength(2);
+        });
+
+        it('never writes bots to a save', () => {
+            expect(JSON.stringify(gameDriver.gameManager.saveGame()!.toJSON())).not.toContain('"bots"');
         });
     });
 });
