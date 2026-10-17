@@ -5,7 +5,8 @@
 // Enforced by dependency-cruiser rule 'no-core-internal-from-browser'.
 
 // --- admin ---
-export { AdminState, GameStatus } from './admin';
+export { AdminState, BotEntry, GameStatus, ShipBots, botBrains, botStatuses } from './admin';
+export type { AssignBotArg, BotBrain, BotStatus } from './admin';
 
 // --- client ---
 export {

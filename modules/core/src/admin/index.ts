@@ -1,9 +1,12 @@
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
+import { AssignBotArg, BotAssignable, ShipBots } from './bots';
 import { AssignStationArg, RegisterStationArg, StationRegistrable, StationRegistryEntry } from '../stations';
 
 import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+
+export * from './bots';
 
 export enum GameStatus {
     STOPPED,
@@ -11,7 +14,7 @@ export enum GameStatus {
     RUNNING,
     STOPPING,
 }
-export class AdminState extends Schema implements StationRegistrable {
+export class AdminState extends Schema implements StationRegistrable, BotAssignable {
     @gameField('int8')
     gameStatus = GameStatus.STOPPED;
 
@@ -26,6 +29,15 @@ export class AdminState extends Schema implements StationRegistrable {
     public registerStationCommands = Array.of<RegisterStationArg>();
     public disconnectStationCommands = Array.of<string>();
     public assignStationCommands = Array.of<AssignStationArg>();
+
+    /**
+     * Bots the GM seated, by ship id. Live only: reset when the game stops, never saved, and
+     * never entries of {@link stations}.
+     */
+    @gameField({ map: ShipBots })
+    bots = new MapSchema<ShipBots>();
+
+    public assignBotCommands = Array.of<AssignBotArg>();
 
     /** True while the running game is being recorded to disk for later replay. */
     @gameField('boolean')
