@@ -4,10 +4,10 @@
 // Env: E2E_DOCKER_IMAGE (default starwards-e2e) names the image; E2E_DOCKER_CPUS (default 4) caps the container; playwright gets the same worker count,
 // since the config's percentage workers count every host core and overload a capped container into timeouts.
 // Host rendering (Windows/macOS, other GPUs and fonts) is not the gallery reference; this is.
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // E2E_DOCKER_IMAGE: a distinct tag per worktree, so parallel checkouts don't overwrite each other's image
