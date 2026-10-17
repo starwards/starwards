@@ -18,9 +18,10 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
         const gun = shipMgr.state.chainGuns[0];
         expect(gun).to.not.equal(undefined);
-        // Damage has skewed the mount 30 degrees off where it was fitted, still inside the design's
-        // 45-degree maxBearingSkew so the mount isn't `broken`.
-        gun.bearingSkew = 30;
+        // Damage has skewed the mount 15 degrees off where it was fitted, still inside the design's
+        // 45-degree maxBearingSkew so the mount isn't `broken`; its traverse narrows to ±20, still
+        // enough to bring the firing line back onto a dead-ahead target (M4.33).
+        gun.bearingSkew = 15;
 
         const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
         // this test is about the mount's aim converging on a stationary hostile over 600 ticks of

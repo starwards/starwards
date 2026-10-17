@@ -59,7 +59,6 @@ const defectShortLabels: Record<string, string> = {
     'rate of fire': 'ROF',
     'range fluctuation': 'RNG FLUX',
     'turn speed': 'TURN',
-    'traverse limit': 'TRAV',
 };
 
 function shortDefectLabel(name: string) {

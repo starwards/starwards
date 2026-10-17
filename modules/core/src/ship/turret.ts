@@ -119,23 +119,17 @@ export abstract class Turret extends SystemState {
     turnSpeedFactor = 1;
 
     /**
-     * fraction of `design.bearingLimit` this mount currently retains. Declared only where
-     * `design.turnSpeed > 0` — a bolted mount has no traverse to lose.
-     */
-    @defectible({
-        normal: 1,
-        name: 'traverse limit',
-        enabled: (t) => (t as Turret).design.turnSpeed > 0,
-    })
-    @range([0, 1])
-    @gameField('float32')
-    bearingLimitFactor = 1;
-
-    /**
-     * ± degrees this mount can currently traverse off its fitted bearing, after damage.
+     * ± degrees this mount can currently traverse off its fitted bearing, after damage. Skew is the
+     * one mount defectible (ADR 014 amendment, M4.18): every degree of bend costs traverse, linearly,
+     * so at `|bearingSkew| = design.maxBearingSkew` the mount is bolted at `fittedBearing +
+     * bearingSkew`. A mount with no skew surface keeps its full design traverse.
      */
     get bearingLimit() {
-        return this.design.bearingLimit * this.bearingLimitFactor;
+        const maxSkew = this.design.maxBearingSkew;
+        if (maxSkew <= 0) {
+            return this.design.bearingLimit;
+        }
+        return this.design.bearingLimit * Math.max(0, 1 - Math.abs(this.bearingSkew) / maxSkew);
     }
 
     /**
@@ -154,7 +148,7 @@ export abstract class Turret extends SystemState {
     @tweakable('number')
     @commandable()
     get bearingCommand(): number {
-        // clamped on read too, not just on write: a `bearingLimitFactor` drop (damage) must
+        // clamped on read too, not just on write: a skew increase (damage) narrows traverse and must
         // retroactively pull an already-commanded bearing back inside the new, tighter limit.
         return capToRange(-this.bearingLimit, this.bearingLimit, this.bearingCommandRaw);
     }
@@ -234,6 +228,29 @@ export abstract class Turret extends SystemState {
             this.design.maxBearingSkew > 0 && atLeastThreshold(Math.abs(this.bearingSkew), this.design.maxBearingSkew)
         );
     }
+}
+
+/**
+ * One mount defect (M4.18 ruling): grows `|bearingSkew|` by `amount` degrees, up to
+ * `design.maxBearingSkew`. Magnitude only grows — the first defect on a straight mount picks the
+ * bend's direction from `sign`, later ones keep it, so damage never undoes damage. When the bend
+ * grew, the mount is jolted: `bearing` jumps instantly to the edge of its new, narrower traverse
+ * toward the bend. The command is untouched (still clamped), so the mount then swings back at
+ * `turnSpeed` — a re-aim delay, not a jam. No-op on a mount with no skew surface.
+ */
+export function applySkewDefect(turret: Turret, amount: number, sign: 1 | -1) {
+    const maxSkew = turret.design.maxBearingSkew;
+    if (maxSkew <= 0) {
+        return;
+    }
+    const direction = turret.bearingSkew === 0 ? sign : Math.sign(turret.bearingSkew);
+    const before = Math.abs(turret.bearingSkew);
+    const after = Math.min(maxSkew, before + Math.abs(amount));
+    if (after <= before) {
+        return;
+    }
+    turret.bearingSkew = direction * after;
+    turret.bearing = direction * turret.bearingLimit;
 }
 
 /**

@@ -15,6 +15,7 @@ import { ShipState } from './ship-state';
 import { Signals } from './signals';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
+import { applySkewDefect } from './turret';
 
 /**
  * bound on spillover rolls per application: past this point every roll sits at the 0.5 cap and
@@ -295,15 +296,13 @@ export class DamageManager {
             surfaces.push(() => (radar.turnSpeedFactor *= 0.9));
         }
         if (hasSkew) {
-            surfaces.push(
-                () =>
-                    (radar.bearingSkew +=
-                        limitPercision(this.die.getRollInRange('damageRadarSkew:' + damageId, 1, 2)) *
-                        (this.die.getSuccess('damageRadarSkewSign:' + damageId, 0.5) ? 1 : -1)),
+            surfaces.push(() =>
+                applySkewDefect(
+                    radar,
+                    limitPercision(this.die.getRollInRange('damageRadarSkew:' + damageId, 1, 2)),
+                    this.die.getSuccess('damageRadarSkewSign:' + damageId, 0.5) ? 1 : -1,
+                ),
             );
-        }
-        if (hasTraverse) {
-            surfaces.push(() => (radar.bearingLimitFactor *= 0.9));
         }
         const roll = Math.floor(this.die.getRollInRange('damageRadarSurface:' + damageId, 0, surfaces.length));
         surfaces[Math.min(roll, surfaces.length - 1)]();
@@ -311,10 +310,11 @@ export class DamageManager {
 
     private damageThruster(thruster: Thruster, damageId: string) {
         if (this.die.getSuccess('damageThruster:' + damageId, 0.5)) {
-            thruster.bearingSkew +=
-                limitPercision(this.die.getRollInRange('thrusterAngleOffset:' + damageId, 1, 3)) *
-                (this.die.getSuccess('thrusterAngleSign:' + damageId, 0.5) ? 1 : -1);
-            thruster.bearingSkew = capToRange(-180, 180, thruster.bearingSkew);
+            applySkewDefect(
+                thruster,
+                limitPercision(this.die.getRollInRange('thrusterAngleOffset:' + damageId, 1, 3)),
+                this.die.getSuccess('thrusterAngleSign:' + damageId, 0.5) ? 1 : -1,
+            );
         } else {
             thruster.availableCapacity = capToRange(
                 0,
@@ -327,9 +327,11 @@ export class DamageManager {
 
     private damageChainGun(chainGun: ChainGun, damageId: string) {
         if (this.die.getSuccess('damageChaingun:' + damageId, 0.5)) {
-            chainGun.bearingSkew +=
-                limitPercision(this.die.getRollInRange('chainGunAngleOffset:' + damageId, 1, 2)) *
-                (this.die.getSuccess('chainGunAngleSign:' + damageId, 0.5) ? 1 : -1);
+            applySkewDefect(
+                chainGun,
+                limitPercision(this.die.getRollInRange('chainGunAngleOffset:' + damageId, 1, 2)),
+                this.die.getSuccess('chainGunAngleSign:' + damageId, 0.5) ? 1 : -1,
+            );
         } else {
             chainGun.rateOfFireFactor *= 0.9;
         }

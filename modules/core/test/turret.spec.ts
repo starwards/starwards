@@ -154,14 +154,14 @@ describe('turret mount bearing limit (A2, A3)', () => {
         expect(getRange(turret, JsonPointer.create('/bearing'))).to.deep.equal([-180, 180]);
     });
 
-    it('a bearingLimitFactor below 1 clamps thereafter, taking the short way round', () => {
+    it('skew narrowing the traverse clamps thereafter, taking the short way round', () => {
         const turret = makeTurret(1000);
-        turret.design.assign({ bearingLimit: 90 });
+        turret.design.assign({ bearingLimit: 90, maxBearingSkew: 40 });
         turret.bearingCommand = 90;
         updateTurret(turret, 1);
         expect(turret.bearing).to.be.closeTo(90, 0.001);
 
-        turret.bearingLimitFactor = 0.5; // effective limit now ±45
+        turret.bearingSkew = 20; // half the skew surface: effective limit now ±45
 
         updateTurret(turret, 1);
         expect(turret.bearing).to.be.closeTo(45, 0.001);
