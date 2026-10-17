@@ -393,6 +393,26 @@ Not filed. Draft text:
 - **Re-baseline:** L0 saved from this branch; the other L0 items moved by seed noise only (T0 run value
   0.881 -> 0.862, 0/8 up, also from #2375; `weapons-range` 64.5 -> 61.3, within noise).
 
+### L5 — missile stock cap on `T2-constrained` (2026-10-17, M3.42)
+
+- **Change:** `T2-constrained` now also starts every missile stock at 3-6 (`T0Lab.playerMissiles`); accept 75% -> 62.5%.
+  Measured on master after #2398 (chain-gun heat) and #2401 (benchmark faults).
+- **Before (no cap):** `reference` 16/16 (enemies 32/32), median 89.0 s (p10 60.5, p90 235.5), run value 0.629;
+  `idle` 0/16. **After:** `reference` 6/16 (enemies 22/32), median 73.4 s (p10 44.1, p90 144.4), run value 0.307;
+  `idle` 0/16 (0/32). Seeds 1-16, 300 s.
+- **Sweep** (reference, the same n in every stock): n=1 0/16 (3/32), 2 0/16 (12/32), 3 3/16 (19/32), 4 5/16 (21/32),
+  5 10/16 (26/32), 6 15/16 (31/32), full 16/16. The reference never changes tube ammo (`changeTubeAmmo` "wait" on
+  every decision) and fires tube 1 twice in 16 runs, so it spends one stock; a crew that switches stocks has 15-30.
+- **Threshold:** accept 62.5% (10/16): the reference's 6/16 plus 4, past the ±3 seed noise at 16 seeds, so the
+  reference fails L5 and a passing crew must spend missiles better than it; one stock of 6 already gives 15/16,
+  so the bar is reachable (inference).
+- **Regression suite:** reference L0-L4 all ok against the committed baseline (`training-archive/2026-10-17/suite/reference-012205/`);
+  `helms-intercept` and `weapons-acquire` no longer fail as on 2026-10-15. L5 baseline re-saved.
+- **Lesson:** the internal axis binds two attackers through the missile stock, not shells: kills fall steeply
+  between 6 and 3 missiles a stock.
+- **Reuse:** a candidate on L5 starts with a weapons rule to change tube ammo when the loaded stock is empty or
+  low; read missiles left per stock in the display before tuning anything else.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
