@@ -2,12 +2,10 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { CALLOUT_QUESTION, Policy, brainSpecSchema } from '@starwards/bots';
 import { runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
 
-import { CALLOUT_QUESTION } from '../brain/callout';
-import { Policy } from '../brain/brain';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
-import { brainSpecSchema } from '../brain/spec';
 import { headlessCrew } from './crew';
 import { idlePolicy } from '../brain/policies';
 import { loadCrew } from './crew-config';

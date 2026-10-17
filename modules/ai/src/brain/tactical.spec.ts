@@ -1,10 +1,7 @@
 import * as path from 'node:path';
 
-import { Capabilities, Display } from './controls';
-import { brainSpecSchema, loadBrainSpec } from './spec';
+import { Capabilities, Display, Policy, brainSpecSchema, buttonBrain, loadBrainSpec } from '@starwards/bots';
 
-import { Policy } from './brain';
-import { buttonBrain } from './brain';
 import { idlePolicy } from './policies';
 
 const BRAINS = path.resolve(__dirname, '../../brains');

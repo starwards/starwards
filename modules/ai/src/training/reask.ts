@@ -1,11 +1,5 @@
+import { BrainSpec, Policy, buildRequest, stationControls, verbalReader, whatIfForecaster } from '@starwards/bots';
 import { RecordedDecision, RecordedRequest } from './decision-log';
-
-import { BrainSpec } from '../brain/spec';
-import { Policy } from '../brain/brain';
-import { buildRequest } from '../brain/request';
-import { stationControls } from '../brain/controls';
-import { verbalReader } from '../brain/verbal';
-import { whatIfForecaster } from '../whatif/forecast';
 
 type ReaskRow = {
     t: number;

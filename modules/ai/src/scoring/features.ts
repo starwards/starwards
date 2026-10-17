@@ -11,7 +11,7 @@ import {
 
 import { TacticalFrame, ammoShortfall, hasSolution, observeTactical, threatShares } from './weapons-kpi';
 import { components, observe, riskOf } from './engineer-kpi';
-import { offNose } from '../brain/verbal';
+import { offNose } from '@starwards/bots';
 
 /**
  * Hand-engineered features of one `SavedGame` frame, seen from the player ship (the GVTS) against

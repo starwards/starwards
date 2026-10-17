@@ -1,8 +1,6 @@
-import { Capabilities, Display } from '../brain/controls';
+import { Answer, Capabilities, Display, Heard } from '@starwards/bots';
 import { EVENTS_EXT, RecordingEventLine, parseEventLine } from '@starwards/core/internal';
 
-import { Answer } from '../brain/brain';
-import { Heard } from '../brain/callout';
 import fs from 'node:fs';
 
 const RECORDING_EXT = '.sgr';

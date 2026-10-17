@@ -1,8 +1,6 @@
-import { Capabilities, Display } from './controls';
+import { Capabilities, Display, brainSpecSchema, buttonBrain } from '@starwards/bots';
 import { JevClient, jevClient } from './jev-client';
 
-import { brainSpecSchema } from './spec';
-import { buttonBrain } from './brain';
 import { jevPolicy } from './policies';
 
 const spec = brainSpecSchema.parse({

@@ -2,7 +2,7 @@ import { DockingMode, RecordingEventLine, SavedGame, XY, isShellAmmo } from '@st
 import { observeTactical, shellReaches } from './weapons-kpi';
 
 import { integrity } from './features';
-import { offNose } from '../brain/verbal';
+import { offNose } from '@starwards/bots';
 
 /**
  * The helms score: how well the ship is flown, from what the helms seat controls (position, heading,

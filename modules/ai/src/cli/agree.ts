@@ -11,18 +11,15 @@
  * cuts the recorded radar to that many metres for both, for runs recorded before station radars were
  * cut to their reach (helms 5000, weapons 10000). The reference plays helms and weapons only.
  */
-import { BrainSpec, loadBrainSpec } from '../brain/spec';
+import { BrainSpec, Policy, buildRequest, loadBrainSpec, verbalReader } from '@starwards/bots';
 import { StudentChoices, agreementSummary, recordedChoices, teacherAgreement } from '../training/agree';
 import { answerCacheFromEnv, applyCacheFlags, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
-import { Policy } from '../brain/brain';
-import { buildRequest } from '../brain/request';
 import fs from 'node:fs';
 import { jevClient } from '../brain/jev-client';
 import path from 'node:path';
 import { readDecisionLog } from '../training/decision-log';
-import { verbalReader } from '../brain/verbal';
 
 function arg(name: string) {
     const i = process.argv.indexOf(`--${name}`);

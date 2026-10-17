@@ -1,16 +1,14 @@
-import { BrainSpec, loadBrainSpec } from '../brain/spec';
+import { BrainSpec, Policy, loadBrainSpec, makeReferencePolicy } from '@starwards/bots';
 import { HeadlessGame, SERVER_TICK_HZ } from '@starwards/server/src/test/headless-game';
 import { JevClient, jevClient } from '../brain/jev-client';
 import { MeteredJevClient, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
-import { Policy } from '../brain/brain';
 import { SeatPlan } from '../crew/crew';
 import fc from 'fast-check';
 import { headlessCrew } from '../crew/crew';
 import { loadBenchmark } from './benchmark';
-import { makeReferencePolicy } from '../brain/reference-policy';
 import path from 'node:path';
 
 const BRAINS_DIR = path.resolve(__dirname, '../../brains');

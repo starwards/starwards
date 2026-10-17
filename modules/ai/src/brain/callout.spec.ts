@@ -1,10 +1,15 @@
-import { CALLOUT_QUESTION, SILENCE, calloutSaid } from './callout';
-import { Capabilities, Display } from './controls';
+import {
+    CALLOUT_QUESTION,
+    Capabilities,
+    Display,
+    SILENCE,
+    brainSpecSchema,
+    buildRequest,
+    buttonBrain,
+    calloutSaid,
+} from '@starwards/bots';
 
 import { JevClient } from './jev-client';
-import { brainSpecSchema } from './spec';
-import { buildRequest } from './request';
-import { buttonBrain } from './brain';
 import { idlePolicy } from './policies';
 import { jevPolicy } from './policies';
 

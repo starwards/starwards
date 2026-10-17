@@ -1,6 +1,6 @@
 import { ShipDirection, ShipState, Spaceship, XY } from '@starwards/core/internal';
 
-import { offNose } from '../brain/verbal';
+import { offNose } from '@starwards/bots';
 
 /**
  * Isochrone grid around a ship: sectors around the nose × bands of time-to-reach (not distance).

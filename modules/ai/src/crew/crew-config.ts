@@ -1,18 +1,24 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { ENGINEER_POLICIES, makeEngineerPolicy } from '../brain/engineer-policies';
-import { HELMS_POLICIES, HelmsPolicyName, makeHelmsPolicy } from '../brain/helms-policies';
+import {
+    ENGINEER_POLICIES,
+    HELMS_POLICIES,
+    HelmsPolicyName,
+    Policy,
+    SCRIPTED_SEAT_POLICIES,
+    loadBrainSpec,
+    makeEngineerPolicy,
+    makeHelmsPolicy,
+    makeReferencePolicy,
+    makeScriptedSeatPolicy,
+    seatsOf,
+} from '@starwards/bots';
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
-import { SCRIPTED_SEAT_POLICIES, makeScriptedSeatPolicy } from '../brain/weapons-policies';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
-import { Policy } from '../brain/brain';
 import { SeatPlan } from './crew';
 import { jevClient } from '../brain/jev-client';
-import { loadBrainSpec } from '../brain/spec';
-import { makeReferencePolicy } from '../brain/reference-policy';
-import { seatsOf } from '@starwards/bots';
 import { z } from 'zod';
 
 /** Where the module's own brains live; a crew file names others by a path relative to itself. */

@@ -1,4 +1,15 @@
-export const BOTS_PACKAGE = '@starwards/bots';
+export { type Answer, type ButtonBrain, type Policy, buttonBrain } from './brain/brain';
+export { CALLOUT_QUESTION, type Heard, SILENCE, calloutSaid } from './brain/callout';
+export { type Capabilities, type Control, type Display, stationControls } from './brain/controls';
+export { ENGINEER_POLICIES, makeEngineerPolicy } from './brain/engineer-policies';
+export { HELMS_POLICIES, type HelmsPolicyName, makeHelmsPolicy } from './brain/helms-policies';
+export { makeReferencePolicy } from './brain/reference-policy';
+export { type BrainRequest, buildRequest } from './brain/request';
+export { type BrainSpec, brainSpecSchema, loadBrainSpec } from './brain/spec';
+export { offNose, verbalReader } from './brain/verbal';
+export { SCRIPTED_SEAT_POLICIES, makeScriptedSeatPolicy } from './brain/weapons-policies';
+export { crewChannel } from './crew/channel';
+export { whatIfForecaster } from './whatif/forecast';
 export * from './session/session';
 export * from './session/console';
 export * from './session/multiplex';

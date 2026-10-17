@@ -1,10 +1,7 @@
 import { AdminDriver, Driver, RecordingEventLine } from '@starwards/core/internal';
-import { ButtonBrain, buttonBrain } from '../brain/brain';
-import { StationSession, observeStation } from '@starwards/bots';
+import { ButtonBrain, Capabilities, StationSession, buttonBrain, crewChannel, observeStation } from '@starwards/bots';
 
-import { Capabilities } from '../brain/controls';
 import { SeatPlan } from '../crew/crew';
-import { crewChannel } from '../crew/channel';
 import { liveStation } from '../console/live';
 
 type LiveCrewOptions = {

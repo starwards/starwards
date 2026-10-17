@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { JevClient, JevResponse } from './jev-client';
 import { answerCacheFromEnv, applyCacheFlags, diskAnswerCache, jevCacheKey, meteredJevClient } from './jev-cache';
 
-import { BrainRequest } from './request';
+import { BrainRequest } from '@starwards/bots';
 
 const request = (range: number): BrainRequest => ({
     state: { station: 'helms', console: [`target at ${range} m`] },

@@ -1,13 +1,19 @@
-import { ButtonBrain, Policy, buttonBrain } from '../brain/brain';
-import { Capabilities, Display } from '../brain/controls';
+import {
+    BrainSpec,
+    ButtonBrain,
+    Capabilities,
+    Display,
+    Heard,
+    Policy,
+    StationSession,
+    buttonBrain,
+    crewChannel,
+    observeStation,
+} from '@starwards/bots';
 import { SimClock, headlessStation } from '../console/headless';
-import { StationSession, observeStation } from '@starwards/bots';
 
-import { BrainSpec } from '../brain/spec';
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
-import { Heard } from '../brain/callout';
-import { crewChannel } from './channel';
 
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
 const RADAR_CONTACT_LIMIT = 200;

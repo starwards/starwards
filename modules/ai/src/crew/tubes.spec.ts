@@ -1,11 +1,9 @@
 import { HeadlessGame, SERVER_TICK_HZ } from '@starwards/server/src/test/headless-game';
+import { Policy, brainSpecSchema, makeReferencePolicy } from '@starwards/bots';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '@starwards/server/src/scenarios/training';
 
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
-import { Policy } from '../brain/brain';
-import { brainSpecSchema } from '../brain/spec';
 import { headlessCrew } from './crew';
-import { makeReferencePolicy } from '../brain/reference-policy';
 
 const weaponsBrain = brainSpecSchema.parse({
     id: 'weapons',
