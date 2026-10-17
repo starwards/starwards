@@ -77,14 +77,12 @@ Open your seat's screen:
 | Dradis       | http://localhost:3000/dradis.html?ship=GVTS   | mouse    |
 | GM (observe) | http://localhost:3000/gm.html                 | mouse    |
 
-Your client appears under "Unassigned clients" in the roster; the roster assigns it to a seat. A screen
-can attach to a seat a bot holds: input is shared, so leave your own seat's bot on `none`.
+The GM assigns your client to a seat from the roster's "Unassigned clients" list. A screen can attach to a seat a bot holds: input is shared, so leave your own seat's bot on `none`.
 
 ### 5. What you should see when it works
 
 - In the roster, the bot seats show `reference` and the seat you play shows your client.
 - In game, within seconds: weapons locks the target and fires, the engineer changes power, signals scans.
-- In a test run with the Pilot seat played by a stand-in, the attacker died about 22 s into the round.
 
 ### 6. Record and download
 
