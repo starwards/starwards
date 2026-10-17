@@ -31,7 +31,7 @@ function gameTimeWait(admin: { state: { speed: number } }) {
         });
 }
 
-export type LiveShipContext = {
+type LiveShipContext = {
     manifest: StationsManifest;
     shipDriver: ShipDriver;
     spaceDriver: SpaceDriver;
