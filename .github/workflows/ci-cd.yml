@@ -398,9 +398,16 @@ jobs:
                       echo "GET /colyseus-monitor/ returned $STATUS, expected 200"
                       exit 1
                   fi
-                  BUNDLE=$(curl -s -u admin:admin -o /dev/null -w '%{http_code}' http://localhost:8080/colyseus-monitor/bundle.js)
+                  # the monitor UI's script is a hashed asset (assets/index-<hash>.js) that index.html references
+                  ASSET=$(grep -o 'assets/[^"]*\.js' /tmp/starwards-monitor.html | head -1)
+                  if [ -z "$ASSET" ]; then
+                      echo "monitor index.html references no assets/*.js script"
+                      cat /tmp/starwards-monitor.html
+                      exit 1
+                  fi
+                  BUNDLE=$(curl -s -u admin:admin -o /dev/null -w '%{http_code}' "http://localhost:8080/colyseus-monitor/$ASSET")
                   if [ "$BUNDLE" != "200" ]; then
-                      echo "monitor UI bundle.js returned $BUNDLE, expected 200"
+                      echo "monitor UI $ASSET returned $BUNDLE, expected 200"
                       exit 1
                   fi
 
