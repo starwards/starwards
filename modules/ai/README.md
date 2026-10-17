@@ -12,5 +12,5 @@ npm run read -- --recording <run.sgr> --station helms --t 40
 
 Jev seats read `TYPESAFE_API_KEY` from `modules/ai/.env` (git-ignored).
 
-The module has no build: its scripts run through ts-node and import MCP and server source directly.
+The module has no build: its scripts run through ts-node over core, `@starwards/bots` and server source. Live bots are seated from the GM roster and run in the server.
 The server runs the built `@starwards/core`, so run `npm run build:core` after a core change.

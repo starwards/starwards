@@ -2,12 +2,12 @@
 audience: both
 depth: deep
 source_of_truth:
-  - docker/docker-compose.yml
+    - docker/docker-compose.yml
 related:
-  - INTEGRATION.md
-  - integration/node-red.md
-  - integration/mqtt.md
-  - integration/open-stage-control.md
+    - INTEGRATION.md
+    - integration/node-red.md
+    - integration/mqtt.md
+    - integration/open-stage-control.md
 last_verified: 2026-08-18
 ---
 

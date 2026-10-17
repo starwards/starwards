@@ -5,7 +5,7 @@ source_of_truth:
     - modules/mcp
     - modules/core/src/stations-manifest.ts
     - modules/server/src/stations-manifest.ts
-    - modules/mcp/src/radar/radar-view.spec.ts
+    - modules/bots/src/session/radar-view.spec.ts
     - modules/mcp/src/testplay.spec.ts
 related:
     - INTEGRATION.md
@@ -26,7 +26,7 @@ a station: the widgets that station's screen draws are what it can read, the inp
 wires are what it can do, and its radar is filtered exactly as the browser filters it.
 
 The game server enforces none of this and is not meant to: isolating malicious players is a non-goal.
-The sandbox lives in the MCP server.
+The sandbox is the station-session layer of `@starwards/bots`, which the MCP server and the server-side bots share.
 
 ## Setup
 
@@ -74,7 +74,7 @@ View-state actions — zoom, pan, follow, client-local target cycling — have n
 nothing another client can observe, and an LLM always reads the full scope its widgets admit.
 
 **Multiplexed stations.** The MCP client adds `tactical`, one seat holding `helms` and `weapons`
-together ([`sandbox/multiplex.ts`](../../modules/mcp/src/sandbox/multiplex.ts)). It reads the union of
+together ([`sandbox/multiplex.ts`](../../modules/bots/src/session/multiplex.ts)). It reads the union of
 its members' widgets, so its radar and panels are exactly what the two seats see between them (pinned
 in `multiplex.spec.ts`); each command goes to the member session that holds it, `get_capabilities`
 tags every command with that `seat`, and `login` registers both member seats on the GM roster. It is
@@ -127,7 +127,7 @@ follows the panel's aspect ratio, is cut by range only. A seat holding several r
 union; the game master is not cut. The tactical radar's own shells, drawn past the field-of-view
 filter, are cut to its reach like every blip.
 
-`modules/mcp/src/radar/radar-view.spec.ts` asserts this against the browser's predicate directly,
+`modules/bots/src/session/radar-view.spec.ts` asserts this against the browser's predicate directly,
 per radar widget.
 
 ## The crew channel

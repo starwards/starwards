@@ -2,10 +2,10 @@
 audience: both
 depth: deep
 related:
-  - INTEGRATION.md
-  - integration/mqtt.md
-  - integration/docker.md
-  - json-ptr.md
+    - INTEGRATION.md
+    - integration/mqtt.md
+    - integration/docker.md
+    - json-ptr.md
 last_verified: 2026-08-18
 ---
 

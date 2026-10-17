@@ -2,9 +2,9 @@
 audience: both
 depth: light
 related:
-  - INTEGRATION.md
-  - integration/node-red.md
-  - integration/docker.md
+    - INTEGRATION.md
+    - integration/node-red.md
+    - integration/docker.md
 last_verified: 2026-08-18
 ---
 

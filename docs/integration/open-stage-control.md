@@ -2,15 +2,15 @@
 audience: both
 depth: deep
 source_of_truth:
-  - docker/osc
-  - docker/node-red/osc-bridge-flow.json
-  - modules/e2e/test/osc-bridge.spec.ts
+    - docker/osc
+    - docker/node-red/osc-bridge-flow.json
+    - modules/e2e/test/osc-bridge.spec.ts
 related:
-  - INTEGRATION.md
-  - integration/node-red.md
-  - integration/docker.md
-  - json-ptr.md
-  - DEPENDENCIES.md
+    - INTEGRATION.md
+    - integration/node-red.md
+    - integration/docker.md
+    - json-ptr.md
+    - DEPENDENCIES.md
 last_verified: 2026-08-18
 ---
 
@@ -86,10 +86,10 @@ Session JSON files live in `docker/osc/sessions/`. Each file maps to a bridge st
 
 ```json
 {
-  "type": "fader",
-  "id": "reactor_power",
-  "address": "/reactor/power",
-  "range": { "min": 0, "max": 1 }
+    "type": "fader",
+    "id": "reactor_power",
+    "address": "/reactor/power",
+    "range": { "min": 0, "max": 1 }
 }
 ```
 
@@ -102,6 +102,7 @@ Widgets need no `target` — the server-level `--send node-red:57120` default co
 When a client opens a session, the custom module walks the session JSON (`content` subtree), collects all widget addresses, and — after a 1 s delay so the client finishes loading before the initial values arrive — sends `/starwards/subscribe <address>` messages to Node-RED's subscribe port (`node-red:57121`, via the module-scripting `send()` API). Node-RED routes these to `ship-read` with `{ topic: address, subscribe: true }`.
 
 `ship-read` then:
+
 1. Emits the current value immediately (so widgets show correct state on load)
 2. Listens for future state changes and emits them (feedback path)
 
@@ -131,6 +132,7 @@ OSC_BRIDGE_URL=http://localhost:8090 npm run test:e2e -- osc-bridge.spec.ts
 The spec reaches Node-RED's UDP inputs through the host-published ports (`57123` → write path, `57121` → subscribe; see `docker-compose.yml`).
 
 The specs cover:
+
 - Write path (fader → UDP → ship state change)
 - Feedback path (ship state → widget display via subscribe)
 - Multi-controller (two clients see same state)
@@ -139,11 +141,11 @@ The specs cover:
 
 ## Key Facts (avoid common mistakes)
 
-| Mistake | Reality |
-|---|---|
-| `npm install open-stage-control` | Package doesn't exist; Docker image downloads `-node.zip` |
-| `--headless` / `--no-gui` flags | The node package is headless by default; no flag needed |
+| Mistake                              | Reality                                                                                              |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `npm install open-stage-control`     | Package doesn't exist; Docker image downloads `-node.zip`                                            |
+| `--headless` / `--no-gui` flags      | The node package is headless by default; no flag needed                                              |
 | Node-RED `udp out` without `outport` | Shares the `udp in` socket when ports collide and goes stale on redeploy — set a dedicated `outport` |
-| Widget DOM `id` attribute | DOM uses internal hash; Playwright reads via `el._widget_instance.getProp('id')` |
-| `?session=x.json` per tablet | Use `?id=<station>` + custom module `/SESSION/OPEN` |
-| Feedback loop via udp-out → O-S-C | Plain inbound match never re-emits; only `/SET`/interaction does |
+| Widget DOM `id` attribute            | DOM uses internal hash; Playwright reads via `el._widget_instance.getProp('id')`                     |
+| `?session=x.json` per tablet         | Use `?id=<station>` + custom module `/SESSION/OPEN`                                                  |
+| Feedback loop via udp-out → O-S-C    | Plain inbound match never re-emits; only `/SET`/interaction does                                     |
