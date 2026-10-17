@@ -1,4 +1,4 @@
-import { Derelict, Faction, ScanLevel, SpaceObject, Spaceship } from '../space';
+import { Derelict, Faction, ScanLevel, SpaceObject, Spaceship, isMissile } from '../space';
 
 /**
  * The scan level a player holds on an object. A GM view (no faction) sees everything; same-faction
@@ -21,7 +21,8 @@ export function playerScanLevel(o: SpaceObject, playerFaction: Faction | undefin
 
 /**
  * The contacts the signals station's target cycle steps through: every unidentified contact,
- * whatever it turns out to be, plus the ships already identified.
+ * whatever it turns out to be, plus the ships already identified and the identified missiles whose
+ * warhead is not yet read.
  *
  * Membership keys on scan level, never on type below BASIC — a cycle that visited exactly the
  * ships would tell the player which unidentified blips are ships just by being pressed. Above
@@ -39,7 +40,9 @@ export function scanCycleTargets(
             return false;
         }
         const scanLevel = playerScanLevel(o, playerFaction);
-        return scanLevel === ScanLevel.UFO || Spaceship.isInstance(o);
+        return (
+            scanLevel === ScanLevel.UFO || Spaceship.isInstance(o) || (isMissile(o) && scanLevel < ScanLevel.SNAPSHOT)
+        );
     });
 }
 
