@@ -28,6 +28,9 @@ function inputValues(panel: Locator) {
     return panel.locator('input').evaluateAll((inputs) => inputs.map((i) => (i as HTMLInputElement).value));
 }
 
+// first time the server saw the marked target, relative to the Signals page showing it as Contact
+const probe: { contactAt?: number; serverAt?: number; timer?: ReturnType<typeof setInterval> } = {};
+
 test.describe('Target Details screen', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
@@ -70,9 +73,16 @@ test.describe('Target Details screen', () => {
             // eslint-disable-next-line no-console
             console.error(
                 'page timing:',
-                JSON.stringify({ visibility, lateByMs, pages: page.context().pages().length }),
+                JSON.stringify({
+                    visibility,
+                    lateByMs,
+                    pages: page.context().pages().length,
+                    serverSawTargetAfterMs: probe.contactAt && probe.serverAt ? probe.serverAt - probe.contactAt : null,
+                }),
             );
         }
+        clearInterval(probe.timer);
+        probe.contactAt = probe.serverAt = undefined;
         await cleanupPageState(page);
     });
 
@@ -89,6 +99,12 @@ test.describe('Target Details screen', () => {
             await signals.keyboard.press(']');
         }
         expect(await getPropertyValue(signals, 'Track', 'Contact')).toBe(targetShipId);
+        probe.contactAt = Date.now();
+        probe.timer = setInterval(() => {
+            if (!probe.serverAt && gameDriver.getShip(shipId).state.signalsTargetId === targetShipId) {
+                probe.serverAt = Date.now();
+            }
+        }, 50);
         await expect.poll(() => getPropertyValue(page, 'Track', 'Target'), { timeout: 5000 }).toBe(targetShipId);
 
         await signals.keyboard.press("'");
