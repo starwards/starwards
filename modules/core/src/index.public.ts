@@ -134,13 +134,20 @@ export type { AssignStationArg, RegisterStationArg } from './stations';
 
 // --- stations-manifest ---
 export {
+    bridgeSeats,
     isAssignableSeat,
+    isBridgeSeat,
     isRadarWidget,
+    multiplexedStations,
+    rosterSeats,
+    seatOfScreen,
+    seatScreens,
     stationCommands,
     stationRadarWidgets,
     stationWidgets,
 } from './stations-manifest';
 export type {
+    BridgeSeat,
     StationCommand,
     StationEntry,
     StationRadarWidget,
