@@ -16,7 +16,7 @@ import { Room, Serializer } from '@colyseus/core';
 
 const { error: logError } = createLogger('ship-room');
 
-export class ShipRoom extends Room<ShipState> {
+export class ShipRoom extends Room<{ state: ShipState }> {
     /** set before `setState`, which would otherwise install a plain `SchemaSerializer` */
     private recordingSerializer: RecordingSerializer | null = null;
 

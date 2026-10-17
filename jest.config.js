@@ -16,7 +16,7 @@ const baseConfig = {
             },
         ],
     },
-    transformIgnorePatterns: ['node_modules/(?!(chai)/)'],
+    transformIgnorePatterns: ['node_modules/(?!(chai|rou3)/)'],
     modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {

@@ -21,6 +21,10 @@ export function setupPageErrorHandlers(page: Page): void {
         if (msg.type() === 'error') {
             // eslint-disable-next-line no-console
             console.error('Browser console error:', msg.text());
+        } else if (/colyseus|reconnect|refId|mismatch|connection/i.test(msg.text())) {
+            // the sdk reports drops and auto-reconnects at warn/info level only
+            // eslint-disable-next-line no-console
+            console.error(`Browser console ${msg.type()}:`, msg.text());
         }
     });
 }

@@ -15,10 +15,11 @@ last_verified: 2026-07-04
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| @colyseus/core | ^0.16.26 | Server framework (0.16.x line adopted; exact `0.16.26` via root `overrides`) |
-| @colyseus/schema | ^3.0.76 | Compatible with TS strict mode |
-| colyseus.js | ^0.16.22 | Must match server version |
-| @colyseus/ws-transport | ^0.16.5 | Stable WebSocket |
+| @colyseus/core | ^0.18.19 | Server framework (0.18.x line) |
+| @colyseus/schema | ^5.0.40 | Declared in every module that touches schema, so one copy is installed |
+| @colyseus/sdk | ^0.18.5 | Client SDK (the 0.18 successor of `colyseus.js`); must match server version |
+| @colyseus/ws-transport | ^0.18.4 | Stable WebSocket |
+| colyseus-events | ^4.2.0 | First release supporting @colyseus/schema 5 |
 
 ## State & Logic
 
@@ -67,19 +68,10 @@ own, `tsc` did not report a mismatch — it exhausted a 4 GB heap trying to comp
 that had been fine moments earlier. Any module that adds zod must land on the same copy; check with
 `npm ls zod --all` and confirm no `modules/*/node_modules/zod` exists.
 
-**`@colyseus/core` is pinned to `0.16.26`** via root `overrides`. `0.16.25` was published with an
-unresolved pnpm workspace specifier (`"@colyseus/greeting-banner": "workspace:^"`) that broke every
-lockfile-free install; `0.16.26`
-republished it as `^2.0.6`. The override stays so `@colyseus/ws-transport`'s own `@colyseus/core`
-range cannot pull in a second copy.
-
-**`@colyseus/msgpackr` must resolve to exactly one copy** (`^1.11.3`, matching colyseus.js's
-`^1.11.2` range). `modules/core/src/serialization-buffers.ts` grows msgpackr's module-level buffer;
-a second copy silently undoes it. `npm ls @colyseus/msgpackr --all` must show one version.
-
 **State-buffer workaround (#2402)** — `modules/server/src/serialization/detach-state-buffers.ts`
 copies each encoded patch before sending. Keep it until upstream colyseus/colyseus#987 ("detach
-encoded state and patch buffers") ships in a release we use; as of 0.16.26 / 0.18.19 it is unmerged.
+encoded state and patch buffers") ships in a release we use; as of 0.18.19 it is unmerged
+(`state-patch-backpressure.spec.ts` guards it).
 
 Note that npm will keep reinstalling a nested copy while `package-lock.json` still has an entry for
 it, even after the override is added — delete the `modules/*/node_modules/zod` entry from the lockfile
@@ -100,9 +92,7 @@ and reinstall.
 | golden-layout | 2.x | Complete rewrite, incompatible | **NO UPGRADE** |
 | @arwes/react | 1.0.0-next (pre-release) | API may change before 1.0 | Monitoring |
 | eslint | 10.x | eslint-plugin-react peers cap at ^9.7 | Blocked on plugin |
-| colyseus | 0.17/0.18 | Breaking 0.x line (0.16.x adopted); needs @colyseus/schema 5, client moves to `@colyseus/sdk`, and `colyseus-events` 4.1.0 (latest) peers on schema `^3` | Dedicated migration |
 | esbuild | 0.26+ | Breaking 0.x minors | Held at 0.25.x |
-| @colyseus/core | 0.16.25 | Published with `workspace:^` in its manifest; breaks every lockfile-free `npm install` | Skipped; pinned to 0.16.26 via root `overrides` |
 | zod | any second copy | Duplicate copies make `tsc` OOM rather than error (see Version Pins) | Pinned via root `overrides` |
 
 ## Upgrade Checklist

@@ -261,16 +261,17 @@ export function isCommandable(instance: object, field: string | number | symbol)
 }
 
 /**
- * Colyseus@3 stores each field's {get, set} descriptor pair in class
+ * @colyseus/schema 5 stores each field's {get, set} descriptor pair in class
  * metadata (keyed by the well-known `Symbol.metadata`, under a `~descriptors`
- * property — see `@colyseus/schema`'s `Metadata.addField`/`getPropertyDescriptor`)
- * rather than defining it on the prototype at decoration time; the descriptor
- * is only applied per-instance (`Object.defineProperties(instance, ...)`)
- * inside the `Schema` constructor. `Symbol.for('Symbol.metadata')` is used
- * instead of the bare `Symbol.metadata` global so this doesn't depend on a
- * particular TS `lib`/polyfill ordering — `@colyseus/schema` seeds the same
- * registry symbol (`Symbol.metadata ??= Symbol.for('Symbol.metadata')`) on
- * import, so a registry lookup always resolves to the identical symbol.
+ * property — see `@colyseus/schema`'s `Metadata.addField`) and installs a copy
+ * of it on the class prototype at decoration time (`Object.defineProperty`).
+ * Since the prototype holds a copy, wrapping the setter means updating both
+ * the metadata entry (inherited by subclasses' metadata) and the prototype.
+ * `Symbol.for('Symbol.metadata')` is used instead of the bare
+ * `Symbol.metadata` global so this doesn't depend on a particular TS
+ * `lib`/polyfill ordering — `@colyseus/schema` seeds the same registry symbol
+ * (`Symbol.metadata ??= Symbol.for('Symbol.metadata')`) on import, so a
+ * registry lookup always resolves to the identical symbol.
  */
 const SCHEMA_METADATA_KEY = Symbol.for('Symbol.metadata');
 const SCHEMA_DESCRIPTORS_KEY = '~descriptors';
@@ -339,6 +340,9 @@ function withLockGuard(decorator: PropertyDecorator): PropertyDecorator {
             }
             originalSetter.call(this, value);
         };
+        if (Object.getOwnPropertyDescriptor(target, field)?.set === originalSetter) {
+            Object.defineProperty(target, field, descriptor);
+        }
     };
 }
 

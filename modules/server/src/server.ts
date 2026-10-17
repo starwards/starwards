@@ -245,6 +245,14 @@ export async function server(
     });
 
     await gameServer.listen(port);
+    // Clients use the endpoint `<host>/colyseus` (the webpack dev proxy forwards that prefix as-is).
+    // Colyseus 0.16 matched `/matchmake/` anywhere in the URL; 0.18 routes exact paths, so strip the
+    // prefix ahead of the router that listen() registered. WS upgrades match the room id by suffix.
+    httpServer.prependListener('request', (req: http.IncomingMessage) => {
+        if (req.url) {
+            req.url = req.url.replace(/^\/+colyseus(?=\/matchmake\/)/, '');
+        }
+    });
     const addressInfo = httpServer.address() as AddressInfo;
     boundPort = addressInfo.port;
     // console.log(`Listening on port ${addressInfo.port}`);
@@ -262,13 +270,12 @@ export async function server(
             // keeps Jest worker processes alive.  Calling reset(true) here clears the
             // pending timeout and force-flushes the counters before state becomes
             // SHUTTING_DOWN (at which point Stats.persist() becomes a no-op).
-            // @colyseus/core/package.json restricts sub-path exports, so we resolve
-            // Stats.js via the package entry-point directory rather than a named export.
+            // `@colyseus/core/Stats` resolves through the same export conditions as `@colyseus/core`
+            // (the ESM build under node's `module-sync`), so this is the instance the matchmaker uses.
             // A single executable has no node_modules to resolve from, and only tests call close().
             if (!isSingleExecutable) {
-                const statsPath = path.join(path.dirname(require.resolve('@colyseus/core')), 'Stats.js');
                 // eslint-disable-next-line @typescript-eslint/no-require-imports
-                const Stats = require(statsPath) as { reset: (persist?: boolean) => void };
+                const Stats = require('@colyseus/core/Stats') as { reset: (persist?: boolean) => void };
                 Stats.reset(true);
             }
             await gameServer.gracefullyShutdown(false);

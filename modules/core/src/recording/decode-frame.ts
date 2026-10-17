@@ -1,4 +1,5 @@
-import { Decoder, Schema } from '@colyseus/schema';
+import { ConstructingDecoder } from '../constructing-decoder';
+import { Schema } from '@colyseus/schema';
 
 type Constructor<T extends Schema> = new (...args: never[]) => T;
 
@@ -27,6 +28,6 @@ export async function decodeRecordedBytes(serialized: string): Promise<Uint8Arra
  */
 export async function decodeFrame<T extends Schema>(ctor: Constructor<T>, serialized: string): Promise<T> {
     const obj = new ctor();
-    new Decoder(obj).decode((await decodeRecordedBytes(serialized)) as never);
+    new ConstructingDecoder(obj).decode(await decodeRecordedBytes(serialized));
     return obj;
 }

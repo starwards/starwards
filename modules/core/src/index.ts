@@ -23,6 +23,7 @@ export * from './async-utils';
 export * from './client';
 export * from './commands';
 export * from './configurations';
+export * from './constructing-decoder';
 export * from './events';
 export * from './game-field';
 export * from './id';

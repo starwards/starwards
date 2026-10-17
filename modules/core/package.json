@@ -47,10 +47,8 @@
         "build:watch": "tsup-node --watch"
     },
     "dependencies": {
-        "@colyseus/msgpackr": "^1.11.3",
-        "@colyseus/schema": "^3.0.76",
-        "colyseus-events": "^4.1.0",
-        "colyseus.js": "^0.16.22",
+        "@colyseus/schema": "^5.0.40",
+        "colyseus-events": "^4.2.0",
         "debug": "4.4.3",
         "detect-collisions": "^10.10.2025",
         "eventemitter2": "^6.4.9",
@@ -59,7 +57,8 @@
         "ts-essentials": "^10.2.1",
         "tslib": "^2.8.1",
         "ws": "^8.21.0",
-        "xstate": "^5.32.4"
+        "xstate": "^5.32.4",
+        "@colyseus/sdk": "^0.18.5"
     },
     "devDependencies": {
         "@starwards/server": "0.0.0"

@@ -2,7 +2,7 @@ import { Primitive, wireEvents } from 'colyseus-events';
 import { RoomEventEmitter, getSystems, sendGmJsonCmd, sendJsonCmd } from '..';
 
 import EventEmitter2 from 'eventemitter2';
-import { Room } from 'colyseus.js';
+import { Room } from '@colyseus/sdk';
 import { ShipState } from '../ship';
 import { StateCommand } from '../commands';
 import { waitForEvents } from '../async-utils';
@@ -15,7 +15,7 @@ const emitter2Options = {
     maxListeners: 0,
 };
 
-export async function ShipDriver(shipRoom: Room<ShipState>) {
+export async function ShipDriver(shipRoom: Room<unknown, ShipState>) {
     const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
     // wire commulative events
     events.on('/armor/armorPlates/*/layers/*/health', (e) => {

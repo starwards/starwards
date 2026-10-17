@@ -16,10 +16,13 @@ async function bundleServer() {
         target: 'node24',
         format: 'cjs',
         conditions: ['require', 'node'],
-        // @colyseus/monitor's ESM build locates its UI relative to import.meta.url, which a CommonJS bundle lacks.
-        // Resolving it against the bundle puts the UI at dist/build/static (see post-build.js).
-        banner: { js: "var import_meta_url = require('url').pathToFileURL(__filename).href;" },
-        define: { 'import.meta.url': 'import_meta_url' },
+        // @colyseus/monitor's ESM build locates its UI relative to import.meta.url (0.16) or import.meta.dirname
+        // (0.18), which a CommonJS bundle lacks. Resolving either against the bundle puts the UI at
+        // dist/build/static (see post-build.js).
+        banner: {
+            js: "var import_meta_url = require('url').pathToFileURL(__filename).href; var import_meta_dirname = __dirname;",
+        },
+        define: { 'import.meta.url': 'import_meta_url', 'import.meta.dirname': 'import_meta_dirname' },
         // optional native/peer modules, each loaded inside a try/catch that tolerates their absence
         external: ['msgpackr-extract', '@pm2/io'],
         // server.ts resolves @colyseus/core's Stats.js by path, and only outside a single executable

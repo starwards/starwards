@@ -28,13 +28,100 @@ function inputValues(panel: Locator) {
     return panel.locator('input').evaluateAll((inputs) => inputs.map((i) => (i as HTMLInputElement).value));
 }
 
+// first time the server saw the marked target, relative to the Signals page showing it as Contact
+// the game may already be gone when a failed test reaches afterEach
+function serverShip(id: string) {
+    try {
+        return gameDriver.getShip(id).state;
+    } catch {
+        return undefined;
+    }
+}
+
+const probe: { contactAt?: number; serverAt?: number; timer?: ReturnType<typeof setInterval> } = {};
+
 test.describe('Target Details screen', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(two_ships);
     });
 
-    test.afterEach(async ({ page }) => {
+    test.afterEach(async ({ page }, testInfo) => {
+        clearInterval(probe.timer);
+        if (testInfo.status !== testInfo.expectedStatus) {
+            // bisects server vs client when the page never shows the expected target data
+            const ship = serverShip(shipId);
+            const target = serverShip(targetShipId);
+            // eslint-disable-next-line no-console
+            console.error(
+                'server state:',
+                JSON.stringify({
+                    signalsTargetId: ship?.signalsTargetId,
+                    tubes: target ? [...target.tubes].map((t) => t.loadedProjectile) : null,
+                }),
+            );
+            // what the page shows, to tell a stale client from a slow render
+            const shown = await page
+                .evaluate(() => ({
+                    inputs: [...document.querySelectorAll('input')].map((i) => i.value),
+                    panels: [...document.querySelectorAll('[data-id]')].map((e) => e.getAttribute('data-id')),
+                }))
+                .catch((e: unknown) => String(e));
+            // eslint-disable-next-line no-console
+            console.error('page shows:', JSON.stringify(shown));
+            // main-thread health of every open tab: a 1 s window of timer drift and animation frames
+            const health = await Promise.all(
+                page
+                    .context()
+                    .pages()
+                    .map((pg) =>
+                        pg
+                            .evaluate(
+                                () =>
+                                    new Promise<{ driftMs: number; frames: number }>((resolve) => {
+                                        const t0 = performance.now();
+                                        let frames = 0;
+                                        const tick = () => {
+                                            frames++;
+                                            requestAnimationFrame(tick);
+                                        };
+                                        requestAnimationFrame(tick);
+                                        setTimeout(
+                                            () =>
+                                                resolve({ driftMs: Math.round(performance.now() - t0 - 1000), frames }),
+                                            1000,
+                                        );
+                                    }),
+                            )
+                            .catch(() => null),
+                    ),
+            );
+            // eslint-disable-next-line no-console
+            console.error('page health (1s window):', JSON.stringify(health));
+            const visibility = await page.evaluate(() => document.visibilityState).catch(() => 'n/a');
+            const started = Date.now();
+            let lateByMs: number | string = 'never';
+            while (Date.now() - started < 15000) {
+                const track = await getPropertyValue(page, 'Track', 'Target').catch(() => undefined);
+                if (track === targetShipId) {
+                    lateByMs = Date.now() - started;
+                    break;
+                }
+                await page.waitForTimeout(250);
+            }
+            // eslint-disable-next-line no-console
+            console.error(
+                'page timing:',
+                JSON.stringify({
+                    visibility,
+                    lateByMs,
+                    pages: page.context().pages().length,
+                    serverSawTargetAfterMs: probe.contactAt && probe.serverAt ? probe.serverAt - probe.contactAt : null,
+                }),
+            );
+        }
+        clearInterval(probe.timer);
+        probe.contactAt = probe.serverAt = undefined;
         await cleanupPageState(page);
     });
 
@@ -51,6 +138,12 @@ test.describe('Target Details screen', () => {
             await signals.keyboard.press(']');
         }
         expect(await getPropertyValue(signals, 'Track', 'Contact')).toBe(targetShipId);
+        probe.contactAt = Date.now();
+        probe.timer = setInterval(() => {
+            if (!probe.serverAt && serverShip(shipId)?.signalsTargetId === targetShipId) {
+                probe.serverAt = Date.now();
+            }
+        }, 50);
         await expect.poll(() => getPropertyValue(page, 'Track', 'Target'), { timeout: 5000 }).toBe(targetShipId);
 
         await signals.keyboard.press("'");
@@ -151,7 +244,21 @@ test.describe('Target internals stay on Target Details', () => {
         setTargetScanLevel(ScanLevel.FULL);
     });
 
-    test.afterEach(async ({ page }) => {
+    test.afterEach(async ({ page }, testInfo) => {
+        clearInterval(probe.timer);
+        if (testInfo.status !== testInfo.expectedStatus) {
+            // bisects server vs client when the page never shows the expected target data
+            const ship = serverShip(shipId);
+            const target = serverShip(targetShipId);
+            // eslint-disable-next-line no-console
+            console.error(
+                'server state:',
+                JSON.stringify({
+                    signalsTargetId: ship?.signalsTargetId,
+                    tubes: target ? [...target.tubes].map((t) => t.loadedProjectile) : null,
+                }),
+            );
+        }
         await cleanupPageState(page);
     });
 

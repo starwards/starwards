@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 
 import { Schema } from '@colyseus/schema';
+import { getFieldsList } from './traverse';
 
 const tweakablePropertyMetadataKey = Symbol('tweakable:propertyMetadata');
 
@@ -55,7 +56,9 @@ export function hasTweakableMetadata(instance: object, field: string): boolean {
 
 export function getTweakables(state: Schema) {
     const tweakables: TweakableValue[] = [];
-    for (const field of Object.keys(state)) {
+    // @colyseus/schema 5 installs field accessors on the prototype, so fields aren't own keys
+    const fields = new Set<string>([...Object.keys(state), ...(getFieldsList(state) as string[])]);
+    for (const field of fields) {
         const data = Reflect.getMetadata(tweakablePropertyMetadataKey, state, field) as TweakableMetadata;
         if (data) {
             if (isTweakableValue(data)) {

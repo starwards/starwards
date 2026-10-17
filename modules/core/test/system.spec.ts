@@ -30,12 +30,14 @@ class Target extends SystemState {
     property = 0;
 
     /**
-     * here to keep in mind that getters are NOT detected
+     * A `@gameField` getter: TS re-installs the getter over the accessor @colyseus/schema 5 puts on
+     * the prototype, so it is read (and detected) like a field. It returns the normal value so it
+     * doesn't count as damage.
      */
     @defectible(DEFECTIBLE)
     @gameField('number')
     get propertyGetter() {
-        return 3;
+        return DEFECTIBLE.normal;
     }
 }
 
@@ -128,7 +130,8 @@ describe('defectible', () => {
         expect(m).to.include.deep.members([
             { ...DEFECTIBLE, systemPointer: '', field: 'property', value: 1 },
             { ...DEFECTIBLE, systemPointer: '/array/0', field: 'property', value: 2 },
+            { ...DEFECTIBLE, systemPointer: '', field: 'propertyGetter', value: DEFECTIBLE.normal },
         ]);
-        expect(m).to.have.length(2);
+        expect(m).to.have.length(3);
     });
 });

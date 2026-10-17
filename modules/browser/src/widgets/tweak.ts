@@ -368,7 +368,7 @@ const singleSelectionDetails = async (
             // `broken` is a computed `abstract readonly boolean` getter (system.ts) derived from
             // the defectible factors above, not a @gameField — there is no write to lock.
             // Turret.bearingCommand is a getter over the synced bearingCommandRaw, so it's not an
-            // own enumerable property of the instance — getTweakables()'s Object.keys(state) sweep
+            // own property or schema field — getTweakables()'s sweep
             // (below, via addTweakables) never finds it. Wire it explicitly instead.
             if ('bearingCommandRaw' in system.state) {
                 const fieldPointer = `${system.pointer}/bearingCommand`;

@@ -18,9 +18,12 @@ const reset = SchemaSerializer.prototype.reset;
 SchemaSerializer.prototype.reset = function (this: SchemaSerializer<Schema>, ...args) {
     reset.apply(this, args);
     const encoder = this.encoder as Encoder;
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- re-bound via apply below
-    const encode = encoder.encode;
-    encoder.encode = function (this: Encoder, ...encodeArgs: Parameters<Encoder['encode']>) {
-        return Buffer.from(encode.apply(this, encodeArgs));
-    };
+    // schema 5's full-state paths (encodeAll -> encodeFullSync, and the StateView variants) never go
+    // through encode() and return views of their own reused buffers, so each is copied too.
+    for (const method of ['encode', 'encodeAll', 'encodeAllView', 'encodeView'] as const) {
+        const original = encoder[method] as (...a: unknown[]) => Uint8Array;
+        (encoder[method] as unknown) = function (this: Encoder, ...a: unknown[]) {
+            return Buffer.from(original.apply(this, a));
+        };
+    }
 };
