@@ -364,21 +364,21 @@ energy, ammo and heat), `enemies`, `mission`, `space`. Each level names its rung
 benchmarks, seeds, timeout, plateau criterion (no gain in its metric beyond seed noise for N versions)
 and acceptance thresholds (kill rate, median time to kill per rung).
 
-| Level | Axis                          | Plays                                                                                 | Seeds | Accept              |
-| ----- | ----------------------------- | ------------------------------------------------------------------------------------- | ----- | ------------------- |
-| L0    | baseline                      | `T0` and every station benchmark                                                      | 1–8   | 7/8, median ≤ 120 s |
-| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                              | 1–16  | 75%                 |
-| L1    | threat                        | `T1-lite`                                                                             | 1–16  | 75%                 |
-| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                   | 1–8   | 50%                 |
-| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                           | 1–16  | 50%                 |
-| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                           | 1–16  | 25%                 |
-| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained`, 300 s | 1–16  | 75%                 |
-| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                               |       |                     |
+| Level | Axis                          | Plays                                                                                                                 | Seeds | Accept              |
+| ----- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----- | ------------------- |
+| L0    | baseline                      | `T0` and every station benchmark                                                                                      | 1–8   | 7/8, median ≤ 120 s |
+| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                                                              | 1–16  | 75%                 |
+| L1    | threat                        | `T1-lite`                                                                                                             | 1–16  | 75%                 |
+| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                                                   | 1–8   | 50%                 |
+| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                                                           | 1–16  | 50%                 |
+| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                                                           | 1–16  | 25%                 |
+| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained` and with 3–6 missiles per stock, 300 s | 1–16  | 62.5%               |
+| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                                                               |       |                     |
 
 `T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
 `T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds. On `T2`
 (`createTrainingT2Map`) a run counts as a kill only when both attackers die; reports also count
-attackers killed (`kills` of `enemies` per run), and per-target columns read the first attacker. `T2-constrained` is `T2` with `T0-constrained`'s starting energy, shells and gun heat.
+attackers killed (`kills` of `enemies` per run), and per-target columns read the first attacker. `T2-constrained` is `T2` with `T0-constrained`'s starting energy, shells and gun heat, and 3–6 missiles in each missile stock (`T0Lab.playerMissiles`).
 
 Suite baselines with every station radar cut to its reach. The `reference` row is the committed
 baseline ([`curriculum/baselines/reference.json`](../../modules/ai/curriculum/baselines/reference.json),
@@ -386,11 +386,11 @@ the numbers `suite` checks regressions against); a re-run lands within seed nois
 
 | Crew          | L0 `T0`      | L0b `T0-wide` | L1 `T1-lite`  | L2 `T0-constrained` | L3 `T1`       | L4 `T2`       | L5 `T2-constrained` |
 | ------------- | ------------ | ------------- | ------------- | ------------------- | ------------- | ------------- | ------------------- |
-| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 16/16, 21.2 s | 7/8, 97.2 s         | 16/16, 38.7 s | 16/16, 79.0 s | 16/16, 87.1 s       |
+| `reference`   | 8/8, 74.1 s  | 16/16, 65.1 s | 16/16, 21.2 s | 7/8, 97.2 s         | 16/16, 38.7 s | 16/16, 79.0 s | 6/16, 73.4 s        |
 | `recommended` | 7/8, 132.6 s | not played    | 10/16, 61.6 s | not played          | not played    | not played    | not played          |
 | `idle`        | 0/8          | not played    | 0/16          | not played          | 0/16          | 0/16          | 0/16                |
 
-Reports: `training-archive/2026-10-14/suite/reference-224228/` and `idle-224614/` (L5), `training-archive/2026-10-10/suite/reference-015256/` and `idle-015811/` (L4),
+Reports: `training-archive/2026-10-17/suite/reference-012205/` and `idle-014115/` (L5 with the missile cap), `training-archive/2026-10-14/suite/reference-224228/` and `idle-224614/` (L5 before it), `training-archive/2026-10-10/suite/reference-015256/` and `idle-015811/` (L4),
 `training-archive/2026-10-09/suite/idle-211042/` (L3),
 `training-archive/2026-10-02/suite/recommended-081501/` (L0) and
 `recommended-083320/` (L1). The recommended crew fails both levels it played (L0 accept needs a
