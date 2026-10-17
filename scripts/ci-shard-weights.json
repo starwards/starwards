@@ -13,7 +13,6 @@
         "modules/core/test/automation-order-default-fire.spec.ts": 33,
         "modules/ai/src/training/train-crew.spec.ts": 32,
         "modules/core/test/helm-assist-move.spec.ts": 32,
-        "modules/ai/src/live/live-crew.spec.ts": 26,
         "modules/server/src/test/headless-game.spec.ts": 24,
         "modules/core/test/helm-assist-speed.spec.ts": 21,
         "modules/server/src/test/training/analysis/extract.spec.ts": 15,
