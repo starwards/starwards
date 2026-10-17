@@ -535,7 +535,7 @@ export function createWaveDefenceMap(
                 );
                 // Stations have no engineer to raise power off the idle default, so radar range
                 // (which scales with sqrt(effectiveness)) would otherwise sit at ~71% of design
-                // range forever -- short of the 120km line this map's spawn distances assume.
+                // range forever -- the omni's 25km and the auto-swept scan beam's 100km alike.
                 // Scenario-local per the #2084 design redirect: other maps/NPCs keep the default.
                 for (const radar of stationApi.state.radars) {
                     radar.power = PowerLevel.MAX;

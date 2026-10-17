@@ -17,6 +17,7 @@ import { EnergyManager } from './energy-manager';
 import { IterationData } from '../updateable';
 import { MovementManager } from './movement-manager';
 import { RepairManager } from './repair-manager';
+import { ScanBeamAutomation } from './scan-beam-automation';
 import { SpaceManager } from '../logic/space-manager';
 
 export class ShipManagerPc extends ShipManager implements PcShipApi {
@@ -99,6 +100,8 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
 export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     readonly isPlayerShip = false;
     private readonly aggro = new AggroManager();
+    /** Nobody crews a station's or platform's signals, so their scan beams sweep and follow on their own (M4.31). */
+    private readonly scanBeams: ScanBeamAutomation | null;
 
     constructor(
         spaceObject: DeepReadonly<Spaceship>,
@@ -122,6 +125,8 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
          */
         this.internalProxy.drawEnergy = () => 1;
         this.damageManager.onWeaponHit = (attackerId, amount) => this.aggro.noteHit(attackerId, amount);
+        this.scanBeams =
+            this.state.smartPilot.design.maxSpeed === 0 ? new ScanBeamAutomation(this.state, spaceManager) : null;
     }
 
     /** Sets how this NPC's aggro reacts to attackers; `null` keeps it on its standing order. */
@@ -151,6 +156,7 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
             this.aggro.forget(heldId);
         }
         this.state.aggroTargetId = this.aggro.heldId ?? '';
+        this.scanBeams?.update();
     }
 
     private handleManeuvering(deltaSeconds: number) {

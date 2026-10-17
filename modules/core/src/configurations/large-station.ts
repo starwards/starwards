@@ -14,7 +14,7 @@ export const largeStationOmniRadar = {
     isInternal: false,
     isElectronics: true,
     damage50: 20,
-    range: 120_000,
+    range: 25_000,
     minArc: 360,
     maxArc: 360,
     defaultArc: 360,
