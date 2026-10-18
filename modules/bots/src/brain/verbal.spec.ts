@@ -127,6 +127,7 @@ describe('verbal panels', () => {
                     turnSpeed: -10,
                     rotationMode: SmartPilotMode.TARGET,
                     rotationCommand: 0,
+                    targetLocked: true,
                     maneuveringMode: SmartPilotMode.DIRECT,
                     maneuveringCommand: { x: 0.5, y: -0.25 },
                     afterBurner: 0,
@@ -140,6 +141,7 @@ describe('verbal panels', () => {
         expect(lines).toEqual([
             'Heading 45°, speed 120 m/s, turning 10°/s left.',
             'Rotation mode TARGET: the nose follows the weapons target by itself; rotation keys set to 0.00.',
+            'Weapons holds a target lock: the line on the radar links the ship to it.',
             'Maneuvering mode DIRECT; boost set to 0.50, strafe set to -0.25.',
             'Afterburner off, anti-drift held, brakes off. Energy 900, afterburner fuel 50.',
         ]);

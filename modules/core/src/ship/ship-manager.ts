@@ -44,7 +44,8 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
             SmartPilotMode.DIRECT,
         );
         this.smartPilotRotationMode = new StatesToggle<SmartPilotMode>(
-            (s) => this.setSmartPilotRotationMode(s),
+            // with no weapons target, cycling skips TARGET rather than asking for it
+            (s) => (s !== SmartPilotMode.TARGET || this.weaponsTarget) && this.setSmartPilotRotationMode(s),
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET,
         );
