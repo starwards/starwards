@@ -11,6 +11,7 @@
 #                button sets read button:<station>:<control>
 #   SEEDS        seeds per cycle; BUDGET branches per cycle (branch); CREWS crews (sweep; the first is the reference)
 #   SEEDS_BY_RUNG  per-rung seeds per cycle, e.g. W-waves=24 (default SEEDS)
+#   WORKERS_BY_RUNG  per-rung workers (default W-waves=2: 4 W-waves workers ran out of 7 GiB)
 #   TIMEOUTS     per-rung run timeout, e.g. W-waves=1800 (default: run-job's)
 #
 # State lives under ARCHIVE/mining (outside the day folders, so retention keeps it):
@@ -45,6 +46,10 @@ nrungs=$(count "$RUNGS" ,)
 rung=$(pick "$RUNGS" , $((cycle % nrungs)))
 seeds=$(printf '%s' "${SEEDS_BY_RUNG:-}" | tr ',' '\n' | sed -n "s/^$rung=//p")
 seeds=${seeds:-${SEEDS:-4}}
+# a rung whose runs outgrow 1.5 GiB per worker plays on fewer workers in the same pod
+w=$(printf '%s' "${WORKERS_BY_RUNG:-W-waves=2}" | tr ',' '
+' | sed -n "s/^$rung=//p")
+[ -n "$w" ] && export WORKERS=$w
 # lanes draw from disjoint seed blocks far above the curriculum's 1-16: held out from every baseline
 case "$LANE" in branch) base=1000000 ;; sweep) base=5000000 ;; *) base=9000000 ;; esac
 first=$((base + cycle * 1000))
