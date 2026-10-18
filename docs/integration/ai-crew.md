@@ -174,7 +174,7 @@ a display that does not show the value says nothing.
 | `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                                         | "gun skewed 8° left"                                      |
 | `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km                        | "contact UFO-12 at 7.4 km, 20° left of the nose"          |
 | `enemyContact`  | signals  | nearest identified enemy ship on its radar; range change since its previous decision | "enemy raider at 42.3 km, 30° right of the nose, closing" |
-| `closeOrder`    | captain  | nearest identified enemy ship on the dradis; the launch band's far edge less 2 km    | "close to 18 km of raider, now 52.3 km at bearing 045"    |
+| `closeOrder`    | captain  | nearest identified enemy ship on the dradis; the launch band's far edge less 2 km    | "close to 2 km of raider, now 52.3 km at bearing 045"     |
 | `engageOrder`   | captain  | nearest identified enemy ship on the dradis                                          | "engage raider"                                           |
 
 The filled values travel with the phrase (`values` on what a listener hears), so a rule-based

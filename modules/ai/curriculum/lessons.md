@@ -413,7 +413,7 @@ Not filed. Draft text:
 - **Reuse:** a candidate on L5 starts with a weapons rule to change tube ammo when the loaded stock is empty or
   low; read missiles left per stock in the display before tuning anything else.
 
-### Missile deadly range — one GVTS missile vs a dragonfly-MK1 (2026-10-18)
+### Missile deadly range — one GVTS missile vs a dragonfly-MK1 (2026-10-18, after the projectile hit-check fix)
 
 - **Instrument:** `npm --prefix modules/server run missile-range -- --ammo <ammo> --motion <motion> --ranges <km> --seeds 8`
   (`modules/server/src/test/training/missile-range.ts`), seeds 1-8 per cell. One missile from GVTS tube 0; the lock
@@ -427,15 +427,15 @@ HiExp missile, P(hit):
 
 | launch km | still | flee 600 | flee 1200 | cross 600 | cross 1200 |
 | --------: | ----: | -------: | --------: | --------: | ---------: |
-|         2 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         3 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         4 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         5 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|         6 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|         7 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|         8 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|         9 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        10 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
+|         2 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
+|         3 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         4 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         5 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|         6 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|         7 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|         8 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|         9 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|        10 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
 |        15 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
 |        20 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
 |        25 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
@@ -449,21 +449,21 @@ ArmPen missile, P(hit):
 
 | launch km | still | flee 600 | flee 1200 | cross 600 | cross 1200 |
 | --------: | ----: | -------: | --------: | --------: | ---------: |
-|         2 |  1.00 |     0.00 |      0.00 |      0.25 |       0.00 |
-|         3 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|         4 |  1.00 |     0.00 |      0.00 |      0.38 |       0.00 |
-|         5 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|         6 |  1.00 |     0.00 |      0.00 |      0.25 |       0.00 |
-|         7 |  1.00 |     0.00 |      0.00 |      0.25 |       0.00 |
-|         8 |  1.00 |     0.00 |      0.00 |      0.38 |       0.00 |
-|         9 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        10 |  1.00 |     0.00 |      0.00 |      0.25 |       0.00 |
-|        15 |  1.00 |     0.00 |      0.00 |      0.38 |       0.00 |
-|        20 |  1.00 |     0.00 |      0.00 |      0.88 |       0.00 |
-|        25 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        30 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
+|         2 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
+|         3 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
+|         4 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
+|         5 |  1.00 |     1.00 |      0.00 |      1.00 |       1.00 |
+|         6 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         7 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         8 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         9 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|        10 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|        15 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|        20 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|        25 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|        30 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
 |        35 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        40 |  0.00 |     0.00 |      0.00 |      0.00 |       0.00 |
+|        40 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
 |        45 |  0.00 |     0.00 |      0.00 |      0.00 |       0.00 |
 |        50 |  0.00 |     0.00 |      0.00 |      0.00 |       0.00 |
 
@@ -471,37 +471,31 @@ Elec missile, P(hit):
 
 | launch km | still | flee 600 | flee 1200 | cross 600 | cross 1200 |
 | --------: | ----: | -------: | --------: | --------: | ---------: |
-|         2 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         3 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         4 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         5 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         6 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         7 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         8 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         9 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        10 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        15 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
+|         2 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
+|         3 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
+|         4 |  1.00 |     1.00 |      0.00 |      1.00 |       0.38 |
+|         5 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         6 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         7 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         8 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|         9 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|        10 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
+|        15 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
 |        20 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
 |        25 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
 |        30 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
 |        35 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        40 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
+|        40 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
 |        45 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
 |        50 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
 
-- **Deadly range** (max launch range with P(hit) ≥ 0.8 against a fleeing target): **none** for any ammo, at any
-  range from 2 km. HiExp flies 600 m/s, the dragonfly's speed without afterburner; during the 2 s unpowered launch
-  (`MISSILE_LAUNCH`) the target opens past the 3 km terminal sprint, and the missile never closes.
-- **Contact fuze stern chase:** ArmPen (960 m/s) and Elec (780 m/s) outrun a target fleeing at 600 m/s and still
-  never hit. Trace (ArmPen, seed 1, 5 km): the missile closes to 21 m between centres and trails there for 30 s
-  until it expires. Inference: the projectile raycast in `SpaceManager.applyPhysics` tests against the target's
-  body from the previous tick, so the missile stops at the old surface and the target has moved 10 m on before
-  the collision check. The same likely explains ArmPen's erratic crossing column. A core bug, not fixed here.
-- **Not changed:** `MISSILE_LAUNCH_BAND_METERS` (bots `engagement.ts`, shared with the weapons KPI and the captain's orders) keeps
-  1-20 km. The fleeing definition gives no range to set it to; the value waits on a ruling.
-- **Lesson:** against a target that runs from launch, the tube is a still- or slow-target weapon: HiExp reaches
-  45 km still, 4 km crossing. A fleeing dragonfly at cruise is untouchable by any missile while the stern-chase
-  bug stands.
+- **Deadly range** (max launch range with P(hit) ≥ 0.8 against a target fleeing at 600 m/s): **HiExp 4 km**,
+  ArmPen and Elec 15 km. Against a fleeing target at 1200 m/s (afterburner) no missile hits from 2 km.
+- **Changed:** `MISSILE_LAUNCH_BAND_METERS.max` (bots `engagement.ts`, shared with the weapons KPI and the
+  captain's orders) is 4 km, the HiExp deadly range: the reference never changes tube ammo, and its tubes load
+  HiExp. The captain therefore orders the ship to 2 km.
+- **Lesson:** HiExp is a still- or slow-target weapon (45 km still, 10 km crossing at cruise, 4 km fleeing);
+  ArmPen and Elec outrun a cruising target out to 15 km. Choosing ammo by target motion is the next lever.
 - **Reuse:** re-run the sweep after any change to missile speed, `MISSILE_LAUNCH`, `TERMINAL_SPRINT` or the
   projectile raycast.
 
