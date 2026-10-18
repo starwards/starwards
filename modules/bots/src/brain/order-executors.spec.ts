@@ -1,9 +1,10 @@
 import { Capabilities, Display, stationControls } from './controls';
-import { DOCKING_MODE, GivenOrder, ORDERS_PANEL, crewOrders, ordersBoard } from '../crew/orders';
+import { DOCKING_MODE, GivenOrder, ORDERS_PANEL } from '../crew/orders';
 
 import { BrainRequest } from './request';
 import { Policy } from './brain';
 import { idleTestPolicy } from './order-executors.fixtures';
+import { testBoard } from '../crew/orders.fixtures';
 import { withOrderBoard } from './order-executors';
 
 const helmsCapabilities: Capabilities = {
@@ -23,9 +24,7 @@ type Seen = { name: string; distance: number; bearing: number; radius: number };
 
 /** A board holding `orders`, given in order. */
 function board(orders: GivenOrder[]) {
-    const state = crewOrders(['helms', 'weapons', 'engineer']);
-    for (const o of orders) state.give(o, 'captain', 0);
-    return ordersBoard(state.state, 1);
+    return testBoard().give(orders).shown;
 }
 
 /** Helms of a ship at the origin facing 0°, under `orders`. */
@@ -110,11 +109,10 @@ describe('reference seats under the order board', () => {
         const policy = withOrderBoard(idleTestPolicy, 'helms');
         const docked = { dockingMode: DOCKING_MODE.DOCKED };
         expect((await choices(policy, helmsDisplay(board([]), [], docked))).dock).toBe('wait');
-        const state = crewOrders();
-        state.give(dock, 'captain', 0);
-        state.advance({ station: 'helms', display: helmsDisplay(board([]), [], docked), seconds: 5 });
-        expect(state.state.slots.navigation?.status).toBe('complete');
-        expect((await choices(policy, helmsDisplay(ordersBoard(state.state, 6), [], docked))).dock).toBe('wait');
+        const state = testBoard().give([dock]);
+        state.report({ station: 'helms', display: helmsDisplay(board([]), [], docked) });
+        expect(state.shown.orders[0]?.status).toBe('complete');
+        expect((await choices(policy, helmsDisplay(state.shown, [], docked))).dock).toBe('wait');
         expect((await choices(policy, helmsDisplay(board([{ kind: 'undock' }]), [], docked))).dock).toBe('press');
     });
 
@@ -149,16 +147,11 @@ describe('reference seats under the order board', () => {
     });
 
     it('dock for repair: the engineer queues docked-tier repairs for lost armor once docked', async () => {
-        const state = crewOrders();
-        state.give(dock, 'captain', 0);
-        state.advance({
-            station: 'helms',
-            display: helmsDisplay(board([]), [], { dockingMode: DOCKING_MODE.DOCKED }),
-            seconds: 5,
-        });
+        const state = testBoard().give([dock]);
+        state.report({ station: 'helms', display: helmsDisplay(board([]), [], { dockingMode: DOCKING_MODE.DOCKED }) });
         const shown: Display = {
             panels: {
-                [ORDERS_PANEL]: ordersBoard(state.state, 6),
+                [ORDERS_PANEL]: state.shown,
                 'armor-status': { numberOfPlates: 16, healthyPlates: 12 },
                 'damage-report': [],
                 'repair-queue': {

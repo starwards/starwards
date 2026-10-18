@@ -115,6 +115,9 @@ export {
     JobStatus,
     PowerLevel,
     PowerLevelStep,
+    CREW_ORDER_KINDS,
+    ORDER_PARAMS,
+    ORDER_SLOTS,
     RepairPriority,
     RepairProtocolMode,
     ShipState,
@@ -126,10 +129,11 @@ export {
     getDirectionConfigFromAngle,
     isRestockingAmmo,
     isRestockingEnergyCells,
+    crewOrderCommands,
     makeShipState,
     repairCommands,
 } from './ship';
-export type { DefectibleValue, RepairProtocolSlot, System } from './ship';
+export type { CrewOrder, CrewOrderBoard, DefectibleValue, RepairProtocolSlot, System } from './ship';
 
 // --- stations ---
 export { StationRegistryEntry, isValidStationId } from './stations';

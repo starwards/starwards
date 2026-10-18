@@ -70,6 +70,7 @@ function crewed<R>(
         shipId: TRAINING_PLAYER_ID,
         seats: options.branch?.seats?.(plan.seats) ?? plan.seats,
         latencySeconds: options.latencySeconds,
+        doctrine: plan.doctrine,
         intervene: options.branch?.intervene,
         lens: options.branch?.lens,
     });

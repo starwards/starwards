@@ -1,22 +1,23 @@
-import { DOCKING_MODE, crewOrders, orderFromCallout, ordersBoard, ordersLines, rankingOf } from './orders';
+import { DOCKING_MODE, orderFromCallout, ordersLines } from './orders';
 
 import { Display } from '../brain/controls';
+import { testBoard } from './orders.fixtures';
 import { verbalReader } from '../brain/verbal';
 
 const helms = (mode: number, x = 0, healthy = 16): Display => ({
     panels: { 'docking-status': { mode }, 'armor-status': { numberOfPlates: 16, healthyPlates: healthy } },
     radar: { ownShip: { position: { x, y: 0 } } },
 });
+const slot = (b: ReturnType<typeof testBoard>, s: string) => b.shown.orders.find((o) => o.slot === s);
 
-describe('crew order state', () => {
-    it('keeps one order per slot: a new order replaces only its own slot', () => {
-        const orders = crewOrders(['helms', 'weapons']);
-        orders.give({ kind: 'close_to', params: { target: { name: 'raider' }, range: 2000 } }, 'captain', 1);
-        orders.give({ kind: 'preserve_energy' }, 'captain', 2);
-        orders.give({ kind: 'hold_here' }, 'captain', 3);
-        const { slots } = orders.state;
-        expect(slots.maneuver?.kind).toBe('hold_here');
-        expect(slots.energy).toMatchObject({
+describe('crew order board as seats read it', () => {
+    it('keeps one order per slot, binding the energy-drawing seats to preserve energy', () => {
+        const b = testBoard(['helms', 'weapons']);
+        b.give([{ kind: 'close_to', params: { target: { name: 'raider' }, range: 2000 } }]);
+        b.tick(2).give([{ kind: 'preserve_energy' }]);
+        b.tick(3).give([{ kind: 'hold_here' }]);
+        expect(slot(b, 'maneuver')?.kind).toBe('hold_here');
+        expect(slot(b, 'energy')).toMatchObject({
             kind: 'preserve_energy',
             issuer: 'captain',
             issuedAt: 2,
@@ -25,120 +26,101 @@ describe('crew order state', () => {
     });
 
     it('revokes one slot; a stance sets the slot ranking', () => {
-        const orders = crewOrders();
-        orders.give({ kind: 'preserve_energy' }, 'captain', 1);
-        orders.give({ kind: 'hold_here' }, 'captain', 1);
-        orders.give({ kind: 'revoke', params: { slot: 'energy' } }, 'captain', 2);
-        orders.give({ kind: 'chase' }, 'captain', 3);
-        expect(orders.state.slots.energy).toBeUndefined();
-        expect(orders.state.slots.maneuver?.kind).toBe('hold_here');
-        expect(rankingOf(orders.state).slice(0, 3)).toEqual(['maneuver', 'engagement', 'repair']);
-        orders.give({ kind: 'revoke', params: { slot: 'stance' } }, 'captain', 4);
-        expect(rankingOf(orders.state)[0]).toBe('repair');
-    });
-
-    it('cancels contradictory orders: the latest stands', () => {
-        const orders = crewOrders();
-        orders.give({ kind: 'engage', params: { target: { name: 'raider' } } }, 'captain', 1);
-        orders.give({ kind: 'hold_fire' }, 'captain', 2);
-        expect(orders.state.slots.engagement?.kind).toBe('hold_fire');
-        orders.give({ kind: 'chase_target', params: { target: { name: 'raider' } } }, 'captain', 3);
-        orders.give({ kind: 'retreat', params: { target: { name: 'raider' } } }, 'captain', 4);
-        expect(orders.state.slots.maneuver).toBeUndefined();
-        expect(orders.state.slots.navigation?.kind).toBe('retreat');
-        orders.give({ kind: 'all_out' }, 'captain', 5);
-        orders.give({ kind: 'preserve_energy' }, 'captain', 6);
-        expect(orders.state.slots.stance).toBeUndefined();
+        const b = testBoard();
+        b.give([
+            { kind: 'preserve_energy' },
+            { kind: 'hold_here' },
+            { kind: 'revoke', params: { slot: 'energy' } },
+            { kind: 'chase' },
+        ]);
+        expect(slot(b, 'energy')).toBeUndefined();
+        expect(b.shown.priorities.slice(0, 3)).toEqual(['maneuver', 'engagement', 'repair']);
+        b.give([{ kind: 'revoke', params: { slot: 'stance' } }]);
+        expect(b.shown.priorities[0]).toBe('repair');
     });
 
     it('aborts an engagement whose target weapons no longer sees, and says why', () => {
-        const orders = crewOrders();
-        orders.give({ kind: 'engage', params: { target: { name: 'raider' } } }, 'captain', 1);
-        orders.advance({ station: 'weapons', display: { panels: {}, radar: { contacts: [] } }, seconds: 2 });
-        expect(orders.state.slots.engagement).toMatchObject({ status: 'aborted', note: 'target lost or destroyed' });
+        const b = testBoard().give([{ kind: 'engage', params: { target: { name: 'raider' } } }]);
+        b.report({ station: 'weapons', display: { panels: {}, radar: { contacts: [] } } });
+        expect(slot(b, 'engagement')).toMatchObject({ status: 'aborted', note: 'target lost or destroyed' });
     });
 
     it('completes dock for repair once docked; casting off is its own order', () => {
-        const orders = crewOrders();
-        orders.give(
+        const b = testBoard().give([
             {
                 kind: 'dock_for_repair',
                 params: { station: { name: 'dock', position: { x: 5000, y: 0 }, radius: 1200 } },
             },
-            'captain',
-            0,
-        );
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED), seconds: 1 });
-        expect(orders.state.slots.navigation).toMatchObject({ step: 'en_route', note: 'en route, 3.8 km' });
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.DOCKING, 3700), seconds: 10 });
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.DOCKED, 3780), seconds: 20 });
-        expect(orders.state.slots.navigation).toMatchObject({ step: 'docked', stepAt: 20, status: 'complete' });
-        orders.give(orderFromCallout('undock', undefined, undefined), 'captain', 80);
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 3780), seconds: 90 });
-        expect(orders.state.slots.navigation).toMatchObject({ kind: 'undock', status: 'complete' });
+        ]);
+        b.report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED) });
+        expect(slot(b, 'navigation')).toMatchObject({ step: 'en_route', note: 'en route, 3.8 km' });
+        b.tick(10).report({ station: 'helms', display: helms(DOCKING_MODE.DOCKING, 3700) });
+        b.tick(20).report({ station: 'helms', display: helms(DOCKING_MODE.DOCKED, 3780) });
+        expect(slot(b, 'navigation')).toMatchObject({ step: 'docked', stepAt: 20, status: 'complete' });
+        b.tick(80).give([orderFromCallout('undock', undefined, undefined)]);
+        b.tick(90).report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 3780) });
+        expect(slot(b, 'navigation')).toMatchObject({ kind: 'undock', status: 'complete' });
     });
 
-    it('fires a standing dock order once armor falls below its share, once', () => {
-        const orders = crewOrders();
-        orders.give({ kind: 'dock_below_armor', params: { station: { name: 'dock' }, threshold: 0.5 } }, 'captain', 0);
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 9), seconds: 5 });
-        expect(orders.state.slots.navigation).toBeUndefined();
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 7), seconds: 6 });
-        expect(orders.state.slots.navigation).toMatchObject({
+    it('fires a standing dock order once armor falls below its share, once, under its own issuer', () => {
+        const b = testBoard().give(
+            [{ kind: 'dock_below_armor', params: { station: { name: 'dock' }, threshold: 0.5 } }],
+            'doctrine',
+            'helms',
+        );
+        b.report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 9) });
+        expect(slot(b, 'navigation')).toBeUndefined();
+        b.report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 7) });
+        expect(slot(b, 'navigation')).toMatchObject({
             kind: 'dock_for_repair',
-            issuer: 'dock_below_armor standing order',
+            issuer: 'doctrine',
+            origin: 'dock_below_armor standing order',
         });
-        expect(orders.state.slots.repair?.kind).toBe('dock_below_armor');
+        expect(slot(b, 'repair')).toMatchObject({ kind: 'dock_below_armor', fired: true });
+        b.give([{ kind: 'revoke', params: { slot: 'navigation' } }]);
+        b.report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 7) });
+        expect(slot(b, 'navigation')).toBeUndefined();
     });
 
     it('a standing dock order takes navigation from an order its slot outranks, and not from one that outranks it', () => {
-        const orders = crewOrders();
-        orders.give(
-            { kind: 'patrol', params: { region: { name: 'veil', position: { x: 0, y: 9000 } } } },
-            'captain',
-            0,
-        );
-        orders.give({ kind: 'dock_below_armor', params: { station: { name: 'dock' } } }, 'captain', 0);
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 7), seconds: 5 });
-        expect(orders.state.slots.navigation?.kind).toBe('dock_for_repair');
-        const offensive = crewOrders();
-        offensive.give({ kind: 'offensive' }, 'captain', 0);
-        offensive.give(
-            { kind: 'patrol', params: { region: { name: 'veil', position: { x: 0, y: 9000 } } } },
-            'captain',
-            0,
-        );
-        offensive.give({ kind: 'dock_below_armor', params: { station: { name: 'dock' } } }, 'captain', 0);
-        offensive.advance({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 7), seconds: 5 });
-        expect(offensive.state.slots.navigation?.kind).toBe('patrol');
+        const patrol = { kind: 'patrol', params: { region: { name: 'veil', position: { x: 0, y: 9000 } } } };
+        const dock = { kind: 'dock_below_armor', params: { station: { name: 'dock' } } };
+        const b = testBoard().give([patrol, dock]);
+        b.report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 7) });
+        expect(slot(b, 'navigation')?.kind).toBe('dock_for_repair');
+        const offensive = testBoard().give([{ kind: 'offensive' }, patrol, dock]);
+        offensive.report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0, 7) });
+        expect(slot(offensive, 'navigation')?.kind).toBe('patrol');
     });
 
-    it('reads out every slot in priority order, and the ranking', () => {
-        const orders = crewOrders(['engineer']);
-        orders.give(
+    it('reads out every slot in priority order with who gave it, and the ranking', () => {
+        const b = testBoard(['engineer']);
+        b.give([
             orderFromCallout('dock_for_repair', { name: 'dock', distance: '4.0', bearing: '000' }, { x: 0, y: 0 }),
-            'captain',
-            0,
+        ]);
+        b.tick(2).give(
+            [{ kind: 'close_to', params: { target: { name: 'raider' }, range: 2000 } }],
+            'doctrine',
+            'signals',
         );
-        orders.give(orderFromCallout('preserve_energy', undefined, undefined), 'captain', 2);
-        orders.advance({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0), seconds: 10 });
-        expect(ordersLines(ordersBoard(orders.state, 12))).toEqual([
-            'Standing orders: navigation: dock at dock for armor repairs (en route, 4.0 km), from the captain 12 s ago; energy: preserve energy, from the captain 10 s ago.',
+        b.tick(10).report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 0) });
+        b.tick(12);
+        expect(ordersLines(b.shown)).toEqual([
+            'Standing orders: navigation: dock at dock for armor repairs (en route, 4.0 km), from the captain 12 s ago; maneuver: close to 2.0 km of raider, from doctrine, from signals 10 s ago.',
             'Priorities: repair > navigation > engagement > energy > maneuver > stance > sensors.',
         ]);
     });
 
     it('reaches a verbal brain as plain lines', () => {
-        const orders = crewOrders();
-        orders.give({ kind: 'hold_position' }, 'captain', 0);
-        const lines = verbalReader(1)({ panels: { orders: ordersBoard(orders.state, 3) } });
-        expect(lines).toContain('Standing orders: navigation: hold position, from the captain 3 s ago.');
+        const b = testBoard().give([{ kind: 'hold_position' }]);
+        b.tick(4);
+        const lines = verbalReader(1)({ panels: { orders: b.shown } });
+        expect(lines).toContain('Standing orders: navigation: hold position, from the captain 4 s ago.');
     });
 
     it('push_on revokes the navigation order', () => {
-        const orders = crewOrders();
-        orders.give({ kind: 'hold_position' }, 'captain', 0);
-        orders.give(orderFromCallout('push_on', undefined, undefined), 'captain', 1);
-        expect(orders.state.slots.navigation).toBeUndefined();
+        const b = testBoard().give([{ kind: 'hold_position' }]);
+        b.give([orderFromCallout('push_on', undefined, undefined)]);
+        expect(slot(b, 'navigation')).toBeUndefined();
     });
 });

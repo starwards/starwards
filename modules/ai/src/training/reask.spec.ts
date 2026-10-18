@@ -1,4 +1,4 @@
-import { Heard, referenceSeatPlan } from '@starwards/bots';
+import { Heard, ORDERS_PANEL, OrdersBoard, referenceSeatPlan } from '@starwards/bots';
 import { RecordedDecision, RecordedRequest } from './decision-log';
 
 import { reask } from './reask';
@@ -22,14 +22,33 @@ const closeTo: Heard = {
     values: { name: 'raider', range: '2', distance: '50.0', bearing: '090' },
     secondsAgo: 0.5,
 };
-const request = (heard: Heard[]): RecordedRequest => ({
+const board: OrdersBoard = {
+    orders: [
+        {
+            id: 1,
+            slot: 'maneuver',
+            kind: 'close_to',
+            params: { target: { name: 'raider', position: { x: 0, y: 50_000 } }, range: 2000 },
+            issuer: 'captain',
+            origin: '',
+            issuedAt: 9.5,
+            binds: ['helms'],
+            status: 'active',
+            fired: false,
+            secondsAgo: 0.5,
+            words: 'close to 2.0 km of raider',
+        },
+    ],
+    priorities: ['repair', 'navigation', 'engagement', 'energy', 'maneuver', 'stance', 'sensors'],
+};
+const request = (heard: Heard[], orders?: OrdersBoard): RecordedRequest => ({
     t: 10,
     station: 'helms',
     brain: 'helms',
     version: 1,
     specHash: 'x',
     policy: 'reference',
-    display,
+    display: orders ? { ...display, panels: { ...display.panels, [ORDERS_PANEL]: orders } } : display,
     capabilities: { commands: [{ command: 'rotation' }] },
     heard,
 });
@@ -48,11 +67,11 @@ const recorded: RecordedDecision[] = [
 ];
 
 describe('reask', () => {
-    it('re-decides with the captain`s orders the seat heard at that decision', async () => {
+    it('re-decides with the order board the seat read at that decision', async () => {
         const { spec, policy } = referenceSeatPlan('helms');
-        const [heardIt] = await reask(spec, policy, [request([closeTo])], recorded);
-        expect(heardIt.after).toBe('right');
-        const [deaf] = await reask(spec, referenceSeatPlan('helms').policy, [request([])], recorded);
-        expect(deaf.after).toBe('centre');
+        const [ordered] = await reask(spec, policy, [request([closeTo], board)], recorded);
+        expect(ordered.after).toBe('right');
+        const [heardOnly] = await reask(spec, referenceSeatPlan('helms').policy, [request([closeTo])], recorded);
+        expect(heardOnly.after).toBe('centre');
     });
 });

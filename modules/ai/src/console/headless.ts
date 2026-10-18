@@ -11,6 +11,7 @@ import {
     ShipState,
     SpaceState,
     StateCommand,
+    crewOrderCommands,
     getSystems,
     handleJsonPointerCommand,
     repairCommands,
@@ -46,7 +47,10 @@ export class SimClock {
     }
 }
 
-const shipCommands: ReadonlyArray<StateCommand<unknown, ShipState, void>> = Object.values(repairCommands);
+const shipCommands: ReadonlyArray<StateCommand<unknown, ShipState, void>> = [
+    ...Object.values(repairCommands),
+    ...Object.values(crewOrderCommands),
+];
 
 /**
  * Seats a station in a headless game through the real MCP station sandbox, so a brain trained here

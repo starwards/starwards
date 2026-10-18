@@ -1,6 +1,7 @@
 import { Intervention, buttonLevel, strategicLevel, tacticalLevel } from './levels';
 import { RunSpec, fingerprint, runBranch } from './fork';
 
+import { SavedGame, decodeFrame, parseFrameLine } from '@starwards/core/internal';
 import fs from 'node:fs';
 import { loadBrainSpec } from '@starwards/bots';
 import os from 'node:os';
@@ -52,6 +53,21 @@ describe('captain branching', () => {
         const again = await runBranch(run, 0);
         expect(again).toEqual(replay);
         expect(replay.killed).toBe(true);
+    });
+
+    it('records the synced order board in every frame, and its changes as orders events', async () => {
+        const recording = path.join(dir, 'captain-orders-reference', 'T3-directed_seed1.sgr');
+        const frames = fs
+            .readFileSync(recording, 'utf8')
+            .split('\n')
+            .flatMap((l) => parseFrameLine(l) ?? []);
+        const last = await decodeFrame(SavedGame, frames[frames.length - 1].frame);
+        const board = [...last.fragment.ship.values()].find((s) => s.isPlayerShip)!.orderBoard;
+        expect(board.slots.get('maneuver')).toMatchObject({ issuer: 'captain' });
+        expect(log.boards.length).toBeGreaterThan(0);
+        expect(log.boards[log.boards.length - 1].board.orders.find((o) => o.slot === 'maneuver')?.kind).toBe(
+            board.slots.get('maneuver')!.kind,
+        );
     });
 
     it('scores a branch from its recording alone, as the analysed run scores it', async () => {

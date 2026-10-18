@@ -1,22 +1,22 @@
+import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange } from '@starwards/bots';
 import { PairedComparison, pairedComparison, pairedText } from '../training/paired';
 
 import { BranchRow } from './corpus';
-import { MISSILE_LAUNCH_BAND_METERS } from '@starwards/bots';
+
+/** The reference missile's launch envelope against a still target: a state feature has no target motion. */
+const ENVELOPE_METERS = missileLaunchRange('HiExpMissile', 0);
 
 /** State features a finding is split by: each names a predicate on the branch point's state. */
 const FEATURES: Record<string, (row: BranchRow) => boolean> = {
     all: () => true,
     'no enemy in sight': (r) => r.state.enemies === 0,
     'enemy beyond 10 km': (r) => (r.state.nearestEnemy?.distance ?? 0) > 10_000,
-    'enemy 4-10 km': (r) => {
+    'enemy beyond missile envelope': (r) => (r.state.nearestEnemy?.distance ?? 0) > ENVELOPE_METERS,
+    'enemy in missile envelope': (r) => {
         const d = r.state.nearestEnemy?.distance;
-        return d !== undefined && d > MISSILE_LAUNCH_BAND_METERS.max && d <= 10_000;
+        return d !== undefined && d >= MISSILE_MIN_LAUNCH_METERS && d <= ENVELOPE_METERS;
     },
-    'enemy in missile band': (r) => {
-        const d = r.state.nearestEnemy?.distance;
-        return d !== undefined && d >= MISSILE_LAUNCH_BAND_METERS.min && d <= MISSILE_LAUNCH_BAND_METERS.max;
-    },
-    'enemy inside 1 km': (r) => (r.state.nearestEnemy?.distance ?? Infinity) < MISSILE_LAUNCH_BAND_METERS.min,
+    'enemy inside 1 km': (r) => (r.state.nearestEnemy?.distance ?? Infinity) < MISSILE_MIN_LAUNCH_METERS,
     'two or more enemies': (r) => r.state.enemies >= 2,
     'armor below 75%': (r) => (r.state.armor ?? 1) < 0.75,
     'energy below 30%': (r) => (r.state.energy ?? 1) < 0.3,

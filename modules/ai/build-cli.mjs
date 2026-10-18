@@ -10,10 +10,10 @@
 //
 // dist/cli sits at the depth of src/cli, so __dirname-relative paths (crews, curriculum, training-archive)
 // resolve alike. Benchmarks: docs/testing/headless-runtime-benchmarks.md.
+import esbuild from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import esbuild from 'esbuild';
 
 const entries = ['train', 'branch'];
 const outdir = 'dist/cli';

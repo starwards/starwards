@@ -11,6 +11,7 @@ export { offNose, verbalReader } from './brain/verbal';
 export { SCRIPTED_SEAT_POLICIES, makeScriptedSeatPolicy } from './brain/weapons-policies';
 export { crewChannel } from './crew/channel';
 export * from './crew/orders';
+export * from './crew/doctrine';
 export { energyDrawingSeats } from './crew/energy-consumers';
 export { ORDER_EXECUTORS, withOrderBoard } from './brain/order-executors';
 export { REFERENCE_BRAINS_DIR, type SeatPlan, botSeatScreen, referenceSeat, referenceSeatPlan } from './reference-crew';

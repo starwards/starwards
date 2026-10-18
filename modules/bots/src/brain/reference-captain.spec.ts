@@ -1,6 +1,8 @@
 import { Display } from './controls';
+import { ORDERS_PANEL } from '../crew/orders';
 import { buttonBrain } from './brain';
 import { referenceSeatPlan } from '../reference-crew';
+import { testBoard } from '../crew/orders.fixtures';
 
 /**
  * The dradis picture of a captain whose own ship faces 90° at the origin, with an ally and an enemy
@@ -55,8 +57,12 @@ describe('reference captain', () => {
         expect(await order(dradis(30_000))).toMatchObject({ callout: 'engage', values: { name: 'raider' } });
     });
 
-    it('once it has ordered the engage, orders the ship in to gun range while the missiles fly', async () => {
-        const said = await order(dradis(30_000), dradis(30_000));
+    it('once the board holds its engage order, orders the ship in to gun range while the missiles fly', async () => {
+        const engaged = dradis(30_000);
+        engaged.panels[ORDERS_PANEL] = testBoard().give([
+            { kind: 'engage', params: { target: { name: 'raider' } } },
+        ]).shown;
+        const said = await order(dradis(30_000), engaged);
         expect(said).toMatchObject({ callout: 'close_to', values: { range: '2', distance: '30.0' } });
     });
 

@@ -1,11 +1,12 @@
 import { Answer, Policy } from './brain';
-import { CaptainOrders, captainOrders, referenceCallout } from './reference-orders';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
-import { inLaunchEnvelope, launchRange, nearestEnemy } from './engagement';
+import { inLaunchEnvelope, launchRange } from './engagement';
 
 import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
+import { captainOrdersFromBoard } from '../crew/orders';
+import { referenceCallout } from './reference-orders';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -111,12 +112,9 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
-    /** The enemy this seat (as captain) last ordered engaged: local until the shared order state lands. */
-    let engaged: string | undefined;
-    const orders = captainOrders();
     return {
         name,
-        answer(request, controls, shown, heard) {
+        answer(request, controls, shown) {
             const display = shown as Display;
             const ship = nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
@@ -124,7 +122,7 @@ export function makeReferencePolicy(
             }
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
-            orders.hear(heard, seconds, display.radar?.ownShip?.position);
+            const orders = captainOrdersFromBoard(display);
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
@@ -151,10 +149,7 @@ export function makeReferencePolicy(
                     lastLaunch = seconds;
                 }
             }
-            const callout = referenceCallout(request, shown, previous, decisionSeconds, engaged);
-            if (callout?.choice === 'engage') {
-                engaged = nearestEnemy(shown.radar as ShownRadar | undefined)?.name;
-            }
+            const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage);
             previous = display;
             if (callout) {
                 answers[CALLOUT_QUESTION] = callout;
@@ -176,7 +171,7 @@ function referenceChoice(
     parking: Parking,
     engineer: EngineerStyle,
     launchTube: number | undefined,
-    orders: CaptainOrders,
+    orders: ReturnType<typeof captainOrdersFromBoard>,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;

@@ -2,19 +2,21 @@ import {
     Answer,
     BrainSpec,
     CALLOUT_QUESTION,
-    CrewOrders,
     Display,
     GivenOrder,
-    MISSILE_LAUNCH_BAND_METERS,
-    ORDER_KINDS,
+    MISSILE_MIN_LAUNCH_METERS,
+    OrderCommand,
+    OrdersBoard,
     Policy,
     SILENCE,
-    STANCES,
     SeatPlan,
+    missileLaunchRange,
+    orderCommand,
     orderFromCallout,
     readOrders,
     stationControls,
 } from '@starwards/bots';
+import { CREW_ORDER_KINDS, STANCES } from '@starwards/core/internal';
 import { RunLog, StateSummary, requestAt, stateAt } from './run-log';
 
 import { CrewOptions } from '../crew/crew';
@@ -30,7 +32,7 @@ export type Intervention = {
 export type BranchPoint = {
     level: LevelName;
     t: number;
-    /** Why this moment: `order change`, `armor 0.75`, `enemy enters band`, `choice flip`. */
+    /** Why this moment: `order change`, `armor 0.75`, `enemy enters envelope`, `choice flip`. */
     reasons: string[];
     /** What the run did here: the order in force (or `keep`), the captain's callout, or a control's choice. */
     taken: string;
@@ -92,6 +94,8 @@ function overrideSeat(
 /** Armor and energy shares whose crossing downward is a strategic moment. */
 const ARMOR_MARKS = [0.75, 0.5, 0.25];
 const ENERGY_MARKS = [0.3, 0.15];
+/** The reference missile's launch envelope against a still target: the run log has no target motion. */
+const STILL_TARGET_ENVELOPE = missileLaunchRange('HiExpMissile', 0);
 /**
  * How long the branched captain leaves the ship docked once a dock order completes before ordering it
  * off: casting off is a captain's verbal order, and the reference captain has no rule for it.
@@ -156,9 +160,9 @@ function group(moments: { t: number; reason: string }[], window = 2) {
 /**
  * The branched captain does not call an order that contradicts one it gave at the branch point (a
  * reference captain calling `close_to` every decision would otherwise cancel a `hold_position` at once):
- * such a call becomes silence while the branch's order stands on the board.
+ * such a call becomes silence while the branch's order stands on the board, or is sent and not yet on it.
  */
-function keepToBranchOrders(seats: SeatPlan[]) {
+function keepToBranchOrders(seats: SeatPlan[], inFlight: () => string | undefined) {
     return seats.map((seat): SeatPlan => {
         if (seat.station !== 'captain') return seat;
         const inner = seat.policy;
@@ -170,11 +174,14 @@ function keepToBranchOrders(seats: SeatPlan[]) {
                     const result = await inner.answer(request, controls, display, heard);
                     const call = result.answers[CALLOUT_QUESTION]?.choice;
                     const kind = call && orderFromCallout(call, {}, undefined)?.kind;
-                    const standing = readOrders(display).orders.filter(
-                        (o) => o.issuer === 'captain (branch)' && o.status === 'active',
-                    );
-                    const contradicts = (a: string, b: string) => ORDER_KINDS[a]?.contradicts?.includes(b) === true;
-                    return kind && standing.some((o) => contradicts(kind, o.kind) || contradicts(o.kind, kind))
+                    const standing = readOrders(display)
+                        .orders.filter((o) => o.issuer === 'captain' && o.origin === 'branch' && o.status === 'active')
+                        .map((o) => o.kind);
+                    const sent = inFlight();
+                    if (sent) standing.push(sent);
+                    const contradicts = (a: string, b: string) =>
+                        CREW_ORDER_KINDS[a]?.contradicts?.includes(b) === true;
+                    return kind && standing.some((o) => contradicts(kind, o) || contradicts(o, kind))
                         ? {
                               ...result,
                               answers: { ...result.answers, [CALLOUT_QUESTION]: { choice: SILENCE, source: 'rule' } },
@@ -193,21 +200,29 @@ function keepToBranchOrders(seats: SeatPlan[]) {
  */
 function giveAt(t: number, order: GivenOrder): Intervention {
     let given = false;
+    /** The branch order sent and not yet on the board: commands land at the ship's next update. */
+    let inFlight: string | undefined;
     return {
-        seats: keepToBranchOrders,
-        intervene: (seconds: number, orders: CrewOrders) => {
+        seats: (seats) => keepToBranchOrders(seats, () => inFlight),
+        intervene: (seconds: number, board: OrdersBoard | undefined, send: (c: OrderCommand) => void) => {
+            if (board?.orders.some((o) => o.origin === 'branch' && o.kind === inFlight)) inFlight = undefined;
+            const give = (o: GivenOrder) => {
+                const c = orderCommand(o, 'captain', 'branch');
+                if (c) send(c);
+                inFlight = o.kind;
+            };
             if (!given && seconds + 1e-9 >= t) {
                 given = true;
-                orders.give(order, 'captain (branch)', seconds);
+                give(order);
             }
-            const docked = orders.state.slots.navigation;
+            const docked = board?.orders.find((o) => o.slot === 'navigation');
             if (
                 given &&
                 docked?.kind === 'dock_for_repair' &&
                 docked.status === 'complete' &&
                 seconds - (docked.stepAt ?? seconds) >= UNDOCK_AFTER_SECONDS
             ) {
-                orders.give({ kind: 'undock' }, 'captain (branch)', seconds);
+                give({ kind: 'undock' });
             }
         },
     };
@@ -321,12 +336,11 @@ export function tacticalLevel(captainSpec?: BrainSpec): DecisionLevel {
                 }
                 const distance = stateAt(log, d.t).nearestEnemy?.distance;
                 if (distance !== undefined && previousDistance !== undefined) {
-                    const inBand = (x: number) =>
-                        x >= MISSILE_LAUNCH_BAND_METERS.min && x <= MISSILE_LAUNCH_BAND_METERS.max;
+                    const inBand = (x: number) => x >= MISSILE_MIN_LAUNCH_METERS && x <= STILL_TARGET_ENVELOPE;
                     if (inBand(distance) && !inBand(previousDistance))
-                        moments.push({ t: d.t, reason: 'enemy enters band' });
+                        moments.push({ t: d.t, reason: 'enemy enters envelope' });
                     if (!inBand(distance) && inBand(previousDistance))
-                        moments.push({ t: d.t, reason: 'enemy leaves band' });
+                        moments.push({ t: d.t, reason: 'enemy leaves envelope' });
                 }
                 previousDistance = distance;
                 const helms = requestAt(log, 'helms', d.t);
