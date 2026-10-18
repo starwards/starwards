@@ -1,0 +1,59 @@
+# Training run of a Jev crew against the reference on T1, seeds 1-32, as one Indexed Job: shard i plays
+# seeds 1+8i..8+8i; the last shard merges into <day>/headless/<job name>/ and rebuilds the manifest.
+# Needs the Jev key Secret (docs/integration/ai-training-k3s.md); answers land in /training-archive/jev-cache,
+# so a re-run of the same crew on the same seeds costs nothing. Each worker gets an equal share of the
+# 1000 requests/minute account budget only within its pod: keep SHARDS x WORKERS answering at once modest.
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: train-t1-jev
+    labels: { app.kubernetes.io/name: starwards-training, starwards/job: train }
+spec:
+    completionMode: Indexed
+    completions: 4 # = SHARDS
+    parallelism: 4 # shards running at once; each takes WORKERS cores
+    backoffLimitPerIndex: 1
+    maxFailedIndexes: 0
+    ttlSecondsAfterFinished: 604800
+    template:
+        metadata:
+            labels: { app.kubernetes.io/name: starwards-training, starwards/job: train }
+        spec:
+            restartPolicy: Never
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                fsGroup: 1000
+                seccompProfile: { type: RuntimeDefault }
+            containers:
+                - name: shard
+                  image: starwards-training
+                  env:
+                      - { name: JOB, value: train }
+                      - { name: SCENARIO, value: T1 }
+                      - { name: CREWS, value: 'crews/reference.json,crews/jev-helms-weapons.json' }
+                      - { name: SHARDS, value: '4' } # = completions
+                      - { name: FIRST_SEED, value: '1' }
+                      - { name: SEEDS_PER_SHARD, value: '8' }
+                      - { name: WORKERS, value: '4' }
+                      - name: TYPESAFE_API_KEY
+                        valueFrom: { secretKeyRef: { name: jev, key: TYPESAFE_API_KEY } }
+                      - name: JOB_NAME
+                        valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
+                  resources:
+                      # WORKERS x 1.5 GiB + 0.5 GiB (measured peak RSS: worker <= 1.4 GiB, parent <= 0.5 GiB), see docs/integration/ai-training-k3s.md
+                      requests: { cpu: '4', memory: 6656Mi }
+                      limits: { memory: 7Gi }
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities: { drop: [ALL] }
+                  volumeMounts:
+                      - { name: archive, mountPath: /training-archive }
+                      - { name: tmp, mountPath: /tmp }
+            volumes:
+                - name: archive
+                  persistentVolumeClaim: { claimName: training-archive }
+                - name: tmp
+                  emptyDir: {}
