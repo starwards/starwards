@@ -55,6 +55,11 @@ const scenes = [
     'long-range-radar-zoomed-out',
     'long-range-radar-scan-beam',
     'long-range-radar-job-indicators',
+    // Missile paint (M4.26): every blip type on Weapons, Helms, Signals; Dradis shows no missiles
+    'missile-paint-weapons',
+    'missile-paint-helms',
+    'missile-paint-signals',
+    'missile-paint-dradis',
     // Smart Gun
     'smart-gun-tracking',
     'smart-gun-resting',

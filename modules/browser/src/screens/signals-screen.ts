@@ -144,6 +144,7 @@ function wireInput(
             shipInputConfig.radarArc,
             'Beam Arc',
         );
+        input.addMomentaryClickAction(writeProp(shipDriver, `${beamPointer}/jamming`), 'j', 'Jam (hold)');
     }
     input.init();
     const teardownHelp = setupHotkeyHelp(input);

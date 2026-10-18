@@ -3,6 +3,7 @@ import * as _spaceCommands from './space-commands';
 import { Asteroid } from './asteroid';
 import { Derelict } from './derelict';
 import { Explosion } from './explosion';
+import { HazardCloud } from './hazard-cloud';
 import { Nebula } from './nebula';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
@@ -14,6 +15,7 @@ export interface SpaceObjects {
     Projectile: Projectile;
     Explosion: Explosion;
     Nebula: Nebula;
+    HazardCloud: HazardCloud;
     Waypoint: Waypoint;
     Derelict: Derelict;
 }
@@ -28,6 +30,7 @@ export * from './derelict';
 export * from './projectile';
 export * from './explosion';
 export * from './nebula';
+export * from './hazard-cloud';
 export * from './sensor-visibility';
 export * from './waypoint';
 export * from './vec2';

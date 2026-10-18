@@ -332,6 +332,14 @@ export function isMissileAmmo(ammo: AmmoType): ammo is MissileAmmoType {
     return ammoDesigns[ammo].homing !== null;
 }
 
+/**
+ * A missile in flight: the one non-ship contact a deep scan (SNAPSHOT / FULL) reveals more about —
+ * its warhead type.
+ */
+export function isMissile(o: unknown): o is Projectile {
+    return Projectile.isInstance(o) && isMissileAmmo(o.model);
+}
+
 export class Projectile extends SpaceObjectBase implements Craft {
     public static isInstance = (o: unknown): o is Projectile => {
         return !!o && (o as SpaceObjectBase).type === 'Projectile';
@@ -367,6 +375,31 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @tweakable('string')
     @gameField('string')
     public targetId: string | null = null;
+
+    /**
+     * How jammed this missile is, 0 to 1 (M4.27 ruling). Rises while a jamming scan beam covers it
+     * and falls back towards 0 at the same rate once none does; reaching 1 jams it (`jammed`).
+     */
+    @gameField('float32')
+    public jamLevel = 0;
+
+    /** Seconds of jamming-beam cover that take `jamLevel` from 0 to 1; it decays at the same rate. */
+    @tweakable('number')
+    @gameField('float32')
+    public jamSeconds = 1;
+
+    /**
+     * Set once `jamLevel` reaches 1 (M4.27 ruling): this missile dropped its target and its
+     * affiliation for good, keeps its `faction` and `shipId`, and locks onto any solid object that
+     * comes within `jamLockRange`. Never cleared.
+     */
+    @gameField('boolean')
+    public jammed = false;
+
+    /** Radius (m) within which a jammed missile locks onto the nearest solid object. */
+    @tweakable('number')
+    @gameField('float32')
+    public jamLockRange = 1_000;
 
     @tweakable({ type: 'string enum', enum: ammoTypes })
     @gameField('string')

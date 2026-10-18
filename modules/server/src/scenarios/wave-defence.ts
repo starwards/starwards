@@ -4,6 +4,7 @@ import {
     FlightDoctrine,
     GameApi,
     GameMap,
+    HazardCloud,
     IdleStrategy,
     Nebula,
     PowerLevel,
@@ -42,6 +43,17 @@ export const NEBULAS: readonly { readonly id: string; readonly position: Vec2; r
     { id: 'nebula-ne', position: new Vec2(47631, 27500), radius: 4000 },
     { id: 'nebula-nw', position: new Vec2(-47631, 27500), radius: 6000 },
     { id: 'nebula-s', position: new Vec2(0, -55000), radius: 5000 },
+];
+
+/**
+ * Damaging hazards (M4.40, per the M4.29 ruling), one beside each nebula on the station side,
+ * ~45km from the formation centre: >=19km from every station and well clear of the player start.
+ * Fixed (no rng draw) so wave rng sequences are unchanged.
+ */
+export const HAZARD_CLOUDS: readonly { readonly id: string; readonly position: Vec2; readonly radius: number }[] = [
+    { id: 'hazard-ne', position: new Vec2(38971, 22500), radius: 3000 },
+    { id: 'hazard-nw', position: new Vec2(-38971, 22500), radius: 3000 },
+    { id: 'hazard-s', position: new Vec2(0, -45000), radius: 3000 },
 ];
 
 const WAVE_SPAWN_DISTANCE = 140_000;
@@ -535,7 +547,7 @@ export function createWaveDefenceMap(
                 );
                 // Stations have no engineer to raise power off the idle default, so radar range
                 // (which scales with sqrt(effectiveness)) would otherwise sit at ~71% of design
-                // range forever -- short of the 120km line this map's spawn distances assume.
+                // range forever -- the omni's 25km and the auto-swept scan beam's 100km alike.
                 // Scenario-local per the #2084 design redirect: other maps/NPCs keep the default.
                 for (const radar of stationApi.state.radars) {
                     radar.power = PowerLevel.MAX;
@@ -546,6 +558,9 @@ export function createWaveDefenceMap(
             }
             for (const nebula of NEBULAS) {
                 game.addObject(new Nebula().init(nebula.id, Vec2.make(nebula.position), nebula.radius));
+            }
+            for (const cloud of HAZARD_CLOUDS) {
+                game.addObject(new HazardCloud().init(cloud.id, Vec2.make(cloud.position), cloud.radius));
             }
             spawnWave();
         },

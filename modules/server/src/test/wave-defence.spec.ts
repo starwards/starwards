@@ -1,6 +1,7 @@
 import {
     CANT_FIGHT_SECONDS,
     DEFAULT_WAVE_TUNING,
+    HAZARD_CLOUDS,
     NEBULAS,
     OUT_OF_PLAY_DISTANCE_METERS,
     OUT_OF_PLAY_SECONDS,
@@ -957,11 +958,11 @@ describe('station radar power (issue #2084 design redirect)', () => {
         ).spaceObject.id;
     }
 
-    it('A1: a healthy station-large radar detects a dragonfly-MK1 at 119km -- full design range, no idle-power tax', async () => {
+    it('A1: a healthy station-large radar detects a dragonfly-MK1 at 24km on its 25km omni -- full design range, no idle-power tax', async () => {
         const map = createWaveDefenceMap(() => 0);
         await gameDriver.gameManager.startGame(map);
 
-        const contactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(119_000, 0))));
+        const contactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(24_000, 0))));
         gameDriver.gameManager.update(1 / 20); // flushes the contact and recomputes the station's field of view
 
         expect(gameDriver.spaceManager.isVisible('station-large', contactId)).toBe(true);
@@ -976,8 +977,8 @@ describe('station radar power (issue #2084 design redirect)', () => {
             }),
         );
 
-        const nearContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(84_000, 0))));
-        const farContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(119_000, 0))));
+        const nearContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(17_000, 0))));
+        const farContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(24_000, 0))));
         gameDriver.gameManager.update(1 / 20);
 
         expect(gameDriver.spaceManager.isVisible('station-large', nearContactId)).toBe(true);
@@ -1007,6 +1008,26 @@ describe('wave_defence nebulas (issue #2123)', () => {
             for (const station of STATIONS) {
                 expect(XY.distance(nebula.position, station.position)).toBeGreaterThan(clearance);
             }
+        }
+    });
+});
+
+describe('wave_defence hazard clouds (M4.40)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    it('places the scenario hazard clouds near the nebulas, clear of the player start and every station', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+
+        const placed = [...gameDriver.spaceManager.state.getAll('HazardCloud')];
+        expect(placed.map((n) => n.id).sort()).toEqual(HAZARD_CLOUDS.map((n) => n.id).sort());
+        for (const cloud of placed) {
+            const clearance = cloud.radius + 5000;
+            expect(XY.distance(cloud.position, XY.zero)).toBeGreaterThan(clearance);
+            for (const station of STATIONS) {
+                expect(XY.distance(cloud.position, station.position)).toBeGreaterThan(clearance);
+            }
+            const nearestNebula = Math.min(...NEBULAS.map((n) => XY.distance(n.position, cloud.position)));
+            expect(nearestNebula).toBeLessThan(15_000);
         }
     });
 });

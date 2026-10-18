@@ -24,7 +24,13 @@ test.describe('Wave-defence scenario', () => {
         await expect(page.locator('.lm_goldenlayout')).toBeVisible({ timeout: 10000 });
 
         const wave1Ids = [...gameDriver.gameManager.scriptApi.getObjects()]
-            .filter((o) => o.type !== 'Nebula' && o.id !== 'GVTS' && !waveDefenceStations.some((s) => s.id === o.id))
+            .filter(
+                (o) =>
+                    o.type !== 'Nebula' &&
+                    o.type !== 'HazardCloud' &&
+                    o.id !== 'GVTS' &&
+                    !waveDefenceStations.some((s) => s.id === o.id),
+            )
             .map((o) => o.id);
         expect(wave1Ids).toHaveLength(2);
 

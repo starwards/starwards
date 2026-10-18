@@ -117,6 +117,7 @@ SpaceState (SpaceRoom root)
 ├── Explosion: MapSchema<Explosion>
 ├── Asteroid: MapSchema<Asteroid>
 ├── Nebula: MapSchema<Nebula>
+├── HazardCloud: MapSchema<HazardCloud>
 ├── Waypoint: MapSchema<Waypoint>
 └── Derelict: MapSchema<Derelict>
 

@@ -16,6 +16,7 @@ import {
     shipConfigurations,
 } from '../src';
 import { JobStatus } from '../src/ship/signals-job';
+import { MISSILE_SCAN_SECONDS } from '../src/ship/signals-job-manager';
 
 import { MockDie } from './ship-test-harness';
 import { SCAN_BEAM_GRACE_SECONDS } from '../src/ship/signals-job-manager';
@@ -308,6 +309,53 @@ describe('SignalsJobManager', () => {
             runTicks(spaceMgr, 30, 20, 0.05, shipMgr);
             expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
             expect(scanJobs(shipMgr).length).to.equal(0);
+        });
+    });
+
+    describe('missile scans (M4.26 ruling)', () => {
+        // the beam rests dead ahead (bearing 0), so a missile on the +x axis sits in it; the ship
+        // contact is moved off to bearing 90 so it neither occludes the missile nor holds the slot
+        function shipWithMissileInBeam() {
+            const ctx = shipWithContactInSight(ScanLevel.FULL, Vec2.make({ x: 0, y: 1000 }));
+            const missile = new Projectile('FragMissile').init('missile1', Vec2.make({ x: 1000, y: 0 }));
+            missile.radius = 200;
+            missile.secondsToLive = 100;
+            ctx.spaceMgr.insert(missile);
+            ctx.spaceMgr.forceFlushEntities();
+            return ctx;
+        }
+
+        it('gives a missile scan job a 1 second duration, not the ship scan base duration', () => {
+            const { shipMgr, spaceMgr } = shipWithMissileInBeam();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+
+            const job = scanJobs(shipMgr).find((j) => j.targetId === 'missile1');
+            expect(job?.duration).to.equal(MISSILE_SCAN_SECONDS);
+            expect(MISSILE_SCAN_SECONDS).to.equal(1);
+            expect(shipMgr.state.signals.design.scanBaseDuration).to.be.greaterThan(MISSILE_SCAN_SECONDS);
+        });
+
+        it('identifies a missile within about a second, then reads its warhead (FULL) a second later', () => {
+            const { shipMgr, spaceMgr } = shipWithMissileInBeam();
+            let t = runTicks(spaceMgr, 1.2, 20, 0.05, shipMgr);
+            expect(spaceMgr.factionIntel.getScanLevel('missile1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+
+            t = runTicks(spaceMgr, 1.2, 20, t, shipMgr);
+            expect(spaceMgr.factionIntel.getScanLevel('missile1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            // nothing left to reveal: the job gives up its slot
+            runTicks(spaceMgr, 0.2, 20, t, shipMgr);
+            expect(scanJobs(shipMgr).map((j) => j.targetId)).to.not.include('missile1');
+        });
+
+        it('an asteroid scan job keeps the base duration', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
+            const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
+            spaceMgr.insert(rock);
+            spaceMgr.forceFlushEntities();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            expect(scanJobs(shipMgr).find((j) => j.targetId === 'rock1')?.duration).to.equal(
+                shipMgr.state.signals.design.scanBaseDuration,
+            );
         });
     });
 
