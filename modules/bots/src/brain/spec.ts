@@ -7,9 +7,19 @@ import { z } from 'zod';
  * Values a parameterised callout can carry, each read off the speaker's own display:
  * `lockedOffNose` (weapons: the locked contact's degrees and side off the nose) and `gunSkew`
  * (engineer: a chain gun's damage skew from the damage report), `farContact` (signals: the nearest
- * contact beyond the helms radar's reach, its name, range and side of the nose).
+ * contact beyond the helms radar's reach, its name, range and side of the nose), `enemyContact`
+ * (signals: the nearest identified enemy ship, its name, range, side of the nose and whether the range
+ * closes), `closeOrder` and `engageOrder` (captain: the order to close to missile range of the
+ * nearest enemy, and to engage it).
  */
-export const calloutFills = ['lockedOffNose', 'gunSkew', 'farContact'] as const;
+export const calloutFills = [
+    'lockedOffNose',
+    'gunSkew',
+    'farContact',
+    'enemyContact',
+    'closeOrder',
+    'engageOrder',
+] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
 const calloutsSchema = z.record(

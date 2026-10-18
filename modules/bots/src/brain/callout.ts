@@ -1,4 +1,5 @@
 import { BrainSpec, CalloutFill } from './spec';
+import { CLOSE_RANGE_METERS, bearingWords, nearestEnemy, offNoseWords } from './engagement';
 import { Radar, offNose } from './verbal';
 
 import { ChoiceQuestion } from './request';
@@ -12,15 +13,22 @@ export const SILENCE = 'silence';
 
 /**
  * A callout as a listener hears it: which station said it, which of its callout options (absent in
- * runs recorded before options were carried), the phrase as said, and how many seconds ago.
+ * runs recorded before options were carried), the phrase as said, the values filled into it, and how
+ * many seconds ago.
  */
-export type Heard = { speaker: string; callout?: string; phrase: string; secondsAgo: number };
+export type Heard = {
+    speaker: string;
+    callout?: string;
+    phrase: string;
+    values?: FillValues;
+    secondsAgo: number;
+};
 
 /**
- * What a seat puts on the air: the callout option it chose and the phrase with its values filled in.
- * `seat` names the member seat that said it, for a fused brain's callouts.
+ * What a seat puts on the air: the callout option it chose and the phrase with its values filled in
+ * (`values`, by placeholder). `seat` names the member seat that said it, for a fused brain's callouts.
  */
-export type Said = { callout: string; phrase: string; seat?: string };
+export type Said = { callout: string; phrase: string; values?: FillValues; seat?: string };
 
 /** The callout question of one seat of a fused brain. */
 function seatCalloutQuestion(seat: string) {
@@ -54,10 +62,11 @@ function degreesAndSide(degrees: number): FillValues | undefined {
 }
 
 /**
- * The values a parameterised callout reads off the SPEAKER's own display, so a seat can only say what
- * its station shows. Undefined when the display does not show it: the callout is then not said.
+ * The values a parameterised callout reads off the SPEAKER's own display (and the one it read at its
+ * previous decision, for a change over time), so a seat can only say what its station shows. Undefined
+ * when the display does not show it: the callout is then not said.
  */
-const calloutFills: Record<CalloutFill, (display: Display) => FillValues | undefined> = {
+const calloutFills: Record<CalloutFill, (display: Display, previous?: Display) => FillValues | undefined> = {
     /** Weapons: how far the locked contact lies off the nose (the gun line), and to which side. */
     lockedOffNose: ({ panels, radar }) => {
         const targetId = (panels['targeting-status'] as { targetId?: string | null } | undefined)?.targetId;
@@ -88,15 +97,55 @@ const calloutFills: Record<CalloutFill, (display: Display) => FillValues | undef
         if (!far || !r?.ownShip) {
             return undefined;
         }
-        const off = Math.round(offNose(far.bearing, r.ownShip.heading));
         return {
             name: far.name,
             range: (far.distance / 1000).toFixed(1),
-            bearing:
-                Math.abs(off) < 1 ? 'dead on the nose' : `${Math.abs(off)}° ${off > 0 ? 'right' : 'left'} of the nose`,
+            bearing: offNoseWords(far.bearing, r.ownShip.heading),
         };
     },
+    /**
+     * Signals: the nearest identified enemy ship on its radar, wherever the faction sees it, and how its
+     * range moved since the previous decision.
+     */
+    enemyContact: ({ radar }, previous) => {
+        const r = radar as Radar | undefined;
+        const enemy = nearestEnemy(r);
+        if (!enemy || !r?.ownShip) {
+            return undefined;
+        }
+        const before = (previous?.radar as Radar | undefined)?.contacts?.find((c) => c.id === enemy.id);
+        return {
+            name: enemy.name,
+            range: (enemy.distance / 1000).toFixed(1),
+            bearing: offNoseWords(enemy.bearing, r.ownShip.heading),
+            trend: before ? rangeTrend(enemy.distance - before.distance) : 'new contact',
+        };
+    },
+    /** Captain: close to missile range of the nearest enemy, which lies `distance` away on world `bearing`. */
+    closeOrder: ({ radar }) => {
+        const enemy = nearestEnemy(radar as Radar | undefined);
+        return (
+            enemy && {
+                name: enemy.name,
+                range: (CLOSE_RANGE_METERS / 1000).toFixed(0),
+                distance: (enemy.distance / 1000).toFixed(1),
+                bearing: bearingWords(enemy.bearing),
+            }
+        );
+    },
+    /** Captain: engage the nearest enemy, by the name the crew's radars show. */
+    engageOrder: ({ radar }) => {
+        const enemy = nearestEnemy(radar as Radar | undefined);
+        return enemy && { name: enemy.name };
+    },
 };
+
+/** A range change smaller than this between two decisions is called holding range. */
+const RANGE_CHANGE_METERS = 50;
+
+function rangeTrend(change: number) {
+    return Math.abs(change) < RANGE_CHANGE_METERS ? 'holding range' : change < 0 ? 'closing' : 'opening';
+}
 
 /** What a seat heard, read out as an officer would: `Weapons said "target locked" 2 s ago`. */
 export function heardLines(heard: readonly Heard[]): string[] {
@@ -147,6 +196,8 @@ export function calloutSaid(
     choice: string,
     display: Display,
     question = CALLOUT_QUESTION,
+    /** What the speaker's display showed at its previous decision. */
+    previous?: Display,
 ): Said | undefined {
     const source = calloutSources(spec).find((s) => s.question === question);
     const callout = choice === SILENCE ? undefined : source?.callouts[choice];
@@ -157,11 +208,12 @@ export function calloutSaid(
     if (!callout.fill) {
         return { callout: choice, phrase: callout.say, ...seat };
     }
-    const values = calloutFills[callout.fill](display);
+    const values = calloutFills[callout.fill](display, previous);
     return (
         values && {
             callout: choice,
             phrase: callout.say.replace(/\{(\w+)\}/g, (m, k: string) => values[k] ?? m),
+            values,
             ...seat,
         }
     );

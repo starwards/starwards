@@ -30,7 +30,7 @@ export type Contact = {
     radius?: number;
 };
 export type Radar = {
-    ownShip?: { id: string; heading: number };
+    ownShip?: { id: string; heading: number; faction?: number; position?: { x: number; y: number } };
     contacts?: Contact[];
     total?: number;
     scanBeam?: Beam | null;

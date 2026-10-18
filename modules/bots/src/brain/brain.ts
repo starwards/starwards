@@ -25,7 +25,13 @@ export type Answers = {
 /** Answers a brain's request: the model, hand-written rules, or nothing at all. Rules read the raw `display`; a model reads only the request. */
 export type Policy = {
     name: string;
-    answer(request: BrainRequest, controls: readonly Control[], display: Display): Promise<Answers>;
+    answer(
+        request: BrainRequest,
+        controls: readonly Control[],
+        display: Display,
+        /** What the seat heard on the crew channel; a model reads it in the request instead. */
+        heard?: readonly Heard[],
+    ): Promise<Answers>;
 };
 
 /** One control's outcome at one decision, as recorded beside the game; `seat` is the member seat a fused brain decided it for. */
@@ -59,6 +65,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
     const hash = specHash(spec);
     const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
     const forecast = whatIfForecaster(spec);
+    let previous: Display | undefined;
     return {
         spec,
         policy,
@@ -77,7 +84,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 forecast?.(display, controls),
             );
             const answered = Object.keys(request.questions).length
-                ? await policy.answer(request, controls, display)
+                ? await policy.answer(request, controls, display, heard)
                 : { answers: {} };
             const decisions: Decision[] = [];
             for (const control of controls) {
@@ -99,11 +106,12 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                     continue;
                 }
                 decisions.push({ control: question, ...(seat === undefined ? {} : { seat }), ...answer });
-                const said = calloutSaid(spec, answer.choice, display, question);
+                const said = calloutSaid(spec, answer.choice, display, question, previous);
                 if (said) {
                     callouts.push(said);
                 }
             }
+            previous = display;
             return {
                 request,
                 decisions,

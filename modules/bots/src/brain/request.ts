@@ -34,17 +34,22 @@ export function buildRequest(
             continue;
         }
         const instructions = wording.instructions ?? defaultInstructions(control, reading ? 'console' : 'display');
-        const radio = heard && wording.hears ? heardFor(heard, wording.hears) : [];
         questions[control.id] = {
             type: 'choice',
-            instructions: radio.length ? `${instructions} On the radio: ${radio.join('; ')}.` : instructions,
+            instructions: withRadio(instructions, heard, wording.hears),
             criteria: withForecasts(
                 { ...control.options, ...pick(wording.options ?? {}, Object.keys(control.options)) },
                 forecasts?.[control.id],
             ),
         };
     }
-    Object.assign(questions, calloutQuestions(spec));
+    for (const [id, question] of Object.entries(calloutQuestions(spec))) {
+        // a callout question listens like a control: a captain with no controls hears through it alone
+        questions[id] = {
+            ...question,
+            instructions: withRadio(question.instructions, heard, spec.controls[id]?.hears),
+        };
+    }
     return {
         state: {
             station: spec.station,
@@ -55,6 +60,12 @@ export function buildRequest(
         },
         questions,
     };
+}
+
+/** A question's instructions with the heard callouts it listens for read out after them. */
+function withRadio(instructions: string, heard: readonly Heard[] | undefined, hears: readonly string[] | undefined) {
+    const radio = heard && hears ? heardFor(heard, hears) : [];
+    return radio.length ? `${instructions} On the radio: ${radio.join('; ')}.` : instructions;
 }
 
 function defaultInstructions(control: Control, view: 'console' | 'display') {
