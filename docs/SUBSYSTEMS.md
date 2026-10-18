@@ -190,6 +190,11 @@ missile grazes within ~3% of the proximity fuze radius on every pass without tri
 `homing-missile-intercept.spec.ts` pins its fast-check seed for that reason, and eliminating the
 resonance needs a different guidance architecture.
 
+A jammed missile (`Projectile.jammed`, set by `SpaceManager.updateJamLevels` when `jamLevel` reaches 1 — see the Signals station spec)
+has no target of its own: each tick without a live target it locks onto the nearest solid object
+within `jamLockRange` other than its launcher, then homes on it like any other missile. The lock is
+already inside sprint range, so it accelerates straight away.
+
 ### Flight doctrine
 
 `FlightDoctrine` (`modules/core/src/ship/flight-doctrine.ts`) is how a ship weighs gunnery aim

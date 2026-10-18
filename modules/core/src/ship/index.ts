@@ -36,3 +36,4 @@ export * from './warp';
 // a future ship command module must be added to this bundle explicitly, the same as
 // `spaceCommands` in `../space/index.ts`.
 export const repairCommands = _repairCommands;
+export { MAX_SYSTEM_HEAT } from './heat-manager';

@@ -108,6 +108,8 @@ export class SpaceManager implements Updateable {
     private attachments = new Map<string, string>();
     private attachmentCliques = new Map<string, Set<SpaceObject>>();
     private objectDamage = new Map<string, Damage[]>();
+    /** Ids of missiles a jamming scan beam covered this tick; drained by `updateJamLevels`. */
+    private jamCoveredMissileIds = new Set<string>();
     private objectOrder = new Map<string, BotOrder>();
     private toInsert: SpaceObject[] = [];
 
@@ -345,6 +347,7 @@ export class SpaceManager implements Updateable {
 
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
+        this.updateJamLevels(deltaSeconds);
         this.calcHomingProjectiles(deltaSeconds);
         // both act once per call regardless of elapsed time (a proximity check, a per-tick
         // damage/impulse resolution), so unlike the rest of this method they don't freeze on
@@ -489,8 +492,71 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    /** Marks a missile as covered by a jamming scan beam for the current tick (M4.27 ruling). */
+    public coverWithJamBeam(missile: Projectile) {
+        this.jamCoveredMissileIds.add(missile.id);
+    }
+
+    /**
+     * Moves each unjammed missile's `jamLevel` by `deltaSeconds / jamSeconds`: up while a jamming
+     * beam covered it this tick, down otherwise. At 1 the missile is jammed (M4.27 ruling): it
+     * permanently loses its target and its affiliation, keeping its faction and owner ship, and
+     * flies on until a solid object enters its `jamLockRange`.
+     */
+    private updateJamLevels(deltaSeconds: number) {
+        if (deltaSeconds <= 0) {
+            return;
+        }
+        for (const missile of this.state.getAll('Projectile')) {
+            if (missile.jammed || (missile.jamLevel <= 0 && !this.jamCoveredMissileIds.has(missile.id))) {
+                continue;
+            }
+            const step = deltaSeconds / missile.jamSeconds;
+            const covered = this.jamCoveredMissileIds.has(missile.id);
+            missile.jamLevel = Math.min(1, Math.max(0, missile.jamLevel + (covered ? step : -step)));
+            if (missile.jamLevel >= 1) {
+                missile.jammed = true;
+                missile.targetId = null;
+            }
+        }
+        this.jamCoveredMissileIds.clear();
+    }
+
+    /**
+     * A jammed missile with no live target locks onto the nearest solid object within its
+     * `jamLockRange` — friend or foe, anything but its own launcher, which it can never hit.
+     */
+    private lockJammedMissile(missile: Projectile) {
+        if (missile.targetId && this.state.get(missile.targetId)?.destroyed === false) {
+            return;
+        }
+        missile.targetId = null;
+        let nearest: SpaceObject | null = null;
+        let nearestDistance = Infinity;
+        const queryArea = new Circle(XY.clone(missile.position), missile.jamLockRange);
+        for (const object of this.spatialIndex.selectPotentials(queryArea)) {
+            if (
+                (Spaceship.isInstance(object) || Asteroid.isInstance(object) || Derelict.isInstance(object)) &&
+                !object.destroyed &&
+                object.id !== missile.shipId
+            ) {
+                const distance = XY.distance(object.position, missile.position) - object.radius;
+                if (distance <= missile.jamLockRange && distance < nearestDistance) {
+                    nearest = object;
+                    nearestDistance = distance;
+                }
+            }
+        }
+        if (nearest) {
+            missile.targetId = nearest.id;
+        }
+    }
+
     private calcHomingProjectiles(deltaSeconds: number) {
         for (const projectile of this.state.getAll('Projectile')) {
+            if (projectile.jammed && !projectile.freeze && projectile.armed) {
+                this.lockJammedMissile(projectile);
+            }
             if (!projectile.freeze && projectile.armed && projectile.design.homing && projectile.targetId) {
                 const [target] = this.getObjectPtr(projectile.targetId);
                 if (target) {
