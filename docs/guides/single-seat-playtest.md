@@ -145,14 +145,13 @@ The question: does the ship do as well with you in the seat as with a bot there?
 
 ## Common failures
 
-| Symptom                                                      | Cause                                                                  | Fix                                                                  |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| The roster has no ships                                      | No round running, or the server is not up                              | Do steps 1-2.                                                        |
-| A seat's bot status is `failed`                              | The bot could not start on that seat                                   | Read the message beside the dropdown; pick `none`, then `reference`. |
-| The bots are gone after a restart                            | Bot choices reset when the game stops or loads                         | Seat them again (step 3).                                            |
-| No `decisions` link beside a recording                       | The server was not recording when the bots ran                         | Press Record before the round (step 6).                              |
-| Seated bots fail with `Cannot find module '@starwards/bots'` | The server was started without `npm run dev`, so bots were never built | `npm run build:bots`, then restart the server.                       |
-| A bot stays `starting`; the server log repeats `brain error` | Its brain throws every turn                                            | Report the logged message; pick `none` to free the seat.             |
+| Symptom                                                      | Cause                                          | Fix                                                                  |
+| ------------------------------------------------------------ | ---------------------------------------------- | -------------------------------------------------------------------- |
+| The roster has no ships                                      | No round running, or the server is not up      | Do steps 1-2.                                                        |
+| A seat's bot status is `failed`                              | The bot could not start on that seat           | Read the message beside the dropdown; pick `none`, then `reference`. |
+| The bots are gone after a restart                            | Bot choices reset when the game stops or loads | Seat them again (step 3).                                            |
+| No `decisions` link beside a recording                       | The server was not recording when the bots ran | Press Record before the round (step 6).                              |
+| A bot stays `starting`; the server log repeats `brain error` | Its brain throws every turn                    | Report the logged message; pick `none` to free the seat.             |
 
 ## Glossary
 
