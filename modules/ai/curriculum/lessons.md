@@ -540,6 +540,42 @@ Elec missile, P(hit):
 - **Reuse:** a candidate captain on L5b starts from engage-then-close; read the launch range per run
   (`missile_beyond_own_radar` detail) before tuning wording.
 
+### Launch envelope off the target's own motion (2026-10-18)
+
+- **Cause:** Jev captain T3-directed seed 6 timed out. `launchRange` took closing speed from the range rate, which
+  carries the own ship's motion: flying in, the HiExp envelope read 45 km; backing off, 4 km. `close_to` alternated
+  43 km and 2 km, and helms turned an ordered range beyond the current distance into a point behind the ship: a
+  20 s oscillation netting about 0.4 km per cycle.
+- **Change:** closing and crossing speeds come from the target's own motion along and across the line of sight
+  (`engagement.ts`, and the same in `missile_beyond_own_radar` and the weapons KPI); a `close_to` whose run is not
+  positive holds the ship (`reference-orders.ts`).
+- **Level:** L5b captain-reference 16/16, median 69.4 s, check 16/16 (before: 16/16, 70.7 s); Jev captain 16/16,
+  median 72.5 s, check 13/16 (seed 6 kills at 70.1 s). Archive: `training-archive/2026-10-18/envelope-fix/`.
+- **Lesson:** a missile does not inherit the launcher's approach in the measured envelope; read the target, not the
+  range rate.
+
+### L5c — T3-incoming, captain-reference unchanged (2026-10-18)
+
+- **Oracle:** Jev captain (`crews/jev-captain-c1-ref.json`) on T3-incoming seeds 1-8, then 9-16: 16/16, median
+  72.3 s, `missile_oncoming_beyond_radar` 15/16; Jev $0.010.
+- **Mined:** nothing that beats the reference. Paired with captain-reference on seeds 1-16: run value +0.000
+  [−0.004, +0.004], 8 up / 8 down; first oncoming launch median 47 s (Jev) vs 50 s, farthest launch median 31.8 vs
+  32.1 km. Jev says `engage` later (seed 1: 35 s at 41 km, the reference at 15 s at 55 km) and kills at the same time:
+  the kill is set by the attacker's run in, not by the first launch.
+- **Change:** none to the captain rules; the level stands on the envelope fix above.
+- **Level:** captain-reference 16/16, median 73.2 s, check 16/16; `reference` without a captain 15/16, median
+  339.6 s, 0/16 (gun only); idle 0/16. Suite reports: `training-archive/2026-10-18/suite/captain-reference-163414/`,
+  `reference-162632/`, `idle-172908/`; L5c added to the three baselines from those runs.
+- **Regression suite:** captain-reference L5b ok. `reference` regressed on L0b (14/16, seeds 11 and 13: one shell,
+  GVTS stopped) and L4 (14/16, seeds 9 and 12); the same four seeds lose with the envelope change reverted, so the
+  cause predates it (baseline 234b0dd9; suspect the master merge 25c6b8c8). Idle ok.
+- **Decision:** L5c built.
+- **Lesson:** the attacker's combat weave holds its closing speed at 520-590 m/s and crossing at 90-320 m/s, so the
+  HiExp envelope reads the still-target 45 km and launches leave from 20-42 km; the measured 70 km band (closing
+  ≥ 600 m/s, straight run) is not reached against the NPC attack AI.
+- **Reuse:** a two-raider T3-incoming is the next variance step; a longer reach needs ArmPen or Elec in the tubes or
+  an envelope measured against a weaving attacker.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

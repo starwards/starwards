@@ -300,6 +300,18 @@ range (`close_to` 2 km), so it arrives while the missiles fly: a rule mined from
 16/16, median 70.7 s, every run launching from 40–58 km, beyond the tactical radar; `reference`
 without a captain kills 16/16, median 220.3 s, and launches nothing beyond it.
 
+The captain's and weapons' launch range reads the target's own motion along and across the line of
+sight, never the own ship's, and helms holds on a `close_to` order whose range is beyond the current
+distance. On `T3-directed` after that change (2026-10-18) `captain-reference` kills 16/16, median
+69.4 s; the Jev captain 16/16, median 72.5 s.
+
+On `T3-incoming` (a dragonfly-MK1 attacking from 60–90 km, seen only by an allied station near its
+start; seeds 1–16, 400 s, 2026-10-18) `captain-reference` kills 16/16, median 73.2 s, every run
+passing `missile_oncoming_beyond_radar`; the Jev captain 16/16, median 72.3 s, 15/16; `reference`
+without a captain 15/16, median 339.6 s, 0/16; idle 0/16. Launches leave from 20–42 km: the
+attacker's combat weave keeps its closing speed at 520–590 m/s and its crossing speed at 90–320 m/s,
+so the HiExp envelope reads the still-target 45 km, not the 70 km of a straight run in.
+
 ### Tactical: one brain for helms and weapons
 
 A crew may seat `tactical` in place of `helms` and `weapons` (`crews/tactical-reference.json`,
@@ -413,17 +425,18 @@ benchmarks, seeds, timeout, plateau criterion (no gain in its metric beyond seed
 and acceptance thresholds (kill rate, median time to kill per rung, and optionally the share of runs
 that must pass named `analysis/checks.ts` checks; runs report the checks they passed).
 
-| Level | Axis                          | Plays                                                                                                                                               | Seeds | Accept                                               |
-| ----- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------------------------------------------------- |
-| L0    | baseline                      | `T0` and every station benchmark                                                                                                                    | 1–8   | 7/8, median ≤ 120 s                                  |
-| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                                                                                            | 1–16  | 75%                                                  |
-| L1    | threat                        | `T1-lite`                                                                                                                                           | 1–16  | 75%                                                  |
-| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                                                                                 | 1–8   | 50%                                                  |
-| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                                                                                         | 1–16  | 50%                                                  |
-| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                                                                                         | 1–16  | 25%                                                  |
-| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained` and with 3–6 missiles per stock, 300 s                               | 1–16  | 62.5%                                                |
-| L5b   | command                       | `T3-directed`: a dead dragonfly-MK1 40–60 km out, seen and identified only by an allied station 5–12 km from it; the GVTS starts facing away, 400 s | 1–16  | 50%, and 50% of runs pass `missile_beyond_own_radar` |
-| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                                                                                             |       |                                                      |
+| Level | Axis                          | Plays                                                                                                                                                            | Seeds | Accept                                                    |
+| ----- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | --------------------------------------------------------- |
+| L0    | baseline                      | `T0` and every station benchmark                                                                                                                                 | 1–8   | 7/8, median ≤ 120 s                                       |
+| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                                                                                                         | 1–16  | 75%                                                       |
+| L1    | threat                        | `T1-lite`                                                                                                                                                        | 1–16  | 75%                                                       |
+| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                                                                                              | 1–8   | 50%                                                       |
+| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                                                                                                      | 1–16  | 50%                                                       |
+| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                                                                                                      | 1–16  | 25%                                                       |
+| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained` and with 3–6 missiles per stock, 300 s                                            | 1–16  | 62.5%                                                     |
+| L5b   | command                       | `T3-directed`: a dead dragonfly-MK1 40–60 km out, seen and identified only by an allied station 5–12 km from it; the GVTS starts facing away, 400 s              | 1–16  | 50%, and 50% of runs pass `missile_beyond_own_radar`      |
+| L5c   | threat                        | `T3-incoming`: a dragonfly-MK1 attacking from 60–90 km, seen and identified only by an allied station 5–15 km from its start; the GVTS starts facing away, 400 s | 1–16  | 50%, and 50% of runs pass `missile_oncoming_beyond_radar` |
+| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                                                                                                          |       |                                                           |
 
 `T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
 `T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds. On `T2`
