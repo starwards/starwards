@@ -84,7 +84,7 @@ Open your seat's screen:
 | Dradis       | http://localhost:3000/dradis.html?ship=GVTS   | mouse    |
 | GM (observe) | http://localhost:3000/gm.html                 | mouse    |
 
-The GM assigns your client to a seat from the roster's "Unassigned clients" list. A screen can attach to a seat a bot holds: input is shared, so leave your own seat's bot on `none`.
+The GM assigns your client to a seat from the roster's "Unassigned clients" list. A screen can attach to a seat a bot holds: input is shared, so do not press **seat reference** on your own seat (press **remove** if a bot is there).
 
 ### 5. What you should see when it works
 

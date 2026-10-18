@@ -172,7 +172,6 @@ export async function shipCrew(options: ShipCrewOptions) {
         }
     }
 
-    /** Removals still letting go of their seat's buttons; `stop` waits for them too. */
     /** Removals still letting go of their seat's buttons, by seat; `stop` waits for them too. */
     const removals = new Map<BridgeSeat, Promise<void>>();
 
