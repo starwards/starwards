@@ -19,7 +19,7 @@ this repository.
 
 | | |
 | --- | --- |
-| Kubeconfig | `C:SERSGREEN.KUBESTARWARDS-TRAINING-CONFIG` ON THE WORKSTATION (`KUBECONFIG=C:/USERS/GREEN/.KUBE/STARWARDS-TRAINING-CONFIG`; IN GIT BASH PREFIX `KUBECTL EXEC` WITH `MSYS_NO_PATHCONV=1`, OR `/TRAINING-ARCHIVE` IS REWRITTEN TO A WINDOWS PATH) |
+| Kubeconfig | `C:\Users\green\.kube\starwards-training-config` on the workstation (`KUBECONFIG=C:/Users/green/.kube/starwards-training-config`; in Git Bash prefix `kubectl exec` with `MSYS_NO_PATHCONV=1`, or `/training-archive` is rewritten to a Windows path) |
 | Namespace | `starwards-training` (the kubeconfig's default) |
 | API server | `https://192.168.68.11:6443` (LAN or the owner's Tailscale) |
 | Image | `ghcr.io/starwards/starwards/training:<short commit>`, public, no pull secret |
