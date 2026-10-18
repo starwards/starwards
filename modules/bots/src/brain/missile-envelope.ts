@@ -9,7 +9,7 @@ const SPEEDS = [-1200, -600, 0, 600, 1200] as const;
 type Envelope = {
     /** Rmax by closing speed (one entry per {@link SPEEDS}): a non-maneuvering target flying straight along the line of sight. */
     byClosing: readonly number[];
-    /** By crossing speed 0, 600, 1200 m/s, square to the line of sight: a crossing target limits Rmax further. */
+    /** By crossing speed 600 and 1200 m/s, square to the line of sight: a crossing target limits Rmax further. */
     byCrossing: readonly number[];
 };
 
@@ -20,9 +20,9 @@ type Envelope = {
  * is the entry for a target opening at cruise speed; at afterburner speed it outruns every missile.
  */
 const ENVELOPES: Record<string, Envelope> = {
-    HiExpMissile: { byClosing: [0, 4_000, 45_000, 70_000, 70_000], byCrossing: [Infinity, 10_000, 0] },
-    ArmPenMissile: { byClosing: [0, 15_000, 40_000, 65_000, 70_000], byCrossing: [Infinity, 30_000, 0] },
-    ElecMissile: { byClosing: [0, 15_000, 70_000, 70_000, 70_000], byCrossing: [Infinity, 40_000, 0] },
+    HiExpMissile: { byClosing: [0, 4_000, 45_000, 70_000, 70_000], byCrossing: [10_000, 0] },
+    ArmPenMissile: { byClosing: [0, 15_000, 40_000, 65_000, 70_000], byCrossing: [30_000, 0] },
+    ElecMissile: { byClosing: [0, 15_000, 70_000, 70_000, 70_000], byCrossing: [40_000, 0] },
 };
 
 /** The measured value at `speed`: the shorter of the two measured neighbours, the end value past the ends. */
@@ -39,7 +39,9 @@ function shorterNeighbour(speeds: readonly number[], ranges: readonly number[], 
 
 /**
  * The farthest range to launch `ammo` at a target closing at `closing` m/s (negative: opening) and
- * crossing the line of sight at `crossing` m/s: the shorter of the two envelopes. 0 for an ammo
+ * crossing the line of sight at `crossing` m/s. Between measured closing speeds it takes the shorter
+ * neighbour; crossing speed shortens that range linearly toward the measured crossing ranges, so a
+ * few m/s of noise in a radar fix costs a few hundred metres, not the still-target range. 0 for an ammo
  * without one. Single source for the reference weapons' launch, the captain's close order and the
  * analysis of where launches left.
  */
@@ -48,10 +50,10 @@ export function missileLaunchRange(ammo: string, closing: number, crossing = 0) 
     if (!envelope) {
         return 0;
     }
-    return Math.min(
-        shorterNeighbour(SPEEDS, envelope.byClosing, closing),
-        shorterNeighbour([0, 600, 1200], envelope.byCrossing, Math.abs(crossing)),
-    );
+    const ranges = [shorterNeighbour(SPEEDS, envelope.byClosing, closing), ...envelope.byCrossing];
+    const across = Math.min(Math.abs(crossing), 1200) / 600;
+    const i = Math.min(Math.floor(across), 1);
+    return Math.min(ranges[0], ranges[i] + (ranges[i + 1] - ranges[i]) * (across - i));
 }
 
 /**

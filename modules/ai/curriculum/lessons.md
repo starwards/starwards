@@ -511,7 +511,9 @@ Elec missile, P(hit):
   one source for the reference weapons' launch (per tube ammo), the reference captain's `close_to` range (HiExp
   envelope less 2 km, closing speed read off two dradis fixes) and `engage`, the weapons KPI's firing solution and
   the `missile_beyond_own_radar` check (a launch beyond the tactical reach counts only inside the envelope). Between
-  measured speeds it takes the shorter neighbour.
+  measured closing speeds it takes the shorter neighbour; crossing speed shortens the range linearly, since a
+  stepped crossing table cut every HiExp launch from a moving GVTS to 10 km (T3-directed seeds 5, 6, 8: launches
+  only inside 8 km).
 - **Lesson:** a missile's reach is set by the target's aspect, not the missile: 45-70 km at a still or oncoming
   target, 4-15 km at one running at cruise, none at afterburner. HiExp is the still- or oncoming-target missile;
   ArmPen and Elec are the ones that catch a cruising runner.

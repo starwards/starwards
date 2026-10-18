@@ -24,11 +24,16 @@ describe('missile launch envelope', () => {
         expect(missileLaunchRange('ElecMissile', -2000)).toBe(0);
     });
 
+    it('shortens in proportion to a slow crossing speed, so fix noise does not cut the still-target range', () => {
+        expect(missileLaunchRange('HiExpMissile', 0, 30)).toBeCloseTo(43_250);
+        expect(missileLaunchRange('HiExpMissile', 450, 30)).toBeCloseTo(43_250);
+    });
+
     it('shortens against a target crossing the line of sight', () => {
         expect(missileLaunchRange('HiExpMissile', 0, 600)).toBe(10_000);
         expect(missileLaunchRange('ArmPenMissile', 0, 600)).toBe(30_000);
         expect(missileLaunchRange('HiExpMissile', 0, 1200)).toBe(0);
-        expect(missileLaunchRange('ElecMissile', 0, 300)).toBe(40_000);
+        expect(missileLaunchRange('ElecMissile', 0, 300)).toBe(55_000);
     });
 
     it('is shorter than the arming run for an unknown ammo', () => {
