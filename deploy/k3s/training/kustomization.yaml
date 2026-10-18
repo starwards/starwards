@@ -11,6 +11,7 @@ resources:
     - filler-template.yaml
     - rolling-branch.yaml
     - rolling-sweep.yaml
+    - rolling-jev.yaml
 components:
     # the filler dispatcher (fills all 3 slots when idle, suspends the rolling lanes), listed before params
     # so it gets the image; needs the starwards-dispatcher RBAC from the cluster repo: dispatcher/rbac.yaml

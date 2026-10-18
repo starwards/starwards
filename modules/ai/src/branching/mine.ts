@@ -23,10 +23,17 @@ const FEATURES: Record<string, (row: BranchRow) => boolean> = {
     'station in sight': (r) => r.state.stations.length > 0,
 };
 
+type Source = 'jev' | 'enumerated';
+
+/** Rows written before Jev proposals carry no `sources`: enumerated. */
+const sourceOf = (r: BranchRow): Source => (r.sources?.includes('jev') ? 'jev' : 'enumerated');
+
 /** One alternative kind at one level, under one state feature, against the recorded runs. */
 type Finding = {
     level: string;
     kind: string;
+    /** `jev`: branches Jev proposed (the level enumerates them too); `enumerated`: the rest. */
+    source: Source;
     feature: string;
     taken: string[];
     branches: number;
@@ -47,17 +54,18 @@ export function mine(rows: readonly BranchRow[], minBranches = 3): Finding[] {
     const findings: Finding[] = [];
     const groups = new Map<string, BranchRow[]>();
     for (const r of rows) {
-        const key = `${r.level}\u0000${r.kind}`;
+        const key = `${r.level}\u0000${r.kind}\u0000${sourceOf(r)}`;
         groups.set(key, [...(groups.get(key) ?? []), r]);
     }
     for (const [key, list] of groups) {
-        const [level, kind] = key.split('\u0000');
+        const [level, kind, source] = key.split('\u0000') as [string, string, Source];
         for (const [feature, holds] of Object.entries(FEATURES)) {
             const valid = list.filter((r) => holds(r) && r.prefixMatches && r.delta.value !== null);
             if (valid.length < minBranches) continue;
             findings.push({
                 level,
                 kind,
+                source,
                 feature,
                 taken: [...new Set(valid.map((r) => r.taken))],
                 branches: valid.length,
@@ -93,11 +101,11 @@ export function mineReport(rows: readonly BranchRow[], findings: readonly Findin
         '',
     );
     const table = (list: readonly Finding[]) => [
-        '| kind | state | taken | branches | run value (branch − recorded) | kills gained / lost |',
-        '| --- | --- | --- | --- | --- | --- |',
+        '| kind | source | state | taken | branches | run value (branch − recorded) | kills gained / lost |',
+        '| --- | --- | --- | --- | --- | --- | --- |',
         ...list.map(
             (f) =>
-                `| ${f.kind} | ${f.feature} | ${f.taken.join(', ')} | ${f.branches} | ${pairedText(f.value)} | ${f.killsUp} / ${f.killsDown} |`,
+                `| ${f.kind} | ${f.source} | ${f.feature} | ${f.taken.join(', ')} | ${f.branches} | ${pairedText(f.value)} | ${f.killsUp} / ${f.killsDown} |`,
         ),
     ];
     for (const level of levels) {

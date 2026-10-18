@@ -6,14 +6,29 @@
  *   npm --prefix modules/ai run branch -- fork --recording <x.sgr> --crew <crew.json> --t <s> --level <level> --alt <id> [--timeout 400]
  *   npm --prefix modules/ai run branch -- prove --crew <crew.json> --scenario <rung> --seed <n> [--timeout 400] [--recording <x.sgr>]
  *   npm --prefix modules/ai run branch -- corpus --runs <train out dir> --crew <crew.json> --scenario <rung> [--levels strategic,tactical] [--budget 400] [--workers 4] [--window 30] --out <dir>
+ *   npm --prefix modules/ai run branch -- corpus ... [--jev-proposals 3 --jev-cap-usd 10 --jev-ledger <spend.jsonl> --jev-index <decisions index> --jev-decisions <day ledger>]
  *   npm --prefix modules/ai run branch -- mine --corpus <dir>/branches.jsonl
+ *   npm --prefix modules/ai run branch -- join-ledger --index <index.jsonl> [--ledger <decisions.jsonl>]... [--corpus <branches.jsonl>]...
  *
  * The scenario and seed of a recording come from its name (`<scenario>_seed<N>.sgr`). Seats must be
  * deterministic (reference, or Jev answered from the answer cache) for a replay to match its recording.
  */
 import { BranchRow, CorpusRun, corpusTable, planCorpus, playJob } from '../branching/corpus';
 import { DecisionLevel, buttonLevel, setTacticalWindow, strategicLevel, tacticalLevel } from '../branching/levels';
+import {
+    DecisionRow,
+    appendRows,
+    coverage,
+    coveragePriority,
+    joinPayouts,
+    ledgerFromEnv,
+    mergeIndex,
+    readRows,
+    writeRowsAtomic,
+} from '../brain/decision-ledger';
+import { Proposal, proposalKey, proposeAlternatives } from '../branching/jev-proposals';
 import { RunLog, readRunLog } from '../branching/run-log';
+import { answerCacheFromEnv, applyCacheFlags } from '../brain/jev-cache';
 import { fingerprint, runBranch } from '../branching/fork';
 import { loadBrainSpec, makeReferencePolicy, withOrderBoard } from '@starwards/bots';
 import { mine, mineReport } from '../branching/mine';
@@ -21,6 +36,7 @@ import { mine, mineReport } from '../branching/mine';
 import { CrewRunResult } from '../training/train-crew';
 import { fork as forkProcess } from 'node:child_process';
 import fs from 'node:fs';
+import { jevClient } from '../brain/jev-client';
 import path from 'node:path';
 import { reask } from '../training/reask';
 
@@ -86,7 +102,15 @@ const levelOptions = (): LevelOptions => ({
 });
 
 /** A worker's job, as it crosses the process boundary. */
-type WireJob = { run: CorpusRun; level: string; t: number; alternative: string; kind: string; options: LevelOptions };
+type WireJob = {
+    run: CorpusRun;
+    level: string;
+    t: number;
+    alternative: string;
+    kind: string;
+    jev?: { rank: number; probability: number };
+    options: LevelOptions;
+};
 
 /** Run logs (and button-level reask choices) read so far by this process, by recording. */
 const logs = new Map<string, { log: RunLog; asked?: Map<number, string> }>();
@@ -103,7 +127,11 @@ async function playWire(job: WireJob) {
     const point = level.points(log).find((p) => Math.abs(p.t - job.t) < 1e-9);
     if (!point) throw new Error(`no ${job.level} point at ${job.t} in ${job.run.recording}`);
     const started = Date.now();
-    const row = await playJob({ run: job.run, point, alternative: job.alternative, kind: job.kind }, level, log);
+    const row = await playJob(
+        { run: job.run, point, alternative: job.alternative, kind: job.kind, jev: job.jev },
+        level,
+        log,
+    );
     process.stderr.write(
         `seed ${job.run.seed} ${job.level} t=${job.t.toFixed(1)} ${job.alternative}: ${((Date.now() - started) / 1000).toFixed(1)} s
 `,
@@ -170,7 +198,8 @@ async function main() {
     if (command === 'prove') return prove();
     if (command === 'corpus') return corpus();
     if (command === 'mine') return mineCommand();
-    throw new Error('usage: branch points|fork|prove|corpus|mine (see the header of src/cli/branch.ts)');
+    if (command === 'join-ledger') return joinLedger();
+    throw new Error('usage: branch points|fork|prove|corpus|mine|join-ledger (see the header of src/cli/branch.ts)');
 }
 
 async function points() {
@@ -295,6 +324,8 @@ async function corpus() {
             ),
         )
     ).flat();
+    const jev = await jevProposals(planned, runs, scenario);
+    // Jev-proposed branches first (unmeasured, low-confidence decisions before the rest), then
     // round-robin over runs and levels, so a cut budget still covers every seed at every level
     const seen = new Map<string, number>();
     const order = planned
@@ -302,20 +333,27 @@ async function corpus() {
             const key = `${job.run.seed}/${job.level.name}`;
             const rank = seen.get(key) ?? 0;
             seen.set(key, rank + 1);
-            return { job, rank };
+            const at = proposalKey(job.run.seed, job.level.name, job.point.t);
+            const proposal = jev.proposals.get(at)?.find((p) => p.alternative === job.alternative);
+            const priority = proposal ? (jev.priority.get(at) ?? 0) : Infinity;
+            return { job, rank, proposal, priority };
         })
         .sort(
             (a, b) =>
-                a.rank - b.rank || a.job.run.seed - b.job.run.seed || a.job.level.name.localeCompare(b.job.level.name),
+                a.priority - b.priority ||
+                (a.proposal?.rank ?? 0) - (b.proposal?.rank ?? 0) ||
+                a.rank - b.rank ||
+                a.job.run.seed - b.job.run.seed ||
+                a.job.level.name.localeCompare(b.job.level.name),
         )
-        .slice(0, budget)
-        .map((x) => x.job);
-    const wire: WireJob[] = order.map((j) => ({
+        .slice(0, budget);
+    const wire: WireJob[] = order.map(({ job: j, proposal }) => ({
         run: j.run,
         level: j.level.name,
         t: j.point.t,
         alternative: j.alternative,
         kind: j.kind,
+        ...(proposal ? { jev: { rank: proposal.rank, probability: proposal.probability } } : {}),
         options,
     }));
     process.stderr.write(`${runs.length} runs, ${wire.length} branches planned, ${workers} worker(s)\n`);
@@ -326,11 +364,18 @@ async function corpus() {
     const wall = (Date.now() - started) / 1000;
     fs.mkdirSync(out, { recursive: true });
     fs.writeFileSync(path.join(out, 'branches.jsonl'), rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
-    const header = `${scenario}, crew ${crewName}, ${runs.length} runs, ${rows.length} branches, levels ${names.join(', ')}, budget ${budget}, ${workers} worker(s), wall ${wall.toFixed(0)} s`;
+    const header = `${scenario}, crew ${crewName}, ${runs.length} runs, ${rows.length} branches, levels ${names.join(', ')}, budget ${budget}, ${workers} worker(s), wall ${wall.toFixed(0)} s${jev.note}`;
     fs.writeFileSync(path.join(out, 'corpus.md'), corpusTable(rows, header));
     const report = mineReport(rows, mine(rows));
     fs.writeFileSync(path.join(out, 'mine.md'), `${header}\n\n${report}`);
     process.stdout.write(`${header}\nwrote ${out}/branches.jsonl, corpus.md, mine.md\n`);
+    if (jev.rows.length) {
+        // the proposal decisions, with what their proposals were worth
+        const joined = joinPayouts(jev.rows, rows);
+        writeRowsAtomic(path.join(out, 'jev-decisions.jsonl'), joined);
+        const ledger = arg('jev-decisions') ?? ledgerFromEnv();
+        if (ledger) appendRows(path.resolve(ledger), joined);
+    }
     const diverged = rows.filter((r) => !r.prefixMatches);
     if (diverged.length) {
         // a branch that did not replay its recording up to its point compares nothing: re-record before reading
@@ -339,6 +384,101 @@ async function corpus() {
         );
         process.exitCode = 1;
     }
+}
+
+type Planned = ReturnType<typeof planCorpus>[number];
+
+/**
+ * `--jev-proposals K`: asks the Jev captain (`--jev-brain`, default brains/captain-orders.v1.json) for
+ * its top K alternatives at every strategic and tactical point, within the spend guard (`--jev-ledger`,
+ * `--jev-cap-usd`). A refused reservation sends nothing and leaves the corpus enumerated-only. With
+ * `--jev-index`, points whose proposal decision is unmeasured and low-confidence are played first.
+ */
+async function jevProposals(
+    planned: readonly Planned[],
+    runs: readonly { run: CorpusRun; log: RunLog }[],
+    scenario: string,
+) {
+    const none = {
+        proposals: new Map<string, Proposal[]>(),
+        priority: new Map<string, number>(),
+        rows: [] as DecisionRow[],
+        note: '',
+    };
+    const k = Number(arg('jev-proposals', '0'));
+    if (!k) return none;
+    applyCacheFlags();
+    const brain = arg('jev-brain') ?? path.join(__dirname, '../../brains/captain-orders.v1.json');
+    const spec = loadBrainSpec(path.resolve(brain));
+    const logBySeed = new Map(runs.map((r) => [r.run.seed, r.log]));
+    const asked = new Map<string, Planned>();
+    for (const job of planned) {
+        if (job.level.name !== 'button') asked.set(proposalKey(job.run.seed, job.level.name, job.point.t), job);
+    }
+    const result = await proposeAlternatives(
+        [...asked.values()].map((job) => ({
+            run: `${process.env.RUN_NAME ?? 'corpus'}/${path.basename(job.run.recording, '.sgr')}`,
+            scenario,
+            seed: job.run.seed,
+            recording: job.run.recording,
+            point: job.point,
+            level: job.level,
+            log: logBySeed.get(job.run.seed)!,
+        })),
+        spec,
+        k,
+        {
+            ledger: path.resolve(arg('jev-ledger') ?? '/training-archive/jev-ledger.jsonl'),
+            capUsd: Number(arg('jev-cap-usd', '10')),
+            job: process.env.RUN_NAME ?? `corpus-${scenario}`,
+        },
+        answerCacheFromEnv(),
+        () => jevClient(),
+    );
+    if (result.refused) {
+        process.stderr.write(`${result.reason}: no Jev request sent, the corpus stays enumerated-only\n`);
+        return { ...none, note: `, jev refused ($${result.total.toFixed(4)} spent or held)` };
+    }
+    const index = arg('jev-index') ? readRows(path.resolve(arg('jev-index')!)) : [];
+    const rank = coveragePriority([...index, ...result.rows]);
+    const known = new Map(index.map((r) => [r.id, r]));
+    const priority = new Map<string, number>();
+    for (const row of result.rows) {
+        const p = rank(known.get(row.id) ?? row);
+        for (const level of ['strategic', 'tactical']) priority.set(proposalKey(row.seed, level, row.t), p);
+    }
+    const usd = result.rows.reduce((a, r) => a + r.usd, 0);
+    process.stderr.write(
+        `jev: ${result.rows.length} proposal requests, ${result.rows.filter((r) => r.cacheHit).length} from the cache, ${result.paidTokens} tokens paid ($${usd.toFixed(4)})\n`,
+    );
+    return {
+        proposals: result.proposals,
+        priority,
+        rows: result.rows,
+        note: `, jev top ${k} at ${result.proposals.size} points ($${usd.toFixed(4)})`,
+    };
+}
+
+/**
+ * Fills decision-ledger payouts from branch corpora and merges the rows into the cumulative index;
+ * prints coverage (measured / total) per scenario.
+ */
+function joinLedger() {
+    const many = (name: string) =>
+        process.argv.flatMap((a, i) =>
+            a === `--${name}` && process.argv[i + 1] ? [path.resolve(process.argv[i + 1])] : [],
+        );
+    const index = path.resolve(required('index'));
+    const branches = many('corpus').flatMap((file) =>
+        fs
+            .readFileSync(file, 'utf8')
+            .split('\n')
+            .filter(Boolean)
+            .map((l) => JSON.parse(l) as BranchRow),
+    );
+    const joined = joinPayouts(mergeIndex(readRows(index), many('ledger').flatMap(readRows)), branches);
+    writeRowsAtomic(index, joined);
+    process.stdout.write(JSON.stringify({ rows: joined.length, coverage: coverage(joined) }, null, 2) + '\n');
 }
 
 function mineCommand() {

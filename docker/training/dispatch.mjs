@@ -109,12 +109,25 @@ for (const j of fillers) {
 }
 const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
 for (let i = 0; i < launch; i++) {
-    const lane = Object.keys(WEIGHTS).sort((a, b) => (running[a] ?? 0) / WEIGHTS[a] - (running[b] ?? 0) / WEIGHTS[b])[0];
+    // Jev fillers spend money: at most one at a time (the spend ledger caps the total)
+    const lanes = Object.keys(WEIGHTS).filter((l) => l !== 'jev' || !running.jev);
+    const lane = lanes.sort((a, b) => (running[a] ?? 0) / WEIGHTS[a] - (running[b] ?? 0) / WEIGHTS[b])[0];
     running[lane] = (running[lane] ?? 0) + 1;
     const spec = structuredClone(template.spec.jobTemplate.spec);
-    const labels = { ...(template.spec.jobTemplate.metadata?.labels ?? {}), role: 'filler', 'starwards/lane': lane };
+    const labels = {
+        ...(template.spec.jobTemplate.metadata?.labels ?? {}),
+        role: 'filler',
+        'starwards/lane': lane,
+        ...(lane === 'jev' ? { jev: 'true' } : {}),
+    };
     spec.template.metadata = { ...(spec.template.metadata ?? {}) };
-    spec.template.metadata.labels = { ...(spec.template.metadata.labels ?? {}), role: 'filler', 'starwards/lane': lane };
+    spec.template.metadata.labels = { ...(spec.template.metadata.labels ?? {}), ...labels };
+    if (lane === 'jev') {
+        // the key from the jev Secret, never in the template or a log
+        for (const c of spec.template.spec.containers) {
+            c.env = [...(c.env ?? []), { name: 'TYPESAFE_API_KEY', valueFrom: { secretKeyRef: { name: 'jev', key: 'TYPESAFE_API_KEY' } } }];
+        }
+    }
     for (const c of spec.template.spec.containers) {
         c.env = [...(c.env ?? []).filter((e) => e.name !== 'LANE'), { name: 'LANE', value: lane }];
     }

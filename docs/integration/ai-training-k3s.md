@@ -159,3 +159,33 @@ with the run's name, day, scenario and kind.
   Copy the host cache onto the volume to start warm.
 - Spend cap: Jev work is budgeted ($20 total for the curriculum). Run a 1-shard, 2-seed Jev Job first and
   read the token counts in its `<scenario>-crews.md` before launching a full night.
+
+### Jev proposals in branching
+
+The `jev` rolling lane (`deploy/k3s/training/rolling-jev.yaml`, labels `role=filler`, `jev=true`, at most
+one at a time) runs `branch corpus --jev-proposals 3`: at every strategic and tactical point, the Jev
+captain (`brains/captain-orders.v1.json`) is asked once, from the captain's recorded display at that
+decision, and its top 3 callouts by probability that the level can play become the first branches of
+the corpus. The reference crew plays them at $0; rows carry `sources` (`enumerated`, plus `jev` when
+Jev proposed it) and mining splits findings by source.
+
+Spend guard: before any request, the requests the answer cache (`jev-cache/`) cannot answer are priced
+at one token per two characters of JSON and reserved in `/training-archive/jev-ledger.jsonl` under a
+lock; a reservation that would take the total (settled costs plus open reservations) past
+`--jev-cap-usd` (`JEV_CAP_USD`, 10) sends nothing and leaves the corpus enumerated-only. A finished
+batch settles at the tokens paid.
+
+### Jev decision ledger
+
+| File (archive)                 | What                                                                                     |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `<day>/jev-decisions.jsonl`    | one row per Jev decision, appended at run time (`JEV_DECISIONS`; crews and proposals)    |
+| `mining/jev-decisions.jsonl`   | cumulative index with payouts (`branch join-ledger`), kept by retention                  |
+| `mining/<rung>/LATEST.md`      | coverage: measured / total decisions, low-confidence share, cost                         |
+
+A row: `id` (`<run>#<seat>@<t>/<control>`), `run`, `scenario`, `seed`, `seat`, `t`, `control`, `origin`
+(`play`, `proposal`), `recording`, `node`, `commit`, `brain`, `version`, `model`, `cacheKey` (the request is
+in `jev-cache/`, the display in the recording's events), `cacheHit`, `inputTokens`, `outputTokens` (null:
+the endpoint reports none), `usd` (0 on a hit), `choice`, `confidence`, `probabilities`, `payout`
+(`not_measured`, or `branched` with the mean Δ run value, per-alternative Δ, branch ids and seeds).
+Proposal points whose decision is unmeasured and under 0.6 confidence are branched first.

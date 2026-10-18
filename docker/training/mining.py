@@ -21,7 +21,7 @@ TOP = 12
 def read_jsonl(path):
     if not os.path.exists(path):
         return []
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         return [json.loads(line) for line in f if line.strip()]
 
 
@@ -77,13 +77,14 @@ def branch_section(rows):
     diverged = sum(1 for r in rows if not r.get('prefixMatches'))
     groups = {}
     for r in valid:
-        groups.setdefault((r['level'], r['alternative']), []).append(r)
+        source = 'jev' if 'jev' in (r.get('sources') or []) else 'enumerated'
+        groups.setdefault((r['level'], r['alternative'], source), []).append(r)
     stats = []
-    for (level, alt), lst in groups.items():
+    for (level, alt, source), lst in groups.items():
         if len(lst) < 3:
             continue
         s = paired([r['outcome']['value'] - r['baseline']['value'] for r in lst])
-        s.update(level=level, alt=alt, kind=lst[0]['kind'],
+        s.update(level=level, alt=alt, source=source, kind=lst[0]['kind'],
                  up=[r['seed'] for r in lst if r['delta']['kills'] > 0],
                  down=[r['seed'] for r in lst if r['delta']['kills'] < 0],
                  seeds=len({r['seed'] for r in lst}))
@@ -92,12 +93,32 @@ def branch_section(rows):
     beats = [s for s in stats if verdict(s) == 'BEATS']
     out = [f"{len(rows)} branches over {len({r['seed'] for r in rows})} seeds, {diverged} diverged (excluded).", '',
            f"**{len(beats)} alternative(s) beat the reference beyond noise.**", '',
-           '| verdict | level | alternative | branches (seeds) | Δ run value [95% CI] | wins/losses | sign p | kill gained on seeds | kill lost on seeds |',
-           '| --- | --- | --- | --- | --- | --- | --- | --- | --- |']
+           '| verdict | level | alternative | source | branches (seeds) | Δ run value [95% CI] | wins/losses | sign p | kill gained on seeds | kill lost on seeds |',
+           '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |']
     for s in stats[:TOP]:
-        out.append(f"| {verdict(s)} | {s['level']} | `{s['alt']}` | {s['n']} ({s['seeds']}) | {fmt(s)} | "
+        out.append(f"| {verdict(s)} | {s['level']} | `{s['alt']}` | {s['source']} | {s['n']} ({s['seeds']}) | {fmt(s)} | "
                    f"{seed_list(s['up'])} | {seed_list(s['down'])} |")
+    for source in ('jev', 'enumerated'):
+        mine = [s for s in stats if s['source'] == source]
+        if mine:
+            out.insert(2, f"- {source}: {len(mine)} alternative(s) with 3+ branches, "
+                          f"{sum(verdict(s) == 'BEATS' for s in mine)} beating, mean Δ "
+                          f"{sum(s['mean'] for s in mine) / len(mine):+.3f}")
     return out, len(beats), len(rows), diverged
+
+
+def coverage_section(index_path, rung):
+    rows = [r for r in read_jsonl(index_path) if r.get('scenario') == rung]
+    if not rows:
+        return []
+    measured = sum(1 for r in rows if r['payout']['status'] == 'branched')
+    usd = sum(r.get('usd', 0) for r in rows)
+    low = [r for r in rows if max((r.get('probabilities') or {'x': r.get('confidence') or 1}).values()) < 0.6]
+    low_measured = sum(1 for r in low if r['payout']['status'] == 'branched')
+    return ['## Jev decision ledger coverage', '',
+            f"{measured} / {len(rows)} Jev decisions measured by a branch ({100 * measured / len(rows):.0f}%); "
+            f"low-confidence (< 0.6): {low_measured} / {len(low)}; ledger cost ${usd:.4f}. "
+            f"Index: `mining/jev-decisions.jsonl`.", '']
 
 
 def sweep_section(rows):
@@ -151,9 +172,10 @@ def main():
     if sweep:
         sec, ns = sweep_section(sweep)
         lines += ['## Crew sweep: reference variants on held-out seeds', ''] + sec + ['']
-    with open(os.path.join(folder, 'LATEST.md'), 'w') as f:
+    lines += coverage_section(os.path.join(os.path.dirname(folder), 'jev-decisions.jsonl'), rung)
+    with open(os.path.join(folder, 'LATEST.md'), 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
-    with open(os.path.join(folder, 'history.md'), 'a') as f:
+    with open(os.path.join(folder, 'history.md'), 'a', encoding='utf-8') as f:
         f.write(f'- {now} {commit}: {nbr} branches ({ndiv} diverged), {nb} beating; '
                 f'{len(sweep)} sweep runs, {ns} crew(s) beating\n')
 
