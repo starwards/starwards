@@ -140,4 +140,43 @@ describe('regression rule', () => {
         expect(levelAccepted(l0, level(rung(6, 8, 100)))).toBe(false);
         expect(levelAccepted(l0, level(rung(8, 8, 130)))).toBe(false);
     });
+
+    it('a level that names checks is accepted only when enough runs of every rung pass each of them', () => {
+        const [directed] = ladderSchema.parse({
+            regression: rule,
+            levels: [
+                {
+                    id: 'L6',
+                    axis: 'command',
+                    changed: 'directed',
+                    status: 'built',
+                    rungs: ['T3-directed'],
+                    benchmarks: [],
+                    seeds: { first: 1, count: 8 },
+                    timeoutSeconds: 400,
+                    plateau: { metric: 'kills', versions: 2 },
+                    accept: { killRate: 0.5, checks: { missile_beyond_own_radar: 0.5 } },
+                },
+            ],
+        }).levels;
+        const passing = (passed: number) => ({
+            ...rung(6, 8, 100),
+            passedChecks: { missile_beyond_own_radar: passed },
+        });
+        expect(levelAccepted(directed, level(passing(4)))).toBe(true);
+        expect(levelAccepted(directed, level(passing(3)))).toBe(false);
+        expect(levelAccepted(directed, level(rung(6, 8, 100)))).toBe(false);
+    });
+
+    it('counts per rung the runs that passed each check', () => {
+        const run = (seed: number, passedChecks: string[]) => ({
+            seed,
+            killed: true,
+            seconds: 50,
+            refused: 0,
+            fallbacks: 0,
+            passedChecks,
+        });
+        expect(summariseRung('T3-directed', [run(1, ['a', 'b']), run(2, ['a'])]).passedChecks).toEqual({ a: 2, b: 1 });
+    });
 });

@@ -13,6 +13,8 @@ export type RungResult = {
     fallbacks: number;
     /** Each seed's run value (`RunScore.value`), in seed order; absent when a run could not be scored. */
     values?: number[];
+    /** Per `analysis/checks.ts` check, how many runs passed it. */
+    passedChecks?: Record<string, number>;
     /** Tokens paid to Jev, and tokens answered from the answer cache instead. */
     paidTokens?: number;
     cachedTokens?: number;
@@ -59,10 +61,19 @@ const sum = <T>(runs: readonly T[], of: (run: T) => number | undefined) => runs.
 
 export function summariseRung(
     name: string,
-    unordered: readonly (RunCost & { killed: boolean; seconds: number; score?: { value: number } | null })[],
+    unordered: readonly (RunCost & {
+        killed: boolean;
+        seconds: number;
+        score?: { value: number } | null;
+        passedChecks?: readonly string[];
+    })[],
 ): RungResult {
     const runs = [...unordered].sort((a, b) => a.seed - b.seed);
     const values = runs.flatMap((r) => (r.score ? [r.score.value] : []));
+    const passedChecks: Record<string, number> = {};
+    for (const check of runs.flatMap((r) => r.passedChecks ?? [])) {
+        passedChecks[check] = (passedChecks[check] ?? 0) + 1;
+    }
     return {
         kind: 'rung',
         name,
@@ -72,6 +83,7 @@ export function summariseRung(
         refused: sum(runs, (r) => r.refused),
         fallbacks: sum(runs, (r) => r.fallbacks),
         ...(values.length === runs.length ? { values } : {}),
+        passedChecks,
         paidTokens: sum(runs, (r) => r.inputTokens),
         cachedTokens: sum(runs, (r) => r.cachedTokens),
     };
@@ -192,11 +204,14 @@ export function compareLevel(base: LevelResult | undefined, now: LevelResult, ru
 
 /** Whether every rung of a level reaches the level's acceptance thresholds. */
 export function levelAccepted(level: Level, result: LevelResult) {
+    const { killRate, medianSeconds, checks = {} } = level.accept;
     return result.items.every(
         (item) =>
             item.kind !== 'rung' ||
-            (item.kills / item.runs >= level.accept.killRate &&
-                (level.accept.medianSeconds === undefined ||
-                    (item.medianSeconds !== null && item.medianSeconds <= level.accept.medianSeconds))),
+            (item.kills / item.runs >= killRate &&
+                (medianSeconds === undefined || (item.medianSeconds !== null && item.medianSeconds <= medianSeconds)) &&
+                Object.entries(checks).every(
+                    ([check, share]) => (item.passedChecks?.[check] ?? 0) / item.runs >= share,
+                )),
     );
 }

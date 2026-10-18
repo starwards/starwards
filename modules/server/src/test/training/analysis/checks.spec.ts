@@ -31,7 +31,7 @@ describe('computeChecks', () => {
         await rmDirRetrying(dir);
     });
 
-    async function value(objectId: string, p: string, t: number, opts: { num?: number; bool?: boolean }) {
+    async function value(objectId: string, p: string, t: number, opts: { num?: number; str?: string; bool?: boolean }) {
         await store.run(
             'INSERT INTO value VALUES (?, ?, ?, ?, ?, ?, ?)',
             runId,
@@ -39,7 +39,7 @@ describe('computeChecks', () => {
             p,
             t,
             opts.num ?? null,
-            null,
+            opts.str ?? null,
             opts.bool ?? null,
         );
     }
@@ -178,6 +178,40 @@ describe('computeChecks', () => {
             await frame(1);
             await value('p', '/velocity/x', 1, { num: 0 });
             expect((await run()).player_stays_mobile.status).toBe('fail');
+        });
+    });
+
+    describe('missile_beyond_own_radar', () => {
+        async function launch(id: string, t: number, model: string, targetX: number) {
+            await object(id, 'Projectile', t, t + 5, null);
+            await value(id, '/shipId', t, { str: 'p' });
+            await value(id, '/targetId', t, { str: 't' });
+            await value(id, '/model', t, { str: model });
+            await value('t', '/position/x', t, { num: targetX });
+            await value('t', '/position/y', t, { num: 0 });
+        }
+        beforeEach(async () => {
+            await object('p', 'Spaceship', 0, 100, 'player');
+            await object('t', 'Spaceship', 0, 100, 'target');
+            await value('p', '/position/x', 0, { num: 0 });
+            await value('p', '/position/y', 0, { num: 0 });
+        });
+
+        it('skips a run whose player launched no missile', async () => {
+            await launch('shell0', 5, 'CannonShell', 15_000);
+            expect((await run()).missile_beyond_own_radar.status).toBe('skip');
+        });
+
+        it('skips a run whose every missile left inside the tactical radar reach', async () => {
+            await launch('shell0', 5, 'HiExpMissile', 8000);
+            expect((await run()).missile_beyond_own_radar.status).toBe('skip');
+        });
+
+        it('passes when a missile left at a target beyond the tactical radar reach', async () => {
+            await launch('shell0', 5, 'HiExpMissile', 8000);
+            await launch('shell1', 20, 'HiExpMissile', 18_000);
+            const check = (await run()).missile_beyond_own_radar;
+            expect(check).toMatchObject({ status: 'pass', t: 20, detail: { launches: 2, beyond: 1 } });
         });
     });
 

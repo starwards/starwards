@@ -95,6 +95,18 @@
             "accept": { "killRate": 0.625 }
         },
         {
+            "id": "L5b",
+            "axis": "command",
+            "changed": "Back to one dead target, but 40-60 km out, beyond the GVTS's own radar: only an allied station sees and identifies it, and the GVTS starts facing away (T3-directed). The crew adds a captain who orders the ship to missile range from the fleet's picture; a run counts once it kills, and the level also wants missiles launched beyond the weapons radar's reach.",
+            "status": "built",
+            "rungs": ["T3-directed"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 400,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5, "checks": { "missile_beyond_own_radar": 0.5 } }
+        },
+        {
             "id": "L6",
             "axis": "threat",
             "changed": "Heavier attackers: dragonfly-MK2, then predator hulls.",

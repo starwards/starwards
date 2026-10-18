@@ -1,5 +1,6 @@
 import { killedAt, meanDistance, shellsFired } from './metrics';
 import { Store } from './store';
+import { radarReach } from '@starwards/core/internal';
 
 export type CheckStatus = 'pass' | 'fail' | 'skip';
 
@@ -63,6 +64,7 @@ export async function computeChecks(
         stripLeadsToKill(store, runId, roles, params),
         playerStaysMobile(store, runId, roles),
         framesRegular(store, runId),
+        missileBeyondOwnRadar(store, runId, roles),
     ]);
     for (const r of results) {
         await insertCheck(store, runId, r);
@@ -76,6 +78,11 @@ export const CHECK_CATALOGUE: ReadonlyArray<{ name: string; description: string 
     { name: 'strip_leads_to_kill', description: 'armor stripped but no kill within stripToKillSeconds' },
     { name: 'player_stays_mobile', description: 'player speed 0 at end with no propulsion break' },
     { name: 'frames_regular', description: 'frame t gaps deviate from interval_s by more than one frame' },
+    {
+        name: 'missile_beyond_own_radar',
+        description:
+            "passes when a player missile left at a target beyond the weapons station's tactical radar reach; skips otherwise",
+    },
 ];
 
 async function fireWithinRange(store: Store, runId: string, roles: RoleIds): Promise<CheckResult> {
@@ -231,4 +238,47 @@ async function framesRegular(store: Store, runId: string): Promise<CheckResult> 
         }
     }
     return { name: 'frames_regular', status: 'pass', t: null, detail: null };
+}
+
+/**
+ * Whether the player launched a missile at a target its weapons station's own radar (the tactical
+ * radar's reach) could not show: one only the faction's picture held. A run without such a launch
+ * skips, since staying inside the reach is no fault on most rungs. Launch range is read at the
+ * missile's first frame, so it is late by up to one frame interval.
+ */
+async function missileBeyondOwnRadar(store: Store, runId: string, roles: RoleIds): Promise<CheckResult> {
+    const name = 'missile_beyond_own_radar';
+    if (!roles.player) {
+        return { name, status: 'skip', t: null, detail: 'no player role' };
+    }
+    const projectiles = await store.all<{ object_id: string; first_t: number }>(
+        "SELECT object_id, first_t FROM object WHERE run_id = ? AND type = 'Projectile' ORDER BY first_t",
+        runId,
+    );
+    const ranges: { t: number; range: number }[] = [];
+    for (const { object_id, first_t: t } of projectiles) {
+        const [shipId, model, targetId] = await Promise.all(
+            ['/shipId', '/model', '/targetId'].map((p) => store.valueAt(runId, object_id, p, t)),
+        );
+        if (shipId?.str !== roles.player || !model?.str?.endsWith('Missile') || !targetId?.str) {
+            continue;
+        }
+        const [px, py, tx, ty] = await Promise.all([
+            store.valueAt(runId, roles.player, '/position/x', t),
+            store.valueAt(runId, roles.player, '/position/y', t),
+            store.valueAt(runId, targetId.str, '/position/x', t),
+            store.valueAt(runId, targetId.str, '/position/y', t),
+        ]);
+        ranges.push({ t, range: Math.hypot((tx?.num ?? 0) - (px?.num ?? 0), (ty?.num ?? 0) - (py?.num ?? 0)) });
+    }
+    if (!ranges.length) {
+        return { name, status: 'skip', t: null, detail: 'no missile launched' };
+    }
+    const beyond = ranges.filter((r) => r.range > radarReach.tactical);
+    const detail = {
+        launches: ranges.length,
+        beyond: beyond.length,
+        maxRange: Math.max(...ranges.map((r) => r.range)),
+    };
+    return beyond.length ? { name, status: 'pass', t: beyond[0].t, detail } : { name, status: 'skip', t: null, detail };
 }

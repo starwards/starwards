@@ -6,7 +6,16 @@ import { z } from 'zod';
 export const CURRICULUM_DIR = path.resolve(__dirname, '../../curriculum');
 
 /** What a level makes harder (or wider) than the one before it. */
-export const ladderAxes = ['baseline', 'variance', 'threat', 'internal', 'enemies', 'mission', 'space'] as const;
+export const ladderAxes = [
+    'baseline',
+    'variance',
+    'threat',
+    'internal',
+    'enemies',
+    'command',
+    'mission',
+    'space',
+] as const;
 
 const seedsSchema = z.object({ first: z.number().int().min(1), count: z.number().int().min(1) }).strict();
 
@@ -33,6 +42,8 @@ const levelSchema = z
             .object({
                 killRate: z.number().min(0).max(1),
                 medianSeconds: z.number().positive().optional(),
+                /** Per `analysis/checks.ts` check, the share of each rung's runs that must pass it. */
+                checks: z.record(z.string(), z.number().min(0).max(1)).optional(),
             })
             .strict(),
     })

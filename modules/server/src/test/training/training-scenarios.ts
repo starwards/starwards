@@ -9,12 +9,14 @@ import {
     T0Lab,
     T0Params,
     T2Params,
+    T3DirectedParams,
     TRAINING_PLAYER_ID,
     TRAINING_TARGET2_ID,
     TRAINING_TARGET_ID,
     createTrainingT0Map,
     createTrainingT1Map,
     createTrainingT2Map,
+    createTrainingT3DirectedMap,
 } from '../../scenarios/training';
 import {
     WeaponsMultiParams,
@@ -64,6 +66,8 @@ export interface TrainingResult {
     readonly hz: number;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
+    /** Names of `analysis/checks.ts` checks that passed on this run's store. */
+    readonly passedChecks: readonly string[];
     /** The persisted `.sgr`, when the run was asked to keep one. */
     readonly recording?: string;
     /** Frames in the persisted recording. */
@@ -197,6 +201,23 @@ const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
     createMap: (params) => createTrainingT2Map(params, params),
 };
 
+/**
+ * The T0 target beyond the GVTS's own radar, seen and identified only by an allied station: the crew
+ * finds and engages it from the fleet's picture.
+ */
+const T3_DIRECTED: TrainingScenario<T3DirectedParams> = {
+    name: 'T3-directed',
+    description:
+        'GVTS vs one PLAY_DEAD dragonfly-MK1 40-60 km away, any bearing, seen and identified only by an allied large station 5-12 km from it; the GVTS starts facing away',
+    params: fc.record({
+        distance: fc.integer({ min: 40_000, max: 60_000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        stationDistance: fc.integer({ min: 5_000, max: 12_000 }),
+        stationBearing: fc.integer({ min: 0, max: 359 }),
+    }),
+    createMap: createTrainingT3DirectedMap,
+};
+
 /** Weapons rung with a threat, a harmless decoy and an ally to choose between (calibration only). */
 const W_MULTI: TrainingScenario<WeaponsMultiParams> = {
     name: 'W-multi',
@@ -229,6 +250,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
     T2: T2_TWO_ATTACKERS as TrainingScenario<never>,
     'T2-constrained': T2_CONSTRAINED as TrainingScenario<never>,
+    'T3-directed': T3_DIRECTED as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
     'T1-noweave': t1WithHull(
@@ -336,6 +358,7 @@ export async function runTraining<P>(
     await computeEvents(store, recorder.filePath);
     const checkResults = await computeChecks(store, recorder.filePath);
     const failedChecks = checkResults.filter((c) => c.status === 'fail').map((c) => c.name);
+    const passedChecks = checkResults.filter((c) => c.status === 'pass').map((c) => c.name);
     const metrics = await extractMetrics(store, recorder.filePath, {
         playerId: TRAINING_PLAYER_ID,
         targetId: TRAINING_TARGET_ID,
@@ -356,6 +379,7 @@ export async function runTraining<P>(
             ...gunneryFractions(gunnery),
             hz,
             failedChecks,
+            passedChecks,
             recording: recorder.filePath,
             frames: recorder.frameCount,
             wallSeconds,
@@ -370,6 +394,7 @@ export async function runTraining<P>(
         ...gunneryFractions(gunnery),
         hz,
         failedChecks,
+        passedChecks,
         wallSeconds,
     };
 }
