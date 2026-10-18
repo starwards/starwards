@@ -21,13 +21,30 @@ interface RecordingSummary {
 describe('recording HTTP API (issue #2101)', () => {
     const gameDriver = makeDriver();
 
+    /** starts a game and stops the recording it starts with, leaving the GM to record by hand */
+    async function startUnrecordedGame() {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
+    }
+
+    it('POST /start-game records the game from its start', async () => {
+        gameDriver.pauseGameCommand();
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        const { recordingName } = gameDriver.gameManager.state;
+        expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
+        expect(recordingName).toMatch(/^test_map_1_\d+\.sgr$/);
+
+        const stopRes = await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
+        expect(stopRes.body).toMatchObject({ name: recordingName, mapName: 'test_map_1' });
+    });
+
     it('POST /start-recording rejects when no game is running', async () => {
         await supertest(gameDriver.httpServer).post('/start-recording').expect(HTTP_CONFLICT_STATUS);
     });
 
     it('POST /start-recording starts a recording; GET /recordings lists it after stopping', async () => {
         gameDriver.pauseGameCommand();
-        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await startUnrecordedGame();
 
         const startRes = await supertest(gameDriver.httpServer).post('/start-recording').expect(200);
         const startBody = startRes.body as StartRecordingResponse;
@@ -41,13 +58,14 @@ describe('recording HTTP API (issue #2101)', () => {
 
         const listRes = await supertest(gameDriver.httpServer).get('/recordings').expect(200);
         const recordings = listRes.body as RecordingSummary[];
-        expect(recordings).toHaveLength(1);
-        expect(recordings[0]).toMatchObject({ name: startBody.name, mapName: 'test_map_1' });
+        // the one the game started with, and the one started by hand
+        expect(recordings).toHaveLength(2);
+        expect(recordings.find((r) => r.name === startBody.name)).toMatchObject({ mapName: 'test_map_1' });
     });
 
     it('publishes the recording name and elapsed time, and confirms the file on stop', async () => {
         gameDriver.pauseGameCommand();
-        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await startUnrecordedGame();
 
         const startRes = await supertest(gameDriver.httpServer).post('/start-recording').expect(200);
         const { name } = startRes.body as StartRecordingResponse;
@@ -62,18 +80,18 @@ describe('recording HTTP API (issue #2101)', () => {
 
     it('POST /stop-game stops an active recording before another game can start', async () => {
         gameDriver.pauseGameCommand();
-        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await startUnrecordedGame();
         await supertest(gameDriver.httpServer).post('/start-recording').expect(200);
 
         await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
 
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
-        expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
+        expect(gameDriver.gameManager.state.recordingName).toMatch(/^two_vs_one_/);
     });
 
     it('GET /recordings/:name serves a recording, and rejects unknown or out-of-directory names', async () => {
-        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await startUnrecordedGame();
         const { name } = (await supertest(gameDriver.httpServer).post('/start-recording').expect(200))
             .body as StartRecordingResponse;
         await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
@@ -90,20 +108,22 @@ describe('recording HTTP API (issue #2101)', () => {
 
     it("serves and lists a recording's decision sidecar only when it exists", async () => {
         gameDriver.pauseGameCommand();
-        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await startUnrecordedGame();
         const { name } = (await supertest(gameDriver.httpServer).post('/start-recording').expect(200))
             .body as StartRecordingResponse;
         const stopRes = await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
         expect((stopRes.body as RecordingSummary).events).toBeUndefined();
-        let listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200)).body as RecordingSummary[];
-        expect(listed[0].events).toBeUndefined();
+        const list = async () =>
+            ((await supertest(gameDriver.httpServer).get('/recordings').expect(200)).body as RecordingSummary[]).find(
+                (r) => r.name === name,
+            );
+        expect((await list())?.events).toBeUndefined();
 
         const events = name.replace(/\.sgr$/, '.events.jsonl');
         const line = '{"t":0,"kind":"decision","objectId":"GVTS","data":{}}\n';
         await fs.writeFile(path.join(gameDriver.recordingsDir, events), line, 'utf-8');
 
-        listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200)).body as RecordingSummary[];
-        expect(listed[0]).toMatchObject({ name, events });
+        expect(await list()).toMatchObject({ name, events });
         const res = await supertest(gameDriver.httpServer).get(`/recordings/${events}`).expect(200);
         expect(res.text).toEqual(line);
         for (const bad of ['a.jsonl', '.events.jsonl', '..%2Fa.events.jsonl']) {

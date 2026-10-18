@@ -4,6 +4,7 @@ import * as readline from 'node:readline';
 
 import {
     EVENTS_EXT,
+    RECORDING_EXT,
     RecordingEventLine,
     RecordingHeader,
     SPACE_ROOM_KEY,
@@ -19,6 +20,7 @@ import {
     parseFrameLine,
     parseHeader,
     recordingSchemaHash,
+    sidecarName,
 } from '@starwards/core/internal';
 import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import { GameManager } from '../admin/game-manager';
@@ -39,8 +41,6 @@ export interface RecordingSummary {
     /** The decision sidecar's file name, when this recording has one. */
     events?: string;
 }
-
-export const RECORDING_EXT = '.sgr';
 
 /** True for a plain recording or sidecar file name — no directory part, a known extension. */
 export function isRecordingFileName(name: string): boolean {
@@ -107,6 +107,8 @@ export class GameRecorder implements PatchTap {
     private eventsPath: string | null = null;
     /** sidecar line writes, in order */
     private eventWrites: Promise<void> = Promise.resolve();
+    /** whether this recording's `.sgr` header landed; sidecar events wait for it */
+    private headerWritten: Promise<boolean> = Promise.resolve(false);
     /** Told whenever recording starts or ends, so bot workers post decisions only while they are kept. */
     public onRecordingChange: (on: boolean) => void = () => {};
 
@@ -157,11 +159,17 @@ export class GameRecorder implements PatchTap {
         this.manager.state.isRecordingGame = true;
         this.manager.state.recordingName = filename;
         this.manager.state.recordingSeconds = 0;
+        const headerWrite = fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
+        // events from here on queue behind the header: written once the .sgr exists, so a failed
+        // start leaves no orphan sidecar
+        this.headerWritten = headerWrite.then(
+            () => true,
+            () => false,
+        );
+        this.eventsPath = sidecarName(this.filePath);
+        this.onRecordingChange(true);
         try {
-            await fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
-            // only once the .sgr exists, so a failed start leaves no orphan sidecar
-            this.eventsPath = sidecarPath(this.filePath);
-            this.onRecordingChange(true);
+            await headerWrite;
             if (this.deltas && !(await this.firstKeyframe())) {
                 this.deltas = false; // the space room never patched: record keyframes only
             }
@@ -213,14 +221,21 @@ export class GameRecorder implements PatchTap {
         return await summarizeRecording(filePath, path.basename(filePath));
     }
 
-    /** Appends a sidecar event stamped on this recording's clock. Dropped when nothing is recording. */
+    /**
+     * Appends a sidecar event stamped on this recording's clock, queued behind the `.sgr` header write.
+     * Dropped when nothing is recording.
+     */
     public appendEvent(event: Omit<RecordingEventLine, 't'>) {
         const eventsPath = this.eventsPath;
         if (!eventsPath) return;
         const line = encodeEventLine({ t: this.manager.totalSeconds - this.baseSeconds, ...event });
+        const headerWritten = this.headerWritten;
         // written even if the recording closes meanwhile: it was accepted while recording
         this.eventWrites = this.eventWrites
-            .then(() => fs.appendFile(eventsPath, line, 'utf-8'))
+            .then(async () => {
+                // a start whose header write failed has no recording for the event to belong to
+                if (await headerWritten) await fs.appendFile(eventsPath, line, 'utf-8');
+            })
             .catch((e: unknown) => logError(`error writing recording event:`, e));
     }
 
@@ -468,7 +483,7 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
         durationSeconds: lastT,
         frameCount,
     };
-    const eventsPath = sidecarPath(filePath);
+    const eventsPath = sidecarName(filePath);
     try {
         await fs.access(eventsPath);
         summary.events = path.basename(eventsPath);
@@ -476,8 +491,4 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
         // no decisions were recorded
     }
     return summary;
-}
-
-function sidecarPath(recordingPath: string) {
-    return recordingPath.slice(0, -RECORDING_EXT.length) + EVENTS_EXT;
 }

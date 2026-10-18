@@ -84,6 +84,15 @@ export async function server(
         (e) => gameRecorder.appendEvent(e),
     );
     gameRecorder.onRecordingChange = (on) => bots.setRecording(on);
+    // every game is recorded from its first moment; the GM can still stop and restart the recording
+    const recordNewGame = async () => {
+        if (manager.state.isRecordingGame) return; // a start request for a game already running
+        try {
+            await gameRecorder.startRecording();
+        } catch (e) {
+            logError(`can't record the new game:`, e);
+        }
+    };
     manager.botSeats = bots;
     const app = express();
     app.use(express.json() as express.RequestHandler);
@@ -197,6 +206,7 @@ export async function server(
             const map = mapsMap.get(String(mapName));
             if (map) {
                 await manager.startGame(map);
+                await recordNewGame();
                 res.send();
             } else {
                 logError(`can't find map named "${String(mapName)}`);
@@ -227,7 +237,10 @@ export async function server(
                 const savedGameData = await stringToSchema(SavedGame, data);
                 const map = mapsMap.get(savedGameData.mapName);
                 if (map) {
+                    // the game being replaced ends here, and so does its recording
+                    await gameRecorder.stopRecording();
                     await manager.loadGame(savedGameData, map);
+                    await recordNewGame();
                     res.send();
                 } else {
                     logError(`can't find map named "${savedGameData.mapName}`);
