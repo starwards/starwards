@@ -623,20 +623,25 @@ export class SpaceManager implements Updateable {
                         let rotation = 0;
                         let boost = 0;
                         if (sprintMultiplier > 1) {
-                            // sprint agility grows with sprint speed: thrust authority in any
-                            // direction, so the error across the lead line is cancelled at once
-                            // rather than waiting on a hull turn whose radius grows with speed squared.
-                            const error = XY.difference(
-                                XY.byLengthAndDirection(maxSpeed, XY.angleOf(relativeDestination)),
+                            // sprint agility grows with sprint speed: thrust authority across the lead
+                            // line cancels the velocity's sideways error at once, rather than waiting on
+                            // a hull turn whose radius grows with speed squared. Along the line the
+                            // missile thrusts along its nose as usual.
+                            const lineDirection = XY.normalize(relativeDestination);
+                            const sideways = XY.difference(
                                 projectile.velocity,
+                                XY.scale(lineDirection, XY.dot(projectile.velocity, lineDirection)),
                             );
                             const authority = deltaSeconds * homing.velocityCapacity * sprintMultiplier;
                             projectile.velocity.add(
-                                XY.lengthOf(error) > authority
-                                    ? XY.byLengthAndDirection(authority, XY.angleOf(error))
-                                    : error,
+                                XY.negate(
+                                    XY.lengthOf(sideways) > authority
+                                        ? XY.byLengthAndDirection(authority, XY.angleOf(sideways))
+                                        : sideways,
+                                ),
                             );
                             rotation = rotateToTarget(deltaSeconds, projectile, destination, 0) * sprintMultiplier;
+                            boost = moveToTarget(deltaSeconds, projectile, destination).boost;
                         } else if (Math.abs(velocityDestinationDiff) > 45 && Math.abs(velocityDestinationDiff) < 135) {
                             // velocity is sideways from angle, make a sharp turn againt it
                             rotation = rotateToTarget(

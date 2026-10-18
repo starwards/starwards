@@ -160,8 +160,7 @@ describe('contact-fuzed warheads (issue #1976)', () => {
         spaceMgr.insertBulk([target, missile]);
         spaceMgr.forceFlushEntities();
 
-        // one short tick: at sprint agility a longer one carries the missile into the hull for real
-        tick(spaceMgr, 0.01);
+        tick(spaceMgr, 0.2);
 
         expect(missile.destroyed, 'still within old proximityDetonation range, but contact-fuzed').to.equal(false);
         expect([...spaceMgr.state.getAll('Explosion')]).to.have.lengthOf(0);
