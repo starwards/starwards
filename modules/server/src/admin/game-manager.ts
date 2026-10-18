@@ -24,6 +24,7 @@ import {
     XY,
     botSeatsConflict,
     createLogger,
+    drainCommands,
     isAssignableSeat,
     isBotBrain,
     isSlotTaken,
@@ -41,15 +42,6 @@ import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
-
-/** Applies one queued command; a malformed one is logged and dropped so it never costs the tick the rest of its work. */
-function applySafely(command: string, arg: unknown, apply: () => void) {
-    try {
-        apply();
-    } catch (e) {
-        logError(`dropped malformed ${command} command ${JSON.stringify(arg)}: ${(e as Error).message}`);
-    }
-}
 
 /** How long a disconnected, unassigned station stays in the registry before being pruned. */
 const STALE_STATION_GRACE_MS = 30_000;
@@ -144,59 +136,54 @@ export class GameManager {
                 shipManager.update(iterationData);
             }
             this.spaceManager.update(iterationData);
-            for (const id of this.spaceManager.state.destroySpaceshipCommands) {
-                this.cleanupShip(id);
-            }
-            this.spaceManager.state.destroySpaceshipCommands = [];
-            for (const cmd of this.spaceManager.state.createSpaceshipCommands) {
+            const space = this.spaceManager.state;
+            drainCommands('destroySpaceship', space.destroySpaceshipCommands, (id) => this.cleanupShip(id));
+            space.destroySpaceshipCommands = [];
+            drainCommands('createSpaceship', space.createSpaceshipCommands, (cmd) => {
                 const ship = new Spaceship().init(makeId(), Vec2.make(cmd.position), cmd.shipModel, cmd.faction);
                 this.addShip(ship, cmd.isPlayerShip);
-            }
-            this.spaceManager.state.createSpaceshipCommands = [];
-            for (const cmd of this.spaceManager.state.convertShipTypeCommands) {
-                void this.convertShipType(cmd.shipId, cmd.isPlayerShip);
-            }
-            this.spaceManager.state.convertShipTypeCommands = [];
+            });
+            space.createSpaceshipCommands = [];
+            drainCommands(
+                'convertShipType',
+                space.convertShipTypeCommands,
+                (cmd) => void this.convertShipType(cmd.shipId, cmd.isPlayerShip),
+            );
+            space.convertShipTypeCommands = [];
         }
     }
 
     /**
-     * Drains `state.registerStationCommands`/`disconnectStationCommands`/`assignStationCommands`
-     * (see `stations/` in core): applies registration/disconnect bookkeeping and GM assignment
+     * Drains `state.registerStationCommands`/`disconnectStationCommands`/`assignStationCommands`/
+     * `assignBotCommands` and then a requested `resetAssignments` — last, so a reset clears every
+     * assignment drained in the same tick (see `stations/` in core): applies registration/disconnect bookkeeping and GM assignment
      * overrides generically, validates any requested/GM-assigned ship+type against
      * `playerShipIds` + the stations manifest — the one Starwards-specific piece the generic
      * registry module can't do itself — and then reconciles auto-assignment.
      */
     private drainStationCommands() {
-        for (const arg of this.state.registerStationCommands) {
-            applySafely('registerStation', arg, () => {
-                const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
-                this.disconnectedStationSince.delete(arg.stationId);
-                if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
-                    entry.shipId = arg.shipId;
-                }
-            });
-        }
+        drainCommands('registerStation', this.state.registerStationCommands, (arg) => {
+            const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
+            this.disconnectedStationSince.delete(arg.stationId);
+            if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
+                entry.shipId = arg.shipId;
+            }
+        });
         this.state.registerStationCommands = [];
-        for (const stationId of this.state.disconnectStationCommands) {
-            applySafely('disconnectStation', stationId, () => {
-                markStationDisconnected(this.state.stations, stationId);
-                this.disconnectedStationSince.set(stationId, Date.now());
-            });
-        }
+        drainCommands('disconnectStation', this.state.disconnectStationCommands, (stationId) => {
+            markStationDisconnected(this.state.stations, stationId);
+            this.disconnectedStationSince.set(stationId, Date.now());
+        });
         this.state.disconnectStationCommands = [];
+        drainCommands('assignStation', this.state.assignStationCommands, (arg) => this.applyStationAssignment(arg));
+        this.state.assignStationCommands = [];
+        drainCommands('assignBot', this.state.assignBotCommands, (arg) => this.applyBotAssignment(arg));
+        this.state.assignBotCommands = [];
+        // after the assignments: a reset wins over any assignment that reached this tick with it
         if (this.state.resetAssignmentsRequested) {
             this.state.resetAssignmentsRequested = false;
             this.resetAssignments();
         }
-        for (const arg of this.state.assignStationCommands) {
-            applySafely('assignStation', arg, () => this.applyStationAssignment(arg));
-        }
-        this.state.assignStationCommands = [];
-        for (const arg of this.state.assignBotCommands) {
-            applySafely('assignBot', arg, () => this.applyBotAssignment(arg));
-        }
-        this.state.assignBotCommands = [];
         // `playerShipIds` is empty or mid-teardown/mid-creation outside RUNNING: reconciling
         // against it would clear every sticky assignment. startGame/loadGame reconcile on entering RUNNING.
         if (this.state.gameStatus === GameStatus.RUNNING) {

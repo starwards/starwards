@@ -1,6 +1,6 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 
-import { StateCommand } from './commands';
+import { StateCommand, drainCommands } from './commands';
 import { getJsonPointer } from './json-ptr';
 import { isCommandable } from './game-field';
 import { setFieldLocked } from './lock-registry';
@@ -70,10 +70,10 @@ export function applyLockCommands(state: Schema & Lockable) {
     if (state.lockCommands.length === 0) {
         return;
     }
-    for (const { path, locked } of state.lockCommands) {
+    drainCommands('lock', state.lockCommands, ({ path, locked }) => {
         const target = resolveLockTarget(state, path);
         if (!target || !isCommandable(target.parent, target.field)) {
-            continue;
+            return;
         }
         setFieldLocked(target.parent, target.field, locked);
         const index = state.lockedPaths.indexOf(path);
@@ -82,7 +82,7 @@ export function applyLockCommands(state: Schema & Lockable) {
         } else if (!locked && index !== -1) {
             state.lockedPaths.splice(index, 1);
         }
-    }
+    });
     state.lockCommands.length = 0;
 }
 

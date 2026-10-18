@@ -184,3 +184,25 @@ export function handleJsonPointerCommand(message: unknown, type: string | number
     }
     return false;
 }
+
+const { error: logDrainError } = createLogger('commands');
+
+/**
+ * Applies each queued command on its own: one that throws (a malformed value from a client) is
+ * logged and dropped, so it never costs the tick the commands after it or the rest of its update.
+ */
+export function drainCommands<T>(name: string, commands: Iterable<T>, apply: (command: T) => void) {
+    for (const command of commands) {
+        try {
+            apply(command);
+        } catch (e) {
+            let shown: string;
+            try {
+                shown = JSON.stringify(command);
+            } catch {
+                shown = String(command);
+            }
+            logDrainError(`dropped malformed ${name} command ${shown}: ${(e as Error).message}`);
+        }
+    }
+}

@@ -230,6 +230,18 @@ describe('GM bot seats', () => {
             expect(entry('GVTS', 'pilot')?.brain).toBe('reference');
         });
 
+        it('resetAssignments wins over assignments that reach the same tick before it', () => {
+            const state = gameDriver.gameManager.state;
+            state.registerStationCommands.push({ stationId: 'HUMAN', stationType: 'helms', shipId: '' });
+            gameDriver.gameManager.update(0);
+            state.assignStationCommands.push({ stationId: 'HUMAN', shipId: 'GVTS', stationType: 'helms' });
+            state.assignBotCommands.push({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
+            resetAssignments.setValue(state, null);
+            gameDriver.gameManager.update(0);
+            expect(state.stations.get('HUMAN')?.toJSON()).toMatchObject({ shipId: '', stationType: '' });
+            expect(bots().size).toBe(0);
+        });
+
         it('resetAssignments clears every station, disconnected ones included, and stops every bot', () => {
             const state = gameDriver.gameManager.state;
             state.registerStationCommands.push(
