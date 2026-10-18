@@ -15,16 +15,16 @@ import { hsl } from '../colors';
 import { rosterModel } from './station-roster-model';
 
 /**
- * Seat-first roster: per player ship, each roster seat with its bot dropdown (`assignBot`) and one
- * client dropdown per screen (`assignStation`), seats with neither tinted UNASSIGNED; below, every
- * connected client without a ship with an assign-to-screen dropdown. A regular `DashboardWidget`
- * in the golden-layout grid (see `gm.ts`) — never a floating overlay, which would eat other
- * widgets' clicks.
+ * Seat-first roster: per player ship, each roster seat with its bot's status and actions (`assignBot`)
+ * and one client dropdown per screen (`assignStation`), seats nobody plays tinted UNASSIGNED; below,
+ * every connected client without a ship with an assign-to-screen dropdown. Above, a reset of every
+ * assignment and a warning while bots run unrecorded. A regular `DashboardWidget` in the golden-layout
+ * grid (see `gm.ts`) — never a floating overlay, which would eat other widgets' clicks.
  */
 export function stationRosterWidget(driver: Driver, adminDriver: AdminDriver): DashboardWidget {
     class StationRosterComponent {
         constructor(container: WidgetContainer, _: unknown) {
-            drawStationRoster(container, driver, adminDriver);
+            drawStationRoster(container, adminDriver, (onLoaded) => createManifestCache(driver, onLoaded));
         }
     }
     return {
@@ -35,12 +35,15 @@ export function stationRosterWidget(driver: Driver, adminDriver: AdminDriver): D
     };
 }
 
+/** The enabled (assignable) station types per ship; `undefined` while not known yet. */
+export type EnabledScreens = { getEnabledTypes(shipId: string): readonly string[] | undefined };
+
 /**
- * The enabled (assignable) station types for a ship, fetched from `/stations-manifest/:shipId`
- * and cached per shipId. Returns `undefined` while the first fetch for that ship is in flight —
- * the caller shows no screens for that ship until `onLoaded` fires a re-render.
+ * The enabled station types for a ship, fetched from `/stations-manifest/:shipId` and cached per
+ * shipId. Returns `undefined` while the first fetch for that ship is in flight — the caller shows no
+ * screens for that ship until `onLoaded` fires a re-render.
  */
-function createManifestCache(driver: Driver, onLoaded: () => void) {
+function createManifestCache(driver: Driver, onLoaded: () => void): EnabledScreens {
     const cache = new Map<string, string[]>();
     const pending = new Set<string>();
     return {
@@ -75,7 +78,13 @@ function createManifestCache(driver: Driver, onLoaded: () => void) {
     };
 }
 
-function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriver: AdminDriver): void {
+const buttonCss = { marginRight: '0.3em', font: 'inherit' };
+
+export function drawStationRoster(
+    container: WidgetContainer,
+    adminDriver: AdminDriver,
+    enabledScreens: (onLoaded: () => void) => EnabledScreens,
+): void {
     const root = container.getElement();
     root.attr('data-id', 'Station Roster').css({
         overflowY: 'auto',
@@ -84,11 +93,35 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
         fontSize: '0.8em',
         color: hsl.primary.main(3),
     });
+    const banner = $('<div />')
+        .attr('data-id', 'Roster Bots Not Recording')
+        .text('bots running, not recording')
+        .css({
+            display: 'none',
+            padding: '0.3em 0.5em',
+            marginBottom: '0.4em',
+            fontWeight: 'bold',
+            color: hsl.secondary,
+            border: `1px solid ${hsl.secondary}`,
+        });
+    // a disconnected entry on a screen the roster does not show still holds its slot; reset frees it
+    const reset = $('<button />')
+        .attr('data-id', 'Roster Reset')
+        .attr('title', 'unassign every screen and stop every bot')
+        .text('reset assignments')
+        .css(buttonCss)
+        .on('click', () => adminDriver.resetAssignments());
     const shipsList = $('<div />');
     const unassignedList = $('<div />').attr('data-id', 'Roster Unassigned');
-    root.append(shipsList, $('<div />').text('Unassigned clients').css({ marginTop: '0.6em' }), unassignedList);
+    root.append(
+        banner,
+        $('<div />').css({ marginBottom: '0.4em' }).append(reset),
+        shipsList,
+        $('<div />').text('Unassigned clients').css({ marginTop: '0.6em' }),
+        unassignedList,
+    );
 
-    const manifests = createManifestCache(driver, render);
+    const manifests = enabledScreens(render);
 
     /** Replaces a select's options only when they actually changed, then syncs its value. */
     function syncOptions(select: JQuery<HTMLElement>, options: [value: string, text: string][], selected: string) {
@@ -112,13 +145,16 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
     type SeatRow = {
         row: JQuery<HTMLElement>;
         label: JQuery<HTMLElement>;
-        botSelect: JQuery<HTMLElement>;
         botStatus: JQuery<HTMLElement>;
+        seatBotButtons: JQuery<HTMLElement>[];
+        restartBot: JQuery<HTMLElement>;
+        removeBot: JQuery<HTMLElement>;
         screensCell: JQuery<HTMLElement>;
         screenSelects: Map<string, JQuery<HTMLElement>>;
     };
     // Rows are created once and updated in place, keyed by `ship|seat` and by station id — never
-    // rebuilt or moved — so a dropdown the GM has focused/open survives other updates (issue #2336).
+    // rebuilt or moved — so a control the GM has focused/open survives other updates (issue #2336).
+    // Every bot button exists from the start and is only shown or hidden.
     const shipBlocks = new Map<string, JQuery<HTMLElement>>();
     const seatRows = new Map<string, SeatRow>();
     const unassignedRows = new Map<string, { row: JQuery<HTMLElement>; select: JQuery<HTMLElement> }>();
@@ -126,14 +162,32 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
     function createSeatRow(shipId: string, seat: BridgeSeat): SeatRow {
         const row = $('<tr />').attr('data-id', `Roster Seat ${shipId} ${seat}`);
         const label = $('<td />');
-        const botSelect = $('<select />').attr('data-id', `Roster Bot ${shipId} ${seat}`);
         const botStatus = $('<span />')
             .attr('data-id', `Roster Bot Status ${shipId} ${seat}`)
-            .css({ marginLeft: '0.4em' });
+            .css({ marginRight: '0.4em' });
+        const button = (dataId: string, text: string, onClick: () => void) =>
+            $('<button />')
+                .attr('data-id', `${dataId} ${shipId} ${seat}`)
+                .text(text)
+                .css(buttonCss)
+                .on('click', onClick);
+        const seatBotButtons = botBrains.map((brain) =>
+            button(`Roster Bot Seat ${brain}`, `seat ${brain}`, () => adminDriver.assignBot({ shipId, seat, brain })),
+        );
+        // re-seating a failed bot's own brain is what restarts it (GameManager.assignBot)
+        const restartBot = button('Roster Bot Restart', 'restart', () => {
+            const brain = adminDriver.state.bots.get(shipId)?.seats.get(seat)?.brain;
+            if (brain) adminDriver.assignBot({ shipId, seat, brain });
+        });
+        const removeBot = button('Roster Bot Remove', 'remove', () =>
+            adminDriver.assignBot({ shipId, seat, brain: 'none' }),
+        );
         const screensCell = $('<td />');
-        botSelect.on('change', () => adminDriver.assignBot({ shipId, seat, brain: String(botSelect.val() ?? 'none') }));
-        row.append(label, $('<td />').append(botSelect, botStatus), screensCell);
-        return { row, label, botSelect, botStatus, screensCell, screenSelects: new Map() };
+        const botCell = $('<td />')
+            .attr('data-id', `Roster Bot ${shipId} ${seat}`)
+            .append(botStatus, ...seatBotButtons, restartBot, removeBot);
+        row.append(label, botCell, screensCell);
+        return { row, label, botStatus, seatBotButtons, restartBot, removeBot, screensCell, screenSelects: new Map() };
     }
 
     function createScreenSelect(shipId: string, screen: string) {
@@ -182,6 +236,7 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
     }
 
     function render() {
+        banner.toggle(adminDriver.state.bots.size > 0 && !adminDriver.state.isRecordingGame);
         const stations = [...adminDriver.state.stations.values()];
         const model = rosterModel({
             playerShipIds: [...adminDriver.state.playerShipIds],
@@ -212,17 +267,16 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
                 seatRow.row
                     .attr('data-unassigned', String(unassigned))
                     .css('background', unassigned ? `color-mix(in srgb, ${hsl.error} 30%, transparent)` : '');
-                syncOptions(
-                    seatRow.botSelect,
-                    [['none', 'none'], ...botBrains.map((b): [string, string] => [b, b])],
-                    bot?.brain ?? 'none',
-                );
-                seatRow.botSelect
-                    .prop('disabled', !!botBlockedBy)
-                    .attr('title', botBlockedBy ? `the ${botBlockedBy} bot plays this seat's station` : '');
-                seatRow.botStatus.text(
-                    !bot || bot.status === 'running' ? '' : bot.status + (bot.message ? `: ${bot.message}` : ''),
-                );
+                seatRow.botStatus
+                    .text(bot ? `${bot.brain} ${bot.status}${bot.message ? `: ${bot.message}` : ''}` : 'none')
+                    .attr('data-status', bot?.status ?? 'none')
+                    .css('color', bot?.status === 'failed' ? hsl.error : '');
+                const blockedTitle = botBlockedBy ? `the ${botBlockedBy} bot plays this seat's station` : '';
+                for (const button of seatRow.seatBotButtons) {
+                    button.toggle(!bot).prop('disabled', !!botBlockedBy).attr('title', blockedTitle);
+                }
+                seatRow.restartBot.toggle(bot?.status === 'failed');
+                seatRow.removeBot.toggle(!!bot);
                 const seen = new Set<string>();
                 for (const { screen, holder } of screens) {
                     seen.add(screen);
@@ -270,7 +324,7 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
         }
     }
     render();
-    const paths = ['/stations', '/stations/**', '/playerShipIds', '/bots', '/bots/**'];
+    const paths = ['/stations', '/stations/**', '/playerShipIds', '/bots', '/bots/**', '/isRecordingGame'];
     for (const path of paths) {
         adminDriver.events.on(path, render);
     }

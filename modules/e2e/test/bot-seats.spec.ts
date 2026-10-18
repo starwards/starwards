@@ -1,8 +1,8 @@
+import { Download, Page } from '@playwright/test';
 import { EVENTS_EXT, RECORDING_EXT } from '@starwards/core';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
 
-import { Download } from '@playwright/test';
 import { makeDriver } from './driver';
 import { maps } from '@starwards/server';
 
@@ -19,22 +19,34 @@ test.describe('GM bot seats', () => {
         await cleanupPageState(page);
     });
 
-    test('GM seats a bot from the roster and records its decisions', async ({ page }) => {
-        test.setTimeout(60_000);
+    async function openRoster(page: Page) {
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
         await page.locator('.lm_title', { hasText: 'roster' }).click();
         await expect(page.locator('[data-id="Station Roster"]')).toBeVisible({ timeout: 10000 });
+    }
+    const roster = (page: Page) => ({
+        row: (seat: string) => page.locator(`[data-id="Roster Seat GVTS ${seat}"]`),
+        status: (seat: string) => page.locator(`[data-id="Roster Bot Status GVTS ${seat}"]`),
+        seatBot: (seat: string) => page.locator(`[data-id="Roster Bot Seat reference GVTS ${seat}"]`),
+        remove: (seat: string) => page.locator(`[data-id="Roster Bot Remove GVTS ${seat}"]`),
+        restart: (seat: string) => page.locator(`[data-id="Roster Bot Restart GVTS ${seat}"]`),
+    });
+    const serverBot = (seat: string) => gameDriver.gameManager.state.bots.get('GVTS')?.seats.get(seat);
+    const waitRunning = (seat: string) =>
+        expect.poll(() => serverBot(seat)?.status, { timeout: 15000 }).toBe('running');
 
-        const row = page.locator('[data-id="Roster Seat GVTS pilot"]');
-        const status = page.locator('[data-id="Roster Bot Status GVTS pilot"]');
-        await expect(row).toHaveAttribute('data-unassigned', 'true');
-        await page.locator('[data-id="Roster Bot GVTS pilot"]').selectOption('reference');
-        // 'starting' is transient, so wait on the server's status, then check the roster shows running (no text)
-        await expect
-            .poll(() => gameDriver.gameManager.state.bots.get('GVTS')?.seats.get('pilot')?.status, { timeout: 15000 })
-            .toBe('running');
-        await expect(status).toHaveText('', { timeout: 5000 });
-        await expect(row).toHaveAttribute('data-unassigned', 'false');
+    test('GM seats a bot from the roster and records its decisions', async ({ page }) => {
+        test.setTimeout(60_000);
+        await openRoster(page);
+        const r = roster(page);
+        await expect(r.row('pilot')).toHaveAttribute('data-unassigned', 'true');
+        await expect(r.status('pilot')).toHaveText('none');
+        await expect(r.remove('pilot')).toBeHidden();
+        await r.seatBot('pilot').click();
+        await waitRunning('pilot');
+        await expect(r.status('pilot')).toHaveText('reference running', { timeout: 5000 });
+        await expect(r.seatBot('pilot')).toBeHidden();
+        await expect(r.row('pilot')).toHaveAttribute('data-unassigned', 'false');
 
         await page.locator('.lm_title', { hasText: 'controls' }).click();
         const controls = page.locator('[data-id="Game Controls"]');
@@ -51,25 +63,68 @@ test.describe('GM bot seats', () => {
         expect(names.some((n) => n.endsWith(EVENTS_EXT))).toBe(true);
 
         await page.locator('.lm_title', { hasText: 'roster' }).click();
-        await page.locator('[data-id="Roster Bot GVTS pilot"]').selectOption('none');
-        await expect(row).toHaveAttribute('data-unassigned', 'true', { timeout: 5000 });
-        expect(gameDriver.gameManager.state.bots.get('GVTS')?.seats.get('pilot')).toBeUndefined();
+        await r.remove('pilot').click();
+        await expect(r.row('pilot')).toHaveAttribute('data-unassigned', 'true', { timeout: 5000 });
+        expect(serverBot('pilot')).toBeUndefined();
     });
 
-    test('a tactical bot greys out the pilot and weapons bot dropdowns, not their screens', async ({ page }) => {
-        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
-        await page.locator('.lm_title', { hasText: 'roster' }).click();
-        await expect(page.locator('[data-id="Station Roster"]')).toBeVisible({ timeout: 10000 });
+    test('restart brings a failed bot back', async ({ page }) => {
+        await openRoster(page);
+        const r = roster(page);
+        await r.seatBot('engineer').click();
+        await waitRunning('engineer');
+        const failed = serverBot('engineer')!;
+        gameDriver.gameManager.setBotStatus('GVTS', 'engineer', failed.id, 'failed', 'boom');
+        await expect(r.status('engineer')).toHaveText('reference failed: boom', { timeout: 5000 });
+        await expect(r.restart('engineer')).toBeVisible();
+        await r.restart('engineer').click();
+        await expect.poll(() => serverBot('engineer')?.id, { timeout: 5000 }).not.toBe(failed.id);
+        await waitRunning('engineer');
+        await expect(r.restart('engineer')).toBeHidden();
+    });
 
-        const bot = (seat: string) => page.locator(`[data-id="Roster Bot GVTS ${seat}"]`);
-        await bot('tactical').selectOption('reference');
-        await expect(bot('pilot')).toBeDisabled({ timeout: 5000 });
-        await expect(bot('weapons')).toBeDisabled();
-        await expect(bot('engineer')).toBeEnabled();
+    test('a tactical bot greys out the pilot and weapons bot buttons, not their screens', async ({ page }) => {
+        await openRoster(page);
+        const r = roster(page);
+        await r.seatBot('tactical').click();
+        await expect(r.seatBot('pilot')).toBeDisabled({ timeout: 5000 });
+        await expect(r.seatBot('weapons')).toBeDisabled();
+        await expect(r.seatBot('pilot')).toHaveAttribute('title', /tactical/);
+        await expect(r.row('pilot')).toHaveAttribute('data-unassigned', 'false');
+        await expect(r.seatBot('engineer')).toBeEnabled();
         await expect(page.locator(`[data-id="Roster Screen GVTS helms"]`)).toBeEnabled();
 
-        await bot('tactical').selectOption('none');
-        await expect(bot('pilot')).toBeEnabled({ timeout: 5000 });
-        await expect(bot('weapons')).toBeEnabled();
+        await r.remove('tactical').click();
+        await expect(r.seatBot('pilot')).toBeEnabled({ timeout: 5000 });
+        await expect(r.seatBot('weapons')).toBeEnabled();
+    });
+
+    test('warns while bots run without a recording', async ({ page }) => {
+        test.setTimeout(60_000);
+        const post = async (path: string) =>
+            expect((await page.request.post(`${gameDriver.baseURL}${path}`, { data: {} })).ok()).toBe(true);
+        if (gameDriver.gameManager.state.isRecordingGame) await post('/stop-recording');
+        await openRoster(page);
+        const banner = page.locator('[data-id="Roster Bots Not Recording"]');
+        await expect(banner).toBeHidden();
+        await roster(page).seatBot('engineer').click();
+        await expect(banner).toBeVisible({ timeout: 5000 });
+        await post('/start-recording');
+        await expect(banner).toBeHidden({ timeout: 5000 });
+        await post('/stop-recording');
+        await expect(banner).toBeVisible({ timeout: 5000 });
+    });
+
+    test('reset clears every screen assignment and bot', async ({ page }) => {
+        await openRoster(page);
+        const r = roster(page);
+        await r.seatBot('engineer').click();
+        await waitRunning('engineer');
+        await page.locator('[data-id="Roster Reset"]').click();
+        await expect(r.status('engineer')).toHaveText('none', { timeout: 5000 });
+        expect(gameDriver.gameManager.state.bots.size).toBe(0);
+        for (const entry of gameDriver.gameManager.state.stations.values()) {
+            expect(entry.shipId).toBe('');
+        }
     });
 });
