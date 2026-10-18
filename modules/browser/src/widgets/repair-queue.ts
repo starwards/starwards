@@ -13,10 +13,14 @@ import { FolderApi, Pane } from 'tweakpane';
 import { Model, addBarBlade, addBareBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readNumberProp, readProp } from '../property-wrappers';
 import {
+    formatRepairPriority as formatPriority,
+    formatRepairUpNextEntry,
     getRepairProtocolHotkey,
     getRepairProtocolModeHotkey,
+    getRepairUpNext,
     isRepairSlotVisible,
     repairSlotExpansion,
+    repairSlotTitle,
     wantsRepairSlotOpen,
 } from './repair-queue-logic';
 
@@ -35,25 +39,6 @@ export function repairQueueWidget(shipDriver: ShipDriver): DashboardWidget {
         component: RepairQueueComponent,
         defaultProps: {},
     };
-}
-
-function formatPriority(priority: RepairPriority): string {
-    switch (priority) {
-        case RepairPriority.OFF:
-            return 'OFF';
-        case RepairPriority.LOW:
-            return 'LOW';
-        case RepairPriority.MEDIUM:
-            return 'MEDIUM';
-        case RepairPriority.HIGH:
-            return 'HIGH';
-        case RepairPriority.RUNNING:
-            return 'RUNNING';
-        case RepairPriority.CANCELLING:
-            return 'CANCELLING';
-        default:
-            return String(priority);
-    }
 }
 
 function protocolName(protocolId: string): string {
@@ -106,8 +91,8 @@ function protocolSummary(
 }
 
 /**
- * Engineer damage-control panel (issue #2247): the active repair (name, time remaining, progress)
- * on top, then one row per catalog protocol — a fixed set, in catalog order — each showing its
+ * Engineer damage-control panel (issue #2247): the "up next" order (issue #2434), then the active
+ * repair (name, time remaining, progress), then one row per catalog protocol — a fixed set, in catalog order — each showing its
  * priority (OFF/LOW/MEDIUM/HIGH/RUNNING/CANCELLING), progress while running, and the reason the
  * last priority change was refused. `slots` never grows or shrinks after ship construction, so
  * every row is built once; each blade live-binds its own field.
@@ -124,6 +109,7 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
         // explains itself through refusalReason (issue #2247 review)
         .filter(({ slot }) => isRepairSlotVisible(shipDriver.state, slot.protocolId));
 
+    drawUpNext(pane, shipDriver, visibleSlots.length, panelCleanup.add);
     drawActiveRepair(
         pane,
         shipDriver,
@@ -132,6 +118,26 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
     );
     for (const { slot, index } of visibleSlots) {
         drawSlot(pane, shipDriver, slot.protocolId, index, interactive, panelCleanup.add);
+    }
+}
+
+/**
+ * The queue in run order (issue #2434): one line per non-OFF slot — position, protocol, priority —
+ * from `getRepairUpNext`, the same ordering the server promotes from. A fixed set of `rows` lines
+ * (one per visible slot: at most that many can be non-OFF), each hidden while it has no entry.
+ */
+function drawUpNext(pane: Pane, shipDriver: ShipDriver, rows: number, cleanup: (d: Destructor) => void) {
+    const slots = shipDriver.state.repairQueue.slots;
+    const deps = [...slots].flatMap((_, index) => [
+        readProp(shipDriver, `/repairQueue/slots/${index}/priority`),
+        readProp(shipDriver, `/repairQueue/slots/${index}/queuedSeq`),
+    ]);
+    const upNext = () => getRepairUpNext(slots);
+    for (let position = 1; position <= rows; position++) {
+        const line = aggregate(deps, () => formatRepairUpNextEntry(upNext()[position - 1]));
+        const blade = addTextBlade(pane, line, { label: String(position) }, cleanup);
+        blade.element.classList.add('sw-up-next');
+        hideWhile(blade.element, line, (text) => !text, cleanup);
     }
 }
 
@@ -210,8 +216,13 @@ function drawSlot(
         const value = priority.getValue();
         priorityBlade.element.dataset.priority = value === undefined ? '' : formatPriority(value);
     };
+    const applyTitle = () => {
+        row.title = repairSlotTitle(protocolName(protocolId), priority.getValue());
+    };
     cleanup(priority.onChange(applyPriority));
+    cleanup(priority.onChange(applyTitle));
     applyPriority();
+    applyTitle();
     // a docked/shipyard-tier slot's `mode` field exists on the schema but is meaningless (see
     // RepairProtocolSlot.mode) — getRepairProtocolModeHotkey (and this row) only exist for a
     // field-tier protocol, the one kind that actually has two modes to show or toggle between.

@@ -34,6 +34,11 @@ const scenes = [
     'helms-dashboard-stationary',
     'helms-dashboard-moving',
     'helms-dashboard-target-mode',
+    // Repair Queue (issue #2434): up-next order and priority in folder titles
+    'repair-queue-empty',
+    'repair-queue-running',
+    'repair-queue-mixed',
+    'repair-queue-refused',
     // Station Roster
     'station-roster-empty',
     'station-roster-bots-running',

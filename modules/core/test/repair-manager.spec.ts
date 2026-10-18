@@ -1,6 +1,6 @@
 import { CANCEL_WINDDOWN_SPEED_MULTIPLIER, RepairManager } from '../src/ship/repair-manager';
 import { MockDie, makeIterationsData } from './ship-test-harness';
-import { RepairPriority, RepairProtocolMode } from '../src/ship/repair-queue';
+import { RepairPriority, RepairProtocolMode, orderRepairQueue } from '../src/ship/repair-queue';
 import { cycleRepairPriority, toggleRepairProtocolMode } from '../src/ship/repair-commands';
 import { demoShip, makeShipState } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
@@ -190,7 +190,7 @@ describe('RepairManager', () => {
         expect(slot(state, 'fixThrusters').priority).to.equal(RepairPriority.OFF);
     });
 
-    it('promotes exactly the highest-priority pending slot to RUNNING; ties go to catalog order', () => {
+    it('promotes exactly the highest-priority pending slot to RUNNING; ties go to the slot queued first', () => {
         const { state, repairManager } = setUpShip();
         raise(state, 'fixThrusters'); // LOW
         raise(state, 'fixMagazine'); // LOW too — catalog order after fixThrusters
@@ -208,6 +208,85 @@ describe('RepairManager', () => {
 
         expect(slot(state, 'heatDocking').priority).to.equal(RepairPriority.RUNNING);
         expect(slot(state, 'fixMagazine').priority).to.equal(RepairPriority.LOW);
+    });
+
+    it('same-priority ties go to the slot queued first, not catalog order (#2434)', () => {
+        const { state, repairManager } = setUpShip();
+        raise(state, 'fixMagazine'); // LOW, queued first
+        raise(state, 'fixThrusters'); // LOW, earlier in catalog but queued second
+        tick(repairManager, 0.1);
+
+        expect(slot(state, 'fixMagazine').priority).to.equal(RepairPriority.RUNNING);
+        expect(slot(state, 'fixThrusters').priority).to.equal(RepairPriority.LOW);
+    });
+
+    it('queuedSeq: stamped on OFF -> pending, cleared on return to OFF (#2434)', () => {
+        const { state, repairManager } = setUpShip();
+        expect(slot(state, 'fixMagazine').queuedSeq).to.equal(0);
+        raise(state, 'fixThrusters');
+        raise(state, 'fixMagazine');
+        tick(repairManager, 0.1);
+        const magazineSeq = slot(state, 'fixMagazine').queuedSeq;
+        expect(magazineSeq).to.be.greaterThan(slot(state, 'fixThrusters').queuedSeq);
+
+        lower(state, 'fixMagazine');
+        tick(repairManager, 0.1);
+        expect(slot(state, 'fixMagazine').priority).to.equal(RepairPriority.OFF);
+        expect(slot(state, 'fixMagazine').queuedSeq).to.equal(0);
+
+        runTicks(repairManager, 3, 10); // fixThrusters (2s) completes
+        expect(slot(state, 'fixThrusters').priority).to.equal(RepairPriority.OFF);
+        expect(slot(state, 'fixThrusters').queuedSeq).to.equal(0);
+    });
+
+    it('OFF and back up again sends a protocol to the back of its level — the reorder gesture (#2434)', () => {
+        const { state, repairManager } = setUpShip();
+        raise(state, 'dualMode'); // runs first and holds the crew
+        tick(repairManager, 0.1);
+        raise(state, 'fixThrusters');
+        raise(state, 'fixMagazine');
+        raise(state, 'heatDocking');
+        tick(repairManager, 0.1);
+        const ids = () => orderRepairQueue(state.repairQueue.slots).map((s) => s.protocolId);
+        expect(ids()).to.eql(['dualMode', 'fixThrusters', 'fixMagazine', 'heatDocking']);
+
+        lower(state, 'fixThrusters');
+        raise(state, 'fixThrusters');
+        tick(repairManager, 0.1);
+        expect(ids()).to.eql(['dualMode', 'fixMagazine', 'heatDocking', 'fixThrusters']);
+    });
+
+    it('a change between pending levels re-stamps queuedSeq: the slot joins the back of its new level (#2434)', () => {
+        const { state, repairManager } = setUpShip();
+        raise(state, 'dualMode'); // holds the crew
+        tick(repairManager, 0.1);
+        raise(state, 'fixThrusters');
+        raise(state, 'fixThrusters'); // MEDIUM
+        raise(state, 'fixMagazine'); // LOW
+        tick(repairManager, 0.1);
+        raise(state, 'fixMagazine'); // LOW -> MEDIUM, after fixThrusters reached MEDIUM
+        tick(repairManager, 0.1);
+        const ids = () => orderRepairQueue(state.repairQueue.slots).map((s) => s.protocolId);
+        expect(ids()).to.eql(['dualMode', 'fixThrusters', 'fixMagazine']);
+
+        lower(state, 'fixThrusters'); // MEDIUM -> LOW
+        raise(state, 'fixThrusters'); // back to MEDIUM: now behind fixMagazine
+        tick(repairManager, 0.1);
+        expect(ids()).to.eql(['dualMode', 'fixMagazine', 'fixThrusters']);
+    });
+
+    it('promotes the first pending entry of orderRepairQueue (#2434)', () => {
+        const { state, repairManager } = setUpShip();
+        raise(state, 'heatDocking');
+        raiseToHigh(state, 'fixMagazine');
+        raiseToHigh(state, 'fixThrusters');
+        tick(repairManager, 0.1);
+        expect(orderRepairQueue(state.repairQueue.slots).map((s) => s.protocolId)).to.eql([
+            'fixMagazine',
+            'fixThrusters',
+            'heatDocking',
+        ]);
+        expect(slot(state, 'fixMagazine').priority).to.equal(RepairPriority.RUNNING);
     });
 
     it('no pre-emption: raising a pending slot to HIGH never interrupts the one already RUNNING', () => {
