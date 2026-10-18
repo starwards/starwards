@@ -3,6 +3,7 @@ import {
     Derelict,
     Faction,
     RadarSectorValues,
+    ScanLevel,
     Spaceship,
     Waypoint,
     applyRadarSectors,
@@ -13,6 +14,7 @@ import {
     EPSILON,
     FieldOfView,
     Tuple2,
+    addScale,
     circlesIntersection,
     limitPercision,
     moveToTarget,
@@ -553,6 +555,15 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    /** FULL scan by the firing faction extends the sprint range, wherever the target sits in the beam */
+    private sprintRange(sprint: { range: number; fullScanRange: number }, projectile: Projectile, target: SpaceObject) {
+        const shooter = this.state.get(projectile.shipId);
+        const faction = shooter ? Number(shooter.faction) : Number(Faction.NONE);
+        return faction >= 0 && target.scanLevels[faction] === Number(ScanLevel.FULL)
+            ? sprint.fullScanRange
+            : sprint.range;
+    }
+
     private calcHomingProjectiles(deltaSeconds: number) {
         for (const projectile of this.state.getAll('Projectile')) {
             if (projectile.jammed && !projectile.freeze && projectile.armed) {
@@ -563,11 +574,23 @@ export class SpaceManager implements Updateable {
                 if (target) {
                     const distanceToTarget = XY.distance(target.position, projectile.position) - target.radius;
                     const fuze = projectile.fuze;
-                    if (fuze.type === 'proximity' && distanceToTarget < fuze.range) {
-                        this.explodeProjectile(projectile);
+                    // closest approach over the coming tick, in the target's frame: at sprint speed
+                    // a missile and a crossing target cover more than the hull's width per tick,
+                    // so a body-overlap check alone lets the warhead pass through.
+                    const [approachSeconds, approachDistance] = closestApproach(projectile, target, deltaSeconds);
+                    const fuzeRange = fuze.type === 'proximity' ? fuze.range : projectile.radius;
+                    if (approachDistance - target.radius < fuzeRange) {
+                        projectile.position.setValue(
+                            addScale(projectile.position, projectile.velocity, approachSeconds),
+                        );
+                        if (fuze.type === 'proximity') {
+                            this.explodeProjectile(projectile);
+                        } else {
+                            this.resolveProjectileContactDamage(projectile, target, deltaSeconds);
+                        }
                     } else {
                         const homing = projectile.design.homing;
-                        // lead at sprint speed: that's what it closes at once on-course.
+                        // lead at sprint speed: that's what it closes at once sprinting.
                         // see: docs/SUBSYSTEMS.md#homing-missile-guidance
                         const leadSpeed = homing.sprint
                             ? homing.maxSpeed * homing.sprint.speedMultiplier
@@ -591,17 +614,30 @@ export class SpaceManager implements Updateable {
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
-                        // sprint only once tracking the lead point: sprint turn radius exceeds a
-                        // short-range engagement. see: docs/SUBSYSTEMS.md#homing-missile-guidance
-                        const onCourse = Math.abs(velocityDestinationDiff) < 35;
                         const sprintMultiplier =
-                            homing.sprint && onCourse && distanceToTarget < homing.sprint.range
+                            homing.sprint && distanceToTarget < this.sprintRange(homing.sprint, projectile, target)
                                 ? homing.sprint.speedMultiplier
                                 : 1;
 
+                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
                         let rotation = 0;
                         let boost = 0;
-                        if (Math.abs(velocityDestinationDiff) > 45 && Math.abs(velocityDestinationDiff) < 135) {
+                        if (sprintMultiplier > 1) {
+                            // sprint agility grows with sprint speed: thrust authority in any
+                            // direction, so the error across the lead line is cancelled at once
+                            // rather than waiting on a hull turn whose radius grows with speed squared.
+                            const error = XY.difference(
+                                XY.byLengthAndDirection(maxSpeed, XY.angleOf(relativeDestination)),
+                                projectile.velocity,
+                            );
+                            const authority = deltaSeconds * homing.velocityCapacity * sprintMultiplier;
+                            projectile.velocity.add(
+                                XY.lengthOf(error) > authority
+                                    ? XY.byLengthAndDirection(authority, XY.angleOf(error))
+                                    : error,
+                            );
+                            rotation = rotateToTarget(deltaSeconds, projectile, destination, 0) * sprintMultiplier;
+                        } else if (Math.abs(velocityDestinationDiff) > 45 && Math.abs(velocityDestinationDiff) < 135) {
                             // velocity is sideways from angle, make a sharp turn againt it
                             rotation = rotateToTarget(
                                 deltaSeconds,
@@ -623,7 +659,6 @@ export class SpaceManager implements Updateable {
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
-                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
                         if (XY.lengthOf(projectile.velocity) > maxSpeed) {
                             projectile.velocity.normalize(maxSpeed);
                         }
@@ -1135,4 +1170,19 @@ export function overSteer(position: XY, velocity: XY, waypoint: XY): XY {
     const error = toDegreesDelta(desired - XY.angleOf(velocity));
     const overshoot = Math.sign(error) * Math.min(Math.abs(error), MAX_OVERSTEER_DEGREES, (180 - Math.abs(error)) / 2);
     return XY.add(position, XY.byLengthAndDirection(XY.lengthOf(toWaypoint), desired + overshoot));
+}
+
+/**
+ * When within the next `seconds`, on current velocities, `mover` comes closest to `target`'s centre,
+ * and how close.
+ */
+function closestApproach(mover: SpaceObject, target: SpaceObject, seconds: number): [number, number] {
+    const relativePosition = XY.difference(target.position, mover.position);
+    const relativeVelocity = XY.difference(mover.velocity, target.velocity);
+    const speedSquared = XY.dot(relativeVelocity, relativeVelocity);
+    const time =
+        speedSquared > 0
+            ? Math.min(seconds, Math.max(0, XY.dot(relativePosition, relativeVelocity) / speedSquared))
+            : 0;
+    return [time, XY.distance(relativePosition, XY.scale(relativeVelocity, time))];
 }

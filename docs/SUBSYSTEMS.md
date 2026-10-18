@@ -176,15 +176,29 @@ be closing at once on-course. No solution degrades to the target's current posit
 It steers at `predictInterceptPoint()`'s lead point rather than the target's current position. Aiming
 at "now" against a moving target turns the chase into an ever-curving pursuit that can circle the
 target instead of ever closing on it — the orbiting bug of issue #2189. The lead is computed at full
-sprint speed, since that is what the missile actually closes at once it is on-course.
+sprint speed, since that is what the missile actually closes at once it sprints.
 
-The terminal sprint is gated on that alignment, not on range alone. At sprint speed the missile's own
-turn radius exceeds a short-range engagement, so sprinting while still badly misaligned overshoots
-into a wide loop instead of a clean intercept. Gating on alignment keeps the correction phase at
-cruise speed's much tighter turn radius.
+The terminal sprint starts once the missile is within `sprint.range` of the target's surface, or
+within `sprint.fullScanRange` when the firing faction (the launcher's faction) holds the target at
+FULL scan; the target's place in the scan beam does not matter. Values: `TERMINAL_SPRINT` in
+`modules/core/src/space/projectile.ts`.
 
-The controller itself is legacy bang-bang — alignment-threshold branch selection, not true
-proportional navigation — and it retains a narrow residual resonance: specific combinations of
+Sprint agility grows with sprint speed. While sprinting, the missile's thrust authority
+(`velocityCapacity * speedMultiplier` per second) acts in any direction, steering the velocity
+straight onto the lead line at sprint speed, and its turn rate scales by `speedMultiplier` too.
+A hull that could only thrust along its nose would need a turn radius that grows with speed
+squared, and would loop past a maneuvering target.
+
+The fuze checks the closest approach over the coming tick in the target's frame, not just the
+current gap. At sprint speed a missile and a crossing target cover more than a hull's width per
+tick, so a body-overlap check alone lets a contact warhead pass through the target.
+
+`missile-terminal-hit-rate.spec.ts` measures the result: from the sprint boundary, every homing
+design must miss a maneuvering Dragonfly MK-I (constant course, jinking, break turn, full reverse,
+orbit) less than 15% of the time.
+
+Outside the sprint, the controller is legacy bang-bang — alignment-threshold branch selection, not
+true proportional navigation — and it retains a narrow residual resonance: specific combinations of
 relative heading and target speed, roughly 0.3-0.5% of a fine sweep of that input space, where the
 missile grazes within ~3% of the proximity fuze radius on every pass without triggering it.
 `homing-missile-intercept.spec.ts` pins its fast-check seed for that reason, and eliminating the
