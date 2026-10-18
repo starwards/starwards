@@ -84,7 +84,7 @@ describe('ShipManager weapons target lifecycle', () => {
     it('setTarget drops a target beyond radar range', () => {
         const { makeShipMgr, flush } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
-        makeShipMgr('far', Faction.Gravitas, 50_000, 0);
+        makeShipMgr('far', Faction.Raiders, 50_000, 0);
         flush();
         mgr.setTarget('far');
         expect(mgr.state.weaponsTarget.targetId).to.equal(null);
@@ -379,7 +379,7 @@ describe('ShipManager weapons target survives momentary occlusion', () => {
     it('a brief occlusion (e.g. an explosion) does not drop the lock', () => {
         const { spaceMgr, makeShipMgr, flush, runTick } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
-        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        makeShipMgr('c', Faction.Raiders, 1000, 0);
         flush();
         mgr.setTarget('c');
         expect(mgr.state.weaponsTarget.targetId).to.equal('c');
@@ -398,7 +398,7 @@ describe('ShipManager weapons target survives momentary occlusion', () => {
     it('sustained occlusion still drops the lock', () => {
         const { spaceMgr, makeShipMgr, flush, runTick } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
-        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        makeShipMgr('c', Faction.Raiders, 1000, 0);
         flush();
         mgr.setTarget('c');
         expect(mgr.state.weaponsTarget.targetId).to.equal('c');
@@ -418,7 +418,7 @@ describe('ShipManager weapons target survives momentary occlusion', () => {
     it('the occlusion grace timer resets once the target is visible again', () => {
         const { spaceMgr, makeShipMgr, flush, runTick } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
-        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        makeShipMgr('c', Faction.Raiders, 1000, 0);
         flush();
         mgr.setTarget('c');
 
@@ -440,6 +440,83 @@ describe('ShipManager weapons target survives momentary occlusion', () => {
         flush();
         runTick(mgr); // occluded again for 1s — still under the grace window from a fresh start
         expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+    });
+});
+
+describe('ShipManager weapons target uses faction field of view', () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    // own radar 10km; the ally 20km out sees the enemy 5km beyond it, own ship does not
+    function allyOnlyContact() {
+        const harness = setup();
+        const { mgr } = harness.makeShipMgr('a', Faction.Gravitas);
+        const { obj: ally } = harness.makeShipMgr('ally', Faction.Gravitas, 20_000, 0);
+        const { obj: enemy } = harness.makeShipMgr('e', Faction.Raiders, 25_000, 0);
+        harness.flush();
+        expect(harness.spaceMgr.isVisible('a', 'e')).to.equal(false);
+        expect(harness.spaceMgr.isVisible('ally', 'e')).to.equal(true);
+        return { ...harness, mgr, ally, enemy };
+    }
+
+    it('setTarget locks a contact only an allied ship sees', () => {
+        const { mgr, enemy } = allyOnlyContact();
+        mgr.setTarget('e');
+        expect(mgr.state.weaponsTarget.targetId).to.equal('e');
+        expect(mgr.weaponsTarget).to.equal(enemy);
+    });
+
+    it('the lock holds while the contact stays in faction FoV and drops after the grace window once it leaves', () => {
+        const { mgr, ally, flush, runTick } = allyOnlyContact();
+        mgr.setTarget('e');
+        for (let i = 0; i < 3; i++) {
+            runTick(mgr); // 3s — longer than the grace window, still faction-visible
+        }
+        expect(mgr.state.weaponsTarget.targetId).to.equal('e');
+
+        setOmniRadarSector(ally, 1_000); // the ally loses the contact
+        flush();
+        runTick(mgr); // 1s — inside the grace window
+        expect(mgr.state.weaponsTarget.targetId).to.equal('e');
+        runTick(mgr); // 2s — past the grace window
+        expect(mgr.state.weaponsTarget.targetId).to.equal(null);
+    });
+
+    it('nextTargetCommand cycles to a contact only an ally sees, and the lock sticks', () => {
+        const { mgr, enemy, runTick } = allyOnlyContact();
+        enemy.scanLevels[Number(Faction.Gravitas)] = ScanLevel.BASIC;
+        mgr.state.weaponsTarget.shipOnly = false;
+        mgr.state.weaponsTarget.enemyOnly = true;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal('e');
+        runTick(mgr);
+        expect(mgr.state.weaponsTarget.targetId).to.equal('e');
+    });
+
+    it('a launched homing missile keeps homing on a target outside faction FoV', () => {
+        const spaceMgr = new SpaceManager();
+        const target = new Spaceship();
+        target.id = 'e';
+        target.radius = demoShipConfig.radius;
+        target.faction = Faction.Raiders;
+        target.position.x = 3_000;
+        const missile = new Projectile('HiExpMissile');
+        missile.init('missile', Vec2.make({ x: 0, y: 0 }));
+        missile.targetId = 'e';
+        missile.secondsToLive = 30;
+        missile.velocity = Vec2.make({ x: 0, y: 100 }); // flying perpendicular to the target bearing
+        spaceMgr.insertBulk([target, missile]);
+        spaceMgr.forceFlushEntities();
+        expect([...spaceMgr.getFactionVisibleObjects(Faction.Gravitas)].map((o) => o.id)).to.not.include('e');
+
+        let hit = false;
+        for (let i = 0; i < 20 * 20 && !hit; i++) {
+            spaceMgr.update({ deltaSeconds: 0.05, deltaSecondsAvg: 0.05, totalSeconds: (i + 1) * 0.05 });
+            hit = !spaceMgr.state.get('missile');
+        }
+        expect(hit, 'missile should reach its target').to.equal(true);
     });
 });
 
