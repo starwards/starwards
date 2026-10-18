@@ -5,7 +5,8 @@ type Bot = { brain: string; status: string; message: string };
 
 /**
  * The GM roster as data: per player ship, each roster seat with its bot and the client (registry
- * entry) holding each enabled screen. A seat with screens but neither bot nor client is `unassigned`;
+ * entry) holding each enabled screen. A seat with screens but no bot, no client and no conflicting seated
+ * bot playing it is `unassigned`;
  * a bot-only seat (no screens) is optional. `botBlockedBy` names a seat whose bot plays a station this
  * seat's bot would also play, while this seat has no bot of its own.
  */
@@ -39,7 +40,7 @@ export function rosterModel<E extends Entry>(input: {
                     bot,
                     botBlockedBy,
                     screens,
-                    unassigned: !bot && screens.length > 0 && screens.every((s) => !s.holder),
+                    unassigned: !bot && !botBlockedBy && screens.length > 0 && screens.every((s) => !s.holder),
                 };
             }),
         };

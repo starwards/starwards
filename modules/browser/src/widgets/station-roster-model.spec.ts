@@ -45,6 +45,14 @@ describe('rosterModel', () => {
         expect(seatOf(model([], { 'S1|weapons': bot }), 'tactical')?.botBlockedBy).toBe('weapons');
     });
 
+    it('a seat whose station a conflicting seated bot plays is not unassigned', () => {
+        const bot = { brain: 'reference', status: 'running', message: '' };
+        const m = model([], { 'S1|tactical': bot });
+        expect(seatOf(m, 'pilot')?.unassigned).toBe(false);
+        expect(seatOf(m, 'weapons')?.unassigned).toBe(false);
+        expect(seatOf(m, 'engineer')?.unassigned).toBe(true);
+    });
+
     it('a client on dradis holds that screen and assigns sigint', () => {
         const client = { id: 'abc', connected: true, shipId: 'S1', stationType: 'dradis' };
         const sigint = seatOf(model([client]), 'sigint');
