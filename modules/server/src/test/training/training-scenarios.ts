@@ -18,6 +18,7 @@ import {
     createTrainingT2Map,
     createTrainingT3DirectedMap,
 } from '../../scenarios/training';
+import { T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
     WeaponsMultiParams,
     createTrainingWeaponsMultiMap,
@@ -201,6 +202,27 @@ const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
     createMap: (params) => createTrainingT2Map(params, params),
 };
 
+/** T2-constrained beside an allied station to dock at: whether to push on, dock, retreat or hold is the captain's call. */
+const T2_DOCK: TrainingScenario<T2DockParams & T2ConstrainedParams> = {
+    ...T2_CONSTRAINED,
+    name: 'T2-dock',
+    description:
+        'T2-constrained beside an allied, unarmed large station 2-5 km (surface) from the GVTS, where it can dock to restock and repair',
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        distance2: fc.integer({ min: 2000, max: 8000 }),
+        offset: fc.integer({ min: 45, max: 180 }),
+        playerEnergy: fc.integer({ min: 10, max: 30 }).map((p) => p / 100),
+        playerShells: fc.integer({ min: 250, max: 450 }),
+        playerGunHeat: fc.integer({ min: 40, max: 70 }),
+        playerMissiles: fc.integer({ min: 3, max: 6 }),
+        stationDistance: fc.integer({ min: 2000, max: 5000 }),
+        stationBearing: fc.integer({ min: 0, max: 359 }),
+    }),
+    createMap: (params) => createTrainingT2DockMap(params, params),
+};
+
 /**
  * The T0 target beyond the GVTS's own radar, seen and identified only by an allied station: the crew
  * finds and engages it from the fleet's picture.
@@ -251,6 +273,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T2: T2_TWO_ATTACKERS as TrainingScenario<never>,
     'T2-constrained': T2_CONSTRAINED as TrainingScenario<never>,
     'T3-directed': T3_DIRECTED as TrainingScenario<never>,
+    'T2-dock': T2_DOCK as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
     'T1-noweave': t1WithHull(
