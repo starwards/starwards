@@ -3,7 +3,7 @@
  * P(hit) and P(kill) per ammo x target motion x launch range as a markdown table.
  *
  *   npm --prefix modules/server run missile-range -- \
- *     --ammo HiExpMissile,ArmPenMissile --motion still,fleeing,crossing --ranges 10,15,20 --seeds 8
+ *     --ammo HiExpMissile,ArmPenMissile --motion still,fleeing,approaching,crossing --ranges 10,15,20 --seeds 8
  *
  * `--ranges` in km. Single process: run one ammo or motion per process to use more cores.
  */
@@ -16,7 +16,7 @@ function arg(name: string, fallback: string) {
 }
 
 const ammos = arg('ammo', 'HiExpMissile').split(',') as MissileAmmoType[];
-const motions = arg('motion', 'still,fleeing,crossing').split(',') as TargetMotion[];
+const motions = arg('motion', 'still,fleeing,approaching,crossing').split(',') as TargetMotion[];
 const ranges = arg('ranges', '10,15,20,25,30,35,40,45,50')
     .split(',')
     .map((km) => Number(km) * 1000);

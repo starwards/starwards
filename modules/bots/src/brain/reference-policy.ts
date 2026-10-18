@@ -1,10 +1,11 @@
 import { Answer, Policy } from './brain';
 import { CaptainOrders, captainOrders, referenceCallout } from './reference-orders';
+import { Control, Display as Shown } from './controls';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
+import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
+import { inLaunchEnvelope, launchRange } from './engagement';
 
 import { CALLOUT_QUESTION } from './callout';
-import { Control } from './controls';
-import { MISSILE_LAUNCH_BAND_METERS } from './engagement';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -104,6 +105,7 @@ export function makeReferencePolicy(
     let seconds = 0;
     let armed = false;
     let lastLaunch = -Infinity;
+    let previous: Display | undefined;
     const orders = captainOrders();
     return {
         name,
@@ -119,7 +121,10 @@ export function makeReferencePolicy(
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
-            const launchTube = seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS ? tubeToLaunch(display) : undefined;
+            const launchTube =
+                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS
+                    ? tubeToLaunch(display, previous, decisionSeconds)
+                    : undefined;
             const answers: Record<string, Answer> = {};
             for (const control of controls) {
                 const choice =
@@ -139,7 +144,8 @@ export function makeReferencePolicy(
                     lastLaunch = seconds;
                 }
             }
-            const callout = referenceCallout(request, display);
+            const callout = referenceCallout(request, shown, previous, decisionSeconds);
+            previous = display;
             if (callout) {
                 answers[CALLOUT_QUESTION] = callout;
             }
@@ -342,25 +348,29 @@ const GUN_HOLD_HEAT = 85;
 type TubeStatus = { index: number; loadedProjectile: string; loading: number; bearing: number };
 
 /**
- * The first loaded tube that bears on the locked ship, while that ship is inside the missile's
- * launch band; none without a lock.
+ * The first loaded tube that bears on the locked ship, while that ship is inside its missile's launch
+ * envelope for how the ship moves since the `previous` decision `seconds` ago; none without a lock.
  */
-function tubeToLaunch(display: Display) {
+function tubeToLaunch(display: Display, previous: Display | undefined, seconds: number) {
     const targetId = display.panels['targeting-status']?.targetId;
     const target = display.radar?.contacts?.find((c) => c.id === targetId);
-    if (
-        !target ||
-        !isShip(target) ||
-        target.distance < MISSILE_LAUNCH_BAND_METERS.min ||
-        target.distance > MISSILE_LAUNCH_BAND_METERS.max
-    ) {
+    if (!target || !isShip(target)) {
         return undefined;
     }
+    const shown = target as unknown as ShownContact;
+    const radar = display.radar as ShownRadar | undefined;
+    const inEnvelope = (ammo: string) =>
+        inLaunchEnvelope(
+            target.distance,
+            launchRange(shown, radar, previous?.radar as ShownRadar | undefined, seconds, ammo),
+        );
     const relative = delta(target.bearing, display.radar?.ownShip?.heading ?? 0);
     const tubes = (display.panels['tubes-status'] ?? []) as unknown as TubeStatus[];
     return tubes.find(
         (t) =>
-            t.loading >= 1 && t.loadedProjectile !== 'None' && Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES,
+            t.loading >= 1 &&
+            Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES &&
+            inEnvelope(t.loadedProjectile),
     )?.index;
 }
 

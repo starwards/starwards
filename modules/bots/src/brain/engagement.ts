@@ -1,19 +1,51 @@
 import { Contact, Radar, offNose } from './verbal';
+import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './missile-envelope';
 
-/**
- * Missile launch band, shared by the reference weapons policy, the reference captain's orders and the
- * weapons KPI's firing solution: past the missile's arming run, out to the deadly range -- the
- * farthest launch at which one HiExp missile (the ammo the reference loads) hits a dragonfly-MK1
- * running away at cruise speed (600 m/s) at least 4 times in 5. Missile range sweep
- * (`npm --prefix modules/server run missile-range`, table in `modules/ai/curriculum/lessons.md`).
- */
-export const MISSILE_LAUNCH_BAND_METERS = { min: 1000, max: 4000 } as const;
+/** The missile the reference loads: its envelope sets where the reference captain sends the ship. */
+const REFERENCE_MISSILE = 'HiExpMissile';
 
-/** How far inside the band's far edge the captain orders the ship: the target may drift outward while the missiles fly. */
+/** How far inside the launch range the captain orders the ship: the target may drift outward while the missiles fly. */
 const CLOSE_MARGIN_METERS = 2000;
 
-/** The range the captain orders the ship to close to. */
-export const CLOSE_RANGE_METERS = MISSILE_LAUNCH_BAND_METERS.max - CLOSE_MARGIN_METERS;
+/**
+ * How fast `contact` closes on the own ship and crosses its line of sight, from where the radar
+ * showed it a decision (`seconds`) ago; a target seen once counts as holding still.
+ */
+export function contactRates(contact: Contact, radar: Radar | undefined, previous: Radar | undefined, seconds: number) {
+    const before = previous?.contacts?.find((c) => c.id === contact.id);
+    const own = radar?.ownShip?.position;
+    const ownBefore = previous?.ownShip?.position;
+    if (!before?.position || !contact.position || !own || !ownBefore) {
+        return { closing: 0, crossing: 0 };
+    }
+    return rangeRate(
+        { x: before.position.x - ownBefore.x, y: before.position.y - ownBefore.y },
+        { x: contact.position.x - own.x, y: contact.position.y - own.y },
+        seconds,
+    );
+}
+
+/** The farthest range to launch `ammo` (the reference's missile by default) at `contact` as it moves now. */
+export function launchRange(
+    contact: Contact,
+    radar: Radar | undefined,
+    previous: Radar | undefined,
+    seconds: number,
+    ammo = REFERENCE_MISSILE,
+) {
+    const { closing, crossing } = contactRates(contact, radar, previous, seconds);
+    return missileLaunchRange(ammo, closing, crossing);
+}
+
+/** Whether a missile launched now at `distance` arms and hits, given the envelope's `range`. */
+export function inLaunchEnvelope(distance: number, range: number) {
+    return distance >= MISSILE_MIN_LAUNCH_METERS && distance <= range;
+}
+
+/** The range the captain orders the ship to close to, inside the launch `range`. */
+export function closeRange(range: number) {
+    return Math.max(MISSILE_MIN_LAUNCH_METERS, range - CLOSE_MARGIN_METERS);
+}
 
 /**
  * The nearest ship the radar shows as another faction's. Only a contact scanned to BASIC or better

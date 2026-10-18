@@ -1,4 +1,5 @@
 import { killedAt, meanDistance, shellsFired } from './metrics';
+import { missileLaunchRange, rangeRate } from '@starwards/bots';
 import { Store } from './store';
 import { radarReach } from '@starwards/core/internal';
 
@@ -81,7 +82,7 @@ export const CHECK_CATALOGUE: ReadonlyArray<{ name: string; description: string 
     {
         name: 'missile_beyond_own_radar',
         description:
-            "passes when a player missile left at a target beyond the weapons station's tactical radar reach; skips otherwise",
+            "passes when a player missile left at a target beyond the weapons station's tactical radar reach and inside the missile's launch envelope; skips otherwise",
     },
 ];
 
@@ -242,7 +243,8 @@ async function framesRegular(store: Store, runId: string): Promise<CheckResult> 
 
 /**
  * Whether the player launched a missile at a target its weapons station's own radar (the tactical
- * radar's reach) could not show: one only the faction's picture held. A run without such a launch
+ * radar's reach) could not show, one only the faction's picture held, from inside the missile's launch
+ * envelope for how the target moved (`missileLaunchRange`). A run without such a launch
  * skips, since staying inside the reach is no fault on most rungs. Launch range is read at the
  * missile's first frame, so it is late by up to one frame interval.
  */
@@ -255,7 +257,7 @@ async function missileBeyondOwnRadar(store: Store, runId: string, roles: RoleIds
         "SELECT object_id, first_t FROM object WHERE run_id = ? AND type = 'Projectile' ORDER BY first_t",
         runId,
     );
-    const ranges: { t: number; range: number }[] = [];
+    const ranges: { t: number; range: number; reach: number }[] = [];
     for (const { object_id, first_t: t } of projectiles) {
         const [shipId, model, targetId] = await Promise.all(
             ['/shipId', '/model', '/targetId'].map((p) => store.valueAt(runId, object_id, p, t)),
@@ -263,21 +265,33 @@ async function missileBeyondOwnRadar(store: Store, runId: string, roles: RoleIds
         if (shipId?.str !== roles.player || !model?.str?.endsWith('Missile') || !targetId?.str) {
             continue;
         }
-        const [px, py, tx, ty] = await Promise.all([
-            store.valueAt(runId, roles.player, '/position/x', t),
-            store.valueAt(runId, roles.player, '/position/y', t),
-            store.valueAt(runId, targetId.str, '/position/x', t),
-            store.valueAt(runId, targetId.str, '/position/y', t),
-        ]);
-        ranges.push({ t, range: Math.hypot((tx?.num ?? 0) - (px?.num ?? 0), (ty?.num ?? 0) - (py?.num ?? 0)) });
+        const [px, py, tx, ty, pvx, pvy, tvx, tvy] = (
+            await Promise.all(
+                [
+                    [roles.player, '/position/x'],
+                    [roles.player, '/position/y'],
+                    [targetId.str, '/position/x'],
+                    [targetId.str, '/position/y'],
+                    [roles.player, '/velocity/x'],
+                    [roles.player, '/velocity/y'],
+                    [targetId.str, '/velocity/x'],
+                    [targetId.str, '/velocity/y'],
+                ].map(([id, p]) => store.valueAt(runId, id, p, t)),
+            )
+        ).map((v) => v?.num ?? 0);
+        const now = { x: tx - px, y: ty - py };
+        const { closing, crossing } = rangeRate({ x: now.x - (tvx - pvx), y: now.y - (tvy - pvy) }, now, 1);
+        ranges.push({ t, range: Math.hypot(now.x, now.y), reach: missileLaunchRange(model.str, closing, crossing) });
     }
     if (!ranges.length) {
         return { name, status: 'skip', t: null, detail: 'no missile launched' };
     }
-    const beyond = ranges.filter((r) => r.range > radarReach.tactical);
+    const unseen = ranges.filter((r) => r.range > radarReach.tactical);
+    const beyond = unseen.filter((r) => r.range <= r.reach);
     const detail = {
         launches: ranges.length,
         beyond: beyond.length,
+        outsideEnvelope: unseen.length - beyond.length,
         maxRange: Math.max(...ranges.map((r) => r.range)),
     };
     return beyond.length ? { name, status: 'pass', t: beyond[0].t, detail } : { name, status: 'skip', t: null, detail };

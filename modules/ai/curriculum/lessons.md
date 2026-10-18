@@ -413,91 +413,110 @@ Not filed. Draft text:
 - **Reuse:** a candidate on L5 starts with a weapons rule to change tube ammo when the loaded stock is empty or
   low; read missiles left per stock in the display before tuning anything else.
 
-### Missile deadly range — one GVTS missile vs a dragonfly-MK1 (2026-10-18, after the projectile hit-check fix)
+### Missile deadly range — one GVTS missile vs a dragonfly-MK1, by target aspect (2026-10-18, after the projectile hit-check fix)
 
 - **Instrument:** `npm --prefix modules/server run missile-range -- --ammo <ammo> --motion <motion> --ranges <km> --seeds 8`
-  (`modules/server/src/test/training/missile-range.ts`), seeds 1-8 per cell. One missile from GVTS tube 0; the lock
-  rides on the scan beam narrowed to 5° (70 km; the omni radar reaches 6 km). The target holds still until the
-  missile leaves the tube, then holds still, runs straight away, or crosses the launch line square, at 600 m/s
-  (afterburner off) or 1200 m/s (afterburner on), with no ramp-up. Calibration only: it never turns, jams or
-  shoots back.
+  (`modules/server/src/test/training/missile-range.ts`), seeds 1-8 per cell, launches 2-70 km. One missile from GVTS
+  tube 0; the lock rides on the scan beam narrowed to 5° (70 km; the omni radar reaches 6 km). The target holds
+  still until the missile leaves the tube, then holds still, flies straight at the launcher, runs straight away,
+  or crosses the launch line square, at 600 m/s (afterburner off) or 1200 m/s (afterburner on), with no ramp-up.
+  Calibration only: it never turns, jams or shoots back.
 - **Result:** P(kill) is 0.00 in every cell: one missile never kills a dragonfly (3-4 do, #2334).
 
 HiExp missile, P(hit):
 
-| launch km | still | flee 600 | flee 1200 | cross 600 | cross 1200 |
-| --------: | ----: | -------: | --------: | --------: | ---------: |
-|         2 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
-|         3 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         4 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         5 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         6 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         7 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         8 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|         9 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        10 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        15 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        20 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        25 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        30 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        35 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        40 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        45 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        50 |  0.00 |     0.00 |      0.00 |      0.00 |       0.00 |
+| launch km | approach 1200 | approach 600 | still | cross 600 | cross 1200 | flee 600 | flee 1200 |
+| --------: | ------------: | -----------: | ----: | --------: | ---------: | -------: | --------: |
+|         2 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         3 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         4 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         5 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|         6 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|         8 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        10 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        15 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        20 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        25 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        30 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        35 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        40 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        45 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        50 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        55 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        60 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        65 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        70 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
 
 ArmPen missile, P(hit):
 
-| launch km | still | flee 600 | flee 1200 | cross 600 | cross 1200 |
-| --------: | ----: | -------: | --------: | --------: | ---------: |
-|         2 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
-|         3 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
-|         4 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
-|         5 |  1.00 |     1.00 |      0.00 |      1.00 |       1.00 |
-|         6 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         7 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         8 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         9 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|        10 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|        15 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|        20 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        25 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        30 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        35 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        40 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        45 |  0.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        50 |  0.00 |     0.00 |      0.00 |      0.00 |       0.00 |
+| launch km | approach 1200 | approach 600 | still | cross 600 | cross 1200 | flee 600 | flee 1200 |
+| --------: | ------------: | -----------: | ----: | --------: | ---------: | -------: | --------: |
+|         2 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         3 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         4 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         5 |          1.00 |         1.00 |  1.00 |      1.00 |       1.00 |     1.00 |      0.00 |
+|         6 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         8 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        10 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        15 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        20 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        25 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        30 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        35 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        40 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        45 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        50 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        55 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        60 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        65 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        70 |          1.00 |         0.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
 
 Elec missile, P(hit):
 
-| launch km | still | flee 600 | flee 1200 | cross 600 | cross 1200 |
-| --------: | ----: | -------: | --------: | --------: | ---------: |
-|         2 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
-|         3 |  1.00 |     1.00 |      0.00 |      1.00 |       0.50 |
-|         4 |  1.00 |     1.00 |      0.00 |      1.00 |       0.38 |
-|         5 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         6 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         7 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         8 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|         9 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|        10 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|        15 |  1.00 |     1.00 |      0.00 |      1.00 |       0.00 |
-|        20 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        25 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        30 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        35 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        40 |  1.00 |     0.00 |      0.00 |      1.00 |       0.00 |
-|        45 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
-|        50 |  1.00 |     0.00 |      0.00 |      0.00 |       0.00 |
+| launch km | approach 1200 | approach 600 | still | cross 600 | cross 1200 | flee 600 | flee 1200 |
+| --------: | ------------: | -----------: | ----: | --------: | ---------: | -------: | --------: |
+|         2 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         3 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         4 |          1.00 |         1.00 |  1.00 |      1.00 |       0.38 |     1.00 |      0.00 |
+|         5 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         6 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         8 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        10 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        15 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        20 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        25 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        30 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        35 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        40 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        45 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        50 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        55 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        60 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        65 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        70 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
 
-- **Deadly range** (max launch range with P(hit) ≥ 0.8 against a target fleeing at 600 m/s): **HiExp 4 km**,
-  ArmPen and Elec 15 km. Against a fleeing target at 1200 m/s (afterburner) no missile hits from 2 km.
-- **Changed:** `MISSILE_LAUNCH_BAND_METERS.max` (bots `engagement.ts`, shared with the weapons KPI and the
-  captain's orders) is 4 km, the HiExp deadly range: the reference never changes tube ammo, and its tubes load
-  HiExp. The captain therefore orders the ship to 2 km.
-- **Lesson:** HiExp is a still- or slow-target weapon (45 km still, 10 km crossing at cruise, 4 km fleeing);
-  ArmPen and Elec outrun a cruising target out to 15 km. Choosing ammo by target motion is the next lever.
+- **Terms:** Rmax is the farthest launch with P(hit) ≥ 0.8 against a target that holds its course and speed, by
+  aspect; Rne (no-escape) is Rmax against a target running away. Envelope (km; closing speed + toward us, − away):
+
+    | ammo   | +1200 | +600 | 0 (still) | −600 (Rne) | −1200 | crossing 600 | crossing 1200 |
+    | ------ | ----: | ---: | --------: | ---------: | ----: | -----------: | ------------: |
+    | HiExp  |   70+ |  70+ |        45 |          4 |  none |           10 |          none |
+    | ArmPen |   70+ |   65 |        40 |         15 |  none |           30 |          none |
+    | Elec   |   70+ |  70+ |       70+ |         15 |  none |           40 |          none |
+
+    70+ is the sweep's edge (the scan beam's reach). Rne against an afterburner run is none: a dragonfly at 1200 m/s
+    outruns every missile from 2 km.
+
+- **Changed:** `missileLaunchRange(ammo, closing, crossing)` (bots `brain/missile-envelope.ts`) holds this table and is the
+  one source for the reference weapons' launch (per tube ammo), the reference captain's `close_to` range (HiExp
+  envelope less 2 km, closing speed read off two dradis fixes) and `engage`, the weapons KPI's firing solution and
+  the `missile_beyond_own_radar` check (a launch beyond the tactical reach counts only inside the envelope). Between
+  measured speeds it takes the shorter neighbour.
+- **Lesson:** a missile's reach is set by the target's aspect, not the missile: 45-70 km at a still or oncoming
+  target, 4-15 km at one running at cruise, none at afterburner. HiExp is the still- or oncoming-target missile;
+  ArmPen and Elec are the ones that catch a cruising runner.
 - **Reuse:** re-run the sweep after any change to missile speed, `MISSILE_LAUNCH`, `TERMINAL_SPRINT` or the
-  projectile raycast.
+  projectile raycast, and copy the result into `missile-envelope.ts`.
 
 Copy this block for every candidate run on a level.
 

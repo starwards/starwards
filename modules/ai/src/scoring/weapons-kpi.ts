@@ -11,7 +11,7 @@ import {
     isShellAmmo,
     shellAmmoTypes,
 } from '@starwards/core/internal';
-import { MISSILE_LAUNCH_BAND_METERS } from '@starwards/bots';
+import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from '@starwards/bots';
 
 /**
  * The tactical (helms + weapons) and weapons station scores, read from a recording: 1 s `SavedGame`
@@ -302,7 +302,22 @@ export function shellReaches(
     return miss <= fuze + blastRadius(ammo) + target.radius + spread;
 }
 
-/** Whether the player had a firing solution on `enemy` in this frame: gun, or a missile in band on the held target. */
+/**
+ * Whether one `ammo` missile launched from `from` (moving with `own`) reaches `target`: inside its
+ * launch envelope for the target's closing and crossing speed.
+ */
+function missileReaches(ammo: string, from: { x: number; y: number }, own: ShipReading, target: ShipReading) {
+    const now = { x: target.x - from.x, y: target.y - from.y };
+    const d = Math.hypot(now.x, now.y);
+    const before = { x: now.x - (target.vx - own.vx), y: now.y - (target.vy - own.vy) };
+    const { closing, crossing } = rangeRate(before, now, 1);
+    return d >= MISSILE_MIN_LAUNCH_METERS && d <= missileLaunchRange(ammo, closing, crossing);
+}
+
+/**
+ * Whether the player had a firing solution on `enemy` in this frame: gun, or a HiExp missile (what the
+ * tubes load) inside its launch envelope on the held target.
+ */
 export function hasSolution(frame: TacticalFrame, enemy: ShipReading) {
     const { own, weapons } = frame;
     if (enemy.destroyed) return false;
@@ -317,13 +332,7 @@ export function hasSolution(frame: TacticalFrame, enemy: ShipReading) {
         };
         if (shellReaches(shell, weapons.fuzeSeconds, ammo, enemy, SPREAD_SIGMAS * weapons.spreadDegrees)) return true;
     }
-    const d = Math.hypot(enemy.x - own.x, enemy.y - own.y);
-    return (
-        weapons.tubesReady &&
-        weapons.targetId === enemy.id &&
-        d >= MISSILE_LAUNCH_BAND_METERS.min &&
-        d <= MISSILE_LAUNCH_BAND_METERS.max
-    );
+    return weapons.tubesReady && weapons.targetId === enemy.id && missileReaches('HiExpMissile', own, own, enemy);
 }
 
 /** Living enemies' threat shares, uniform when none threatens. */
@@ -460,9 +469,7 @@ export function weaponsScore(
             if (!shellReaches(s, s.ttl, s.ammo, at)) nosol++;
             dominated += ammoShortfall(s.ammo, f.weapons.shellsInMagazine, target);
         } else {
-            const d = Math.hypot(at.x - s.x, at.y - s.y);
-            if (s.targetId !== target.id || d < MISSILE_LAUNCH_BAND_METERS.min || d > MISSILE_LAUNCH_BAND_METERS.max)
-                nosol++;
+            if (s.targetId !== target.id || !missileReaches(s.ammo, s, f.own, at)) nosol++;
         }
     }
     const hits = hitsOf(events, frames).filter((h) => h.shooterId === playerId);

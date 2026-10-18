@@ -1,5 +1,5 @@
 import { CALLOUT_QUESTION, Heard, SILENCE } from './callout';
-import { MISSILE_LAUNCH_BAND_METERS, nearestEnemy } from './engagement';
+import { inLaunchEnvelope, launchRange, nearestEnemy } from './engagement';
 
 import { Answer } from './brain';
 import { BrainRequest } from './request';
@@ -8,42 +8,47 @@ import { Radar } from './verbal';
 
 type XY = { x: number; y: number };
 
+/** What a callout rule reads: the radar now and a decision (`seconds`) ago. */
+type Picture = { radar: Radar | undefined; previous: Radar | undefined; seconds: number };
+
+/** Whether the nearest enemy is inside the reference missile's launch envelope for how it moves. */
+function enemyInEnvelope({ radar, previous, seconds }: Picture) {
+    const enemy = nearestEnemy(radar);
+    return enemy && inLaunchEnvelope(enemy.distance, launchRange(enemy, radar, previous, seconds));
+}
+
 /** The reference's rule for each callout it knows: whether the callout should be said now. */
-const calloutRules: Record<string, (radar: Radar | undefined) => boolean> = {
+const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Signals: whenever an identified enemy ship is on the radar. */
-    enemy_position: (radar) => nearestEnemy(radar) !== undefined,
-    /** Captain: an enemy beyond missile range, or too close for a missile to arm. */
-    close_to: (radar) => {
-        const enemy = nearestEnemy(radar);
-        return (
-            enemy !== undefined &&
-            (enemy.distance > MISSILE_LAUNCH_BAND_METERS.max || enemy.distance < MISSILE_LAUNCH_BAND_METERS.min)
-        );
-    },
-    /** Captain: an enemy inside missile range. */
-    engage: (radar) => {
-        const enemy = nearestEnemy(radar);
-        return (
-            enemy !== undefined &&
-            enemy.distance >= MISSILE_LAUNCH_BAND_METERS.min &&
-            enemy.distance <= MISSILE_LAUNCH_BAND_METERS.max
-        );
-    },
+    enemy_position: ({ radar }) => nearestEnemy(radar) !== undefined,
+    /** Captain: an enemy outside the missile's launch envelope: beyond it, or too close to arm. */
+    close_to: (picture) => enemyInEnvelope(picture) === false,
+    /** Captain: an enemy inside the launch envelope. */
+    engage: (picture) => enemyInEnvelope(picture) === true,
     /** Captain: no enemy in sight. */
-    hold_here: (radar) => nearestEnemy(radar) === undefined,
+    hold_here: ({ radar }) => nearestEnemy(radar) === undefined,
 };
 
 /**
  * What a reference seat says: the first of its brain's callouts whose rule fires, else silence.
  * Undefined, so the seat says nothing at all, for a brain none of whose callouts has a rule.
  */
-export function referenceCallout(request: BrainRequest, display: Display): Answer | undefined {
+export function referenceCallout(
+    request: BrainRequest,
+    display: Display,
+    previous: Display | undefined,
+    seconds: number,
+): Answer | undefined {
     const options = Object.keys(request.questions?.[CALLOUT_QUESTION]?.criteria ?? {}).filter((o) => o in calloutRules);
     if (!options.length) {
         return undefined;
     }
-    const radar = display.radar as Radar | undefined;
-    return { choice: options.find((o) => calloutRules[o](radar)) ?? SILENCE, source: 'rule' };
+    const picture = {
+        radar: display.radar as Radar | undefined,
+        previous: previous?.radar as Radar | undefined,
+        seconds,
+    };
+    return { choice: options.find((o) => calloutRules[o](picture)) ?? SILENCE, source: 'rule' };
 }
 
 /** The captain's latest order to helms: the world point to fly to, or to hold where the ship is. */

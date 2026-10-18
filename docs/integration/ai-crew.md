@@ -174,7 +174,7 @@ a display that does not show the value says nothing.
 | `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                                         | "gun skewed 8° left"                                      |
 | `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km                        | "contact UFO-12 at 7.4 km, 20° left of the nose"          |
 | `enemyContact`  | signals  | nearest identified enemy ship on its radar; range change since its previous decision | "enemy raider at 42.3 km, 30° right of the nose, closing" |
-| `closeOrder`    | captain  | nearest identified enemy ship on the dradis; the launch band's far edge less 2 km    | "close to 2 km of raider, now 52.3 km at bearing 045"     |
+| `closeOrder`    | captain  | nearest identified enemy ship on the dradis; its HiExp launch range less 2 km        | "close to 43 km of raider, now 52.3 km at bearing 045"    |
 | `engageOrder`   | captain  | nearest identified enemy ship on the dradis                                          | "engage raider"                                           |
 
 The filled values travel with the phrase (`values` on what a listener hears), so a rule-based
@@ -279,8 +279,9 @@ The `captain` seat (reference brain [`brains/captain.v1.json`](../../modules/bot
 has no controls: it reads the dradis picture (the whole faction view) and only talks. The headless
 crew seats it on the dradis screen, whose waypoint commands are not buttons, so its every decision
 asks only its callout question; a callout question lists what it hears (`controls.callout.hears`)
-like a control. Its orders: `close_to` while the nearest enemy is outside the missile launch band
-(`MISSILE_LAUNCH_BAND_METERS`, [`brain/engagement.ts`](../../modules/bots/src/brain/engagement.ts)),
+like a control. Its orders: `close_to` while the nearest enemy is outside the missile's launch envelope
+(`missileLaunchRange`, [`brain/missile-envelope.ts`](../../modules/bots/src/brain/missile-envelope.ts): 1 km out to
+Rmax for the enemy's closing and crossing speed, read off two dradis fixes),
 `engage` inside it, `hold_here` with no enemy in sight.
 
 The reference crew obeys ([`brain/reference-orders.ts`](../../modules/bots/src/brain/reference-orders.ts)):

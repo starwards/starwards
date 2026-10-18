@@ -23,10 +23,11 @@ const SETTLE_SECONDS = 2;
 
 /**
  * What the target does from the tick the missile leaves the tube: sits; runs straight away from
- * the launcher; or crosses the launch line square. Full afterburner speed, or cruise speed with
- * the `-cruise` suffix.
+ * the launcher; flies straight at it; or crosses the launch line square. Full afterburner speed, or
+ * cruise speed with the `-cruise` suffix.
  */
-export type TargetMotion = 'still' | 'fleeing' | 'fleeing-cruise' | 'crossing' | 'crossing-cruise';
+export type TargetMotion =
+    'still' | 'fleeing' | 'fleeing-cruise' | 'approaching' | 'approaching-cruise' | 'crossing' | 'crossing-cruise';
 
 type MissileShot = {
     /** The missile damaged the target at least once. */
@@ -80,7 +81,11 @@ export function missileShot(
     tube.projectile = ammo;
     const away = XY.byLengthAndDirection(1, bearing);
     const crossSign = seed % 2 === 0 ? 1 : -1;
-    const course = motion.startsWith('crossing') ? XY.rotate(away, 90 * crossSign) : away;
+    const course = motion.startsWith('crossing')
+        ? XY.rotate(away, 90 * crossSign)
+        : motion.startsWith('approaching')
+          ? XY.negate(away)
+          : away;
     // the ship manager caps speed at the afterburner's limit
     targetManager.state.afterBurner = motion.endsWith('-cruise') ? 0 : 1;
     const speed = targetManager.state.maxSpeed;
