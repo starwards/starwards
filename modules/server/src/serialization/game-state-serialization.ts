@@ -8,10 +8,23 @@ import { promisify } from 'node:util';
 const do_gzip = promisify(gzip);
 const do_unzip = promisify(unzip);
 
+/**
+ * Shared by every whole-game encode (`schemaToString`, `decodedCopy`) and kept at twice the largest
+ * encoding seen or decoded. A fresh encoder starts at `Encoder.BUFFER_SIZE`, which a whole game (the
+ * recorder's keyframe, every second) outgrows, so each call overflowed: a warning, a reallocation and
+ * a second full encode.
+ */
+let encodeBuffer = new Uint8Array(Encoder.BUFFER_SIZE);
+
+function reserveEncodeBuffer(size: number) {
+    if (size * 4 > encodeBuffer.length * 3) {
+        encodeBuffer = new Uint8Array(size * 2);
+    }
+}
+
 export async function schemaToString(fragment: Schema) {
-    // In @colyseus/schema v3, use Encoder class
-    const encoder = new Encoder(fragment);
-    const encoded = encoder.encodeAll();
+    const encoded = new Encoder(fragment).encodeAll({ offset: 0 }, encodeBuffer);
+    reserveEncodeBuffer(encoded.length);
     const zipped = await do_gzip(Buffer.from(encoded));
     return zipped.toString('base64');
 }
@@ -22,11 +35,12 @@ type Constructor<T extends Schema> = new (...args: never[]) => T;
  * resume from such a copy: `Schema.clone()` skips constructors, leaving each non-`@gameField`
  * field (`Explosion.hitObjectIds`, `SpaceObjectBase.collisionDamage`, ...) undefined. Encodes
  * a `clone()` of `source`, since only a clone is encodable whatever `source` is: a decoded
- * tree recorded no changes to encode, and a live one belongs to its room's encoder.
+ * tree recorded no changes to encode, and a live one belongs to its room's encoder. A save loaded by
+ * `stringToSchema` has already sized the encode buffer from its file.
  */
 export function decodedCopy<T extends Schema>(ctor: Constructor<T>, source: T) {
     const copy = new ctor();
-    new ConstructingDecoder(copy).decode(new Encoder(source.clone()).encodeAll());
+    new ConstructingDecoder(copy).decode(new Encoder(source.clone()).encodeAll({ offset: 0 }, encodeBuffer));
     return copy;
 }
 
@@ -36,6 +50,7 @@ export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, ser
 
 async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
     const unzipped = await do_unzip(Buffer.from(serialized, 'base64'));
+    reserveEncodeBuffer(unzipped.length);
     const decoder = new ConstructingDecoder(obj);
     decoder.decode(Buffer.from(unzipped));
     return obj;
