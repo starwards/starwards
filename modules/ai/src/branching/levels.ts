@@ -6,9 +6,13 @@ import {
     Display,
     GivenOrder,
     MISSILE_LAUNCH_BAND_METERS,
-    OrderSlot,
+    ORDER_KINDS,
     Policy,
+    SILENCE,
+    STANCES,
     SeatPlan,
+    orderFromCallout,
+    readOrders,
     stationControls,
 } from '@starwards/bots';
 import { RunLog, StateSummary, requestAt, stateAt } from './run-log';
@@ -88,8 +92,11 @@ function overrideSeat(
 /** Armor and energy shares whose crossing downward is a strategic moment. */
 const ARMOR_MARKS = [0.75, 0.5, 0.25];
 const ENERGY_MARKS = [0.3, 0.15];
-/** Ranking alternatives: each of these slots raised to the top. */
-const RAISED_SLOTS: OrderSlot[] = ['maneuver', 'energy', 'engagement'];
+/**
+ * How long the branched captain leaves the ship docked once a dock order completes before ordering it
+ * off: casting off is a captain's verbal order, and the reference captain has no rule for it.
+ */
+export const UNDOCK_AFTER_SECONDS = 60;
 
 function crossings(
     log: RunLog,
@@ -146,14 +153,61 @@ function group(moments: { t: number; reason: string }[], window = 2) {
     return groups;
 }
 
-/** Gives one order to the crew's order state at the first tick at or after `t`. */
+/**
+ * The branched captain does not call an order that contradicts one it gave at the branch point (a
+ * reference captain calling `close_to` every decision would otherwise cancel a `hold_position` at once):
+ * such a call becomes silence while the branch's order stands on the board.
+ */
+function keepToBranchOrders(seats: SeatPlan[]) {
+    return seats.map((seat): SeatPlan => {
+        if (seat.station !== 'captain') return seat;
+        const inner = seat.policy;
+        return {
+            ...seat,
+            policy: {
+                name: inner.name,
+                async answer(request, controls, display, heard) {
+                    const result = await inner.answer(request, controls, display, heard);
+                    const call = result.answers[CALLOUT_QUESTION]?.choice;
+                    const kind = call && orderFromCallout(call, {}, undefined)?.kind;
+                    const standing = readOrders(display).orders.filter(
+                        (o) => o.issuer === 'captain (branch)' && o.status === 'active',
+                    );
+                    const contradicts = (a: string, b: string) => ORDER_KINDS[a]?.contradicts?.includes(b) === true;
+                    return kind && standing.some((o) => contradicts(kind, o.kind) || contradicts(o.kind, kind))
+                        ? {
+                              ...result,
+                              answers: { ...result.answers, [CALLOUT_QUESTION]: { choice: SILENCE, source: 'rule' } },
+                          }
+                        : result;
+                },
+            },
+        };
+    });
+}
+
+/**
+ * Gives one order to the crew's order state at the first tick at or after `t`; from then on the
+ * branched captain also orders the ship off a dock `UNDOCK_AFTER_SECONDS` after a dock order completes
+ * (the order itself, or one a standing order started).
+ */
 function giveAt(t: number, order: GivenOrder): Intervention {
     let given = false;
     return {
+        seats: keepToBranchOrders,
         intervene: (seconds: number, orders: CrewOrders) => {
             if (!given && seconds + 1e-9 >= t) {
                 given = true;
                 orders.give(order, 'captain (branch)', seconds);
+            }
+            const docked = orders.state.slots.navigation;
+            if (
+                given &&
+                docked?.kind === 'dock_for_repair' &&
+                docked.status === 'complete' &&
+                seconds - (docked.stepAt ?? seconds) >= UNDOCK_AFTER_SECONDS
+            ) {
+                orders.give({ kind: 'undock' }, 'captain (branch)', seconds);
             }
         },
     };
@@ -161,9 +215,9 @@ function giveAt(t: number, order: GivenOrder): Intervention {
 
 /**
  * Mission priority: what the ship is for right now (dock for repair, retreat, hold position, patrol,
- * preserve energy, a standing dock order), revoking a strategic slot, or reranking the slots. A branch
- * changes one slot (or the ranking) of the order state at its point; every other slot keeps its order,
- * and the tactical play that follows is the reference's under the new state.
+ * preserve energy, a standing dock order), revoking a strategic slot, or a stance (which sets the slot
+ * ranking and its own button-level rules). A branch changes one slot of the order state at its point;
+ * every other slot keeps its order, and the tactical play that follows is the reference's under the new state.
  */
 export const strategicLevel: DecisionLevel = {
     name: 'strategic',
@@ -211,21 +265,23 @@ export const strategicLevel: DecisionLevel = {
             if (!n.position) continue;
             add(`patrol@${n.name}`, 'patrol', {
                 kind: 'patrol',
-                params: { region: { name: n.name, position: n.position, radius: n.radius, from: enemy?.position } },
+                params: {
+                    region: {
+                        name: n.name,
+                        position: n.position,
+                        radius: n.radius,
+                        ...(enemy?.position ? { from: { name: enemy.name, position: enemy.position } } : {}),
+                    },
+                },
             });
         }
         if (!active.has('energy')) add('preserve_energy', 'preserve_energy', { kind: 'preserve_energy' });
         for (const slot of ['navigation', 'energy', 'repair'] as const) {
             if (active.has(slot)) add(`revoke:${slot}`, 'revoke', { kind: 'revoke', params: { slot } });
         }
-        const priorities = state.board?.priorities ?? [];
-        // a ranking decides only between orders that bind one seat: with none in force, reranking changes nothing
-        const bound = (state.board?.orders ?? []).filter((o) => o.status === 'active').flatMap((o) => o.binds);
-        const contested = new Set(bound).size < bound.length;
-        for (const slot of contested ? RAISED_SLOTS : []) {
-            if (priorities[0] !== slot) {
-                add(`prioritize:${slot}`, 'prioritize', { kind: 'prioritize', params: { ranking: [slot] } });
-            }
+        // a stance sets the slot ranking and its own button-level rules
+        for (const stance of STANCES) {
+            if (active.get('stance')?.kind !== stance) add(`stance:${stance}`, 'stance', { kind: stance });
         }
         return alts;
     },

@@ -13,6 +13,7 @@ import { StationCommand } from '@starwards/core/internal';
  * - `switch`    — a toggle whose position the display shows (target filters, magazine loading).
  * - `burst`     — a trigger pulled for one decision interval (chain gun).
  * - `protocol`  — a per-repair-protocol pair of keys.
+ * - `job`       — a per-signals-job key (prioritize, cancel) that sends that job's id.
  * - `excluded`  — not offered to a brain; the reason says why.
  */
 export type ControlDesign =
@@ -36,6 +37,7 @@ export type ControlDesign =
     | { kind: 'switch'; read: ValueSource; expand: 'single' | 'gun' }
     | { kind: 'burst'; expand: 'gun' }
     | { kind: 'protocol'; options: Record<string, Record<string, unknown>> }
+    | { kind: 'job'; verb: string }
     | { kind: 'excluded'; reason: string };
 
 /** A path into the display, with `{system}` / `{gun}` filled in when the control is expanded. */
@@ -44,7 +46,6 @@ export type ValueSource =
     | { panel: string; listKey: 'pointer' | 'index'; path: readonly string[] }
     | { radar: readonly string[] };
 
-const jobIdDefect = 'the station sandbox sends `true` instead of a job id, so the command does nothing';
 const helmsStat = (...path: string[]) => ({ panel: 'helms-stats', path });
 
 export const controlCatalogue = {
@@ -178,8 +179,8 @@ export const controlCatalogue = {
         expand: 'single',
     },
     pauseJobs: { kind: 'switch', read: { panel: 'signals-jobs', path: ['paused'] }, expand: 'single' },
-    prioritizeJob: { kind: 'excluded', reason: jobIdDefect },
-    cancelJob: { kind: 'excluded', reason: jobIdDefect },
+    prioritizeJob: { kind: 'job', verb: 'move this scan job to the front of the queue' },
+    cancelJob: { kind: 'job', verb: 'cancel this scan job' },
 
     // dradis
     placeWaypoint: { kind: 'excluded', reason: 'waypoint commands take free-form positions, not button presses' },

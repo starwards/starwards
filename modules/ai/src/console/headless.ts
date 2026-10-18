@@ -3,6 +3,7 @@ import {
     SessionShipDriver,
     SessionSpaceDriver,
     StationSession,
+    botSeatScreen,
     openStation,
     withMultiplexedStations,
 } from '@starwards/bots';
@@ -48,13 +49,6 @@ export class SimClock {
 const shipCommands: ReadonlyArray<StateCommand<unknown, ShipState, void>> = Object.values(repairCommands);
 
 /**
- * Seats only a headless crew has, by the screen each one reads. The captain reads the whole fleet
- * picture on the dradis and gives orders by radio; none of the dradis's waypoint commands is a button
- * a brain presses, so the seat has no controls.
- */
-const headlessOnlySeats: Readonly<Record<string, string>> = { captain: 'dradis' };
-
-/**
  * Seats a station in a headless game through the real MCP station sandbox, so a brain trained here
  * reads the same panels and presses the same buttons as one seated in a live game. Writes go
  * through the same JSON-pointer handler and typed commands the ship and space rooms apply.
@@ -87,7 +81,7 @@ export function headlessStation(game: HeadlessGame, shipId: string, station: str
     const radar = new RadarView(game.spaceManager.spatialIndex, spaceState);
     return openStation(
         withMultiplexedStations(getStationsManifest(shipId)),
-        headlessOnlySeats[station] ?? station,
+        botSeatScreen(station),
         (seat, entry) => new StationSession(seat, entry, shipDriver, spaceDriver, { radar, wait: clock.wait }),
     );
 }

@@ -37,8 +37,9 @@ export type CommandBinding =
  * - `toggle`  — a boolean the caller sets outright.
  * - `number`  — a number, checked against the field's declared range before it is sent.
  * - `burst`   — a momentary press held for a while: `isFiring` on, then off. See `fireBurst`.
+ * - `id`      — the id of the thing the press acts on (a signals job), as a string.
  */
-export type ValueKind = 'trigger' | 'toggle' | 'number' | 'burst';
+export type ValueKind = 'trigger' | 'toggle' | 'number' | 'burst' | 'id';
 
 const waypointId = z.object({ id: z.string().describe('waypoint id') });
 
@@ -100,8 +101,8 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     beamDirection: { kind: 'beam', field: 'bearingCommand', value: 'number' },
     beamArc: { kind: 'beam', field: 'arc', value: 'number' },
     pauseJobs: { kind: 'fixed', pointer: '/signals/jobsPaused', value: 'toggle' },
-    prioritizeJob: { kind: 'fixed', pointer: '/signals/prioritizeJobId', value: 'trigger' },
-    cancelJob: { kind: 'fixed', pointer: '/signals/cancelJobId', value: 'trigger' },
+    prioritizeJob: { kind: 'fixed', pointer: '/signals/prioritizeJobId', value: 'id' },
+    cancelJob: { kind: 'fixed', pointer: '/signals/cancelJobId', value: 'id' },
 
     // --- dradis ---
     placeWaypoint: {

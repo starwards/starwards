@@ -13,7 +13,7 @@ export { crewChannel } from './crew/channel';
 export * from './crew/orders';
 export { energyDrawingSeats } from './crew/energy-consumers';
 export { ORDER_EXECUTORS, withOrderBoard } from './brain/order-executors';
-export { REFERENCE_BRAINS_DIR, type SeatPlan, referenceSeat, referenceSeatPlan } from './reference-crew';
+export { REFERENCE_BRAINS_DIR, type SeatPlan, botSeatScreen, referenceSeat, referenceSeatPlan } from './reference-crew';
 export { whatIfForecaster } from './whatif/forecast';
 export * from './session/session';
 export * from './session/console';

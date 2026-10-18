@@ -389,7 +389,7 @@ const BEAM_SLACK_DEGREES = 5;
 /**
  * Signals steers the scan beam onto the most threatening ship it has not scanned to FULL: the nearest,
  * since every hostile here closes to fight. Deep scans past BASIC need the beam on the contact. The
- * queue order is not the reference's to set while the brain cannot address a job (#2308).
+ * reference leaves the queue order to the signals automation.
  */
 function beamChoice(display: Display) {
     const beam = display.radar?.scanBeam;

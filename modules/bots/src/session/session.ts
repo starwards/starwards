@@ -279,6 +279,13 @@ export class StationSession {
                 this.shipDriver.sendJsonCmd(pointer, value);
                 return `${pointer} set to ${value}`;
             }
+            case 'id': {
+                if (typeof value !== 'string' || !value) {
+                    throw new InvalidCommandError(`${pointer} takes a job id`);
+                }
+                this.shipDriver.sendJsonCmd(pointer, value);
+                return `${pointer} set to ${value}`;
+            }
             case 'number': {
                 if (typeof value !== 'number') {
                     throw new InvalidCommandError(`${pointer} takes a number value`);

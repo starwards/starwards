@@ -15,6 +15,18 @@ export type SeatPlan = { station: string; spec: BrainSpec; policy: Policy };
 
 const referenceBrains: Record<string, unknown> = { helms, weapons, engineer, signals, tactical, captain };
 
+/**
+ * Seats only a bot takes, by the screen each one reads. The captain reads the whole fleet picture on
+ * the dradis and gives orders by radio; none of the dradis's waypoint commands is a button a brain
+ * presses, so the seat has no controls.
+ */
+const botSeatScreens: Readonly<Record<string, string>> = { captain: 'dradis' };
+
+/** The station console a bot seat of `station` opens. */
+export function botSeatScreen(station: string) {
+    return botSeatScreens[station] ?? station;
+}
+
 /** Where the reference brain files live, for crew files that name them by path. */
 export const REFERENCE_BRAINS_DIR = `${__dirname}/brains`;
 

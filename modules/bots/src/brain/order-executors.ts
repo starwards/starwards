@@ -1,19 +1,29 @@
 import { Answer, Policy } from './brain';
-import { DOCKING_MODE, RETREAT_RUN_METERS, ShownOrder, ordersBinding, readOrders } from '../crew/orders';
+import {
+    DOCKING_MODE,
+    ORDER_KINDS,
+    RETREAT_RUN_METERS,
+    ShownOrder,
+    ordersBinding,
+    readOrders,
+    whereIs,
+} from '../crew/orders';
 
 import { Control } from './controls';
 
 type XY = { x: number; y: number };
 type Contact = {
+    id?: string;
     name?: string;
     distance: number;
     bearing: number;
     position?: XY;
     radius?: number;
     type?: string;
+    faction?: number;
     scanLevel?: string;
 };
-type Radar = { ownShip?: { heading?: number; position?: XY }; contacts?: Contact[] };
+type Radar = { ownShip?: { heading?: number; position?: XY; faction?: number }; contacts?: Contact[] };
 type Display = { panels: Record<string, unknown>; radar?: Radar };
 type Helms = {
     rotationMode?: number;
@@ -33,10 +43,10 @@ type Context = {
 };
 
 /**
- * How one seat carries out one order kind: the commands whose controls it may decide (`constrains`)
- * and, at each decision, its choice for some of them. Where two orders in force propose different
- * choices for one control, the order in the higher-ranked slot decides it; every other control of the
- * lower order still goes its way. The trade-off is therefore per control and readable from `constrains`.
+ * How one seat carries out one order kind (or stance): the commands whose controls it may decide
+ * (`constrains`) and, at each decision, its choice for some of them. Where two orders in force propose
+ * different choices for one control, the order in the higher-ranked slot decides it; every other
+ * control of the lower order still goes its way. The trade-off is per control and readable from `constrains`.
  */
 type OrderExecutor = {
     constrains: readonly string[];
@@ -53,11 +63,16 @@ const PATROL_STANDOFF_METERS = 1_500;
 const PATROL_SWEEP_METERS = 2_000;
 /** Chase hands over to the seat's own parking rules inside this range of a target it sees. */
 const CHASE_HANDOVER_METERS = 1_500;
-/** Preserve energy: the chain gun fires only inside this range, and thrust stays under this share. */
+/** Preserve energy and preserve ammo: fire only inside this range; thrust stays under this share. */
 const THRIFTY_FIRE_METERS = 3_000;
 const THRIFTY_THRUST = 0.5;
 const THRIFTY_POWER = 0.5;
+/** Defensive: the chain gun fires only inside this range (its fuse reaches 8 km). */
+const DEFENSIVE_FIRE_METERS = 4_000;
+/** Take opportunities: switch the lock to an enemy this much nearer than the locked one. */
+const OPPORTUNITY_METERS = 2_000;
 const VELOCITY = 1;
+const TARGET_MODE = 2;
 /** The largest rotation key setting an executor turns at. */
 const TURN_RATE = 0.4;
 const MAX_SPEED = 450;
@@ -72,8 +87,59 @@ const heading = (d: Display) => d.radar?.ownShip?.heading ?? 0;
 const docking = (d: Display) => (d.panels['docking-status'] as { mode?: number } | undefined)?.mode;
 const seen = (d: Display, name: string | undefined) =>
     name === undefined ? undefined : d.radar?.contacts?.find((c) => c.name === name);
+/** Where an order's reference is for this seat, read frozen or live as its kind declares. */
+const where = (d: Display, order: ShownOrder, ref: 'target' | 'station') =>
+    whereIs(d, order.params[ref], ORDER_KINDS[order.kind]?.reference?.mode ?? 'frozen');
+const lockOf = (d: Display) => {
+    const id = (d.panels['targeting-status'] as { targetId?: string } | undefined)?.targetId;
+    return d.radar?.contacts?.find((c) => c.id === id);
+};
+/** The nearest ship the radar shows as another faction's. */
+const nearestEnemy = (d: Display) => {
+    const faction = d.radar?.ownShip?.faction;
+    return (d.radar?.contacts ?? [])
+        .filter((c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== faction)
+        .sort((a, b) => a.distance - b.distance)[0];
+};
+/** Holds the named fire controls while the locked target is beyond `meters`. */
+function holdFireBeyond(
+    display: Display,
+    controls: readonly Control[],
+    meters: number,
+    commands: readonly string[] = ['fireChainGun', 'fireTube'],
+) {
+    const lock = lockOf(display);
+    return lock && lock.distance <= meters
+        ? {}
+        : Object.fromEntries(controls.filter((c) => commands.includes(c.command)).map((c) => [c.id, 'hold_fire']));
+}
+/** Raises every `systemPower` control of systems matching `pattern` toward `goal`. */
+function powerUp(display: Display, controls: readonly Control[], pattern: RegExp, goal = 1) {
+    const systems = (display.panels['full-systems-status'] ?? []) as unknown as SystemStatus[];
+    return Object.fromEntries(
+        controls
+            .filter((c) => c.command === 'systemPower' && pattern.test(c.id.slice('systemPower:'.length)))
+            .flatMap((c) => {
+                const power = systems.find((s) => s.pointer === c.id.slice('systemPower:'.length))?.power;
+                return power === undefined ? [] : [[c.id, power < goal - 0.01 ? 'raise' : 'hold']];
+            }),
+    );
+}
+/** Afterburner on while the nearest enemy is far and on the nose: a stance that closes fast. */
+function burnAtEnemy(display: Display): Record<string, string> {
+    const enemy = nearestEnemy(display);
+    return enemy && enemy.distance > PURSUIT_METERS && Math.abs(delta(enemy.bearing, heading(display))) < 15
+        ? { afterBurner: 'engage' }
+        : {};
+}
+/** A rotation key choice that eases the turn rate toward the bearing `off` degrees off the nose. */
+function turnToward(helms: Helms, off: number) {
+    const turn = Number(helms.rotationCommand ?? 0);
+    const goal = Math.max(-TURN_RATE, Math.min(TURN_RATE, (off / 60) * TURN_RATE));
+    return turn < goal - 0.025 ? 'right' : turn > goal + 0.025 ? 'left' : 'hold';
+}
 
-/** Helm choices that fly the ship to `spot` (world) and stop there; `still` holds it where it is. */
+/** Helm choices that fly the ship to `spot` (world) and stop there; no spot holds it where it is. */
 function flyHelm(display: Display, spot: XY | undefined, { afterburner = true, antiDrift = false } = {}) {
     const helms = display.panels['helms-stats'] as Helms | undefined;
     if (!helms) return {};
@@ -84,9 +150,7 @@ function flyHelm(display: Display, spot: XY | undefined, { afterburner = true, a
     };
     const off = spot ? delta(bearingTo(at, spot), heading(display)) : 0;
     // the rotation key sets a turn rate: ease it toward a rate proportional to the bearing error, or the ship spins past
-    const turn = Number(helms.rotationCommand ?? 0);
-    const goal = spot ? Math.max(-TURN_RATE, Math.min(TURN_RATE, (off / 60) * TURN_RATE)) : 0;
-    choice.rotation = !spot ? 'centre' : turn < goal - 0.025 ? 'right' : turn > goal + 0.025 ? 'left' : 'hold';
+    choice.rotation = spot ? turnToward(helms, off) : 'centre';
     const wanted = spot ? flyTo(at, spot, heading(display)) : { x: 0, y: 0 };
     for (const [command, axis, up, down] of [
         ['boost', 'x', 'forward', 'back'],
@@ -119,8 +183,8 @@ const helmsExecutors: Record<string, OrderExecutor> = {
         constrains: [...HELM, 'dock'],
         propose(order, { display }) {
             const mode = docking(display);
-            // docking or docked, the autopilot and the clamp hold the ship
-            if (mode === DOCKING_MODE.DOCKING || mode === DOCKING_MODE.DOCKED) {
+            // docking or docked, the autopilot and the clamp hold the ship until the captain orders it off
+            if (order.status === 'complete' || mode === DOCKING_MODE.DOCKING || mode === DOCKING_MODE.DOCKED) {
                 return { dock: 'wait', antiDrift: 'release', afterBurner: 'release', rotation: 'centre' };
             }
             const target = dockSpot(display, order);
@@ -131,10 +195,14 @@ const helmsExecutors: Record<string, OrderExecutor> = {
             };
         },
     },
+    undock: {
+        constrains: ['dock'],
+        propose: (_order, { display }) => ({ dock: docking(display) === DOCKING_MODE.DOCKED ? 'press' : 'wait' }),
+    },
     retreat: {
         constrains: HELM,
         propose(order, { display }) {
-            const from = order.params.target?.position;
+            const from = where(display, order, 'target');
             if (!from) return {};
             const away = sub(own(display), from);
             return flyHelm(display, add(from, scale(away, RETREAT_RUN_METERS / Math.max(length(away), 1))));
@@ -146,7 +214,8 @@ const helmsExecutors: Record<string, OrderExecutor> = {
         propose(order, { display, memory }) {
             const region = order.params.region;
             if (!region?.position) return {};
-            const from = region.from ?? own(display);
+            // the body is fixed; the side to hide on follows the threat as this seat sees it
+            const from = whereIs(display, region.from, 'live') ?? own(display);
             const back = sub(region.position, from);
             const unit = scale(back, 1 / Math.max(length(back), 1));
             const behind = add(region.position, scale(unit, (region.radius ?? 0) + PATROL_STANDOFF_METERS));
@@ -162,8 +231,18 @@ const helmsExecutors: Record<string, OrderExecutor> = {
         propose(order, { display }) {
             const contact = seen(display, order.params.target?.name);
             if (contact && contact.distance < CHASE_HANDOVER_METERS) return {};
-            const spot = contact?.position ?? order.params.target?.position;
+            const spot = where(display, order, 'target');
             return spot ? flyHelm(display, spot) : {};
+        },
+    },
+    engage: {
+        // the gun is bolted to the nose: an engagement turns the ship onto its target, unless the smart pilot already holds it there
+        constrains: ['rotation'],
+        propose(order, { display }) {
+            const helms = display.panels['helms-stats'] as Helms | undefined;
+            const contact = seen(display, order.params.target?.name);
+            if (!helms || !contact || helms.rotationMode === TARGET_MODE) return {};
+            return { rotation: turnToward(helms, delta(contact.bearing, heading(display))) };
         },
     },
     preserve_energy: {
@@ -187,37 +266,66 @@ const helmsExecutors: Record<string, OrderExecutor> = {
             return choice;
         },
     },
+    defensive: { constrains: ['afterBurner'], propose: () => ({ afterBurner: 'release' }) },
+    all_out: { constrains: ['afterBurner'], propose: (_o, { display }) => burnAtEnemy(display) },
+    chase: { constrains: ['afterBurner'], propose: (_o, { display }) => burnAtEnemy(display) },
+};
+
+/** Weapons cycles its lock until it holds the order's named ship, while its radar shows it. */
+const lockNamed: OrderExecutor = {
+    constrains: ['target'],
+    propose(order, { display }) {
+        const wanted = order.params.target?.name;
+        return wanted && seen(display, wanted) && lockOf(display)?.name !== wanted ? { target: 'next' } : {};
+    },
 };
 
 const weaponsExecutors: Record<string, OrderExecutor> = {
-    chase_target: {
-        constrains: ['target'],
-        propose(order, { display }) {
-            const locked = (display.panels['targeting-status'] as { targetId?: string } | undefined)?.targetId;
-            const lock = display.radar?.contacts?.find((c) => (c as { id?: string }).id === locked);
-            const wanted = order.params.target?.name;
-            return wanted && seen(display, wanted) && lock?.name !== wanted ? { target: 'next' } : {};
-        },
+    chase_target: lockNamed,
+    engage: lockNamed,
+    hold_fire: {
+        constrains: ['fireChainGun', 'fireTube', 'tubeSafety'],
+        propose: (_o, { controls }) =>
+            Object.fromEntries(
+                controls.flatMap((c) =>
+                    c.command === 'tubeSafety'
+                        ? [[c.id, 'on']]
+                        : c.command === 'fireChainGun' || c.command === 'fireTube'
+                          ? [[c.id, 'hold_fire']]
+                          : [],
+                ),
+            ),
     },
     preserve_energy: {
         constrains: ['fireChainGun'],
-        propose(_order, { display, controls }) {
-            const locked = (display.panels['targeting-status'] as { targetId?: string } | undefined)?.targetId;
-            const lock = display.radar?.contacts?.find((c) => (c as { id?: string }).id === locked);
-            return lock && lock.distance <= THRIFTY_FIRE_METERS
-                ? {}
-                : Object.fromEntries(
-                      controls.filter((c) => c.command === 'fireChainGun').map((c) => [c.id, 'hold_fire']),
-                  );
+        propose: (_o, { display, controls }) =>
+            holdFireBeyond(display, controls, THRIFTY_FIRE_METERS, ['fireChainGun']),
+    },
+    defensive: {
+        constrains: ['fireChainGun'],
+        propose: (_o, { display, controls }) =>
+            holdFireBeyond(display, controls, DEFENSIVE_FIRE_METERS, ['fireChainGun']),
+    },
+    preserve_ammo: {
+        constrains: ['fireChainGun', 'fireTube'],
+        propose: (_o, { display, controls }) => holdFireBeyond(display, controls, THRIFTY_FIRE_METERS),
+    },
+    take_opportunities: {
+        constrains: ['target'],
+        propose(_o, { display }) {
+            const lock = lockOf(display);
+            const nearest = nearestEnemy(display);
+            return lock && nearest && nearest.distance < lock.distance - OPPORTUNITY_METERS ? { target: 'next' } : {};
         },
     },
 };
 
 const engineerExecutors: Record<string, OrderExecutor> = {
     dock_for_repair: {
-        constrains: ['cycleRepairPriority'],
-        propose(order, { display }) {
-            if (order.step !== 'docked') return {};
+        constrains: ['cycleRepairPriority', 'systemPower'],
+        propose(order, { display, controls }) {
+            // en route the thrusters get full power; docked, the docked-tier repairs run
+            if (order.status !== 'complete') return powerUp(display, controls, /^\/thrusters\//);
             const slots = (display.panels['repair-queue'] as { slots?: RepairSlot[] } | undefined)?.slots ?? [];
             const armor = display.panels['armor-status'] as
                 { numberOfPlates?: number; healthyPlates?: number } | undefined;
@@ -248,12 +356,20 @@ const engineerExecutors: Record<string, OrderExecutor> = {
             return choice;
         },
     },
+    offensive: {
+        constrains: ['systemPower'],
+        propose: (_o, { display, controls }) => powerUp(display, controls, /^\/chainGuns\//),
+    },
+    all_out: {
+        constrains: ['systemPower'],
+        propose: (_o, { display, controls }) => powerUp(display, controls, /^\/(chainGuns|tubes|thrusters)\//),
+    },
 };
 
 const signalsExecutors: Record<string, OrderExecutor> = {
     preserve_energy: {
         constrains: ['pauseJobs'],
-        // the beam scans while any ship on the radar is unidentified, and rests once every one is
+        // the beam scans while any ship-sized contact is unidentified, and rests once every one is
         propose: (_order, { display }) =>
             (display.radar?.contacts ?? []).some((c) => c.scanLevel === 'UFO' && (c.radius ?? 0) >= 5)
                 ? {}
@@ -261,7 +377,7 @@ const signalsExecutors: Record<string, OrderExecutor> = {
     },
 };
 
-/** Each seat's executor per order kind. A kind a seat has no executor for leaves that seat to its policy. */
+/** Each seat's executor per order kind (stances included). A kind a seat has no executor for leaves that seat to its policy. */
 export const ORDER_EXECUTORS: Record<string, Record<string, OrderExecutor>> = {
     helms: helmsExecutors,
     weapons: weaponsExecutors,
@@ -270,10 +386,9 @@ export const ORDER_EXECUTORS: Record<string, Record<string, OrderExecutor>> = {
 };
 
 /**
- * Carries out the order board on top of a seat's policy. Each active order that binds `station`
- * proposes choices for the controls its executor constrains; per control, the order in the highest
- * ranked slot decides, and a control no order proposes keeps the policy's answer. A ship docked with no
- * dock order in force casts off.
+ * Carries out the order board on top of a seat's policy. Each order that binds `station` proposes
+ * choices for the controls its executor constrains; per control, the order in the highest-ranked slot
+ * decides (the ranking is the active stance's), and a control no order proposes keeps the policy's answer.
  */
 export function withOrderBoard(policy: Policy, station: string): Policy {
     const executors = ORDER_EXECUTORS[station] ?? {};
@@ -283,10 +398,13 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
         async answer(request, controls, shown, heard) {
             const result = await policy.answer(request, controls, shown, heard);
             const display = shown as Display;
-            const board = readOrders(display);
+            const board = readOrders(shown);
             const answers: Record<string, Answer> = { ...result.answers };
             const decided = new Set<string>();
-            const take = (proposal: Partial<Record<string, string>>) => {
+            for (const order of ordersBinding(board, station)) {
+                const executor = executors[order.kind];
+                if (!executor) continue;
+                const proposal = executor.propose(order, { display, controls, base: result.answers, memory });
                 for (const control of controls) {
                     const choice = proposal[control.id];
                     if (!decided.has(control.id) && choice !== undefined && choice in control.options) {
@@ -294,14 +412,6 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
                         decided.add(control.id);
                     }
                 }
-            };
-            for (const order of ordersBinding(board, station)) {
-                const executor = executors[order.kind];
-                if (executor) take(executor.propose(order, { display, controls, base: result.answers, memory }));
-            }
-            const docked = station === 'helms' && docking(display) === DOCKING_MODE.DOCKED;
-            if (docked && !board.orders.some((o) => o.kind === 'dock_for_repair' && o.status === 'active')) {
-                take({ dock: 'press' });
             }
             return { ...result, answers };
         },

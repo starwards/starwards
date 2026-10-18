@@ -2,11 +2,18 @@ import { BotBrain, BotStatus, BridgeSeat, Driver, RecordingEventLine, bridgeSeat
 import {
     ButtonBrain,
     Capabilities,
+    Display,
+    ORDERS_PANEL,
     SeatPlan,
     StationSession,
+    botSeatScreen,
     buttonBrain,
     crewChannel,
+    crewOrders,
+    energyDrawingSeats,
     observeStation,
+    orderFromCallout,
+    ordersBoard,
     referenceSeatPlan,
 } from '@starwards/bots';
 import { liveShipContext, liveStation } from './live-station';
@@ -60,6 +67,14 @@ export async function shipCrew(options: ShipCrewOptions) {
     const admin = await options.driver.getAdminDriver();
     const seats = new Map<BridgeSeat, Seat>();
     const channel = crewChannel();
+    /** Seat → the console commands it offers, for binding an order to preserve energy. */
+    const seatCommands = new Map<string, string[]>();
+    /**
+     * The ship's order board: kept here, beside the crew channel, for the seats of this ship only. It
+     * is crew state, not game state, so it is never synced and no client sees it.
+     */
+    const orders = crewOrders(() => energyDrawingSeats(Object.fromEntries(seatCommands)));
+    let ordersRecorded = 0;
     let recording = false;
     let stopped = false;
     let seconds = 0;
@@ -76,8 +91,17 @@ export async function shipCrew(options: ShipCrewOptions) {
     async function decide(key: BridgeSeat, seat: Seat) {
         const { station } = seat.plan;
         const observed = observeStation(seat.session, { radarLimit: RADAR_CONTACT_LIMIT });
-        const display = { panels: observed.panels, radar: observed.radar };
+        const shown: Display = { panels: observed.panels, radar: observed.radar };
         const capabilities = observed.capabilities as unknown as Capabilities;
+        seatCommands.set(
+            station,
+            capabilities.commands.map((c) => c.command),
+        );
+        orders.advance({ station, display: shown, seconds });
+        // the board shows once the first order is given, so a crew without a captain reads as it always did
+        const display: Display = orders.version
+            ? { ...shown, panels: { ...shown.panels, [ORDERS_PANEL]: ordersBoard(orders.state, seconds) } }
+            : shown;
         const heard = channel.heard(station, seconds);
         const result = await seat.brain.decide(display, capabilities, heard);
         if (seats.get(key) !== seat) {
@@ -96,6 +120,14 @@ export async function shipCrew(options: ShipCrewOptions) {
             const delivered = channel.say(said.seat ?? station, said, seconds);
             const seatTag = said.seat === undefined ? {} : { seat: said.seat };
             emit('callout', { station, ...seatTag, callout: said.callout, phrase: said.phrase, delivered });
+            const own = (display.radar as { ownShip?: { position?: { x: number; y: number } } } | undefined)?.ownShip;
+            const order =
+                (said.seat ?? station) === 'captain' && orderFromCallout(said.callout, said.values, own?.position);
+            if (order) orders.give(order, 'captain', seconds);
+        }
+        if (orders.version !== ordersRecorded) {
+            ordersRecorded = orders.version;
+            emit('orders', ordersBoard(orders.state, seconds));
         }
         for (const d of result.decisions) {
             const seatTag = d.seat === undefined ? {} : { seat: d.seat };
@@ -161,7 +193,7 @@ export async function shipCrew(options: ShipCrewOptions) {
                 botId,
                 plan,
                 brain: buttonBrain(plan.spec, plan.policy),
-                session: liveStation(ctx, plan.station),
+                session: liveStation(ctx, botSeatScreen(plan.station)),
                 nextDecisionAt: seconds,
                 busy: false,
                 running: false,
@@ -184,6 +216,7 @@ export async function shipCrew(options: ShipCrewOptions) {
         const s = seats.get(seat);
         if (!s) return removals.get(seat) ?? Promise.resolve();
         seats.delete(seat);
+        seatCommands.delete(s.plan.station);
         s.session.release();
         const earlier = removals.get(seat);
         const removal = (async () => {
@@ -213,6 +246,10 @@ export async function shipCrew(options: ShipCrewOptions) {
         addSeat,
         removeSeat,
         setRecording: (on: boolean) => void (recording = on),
+        /** The ship's order board. */
+        get orders() {
+            return orders.state;
+        },
         get seatCount() {
             return seats.size;
         },

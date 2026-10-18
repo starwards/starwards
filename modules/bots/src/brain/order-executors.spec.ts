@@ -21,11 +21,10 @@ const helmsCapabilities: Capabilities = {
 
 type Seen = { name: string; distance: number; bearing: number; radius: number };
 
-/** A board holding `orders`, ranked by `ranking` when given. */
-function board(orders: GivenOrder[], ranking?: string[]) {
+/** A board holding `orders`, given in order. */
+function board(orders: GivenOrder[]) {
     const state = crewOrders(['helms', 'weapons', 'engineer']);
     for (const o of orders) state.give(o, 'captain', 0);
-    if (ranking) state.give({ kind: 'prioritize', params: { ranking: ranking as never } }, 'captain', 0);
     return ordersBoard(state.state, 1);
 }
 
@@ -107,28 +106,38 @@ describe('reference seats under the order board', () => {
         expect(docking.antiDrift).toBe('release');
     });
 
-    it('casts off once docked with no dock order in force', async () => {
-        const c = await choices(
-            withOrderBoard(idleTestPolicy, 'helms'),
-            helmsDisplay(board([]), [], { dockingMode: DOCKING_MODE.DOCKED }),
-        );
-        expect(c.dock).toBe('press');
+    it('stays docked once the dock order is complete, and casts off only on the order to undock', async () => {
+        const policy = withOrderBoard(idleTestPolicy, 'helms');
+        const docked = { dockingMode: DOCKING_MODE.DOCKED };
+        expect((await choices(policy, helmsDisplay(board([]), [], docked))).dock).toBe('wait');
+        const state = crewOrders();
+        state.give(dock, 'captain', 0);
+        state.advance({ station: 'helms', display: helmsDisplay(board([]), [], docked), seconds: 5 });
+        expect(state.state.slots.navigation?.status).toBe('complete');
+        expect((await choices(policy, helmsDisplay(ordersBoard(state.state, 6), [], docked))).dock).toBe('wait');
+        expect((await choices(policy, helmsDisplay(board([{ kind: 'undock' }]), [], docked))).dock).toBe('press');
     });
 
-    it('chase target vs preserve energy: the higher slot decides the afterburner, the chase still steers', async () => {
+    it('chase target vs preserve energy: the stance`s ranking decides the afterburner, the chase still steers', async () => {
         const policy = withOrderBoard(idleTestPolicy, 'helms');
-        const energyFirst = await choices(
-            policy,
-            helmsDisplay(board([chase, { kind: 'preserve_energy' }], ['energy', 'maneuver'])),
-        );
+        const energyFirst = await choices(policy, helmsDisplay(board([chase, { kind: 'preserve_energy' }])));
         expect(energyFirst.afterBurner).toBe('release');
         expect(energyFirst.boost).toBe('forward');
         const chaseFirst = await choices(
             policy,
-            helmsDisplay(board([chase, { kind: 'preserve_energy' }], ['maneuver', 'energy']), [], { boost: 0.8 }),
+            helmsDisplay(board([chase, { kind: 'preserve_energy' }, { kind: 'chase' }]), [], { boost: 0.8 }),
         );
         expect(chaseFirst.afterBurner).toBe('engage');
         expect(chaseFirst.boost).toBe('forward');
+    });
+
+    it('an engagement turns the nose onto its target', async () => {
+        const raider: Seen = { name: 'raider', distance: 3_000, bearing: 90, radius: 20 };
+        const c = await choices(
+            withOrderBoard(idleTestPolicy, 'helms'),
+            helmsDisplay(board([{ kind: 'engage', params: { target: { name: 'raider' } } }]), [raider]),
+        );
+        expect(c.rotation).toBe('right');
     });
 
     it('preserve energy caps thrust where no higher order wants it', async () => {

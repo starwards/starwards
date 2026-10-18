@@ -55,7 +55,7 @@ type Pending = {
     control: string;
     /** The member seat of a multiplexed station that this press is for. */
     member?: string;
-    press: { command: string; args: Record<string, unknown>; value?: number | boolean };
+    press: { command: string; args: Record<string, unknown>; value?: number | boolean | string };
 };
 
 /**

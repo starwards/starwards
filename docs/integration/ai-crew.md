@@ -55,7 +55,7 @@ the console has it picks one of the buttons that control physically offers:
 
 Per-gun, per-tube and per-system controls are expanded (`fireChainGun:0`, `tubeSafety:1`, `systemPower:/reactor`); a tube fires only with its safety switched off. The whole
 catalogue, one entry per station command, is [`catalogue.ts`](../../modules/bots/src/brain/catalogue.ts);
-commands left out carry their reason there (signals job commands send no job id; waypoint commands are not buttons).
+commands left out carry their reason there (waypoint commands take free-form positions, not button presses). Every other station command is a button, tube firing and the signals job keys (one per job, sending its id) included.
 
 All of a decision's questions go to [Jev](https://docs.typesafe.ai) in one request: `state` is the
 display, plus the brain's `role` and `mission`; each control is one choice question. Code turns the
@@ -300,43 +300,80 @@ captain also kills 16/16, median 221 s (it locks the faction-visible target, fli
 ### Order board: orders as persistent state
 
 The captain's orders are state, not radio: [`crew/orders.ts`](../../modules/bots/src/crew/orders.ts)
-keeps one order per **slot** for a whole crew run, each with its kind, parameters (a target, a
-station, a region, a range, a threshold, resolved to world positions when given), issuer, issue
-time, the seats it binds, and progress. A new order replaces only the order in its own slot; an
-order stays until replaced, completed or its slot revoked. The radio's hearing window and repeat
-suppression play no part.
+keeps one order per **slot** for a whole crew run. Each order has a kind, parameters (a target, a
+station, a region, a range, a threshold), an issuer, an issue time, the seats it binds, a status
+(`active`, `complete`, `aborted`) and its progress. An order stays in force until one of these happens:
 
-| Slot | Kinds (data in `ORDER_KINDS`) | Binds |
+- another order in its slot replaces it;
+- it completes;
+- it is aborted, with the reason on the board;
+- its slot is revoked;
+- an order it **contradicts** is given.
+
+Contradictory orders cancel each other and the latest stands, whatever their slots: `engage` /
+`hold_fire`, `chase_target` / `retreat`, `hold_position` / `close_to`, `preserve_energy` / the `all_out`
+stance. The radio's hearing window and repeat suppression play no part.
+
+| Slot | Kinds (data in `ORDER_KINDS`) | Binds | Reference read as |
+| --- | --- | --- | --- |
+| `navigation` | `dock_for_repair` (en route, docking; **complete once docked**: the ship stays docked and repairs), `undock` (complete once clear; casting off is its own order), `patrol` (behind a nebula, away from the threat), `retreat` (complete 10 km clear), `hold_position` | helms; engineer for docking | dock: frozen (stations do not move); patrol: nebula frozen, threat live (the side to hide on turns with the enemy); retreat: live (run from where the enemy is now) |
+| `maneuver` | `close_to`, `hold_here`, `chase_target` (aborted when weapons loses the target) | helms; weapons for chase | `close_to` frozen (the call names a dradis point; the captain calls again with fresh numbers); chase live (the order is about the ship, not its old spot) |
+| `stance` | `defensive`, `offensive`, `all_out`, `chase`, `take_opportunities`, `preserve_ammo` | every seat | none |
+| `energy` | `preserve_energy` | every seat whose commands spend energy, derived from the hull design's `energyCost…` fields ([`crew/energy-consumers.ts`](../../modules/bots/src/crew/energy-consumers.ts)): helms, weapons, engineer, signals on the gravitas | none |
+| `engagement` | `engage` (aborted when weapons loses the target), `hold_fire` | weapons, engineer, and helms's rotation (the gun is bolted to the nose) | engage: live |
+| `repair` | `dock_below_armor` (starts `dock_for_repair` once armor falls below its share) | helms, engineer | frozen |
+| `sensors` | none yet | | |
+
+`revoke` empties one slot (`push_on` revokes `navigation`).
+
+**Priorities are stances.** Each stance sets the slot ranking and has its own button-level rules:
+
+| Stance | Slots first | Button-level rules |
 | --- | --- | --- |
-| `navigation` | `dock_for_repair` (composite: en route, docking, docked, complete after `DOCK_DWELL_SECONDS` docked), `patrol` (behind a nebula, away from the enemy), `retreat` (complete 10 km clear), `hold_position` | helms (and engineer for docking) |
-| `maneuver` | `close_to`, `hold_here`, `chase_target` | helms (and weapons for chase) |
-| `stance` | none yet | |
-| `energy` | `preserve_energy` | every seat whose commands spend energy, derived from the hull design's `energyCost…` fields ([`crew/energy-consumers.ts`](../../modules/bots/src/crew/energy-consumers.ts)): helms, weapons, engineer, signals on the gravitas |
-| `engagement` | `engage` | weapons, engineer |
-| `repair` | `dock_below_armor` (starts `dock_for_repair` once armor falls below its share) | helms, engineer |
-| `sensors` | none yet | |
+| none | `repair > navigation > engagement > energy > maneuver > stance > sensors` | none |
+| `defensive` | repair, navigation, energy | no afterburner; the gun only inside 4 km |
+| `offensive` | engagement, maneuver, navigation | guns at full power |
+| `all_out` | engagement, maneuver | guns, tubes and thrusters at full power; afterburner onto the enemy |
+| `chase` | maneuver, engagement | afterburner onto the enemy |
+| `take_opportunities` | engagement, navigation | weapons switches its lock to an enemy 2 km nearer than its target |
+| `preserve_ammo` | repair, navigation, energy | guns and missiles only inside 3 km |
 
-`revoke` empties one slot (`push_on` revokes `navigation`); `prioritize` reranks the slots. The
-**ranking** is part of the state (default `repair > navigation > engagement > energy > maneuver >
-stance > sensors`). Conflicts resolve per control: each seat's executor
+Conflicts resolve per control. Each seat's executor
 ([`brain/order-executors.ts`](../../modules/bots/src/brain/order-executors.ts)) declares the commands
-it constrains and proposes choices for them; the order in the higher slot decides a control both
-propose, and the lower order still decides every other control. Under the default ranking, `chase_target`
-with `preserve_energy` steers and thrusts toward the target without the afterburner; with
-`maneuver` raised above `energy` it burns the afterburner too.
+it constrains and proposes choices for them. Where two orders propose for one control, the order in
+the higher slot decides it; the lower order still decides every other control.
 
-The headless crew updates the board from the captain's order callouts (`orderFromCallout`), advances
-composite orders from the seats' displays, records an `orders` event on every change, and shows
-the board to every seat as the `orders` panel once the first order is given. The verbal view reads it
-as `Standing orders: navigation: dock at dock for armor repairs (en route, 2.1 km), from the captain
-12 s ago; ….` and `Priorities: repair > navigation > ….` Reference seats wrap their policy in
-`withOrderBoard`; a ship docked with no dock order in force casts off. The reference helms'
-`close_to` / `hold_here` and weapons' `engage` still come from what they hear
+- With no stance, `chase_target` with `preserve_energy` steers and thrusts toward the target without
+  the afterburner; under the `chase` stance it burns the afterburner too.
+- A standing order's trigger (`dock_below_armor`) takes its target slot when idle, or from an order its
+  own slot outranks: a patrol yields to it with no stance, not under `offensive`.
+- A dock order powers the thrusters up en route and runs the docked repairs once docked.
+
+The headless crew:
+
+- updates the board from the captain's order callouts (`orderFromCallout`);
+- advances orders from the seats' displays;
+- records an `orders` event on every change;
+- shows the board to every seat as the `orders` panel once the first order is given.
+
+The verbal view reads it as `Standing orders: navigation: dock at dock for armor repairs (en route,
+2.1 km), from the captain 12 s ago; ….` and `Priorities: repair > navigation > ….`
+
+Reference seats wrap their policy in `withOrderBoard`. The reference helms' `close_to` / `hold_here`
+and weapons' `engage` still come from what they hear
 ([`brain/reference-orders.ts`](../../modules/bots/src/brain/reference-orders.ts));
 `captainOrdersFromBoard` reads the same shape from the board. The captain brain that can say every
-kind is [`brains/captain-orders.v1.json`](../../modules/ai/brains/captain-orders.v1.json); the
-reference captain still says only `close_to`, `engage` and `hold_here`. The live server crew does not
-keep a board yet.
+kind is [`brains/captain-orders.v1.json`](../../modules/ai/brains/captain-orders.v1.json). The
+reference captain still says only `close_to`, `engage` and `hold_here`.
+
+**Live games.** The GM can seat a `captain` bot: a bot-only roster seat, like `tactical`, that reads
+the dradis. The ship's crew worker ([`server/src/bots/ship-crew.ts`](../../modules/server/src/bots/ship-crew.ts))
+keeps the ship's board beside its crew channel, with the same model and executors as the headless
+crew, and every bot seat on that ship reads it. The board lives in the worker, not in a synced
+field: it is crew state, no client needs it, and with nothing synced there is no fog-of-war rule to
+keep. Showing the board to human players, or letting a human captain set it, is not built. It would
+need a widget, plus either a ship-room field (then subject to the scan-level rule) or a server
+endpoint.
 
 ### Tactical: one brain for helms and weapons
 
@@ -437,6 +474,45 @@ Helms brain versions so far, T0 seeds 1–4, 120 s:
 
 `--latency` delays every press by simulated seconds, as a network would; held triggers end on
 simulated time.
+
+## Branching: what if the crew had decided otherwise
+
+Owner's idea: keep a corpus of recordings and decision logs, go back to key decision points and try
+other decisions, at every level from one button to the captain's mission priorities. The harness is
+deterministic (same crew, same seed: the same run), so a branch **replays** a recorded run from its
+seed and diverges at its point; no snapshot is restored. Every branch fingerprints the crew's
+`decision` / `callout` / `command` / `orders` events before its point and checks them against the
+recording (`prefixMatches`).
+
+```bash
+cd modules/ai
+npm run branch -- points --recording <x.sgr> [--level strategic,tactical | --level button --station helms --control afterBurner [--reask-brain <brain.json>]]
+npm run branch -- fork --recording <x.sgr> --crew crews/<crew>.json --t <s> --level <level> --alt <id> [--timeout 400] [--window 30]
+npm run branch -- prove --crew crews/<crew>.json --scenario <rung> --seed <n> [--recording <x.sgr>]
+npm run branch -- corpus --runs <train out dir> --crew crews/<crew>.json --scenario <rung> [--levels strategic,tactical] [--budget 400] [--workers 8] --out <dir>
+npm run branch -- mine --corpus <dir>/branches.jsonl
+```
+
+A **decision level** ([`branching/levels.ts`](../../modules/ai/src/branching/levels.ts)) names its
+branch points in a recorded run and the alternatives at each; fork, corpus and mining are shared.
+
+| Level | Points | Alternatives (concrete at the point) | A branch |
+| --- | --- | --- | --- |
+| `strategic` | enemy first in sight, enemy appears or lost, armor below 75/50/25%, energy below 30/15% | `dock_for_repair@<station>`, `dock_below_armor@<station>`, `retreat@<enemy>`, `hold_position`, `patrol@<nebula>`, `preserve_energy`, `revoke:<slot>`, `stance:<stance>` | changes one slot of the order board at its point; the others keep their orders and the reference plays on under it. The branched captain does not call an order that contradicts its branch order, and orders the ship off a dock 60 s after docking |
+| `tactical` | every change of the captain's call, the enemy entering or leaving the missile band, an armor hit, an enemy appearing or lost (snapped to the captain's next decision) | the other calls the captain's brain can say (`close_to`, `engage`, `hold_here`, `chase_target`), and `engage@<enemy>` for each other enemy | the captain says it at every decision for `--window` s (30), then the reference captain resumes |
+| `button` | every decision where one seat control's choice flips (`decisions`) | that control's other options, and the choice of `--reask-brain` there (`reask`, conditioned on the order board and what the seat heard) | the seat presses it at that decision |
+
+The state summary of a point carries every active slot and the ranking (`orders`), what the seat
+heard (`heard`, button level), the nearest enemy, stations and nebulae on the dradis, armor, energy
+and docking. `corpus` plays branches round-robin over seeds and levels up to `--budget`, writes
+`branches.jsonl`, `corpus.md` (one row per branch) and `mine.md`: per level, alternative kind and
+state feature, the paired run value (branch − recorded run, the same pairing as `compare`), its 95% t
+interval, sign test and kills gained or lost; diverged branches are excluded.
+
+Corpus of 2026-10-18 (`captain-reference`, reference seats, $0; archive
+`training-archive/2026-10-18/branching/`):
+
+BRANCH_RESULTS
 
 ## Curriculum
 
@@ -570,9 +646,9 @@ those labels.
 Signals has no station score. The scan queue runs on its own: a contact rises a tier per 5 s in the
 ship's field of view from any radar, and the reference signals seat rests, so a scan label measures the
 queue, not the seat. It stays parked until the seat has levers to credit: the beam matters only beyond
-the omni radar's reach ([#2307](https://github.com/starwards/starwards/issues/2307)), brains cannot
-reorder the queue ([#2308](https://github.com/starwards/starwards/issues/2308)), and no signals callout
-carries a target or structured intel.
+the omni radar's reach ([#2307](https://github.com/starwards/starwards/issues/2307)), the reference
+signals seat leaves the queue order to its automation, and no signals callout carries a target or
+structured intel.
 
 The models are exported artefacts, `scoring/models/<version>.json` (feature list, dataset hash, metrics,
 parity fixture), trained by `modules/ai/ml` on the training archive; see
@@ -789,7 +865,7 @@ The module's scripts load that file; the key is never logged or recorded. Withou
 
 ## Limits
 
-- **Signals job commands are out**, until the station sandbox can pass a job id.
+- **Waypoint commands are out**: they take free-form positions, not button presses.
 - **Crew talk is fixed phrases only**: no free speech, no questions to a seat, no human on the channel.
 - **Confidence is uncalibrated** until thresholds are tuned on recorded runs; `minConfidence`
   defaults to 0.

@@ -22,6 +22,10 @@
             "fill": "engageOrder",
             "when": "orders weapons to lock the nearest enemy ship and launch missiles at it. Choose this when that enemy is inside missile range"
         },
+        "hold_fire": {
+            "say": "hold fire",
+            "when": "orders weapons to stop firing guns and missiles; cancels an engage order. Choose this to stop the ship shooting"
+        },
         "hold_here": {
             "say": "hold here",
             "when": "orders helms to stop the ship where it is. Choose this when the dradis shows no enemy ship"
@@ -38,7 +42,11 @@
         "dock_for_repair": {
             "say": "dock at {name} for armor repairs, {distance} km at bearing {bearing}",
             "fill": "dockOrder",
-            "when": "orders helms to fly to the nearest allied station and dock, and the engineer to run the docked repairs; the ship casts off once repaired. Choose this when the armor is badly damaged or the magazine runs low and a station is near"
+            "when": "orders helms to fly to the nearest allied station and dock, and the engineer to run the docked repairs; the order is done once docked, and the ship stays docked until you order it off. Choose this when the armor is badly damaged or the magazine runs low and a station is near"
+        },
+        "undock": {
+            "say": "cast off",
+            "when": "orders helms to undock. Choose this once the ship is repaired and restocked"
         },
         "dock_below_armor": {
             "say": "dock at {name} once armor falls below half",
@@ -62,6 +70,30 @@
         "push_on": {
             "say": "push on",
             "when": "revokes the docking, retreat, patrol or hold order: the ship fights under your maneuver orders again"
+        },
+        "defensive": {
+            "say": "defensive",
+            "when": "sets the stance: repairs and navigation before the fight, no afterburner, the gun only inside 4 km. Choose this when the ship is badly hurt"
+        },
+        "offensive": {
+            "say": "offensive",
+            "when": "sets the stance: the fight before navigation and repairs, the engineer gives the guns full power. Choose this when the enemy is weaker"
+        },
+        "all_out": {
+            "say": "all out",
+            "when": "sets the stance: everything into the fight, guns, tubes and thrusters at full power, afterburner onto the enemy; cancels an order to preserve energy. Choose this to finish a crippled enemy"
+        },
+        "chase": {
+            "say": "chase",
+            "when": "sets the stance: maneuvers before everything, afterburner onto the enemy. Choose this when the enemy runs"
+        },
+        "take_opportunities": {
+            "say": "take opportunities",
+            "when": "sets the stance: weapons switches its lock to any enemy much nearer than its target. Choose this with several enemies about"
+        },
+        "preserve_ammo": {
+            "say": "preserve ammo",
+            "when": "sets the stance: guns and missiles only inside 3 km. Choose this when the magazine runs low"
         }
     }
 }

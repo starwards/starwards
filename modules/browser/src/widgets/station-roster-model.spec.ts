@@ -22,6 +22,7 @@ describe('rosterModel', () => {
             ['engineer', true],
             ['sigint', true],
             ['tactical', false],
+            ['captain', false],
         ]);
     });
 
@@ -40,6 +41,7 @@ describe('rosterModel', () => {
             ['engineer', null],
             ['sigint', null],
             ['tactical', null],
+            ['captain', null],
         ]);
         expect(seatOf(withTactical, 'pilot')?.screens.map((s) => s.screen)).toEqual(['helms']);
         expect(seatOf(model([], { 'S1|weapons': bot }), 'tactical')?.botBlockedBy).toBe('weapons');
