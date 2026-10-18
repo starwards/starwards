@@ -31,18 +31,45 @@ describe('bundled training CLI', () => {
     });
     afterAll(() => rmDirRetrying(dir));
 
+    const opts = { cwd: moduleDir, stdio: 'ignore' as const };
+    const tsNode = (cli: string, args: string[]) =>
+        execFileSync(process.execPath, ['-r', 'ts-node/register/transpile-only', `src/cli/${cli}.ts`, ...args], opts);
+    const bundled = (cli: string, args: string[]) =>
+        execFileSync(process.execPath, [`dist/cli/${cli}.js`, ...args], opts);
+
     it('plays the same runs as the ts-node CLI', () => {
         const fromSource = path.join(dir, 'source');
         const fromBundle = path.join(dir, 'bundle');
-        const opts = { cwd: moduleDir, stdio: 'ignore' as const };
-        execFileSync(
-            process.execPath,
-            ['-r', 'ts-node/register/transpile-only', 'src/cli/train.ts', ...trainArgsCrew, '--out', fromSource],
-            opts,
-        );
-        execFileSync(process.execPath, ['dist/cli/train.js', ...trainArgsCrew, '--out', fromBundle], opts);
+        tsNode('train', [...trainArgsCrew, '--out', fromSource]);
+        bundled('train', [...trainArgsCrew, '--out', fromBundle]);
         const expected = outcome(fromSource);
         expect(expected.events.length).toBe(2);
         expect(outcome(fromBundle)).toEqual(expected);
+    });
+
+    it('branches the same corpus as the ts-node CLI', () => {
+        const runs = path.join(dir, 'source');
+        const corpus = (out: string) =>
+            fs.readFileSync(path.join(out, 'branches.jsonl'), 'utf8').split('\n').filter(Boolean).sort();
+        const args = (out: string) => [
+            'corpus',
+            '--runs',
+            runs,
+            '--crew',
+            'crews/captain-reference.json',
+            '--scenario',
+            'T3-directed',
+            '--budget',
+            '4',
+            '--workers',
+            '2',
+            '--out',
+            out,
+        ];
+        tsNode('branch', args(path.join(dir, 'corpus-source')));
+        bundled('branch', args(path.join(dir, 'corpus-bundle')));
+        const expected = corpus(path.join(dir, 'corpus-source'));
+        expect(expected.length).toBeGreaterThan(0);
+        expect(corpus(path.join(dir, 'corpus-bundle'))).toEqual(expected);
     });
 });
