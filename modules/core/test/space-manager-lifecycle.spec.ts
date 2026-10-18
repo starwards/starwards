@@ -1,7 +1,18 @@
-import { Asteroid, Explosion, Faction, Projectile, ScanLevel, SpaceManager, Spaceship, Vec2, XY } from '../src';
+import {
+    Asteroid,
+    Explosion,
+    Faction,
+    Projectile,
+    ScanLevel,
+    SpaceManager,
+    Spaceship,
+    Vec2,
+    XY,
+    applyRadarSectors,
+    setOmniRadarSector,
+} from '../src';
 
 import { expect } from 'chai';
-import { setOmniRadarSector } from '../src';
 
 // Behavior tests for SpaceManager command processing, object lifecycle,
 // freeze semantics, attachments, and the faction tracking registry.
@@ -345,29 +356,62 @@ describe('SpaceManager faction scan levels', () => {
 });
 
 describe('SpaceManager scan level demotion', () => {
+    /** scanner at the origin with a 5 km omni radar and a 10 km, 20-degree scan beam pointing east */
     function losSetup() {
         const spaceMgr = new SpaceManager();
         const scanner = makeShip('scanner', 0, 0, Faction.Gravitas);
-        setOmniRadarSector(scanner, 5000);
+        applyRadarSectors(scanner.radarSectors, [
+            { direction: 0, arc: 360, range: 5000 },
+            { direction: 0, arc: 20, range: 10_000, isScanBeam: true },
+        ]);
         const target = makeShip('target', 1000, 0, Faction.Raiders);
         spaceMgr.insertBulk([scanner, target]);
         spaceMgr.forceFlushEntities();
         return { spaceMgr, scanner, target };
     }
 
-    it('demotes FULL to SNAPSHOT and captures the timestamp when the target leaves line of sight', () => {
+    it('keeps FULL while the scan beam covers the target, even outside omni range', () => {
         const { spaceMgr, target } = losSetup();
         spaceMgr.factionIntel.setScanLevel('target', Faction.Gravitas, ScanLevel.FULL);
-        tick(spaceMgr, 1); // register the target as seen by the faction
+        target.position.x = 8000;
 
-        target.position.x = 1_000_000; // leaves line of sight (and radar range)
-        spaceMgr.update({ deltaSeconds: 1, deltaSecondsAvg: 1, totalSeconds: 42 });
+        tick(spaceMgr, 1);
+        tick(spaceMgr, 1);
+
+        expect(spaceMgr.factionIntel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+    });
+
+    it('demotes FULL to SNAPSHOT when only the omni radar sees the target, after the grace', () => {
+        const { spaceMgr, target } = losSetup();
+        spaceMgr.factionIntel.setScanLevel('target', Faction.Gravitas, ScanLevel.FULL);
+        tick(spaceMgr, 1);
+
+        target.position.x = 0;
+        target.position.y = 1000; // still inside the omni bubble, outside the beam's wedge
+        spaceMgr.update({ deltaSeconds: 0.4, deltaSecondsAvg: 0.4, totalSeconds: 41 });
+        expect(spaceMgr.factionIntel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+        spaceMgr.update({ deltaSeconds: 0.4, deltaSecondsAvg: 0.4, totalSeconds: 42 });
 
         expect(spaceMgr.factionIntel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
         expect(spaceMgr.factionIntel.getScanSnapshotCapturedAt('target', Faction.Gravitas)).to.equal(42);
     });
 
-    it('does not promote a target on its own — promotion is driven by signals scan jobs', () => {
+    it('keeps FULL under a wingman scan beam', () => {
+        const { spaceMgr, scanner } = losSetup();
+        applyRadarSectors(scanner.radarSectors, [{ direction: 0, arc: 360, range: 5000 }]);
+        const wingman = makeShip('wingman', 1000, 1000, Faction.Gravitas);
+        applyRadarSectors(wingman.radarSectors, [{ direction: 270, arc: 20, range: 5000, isScanBeam: true }]);
+        spaceMgr.insertBulk([wingman]);
+        spaceMgr.forceFlushEntities();
+        spaceMgr.factionIntel.setScanLevel('target', Faction.Gravitas, ScanLevel.FULL);
+
+        tick(spaceMgr, 1);
+        tick(spaceMgr, 1);
+
+        expect(spaceMgr.factionIntel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+    });
+
+    it('does not promote a target on its own -- promotion is driven by signals scan jobs', () => {
         const { spaceMgr } = losSetup();
         spaceMgr.factionIntel.setScanLevel('target', Faction.Gravitas, ScanLevel.BASIC);
 
@@ -375,7 +419,7 @@ describe('SpaceManager scan level demotion', () => {
         expect(spaceMgr.factionIntel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
     });
 
-    it('leaving line of sight below FULL does not change level or capture a snapshot', () => {
+    it('losing beam cover below FULL does not change level or capture a snapshot', () => {
         const { spaceMgr, target } = losSetup();
         spaceMgr.factionIntel.setScanLevel('target', Faction.Gravitas, ScanLevel.BASIC);
 

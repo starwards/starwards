@@ -20,6 +20,7 @@ import {
     moveToTarget,
     predictInterceptPoint,
     rotateToTarget,
+    sectorCovers,
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
@@ -363,7 +364,7 @@ export class SpaceManager implements Updateable {
         this.applyPhysics(deltaSeconds);
         // consume the fields-of-view as computed for this tick BEFORE marking them dirty below,
         // so the lazy FOV cache stays dirty for ship managers to recompute against fresh positions
-        this.factionIntel.update(totalSeconds, this.getVisibleObjectsByFaction());
+        this.factionIntel.update(totalSeconds, deltaSeconds, this.getScanBeamCoveredByFaction());
         this.updateFieldsOFView();
         this.updateCollisionBodies();
         if (deltaSeconds > 0) {
@@ -377,27 +378,36 @@ export class SpaceManager implements Updateable {
     }
 
     /**
-     * The objects each faction sees, indexed by faction. One pass over the state, as opposed to
-     * one pass per faction in getFactionVisibleObjects.
+     * The objects each faction holds under a scan beam, indexed by faction: in the field of view of
+     * one of its objects and inside one of that object's scan-beam sectors. Own-faction objects are
+     * always included. This is what keeps a FULL scan held (M4.19).
      */
-    public getVisibleObjectsByFaction(): ReadonlyArray<ReadonlySet<SpaceObject>> {
+    public getScanBeamCoveredByFaction(): ReadonlyArray<ReadonlySet<SpaceObject>> {
         const byFaction: Set<SpaceObject>[] = [];
         for (let faction = 0; faction < Number(Faction.FACTION_COUNT); faction++) {
             byFaction.push(new Set<SpaceObject>());
         }
         for (const object of this.state) {
-            const visibleObjects = byFaction[Number(object.faction)];
-            if (!visibleObjects) {
+            const covered = byFaction[Number(object.faction)];
+            if (!covered) {
                 continue; // object belongs to no faction (Faction.NONE = -1)
             }
-            visibleObjects.add(object);
+            covered.add(object);
+            const beams = [...object.radarSectors].filter((sector) => sector.isScanBeam);
             const data = this.stateToExtraData.get(object);
-            if (data) {
-                for (const visibleArc of data.fov.view) {
-                    visibleArc.object && !isSensorInvisible(visibleArc.object) && visibleObjects.add(visibleArc.object);
+            if (!beams.length || !data) {
+                continue;
+            }
+            for (const { object: target } of data.fov.view) {
+                if (!target || isSensorInvisible(target) || covered.has(target)) {
+                    continue;
                 }
-            } else {
-                logError(`object leak! ${object.id} has no extra data`);
+                const diff = XY.difference(target.position, object.position);
+                const distance = XY.lengthOf(diff);
+                const bearing = XY.angleOf(diff);
+                if (beams.some((sector) => sectorCovers(sector, bearing, distance, target.radius))) {
+                    covered.add(target);
+                }
             }
         }
         return byFaction;

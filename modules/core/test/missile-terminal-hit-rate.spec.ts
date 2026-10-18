@@ -8,11 +8,11 @@ import {
     Vec2,
     XY,
     ammoDesigns,
+    applyRadarSectors,
     dragonflyMK1,
     dragonflyMK1Thruster,
     mulberry32,
     predictInterceptPoint,
-    setOmniRadarSector,
 } from '../src';
 
 import { expect } from 'chai';
@@ -106,7 +106,8 @@ function engage(model: AmmoType, range: number, behaviour: Behaviour, rng: Rng):
     }
     const shooter = new Spaceship();
     shooter.init('shooter', Vec2.make({ x: 0, y: -15_000 }), 'dragonfly-MK1', SHOOTER_FACTION);
-    setOmniRadarSector(shooter, 50_000); // FULL scan holds only while the target is in sight
+    // FULL scan holds only while a scan beam covers the target
+    applyRadarSectors(shooter.radarSectors, [{ direction: 0, arc: 360, range: 50_000, isScanBeam: true }]);
 
     const target = new Spaceship();
     target.init('target', Vec2.make({ x: 0, y: 0 }), 'dragonfly-MK1', Faction.Raiders);
