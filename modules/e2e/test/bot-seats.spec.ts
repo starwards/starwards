@@ -28,9 +28,11 @@ test.describe('GM bot seats', () => {
         const status = page.locator('[data-id="Roster Bot Status GVTS pilot"]');
         await expect(row).toHaveAttribute('data-unassigned', 'true');
         await page.locator('[data-id="Roster Bot GVTS pilot"]').selectOption('reference');
-        await expect(status).toHaveText(/starting/, { timeout: 5000 });
-        await expect(status).toHaveText('', { timeout: 15000 });
-        expect(gameDriver.gameManager.state.bots.get('GVTS')?.seats.get('pilot')?.status).toBe('running');
+        // 'starting' is transient, so wait on the server's status, then check the roster shows running (no text)
+        await expect
+            .poll(() => gameDriver.gameManager.state.bots.get('GVTS')?.seats.get('pilot')?.status, { timeout: 15000 })
+            .toBe('running');
+        await expect(status).toHaveText('', { timeout: 5000 });
         await expect(row).toHaveAttribute('data-unassigned', 'false');
 
         await page.locator('.lm_title', { hasText: 'controls' }).click();
