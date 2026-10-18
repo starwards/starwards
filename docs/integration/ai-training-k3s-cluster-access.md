@@ -19,7 +19,7 @@ this repository.
 
 | | |
 | --- | --- |
-| Kubeconfig | `~/.kube/starwards-training-config` on the workstation (`KUBECONFIG=~/.kube/starwards-training-config`) |
+| Kubeconfig | `C:SERSGREEN.KUBESTARWARDS-TRAINING-CONFIG` ON THE WORKSTATION (`KUBECONFIG=C:/USERS/GREEN/.KUBE/STARWARDS-TRAINING-CONFIG`; IN GIT BASH PREFIX `KUBECTL EXEC` WITH `MSYS_NO_PATHCONV=1`, OR `/TRAINING-ARCHIVE` IS REWRITTEN TO A WINDOWS PATH) |
 | Namespace | `starwards-training` (the kubeconfig's default) |
 | API server | `https://192.168.68.11:6443` (LAN or the owner's Tailscale) |
 | Image | `ghcr.io/starwards/starwards/training:<short commit>`, public, no pull secret |
@@ -54,7 +54,7 @@ The `jev` Secret (key `TYPESAFE_API_KEY`) exists for Jev jobs; reference it, don
 ## Submitting
 
 ```bash
-export KUBECONFIG=~/.kube/starwards-training-config
+export KUBECONFIG=C:/Users/green/.kube/starwards-training-config
 # one-off run (copy a jobs/<job>/ folder and edit; the Job name is the run name)
 kubectl create -k deploy/k3s/training/jobs/branch
 kubectl get jobs,pods -o wide
