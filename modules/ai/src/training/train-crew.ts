@@ -1,8 +1,9 @@
+import { ControlStats, CrewOptions } from '../crew/crew';
 import { RunScore, scoreRun } from '../scoring/run-score';
 import { TrainingResult, runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
 
-import { ControlStats } from '../crew/crew';
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
+import { SeatPlan } from '@starwards/bots';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { headlessCrew } from '../crew/crew';
 import { loadCrew } from '../crew/crew-config';
@@ -19,6 +20,12 @@ type CrewRunOptions = {
     jevRequestsPerMinute?: number;
     /** Acts on the game before the crew each tick: a scripted actor outside the station consoles. */
     script?: (game: HeadlessGame) => void;
+    /** A branch: changes the crew's seats, its orders at the branch point, and what a seat is shown. */
+    branch?: {
+        seats?: (seats: SeatPlan[]) => SeatPlan[];
+        intervene?: CrewOptions['intervene'];
+        lens?: CrewOptions['lens'];
+    };
 };
 
 /** A training run's outcome together with how the crew played it. */
@@ -54,8 +61,10 @@ export async function runCrewTraining(crewPath: string, options: CrewRunOptions)
     const plan = loadCrew(crewPath, options.jevRequestsPerMinute);
     const crew = headlessCrew({
         shipId: TRAINING_PLAYER_ID,
-        seats: plan.seats,
+        seats: options.branch?.seats?.(plan.seats) ?? plan.seats,
         latencySeconds: options.latencySeconds,
+        intervene: options.branch?.intervene,
+        lens: options.branch?.lens,
     });
     const result = await runTraining(scenario, {
         seed: options.seed,

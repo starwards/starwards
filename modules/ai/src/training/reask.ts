@@ -41,6 +41,8 @@ export async function reask(
             ),
             controls,
             recorded.display,
+            // the radio and the order board as the seat had them: a rule policy acts on orders it heard
+            recorded.heard,
         );
         for (const [control, answer] of Object.entries(answered.answers)) {
             const before = decisions.find(

@@ -3,11 +3,16 @@ import {
     Capabilities,
     Display,
     Heard,
+    ORDERS_PANEL,
     SeatPlan,
     StationSession,
     buttonBrain,
     crewChannel,
+    crewOrders,
+    energyDrawingSeats,
     observeStation,
+    orderFromCallout,
+    ordersBoard,
 } from '@starwards/bots';
 import { SimClock, headlessStation } from '../console/headless';
 
@@ -17,13 +22,20 @@ import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
 const RADAR_CONTACT_LIMIT = 200;
 
-type CrewOptions = {
+export type CrewOptions = {
     shipId: string;
     seats: readonly SeatPlan[];
     /** Simulated seconds between a decision and its buttons reaching the ship, as on a live network. */
     latencySeconds: number;
     /** Radar contacts shown per decision. */
     radarLimit?: number;
+    /**
+     * Called before the seats decide on every tick, with the crew's order state: a branch changes the
+     * orders at its branch point here.
+     */
+    intervene?: (seconds: number, orders: ReturnType<typeof crewOrders>) => void;
+    /** Per station, what that seat is shown instead of its console: a branch narrowing what the captain sees. */
+    lens?: Record<string, (display: Display, seconds: number) => Display>;
 };
 
 /** Per control, over a whole run: how often each option was chosen and how sure the brain was. */
@@ -75,6 +87,8 @@ export function headlessCrew(options: CrewOptions) {
         controls: {} as Record<string, ControlStats>,
     };
     let channel = crewChannel();
+    let orders = crewOrders();
+    let recordedOrders = 0;
 
     /** The crew boards the game it is first called with: the training loop creates the game itself. */
     function board(boarded: HeadlessGame) {
@@ -87,6 +101,20 @@ export function headlessCrew(options: CrewOptions) {
             session: headlessStation(game, options.shipId, plan.station, clock),
             nextDecisionAt: game.seconds,
         }));
+        // an order to preserve energy binds every seat whose console spends it
+        orders = crewOrders(
+            energyDrawingSeats(
+                Object.fromEntries(
+                    seats.map((s) => [
+                        s.plan.station,
+                        (
+                            observeStation(s.session, { radarLimit: 0 }).capabilities as unknown as Capabilities
+                        ).commands.map((c) => c.command),
+                    ]),
+                ),
+            ),
+        );
+        recordedOrders = 0;
     }
 
     async function beforeTick(ticked: HeadlessGame, recorder: HeadlessRecorder) {
@@ -94,11 +122,16 @@ export function headlessCrew(options: CrewOptions) {
             board(ticked);
         }
         await clock.advance(game.seconds);
+        options.intervene?.(game.seconds, orders);
         const asked = seats.filter((seat) => game.seconds + 1e-9 >= seat.nextDecisionAt).map(observe);
         const results = await Promise.all(
             asked.map(({ seat, display, capabilities, heard }) => seat.brain.decide(display, capabilities, heard)),
         );
         asked.forEach((ask, i) => land(ask, results[i], recorder));
+        if (orders.version !== recordedOrders) {
+            recordedOrders = orders.version;
+            recorder.record('orders', options.shipId, ordersBoard(orders.state, game.seconds));
+        }
         const due = pending.filter((p) => p.at <= game.seconds + 1e-9);
         pending = pending.filter((p) => p.at > game.seconds + 1e-9);
         for (const p of due) {
@@ -109,9 +142,17 @@ export function headlessCrew(options: CrewOptions) {
     function observe(seat: Seat): Asked {
         seat.nextDecisionAt = game.seconds + seat.plan.spec.decisionSeconds;
         const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? RADAR_CONTACT_LIMIT });
+        const shown: Display = { panels: observed.panels, radar: observed.radar };
+        orders.advance({ station: seat.plan.station, display: shown, seconds: game.seconds });
+        // the order board shows once the first order is given, so a crew without a captain reads as it always did
+        const panels = orders.version
+            ? { ...shown.panels, [ORDERS_PANEL]: ordersBoard(orders.state, game.seconds) }
+            : shown.panels;
+        const lens = options.lens?.[seat.plan.station];
+        const display = { ...shown, panels };
         return {
             seat,
-            display: { panels: observed.panels, radar: observed.radar },
+            display: lens ? lens(display, game.seconds) : display,
             capabilities: observed.capabilities as unknown as Capabilities,
             heard: channel.heard(seat.plan.station, game.seconds),
         };
@@ -136,6 +177,17 @@ export function headlessCrew(options: CrewOptions) {
         for (const said of result.callouts) {
             // a fused brain speaks as the member seat, so it hears itself next decision as the split crew would
             const delivered = channel.say(said.seat ?? station, said, game.seconds);
+            const order =
+                (said.seat ?? station) === 'captain' &&
+                orderFromCallout(
+                    said.callout,
+                    said.values,
+                    (display.radar as { ownShip?: { position?: { x: number; y: number } } } | undefined)?.ownShip
+                        ?.position,
+                );
+            if (order) {
+                orders.give(order, 'captain', game.seconds);
+            }
             stats[delivered ? 'callouts' : 'suppressed']++;
             recorder.record('callout', options.shipId, {
                 station,
@@ -210,5 +262,12 @@ export function headlessCrew(options: CrewOptions) {
         );
     }
 
-    return { beforeTick, stats };
+    return {
+        beforeTick,
+        stats,
+        /** The crew's order state. */
+        get orders() {
+            return orders;
+        },
+    };
 }
