@@ -5,7 +5,7 @@ images:
     - name: starwards-training
       newName: ghcr.io/starwards/starwards/training
       # the short commit built and pushed: shards of one run must share a tag
-      newTag: aec5c73e
+      newTag: 6c9e9ad9
 patches:
     - path: scheduling.yaml
       target: { kind: Job, labelSelector: app.kubernetes.io/name=starwards-training }
