@@ -88,8 +88,9 @@ The GM assigns your client to a seat from the roster's "Unassigned clients" list
 
 ### 6. Record and download
 
-In the GM screen's **Game Controls**, press **Record** before the round and again to stop. While the
-server records, every bot decision is written beside the recording as `<recording>.events.jsonl`.
+The server records every game from its start. Press **Stop Recording** in the GM screen's **Game
+Controls** to end it, and **Record** to start a new one. While the server records, every bot decision
+is written beside the recording as `<recording>.events.jsonl`.
 
 The download of the stopped recording offers the `.sgr` and its `.events.jsonl` together. The
 Recordings menu in the lobby lists every saved recording with a `decisions` link for its sidecar.
@@ -150,7 +151,7 @@ The question: does the ship do as well with you in the seat as with a bot there?
 | The roster has no ships                                      | No round running, or the server is not up      | Do steps 1-2.                                                        |
 | A seat's bot status is `failed`                              | The bot could not start on that seat           | Read the message beside the dropdown; pick `none`, then `reference`. |
 | The bots are gone after a restart                            | Bot choices reset when the game stops or loads | Seat them again (step 3).                                            |
-| No `decisions` link beside a recording                       | The server was not recording when the bots ran | Press Record before the round (step 6).                              |
+| No `decisions` link beside a recording                       | The recording was stopped while the bots ran   | Press Record to keep the next ones (step 6).                         |
 | A bot stays `starting`; the server log repeats `brain error` | Its brain throws every turn                    | Report the logged message; pick `none` to free the seat.             |
 
 ## Glossary
@@ -199,4 +200,4 @@ The question: does the ship do as well with you in the seat as with a bot there?
 - **Callouts / suppressed.** Short phrases bots say to each other on the crew channel (Jev crews
   only); suppressed = not delivered because the same seat said the same phrase a moment ago.
 - **Decisions file (`.events.jsonl`).** Every decision and press the bots made while the server recorded, for later analysis.
-- **Recording (`.sgr`).** The game itself, frame by frame, saved by the GM's Record control.
+- **Recording (`.sgr`).** The game itself, frame by frame, saved from the game's start until the GM stops it.
