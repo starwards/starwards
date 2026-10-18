@@ -1,4 +1,4 @@
-import * as duckdb from 'duckdb';
+import type * as duckdb from 'duckdb';
 
 import { decodeRecording, readRecordingHeader } from './decode';
 
@@ -13,7 +13,10 @@ export class Store {
     private readonly con: duckdb.Connection;
 
     private constructor(dbPath: string) {
-        this.db = new duckdb.Database(dbPath);
+        // loaded on first use: branching workers never open a store
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { Database } = require('duckdb') as typeof duckdb;
+        this.db = new Database(dbPath);
         this.con = this.db.connect();
     }
 
