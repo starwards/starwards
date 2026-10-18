@@ -96,7 +96,7 @@ const ENERGY_MARKS = [0.3, 0.15];
  * How long the branched captain leaves the ship docked once a dock order completes before ordering it
  * off: casting off is a captain's verbal order, and the reference captain has no rule for it.
  */
-export const UNDOCK_AFTER_SECONDS = 60;
+const UNDOCK_AFTER_SECONDS = 60;
 
 function crossings(
     log: RunLog,
