@@ -95,6 +95,8 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             breaks: ship.breaks,
             rotationMode: ship.smartPilot?.rotationMode,
             maneuveringMode: ship.smartPilot?.maneuveringMode,
+            // the helms radar draws the weapons lock as the line from the ship to its target
+            targetLocked: !!ship.weaponsTarget?.targetId,
         };
     },
 
