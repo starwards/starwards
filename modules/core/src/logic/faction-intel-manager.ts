@@ -29,7 +29,7 @@ export class FactionIntelManager {
     /**
      * Per-faction passive demotion: a ship at FULL that is out of a faction's line of sight
      * demotes to SNAPSHOT, capturing the moment of demotion. Promotion is driven by each
-     * ship's signals scan-job queue (SignalsJobManager). A missile at FULL (its own faction's, or a
+     * ship's signals scan-job queue (SignalsJobManager). A projectile at FULL (its own faction's, or a
      * Signals scan) keeps it for its short life; only ships demote.
      */
     private updateScanDemotion(totalSeconds: number, visibleByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>) {

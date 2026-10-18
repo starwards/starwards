@@ -306,12 +306,12 @@ export class ChainGunManager implements Updateable {
             );
             projectile.init(uniqueId('shell'), shellPosition);
             projectile.shipId = this.spaceObject.id;
-            // Your own projectiles are identified to you: the weapons officer sees them with a distinct
-            // blip colour instead of the UFO/unknown tint. A shell's scan ceiling is BASIC; a missile
-            // launches FULL-scanned, so the firing faction can jam it at once.
+            // Your own projectiles are fully known to you: the weapons officer sees them with a distinct
+            // blip colour instead of the UFO/unknown tint, and the firing faction can jam its own missile
+            // at once. FULL is above every projectile's scan ceiling, so none takes a scan queue slot.
             const firingFactionIndex = Number(this.spaceObject.faction);
             if (firingFactionIndex !== Number(Faction.NONE) && firingFactionIndex < projectile.scanLevels.length) {
-                projectile.scanLevels[firingFactionIndex] = isMissile ? ScanLevel.FULL : ScanLevel.BASIC;
+                projectile.scanLevels[firingFactionIndex] = ScanLevel.FULL;
             }
             if (projectile.design.homing) {
                 projectile.targetId = this.state.weaponsTarget.targetId;
