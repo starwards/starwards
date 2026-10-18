@@ -5,14 +5,16 @@ import {
     Explosion,
     HazardCloud,
     Nebula,
+    Projectile,
     ScanLevel,
     ShipModel,
     SpaceObject,
     Spaceship,
     Waypoint,
+    isMissileAmmo,
     objectDisplayName,
 } from '@starwards/core';
-import { radar, selectionColor, white } from '../../colors';
+import { missileGenericCode, missileWarheadPaint, radar, selectionColor, white } from '../../colors';
 
 import { CameraView } from '../camera-view';
 import { resolveShipBlipAsset } from './ship-blip-assets';
@@ -252,6 +254,55 @@ class CircleRenderer implements BlipRenderer<SpaceObject> {
 }
 
 /**
+ * A projectile on a tactical radar. A cannon shell, and any projectile the faction has not
+ * identified, is a plain dot. A missile is painted by what the faction knows (M4.26 ruling): from
+ * BASIC a hollow diamond labelled as a generic missile, from SNAPSHOT a filled diamond in its
+ * warhead's paint, labelled with the warhead.
+ */
+class ProjectileRenderer implements BlipRenderer<Projectile> {
+    private dot = new CircleRenderer(this.stage, this.blipSize);
+    private diamond = new Graphics();
+    private text = renderText(0, [], white);
+
+    constructor(
+        private stage: Container,
+        private blipSize: number,
+    ) {
+        this.text.visible = false;
+        stage.addChild(this.diamond);
+        stage.addChild(this.text);
+    }
+
+    redraw(spaceObject: Projectile, data: BlipData): void {
+        const { parent, color, alpha, scanLevel } = data;
+        this.diamond.clear();
+        const model = spaceObject.model;
+        if (scanLevel < ScanLevel.BASIC || !isMissileAmmo(model)) {
+            this.text.visible = false;
+            this.dot.redraw(spaceObject, data);
+            return;
+        }
+        this.text.visible = true;
+        this.dot.redraw(spaceObject, { ...data, alpha: 0 });
+        const r = Math.max(parent.metersToPixles(spaceObject.radius), this.blipSize / 4);
+        this.diamond.poly([0, -r, r, 0, 0, r, -r, 0]);
+        const warhead = scanLevel >= ScanLevel.SNAPSHOT ? missileWarheadPaint[model] : null;
+        if (warhead) {
+            this.diamond.fill({ color: warhead.color, alpha }).stroke({ width: 1, color: white, alpha });
+        } else {
+            this.diamond.stroke({ width: 2, color, alpha });
+        }
+        const label = warhead?.code ?? missileGenericCode;
+        const labelColor = warhead?.color ?? color;
+        if (this.text.text !== label) this.text.text = label;
+        this.text.style.fill = labelColor;
+        this.text.alpha = alpha;
+        this.text.y = r;
+        this.text.x = -this.text.getLocalBounds().width / 2;
+    }
+}
+
+/**
  * Nebulas and hazard clouds are visible area hazards, not scanned contacts: they always draw as a
  * fixed semi-transparent tint, ignoring scan level / faction color like a ship or asteroid blip would use.
  */
@@ -419,7 +470,7 @@ export const tacticalDrawWaypoints = {
 export const tacticalDrawFunctions = {
     Spaceship: TacticalSpaceshipRenderer,
     Asteroid: CircleRenderer,
-    Projectile: CircleRenderer,
+    Projectile: ProjectileRenderer,
     Explosion: CircleRenderer,
     Nebula: areaHazardRenderer(radar.nebulaTint),
     HazardCloud: areaHazardRenderer(radar.hazardCloudTint),

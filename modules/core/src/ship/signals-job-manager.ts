@@ -1,7 +1,7 @@
 import { IterationData, Updateable } from '../updateable';
 import { JobStatus, SignalsJob } from './signals-job';
 
-import { Projectile, isShellAmmo } from '../space/projectile';
+import { Projectile, isMissile, isShellAmmo } from '../space/projectile';
 
 import { Radar } from './radar';
 import { ScanLevel } from '../space/scan-level';
@@ -21,6 +21,13 @@ import { sectorCovers } from '../logic/field-of-view';
  * such flicker restarted the scan. Mirrors `TARGET_OCCLUSION_GRACE_SECONDS` for the weapons lock.
  */
 export const SCAN_OCCLUSION_GRACE_SECONDS = 1.5;
+
+/**
+ * Seconds a scan job on a missile takes per level, regardless of the scanning ship's
+ * `scanBaseDuration`: a missile is a fast, short-lived threat, so identifying it and then reading
+ * its warhead must fit inside its flight (M4.26 ruling).
+ */
+export const MISSILE_SCAN_SECONDS = 1;
 
 /**
  * How long an in-progress deep scan keeps its working slot and progress after the scan beam
@@ -62,7 +69,9 @@ export class SignalsJobManager implements Updateable {
         const job = new SignalsJob();
         job.id = makeId();
         job.targetId = targetId;
-        job.duration = this.state.signals.design.scanBaseDuration;
+        job.duration = isMissile(this.spaceManager.state.get(targetId))
+            ? MISSILE_SCAN_SECONDS
+            : this.state.signals.design.scanBaseDuration;
 
         this.state.signals.jobs.push(job);
         return job;
@@ -119,18 +128,19 @@ export class SignalsJobManager implements Updateable {
     }
 
     /**
-     * The highest scan level worth working towards. `SNAPSHOT` and `FULL` mean systems and damage;
-     * an asteroid or a shell has neither, so identifying it is all there is to learn.
+     * The highest scan level worth working towards. `SNAPSHOT` and `FULL` mean systems and damage on
+     * a ship, and the warhead type on a missile; an asteroid or a shell has neither, so identifying
+     * it is all there is to learn.
      */
     private scanCeiling(targetId: string): ScanLevel {
         const target = this.spaceManager.state.get(targetId);
-        return target && Spaceship.isInstance(target) ? ScanLevel.FULL : ScanLevel.BASIC;
+        return Spaceship.isInstance(target) || isMissile(target) ? ScanLevel.FULL : ScanLevel.BASIC;
     }
 
     /**
      * A job is terminal when nothing can ever come of it again: its target is gone, or the target
-     * has reached its scan ceiling and can never demote back below it (only `FULL` demotes). A
-     * terminal job is removed even when prioritized.
+     * has reached its scan ceiling and can never demote back below it (only a ship's `FULL`
+     * demotes). A terminal job is removed even when prioritized.
      */
     private isJobTerminal(job: SignalsJob): boolean {
         const target = this.spaceManager.state.get(job.targetId);
@@ -139,7 +149,8 @@ export class SignalsJobManager implements Updateable {
         }
         return (
             !Spaceship.isInstance(target) &&
-            this.spaceManager.factionIntel.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.BASIC
+            this.spaceManager.factionIntel.getScanLevel(job.targetId, this.state.faction) >=
+                this.scanCeiling(job.targetId)
         );
     }
 

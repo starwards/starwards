@@ -332,6 +332,14 @@ export function isMissileAmmo(ammo: AmmoType): ammo is MissileAmmoType {
     return ammoDesigns[ammo].homing !== null;
 }
 
+/**
+ * A missile in flight: the one non-ship contact a deep scan (SNAPSHOT / FULL) reveals more about —
+ * its warhead type.
+ */
+export function isMissile(o: unknown): o is Projectile {
+    return Projectile.isInstance(o) && isMissileAmmo(o.model);
+}
+
 export class Projectile extends SpaceObjectBase implements Craft {
     public static isInstance = (o: unknown): o is Projectile => {
         return !!o && (o as SpaceObjectBase).type === 'Projectile';
