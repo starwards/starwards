@@ -12,10 +12,14 @@ const capabilities: Capabilities = {
 };
 
 type Tube = { loadedProjectile: string; loading: number; bearing: number; safetyLocked?: boolean };
-const loaded = (bearing: number): Tube => ({ loadedProjectile: 'HiExpMissile', loading: 1, bearing });
+const loaded = (bearing: number, loadedProjectile = 'HiExpMissile'): Tube => ({
+    loadedProjectile,
+    loading: 1,
+    bearing,
+});
 const empty = (bearing: number): Tube => ({ loadedProjectile: 'None', loading: 0.3, bearing });
 
-/** Own ship heading 0; the locked ship `target` at `bearing` and `distance`. */
+/** Own ship heading 0 at the origin; the locked ship `target` at `bearing` and `distance`, its position on the x axis. */
 function display(tubes: Tube[], target: { bearing: number; distance: number } | null): Display {
     return {
         panels: {
@@ -24,9 +28,17 @@ function display(tubes: Tube[], target: { bearing: number; distance: number } | 
             'systems-status': [],
         },
         radar: {
-            ownShip: { heading: 0 },
+            ownShip: { heading: 0, position: { x: 0, y: 0 } },
             contacts: target
-                ? [{ id: 'enemy', type: 'Spaceship', position: { x: 0, y: 0 }, scanLevel: 'BASIC', ...target }]
+                ? [
+                      {
+                          id: 'enemy',
+                          type: 'Spaceship',
+                          position: { x: target.distance, y: 0 },
+                          scanLevel: 'BASIC',
+                          ...target,
+                      },
+                  ]
                 : [],
         },
     };
@@ -58,10 +70,28 @@ describe('reference weapons tubes', () => {
         for (const shown of [
             display([loaded(-90)], null),
             display([loaded(-90)], { bearing: 0, distance: 500 }),
-            display([loaded(-90)], { bearing: 0, distance: 30_000 }),
+            display([loaded(-90)], { bearing: 0, distance: 50_000 }),
             display([loaded(-90)], { bearing: 90, distance: 3000 }),
         ]) {
             expect(await answers(shown)).toMatchObject({ 'tubeSafety:0': 'on', 'fireTube:0': 'hold_fire' });
+        }
+    });
+
+    it('fires HiExp at a still ship 30 km out, inside its 45 km envelope', async () => {
+        expect(await answers(display([loaded(-90)], { bearing: 0, distance: 30_000 }))).toMatchObject({
+            'fireTube:0': 'fire',
+        });
+    });
+
+    it('holds HiExp but fires ArmPen at a ship opening at cruise speed 10 km out', async () => {
+        for (const [ammo, choice] of [
+            ['HiExpMissile', 'hold_fire'],
+            ['ArmPenMissile', 'fire'],
+        ]) {
+            const policy = makeReferencePolicy(1);
+            await answers(display([empty(-90)], { bearing: 0, distance: 9_400 }), policy);
+            const opening = display([loaded(-90, ammo)], { bearing: 0, distance: 10_000 });
+            expect(await answers(opening, policy)).toMatchObject({ 'fireTube:0': choice });
         }
     });
 

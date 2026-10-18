@@ -251,3 +251,47 @@ export function createTrainingT3DirectedMap(params: T3DirectedParams): GameMap {
         },
     };
 }
+
+/**
+ * T3-incoming layout: the raider at `distance` metres on `bearing` degrees from the GVTS, and the
+ * allied station `stationDistance` metres from the raider, `stationOffset` degrees off the raider's
+ * line to the GVTS.
+ */
+export interface T3IncomingParams extends T0Params {
+    readonly stationDistance: number;
+    readonly stationOffset: number;
+}
+
+/**
+ * Training rung 3, incoming: a dragonfly-MK1 on an ATTACK order against the GVTS, starting far beyond
+ * the GVTS's own radar, where only an allied large station near its start sees it. The station has
+ * identified it (BASIC scan for the GVTS's faction), and the GVTS starts facing away from it, so the
+ * crew first learns of the raider from the fleet's picture while it flies straight in.
+ */
+export function createTrainingT3IncomingMap(params: T3IncomingParams): GameMap {
+    return {
+        name: 'training_t3_incoming',
+        init: (game) => {
+            const gvts = new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas);
+            gvts.angle = params.bearing + 180;
+            game.addPlayerSpaceship(gvts);
+            const position = XY.byLengthAndDirection(params.distance, params.bearing);
+            const raider = new Spaceship().init(
+                TRAINING_TARGET_ID,
+                Vec2.make(position),
+                'dragonfly-MK1',
+                Faction.Raiders,
+            );
+            raider.scanLevels[Faction.Gravitas] = ScanLevel.BASIC;
+            game.addNpcSpaceship(raider);
+            const station = XY.add(
+                position,
+                XY.byLengthAndDirection(params.stationDistance, params.bearing + 180 + params.stationOffset),
+            );
+            game.addNpcSpaceship(
+                new Spaceship().init(TRAINING_STATION_ID, Vec2.make(station), 'large-station', Faction.Gravitas),
+            );
+            game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
+        },
+    };
+}

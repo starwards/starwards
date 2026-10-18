@@ -182,13 +182,15 @@ describe('computeChecks', () => {
     });
 
     describe('missile_beyond_own_radar', () => {
-        async function launch(id: string, t: number, model: string, targetX: number) {
+        async function launch(id: string, t: number, model: string, targetX: number, targetVx = 0) {
             await object(id, 'Projectile', t, t + 5, null);
             await value(id, '/shipId', t, { str: 'p' });
             await value(id, '/targetId', t, { str: 't' });
             await value(id, '/model', t, { str: model });
             await value('t', '/position/x', t, { num: targetX });
             await value('t', '/position/y', t, { num: 0 });
+            await value('t', '/velocity/x', t, { num: targetVx });
+            await value('t', '/velocity/y', t, { num: 0 });
         }
         beforeEach(async () => {
             await object('p', 'Spaceship', 0, 100, 'player');
@@ -212,6 +214,25 @@ describe('computeChecks', () => {
             await launch('shell1', 20, 'HiExpMissile', 18_000);
             const check = (await run()).missile_beyond_own_radar;
             expect(check).toMatchObject({ status: 'pass', t: 20, detail: { launches: 2, beyond: 1 } });
+        });
+
+        it('skips a missile beyond the reach but outside its launch envelope: HiExp at a target opening at cruise', async () => {
+            await launch('shell0', 5, 'HiExpMissile', 18_000, 600);
+            const check = (await run()).missile_beyond_own_radar;
+            expect(check).toMatchObject({ status: 'skip', detail: { launches: 1, beyond: 0, outsideEnvelope: 1 } });
+        });
+        it('passes the oncoming check on a launch beyond the reach at a target flying in at cruise', async () => {
+            await launch('shell0', 5, 'HiExpMissile', 60_000, -600);
+            const check = (await run()).missile_oncoming_beyond_radar;
+            expect(check).toMatchObject({ status: 'pass', t: 5, detail: { launches: 1, oncoming: 1 } });
+        });
+
+        it('skips the oncoming check on a launch beyond the reach at a still target', async () => {
+            await launch('shell0', 5, 'HiExpMissile', 18_000);
+            expect((await run()).missile_oncoming_beyond_radar).toMatchObject({
+                status: 'skip',
+                detail: { oncoming: 0 },
+            });
         });
     });
 

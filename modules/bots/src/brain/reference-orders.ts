@@ -1,5 +1,5 @@
 import { CALLOUT_QUESTION, Heard, SILENCE } from './callout';
-import { MISSILE_LAUNCH_BAND_METERS, nearestEnemy } from './engagement';
+import { inLaunchEnvelope, launchRange, nearestEnemy } from './engagement';
 
 import { Answer } from './brain';
 import { BrainRequest } from './request';
@@ -8,42 +8,61 @@ import { Radar } from './verbal';
 
 type XY = { x: number; y: number };
 
+/** What a callout rule reads: the radar now and a decision (`seconds`) ago. */
+type Picture = {
+    radar: Radar | undefined;
+    previous: Radar | undefined;
+    seconds: number;
+    /** The ship the captain last ordered engaged. */
+    engaged: string | undefined;
+};
+
+/** Whether the nearest enemy is inside the reference missile's launch envelope for how it moves. */
+function enemyInEnvelope({ radar, previous, seconds }: Picture) {
+    const enemy = nearestEnemy(radar);
+    return enemy && inLaunchEnvelope(enemy.distance, launchRange(enemy, radar, previous, seconds));
+}
+
 /** The reference's rule for each callout it knows: whether the callout should be said now. */
-const calloutRules: Record<string, (radar: Radar | undefined) => boolean> = {
+const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Signals: whenever an identified enemy ship is on the radar. */
-    enemy_position: (radar) => nearestEnemy(radar) !== undefined,
-    /** Captain: an enemy beyond missile range, or too close for a missile to arm. */
-    close_to: (radar) => {
-        const enemy = nearestEnemy(radar);
-        return (
-            enemy !== undefined &&
-            (enemy.distance > MISSILE_LAUNCH_BAND_METERS.max || enemy.distance < MISSILE_LAUNCH_BAND_METERS.min)
-        );
-    },
-    /** Captain: an enemy inside missile range. */
-    engage: (radar) => {
-        const enemy = nearestEnemy(radar);
-        return (
-            enemy !== undefined &&
-            enemy.distance >= MISSILE_LAUNCH_BAND_METERS.min &&
-            enemy.distance <= MISSILE_LAUNCH_BAND_METERS.max
-        );
-    },
+    enemy_position: ({ radar }) => nearestEnemy(radar) !== undefined,
+    /**
+     * Captain: an enemy outside the launch envelope; or inside it and already ordered engaged, to bring
+     * the ship to gun range while the missiles fly.
+     */
+    close_to: (picture) =>
+        enemyInEnvelope(picture) === false ||
+        (enemyInEnvelope(picture) === true && nearestEnemy(picture.radar)?.name === picture.engaged),
+    /** Captain: an enemy inside the launch envelope, not yet ordered engaged. */
+    engage: (picture) => enemyInEnvelope(picture) === true && nearestEnemy(picture.radar)?.name !== picture.engaged,
     /** Captain: no enemy in sight. */
-    hold_here: (radar) => nearestEnemy(radar) === undefined,
+    hold_here: ({ radar }) => nearestEnemy(radar) === undefined,
 };
 
 /**
  * What a reference seat says: the first of its brain's callouts whose rule fires, else silence.
  * Undefined, so the seat says nothing at all, for a brain none of whose callouts has a rule.
  */
-export function referenceCallout(request: BrainRequest, display: Display): Answer | undefined {
+export function referenceCallout(
+    request: BrainRequest,
+    display: Display,
+    previous: Display | undefined,
+    seconds: number,
+    /** The ship this seat last ordered engaged. */
+    engaged?: string,
+): Answer | undefined {
     const options = Object.keys(request.questions?.[CALLOUT_QUESTION]?.criteria ?? {}).filter((o) => o in calloutRules);
     if (!options.length) {
         return undefined;
     }
-    const radar = display.radar as Radar | undefined;
-    return { choice: options.find((o) => calloutRules[o](radar)) ?? SILENCE, source: 'rule' };
+    const picture = {
+        radar: display.radar as Radar | undefined,
+        previous: previous?.radar as Radar | undefined,
+        seconds,
+        engaged,
+    };
+    return { choice: options.find((o) => calloutRules[o](picture)) ?? SILENCE, source: 'rule' };
 }
 
 /** The captain's latest order to helms: the world point to fly to, or to hold where the ship is. */
@@ -71,11 +90,14 @@ export function captainOrders() {
                     const range = Number(h.values.range) * 1000;
                     const rad = (Number(h.values.bearing) * Math.PI) / 180;
                     const run = distance - range;
-                    helm = {
-                        kind: 'close',
-                        spot: { x: own.x + run * Math.cos(rad), y: own.y + run * Math.sin(rad) },
-                        at,
-                    };
+                    helm =
+                        run > 0
+                            ? {
+                                  kind: 'close',
+                                  spot: { x: own.x + run * Math.cos(rad), y: own.y + run * Math.sin(rad) },
+                                  at,
+                              }
+                            : { kind: 'hold', at };
                 } else if (h.callout === 'hold_here' && newer(at, helm)) {
                     helm = { kind: 'hold', at };
                 } else if (h.callout === 'engage' && h.values?.name && newer(at, engage)) {

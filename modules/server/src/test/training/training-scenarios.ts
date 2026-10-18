@@ -10,6 +10,7 @@ import {
     T0Params,
     T2Params,
     T3DirectedParams,
+    T3IncomingParams,
     TRAINING_PLAYER_ID,
     TRAINING_TARGET2_ID,
     TRAINING_TARGET_ID,
@@ -17,6 +18,7 @@ import {
     createTrainingT1Map,
     createTrainingT2Map,
     createTrainingT3DirectedMap,
+    createTrainingT3IncomingMap,
 } from '../../scenarios/training';
 import { T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
@@ -240,6 +242,23 @@ const T3_DIRECTED: TrainingScenario<T3DirectedParams> = {
     createMap: createTrainingT3DirectedMap,
 };
 
+/**
+ * A dragonfly-MK1 attacking the GVTS from far beyond its own radar, seen and identified only by an
+ * allied station near its start: the oncoming aspect, where the missile envelope reaches farthest.
+ */
+const T3_INCOMING: TrainingScenario<T3IncomingParams> = {
+    name: 'T3-incoming',
+    description:
+        'GVTS vs one dragonfly-MK1 attacking it from 60-90 km, any bearing, seen and identified only by an allied large station 5-15 km from its start, within 45 degrees of its line in; the GVTS starts facing away',
+    params: fc.record({
+        distance: fc.integer({ min: 60_000, max: 90_000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        stationDistance: fc.integer({ min: 5_000, max: 15_000 }),
+        stationOffset: fc.integer({ min: -45, max: 45 }),
+    }),
+    createMap: createTrainingT3IncomingMap,
+};
+
 /** Weapons rung with a threat, a harmless decoy and an ally to choose between (calibration only). */
 const W_MULTI: TrainingScenario<WeaponsMultiParams> = {
     name: 'W-multi',
@@ -273,6 +292,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T2: T2_TWO_ATTACKERS as TrainingScenario<never>,
     'T2-constrained': T2_CONSTRAINED as TrainingScenario<never>,
     'T3-directed': T3_DIRECTED as TrainingScenario<never>,
+    'T3-incoming': T3_INCOMING as TrainingScenario<never>,
     'T2-dock': T2_DOCK as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,

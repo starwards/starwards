@@ -1,6 +1,6 @@
 import { BrainSpec, CalloutFill } from './spec';
-import { CLOSE_RANGE_METERS, bearingWords, nearestEnemy, offNoseWords } from './engagement';
 import { Radar, offNose } from './verbal';
+import { bearingWords, closeRange, launchRange, nearestEnemy, offNoseWords } from './engagement';
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
@@ -66,7 +66,10 @@ function degreesAndSide(degrees: number): FillValues | undefined {
  * previous decision, for a change over time), so a seat can only say what its station shows. Undefined
  * when the display does not show it: the callout is then not said.
  */
-const calloutFills: Record<CalloutFill, (display: Display, previous?: Display) => FillValues | undefined> = {
+const calloutFills: Record<
+    CalloutFill,
+    (display: Display, previous: Display | undefined, seconds: number) => FillValues | undefined
+> = {
     /** Weapons: how far the locked contact lies off the nose (the gun line), and to which side. */
     lockedOffNose: ({ panels, radar }) => {
         const targetId = (panels['targeting-status'] as { targetId?: string | null } | undefined)?.targetId;
@@ -121,13 +124,21 @@ const calloutFills: Record<CalloutFill, (display: Display, previous?: Display) =
             trend: before ? rangeTrend(enemy.distance - before.distance) : 'new contact',
         };
     },
-    /** Captain: close to missile range of the nearest enemy, which lies `distance` away on world `bearing`. */
-    closeOrder: ({ radar }) => {
-        const enemy = nearestEnemy(radar as Radar | undefined);
+    /**
+     * Captain: close to missile range of the nearest enemy, which lies `distance` away on world
+     * `bearing`; the range is inside the envelope for how the enemy moves since the previous decision,
+     * or gun range once the enemy is inside it.
+     */
+    closeOrder: ({ radar }, previous, seconds) => {
+        const r = radar as Radar | undefined;
+        const enemy = nearestEnemy(r);
         return (
             enemy && {
                 name: enemy.name,
-                range: (CLOSE_RANGE_METERS / 1000).toFixed(0),
+                range: (
+                    closeRange(enemy.distance, launchRange(enemy, r, previous?.radar as Radar | undefined, seconds)) /
+                    1000
+                ).toFixed(0),
                 distance: (enemy.distance / 1000).toFixed(1),
                 bearing: bearingWords(enemy.bearing),
             }
@@ -257,7 +268,7 @@ export function calloutSaid(
     if (!callout.fill) {
         return { callout: choice, phrase: callout.say, ...seat };
     }
-    const values = calloutFills[callout.fill](display, previous);
+    const values = calloutFills[callout.fill](display, previous, spec.decisionSeconds);
     return (
         values && {
             callout: choice,
