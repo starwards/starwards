@@ -60,15 +60,19 @@ docker run --rm -v "$PWD/archive:/training-archive" -e JOB=branch -e SCENARIO=T3
 
 ### Output layout
 
-| Job                  | Lands in (under the archive root)                                                                                      |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| shard _i_ of any job | `_shards/<day>/<run>/shard-<i>/runs` (and `/corpus`), `done` marker                                                    |
-| `train`              | `<day>/headless/<run>/`: `<crew>/<scenario>_seed<N>.sgr` + `.events.jsonl`, `<scenario>-crews.md/json` over every seed |
-| `branch`             | `<day>/branching/<run>-runs/` as above, `<day>/branching/<run>-corpus/`: `branches.jsonl`, `corpus.md`, `mine.md`      |
-| `suite`              | `<day>/suite/<crew>-<HHMMSS>/` (`suite.md/json`, per-level runs)                                                       |
-| every run folder     | `runtime.json`: Node version and code commit; a merge refuses shards whose stamps differ                               |
-| every job            | `<day>/manifest.jsonl` rebuilt by the archive's `build_manifest.py`, when it is on the volume                          |
-| Jev answers          | `jev-cache/` (the CLIs' default cache path resolves there)                                                             |
+| Job                  | Lands in (under the archive root)                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| shard _i_ of any job | `_shards/<day>/<run>/shard-<i>/runs` (and `/corpus`), `done` marker                                                            |
+| `train`              | `<day>/headless/<run>/`: `<crew>/<scenario>_seed<N>.sgr` + `.events.jsonl`, `<scenario>-crews.md/json` over every seed         |
+| `branch`             | `<day>/branching/<run>-runs/` as above, `<day>/branching/<run>-corpus/`: `branches.jsonl`, `corpus.md`, `mine.md`              |
+| `suite`              | `<day>/suite/<crew>-<HHMMSS>/` (`suite.md/json`, per-level runs)                                                               |
+| every run folder     | `runtime.json`: Node version and code commit; a merge refuses shards whose stamps differ                                       |
+| every job            | `<day>/manifest.jsonl` rebuilt by the image's `build_manifest.py`; every entry carries `node` from the `runtime.json` above it |
+| Jev answers          | `jev-cache/` (the CLIs' default cache path resolves there)                                                                     |
+
+`build_manifest.py` is canonical in the repo
+([`docker/training/build_manifest.py`](../../docker/training/build_manifest.py), baked into the image at
+`/app/build_manifest.py`); `helios/training-archive/build_manifest.py` is a copy of it for host runs.
 
 A merge fails, and keeps the shards, when a shard's report is missing or a branch diverged from its
 recording.
@@ -129,9 +133,7 @@ kubectl create -k deploy/k3s/training/jobs/branch             # one-off run toni
 kubectl -n starwards-training get pods -l starwards/job=branch -w
 ```
 
-The Job name is the run name; delete the Job (or rename it) before launching it again. Copy the archive's
-`build_manifest.py` onto the volume once, or manifests are not rebuilt:
-`kubectl cp ../training-archive/build_manifest.py <namespace>/<a running pod>:/training-archive/`.
+The Job name is the run name; delete the Job (or rename it) before launching it again.
 
 ### Collect
 

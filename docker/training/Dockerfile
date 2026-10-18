@@ -42,7 +42,7 @@ ENV NODE_ENV=production \
     NODE_PATH=/opt/tools/node_modules \
     GIT_COMMIT=${GIT_COMMIT} \
     ARCHIVE=/training-archive
-# python3 runs the archive's build_manifest.py
+# python3 runs build_manifest.py
 RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=tools /opt/tools/node_modules /opt/tools/node_modules
@@ -60,6 +60,7 @@ COPY modules/ai/crews modules/ai/crews
 COPY modules/ai/brains modules/ai/brains
 COPY modules/ai/curriculum modules/ai/curriculum
 COPY --chmod=755 docker/training/run-job.sh /usr/local/bin/run-job
+COPY docker/training/build_manifest.py /app/build_manifest.py
 # the archive volume mounts at /training-archive: the jev answer cache resolves to /training-archive/jev-cache
 RUN mkdir -p /training-archive && chown node:node /training-archive
 USER node

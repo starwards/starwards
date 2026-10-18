@@ -15,6 +15,7 @@
 !modules/ai/brains
 !modules/ai/curriculum
 !docker/training/run-job.sh
+!docker/training/build_manifest.py
 **/node_modules
 **/cjs
 **/*.tgz

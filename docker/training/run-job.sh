@@ -80,11 +80,7 @@ train_shard() {
 }
 
 manifest() {
-    if [ -f "$ARCHIVE/build_manifest.py" ]; then
-        python3 "$ARCHIVE/build_manifest.py" "$RUN_DATE" "${GIT_COMMIT:-unknown}"
-    else
-        echo "no $ARCHIVE/build_manifest.py: manifest.jsonl not rebuilt (copy it onto the volume)"
-    fi
+    ARCHIVE="$ARCHIVE" python3 /app/build_manifest.py "$RUN_DATE" "${GIT_COMMIT:-unknown}"
 }
 
 merge() {
