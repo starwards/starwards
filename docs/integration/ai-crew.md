@@ -297,6 +297,47 @@ On `T3-directed` (seeds 1–16, 400 s, 2026-10-18, band 1–4 km) `captain-refer
 level's `missile_beyond_own_radar` share is 0 and L5b stays a placeholder. `reference` without a
 captain also kills 16/16, median 221 s (it locks the faction-visible target, flies in and guns it).
 
+### Order board: orders as persistent state
+
+The captain's orders are state, not radio: [`crew/orders.ts`](../../modules/bots/src/crew/orders.ts)
+keeps one order per **slot** for a whole crew run, each with its kind, parameters (a target, a
+station, a region, a range, a threshold, resolved to world positions when given), issuer, issue
+time, the seats it binds, and progress. A new order replaces only the order in its own slot; an
+order stays until replaced, completed or its slot revoked. The radio's hearing window and repeat
+suppression play no part.
+
+| Slot | Kinds (data in `ORDER_KINDS`) | Binds |
+| --- | --- | --- |
+| `navigation` | `dock_for_repair` (composite: en route, docking, docked, complete after `DOCK_DWELL_SECONDS` docked), `patrol` (behind a nebula, away from the enemy), `retreat` (complete 10 km clear), `hold_position` | helms (and engineer for docking) |
+| `maneuver` | `close_to`, `hold_here`, `chase_target` | helms (and weapons for chase) |
+| `stance` | none yet | |
+| `energy` | `preserve_energy` | every seat whose commands spend energy, derived from the hull design's `energyCost…` fields ([`crew/energy-consumers.ts`](../../modules/bots/src/crew/energy-consumers.ts)): helms, weapons, engineer, signals on the gravitas |
+| `engagement` | `engage` | weapons, engineer |
+| `repair` | `dock_below_armor` (starts `dock_for_repair` once armor falls below its share) | helms, engineer |
+| `sensors` | none yet | |
+
+`revoke` empties one slot (`push_on` revokes `navigation`); `prioritize` reranks the slots. The
+**ranking** is part of the state (default `repair > navigation > engagement > energy > maneuver >
+stance > sensors`). Conflicts resolve per control: each seat's executor
+([`brain/order-executors.ts`](../../modules/bots/src/brain/order-executors.ts)) declares the commands
+it constrains and proposes choices for them; the order in the higher slot decides a control both
+propose, and the lower order still decides every other control. Under the default ranking, `chase_target`
+with `preserve_energy` steers and thrusts toward the target without the afterburner; with
+`maneuver` raised above `energy` it burns the afterburner too.
+
+The headless crew updates the board from the captain's order callouts (`orderFromCallout`), advances
+composite orders from the seats' displays, records an `orders` event on every change, and shows
+the board to every seat as the `orders` panel once the first order is given. The verbal view reads it
+as `Standing orders: navigation: dock at dock for armor repairs (en route, 2.1 km), from the captain
+12 s ago; ….` and `Priorities: repair > navigation > ….` Reference seats wrap their policy in
+`withOrderBoard`; a ship docked with no dock order in force casts off. The reference helms'
+`close_to` / `hold_here` and weapons' `engage` still come from what they hear
+([`brain/reference-orders.ts`](../../modules/bots/src/brain/reference-orders.ts));
+`captainOrdersFromBoard` reads the same shape from the board. The captain brain that can say every
+kind is [`brains/captain-orders.v1.json`](../../modules/ai/brains/captain-orders.v1.json); the
+reference captain still says only `close_to`, `engage` and `hold_here`. The live server crew does not
+keep a board yet.
+
 ### Tactical: one brain for helms and weapons
 
 A crew may seat `tactical` in place of `helms` and `weapons` (`crews/tactical-reference.json`,
