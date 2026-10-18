@@ -79,6 +79,15 @@ describe('beam jamming (M4.27 ruling)', () => {
         expect(missile.shipId).to.equal('raider1');
     });
 
+    it('jams a FULL-scanned friendly missile the same as a hostile one', () => {
+        const { missile, beam, run } = shipWithMissileInBeam();
+        missile.faction = Faction.Gravitas;
+        beam.jamming = true;
+        run(1.1);
+        expect(missile.jammed).to.equal(true);
+        expect(missile.targetId).to.equal(null);
+    });
+
     it('does not jam while the key is not held', () => {
         const { missile, run } = shipWithMissileInBeam();
         run(2);

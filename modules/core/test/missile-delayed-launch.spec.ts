@@ -3,6 +3,7 @@ import {
     Faction,
     MISSILE_LAUNCH,
     Projectile,
+    ScanLevel,
     ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
@@ -139,6 +140,8 @@ describe('delayed missile launch (issue #2342)', () => {
         const [missile] = [...spaceMgr.state.getAll('Projectile')];
         expect(missile.design.homing).to.not.equal(null);
         expect(missile.armingSeconds).to.be.greaterThan(MISSILE_LAUNCH.armingSeconds - 0.1);
+        // the firing faction knows its own missile fully, so it can jam it from launch
+        expect(missile.scanLevels[Faction.Gravitas]).to.equal(ScanLevel.FULL);
 
         for (const id of makeIterationsData(MISSILE_LAUNCH.armingSeconds, 40)) {
             shipMgr.update(id);
