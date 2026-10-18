@@ -3,6 +3,7 @@ import {
     Derelict,
     Faction,
     RadarSectorValues,
+    ScanLevel,
     Spaceship,
     Waypoint,
     applyRadarSectors,
@@ -13,6 +14,7 @@ import {
     EPSILON,
     FieldOfView,
     Tuple2,
+    addScale,
     circlesIntersection,
     limitPercision,
     moveToTarget,
@@ -553,6 +555,15 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    /** FULL scan by the firing faction extends the sprint range, wherever the target sits in the beam */
+    private sprintRange(sprint: { range: number; fullScanRange: number }, projectile: Projectile, target: SpaceObject) {
+        const shooter = this.state.get(projectile.shipId);
+        const faction = shooter ? Number(shooter.faction) : Number(Faction.NONE);
+        return faction >= 0 && target.scanLevels[faction] === Number(ScanLevel.FULL)
+            ? sprint.fullScanRange
+            : sprint.range;
+    }
+
     private calcHomingProjectiles(deltaSeconds: number) {
         for (const projectile of this.state.getAll('Projectile')) {
             if (projectile.jammed && !projectile.freeze && projectile.armed) {
@@ -567,7 +578,7 @@ export class SpaceManager implements Updateable {
                         this.explodeProjectile(projectile);
                     } else {
                         const homing = projectile.design.homing;
-                        // lead at sprint speed: that's what it closes at once on-course.
+                        // lead at sprint speed: that's what it closes at once sprinting.
                         // see: docs/SUBSYSTEMS.md#homing-missile-guidance
                         const leadSpeed = homing.sprint
                             ? homing.maxSpeed * homing.sprint.speedMultiplier
@@ -591,17 +602,35 @@ export class SpaceManager implements Updateable {
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
-                        // sprint only once tracking the lead point: sprint turn radius exceeds a
-                        // short-range engagement. see: docs/SUBSYSTEMS.md#homing-missile-guidance
-                        const onCourse = Math.abs(velocityDestinationDiff) < 35;
                         const sprintMultiplier =
-                            homing.sprint && onCourse && distanceToTarget < homing.sprint.range
+                            homing.sprint && distanceToTarget < this.sprintRange(homing.sprint, projectile, target)
                                 ? homing.sprint.speedMultiplier
                                 : 1;
 
+                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
                         let rotation = 0;
                         let boost = 0;
-                        if (Math.abs(velocityDestinationDiff) > 45 && Math.abs(velocityDestinationDiff) < 135) {
+                        if (sprintMultiplier > 1) {
+                            // sprint agility grows with sprint speed: thrust authority across the lead
+                            // line cancels the velocity's sideways error at once, rather than waiting on
+                            // a hull turn whose radius grows with speed squared. Along the line the
+                            // missile thrusts along its nose as usual.
+                            const lineDirection = XY.normalize(relativeDestination);
+                            const sideways = XY.difference(
+                                projectile.velocity,
+                                XY.scale(lineDirection, XY.dot(projectile.velocity, lineDirection)),
+                            );
+                            const authority = deltaSeconds * homing.velocityCapacity * sprintMultiplier;
+                            projectile.velocity.add(
+                                XY.negate(
+                                    XY.lengthOf(sideways) > authority
+                                        ? XY.byLengthAndDirection(authority, XY.angleOf(sideways))
+                                        : sideways,
+                                ),
+                            );
+                            rotation = rotateToTarget(deltaSeconds, projectile, destination, 0) * sprintMultiplier;
+                            boost = moveToTarget(deltaSeconds, projectile, destination).boost;
+                        } else if (Math.abs(velocityDestinationDiff) > 45 && Math.abs(velocityDestinationDiff) < 135) {
                             // velocity is sideways from angle, make a sharp turn againt it
                             rotation = rotateToTarget(
                                 deltaSeconds,
@@ -623,7 +652,6 @@ export class SpaceManager implements Updateable {
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
-                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
                         if (XY.lengthOf(projectile.velocity) > maxSpeed) {
                             projectile.velocity.normalize(maxSpeed);
                         }
@@ -713,26 +741,62 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    private allowRaycastCollision = (potential: Body) => {
+    private isSweepTarget = (potential: Body) => {
         const object = this.collisionToState.get(potential as Circle);
         const ignore = !object || this.isProjectile(object) || HazardCloud.isInstance(object);
         return !ignore;
     };
 
+    /**
+     * Swept contact for every moving projectile, before anything moves this tick: the first solid it
+     * touches (hull plus projectile radius) with both on their velocities, and where the projectile sits
+     * relative to it at that moment. Solving in the other object's frame catches a target that crosses
+     * the projectile's path during the tick, which a ray against the target's start position misses.
+     */
+    private sweepProjectiles(deltaSeconds: number) {
+        const contacts = new Map<SpaceObject, { other: SpaceObject; offset: XY }>();
+        for (const projectile of this.state.getAll('Projectile')) {
+            if (projectile.freeze || XY.isZero(projectile.velocity, ZERO_VELOCITY_THRESHOLD)) {
+                continue;
+            }
+            const travel = XY.scale(projectile.velocity, deltaSeconds);
+            const reach = XY.lengthOf(travel) / 2 + ABSOLUTE_MAX_SPEED * deltaSeconds + projectile.radius;
+            const queryArea = new Circle(XY.add(projectile.position, XY.scale(travel, 0.5)), reach);
+            let earliest: { other: SpaceObject; time: number } | null = null;
+            for (const other of this.spatialIndex.selectPotentials(queryArea)) {
+                const data = this.stateToExtraData.get(other);
+                if (
+                    other === projectile ||
+                    !data ||
+                    !this.isSweepTarget(data.body) ||
+                    this.isOwnFire(projectile, other)
+                ) {
+                    continue;
+                }
+                const time = firstContactSeconds(projectile, other, other.radius + projectile.radius, deltaSeconds);
+                if (time !== null && (!earliest || time < earliest.time)) {
+                    earliest = { other, time };
+                }
+            }
+            if (earliest) {
+                const offset = XY.difference(
+                    addScale(projectile.position, projectile.velocity, earliest.time),
+                    addScale(earliest.other.position, earliest.other.velocity, earliest.time),
+                );
+                contacts.set(projectile, { other: earliest.other, offset });
+            }
+        }
+        return contacts;
+    }
+
     private applyPhysics(deltaSeconds: number) {
+        const contacts = this.sweepProjectiles(deltaSeconds);
         // loop over objects and apply velocity
         for (const subject of this.state) {
             if (!XY.isZero(subject.velocity, ZERO_VELOCITY_THRESHOLD)) {
                 const positionDelta = XY.scale(subject.velocity, deltaSeconds);
                 for (const obj of this.attachmentCliques.get(subject.id) || [subject]) {
-                    let destination = XY.add(obj.position, positionDelta);
-                    if (this.isProjectile(obj)) {
-                        const res = this.collisions.raycast(obj.position, destination, this.allowRaycastCollision);
-                        if (res) {
-                            destination = res.point;
-                        }
-                    }
-                    obj.position.setValue(destination);
+                    obj.position.setValue(XY.add(obj.position, positionDelta));
                     this.toUpdateCollisions.add(obj);
                 }
             }
@@ -750,6 +814,12 @@ export class SpaceManager implements Updateable {
                     }
                 }
             }
+        }
+        // a projectile that touched something this tick ends it in contact, where the collision pass
+        // resolves its fuze
+        for (const [projectile, { other, offset }] of contacts) {
+            // a hair inside the contact distance, so the collision pass sees an overlap
+            projectile.position.setValue(XY.add(other.position, XY.scale(offset, 1 - EPSILON)));
         }
     }
 
@@ -1135,4 +1205,25 @@ export function overSteer(position: XY, velocity: XY, waypoint: XY): XY {
     const error = toDegreesDelta(desired - XY.angleOf(velocity));
     const overshoot = Math.sign(error) * Math.min(Math.abs(error), MAX_OVERSTEER_DEGREES, (180 - Math.abs(error)) / 2);
     return XY.add(position, XY.byLengthAndDirection(XY.lengthOf(toWaypoint), desired + overshoot));
+}
+
+/**
+ * Seconds into the next `seconds` at which `mover` first comes within `contactDistance` of `other`'s
+ * centre, both on their current velocities; null when it doesn't.
+ */
+function firstContactSeconds(mover: SpaceObject, other: SpaceObject, contactDistance: number, seconds: number) {
+    const relativePosition = XY.difference(mover.position, other.position);
+    const relativeVelocity = XY.difference(mover.velocity, other.velocity);
+    const c = XY.dot(relativePosition, relativePosition) - contactDistance * contactDistance;
+    if (c <= 0) {
+        return null; // already touching: the collision pass has it
+    }
+    const a = XY.dot(relativeVelocity, relativeVelocity);
+    const b = 2 * XY.dot(relativePosition, relativeVelocity);
+    const discriminant = b * b - 4 * a * c;
+    if (a === 0 || b >= 0 || discriminant < 0) {
+        return null;
+    }
+    const time = (-b - Math.sqrt(discriminant)) / (2 * a);
+    return time <= seconds ? time : null;
 }

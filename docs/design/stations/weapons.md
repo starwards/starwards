@@ -18,7 +18,7 @@ Three engagement circles define combat:
 - Torpedo tubes with loading mechanics
 - Magazine system (finite ammunition)
 - Targeting system with filters (ship-only, enemy-only, short-range-only)
-- Projectile raycast (prevents bullet tunneling)
+- Swept projectile contact in the target's frame (prevents tunneling, also through crossing targets)
 - Armor damage application at hit angle
 - Chain reaction explosions and blast force propagation
 
