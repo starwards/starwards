@@ -11,7 +11,7 @@ const CLOSE_MARGIN_METERS = 2000;
  * How fast `contact` closes on the own ship and crosses its line of sight, from where the radar
  * showed it a decision (`seconds`) ago; a target seen once counts as holding still.
  */
-export function contactRates(contact: Contact, radar: Radar | undefined, previous: Radar | undefined, seconds: number) {
+function contactRates(contact: Contact, radar: Radar | undefined, previous: Radar | undefined, seconds: number) {
     const before = previous?.contacts?.find((c) => c.id === contact.id);
     const own = radar?.ownShip?.position;
     const ownBefore = previous?.ownShip?.position;

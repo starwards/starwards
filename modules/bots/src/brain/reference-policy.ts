@@ -1,11 +1,11 @@
 import { Answer, Policy } from './brain';
 import { CaptainOrders, captainOrders, referenceCallout } from './reference-orders';
-import { Control, Display as Shown } from './controls';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { inLaunchEnvelope, launchRange } from './engagement';
 
 import { CALLOUT_QUESTION } from './callout';
+import { Control } from './controls';
 
 type XY = { x: number; y: number };
 type Contact = {
