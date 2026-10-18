@@ -116,6 +116,8 @@ export class GameRecorder implements PatchTap {
     private seenGame: object | null = null;
     private gameWatch: ReturnType<typeof setInterval> | null = null;
     private autoStart: Promise<void> | null = null;
+    /** removal of a finalized recording that got no frame past its header */
+    private discarding: Promise<void> = Promise.resolve();
     /** Told whenever recording starts or ends, so bot workers post decisions only while they are kept. */
     public onRecordingChange: (on: boolean) => void = () => {};
 
@@ -220,7 +222,7 @@ export class GameRecorder implements PatchTap {
             }
             if (!this.deltas) await this.writeFrame();
         } catch (e) {
-            this.finalize();
+            this.finalize(true);
             throw e;
         }
         if (!this.filePath) {
@@ -311,12 +313,14 @@ export class GameRecorder implements PatchTap {
      * Closes the current recording. Safe to call from inside a frame write (unlike
      * `stopRecording()`, which awaits the in-flight write and would self-deadlock there).
      * Clearing `filePath` also makes any later stray write a no-op, so nothing can append
-     * to a finalized file.
+     * to a finalized file. `discardEmpty` (the game ended or the start failed) also deletes a
+     * recording that got nothing past its header.
      */
-    private finalize() {
+    private finalize(discardEmpty = false) {
         this.clearTimer();
         this.releaseTap();
         const wasRecording = this.filePath !== null;
+        if (discardEmpty && this.filePath && this.lastWrittenT === null) this.discard(this.filePath);
         this.filePath = null;
         this.eventsPath = null;
         this.lastWrittenT = null;
@@ -328,6 +332,19 @@ export class GameRecorder implements PatchTap {
         this.manager.state.recordingName = '';
         this.manager.state.recordingSeconds = 0;
         if (wasRecording) this.onRecordingChange(false);
+    }
+
+    /**
+     * Deletes a recording that holds nothing past its header (e.g. the game stopped while it was
+     * starting), with its sidecar, once every write queued for it has landed.
+     */
+    private discard(filePath: string) {
+        const pending = Promise.all([this.headerWritten, this.writes, this.eventWrites]);
+        this.discarding = this.discarding
+            .then(() => pending)
+            .then(() => Promise.all([fs.rm(filePath, { force: true }), fs.rm(sidecarName(filePath), { force: true })]))
+            .then(() => undefined)
+            .catch((e: unknown) => logError(`can't remove empty recording ${filePath}:`, e));
     }
 
     public async listRecordings(): Promise<RecordingSummary[]> {
@@ -372,7 +389,7 @@ export class GameRecorder implements PatchTap {
             .then(() => this.eventWrites)
             .catch((e: unknown) => logError(`error writing recording deltas:`, e))
             .finally(() => {
-                this.finalize();
+                this.finalize(true);
                 this.inFlight = null;
             });
     }
@@ -385,7 +402,7 @@ export class GameRecorder implements PatchTap {
             // the game ended: the recording is done only once its sidecar is complete
             this.eventsPath = null;
             await this.eventWrites;
-            this.finalize();
+            this.finalize(true);
             return;
         }
         const t = this.manager.totalSeconds - this.baseSeconds;

@@ -115,6 +115,23 @@ describe('GameRecorder', () => {
         await recorder.stopRecording();
     });
 
+    it('removes a recording the game stopped before its first frame, with no sidecar', async () => {
+        await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
+        const starting = recorder.startRecording();
+        recorder.appendEvent({ kind: 'decision' });
+        await gameDriver.gameManager.stopGame();
+        await expect(starting).rejects.toThrow(RecordingConflictError);
+        await waitFor(
+            async () => {
+                expect(await fs.readdir(tmpDir)).toEqual([]);
+            },
+            2000,
+            20,
+        );
+        expect(await recorder.listRecordings()).toEqual([]);
+    });
+
     it('auto-finalizes (stops itself, clears the flag) once the game stops', async () => {
         gameDriver.gameManager.state.speed = 1;
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);

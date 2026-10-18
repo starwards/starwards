@@ -30,6 +30,21 @@ describe('recording HTTP API (issue #2101)', () => {
         return gameDriver.gameManager.state.recordingName;
     };
 
+    /** like `recordingOf`, once its first frame is written: a game stopped before that leaves no recording */
+    const framedRecordingOf = async (mapName: string) => {
+        const name = await recordingOf(mapName);
+        await waitFor(
+            async () => {
+                const listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200))
+                    .body as RecordingSummary[];
+                expect(listed.find((r) => r.name === name)?.frameCount).toBeGreaterThan(0);
+            },
+            5_000,
+            20,
+        );
+        return name;
+    };
+
     /** starts a game and stops the recording it starts with, leaving the GM to record by hand */
     async function startUnrecordedGame() {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
@@ -50,7 +65,7 @@ describe('recording HTTP API (issue #2101)', () => {
     it('records a game started on the manager directly', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame(test_map_1);
-        const name = await recordingOf('test_map_1');
+        const name = await framedRecordingOf('test_map_1');
         await gameDriver.gameManager.stopGame();
         await waitFor(() => expect(gameDriver.gameManager.state.isRecordingGame).toBe(false), 5_000, 20);
         const listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200))
@@ -61,7 +76,7 @@ describe('recording HTTP API (issue #2101)', () => {
     it('gives each game its own recording, however quickly the next one starts', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame(test_map_1);
-        const first = await recordingOf('test_map_1');
+        const first = await framedRecordingOf('test_map_1');
         await gameDriver.gameManager.stopGame();
         await gameDriver.gameManager.startGame(two_vs_one);
         const second = await recordingOf('two_vs_one');
