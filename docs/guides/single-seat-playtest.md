@@ -46,13 +46,18 @@ maps; the bots play those too, but there is no baseline to compare them with.
 ### 3. Seat the bots from the GM roster
 
 Open the GM screen, http://localhost:3000/gm.html, and find the **Station Roster** panel. It has one
-row per seat of each player ship, with a **bot** dropdown (`none` or `reference`) and one client
-dropdown per screen of the seat.
+row per seat of each player ship, with the seat's bot status (`none`, or the brain and `starting`,
+`running` or `failed: <message>`), bot buttons, and one client dropdown per screen of the seat.
 
-For every seat you do not play, pick `reference` in its bot dropdown. The server starts the bot on that
-seat; the bot's status shows beside the dropdown while it is `starting` or `failed`. Picking `none`
-stops it. Bot choices reset to `none` when the game stops, restarts or loads, so seat them again after
-each restart.
+For every seat you do not play, press **seat reference**. The server starts the bot on that seat.
+**remove** stops a seated bot; **restart** appears when a bot failed and starts it again. A seat's bot
+buttons are disabled while another seat's bot plays its station (a `tactical` bot plays both pilot and
+weapons); hover them for which seat. Bots are removed when the game stops, restarts or loads, so seat
+them again after each restart.
+
+Above the ships, **reset assignments** unassigns every screen and stops every bot, including clients
+that left and still hold a screen the roster does not list. While bots run and the game is not
+recorded, the roster shows a **bots running, not recording** banner.
 
 | Seat       | Screens                         |
 | ---------- | ------------------------------- |
@@ -146,13 +151,13 @@ The question: does the ship do as well with you in the seat as with a bot there?
 
 ## Common failures
 
-| Symptom                                                      | Cause                                          | Fix                                                                  |
-| ------------------------------------------------------------ | ---------------------------------------------- | -------------------------------------------------------------------- |
-| The roster has no ships                                      | No round running, or the server is not up      | Do steps 1-2.                                                        |
-| A seat's bot status is `failed`                              | The bot could not start on that seat           | Read the message beside the dropdown; pick `none`, then `reference`. |
-| The bots are gone after a restart                            | Bot choices reset when the game stops or loads | Seat them again (step 3).                                            |
-| No `decisions` link beside a recording                       | The recording was stopped while the bots ran   | Press Record to keep the next ones (step 6).                         |
-| A bot stays `starting`; the server log repeats `brain error` | Its brain throws every turn                    | Report the logged message; pick `none` to free the seat.             |
+| Symptom                                                      | Cause                                          | Fix                                                           |
+| ------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
+| The roster has no ships                                      | No round running, or the server is not up      | Do steps 1-2.                                                 |
+| A seat's bot status is `failed`                              | The bot could not start on that seat           | Read the message in the seat's bot status; press **restart**. |
+| The bots are gone after a restart                            | Bot choices reset when the game stops or loads | Seat them again (step 3).                                     |
+| No `decisions` link beside a recording                       | The recording was stopped while the bots ran   | Press Record to keep the next ones (step 6).                  |
+| A bot stays `starting`; the server log repeats `brain error` | Its brain throws every turn                    | Report the logged message; press **remove** to free the seat. |
 
 ## Glossary
 

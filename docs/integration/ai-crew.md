@@ -432,7 +432,7 @@ or benchmark. Lessons, with evidence and reuse notes, go to
 
 ## Live bots
 
-The GM seats a bot on a seat from the station roster (`bot` dropdown, brain `reference`). The server
+The GM seats a bot on a seat from the station roster (**seat reference**; **restart** after a failure, **remove** to stop it). The server
 runs it: one worker thread per ship ([`modules/server/src/bots`](../../modules/server/src/bots)) plays
 every bot seat of that ship through a `StationSession`, with the reference brains and policies of
 `@starwards/bots` that the curriculum also plays, so improving the reference crew once improves both.
