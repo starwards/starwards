@@ -3,7 +3,8 @@ audience: both
 depth: deep
 source_of_truth:
     - modules/ai
-    - modules/mcp/src/sandbox/console.ts
+    - modules/bots/src
+    - modules/server/src/bots
     - modules/server/src/test/training/training-scenarios.ts
     - modules/core/src/recording/recording-format.ts
 related:
@@ -14,8 +15,8 @@ last_verified: 2026-10-02
 
 # AI crew (station brains)
 
-**Module:** [`modules/ai`](../../modules/ai) — station brains that play a ship by pressing the buttons
-of one station each, and the harness that trains and measures them in the headless game.
+**Modules:** [`modules/bots`](../../modules/bots) (`@starwards/bots`) — station brains and the station-session layer they press through, shared by the live server and the headless harness;
+[`modules/ai`](../../modules/ai) — the harness that trains and measures them in the headless game.
 
 ## Purpose and seat policy
 
@@ -53,14 +54,14 @@ the console has it picks one of the buttons that control physically offers:
 | per repair protocol | `raise` / `lower` / `none`, `switch_mode` / `none`      | repair queue                                   |
 
 Per-gun, per-tube and per-system controls are expanded (`fireChainGun:0`, `tubeSafety:1`, `systemPower:/reactor`); a tube fires only with its safety switched off. The whole
-catalogue, one entry per station command, is [`catalogue.ts`](../../modules/ai/src/brain/catalogue.ts);
+catalogue, one entry per station command, is [`catalogue.ts`](../../modules/bots/src/brain/catalogue.ts);
 commands left out carry their reason there (signals job commands send no job id; waypoint commands are not buttons).
 
 All of a decision's questions go to [Jev](https://docs.typesafe.ai) in one request: `state` is the
 display, plus the brain's `role` and `mission`; each control is one choice question. Code turns the
 answers into console commands.
 
-**A brain is one data file**, [`modules/ai/brains/<station>.v<N>.json`](../../modules/ai/brains):
+**A brain is one data file**, [`modules/ai/brains/<station>.v<N>.json`](../../modules/ai/brains) (the reference brains are `modules/bots/src/brains/<station>.v1.json`):
 model, decision interval, confidence floor, role, mission, per-control wording overrides, controls to
 skip and display parts to hide. Tuning a brain means writing its next version; the code is shared by
 every brain and every host.
@@ -72,7 +73,7 @@ nothing — the negative control).
 ## Same console as a live seat
 
 Brains read and press through the MCP station sandbox itself
-([`sandbox/console.ts`](../../modules/mcp/src/sandbox/console.ts), `StationSession`): in the headless
+([`session/console.ts`](../../modules/bots/src/session/console.ts), `StationSession`): in the headless
 game, [`console/headless.ts`](../../modules/ai/src/console/headless.ts) seats a real `StationSession`
 on in-process drivers that apply the same JSON-pointer handler and typed commands the rooms do, on
 simulated time. A brain therefore sees exactly the fog of war a live MCP seat sees.
@@ -80,7 +81,7 @@ simulated time. A brain therefore sees exactly the fog of war a live MCP seat se
 ## Verbal UI
 
 A brain with `"view": "verbal"` in its brain file reads the console as sentences instead of data:
-[`brain/verbal.ts`](../../modules/ai/src/brain/verbal.ts) has one template per station panel plus one
+[`brain/verbal.ts`](../../modules/bots/src/brain/verbal.ts) has one template per station panel plus one
 for the radar, and the request carries those lines as `console` instead of `display`. Jev is weak at
 comparing raw numbers (bearing against heading, this distance against the last one), so code reads
 the display out as an officer would ("12° right of the nose, closing at 40 m/s", "(LOCKED)", "1 of 3
@@ -93,11 +94,11 @@ display shows, so the fog of war is unchanged.
 Owner's idea: instead of leaving Jev to compare raw numbers, code roughly simulates each option of a
 control and writes the consequence into that option. A control's wording in the brain file names a
 plug-in, `"whatIf": "tailGeometry"`; a brain version without it is unchanged. The plug-in interface
-is [`whatif/whatif.ts`](../../modules/ai/src/whatif/whatif.ts): given the station's display, the
+is [`whatif/whatif.ts`](../../modules/bots/src/whatif/whatif.ts): given the station's display, the
 display at the previous decision (a seat remembers its own screen, as the verbal reader does), a
 control and one of its options, a `WhatIf` returns a sentence and optionally an indicator value
 (higher is better, comparable only within one control), or nothing when the display does not show
-enough. [`whatif/forecast.ts`](../../modules/ai/src/whatif/forecast.ts) asks the plug-in about every
+enough. [`whatif/forecast.ts`](../../modules/bots/src/whatif/forecast.ts) asks the plug-in about every
 option, appends each sentence to that option's description, and marks the option with the highest
 indicator `Best forecast of these options.` (a tie goes to pressing nothing): the comparison is made
 in code. The option a plug-in is asked about is turned into a setting by the control's own `press`,
@@ -153,7 +154,7 @@ keeps the seat silent and is recorded as a fallback; `reference` and `idle` seat
 
 **Parameterised callouts.** A callout with `fill` is a template: `say` holds `{degrees}` and
 `{side}`, and when the brain chooses it, code fills them from the speaker's own display
-([`brain/callout.ts`](../../modules/ai/src/brain/callout.ts)). The brain still only picks which
+([`brain/callout.ts`](../../modules/bots/src/brain/callout.ts)). The brain still only picks which
 callout or silence; the numbers are deterministic, and a seat can only say what its station shows:
 a display that does not show the value says nothing.
 
@@ -164,7 +165,7 @@ a display that does not show the value says nothing.
 | `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km        | "contact UFO-12 at 7.4 km, 20° left of the nose" |
 
 **Pub-sub, filtered per decision.** Every crew run has one in-memory channel
-([`crew/channel.ts`](../../modules/ai/src/crew/channel.ts)), the same in the headless crew and the
+([`crew/channel.ts`](../../modules/bots/src/crew/channel.ts)), the same in the headless crew and the
 live crew: a seat publishes, every other seat may hear the last 5 s. Callouts are not addressed;
 the listener filters. A control's wording lists the callouts that decision listens for, `hears:
 ["weapons.need_turn"]` (`<station>.<callout option>`), and only those, heard in the last 5 s, are
@@ -184,7 +185,7 @@ per crew.
 
 Owner's rule: a callout, and a trigger listening for it, only carries information that complements
 what the listener's own station displays. From the manifest widgets and the sandbox readers
-([`modules/mcp/src/readers.ts`](../../modules/mcp/src/readers.ts)):
+([`modules/bots/src/session/readers.ts`](../../modules/bots/src/session/readers.ts)):
 
 | Speaker → listener | Speaker shows, listener does not                                              | Callout kept                                                    |
 | ------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
@@ -257,7 +258,7 @@ reach cut it fails L0 (7/8, median 132.6 s) and L1 (10/16); see the suite baseli
 
 A crew may seat `tactical` in place of `helms` and `weapons` (`crews/tactical-reference.json`,
 `crews/jev-tactical-t1-e10-s3.json`). The station is the MCP multiplexer, and its brain,
-[`brains/tactical.v1.json`](../../modules/ai/brains/tactical.v1.json), is a clone of `helms.v19` and
+[`tactical.v1.json`](../../modules/bots/src/brains/tactical.v1.json), is a clone of `helms.v19` and
 `weapons.v17`: their control wording merged, one decision answering both seats' questions. It is a
 fused oracle meant to be distilled back into per-seat brains, so the seams stay visible:
 
@@ -429,39 +430,30 @@ A candidate is accepted only if it passes its own level and nothing regresses on
 or benchmark. Lessons, with evidence and reuse notes, go to
 [`curriculum/lessons.md`](../../modules/ai/curriculum/lessons.md).
 
-## Live game
+## Live bots
 
-```bash
-npm --prefix modules/ai run crew -- --url http://localhost:8080 --ship GVTS [--crew crews/reference-signals.json] [--human-seat <station>] [--record] [--seconds N] [--out <dir>]
-```
+The GM seats a bot on a seat from the station roster (**seat reference**; **restart** after a failure, **remove** to stop it). The server
+runs it: one worker thread per ship ([`modules/server/src/bots`](../../modules/server/src/bots)) plays
+every bot seat of that ship through a `StationSession`, with the reference brains and policies of
+`@starwards/bots` that the curriculum also plays, so improving the reference crew once improves both.
+The seat table that maps seats to screens and to the station a bot plays through is `bridgeSeats` in
+[`modules/core/src/stations-manifest.ts`](../../modules/core/src/stations-manifest.ts).
 
-`--crew` defaults to the rule-based [`crews/reference-signals.json`](../../modules/ai/crews/reference-signals.json)
-(helms, weapons, engineer, signals; no `TYPESAFE_API_KEY` needed). A Jev crew is opt-in: name it with
-`--crew`, e.g. `crews/recommended.json`. `--human-seat <station>` leaves that station to a human: the
-crew seats every other station and never connects to or registers the human one; a fused seat
-(`tactical`) that would play it is refused.
+Bots do not register as stations: they hold no screen slot and never appear in the unassigned-client
+list. A human screen may attach to a seat a bot holds; input is shared. Bot choices reset to `none`
+when the game stops, restarts or loads. Game time is wall time times the admin speed; a paused game
+makes no decisions. A seat whose brain throws records a `brain_error` event and keeps playing.
 
-Run it from Git Bash: PowerShell's npm drops the `--` flags. In PowerShell call the script directly from `modules/ai`: `node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts --url ...`.
-
-Waits for a running game, seats each crew station on the ship as an MCP `login` does
-([`console/live.ts`](../../modules/ai/src/console/live.ts): the server's manifest decides the seat,
-and it registers as `ai-<station>` on the GM roster), and plays until Ctrl-C or `--seconds` of game
-time ([`live/live-crew.ts`](../../modules/ai/src/live/live-crew.ts)). Game time is wall time times
-the admin speed; a paused game makes no decisions. A seat whose brain throws records a `brain_error`
-event and keeps playing.
-
-`--out` (default: the OS temp dir's `starwards-live-crew`) receives `<name>.events.jsonl` with the
-same `brain_request` / `decision` / `command` events a training run records. With `--record` the
-server records the game, `<name>` is the recording's, event times follow the recording's clock, and
-`<name>.sgr` is downloaded beside the sidecar, so `decisions`, `reask` and `analyze` work on it.
-Presses go out as soon as a seat decides: the network is the latency. Held triggers hold for wall
-seconds.
+While the server records, the recorder writes `<recording>.events.jsonl` beside the `.sgr` with the
+same `brain_request` / `decision` / `command` / `callout` / `brain_error` events a training run
+records, on the recording's clock. A bot seated before recording starts begins writing when it
+starts; events after recording stops are dropped. The sidecar downloads beside the `.sgr` from the
+game controls and the recordings menu, so `decisions`, `reask` and `analyze` work on it.
 
 ### Single-seat playtest: one human, bots on the other seats
 
-`--human-seat <station>` (`helms`, `weapons`, `engineer`, `signals` or `dradis`) leaves that station
-to a human; the crew plays the rest. Step-by-step guide, glossary, crew table and baseline
-comparison: [`docs/guides/single-seat-playtest.md`](../guides/single-seat-playtest.md).
+Step-by-step guide, glossary and baseline comparison:
+[`docs/guides/single-seat-playtest.md`](../guides/single-seat-playtest.md).
 
 ## Snapshot scoring
 

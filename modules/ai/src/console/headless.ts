@@ -1,4 +1,11 @@
-import { SessionShipDriver, SessionSpaceDriver, StationSession } from '@starwards/mcp/src/sandbox/session';
+import {
+    RadarView,
+    SessionShipDriver,
+    SessionSpaceDriver,
+    StationSession,
+    openStation,
+    withMultiplexedStations,
+} from '@starwards/bots';
 import {
     ShipState,
     SpaceState,
@@ -7,10 +14,8 @@ import {
     handleJsonPointerCommand,
     repairCommands,
 } from '@starwards/core/internal';
-import { openStation, withMultiplexedStations } from '@starwards/mcp/src/sandbox/multiplex';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
-import { RadarView } from '@starwards/mcp/src/radar/radar-view';
 import { getStationsManifest } from '@starwards/server/src/stations-manifest';
 
 /**

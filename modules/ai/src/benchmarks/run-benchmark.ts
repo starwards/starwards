@@ -1,19 +1,14 @@
-import { BrainSpec, loadBrainSpec } from '../brain/spec';
+import { BrainSpec, Policy, REFERENCE_BRAINS_DIR, SeatPlan, loadBrainSpec, referenceSeat } from '@starwards/bots';
 import { HeadlessGame, SERVER_TICK_HZ } from '@starwards/server/src/test/headless-game';
 import { JevClient, jevClient } from '../brain/jev-client';
 import { MeteredJevClient, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
-import { Policy } from '../brain/brain';
-import { SeatPlan } from '../crew/crew';
 import fc from 'fast-check';
 import { headlessCrew } from '../crew/crew';
 import { loadBenchmark } from './benchmark';
-import { makeReferencePolicy } from '../brain/reference-policy';
 import path from 'node:path';
-
-const BRAINS_DIR = path.resolve(__dirname, '../../brains');
 
 export type BenchmarkRunOptions = {
     benchmark: string;
@@ -45,7 +40,7 @@ export type BenchmarkRunResult = {
 
 function policyFor(kind: BenchmarkRunOptions['policy'], spec: BrainSpec, jev: () => JevClient): Policy {
     if (kind === 'jev') return jevPolicy(spec, jev());
-    if (kind === 'reference') return makeReferencePolicy(spec.decisionSeconds);
+    if (kind === 'reference') return referenceSeat(spec).policy;
     return idlePolicy;
 }
 
@@ -71,7 +66,7 @@ export async function runBenchmark(options: BenchmarkRunOptions): Promise<Benchm
     const seats: SeatPlan[] = [
         { station: spec.station, spec, policy: policyFor(options.policy, spec, jev) },
         ...benchmark.supporting.map(({ station, policy }) => {
-            const supportSpec = loadBrainSpec(path.join(BRAINS_DIR, `${station}.v1.json`));
+            const supportSpec = loadBrainSpec(path.join(REFERENCE_BRAINS_DIR, `${station}.v1.json`));
             return { station, spec: supportSpec, policy: policyFor(policy, supportSpec, jev) };
         }),
     ];

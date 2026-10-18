@@ -1,20 +1,18 @@
 # Play one seat with bot crewmates
 
-You play one bridge station; bots play every other station of the same ship, live, in the same game.
+You play one bridge seat; the GM seats bots on every other seat of the same ship, live, in the same
+game. Bots run inside the game server, so there is nothing to launch beside it.
 Developer reference for the bots: [`docs/integration/ai-crew.md`](../integration/ai-crew.md).
 
 ## Prerequisites
 
 - The repo checked out, dependencies installed (`npm install` at the repo root), Node as in
   [`DEPENDENCIES.md`](../DEPENDENCIES.md).
-- Two terminals. Git Bash is easiest: every command below is copy-paste for Git Bash. PowerShell
-  differences are noted where they matter.
-- No API key. The default bots are rule-based. Only Jev crews (see [Crew files](#crew-files)) need
-  `TYPESAFE_API_KEY`.
+- No API key. The only bot is the rule-based `reference` crew.
 
 ## Step by step
 
-### 1. Start the game server (terminal 1)
+### 1. Start the game server
 
 From the repo root:
 
@@ -25,7 +23,7 @@ npm run dev
 Wait until it prints `Project is running at: http://localhost:3000/`. Leave it running. The game
 server is `http://localhost:8080`, the screens are on `http://localhost:3000`.
 
-### 2. Start a round (terminal 2)
+### 2. Start a round
 
 The single-seat scenario is `training_t1`: your ship `GVTS` against one attacking dragonfly 5 km
 ahead (the `T1` rung, see [Glossary](#glossary)).
@@ -45,73 +43,79 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8080/start-game -ContentTyp
 No output means it worked. The lobby's buttons (`2v1 Game`, `Solo Game`, `Wave Defence`) start other
 maps; the bots play those too, but there is no baseline to compare them with.
 
-### 3. Open your seat in the browser
+### 3. Seat the bots from the GM roster
 
-| Your seat    | Station name (`--human-seat`) | Open                                          | Input    |
-| ------------ | ----------------------------- | --------------------------------------------- | -------- |
-| Pilot        | `helms`                       | http://localhost:3000/helms.html?ship=GVTS    | keyboard |
-| Weapons      | `weapons`                     | http://localhost:3000/weapons.html?ship=GVTS  | keyboard |
-| Engineer     | `engineer`                    | http://localhost:3000/engineer.html?ship=GVTS | keyboard |
-| Signals      | `signals`                     | http://localhost:3000/signals.html?ship=GVTS  | keyboard |
-| Dradis       | `dradis`                      | http://localhost:3000/dradis.html?ship=GVTS   | mouse    |
-| GM (observe) | not a crew seat               | http://localhost:3000/gm.html                 | mouse    |
+Open the GM screen, http://localhost:3000/gm.html, and find the **Station Roster** panel. It has one
+row per seat of each player ship, with the seat's bot status (`none`, or the brain and `starting`,
+`running` or `failed: <message>`), bot buttons, and one client dropdown per screen of the seat.
 
-No bot plays Dradis, so with `--human-seat dradis` the bots still take all four other stations.
-The Target Details screen (SPEC-0008) is not on `master` yet, so it is not a seat here.
+For every seat you do not play, press **seat reference**. The server starts the bot on that seat.
+**remove** stops a seated bot; **restart** appears when a bot failed and starts it again. A seat's bot
+buttons are disabled while another seat's bot plays its station (a `tactical` bot plays both pilot and
+weapons); hover them for which seat. Bots are removed when the game stops, restarts or loads, so seat
+them again after each restart.
 
-### 4. Launch the bots (terminal 2)
+Above the ships, **reset assignments** unassigns every screen and stops every bot, including clients
+that left and still hold a screen the roster does not list. While bots run and the game is not
+recorded, the roster shows a **bots running, not recording** banner.
 
-Git Bash, from the repo root (example: you are the Pilot):
+| Seat       | Screens                         |
+| ---------- | ------------------------------- |
+| `pilot`    | helms                           |
+| `weapons`  | weapons                         |
+| `engineer` | engineer                        |
+| `sigint`   | signals, dradis, target-details |
+| `tactical` | none (bot only)                 |
 
-```bash
-npm --prefix modules/ai run crew -- --human-seat helms
-```
+A seat with screens but no bot and no client on any of them is marked `UNASSIGNED`. The `sigint` bot
+plays the signals station; no bot plays Dradis. The `tactical` bot flies and fights as one station
+(helms and weapons together), so seat it instead of the `pilot` and `weapons` bots, not alongside them.
 
-PowerShell drops the flags after `npm ... --`, so call the script directly from `modules/ai`:
+### 4. Take your seat
 
-```powershell
-cd modules/ai
-node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts --human-seat helms
-```
+Open your seat's screen:
 
-Replace `helms` with your seat from the table. All flags: [Flags](#crew-command-flags).
+| Your seat    | Open                                          | Input    |
+| ------------ | --------------------------------------------- | -------- |
+| Pilot        | http://localhost:3000/helms.html?ship=GVTS    | keyboard |
+| Weapons      | http://localhost:3000/weapons.html?ship=GVTS  | keyboard |
+| Engineer     | http://localhost:3000/engineer.html?ship=GVTS | keyboard |
+| Signals      | http://localhost:3000/signals.html?ship=GVTS  | keyboard |
+| Dradis       | http://localhost:3000/dradis.html?ship=GVTS   | mouse    |
+| GM (observe) | http://localhost:3000/gm.html                 | mouse    |
+
+The GM assigns your client to a seat from the roster's "Unassigned clients" list. A screen can attach to a seat a bot holds: input is shared, so do not press **seat reference** on your own seat (press **remove** if a bot is there).
 
 ### 5. What you should see when it works
 
-```text
-.env not found. Continuing without it.
-waiting for a game on http://localhost:8080/ (start one from the lobby or with /start-game)
-reference-signals seated on GVTS (weapons, engineer, signals); helms left to the human; Ctrl-C to stop
-```
-
-- The `seated` line lists the bot stations; your station is named as left to the human and must not
-  be in the list. (`.env not found` is harmless.)
-- On the GM screen the roster shows `ai-weapons`, `ai-engineer`, `ai-signals` taken; your seat is free.
+- In the roster, the bot seats show `reference` and the seat you play shows your client.
 - In game, within seconds: weapons locks the target and fires, the engineer changes power, signals scans.
-- In a test run with the Pilot seat played by a stand-in, the attacker died about 22 s into the round.
 
-### 6. Stop the bots
+### 6. Record and download
 
-Press **Ctrl-C** in terminal 2. The crew finishes the presses in flight and prints its counts, e.g.
+The server records every game from its start. Press **Stop Recording** in the GM screen's **Game
+Controls** to end it, and **Record** to start a new one. While the server records, every bot decision
+is written beside the recording as `<recording>.events.jsonl`.
 
-```text
-{"decisions":363,"commands":21,"refused":0,"fallbacks":0,"brainErrors":0,"inputTokens":0,"callouts":0,"suppressed":0}
-decisions: C:\Users\<you>\AppData\Local\Temp\starwards-live-crew\reference-signals-<time>.events.jsonl
+The download of the stopped recording offers the `.sgr` and its `.events.jsonl` together. The
+Recordings menu in the lobby lists every saved recording with a `decisions` link for its sidecar.
+
+Analyse a recording's decisions per control (confidence, fallbacks, flips):
+
+```bash
+npm --prefix modules/ai run decisions -- --recording <file>.sgr --low 10
 ```
 
-To stop on its own instead, add `--seconds 180` (game seconds; `T1` is scored over 180 s).
+`--low <n>` also lists the n least confident decisions with their time; `--md` prints a markdown table.
+The command reads `<file>.events.jsonl` beside the `.sgr`.
 
 ### 7. Restart a round
 
-1. Ctrl-C the bots.
-2. Stop the game:
+1. Stop the game:
    `curl -X POST http://localhost:8080/stop-game` (PowerShell:
    `Invoke-RestMethod -Method Post -Uri http://localhost:8080/stop-game`).
-3. Start it again (step 2) and reload your browser tab.
-4. Launch the bots again (step 4).
-
-You may launch the bots before starting the round: they print `waiting for a game` and take their
-seats when it starts.
+2. Start it again (step 2) and reload your browser tab.
+3. Seat the bots again (step 3).
 
 ## Comparing your session with the all-bot baseline
 
@@ -122,12 +126,11 @@ The question: does the ship do as well with you in the seat as with a bot there?
   **kills 16 of 16 rounds, median 38.7 s to kill**. It is what the curriculum table in
   [`ai-crew.md`](../integration/ai-crew.md#curriculum) shows and what regressions are judged against.
   A re-run on 2026-10-16 gave 16/16, median 42.1 s; the suite judged that the same as the baseline
-  (seed noise). The 43.5 s that `ai-crew.md` used to show came from an older report and was replaced.
-- **Your session:** launch the bots with `--record --seconds 180`. At the end they print
-  `recording: <path>.sgr`. Ask the recording when the attacker and your ship died:
+  (seed noise).
+- **Your session:** record the round (step 6) for 180 s. Ask the recording when the attacker and your ship died:
 
     ```bash
-    npm --prefix modules/server run analyze -- sql "SELECT object_id, t FROM event WHERE kind='despawn' AND object_id IN ('target','GVTS')" --recording <path>.sgr
+    npm --prefix modules/server run analyze -- sql "SELECT object_id, t FROM event WHERE kind='despawn' AND object_id IN ('target','GVTS')" --recording <file>.sgr
     ```
 
     `target` with a `t` = the attacker died at `t` seconds. `GVTS` = your ship died. Empty `[]` = no kill
@@ -146,64 +149,23 @@ The question: does the ship do as well with you in the seat as with a bot there?
 
     It prints a table row with `kills 16/16, median … s` and `ok` in the `vs baseline` column when nothing changed.
 
-## `crew` command flags
-
-`npm --prefix modules/ai run crew -- --help` prints this list.
-
-| Flag                     | Default                                      | Meaning                                                                     |
-| ------------------------ | -------------------------------------------- | --------------------------------------------------------------------------- |
-| `--human-seat <station>` | none (bots take every seat)                  | Station left to you: `helms`, `weapons`, `engineer`, `signals` or `dradis`. |
-| `--crew <file>`          | `crews/reference-signals.json`               | Crew file, relative to `modules/ai`.                                        |
-| `--url <url>`            | `http://localhost:8080`                      | Game server.                                                                |
-| `--ship <id>`            | `GVTS`                                       | Ship the bots crew.                                                         |
-| `--seconds <n>`          | until Ctrl-C                                 | Stop after `n` seconds of game time.                                        |
-| `--record`               | off                                          | Record the game; the `.sgr` recording is saved next to the decisions file.  |
-| `--out <dir>`            | `<OS temp>/starwards-live-crew`              | Where the decisions file (and recording) go.                                |
-| `--no-cache`             | cache on                                     | Jev crews only: ask Jev every time instead of reusing saved answers.        |
-| `--cache-dir <dir>`      | `training-archive/jev-cache` beside the repo | Jev crews only: where saved Jev answers live.                               |
-| `--help`                 |                                              | Print the flags.                                                            |
-
-## Crew files
-
-In [`modules/ai/crews/`](../../modules/ai/crews). For playtests use `reference-signals` (the default)
-or `reference`. The rest are experiments and score-validation crews, kept for the training reports.
-
-| Crew file                                           | What it is                                                                                                                                                                                     | Seats                                                                         | Needs `TYPESAFE_API_KEY`                       |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------- |
-| `reference-signals.json` (default)                  | Best rule-based crew, with signals                                                                                                                                                             | helms, weapons, engineer, signals                                             | no                                             |
-| `reference.json`                                    | Best rule-based crew, the baseline crew                                                                                                                                                        | helms, weapons, engineer                                                      | no                                             |
-| `tactical-reference.json`                           | Rule-based, helms and weapons fused into one `tactical` seat                                                                                                                                   | tactical (helms+weapons), engineer                                            | no                                             |
-| `recommended.json`                                  | Best Jev brains so far (helms v16, weapons v15, engineer v10, signals v3); loses to `reference`                                                                                                | helms, weapons, engineer, signals                                             | yes                                            |
-| `idle.json`                                         | Does nothing; the "no crew" floor                                                                                                                                                              | helms, weapons                                                                | no                                             |
-| `helms-*.json`, `weapons-*.json`, `engineer-*.json` | Reference crew with one seat replaced by a deliberately good/bad scripted style (e.g. `helms-charge`, `weapons-spray-fire`, `engineer-all-max`); used to check that scores rank play correctly | helms, weapons, engineer                                                      | no                                             |
-| `jev-*.json`                                        | Earlier Jev experiments; the name lists the brain versions (`h11` = helms v11, `w8` = weapons v8, `e6` engineer, `s3` signals; `idle-es` = engineer and signals idle)                          | helms, weapons, and usually engineer, signals; `jev-tactical-*` uses tactical | yes (except where every Jev seat is your seat) |
-
-`--human-seat` removes your station from whichever crew you pick. With a crew that has a `tactical`
-seat you cannot take helms or weapons (the bot would play them); the command refuses.
-
 ## Common failures
 
-| Message / symptom                                                                               | Cause                                                   | Fix                                                                    |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Stuck at `waiting for a game on http://localhost:8080/`                                         | No round running, or the server is not up               | Do steps 1–2; the bots join as soon as the round starts.               |
-| `Error: unknown human seat "helm": pick one of helms, weapons, engineer, signals, dradis`       | Misspelled station                                      | Use a name from the seat table.                                        |
-| `Error: TYPESAFE_API_KEY is not set: a Jev brain cannot run without it.`                        | You picked a Jev crew                                   | Drop `--crew` (rule-based default), or set the key in the environment. |
-| `Error: crew tactical-reference: seat tactical plays weapons, the human seat`                   | A fused seat would play your station                    | Use `reference-signals` (default) or `reference`.                      |
-| `Error: station "…" is not open on GVTS`                                                        | That ship has no such station in this map               | Use `training_t1` and `--ship GVTS`.                                   |
-| PowerShell prints npm's own help (`Run arbitrary package scripts`) instead of the crew starting | PowerShell's npm drops the flags after `--`             | Use Git Bash, or the `node ... ./src/cli/crew.ts` form in step 4.      |
-| `.env not found. Continuing without it.`                                                        | Harmless                                                | Nothing.                                                               |
-| The bots play on after you restarted the round without stopping them                            | Untested whether they then play the new round correctly | Restart as in step 7: Ctrl-C first, relaunch after.                    |
+| Symptom                                                      | Cause                                          | Fix                                                           |
+| ------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
+| The roster has no ships                                      | No round running, or the server is not up      | Do steps 1-2.                                                 |
+| A seat's bot status is `failed`                              | The bot could not start on that seat           | Read the message in the seat's bot status; press **restart**. |
+| The bots are gone after a restart                            | Bot choices reset when the game stops or loads | Seat them again (step 3).                                     |
+| No `decisions` link beside a recording                       | The recording was stopped while the bots ran   | Press Record to keep the next ones (step 6).                  |
+| A bot stays `starting`; the server log repeats `brain error` | Its brain throws every turn                    | Report the logged message; press **remove** to free the seat. |
 
 ## Glossary
 
 - **Station / seat.** A station is one bridge job and its screen: `helms` (the Pilot), `weapons`,
-  `engineer`, `signals`, `dradis`. A seat is one place in a crew that plays a station. Usually one
-  seat = one station; a fused seat plays two.
-- **Fused seat, `tactical`.** One bot that plays helms and weapons together, as one brain pressing both
-  stations' keys. It exists to test whether one mind flying and shooting beats two. Not usable when
-  you take helms or weapons.
+  `engineer`, `signals`, `dradis`. A seat is one place on the bridge that a human or a bot plays; it
+  spans one or more screens.
 - **Crew file.** A small JSON file in `modules/ai/crews/` listing the seats and, for each, which brain
-  and which policy plays it.
+  and which policy plays it. The headless suite and training read them.
 - **Brain.** The bot for one station: what it reads off that station's screen, what it may press, how
   often it decides (`brains/<station>.v<N>.json`, versions numbered).
 - **Policy.** Who makes the bot's choices:
@@ -242,5 +204,5 @@ seat you cannot take helms or weapons (the bot would play them); the command ref
 - **inputTokens.** Jev text sent; 0 for rule-based crews.
 - **Callouts / suppressed.** Short phrases bots say to each other on the crew channel (Jev crews
   only); suppressed = not delivered because the same seat said the same phrase a moment ago.
-- **Decisions file (`.events.jsonl`).** Every decision and press the bots made, for later analysis.
-- **Recording (`.sgr`).** The game itself, frame by frame, saved by `--record`.
+- **Decisions file (`.events.jsonl`).** Every decision and press the bots made while the server recorded, for later analysis.
+- **Recording (`.sgr`).** The game itself, frame by frame, saved from the game's start until the GM stops it.

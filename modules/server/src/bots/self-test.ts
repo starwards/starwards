@@ -1,0 +1,27 @@
+import { FromWorker, ToWorker } from './protocol';
+import { GameManager } from '../admin/game-manager';
+import { createLogger } from '@starwards/core/internal';
+import { spawnBotWorker } from './supervisor';
+import { training_t0 } from '../maps';
+
+const { info, error } = createLogger('server:bot-selftest');
+
+/** `STARWARDS_BOT_SELFTEST=1`: start a game, connect a bot worker to this server, and exit 0 once it reports a seated bot running. */
+export async function botWorkerSelfTest(manager: GameManager, port: number): Promise<never> {
+    await manager.startGame(training_t0);
+    const worker = spawnBotWorker({ baseUrl: `http://localhost:${port}`, shipId: 'GVTS' });
+    worker.postMessage({ type: 'seat', seat: 'pilot', botId: 'bot-selftest', brain: 'reference' } satisfies ToWorker);
+    const ok = await new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => resolve(false), 15_000);
+        worker.on('message', (m: FromWorker) => {
+            if (m.type === 'status') {
+                clearTimeout(timer);
+                resolve(m.status === 'running');
+            }
+        });
+        worker.once('error', (e) => (clearTimeout(timer), error(e), resolve(false)));
+    });
+    info(`bot worker selftest: ${ok ? 'ok' : 'FAILED'}`);
+    await worker.terminate();
+    return process.exit(ok ? 0 : 1);
+}

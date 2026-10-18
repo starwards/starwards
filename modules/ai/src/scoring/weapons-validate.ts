@@ -13,6 +13,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { RecordingEventLine, isRecordingName } from '@starwards/core/internal';
 import {
     TACTICAL_WEIGHTS,
     TacticalFrame,
@@ -25,7 +26,6 @@ import {
 } from './weapons-kpi';
 import { readEvents, readFrames } from './recording';
 
-import { RecordingEventLine } from '@starwards/core/internal';
 import { WEAPONS_CREWS } from './weapons-runs';
 
 const PLAYER = 'GVTS';
@@ -63,7 +63,7 @@ async function loadRuns(roots: readonly string[]) {
             for (const crewDir of fs.readdirSync(dir)) {
                 const crew = crewDir.replace(/^weapons-/, '') as Crew;
                 if (!WEAPONS_CREWS.includes(crew)) continue;
-                for (const file of fs.readdirSync(path.join(dir, crewDir)).filter((f) => f.endsWith('.sgr'))) {
+                for (const file of fs.readdirSync(path.join(dir, crewDir)).filter(isRecordingName)) {
                     const [, sc, seed] = /^(.+)_seed(\d+)\.sgr$/.exec(file) ?? [];
                     if (!sc) continue;
                     const result = path.join(dir, crewDir, file.replace(/\.sgr$/, '.result.json'));

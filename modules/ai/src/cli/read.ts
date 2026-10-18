@@ -6,7 +6,7 @@
  * Without `--t`, reads the first decision. The reading includes the trend since the previous one.
  */
 import { readDecisionLog } from '../training/decision-log';
-import { verbalReader } from '../brain/verbal';
+import { verbalReader } from '@starwards/bots';
 
 function arg(name: string) {
     const i = process.argv.indexOf(`--${name}`);

@@ -1,8 +1,6 @@
-import { Answer, Policy } from './brain';
+import { Answer, BrainSpec, Policy, SILENCE } from '@starwards/bots';
 
-import { BrainSpec } from './spec';
 import { JevClient } from './jev-client';
-import { SILENCE } from './callout';
 
 /** Leaves every control as it is: the crew member who never showed up. */
 export const idlePolicy: Policy = {

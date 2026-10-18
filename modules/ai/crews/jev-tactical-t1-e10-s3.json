@@ -4,7 +4,7 @@
         {
             "station": "tactical",
             "policy": "jev",
-            "brain": "../brains/tactical.v1.json"
+            "brain": "../../bots/src/brains/tactical.v1.json"
         },
         {
             "station": "engineer",

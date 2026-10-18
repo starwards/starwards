@@ -20,6 +20,17 @@ VERSION_NAME=v$VERSION
 
 git add ./package.json
 
+cd ../bots
+
+npm pkg set dependencies["@starwards/core"]=$VERSION
+npm version --no-fund --no-audit $VERSION
+for DEPENDENT in ../server ../mcp ../ai
+do
+    (cd $DEPENDENT && npm pkg set dependencies["@starwards/bots"]=$VERSION)
+done
+
+git add ./package.json ../server/package.json ../mcp/package.json ../ai/package.json
+
 cd ../node-red
 
 npm pkg set dependencies["@starwards/core"]=$VERSION
@@ -44,6 +55,9 @@ then
     git push && git push --tags
     echo "Publishing @starwards/core@$VERSION"
     cd ../core
+    npm publish
+    echo "Publishing @starwards/bots@$VERSION"
+    cd ../bots
     npm publish
     echo "Publishing @starwards/node-red@$VERSION"
     cd ../node-red

@@ -2,22 +2,28 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 
-import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import {
+    EVENTS_EXT,
+    RECORDING_EXT,
+    RecordingEventLine,
     RecordingHeader,
     SPACE_ROOM_KEY,
     SegmentPatch,
     createLogger,
     currentEnergyModel,
     encodeBaseLine,
+    encodeEventLine,
     encodeFrameLine,
     encodeHeader,
     encodeSegLine,
     encodeSegment,
+    isRecordingName,
     parseFrameLine,
     parseHeader,
     recordingSchemaHash,
+    sidecarName,
 } from '@starwards/core/internal';
+import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import { GameManager } from '../admin/game-manager';
 import { createReadStream } from 'node:fs';
 import { gzip } from 'node:zlib';
@@ -33,19 +39,16 @@ export interface RecordingSummary {
     startedAt: string;
     durationSeconds: number;
     frameCount: number;
+    /** The decision sidecar's file name, when this recording has one. */
+    events?: string;
 }
 
-export const RECORDING_EXT = '.sgr';
-
-/** True for a plain recording file name — no directory part, correct extension. */
-export function isRecordingName(name: string): boolean {
-    return (
-        name.endsWith(RECORDING_EXT) &&
-        name.length > RECORDING_EXT.length &&
-        !/[/\\]/.test(name) &&
-        path.basename(name) === name
-    );
+/** True for a plain recording or sidecar file name — no directory part, a known extension. */
+export function isRecordingFileName(name: string): boolean {
+    const ext = [RECORDING_EXT, EVENTS_EXT].find((e) => name.endsWith(e));
+    return !!ext && name.length > ext.length && !/[/\\]/.test(name) && path.basename(name) === name;
 }
+const isListedRecording = (name: string) => isRecordingName(name) && isRecordingFileName(name);
 
 /**
  * A precondition on the game itself, not a failure of the recording machinery — the caller
@@ -101,6 +104,22 @@ export class GameRecorder implements PatchTap {
     /** delta-mode line writes, in file order */
     private writes: Promise<void> = Promise.resolve();
     private onFirstKeyframe: (() => void) | null = null;
+    /** the sidecar events are appended to; null while not recording */
+    private eventsPath: string | null = null;
+    /** sidecar line writes, in order */
+    private eventWrites: Promise<void> = Promise.resolve();
+    /** whether this recording's `.sgr` header landed; sidecar events wait for it */
+    private headerWritten: Promise<boolean> = Promise.resolve(false);
+    /** the game (its `SpaceManager`) the current recording belongs to */
+    private recordedGame: object | null = null;
+    /** the last game `recordEveryGame` saw, so each game gets one automatic recording */
+    private seenGame: object | null = null;
+    private gameWatch: ReturnType<typeof setInterval> | null = null;
+    private autoStart: Promise<void> | null = null;
+    /** removal of a finalized recording that got no frame past its header */
+    private discarding: Promise<void> = Promise.resolve();
+    /** Told whenever recording starts or ends, so bot workers post decisions only while they are kept. */
+    public onRecordingChange: (on: boolean) => void = () => {};
 
     constructor(
         private manager: GameManager,
@@ -108,6 +127,43 @@ export class GameRecorder implements PatchTap {
         private intervalMs = 1000,
         private useDeltas = recordingDeltasEnabled,
     ) {}
+
+    /**
+     * Records each game from its start, however it was started. A game is told apart by its
+     * `SpaceManager`, which every start and load replaces; a new game finalizes the previous
+     * game's recording. A GM who stops the automatic recording keeps it stopped for that game.
+     */
+    public recordEveryGame(pollMs = 50) {
+        this.gameWatch ??= setInterval(() => this.watchGames(), pollMs);
+        this.gameWatch.unref();
+    }
+
+    /** stops watching for new games and waits for an automatic start already under way */
+    public async stopRecordingEveryGame() {
+        if (this.gameWatch) clearInterval(this.gameWatch);
+        this.gameWatch = null;
+        await this.autoStart;
+    }
+
+    private watchGames() {
+        const game = this.manager.spaceManager;
+        if (this.autoStart || !this.manager.state.isGameRunning || game === this.seenGame) return;
+        this.seenGame = game;
+        if (this.recordedGame === game) return; // recorded by hand already
+        this.autoStart = (async () => {
+            if (this.filePath) await this.stopRecording(); // the previous game's
+            if (this.manager.spaceManager === game) await this.startRecording();
+        })()
+            .catch((e: unknown) => logError(`can't record the new game:`, e))
+            .finally(() => {
+                this.autoStart = null;
+            });
+    }
+
+    /** the recorded game's state, or null once that game has ended (or another replaced it) */
+    private saveRecordedGame() {
+        return this.manager.spaceManager === this.recordedGame ? this.manager.saveGame() : null;
+    }
 
     public async startRecording(): Promise<string> {
         if (!this.manager.state.isGameRunning) {
@@ -145,18 +201,28 @@ export class GameRecorder implements PatchTap {
             header.schemaHash = recordingSchemaHash();
         }
         this.lastWrittenT = null;
+        this.recordedGame = this.manager.spaceManager;
         this.baseSeconds = this.manager.totalSeconds;
         this.manager.state.isRecordingGame = true;
         this.manager.state.recordingName = filename;
         this.manager.state.recordingSeconds = 0;
+        const headerWrite = fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
+        // events from here on queue behind the header: written once the .sgr exists, so a failed
+        // start leaves no orphan sidecar
+        this.headerWritten = headerWrite.then(
+            () => true,
+            () => false,
+        );
+        this.eventsPath = sidecarName(this.filePath);
+        this.onRecordingChange(true);
         try {
-            await fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
+            await headerWrite;
             if (this.deltas && !(await this.firstKeyframe())) {
                 this.deltas = false; // the space room never patched: record keyframes only
             }
             if (!this.deltas) await this.writeFrame();
         } catch (e) {
-            this.finalize();
+            this.finalize(true);
             throw e;
         }
         if (!this.filePath) {
@@ -192,12 +258,32 @@ export class GameRecorder implements PatchTap {
      */
     public async stopRecording(): Promise<RecordingSummary | null> {
         this.clearTimer();
+        this.eventsPath = null; // events arriving from here on are dropped
         await this.inFlight;
         await this.endDeltas();
+        await this.eventWrites;
         const filePath = this.filePath;
         this.finalize();
         if (!filePath) return null;
         return await summarizeRecording(filePath, path.basename(filePath));
+    }
+
+    /**
+     * Appends a sidecar event stamped on this recording's clock, queued behind the `.sgr` header write.
+     * Dropped when nothing is recording.
+     */
+    public appendEvent(event: Omit<RecordingEventLine, 't'>) {
+        const eventsPath = this.eventsPath;
+        if (!eventsPath) return;
+        const line = encodeEventLine({ t: this.manager.totalSeconds - this.baseSeconds, ...event });
+        const headerWritten = this.headerWritten;
+        // written even if the recording closes meanwhile: it was accepted while recording
+        this.eventWrites = this.eventWrites
+            .then(async () => {
+                // a start whose header write failed has no recording for the event to belong to
+                if (await headerWritten) await fs.appendFile(eventsPath, line, 'utf-8');
+            })
+            .catch((e: unknown) => logError(`error writing recording event:`, e));
     }
 
     private clearTimer() {
@@ -227,19 +313,38 @@ export class GameRecorder implements PatchTap {
      * Closes the current recording. Safe to call from inside a frame write (unlike
      * `stopRecording()`, which awaits the in-flight write and would self-deadlock there).
      * Clearing `filePath` also makes any later stray write a no-op, so nothing can append
-     * to a finalized file.
+     * to a finalized file. `discardEmpty` (the game ended or the start failed) also deletes a
+     * recording that got nothing past its header.
      */
-    private finalize() {
+    private finalize(discardEmpty = false) {
         this.clearTimer();
         this.releaseTap();
+        const wasRecording = this.filePath !== null;
+        if (discardEmpty && this.filePath && this.lastWrittenT === null) this.discard(this.filePath);
         this.filePath = null;
+        this.eventsPath = null;
         this.lastWrittenT = null;
+        this.recordedGame = null;
         this.segment = null;
         this.keyframeDue = false;
         this.deltas = false;
         this.manager.state.isRecordingGame = false;
         this.manager.state.recordingName = '';
         this.manager.state.recordingSeconds = 0;
+        if (wasRecording) this.onRecordingChange(false);
+    }
+
+    /**
+     * Deletes a recording that holds nothing past its header (e.g. the game stopped while it was
+     * starting), with its sidecar, once every write queued for it has landed.
+     */
+    private discard(filePath: string) {
+        const pending = Promise.all([this.headerWritten, this.writes, this.eventWrites]);
+        this.discarding = this.discarding
+            .then(() => pending)
+            .then(() => Promise.all([fs.rm(filePath, { force: true }), fs.rm(sidecarName(filePath), { force: true })]))
+            .then(() => undefined)
+            .catch((e: unknown) => logError(`can't remove empty recording ${filePath}:`, e));
     }
 
     public async listRecordings(): Promise<RecordingSummary[]> {
@@ -251,7 +356,7 @@ export class GameRecorder implements PatchTap {
         }
         const summaries: RecordingSummary[] = [];
         for (const name of entries) {
-            if (!isRecordingName(name)) continue;
+            if (!isListedRecording(name)) continue;
             const summary = await summarizeRecording(path.join(this.dir, name), name);
             if (summary) summaries.push(summary);
         }
@@ -263,7 +368,7 @@ export class GameRecorder implements PatchTap {
     private tick() {
         if (this.inFlight) return;
         if (this.deltas) {
-            if (this.manager.state.isGameRunning) {
+            if (this.manager.state.isGameRunning && this.manager.spaceManager === this.recordedGame) {
                 this.keyframeDue = true;
             } else {
                 this.autoFinalizeDeltas();
@@ -279,10 +384,12 @@ export class GameRecorder implements PatchTap {
 
     private autoFinalizeDeltas() {
         this.clearTimer();
+        this.eventsPath = null;
         this.inFlight = this.endDeltas()
+            .then(() => this.eventWrites)
             .catch((e: unknown) => logError(`error writing recording deltas:`, e))
             .finally(() => {
-                this.finalize();
+                this.finalize(true);
                 this.inFlight = null;
             });
     }
@@ -290,9 +397,12 @@ export class GameRecorder implements PatchTap {
     private async writeFrame(): Promise<void> {
         const filePath = this.filePath;
         if (!filePath) return;
-        const savedGame = this.manager.saveGame();
+        const savedGame = this.saveRecordedGame();
         if (!savedGame) {
-            this.finalize();
+            // the game ended: the recording is done only once its sidecar is complete
+            this.eventsPath = null;
+            await this.eventWrites;
+            this.finalize(true);
             return;
         }
         const t = this.manager.totalSeconds - this.baseSeconds;
@@ -333,7 +443,7 @@ export class GameRecorder implements PatchTap {
         if (this.lastWrittenT !== null && t === this.lastWrittenT) return; // paused: the segment goes on
         // the base first: saveGame() flushes pending entities into the live state
         const spaceBase = space.fullState();
-        const savedGame = this.manager.saveGame();
+        const savedGame = this.saveRecordedGame();
         if (!savedGame) {
             this.autoFinalizeDeltas();
             return;
@@ -429,11 +539,19 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
         fileStream.close();
     }
     if (!header) return null;
-    return {
+    const summary: RecordingSummary = {
         name,
         mapName: header.mapName,
         startedAt: header.startedAt,
         durationSeconds: lastT,
         frameCount,
     };
+    const eventsPath = sidecarName(filePath);
+    try {
+        await fs.access(eventsPath);
+        summary.events = path.basename(eventsPath);
+    } catch {
+        // no decisions were recorded
+    }
+    return summary;
 }

@@ -12,6 +12,7 @@
         "experimentalDecorators": true,
         "paths": {
             "@starwards/core": ["../core/cjs"],
+            "@starwards/bots": ["../bots/cjs"],
             "@starwards/core/internal": ["modules/core/cjs/index.internal"]
         }
     },

@@ -1,11 +1,17 @@
 import {
     AdminState,
+    AssignBotArg,
     AssignStationArg,
+    BotBrain,
+    BotEntry,
+    BotStatus,
+    BridgeSeat,
     GameApi,
     GameMap,
     GameStatus,
     SavedGame,
     ShipApi,
+    ShipBots,
     ShipDie,
     ShipManager,
     ShipManagerNpc,
@@ -16,12 +22,16 @@ import {
     Spaceship,
     Vec2,
     XY,
+    botSeatsConflict,
     createLogger,
+    drainCommands,
     isAssignableSeat,
+    isBotBrain,
     isSlotTaken,
     makeId,
     makeShipState,
     markStationDisconnected,
+    rosterSeats,
     shipConfigurations,
     upsertStationRegistration,
     waitFor,
@@ -36,6 +46,16 @@ const { error: logError } = createLogger('game-manager');
 /** How long a disconnected, unassigned station stays in the registry before being pruned. */
 const STALE_STATION_GRACE_MS = 30_000;
 
+/** What runs the bots the GM seats; the server installs the worker supervisor. */
+export interface BotSeats {
+    start(shipId: string, seat: BridgeSeat, botId: string, brain: BotBrain): void;
+    stop(shipId: string, seat: BridgeSeat): void;
+    /** Stops every bot of every ship and resolves once their workers are gone. */
+    stopAll(): Promise<void>;
+}
+
+const noBots: BotSeats = { start: () => {}, stop: () => {}, stopAll: async () => {} };
+
 export class GameManager {
     public state = new AdminState();
     /** Wall-clock timestamp (`Date.now()`) each currently-disconnected station went offline, for the stale-entry prune below. Cleared on reconnect. */
@@ -45,6 +65,10 @@ export class GameManager {
     private shipManagers = new Map<string, ShipManager>();
     private die = new ShipDie();
     public spaceManager = new SpaceManager();
+    /** Runs the bots seated in `state.bots`. */
+    public botSeats: BotSeats = noBots;
+    /** Server-wide: bot ids stay unique across ships, games and restarts of a seat. */
+    private botCounter = 0;
     private map: GameMap | null = null;
     private deltaSecondsAvg = 1 / 20;
     private _totalSeconds = 0;
@@ -112,53 +136,71 @@ export class GameManager {
                 shipManager.update(iterationData);
             }
             this.spaceManager.update(iterationData);
-            for (const id of this.spaceManager.state.destroySpaceshipCommands) {
-                this.cleanupShip(id);
-            }
-            this.spaceManager.state.destroySpaceshipCommands = [];
-            for (const cmd of this.spaceManager.state.createSpaceshipCommands) {
+            const space = this.spaceManager.state;
+            drainCommands('destroySpaceship', space.destroySpaceshipCommands, (id) => this.cleanupShip(id));
+            space.destroySpaceshipCommands = [];
+            drainCommands('createSpaceship', space.createSpaceshipCommands, (cmd) => {
                 const ship = new Spaceship().init(makeId(), Vec2.make(cmd.position), cmd.shipModel, cmd.faction);
                 this.addShip(ship, cmd.isPlayerShip);
-            }
-            this.spaceManager.state.createSpaceshipCommands = [];
-            for (const cmd of this.spaceManager.state.convertShipTypeCommands) {
-                void this.convertShipType(cmd.shipId, cmd.isPlayerShip);
-            }
-            this.spaceManager.state.convertShipTypeCommands = [];
+            });
+            space.createSpaceshipCommands = [];
+            drainCommands(
+                'convertShipType',
+                space.convertShipTypeCommands,
+                (cmd) => void this.convertShipType(cmd.shipId, cmd.isPlayerShip),
+            );
+            space.convertShipTypeCommands = [];
         }
     }
 
     /**
-     * Drains `state.registerStationCommands`/`disconnectStationCommands`/`assignStationCommands`
-     * (see `stations/` in core): applies registration/disconnect bookkeeping and GM assignment
+     * Drains `state.registerStationCommands`/`disconnectStationCommands`/`assignStationCommands`/
+     * `assignBotCommands` and then a requested `resetAssignments` — last, so a reset clears every
+     * assignment drained in the same tick (see `stations/` in core): applies registration/disconnect bookkeeping and GM assignment
      * overrides generically, validates any requested/GM-assigned ship+type against
      * `playerShipIds` + the stations manifest — the one Starwards-specific piece the generic
      * registry module can't do itself — and then reconciles auto-assignment.
      */
     private drainStationCommands() {
-        for (const arg of this.state.registerStationCommands) {
+        drainCommands('registerStation', this.state.registerStationCommands, (arg) => {
             const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
             this.disconnectedStationSince.delete(arg.stationId);
             if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
                 entry.shipId = arg.shipId;
             }
-        }
+        });
         this.state.registerStationCommands = [];
-        for (const stationId of this.state.disconnectStationCommands) {
+        drainCommands('disconnectStation', this.state.disconnectStationCommands, (stationId) => {
             markStationDisconnected(this.state.stations, stationId);
             this.disconnectedStationSince.set(stationId, Date.now());
-        }
+        });
         this.state.disconnectStationCommands = [];
-        for (const arg of this.state.assignStationCommands) {
-            this.applyStationAssignment(arg);
-        }
+        drainCommands('assignStation', this.state.assignStationCommands, (arg) => this.applyStationAssignment(arg));
         this.state.assignStationCommands = [];
+        drainCommands('assignBot', this.state.assignBotCommands, (arg) => this.applyBotAssignment(arg));
+        this.state.assignBotCommands = [];
+        // after the assignments: a reset wins over any assignment that reached this tick with it
+        if (this.state.resetAssignmentsRequested) {
+            this.state.resetAssignmentsRequested = false;
+            this.resetAssignments();
+        }
         // `playerShipIds` is empty or mid-teardown/mid-creation outside RUNNING: reconciling
         // against it would clear every sticky assignment. startGame/loadGame reconcile on entering RUNNING.
         if (this.state.gameStatus === GameStatus.RUNNING) {
             this.reconcileStationAssignments();
         }
         this.pruneStaleStations();
+    }
+
+    /** The GM's clean slate: every station, connected or sticky-disconnected, loses its ship and type, and every bot leaves. */
+    private resetAssignments() {
+        for (const entry of this.state.stations.values()) {
+            entry.shipId = '';
+            entry.stationType = '';
+        }
+        for (const [shipId, ship] of [...this.state.bots]) {
+            for (const seat of [...ship.seats.keys()]) this.removeBot(shipId, seat as BridgeSeat);
+        }
     }
 
     /**
@@ -191,6 +233,62 @@ export class GameManager {
     }
 
     /**
+     * A GM's bot assignment for a player ship's roster seat. Bots live in `state.bots` only —
+     * never in the station registry — so they and human stations never displace each other.
+     * Invalid ship, seat or brain, a seat conflicting with one of the ship's seated bots (see
+     * `botSeatsConflict`), or a game not RUNNING, is silently ignored.
+     */
+    private applyBotAssignment({ shipId, seat, brain }: AssignBotArg) {
+        if (
+            !this.state.isGameRunning ||
+            !this.state.playerShipIds.includes(shipId) ||
+            !rosterSeats.includes(seat as BridgeSeat)
+        ) {
+            return;
+        }
+        const bridgeSeat = seat as BridgeSeat;
+        const current = this.state.bots.get(shipId)?.seats.get(bridgeSeat);
+        if (brain === 'none') {
+            if (current) this.removeBot(shipId, bridgeSeat);
+            return;
+        }
+        if (!isBotBrain(brain) || (current && current.brain === brain && current.status !== 'failed')) {
+            return;
+        }
+        const seated = [...(this.state.bots.get(shipId)?.seats.keys() ?? [])] as BridgeSeat[];
+        if (seated.some((other) => botSeatsConflict(bridgeSeat, other))) {
+            return;
+        }
+        if (current) this.removeBot(shipId, bridgeSeat);
+        let ship = this.state.bots.get(shipId);
+        if (!ship) {
+            ship = new ShipBots();
+            this.state.bots.set(shipId, ship);
+        }
+        const entry = new BotEntry();
+        entry.id = `bot-${bridgeSeat}-${++this.botCounter}`;
+        entry.brain = brain;
+        ship.seats.set(bridgeSeat, entry);
+        this.botSeats.start(shipId, bridgeSeat, entry.id, brain);
+    }
+
+    private removeBot(shipId: string, seat: BridgeSeat) {
+        const ship = this.state.bots.get(shipId);
+        ship?.seats.delete(seat);
+        if (ship && ship.seats.size === 0) this.state.bots.delete(shipId);
+        this.botSeats.stop(shipId, seat);
+    }
+
+    /** Called by the supervisor with what a ship's worker reports; ignores bots that were stopped meanwhile. */
+    public setBotStatus(shipId: string, seat: BridgeSeat, botId: string, status: BotStatus, message = '') {
+        const entry = this.state.bots.get(shipId)?.seats.get(seat);
+        if (entry && entry.id === botId) {
+            entry.status = status;
+            entry.message = message;
+        }
+    }
+
+    /**
      * Removes a disconnected, unassigned station's entry once it has sat idle past
      * {@link STALE_STATION_GRACE_MS} — a technician's abandoned/renamed-away id shouldn't
      * clutter the roster forever. A disconnected entry that still holds a ship assignment is
@@ -220,12 +318,18 @@ export class GameManager {
     }
 
     /**
-     * Clears assignments whose slot is no longer valid (e.g. after a map switch), then
+     * Removes the bots of ships that are no longer player ships, clears assignments whose slot
+     * is no longer valid (e.g. after a map switch), then
      * auto-assigns any now-unassigned station that has exactly one open slot for its type
      * across every current player ship. Called after every register/disconnect batch, and
      * after `startGame`/`loadGame` change `playerShipIds`.
      */
     private reconcileStationAssignments() {
+        for (const [shipId, ship] of [...this.state.bots]) {
+            if (!this.state.playerShipIds.includes(shipId)) {
+                for (const seat of [...ship.seats.keys()]) this.removeBot(shipId, seat as BridgeSeat);
+            }
+        }
         for (const entry of this.state.stations.values()) {
             if (entry.shipId && !this.isValidStationSlot(entry.shipId, entry.stationType)) {
                 entry.shipId = '';
@@ -250,6 +354,8 @@ export class GameManager {
         this.map = null;
         if (this.state.gameStatus === GameStatus.RUNNING) {
             this.state.gameStatus = GameStatus.STOPPING;
+            this.state.bots.clear();
+            await this.botSeats.stopAll();
             // Use registered ship cleanup functions which await pending
             // room creation before disconnecting, preventing race conditions
             // where matchMaker.query() could miss rooms still being created.

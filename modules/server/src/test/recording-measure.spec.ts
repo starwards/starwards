@@ -64,7 +64,7 @@ const skirmish: GameMap = (() => {
 })();
 
 (outDir ? describe : describe.skip)('recording size measurement (T6)', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ recordEveryGame: false });
 
     it(
         'records a skirmish as v1 at 100 ms and as v2 at the same time',

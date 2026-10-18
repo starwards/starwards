@@ -1,8 +1,5 @@
-import { Control, Display, stationControls } from '../brain/controls';
+import { BrainRequest, Control, Display, makeReferencePolicy, stationControls } from '@starwards/bots';
 import { RecordedDecision, RecordedRequest } from './decision-log';
-
-import { BrainRequest } from '../brain/request';
-import { makeReferencePolicy } from '../brain/reference-policy';
 
 /** One control at one recorded decision: what the reference policy chose and what the brain chose. */
 export type AgreementSample = { control: string; teacher: string; student: string; teacherActs: boolean };

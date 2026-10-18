@@ -2,8 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { EVENTS_EXT, encodeEventLine } from '@starwards/core/internal';
-import { RECORDING_EXT } from '../../../recording/game-recorder';
+import { RECORDING_EXT, encodeEventLine, sidecarName } from '@starwards/core/internal';
 import { Store } from './store';
 import { computeEvents } from './events';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
@@ -179,7 +178,7 @@ describe('computeEvents', () => {
     /** Points `runId` at a `.sgr` path whose sidecar holds `lines`, the way a headless run's ingest does. */
     function sidecar(lines: string[]) {
         runId = path.join(dir, `${runId}${RECORDING_EXT}`);
-        fs.writeFileSync(runId.slice(0, -RECORDING_EXT.length) + EVENTS_EXT, lines.join('\n') + '\n');
+        fs.writeFileSync(sidecarName(runId), lines.join('\n') + '\n');
     }
 
     it('ingests a custom-kind sidecar event with its full data as detail_json', async () => {

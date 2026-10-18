@@ -3,7 +3,7 @@ import * as path from 'node:path';
 
 import { JevClient, JevResponse, jevBody } from './jev-client';
 
-import { BrainRequest } from './request';
+import { BrainRequest } from '@starwards/bots';
 import { createHash } from 'node:crypto';
 
 /** The training archive sits beside the repo checkouts in the workspace folder; the cache is kept there, outside git. */

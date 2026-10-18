@@ -1,5 +1,6 @@
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import { PLAYBACK_RATES, ReplayClock } from '../replay/replay-clock';
+import { RECORDING_EXT, createLogger } from '@starwards/core';
 
 import $ from 'jquery';
 import { GmWidgets } from '../widgets/gm';
@@ -8,7 +9,6 @@ import { ReplayDriver } from '../replay/replay-driver';
 import { ReplaySession } from '../replay/replay-session';
 import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
-import { createLogger } from '@starwards/core';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
 import { dockingWidget } from '../widgets/docking';
@@ -51,8 +51,8 @@ function showEmptyState(root: HTMLElement, onFile: (name: string, text: string) 
     root.replaceChildren();
     const zone = el('div', { class: 'player-empty', 'data-id': 'drop zone' });
     zone.append(el('h1', {}, 'Recording player'));
-    zone.append(el('p', {}, 'Drop a .sgr recording here, or choose one.'));
-    const input = el('input', { type: 'file', accept: '.sgr', 'data-id': 'file input' });
+    zone.append(el('p', {}, `Drop a ${RECORDING_EXT} recording here, or choose one.`));
+    const input = el('input', { type: 'file', accept: RECORDING_EXT, 'data-id': 'file input' });
     zone.append(input);
     if (message) zone.append(el('p', { class: 'player-error', 'data-id': 'load error' }, message));
     const load = async (file: File | undefined) => {

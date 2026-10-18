@@ -83,7 +83,7 @@ describe('delta recording (SPEC-0006)', () => {
         else process.env.STARWARDS_RECORDING_DELTAS = previousFlag;
     });
 
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ recordEveryGame: false });
     let tmpDir: string;
     beforeEach(async () => {
         tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'starwards-delta-recording-'));

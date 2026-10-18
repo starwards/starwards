@@ -1,4 +1,5 @@
 import { Faction, ScanLevel, SpaceObject, SpaceState } from '../space';
+import { drainCommands } from '../commands';
 
 /**
  * Owns the per-faction intel a faction holds on space objects: scan levels, the moment a
@@ -20,9 +21,9 @@ export class FactionIntelManager {
     }
 
     private processSetScanLevelCommands() {
-        for (const cmd of this.state.setScanLevelCommands) {
-            this.setScanLevel(cmd.targetId, cmd.faction, cmd.level);
-        }
+        drainCommands('setScanLevel', this.state.setScanLevelCommands, (cmd) =>
+            this.setScanLevel(cmd.targetId, cmd.faction, cmd.level),
+        );
         this.state.setScanLevelCommands = [];
     }
 

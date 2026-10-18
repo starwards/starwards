@@ -1,3 +1,4 @@
+import { AdminState, type AssignBotArg, assignBot, resetAssignments } from '../admin';
 import {
     type AssignStationArg,
     REGISTER_STATION_REJECTED,
@@ -7,7 +8,6 @@ import {
     registerStation,
 } from '../stations';
 
-import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
 import { Primitive } from 'colyseus-events';
 import { Room } from '@colyseus/sdk';
@@ -34,6 +34,8 @@ export type RecordingInfo = {
     startedAt: string;
     durationSeconds: number;
     frameCount: number;
+    /** The decision sidecar's file name, when this recording has one. */
+    events?: string;
 };
 
 export const AdminDriver = (endpoint: string) => async (adminRoom: Room<unknown, AdminState>) => {
@@ -62,6 +64,10 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<unknown,
         registerStation: (arg: RegisterStationArg) => adminRoom.send(registerStation.cmdName, { value: arg }),
         /** GM override: (re)binds a registered station to a ship + station type, or unassigns it (`shipId: '', stationType: ''`). */
         assignStation: (arg: AssignStationArg) => adminRoom.send(assignStation.cmdName, { value: arg }),
+        /** GM: seats a bot of `brain` at `(shipId, seat)`, or stops the seat's bot (`brain: 'none'`). */
+        assignBot: (arg: AssignBotArg) => adminRoom.send(assignBot.cmdName, { value: arg }),
+        /** GM: unassigns every station, disconnected ones included, and stops every bot on every ship. */
+        resetAssignments: () => adminRoom.send(resetAssignments.cmdName, { value: null }),
         /** Fires when the server rejects a `registerStation` request for `stationId` (see `AdminRoom`'s collision check). */
         onRegisterStationRejected: (cb: (stationId: string) => void): (() => void) => {
             rejectedListeners.add(cb);

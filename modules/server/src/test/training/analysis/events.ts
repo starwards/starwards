@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 
-import { EVENTS_EXT, RecordingEventLine, parseEventLine } from '@starwards/core/internal';
-import { RECORDING_EXT } from '../../../recording/game-recorder';
+import { RecordingEventLine, isRecordingName, parseEventLine, sidecarName } from '@starwards/core/internal';
 import { Store } from './store';
 import { median } from '../gunnery-metrics';
 
@@ -138,9 +137,7 @@ function recordedDetail(event: RecordingEventLine): unknown {
  * otherwise its parsed events and the number of lines that did not parse.
  */
 function readRecordedEvents(recordingPath: string): { events: RecordingEventLine[]; malformed: number } | null {
-    const sidecar = recordingPath.endsWith(RECORDING_EXT)
-        ? recordingPath.slice(0, -RECORDING_EXT.length) + EVENTS_EXT
-        : null;
+    const sidecar = isRecordingName(recordingPath) ? sidecarName(recordingPath) : null;
     if (!sidecar || !fs.existsSync(sidecar)) {
         return null;
     }

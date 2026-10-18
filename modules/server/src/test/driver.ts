@@ -49,8 +49,14 @@ function deepApproxEqual(a: unknown, b: unknown, tolerance = 1e-6): boolean {
  * `manualClock`: stop the admin room's wall-clock simulation interval, so the test's own
  * `gameManager.update()` calls are the only thing advancing game time. Without it, every `await`
  * lets real-time ticks run too, and a timing assertion drifts by however long the await took.
+ *
+ * `recordEveryGame: false`: the server does not record its games, for tests that drive their own
+ * `GameRecorder` on the same game.
  */
-export function makeDriver({ manualClock = false }: { manualClock?: boolean } = {}) {
+export function makeDriver({
+    manualClock = false,
+    recordEveryGame = true,
+}: { manualClock?: boolean; recordEveryGame?: boolean } = {}) {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
     let sockets: ReturnType<typeof makeSocketsControls> | null = null;
@@ -73,6 +79,7 @@ export function makeDriver({ manualClock = false }: { manualClock?: boolean } = 
             gameManager,
             { pingInterval: 0 },
             recordingsDir,
+            { recordEveryGame },
         );
         sockets = makeSocketsControls(serverInfo.httpServer);
         if (manualClock) {
@@ -92,6 +99,10 @@ export function makeDriver({ manualClock = false }: { manualClock?: boolean } = 
         get httpServer() {
             if (!serverInfo) throw new Error('missing serverInfo');
             return serverInfo.httpServer;
+        },
+        get recordingsDir() {
+            if (!recordingsDir) throw new Error('missing recordingsDir');
+            return recordingsDir;
         },
         get sockets() {
             if (!sockets) throw new Error('missing sockets');

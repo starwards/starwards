@@ -1,4 +1,4 @@
-import { AdminDriver, RecordingInfo, createLogger } from '@starwards/core';
+import { AdminDriver, RecordingInfo, createLogger, sidecarName } from '@starwards/core';
 import { addButton, addSliderBlade, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readProp, readWriteNumberProp } from '../property-wrappers';
 
@@ -20,15 +20,28 @@ function clock(seconds: number) {
     return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-/** Hands the finished recording to the GM's browser, so the file to play back is never out of reach. */
-function downloadRecording(name: string) {
+function download(name: string, dataId: string) {
     const link = document.createElement('a');
     link.href = `recordings/${encodeURIComponent(name)}`;
     link.download = name;
-    link.dataset.id = 'recording download';
+    link.dataset.id = dataId;
     document.body.appendChild(link);
     link.click();
     link.remove();
+}
+
+/**
+ * Hands the finished recording to the GM's browser, so the file to play back is never out of reach,
+ * with its decision sidecar when the server kept one.
+ */
+function downloadRecording(name: string) {
+    download(name, 'recording download');
+    const events = sidecarName(name);
+    fetch(`recordings/${encodeURIComponent(events)}`, { method: 'HEAD' })
+        .then((res) => {
+            if (res.ok) download(events, 'recording events download');
+        })
+        .catch((e: unknown) => logError(`can't check for recording events:`, e));
 }
 
 /**

@@ -5,7 +5,8 @@
 // Enforced by dependency-cruiser rule 'no-core-internal-from-browser'.
 
 // --- admin ---
-export { AdminState, GameStatus } from './admin';
+export { AdminState, BotEntry, GameStatus, ShipBots, botBrains, botStatuses } from './admin';
+export type { AssignBotArg, BotBrain, BotStatus } from './admin';
 
 // --- client ---
 export {
@@ -78,6 +79,7 @@ export { getRange } from './range';
 // --- recording ---
 export {
     EVENTS_EXT,
+    RECORDING_EXT,
     SPACE_ROOM_KEY,
     ReplayRoom,
     SavedGame,
@@ -85,6 +87,7 @@ export {
     decodeRecordedBytes,
     decodeSegment,
     encodeSegment,
+    sidecarName,
     deepAssignSchema,
     parseBaseLine,
     parseEventLine,
@@ -134,13 +137,21 @@ export type { AssignStationArg, RegisterStationArg } from './stations';
 
 // --- stations-manifest ---
 export {
+    botSeatsConflict,
+    bridgeSeats,
     isAssignableSeat,
+    isBridgeSeat,
     isRadarWidget,
+    multiplexedStations,
+    rosterSeats,
+    seatOfScreen,
+    seatScreens,
     stationCommands,
     stationRadarWidgets,
     stationWidgets,
 } from './stations-manifest';
 export type {
+    BridgeSeat,
     StationCommand,
     StationEntry,
     StationRadarWidget,

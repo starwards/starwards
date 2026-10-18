@@ -1,19 +1,21 @@
-import { ButtonBrain, Policy, buttonBrain } from '../brain/brain';
-import { Capabilities, Display } from '../brain/controls';
+import {
+    ButtonBrain,
+    Capabilities,
+    Display,
+    Heard,
+    SeatPlan,
+    StationSession,
+    buttonBrain,
+    crewChannel,
+    observeStation,
+} from '@starwards/bots';
 import { SimClock, headlessStation } from '../console/headless';
 
-import { BrainSpec } from '../brain/spec';
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
-import { Heard } from '../brain/callout';
-import { StationSession } from '@starwards/mcp/src/sandbox/session';
-import { crewChannel } from './channel';
-import { observeStation } from '@starwards/mcp/src/sandbox/console';
 
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
 const RADAR_CONTACT_LIMIT = 200;
-/** One seat of a crew: a station, the brain that plays it, and what answers its questions. */
-export type SeatPlan = { station: string; spec: BrainSpec; policy: Policy };
 
 type CrewOptions = {
     shipId: string;

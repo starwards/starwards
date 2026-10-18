@@ -1,22 +1,25 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { ENGINEER_POLICIES, makeEngineerPolicy } from '../brain/engineer-policies';
-import { HELMS_POLICIES, HelmsPolicyName, makeHelmsPolicy } from '../brain/helms-policies';
+import {
+    ENGINEER_POLICIES,
+    HELMS_POLICIES,
+    HelmsPolicyName,
+    Policy,
+    REFERENCE_BRAINS_DIR,
+    SCRIPTED_SEAT_POLICIES,
+    SeatPlan,
+    loadBrainSpec,
+    makeEngineerPolicy,
+    makeHelmsPolicy,
+    makeScriptedSeatPolicy,
+    referenceSeat,
+} from '@starwards/bots';
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
-import { SCRIPTED_SEAT_POLICIES, makeScriptedSeatPolicy } from '../brain/weapons-policies';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
-import { Policy } from '../brain/brain';
-import { SeatPlan } from './crew';
 import { jevClient } from '../brain/jev-client';
-import { loadBrainSpec } from '../brain/spec';
-import { makeReferencePolicy } from '../brain/reference-policy';
-import { seatsOf } from '@starwards/mcp/src/sandbox/multiplex';
 import { z } from 'zod';
-
-/** Where the module's own brains live; a crew file names others by a path relative to itself. */
-const BRAINS_DIR = path.resolve(__dirname, '../../brains');
 
 const crewConfigSchema = z
     .object({
@@ -37,7 +40,7 @@ const crewConfigSchema = z
                         ...HELMS_POLICIES,
                         ...SCRIPTED_SEAT_POLICIES,
                     ]),
-                    /** Brain file; defaults to the module's `<station>.v1.json`. */
+                    /** Brain file, relative to the crew file; defaults to the station's reference brain, `<station>.v1.json` in `@starwards/bots`. */
                     brain: z.string().optional(),
                 })
                 .strict(),
@@ -55,13 +58,10 @@ export function readCrewFile(filePath: string) {
             policy,
             brainPath: brain
                 ? path.resolve(path.dirname(filePath), brain)
-                : path.join(BRAINS_DIR, `${station}.v1.json`),
+                : path.join(REFERENCE_BRAINS_DIR, `${station}.v1.json`),
         })),
     };
 }
-
-/** The bridge stations a human may take while the crew plays the rest (`dradis` is the Dradis screen, where a human uses the mouse). */
-export const HUMAN_SEATS = ['helms', 'weapons', 'engineer', 'signals', 'dradis'] as const;
 
 /** `jevUsage` counts what the crew's Jev seats ask from now on; absent for a crew without one. */
 type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean; jevUsage?: JevUsage };
@@ -69,21 +69,10 @@ type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean; jevUsage?: 
 /**
  * Reads a crew file and builds its seats. A Jev seat needs `TYPESAFE_API_KEY`; the client is shared
  * by every seat of the crew so the per-process rate limit covers all of them, and answers from the
- * answer cache the environment names. A `humanSeat` is left to a human player: the crew seats every
- * other station, and refuses a fused seat (`tactical`) that would play it.
+ * answer cache the environment names.
  */
-export function loadCrew(filePath: string, jevRequestsPerMinute?: number, humanSeat?: string): CrewPlan {
+export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewPlan {
     const config = readCrewFile(filePath);
-    if (humanSeat !== undefined) {
-        if (!(HUMAN_SEATS as readonly string[]).includes(humanSeat)) {
-            throw new Error(`unknown human seat "${humanSeat}": pick one of ${HUMAN_SEATS.join(', ')}`);
-        }
-        const fused = config.seats.find((s) => s.station !== humanSeat && seatsOf(s.station).includes(humanSeat));
-        if (fused) {
-            throw new Error(`crew ${config.name}: seat ${fused.station} plays ${humanSeat}, the human seat`);
-        }
-        config.seats = config.seats.filter((s) => s.station !== humanSeat);
-    }
     const usesJev = config.seats.some((s) => s.policy === 'jev');
     const client = usesJev
         ? meteredJevClient(jevClient({ requestsPerMinute: jevRequestsPerMinute }), answerCacheFromEnv())
@@ -93,21 +82,22 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number, humanS
         if (spec.station !== seat.station) {
             throw new Error(`crew ${config.name}: brain ${spec.id} plays ${spec.station}, not ${seat.station}`);
         }
+        if (seat.policy === 'reference') {
+            return referenceSeat(spec);
+        }
         const policy: Policy =
             seat.policy === 'jev'
                 ? jevPolicy(spec, client!)
-                : seat.policy === 'reference'
-                  ? makeReferencePolicy(spec.decisionSeconds)
-                  : seat.policy === 'idle'
-                    ? idlePolicy
-                    : (HELMS_POLICIES as readonly string[]).includes(seat.policy)
-                      ? makeHelmsPolicy(seat.policy as HelmsPolicyName, spec.decisionSeconds)
-                      : (SCRIPTED_SEAT_POLICIES as readonly string[]).includes(seat.policy)
-                        ? makeScriptedSeatPolicy(
-                              seat.policy as (typeof SCRIPTED_SEAT_POLICIES)[number],
-                              spec.decisionSeconds,
-                          )
-                        : makeEngineerPolicy(seat.policy as (typeof ENGINEER_POLICIES)[number], spec.decisionSeconds);
+                : seat.policy === 'idle'
+                  ? idlePolicy
+                  : (HELMS_POLICIES as readonly string[]).includes(seat.policy)
+                    ? makeHelmsPolicy(seat.policy as HelmsPolicyName, spec.decisionSeconds)
+                    : (SCRIPTED_SEAT_POLICIES as readonly string[]).includes(seat.policy)
+                      ? makeScriptedSeatPolicy(
+                            seat.policy as (typeof SCRIPTED_SEAT_POLICIES)[number],
+                            spec.decisionSeconds,
+                        )
+                      : makeEngineerPolicy(seat.policy as (typeof ENGINEER_POLICIES)[number], spec.decisionSeconds);
         return { station: seat.station, spec, policy };
     });
     return { name: config.name, seats, usesJev, jevUsage: client?.usage };

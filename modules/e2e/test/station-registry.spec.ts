@@ -64,12 +64,10 @@ test.describe('Station registry', () => {
         await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
-        await expect
-            .poll(() => roster.locator('[data-id^="Station Roster Row "]').count(), { timeout: 10000 })
-            .toBeGreaterThanOrEqual(2);
+        const rows = roster.locator('div[data-id^="Roster Unassigned "]');
+        await expect.poll(() => rows.count(), { timeout: 10000 }).toBeGreaterThanOrEqual(2);
 
-        const rowTexts = await roster.locator('[data-id^="Station Roster Row "]').allTextContents();
-        const ids = rowTexts.map((text) => text.trim().split(' ')[1]);
+        const ids = await rows.evaluateAll((els) => els.map((el) => el.getAttribute('data-id')));
         expect(new Set(ids).size).toBe(ids.length);
 
         await pageA.close();
@@ -89,8 +87,8 @@ test.describe('Station registry', () => {
         await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
-        await expect(roster).toContainText('helms');
-        await expect(roster).toContainText('GVTS');
+        await expect(roster.locator('[data-id="Roster Screen GVTS helms"]')).not.toHaveValue('', { timeout: 10000 });
+        await expect(roster.locator('[data-id="Roster Seat GVTS pilot"]')).toHaveAttribute('data-unassigned', 'false');
 
         await page.screenshot({ path: 'test-results/station-registry-gm-roster.png' });
         await helmsContext.close();
@@ -141,11 +139,9 @@ test.describe('GM station assignment', () => {
         await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
         await expect(roster).toBeVisible({ timeout: 10000 });
-        const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
-        await expect(row).toBeVisible({ timeout: 10000 });
+        await expect(roster.locator(`[data-id="Roster Unassigned ${stationId}"]`)).toBeVisible({ timeout: 10000 });
 
-        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
-        await row.locator('[data-id="Station Roster Type"]').selectOption('helms');
+        await roster.locator('[data-id="Roster Screen GVTS helms"]').selectOption(stationId!);
 
         await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 25000 });
         await expect
@@ -153,7 +149,11 @@ test.describe('GM station assignment', () => {
             .toBe('GVTS');
 
         // reassign live: same station type, different ship — no reload of the station tab
-        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS2');
+        await roster.locator('[data-id="Roster Screen GVTS2 helms"]').selectOption(stationId!);
+        await expect(roster.locator('[data-id="Roster Screen GVTS2 helms"]')).toHaveValue(stationId!, {
+            timeout: 5000,
+        });
+        await expect(roster.locator('[data-id="Roster Screen GVTS helms"]')).not.toHaveValue(stationId!);
         await expect
             .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
             .toBe('GVTS2');
@@ -182,21 +182,17 @@ test.describe('GM station assignment', () => {
         await expect(waitingId).toBeVisible({ timeout: 10000 });
         const stationId = (await waitingId.textContent())?.trim();
 
-        const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
+        const row = roster.locator(`[data-id="Roster Unassigned ${stationId}"]`);
         await expect(row).toBeVisible({ timeout: 10000 });
-        await expect(row).toContainText('●');
+        await expect(roster.locator('[data-id="Roster Screen GVTS helms"]')).toContainText(`● ${stationId}`);
 
-        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
-        await expect(row.locator('[data-id="Station Roster Type"] option[value="helms"]')).toHaveCount(1, {
-            timeout: 10000,
-        });
-        await row.locator('[data-id="Station Roster Type"]').selectOption('helms');
+        await row.locator('[data-id="Roster Unassigned Assign"]').selectOption('GVTS|helms');
 
         await expect
             .poll(() => gameDriver.gameManager.state.stations.get(stationId!)?.shipId, { timeout: 5000 })
             .toBe('GVTS');
-        await expect(row.locator('[data-id="Station Roster Ship"]')).toHaveValue('GVTS', { timeout: 5000 });
-        await expect(row.locator('[data-id="Station Roster Type"]')).toHaveValue('helms', { timeout: 5000 });
+        await expect(row).toHaveCount(0, { timeout: 5000 });
+        await expect(roster.locator('[data-id="Roster Screen GVTS helms"]')).toHaveValue(stationId!, { timeout: 5000 });
         await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 25000 });
 
         await stationContext.close();
@@ -219,13 +215,12 @@ test.describe('GM station assignment', () => {
         await expect(waitingId).toBeVisible({ timeout: 10000 });
         const stationId = (await waitingId.textContent())?.trim();
 
-        const shipSelect = roster.locator(
-            `[data-id="Station Roster Row ${stationId}"] [data-id="Station Roster Ship"]`,
-        );
-        await expect(shipSelect).toBeVisible({ timeout: 10000 });
-        await shipSelect.selectOption('GVTS'); // no type yet: a pending, client-only pick
-        const handle = await shipSelect.elementHandle();
-        await shipSelect.focus();
+        const screenSelect = roster.locator('[data-id="Roster Screen GVTS helms"]');
+        await expect(screenSelect.locator(`option[value="${stationId}"]`)).toHaveCount(1, { timeout: 10000 });
+        const handle = await screenSelect.elementHandle();
+        // an earlier test's sticky entry may already hold the screen: only its value staying put matters
+        const valueBefore = await screenSelect.inputValue();
+        await screenSelect.focus();
 
         const otherContext = await browser.newContext();
         const otherPage = await otherContext.newPage();
@@ -234,10 +229,10 @@ test.describe('GM station assignment', () => {
         const otherWaitingId = otherPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]');
         await expect(otherWaitingId).toBeVisible({ timeout: 10000 });
         const otherId = (await otherWaitingId.textContent())?.trim();
-        await expect(roster.locator(`[data-id="Station Roster Row ${otherId}"]`)).toBeVisible({ timeout: 10000 });
+        await expect(screenSelect.locator(`option[value="${otherId}"]`)).toHaveCount(1, { timeout: 10000 });
 
         expect(await handle!.evaluate((el) => el.isConnected && el === document.activeElement)).toBe(true);
-        await expect(shipSelect).toHaveValue('GVTS');
+        await expect(screenSelect).toHaveValue(valueBefore);
 
         await otherContext.close();
         await stationContext.close();
@@ -263,10 +258,8 @@ test.describe('GM station assignment', () => {
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
         await page.locator('.lm_title', { hasText: 'roster' }).click();
         const roster = page.locator('[data-id="Station Roster"]');
-        const row = roster.locator(`[data-id="Station Roster Row ${stationId}"]`);
-        await expect(row).toBeVisible({ timeout: 10000 });
-        await row.locator('[data-id="Station Roster Ship"]').selectOption('GVTS');
-        await row.locator('[data-id="Station Roster Type"]').selectOption('helms');
+        await expect(roster.locator(`[data-id="Roster Unassigned ${stationId}"]`)).toBeVisible({ timeout: 10000 });
+        await roster.locator('[data-id="Roster Screen GVTS helms"]').selectOption(stationId!);
         await expect(stationPage.locator('[data-id="Helms Radar"]')).toBeVisible({ timeout: 10000 });
 
         await gameDriver.gameManager.stopGame();

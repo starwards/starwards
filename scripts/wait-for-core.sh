@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Wait for a fresh core build, then start the server.
+# The server's bot workers load @starwards/* from sources, so bots need no build.
 # dev.sh removes stale core output before launching panes,
 # so we just wait for the file to appear from the initial build.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

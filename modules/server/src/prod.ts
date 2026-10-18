@@ -4,6 +4,7 @@ import * as path from 'path';
 import { GameManager } from './admin/game-manager';
 import QRCode from 'qrcode';
 import { VERSION } from '@starwards/core';
+import { botWorkerSelfTest } from './bots/self-test';
 import { createLogger } from '@starwards/core/internal';
 import { exec } from 'child_process';
 import { getNetworkAddresses } from './network-info';
@@ -114,6 +115,9 @@ async function main() {
         const { addressInfo } = await server(port, path.join(__dirname, '..', 'static'), gameManager);
         for (const line of formatBanner(addressInfo.port, isPackaged)) {
             logInfo(line);
+        }
+        if (process.env.STARWARDS_BOT_SELFTEST) {
+            await botWorkerSelfTest(gameManager, addressInfo.port);
         }
         if (isPackaged) {
             if (process.platform === 'win32') {

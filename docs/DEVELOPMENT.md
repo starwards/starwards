@@ -13,14 +13,14 @@ npm test                   # Verify
 
 ## Build
 
-| Command              | Purpose                     |
-| -------------------- | --------------------------- |
-| `npm run build`      | Build all modules           |
-| `npm run build:core` | Core only                   |
-| `npm run clean`      | Remove artifacts            |
+| Command              | Purpose                              |
+| -------------------- | ------------------------------------ |
+| `npm run build`      | Build all modules                    |
+| `npm run build:core` | Core only                            |
+| `npm run clean`      | Remove artifacts                     |
 | `npm run build:exe`  | Native executables (Windows + Linux) |
 
-**Build order:** core → (server, browser, node-red, mcp in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
+**Build order:** core → bots → (server, browser, node-red, mcp in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
 
 **Production build:**
 
@@ -46,6 +46,8 @@ npm run build:exe # → dist/exec/starwards-win.exe, dist/exec/starwards-linux (
 ```bash
 npm run dev
 # core watch + API server + webpack dev server in one terminal
+# the server waits for core, then starts from source; bot workers of a server run from source load
+# @starwards/* from sources, so a bots edit reaches the next bot seated
 # Zellij pane-grid variant: npm run dev:zellij
 ```
 
@@ -68,7 +70,8 @@ cd modules/browser && npm start
 
 ```bash
 node -r ts-node/register/transpile-only modules/server/src/dev.ts
-# Runs on http://localhost:8080
+# Runs on http://localhost:8080; needs the core build. When the server runs from source, bot workers load @starwards/* from sources
+# (modules/server/src/bots/worker-source.ts), so they need no build and pick up edits on the next bot seated
 ```
 
 **Hot reload:** Browser client auto-reloads | Server requires manual restart

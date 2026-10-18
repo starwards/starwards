@@ -1,4 +1,4 @@
-import { BrainRequest } from './request';
+import { BrainRequest } from '@starwards/bots';
 
 /** A choice answer as the snap-judgment endpoint returns it. */
 type JevChoiceAnswer = {

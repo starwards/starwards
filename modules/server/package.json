@@ -23,6 +23,7 @@
         "@colyseus/monitor": "^0.18.6",
         "@colyseus/schema": "^5.0.40",
         "@colyseus/ws-transport": "^0.18.4",
+        "@starwards/bots": "0.5.1",
         "@starwards/core": "0.5.1",
         "express": "^5.2.1",
         "express-async-handler": "^1.2.0",

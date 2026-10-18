@@ -181,9 +181,7 @@ export class Store {
 
 /** `<name>.sgr.duckdb` beside `<name>.sgr`, per the design spec's *Store* layout. */
 export function storePathFor(recordingPath: string): string {
-    return recordingPath.endsWith('.sgr')
-        ? recordingPath.slice(0, -'.sgr'.length) + '.sgr.duckdb'
-        : `${recordingPath}.duckdb`;
+    return `${recordingPath}.duckdb`;
 }
 
 /**

@@ -28,6 +28,7 @@ import { RankedPair, bootstrap, ci, fmt, mean, seedCorr as pointsCorr, rankingVa
 import { readEvents, readFrames } from './recording';
 
 import { integrity } from './features';
+import { isRecordingName } from '@starwards/core/internal';
 
 const PLAYER = 'GVTS';
 const POLICIES = [
@@ -164,7 +165,7 @@ async function loadRuns(dirs: readonly string[]) {
         for (const crew of fs.readdirSync(dir)) {
             const policy = crew.replace(/^engineer-/, '') as PolicyName;
             if (!crew.startsWith('engineer-') || !POLICIES.includes(policy)) continue;
-            for (const file of fs.readdirSync(path.join(dir, crew)).filter((f) => f.endsWith('.sgr'))) {
+            for (const file of fs.readdirSync(path.join(dir, crew)).filter(isRecordingName)) {
                 const [, scenario, seed] = /^(.+)_seed(\d+)\.sgr$/.exec(file) ?? [];
                 if (!scenario) continue;
                 const loaded = await loadRun(path.join(dir, crew, file));

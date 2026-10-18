@@ -2,8 +2,17 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { GameRecorder, RecordingConflictError } from './game-recorder';
-import { POWER_DRAW_EXPONENT, parseFrameLine, parseHeader, waitFor } from '@starwards/core/internal';
+import {
+    EVENTS_EXT,
+    POWER_DRAW_EXPONENT,
+    RECORDING_EXT,
+    parseEventLine,
+    parseFrameLine,
+    parseHeader,
+    sidecarName,
+    waitFor,
+} from '@starwards/core/internal';
+import { GameRecorder, RecordingConflictError, isRecordingFileName } from './game-recorder';
 import { makeDriver } from '../test/driver';
 import { writeV2Fixture } from '../test/v2-recording-fixture';
 
@@ -16,7 +25,7 @@ async function readLines(filePath: string): Promise<string[]> {
 const keyframesOnly = () => false;
 
 describe('GameRecorder', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ recordEveryGame: false });
     let tmpDir: string;
 
     beforeEach(async () => {
@@ -104,6 +113,23 @@ describe('GameRecorder', () => {
         }
 
         await recorder.stopRecording();
+    });
+
+    it('removes a recording the game stopped before its first frame, with no sidecar', async () => {
+        await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
+        const starting = recorder.startRecording();
+        recorder.appendEvent({ kind: 'decision' });
+        await gameDriver.gameManager.stopGame();
+        await expect(starting).rejects.toThrow(RecordingConflictError);
+        await waitFor(
+            async () => {
+                expect(await fs.readdir(tmpDir)).toEqual([]);
+            },
+            2000,
+            20,
+        );
+        expect(await recorder.listRecordings()).toEqual([]);
     });
 
     it('auto-finalizes (stops itself, clears the flag) once the game stops', async () => {
@@ -210,5 +236,125 @@ describe('GameRecorder', () => {
             expect(summary.durationSeconds).toBe(v1.durationSeconds);
         }
         expect(v1.durationSeconds).toBeGreaterThan(0);
+    });
+
+    describe('decision sidecar', () => {
+        const decision = { kind: 'decision', objectId: 'GVTS', data: {} };
+        const sidecars = async () => (await fs.readdir(tmpDir)).filter((n) => n.endsWith(EVENTS_EXT));
+
+        it('appends events only while recording, beside the .sgr, on the recording clock', async () => {
+            gameDriver.gameManager.state.speed = 1;
+            await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+            const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
+            const changes: boolean[] = [];
+            recorder.onRecordingChange = (on) => changes.push(on);
+
+            recorder.appendEvent(decision);
+            const filename = await recorder.startRecording();
+            recorder.appendEvent(decision);
+            await new Promise((res) => setTimeout(res, 50));
+            recorder.appendEvent(decision);
+            const summary = await recorder.stopRecording();
+            recorder.appendEvent(decision);
+            await new Promise((res) => setTimeout(res, 20));
+
+            const sidecar = sidecarName(filename);
+            expect(await sidecars()).toEqual([sidecar]);
+            const events = (await readLines(path.join(tmpDir, sidecar))).map(parseEventLine);
+            expect(events).toHaveLength(2);
+            expect(events[0]).toMatchObject(decision);
+            expect(events[0]!.t).toBeGreaterThanOrEqual(0);
+            expect(events[1]!.t).toBeGreaterThanOrEqual(events[0]!.t);
+            expect(summary?.events).toEqual(sidecar);
+            expect(changes).toEqual([true, false]);
+        });
+
+        it('completes the sidecar before a recording that ends with its game reports itself done', async () => {
+            const realFs = jest.requireActual<typeof import('node:fs/promises')>('node:fs/promises');
+            const appendFile = realFs.appendFile.bind(realFs);
+            const slowSidecar = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
+                if (typeof file === 'string' && file.endsWith(EVENTS_EXT))
+                    await new Promise((res) => setTimeout(res, 300));
+                return appendFile(file, data, options);
+            });
+            try {
+                gameDriver.gameManager.state.speed = 1;
+                await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+                const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
+                const ended = new Promise<void>((resolve) => {
+                    recorder.onRecordingChange = (on) => {
+                        if (!on) resolve();
+                    };
+                });
+                const filename = await recorder.startRecording();
+                recorder.appendEvent(decision);
+                await gameDriver.gameManager.stopGame();
+                await ended;
+
+                const lines = await readLines(path.join(tmpDir, sidecarName(filename)));
+                expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
+            } finally {
+                slowSidecar.mockRestore();
+            }
+        });
+
+        it('keeps an event sent as soon as bots are told to record, writing it after the .sgr header', async () => {
+            const realFs = jest.requireActual<typeof import('node:fs/promises')>('node:fs/promises');
+            const appendFile = realFs.appendFile.bind(realFs);
+            const headerFirst: boolean[] = [];
+            const spy = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
+                if (typeof file === 'string' && file.endsWith(EVENTS_EXT)) {
+                    const sgr = file.slice(0, -EVENTS_EXT.length) + RECORDING_EXT;
+                    headerFirst.push((await realFs.readFile(sgr, 'utf-8')).includes('starwards-recording'));
+                }
+                return appendFile(file, data, options);
+            });
+            try {
+                gameDriver.pauseGameCommand();
+                await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+                const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20, keyframesOnly);
+                // bots are told to record before the header is written: what they send at once is kept
+                recorder.onRecordingChange = (on) => on && recorder.appendEvent(decision);
+                const filename = await recorder.startRecording();
+                await recorder.stopRecording();
+
+                const lines = await readLines(path.join(tmpDir, sidecarName(filename)));
+                expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
+                expect(headerFirst).toEqual([true]);
+            } finally {
+                spy.mockRestore();
+            }
+        });
+
+        it('writes no sidecar for a recording without events', async () => {
+            gameDriver.pauseGameCommand();
+            await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+            const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20, keyframesOnly);
+            await recorder.startRecording();
+            const summary = await recorder.stopRecording();
+            expect(await sidecars()).toEqual([]);
+            expect(summary?.events).toBeUndefined();
+            expect((await recorder.listRecordings())[0].events).toBeUndefined();
+        });
+
+        it('lists the sidecar with its recording', async () => {
+            gameDriver.pauseGameCommand();
+            await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+            const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20, keyframesOnly);
+            const filename = await recorder.startRecording();
+            recorder.appendEvent(decision);
+            await recorder.stopRecording();
+            expect(await recorder.listRecordings()).toEqual([
+                expect.objectContaining({ name: filename, events: sidecarName(filename) }),
+            ]);
+        });
+
+        it('isRecordingFileName accepts plain recording and sidecar names only', () => {
+            expect(isRecordingFileName('a_1.events.jsonl')).toBe(true);
+            expect(isRecordingFileName('a_1.sgr')).toBe(true);
+            expect(isRecordingFileName('../a.events.jsonl')).toBe(false);
+            expect(isRecordingFileName('a.jsonl')).toBe(false);
+            expect(isRecordingFileName('.events.jsonl')).toBe(false);
+        });
     });
 });

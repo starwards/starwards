@@ -1,3 +1,4 @@
+import { REFERENCE_BRAINS_DIR } from '@starwards/bots';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -19,7 +20,7 @@ describe('helms benchmarks fly unarmed ships', () => {
     it('helms-intercept seed 5 runs to the end with the quarry alive', async () => {
         const result = await runBenchmark({
             benchmark: 'helms-intercept',
-            brainPath: path.resolve(__dirname, '../../brains/helms.v1.json'),
+            brainPath: path.join(REFERENCE_BRAINS_DIR, 'helms.v1.json'),
             policy: 'reference',
             seed: 5,
             outDir,

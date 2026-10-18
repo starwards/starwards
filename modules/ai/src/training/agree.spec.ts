@@ -1,6 +1,6 @@
 import { agreementSummary, recordedChoices, teacherAgreement, withinReach } from './agree';
 
-import { Control } from '../brain/controls';
+import { Control } from '@starwards/bots';
 import { RecordedRequest } from './decision-log';
 
 /** A weapons console: no lock, then a lock on a contact dead ahead in range, then one far off the nose. */

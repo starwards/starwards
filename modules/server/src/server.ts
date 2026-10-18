@@ -4,7 +4,7 @@ import * as http from 'http';
 import * as maps from './maps';
 import * as path from 'path';
 
-import { GameRecorder, RecordingConflictError, isRecordingName } from './recording/game-recorder';
+import { GameRecorder, RecordingConflictError, isRecordingFileName } from './recording/game-recorder';
 import { NextFunction, Request, Response } from 'express';
 import { SEA_MONITOR_PREFIX, SEA_STATIC_PREFIX, isSingleExecutable, writableDefault } from './app-paths';
 import { SavedGame, createLogger } from '@starwards/core/internal';
@@ -13,6 +13,7 @@ import { schemaToString, stringToSchema } from './serialization/game-state-seria
 
 import { AddressInfo } from 'node:net';
 import { AdminRoom } from './admin/room';
+import { BotSupervisor } from './bots/supervisor';
 import { CleanLocalPresence } from './clean-local-presence';
 import { GameManager } from './admin/game-manager';
 import { ShipRoom } from './ship/room';
@@ -73,10 +74,20 @@ export async function server(
     // detection) stays active.
     wsTransportOverrides?: { pingInterval?: number; pingMaxRetries?: number },
     recordingsDir: string = recordingsDirPath(),
+    /** off only for tests that drive their own `GameRecorder` on this game */
+    { recordEveryGame = true }: { recordEveryGame?: boolean } = {},
 ) {
     const gameRecorder = new GameRecorder(manager, recordingsDir, recordingIntervalMs());
     // reassigned once gameServer.listen() resolves the actual bound port (the caller may pass 0)
     let boundPort = port;
+    const bots = new BotSupervisor(
+        manager,
+        () => `http://localhost:${boundPort}`,
+        (e) => gameRecorder.appendEvent(e),
+    );
+    gameRecorder.onRecordingChange = (on) => bots.setRecording(on);
+    if (recordEveryGame) gameRecorder.recordEveryGame();
+    manager.botSeats = bots;
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
@@ -168,7 +179,7 @@ export async function server(
         // `name` is client-supplied and joined onto recordingsDir — a path component would
         // escape the directory and read arbitrary files.
         const { name } = req.params;
-        if (!isRecordingName(name)) {
+        if (!isRecordingFileName(name)) {
             logError(`invalid recording name "${name}"`);
             res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             return;
@@ -262,6 +273,9 @@ export async function server(
         httpServer,
         addressInfo,
         close: async () => {
+            // Bot workers hold client connections to this server: drain them while it still answers.
+            await bots.stopAll();
+            await gameRecorder.stopRecordingEveryGame();
             // Close the recording before the transport goes away, so no frame write outlives
             // the server (and races whoever cleans up the recordings directory).
             await gameRecorder.stopRecording();

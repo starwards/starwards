@@ -9,11 +9,10 @@
  */
 import { answerCacheFromEnv, applyCacheFlags, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
+import { loadBrainSpec, makeReferencePolicy } from '@starwards/bots';
 import { reask, reaskSummary } from '../training/reask';
 
 import { jevClient } from '../brain/jev-client';
-import { loadBrainSpec } from '../brain/spec';
-import { makeReferencePolicy } from '../brain/reference-policy';
 import { readDecisionLog } from '../training/decision-log';
 
 function arg(name: string, fallback?: string) {

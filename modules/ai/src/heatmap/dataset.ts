@@ -29,6 +29,7 @@ import {
 import { duelOf, findDuel, integrity } from '../scoring/features';
 import { readFrames } from '../scoring/recording';
 import { scoreSnapshot } from '../scoring/score';
+import { sidecarName } from '@starwards/core/internal';
 
 interface ManifestLine {
     path: string;
@@ -88,7 +89,7 @@ const META = ['run_id', 'map', 'scenario', 'seed', 'policy', 't'];
 async function run(day: string, archive: string, line: ManifestLine, out: Record<'threat' | 'cells' | 'iso', Csv>) {
     const file = path.join(archive, day, line.path);
     const frames = await readFrames(file);
-    const hits = await readHits(file.replace(/\.sgr$/, '.events.jsonl'));
+    const hits = await readHits(sidecarName(file));
     const policies = new Set(Object.values(line.stations ?? {}).map((s) => s.policy));
     const policy = policies.has('jev') ? 'jev' : policies.size === 1 ? [...policies][0] : 'mixed';
     const scenario = line.outcome?.scenario ?? path.basename(line.path).replace(/_seed\d+\.sgr$|\.sgr$/, '');

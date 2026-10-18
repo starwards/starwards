@@ -26,17 +26,27 @@ export function RecordingsMenu({ adminDriver }: Props) {
         <pre key="Recordings">
             <h2>Recordings</h2>
             {recordings.map((r) => (
-                <Button
-                    key={r.name}
-                    palette="primary"
-                    onClick={() =>
-                        window.location.assign(`player.html?src=${encodeURIComponent(`recordings/${r.name}`)}`)
-                    }
-                >
-                    <div data-id={`recording ${r.name}`}>
-                        {r.mapName} — {new Date(r.startedAt).toLocaleString()} ({Math.round(r.durationSeconds)}s)
-                    </div>
-                </Button>
+                <React.Fragment key={r.name}>
+                    <Button
+                        palette="primary"
+                        onClick={() =>
+                            window.location.assign(`player.html?src=${encodeURIComponent(`recordings/${r.name}`)}`)
+                        }
+                    >
+                        <div data-id={`recording ${r.name}`}>
+                            {r.mapName} — {new Date(r.startedAt).toLocaleString()} ({Math.round(r.durationSeconds)}s)
+                        </div>
+                    </Button>
+                    {r.events && (
+                        <a
+                            href={`recordings/${encodeURIComponent(r.events)}`}
+                            download={r.events}
+                            data-id={`recording events ${r.name}`}
+                        >
+                            decisions
+                        </a>
+                    )}
+                </React.Fragment>
             ))}
         </pre>
     );

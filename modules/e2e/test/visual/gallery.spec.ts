@@ -34,6 +34,12 @@ const scenes = [
     'helms-dashboard-stationary',
     'helms-dashboard-moving',
     'helms-dashboard-target-mode',
+    // Station Roster
+    'station-roster-empty',
+    'station-roster-bots-running',
+    'station-roster-failed',
+    'station-roster-blocked',
+    'station-roster-not-recording',
     // Tactical Radar
     'tactical-radar-empty',
     'tactical-radar-single-ship',

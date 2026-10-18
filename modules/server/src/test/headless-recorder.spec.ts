@@ -2,20 +2,19 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import {
-    EVENTS_EXT,
     RecordingEventLine,
     SavedGame,
     XY,
     parseEventLine,
     parseFrameLine,
     parseHeader,
+    sidecarName,
 } from '@starwards/core/internal';
-import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
 
 import { HeadlessRecorder } from './headless-recorder';
-import { RECORDING_EXT } from '../recording/game-recorder';
 import { decodeRecording } from './training/analysis/decode';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
@@ -74,7 +73,7 @@ describe('HeadlessRecorder', () => {
 
     const readEvents = () =>
         fs
-            .readFileSync(recorder.filePath.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
+            .readFileSync(sidecarName(recorder.filePath), 'utf-8')
             .split('\n')
             .filter((line) => line)
             .map((line) => parseEventLine(line)!);

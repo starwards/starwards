@@ -2,17 +2,16 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { CALLOUT_QUESTION, Policy, brainSpecSchema } from '@starwards/bots';
 import { runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
 
-import { CALLOUT_QUESTION } from '../brain/callout';
-import { Policy } from '../brain/brain';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
-import { brainSpecSchema } from '../brain/spec';
 import { headlessCrew } from './crew';
 import { idlePolicy } from '../brain/policies';
 import { loadCrew } from './crew-config';
 import { readDecisionLog } from '../training/decision-log';
 import { rmDirRetrying } from '@starwards/server/src/test/training/analysis/__fixtures__/rm-retry';
+import { sidecarName } from '@starwards/core/internal';
 
 const brain = (station: string, callouts?: object) =>
     brainSpecSchema.parse({
@@ -72,7 +71,7 @@ describe('a headless crew that talks', () => {
             expect(mostAsking).toBe(2);
             expect(answered).toEqual(['fast', 'slow']);
             const recorded = fs
-                .readFileSync(result.recording!.replace(/\.sgr$/, '.events.jsonl'), 'utf8')
+                .readFileSync(sidecarName(result.recording!), 'utf8')
                 .split('\n')
                 .filter((l) => /"kind":"(brain_request|callout|decision)"/.test(l))
                 .map((l) => JSON.parse(l) as { kind: string; data: { station: string; heard?: unknown[] } });
@@ -136,7 +135,7 @@ describe('a headless crew that talks', () => {
             expect(heardByHelms[1]).toEqual(['Weapons said "target locked" 1 s ago']);
             expect(heardByHelms[2]).toEqual(['Weapons said "target locked" 2 s ago']);
             expect(crew.stats).toMatchObject({ callouts: 1, suppressed: 2 });
-            const sidecar = fs.readFileSync(result.recording!.replace(/\.sgr$/, '.events.jsonl'), 'utf8');
+            const sidecar = fs.readFileSync(sidecarName(result.recording!), 'utf8');
             const callouts = sidecar
                 .split('\n')
                 .filter((l) => l.includes('"kind":"callout"'))
@@ -192,7 +191,7 @@ describe('a headless crew with a tactical seat', () => {
             });
 
             const events = fs
-                .readFileSync(result.recording!.replace(/\.sgr$/, '.events.jsonl'), 'utf8')
+                .readFileSync(sidecarName(result.recording!), 'utf8')
                 .split('\n')
                 .filter(Boolean)
                 .map((l) => JSON.parse(l) as { kind: string; data: Record<string, unknown> });

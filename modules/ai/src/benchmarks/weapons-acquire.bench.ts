@@ -13,7 +13,7 @@ import {
 import { Benchmark } from './benchmark';
 import { BlastOverlaps } from '@starwards/server/src/test/blast-overlaps';
 import fc from 'fast-check';
-import { offNose } from '../brain/verbal';
+import { offNose } from '@starwards/bots';
 
 const SHIP = 'GVTS';
 const ENEMY = 'raider';

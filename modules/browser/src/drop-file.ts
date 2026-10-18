@@ -1,11 +1,10 @@
-import { AdminDriver, GameStatus } from '@starwards/core';
+import { AdminDriver, GameStatus, RECORDING_EXT } from '@starwards/core';
 import { stashRecording } from './replay/recording-handoff';
 
-const recordingFileExtension = '.sgr';
 export const savedGameFileExtension = '.ssg';
 
 /** For a file input's `accept`: everything `handleFile` understands. */
-export const loadFileAccept = `${recordingFileExtension},${savedGameFileExtension}`;
+export const loadFileAccept = `${RECORDING_EXT},${savedGameFileExtension}`;
 
 type DropUi = {
     setDragging(dragging: boolean): void;
@@ -15,7 +14,7 @@ type DropUi = {
 /** What to do with a file the user handed over, by dropping it or by choosing it with the Load button. */
 export function handleFile(file: File, getAdminDriver: () => AdminDriver | null, ui: Pick<DropUi, 'setNotice'>) {
     ui.setNotice('');
-    if (file.name.endsWith(recordingFileExtension)) {
+    if (file.name.endsWith(RECORDING_EXT)) {
         void file
             .text()
             .then((text) => stashRecording({ name: file.name, text }))
@@ -31,7 +30,7 @@ export function handleFile(file: File, getAdminDriver: () => AdminDriver | null,
             ui.setNotice(`Loading ${file.name}…`);
         });
     } else {
-        ui.setNotice(`Drop a ${recordingFileExtension} recording or a ${savedGameFileExtension} saved game.`);
+        ui.setNotice(`Drop a ${RECORDING_EXT} recording or a ${savedGameFileExtension} saved game.`);
     }
 }
 

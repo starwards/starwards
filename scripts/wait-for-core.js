@@ -3,6 +3,7 @@
 // Cross-platform twin of wait-for-core.sh (used by the zellij layout);
 // `npm run dev` removes stale core output first (see `predev`), so waiting
 // for the file to appear is enough to know the initial build finished.
+// The server's bot workers load @starwards/* from sources, so bots need no build.
 const { existsSync } = require('fs');
 const { spawn } = require('child_process');
 const { join } = require('path');

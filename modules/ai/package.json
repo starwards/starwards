@@ -8,7 +8,6 @@
         "train": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/train.ts",
         "decisions": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/decisions.ts",
         "reask": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/reask.ts",
-        "crew": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/crew.ts",
         "read": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/read.ts",
         "bench": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/bench.ts",
         "suite": "node --env-file-if-exists=.env -r ts-node/register/transpile-only ./src/cli/suite.ts",
@@ -25,8 +24,8 @@
         "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts"
     },
     "dependencies": {
+        "@starwards/bots": "0.5.1",
         "@starwards/core": "0.5.1",
-        "@starwards/mcp": "0.5.1",
         "@starwards/server": "0.0.0",
         "zod": "4.1.12"
     }

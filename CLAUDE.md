@@ -33,11 +33,11 @@ npm run dev
 # Development (3 terminals)
 cd modules/core && npm run build:watch     # Terminal 1: Core watch
 cd modules/browser && npm start             # Terminal 2: Frontend (localhost:3000)
-node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 3: Backend (localhost:8080)
+node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 3: Backend (localhost:8080); run from source like this, bot workers load @starwards/* from sources
 
 # UI Gallery (no server needed, just browser dev server)
 # http://localhost:3000/gallery.html
-# Scenes: ammo, armor, dradis-radar, engineering-status, gm-radar, helms, long-range-radar, missile-paint, tactical-radar, targeting, tubes-status, warp
+# Scenes: ammo, armor, dradis-radar, engineering-status, gm-radar, helms, long-range-radar, missile-paint, observation-mode, smart-gun, station-roster, tactical-radar, targeting, tubes-status, warp
 # (scene list lives in modules/browser/src/gallery/scenes/index.ts)
 # Direct link: http://localhost:3000/gallery.html?scene=tactical-radar
 
@@ -90,8 +90,8 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 - **Stack**: Colyseus multiplayer, PixiJS v8 graphics, React UI, XState, TypeScript
 - **Monorepo**: `modules/` folder with npm workspaces
-- **Modules**: browser, core, server, node-red, mcp, ai, e2e
-- **Build order**: core → (server, browser, node-red, mcp in parallel); `ai` has no build (ts-node scripts over core, server and mcp source)
+- **Modules**: browser, core, bots, server, node-red, mcp, ai, e2e
+- **Build order**: core → bots → (server, browser, node-red, mcp in parallel); `ai` has no build (ts-node scripts over core, bots and server source)
 - **Scenarios**: Defined in `modules/server/src/maps.ts`
 
 ## Architecture
@@ -180,7 +180,7 @@ filter(o => getScanLevel(o) === UFO)      // ✅ keys on what the player has ear
 
 Filter on scan level. Type filters are legitimate only above `BASIC`, where the player already knows the type. GM surfaces are exempt. The same rule covers removal: a visible collection that drops an entry discloses why it dropped.
 
-**This discipline now spans clients.** `modules/mcp` seats an LLM at a station and answers `get_radar_contacts` from the same `FieldOfView` and the same `playerScanLevel` the browser draws blips with — both live in `modules/core/src/client/`. A perception rule implemented in only one of them is a client that sees what the other cannot: put it in core, and cover it in `modules/mcp/src/radar/radar-view.spec.ts`, which asserts the MCP predicate against the browser's directly.
+**This discipline now spans clients.** `modules/mcp` seats an LLM at a station and answers `get_radar_contacts` from the same `FieldOfView` and the same `playerScanLevel` the browser draws blips with — both live in `modules/core/src/client/`. A perception rule implemented in only one of them is a client that sees what the other cannot: put it in core, and cover it in `modules/bots/src/session/radar-view.spec.ts`, which asserts the MCP predicate against the browser's directly.
 
 ### Managers
 
@@ -203,7 +203,7 @@ Filter on scan level. Type filters are legitimate only above `BASIC`, where the 
 | State not persisting     | Modify `spaceObject`, not `ship.state` (see sync pattern)                                                                                                                                |
 | Jest fails with Babel decorator/import syntax errors, or "ts-jest module not found" | Both flavors of the same root causes: missing deps or wrong cwd. First check `node_modules` exists at repo root (`npm ci` if not). Never run bare `npx jest` inside a module dir (misses root ts-jest config). Run from repo root: `npx jest --selectProjects=core --ci <pattern>` (or `npm test -- <pattern>`)                       |
 | Orphaned jest workers on Windows | Killing an `npm test`/jest parent orphans workers that burn CPU forever. Kill the tree: `taskkill /F /T /PID <pid>` (last resort: `Get-Process node \| Where CPU -gt 60 \| Stop-Process -Force`). Prefer bounded runs (`timeout`/`-TimeoutSec`) redirected to a file over piping through `tail` |
-| E2E fails at import with `Cannot read properties of undefined (reading 'constructor')` in `@colyseus/schema` | The workspace was never built, so Playwright resolves `@starwards/*` to TS source via tsconfig `paths` and transpiles `@gameField` as a standard (2023-05) decorator — colyseus expects a legacy one. Build first, as CI does: `npm run build:core && npm run build:server && npm --prefix modules/browser run build` |
+| E2E fails at import with `Cannot read properties of undefined (reading 'constructor')` in `@colyseus/schema` | The workspace was never built, so Playwright resolves `@starwards/*` to TS source via tsconfig `paths` and transpiles `@gameField` as a standard (2023-05) decorator — colyseus expects a legacy one. Build first, as CI does: `npm run build:core && npm run build:bots && npm run build:server && npm --prefix modules/browser run build` |
 | Port in use              | Dev server uses 8080 (override with `PORT` env). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
 | `room.send()` float values arrive as garbage (e.g. 0.25 → 1.08e-137) while ints and strings survive | `Packr.useBuffer()` in @colyseus/msgpackr swaps the module-level write buffer without refreshing the DataView floats are written through, and colyseus calls it from `getMessageBytes[JOIN_ROOM]` once the schema handshake outgrows the 8 KB packr buffer. `modules/core/src/serialization-buffers.ts` sizes that buffer up front to keep colyseus off the path; grow it there if the handshake ever exceeds it |
 | `tsc` dies with "JavaScript heap out of memory" on a build that worked minutes ago | Two copies of `zod` in the tree. Its v4 types are branded, so duplicates are incompatible identities and the compiler exhausts its heap comparing them instead of reporting a mismatch. `npm ls zod --all`; there must be no `modules/*/node_modules/zod`. Root `overrides` pins the version — see [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md#version-pins) |

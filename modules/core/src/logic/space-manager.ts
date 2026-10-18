@@ -32,6 +32,7 @@ import { SpaceDamageType } from '../space/damage-profile';
 import { applyLockCommands } from '../lock-commands';
 import { avoidObstacles } from './obstacle-avoidance';
 import { createLogger } from '../logger';
+import { drainCommands } from '../commands';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
 
@@ -282,37 +283,37 @@ export class SpaceManager implements Updateable {
         // apply GM lock/unlock commands before anything else can write a locked field this tick
         applyLockCommands(this.state);
         this.calcAttachmentCliques();
-        for (const cmd of this.state.createAsteroidCommands) {
+        drainCommands('createAsteroid', this.state.createAsteroidCommands, (cmd) => {
             const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);
             this.insert(asteroid);
-        }
+        });
         this.state.createAsteroidCommands = [];
-        for (const cmd of this.state.createExplosionCommands) {
+        drainCommands('createExplosion', this.state.createExplosionCommands, (cmd) => {
             const explosion = new Explosion().init(makeId(), Vec2.make(cmd.position), cmd.damageFactor);
             this.insert(explosion);
-        }
+        });
         this.state.createExplosionCommands = [];
-        for (const cmd of this.state.createNebulaCommands) {
+        drainCommands('createNebula', this.state.createNebulaCommands, (cmd) => {
             const nebula = new Nebula().init(makeId(), Vec2.make(cmd.position), cmd.radius);
             this.insert(nebula);
-        }
+        });
         this.state.createNebulaCommands = [];
-        for (const cmd of this.state.createWaypointCommands) {
+        drainCommands('createWaypoint', this.state.createWaypointCommands, (cmd) => {
             const waypoint = new Waypoint().init(makeId(), Vec2.make(cmd.position));
             if (cmd.owner != null) waypoint.owner = cmd.owner;
             if (cmd.title) waypoint.title = cmd.title;
             if (cmd.collection) waypoint.collection = cmd.collection;
             if (cmd.color !== undefined) waypoint.color = cmd.color;
             this.insert(waypoint);
-        }
+        });
         this.state.createWaypointCommands = [];
         this.handleToInsert();
-        for (const moveCommand of this.state.moveCommands) {
-            this.handleMoveCommand(moveCommand.ids, moveCommand.delta);
-        }
+        drainCommands('move', this.state.moveCommands, (moveCommand) =>
+            this.handleMoveCommand(moveCommand.ids, moveCommand.delta),
+        );
         this.state.moveCommands = [];
 
-        for (const cmd of this.state.botOrderCommands) {
+        drainCommands('botOrder', this.state.botOrderCommands, (cmd) => {
             if (cmd.order.type === 'move' && cmd.ids.length > 1) {
                 // For multi-ship move orders, preserve relative formation
                 const ships: Array<{ id: string; position: XY }> = [];
@@ -342,7 +343,7 @@ export class SpaceManager implements Updateable {
                     }
                 }
             }
-        }
+        });
         this.state.botOrderCommands = [];
 
         this.growExplosions(deltaSeconds);

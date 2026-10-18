@@ -8,6 +8,7 @@ import {
 } from './snapshot/snapshot-persistence';
 
 import { GameManager } from './admin/game-manager';
+import { botWorkerSelfTest } from './bots/self-test';
 import { createLogger } from '@starwards/core/internal';
 import { server } from './server';
 
@@ -22,7 +23,10 @@ process.on('uncaughtException', function (err) {
 
 const gameManager = new GameManager();
 
-void server(port, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager).then(async () => {
+void server(port, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager).then(async ({ addressInfo }) => {
+    if (process.env.STARWARDS_BOT_SELFTEST) {
+        await botWorkerSelfTest(gameManager, addressInfo.port);
+    }
     // dev-only: opt-in game snapshot + auto-restore, so a dev-server restart
     // lands back in the same scenario (prerequisite for server hot-reload)
     if (isSnapshotRestoreEnabled()) {

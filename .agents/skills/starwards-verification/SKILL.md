@@ -184,6 +184,7 @@ npm run build
 
 # Build specific module
 npm run build:core
+npm run build:bots
 npm run build:browser
 npm run build:server
 npm run build:node-red
