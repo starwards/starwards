@@ -81,7 +81,7 @@ describe('beam jamming (M4.27 ruling)', () => {
 
     it('jams a FULL-scanned friendly missile the same as a hostile one', () => {
         const { missile, beam, run } = shipWithMissileInBeam();
-        missile.faction = Faction.Gravitas;
+        missile.shipId = 'ship1'; // the jamming ship's own missile
         beam.jamming = true;
         run(1.1);
         expect(missile.jammed).to.equal(true);
