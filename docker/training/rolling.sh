@@ -3,7 +3,9 @@
 # mining of that rung rebuilt. Run by the rolling-* CronJobs (deploy/k3s/training, JOB=rolling); see
 # docs/integration/ai-training-k3s.md, "Continuous training".
 #
-#   LANE         branch (record + branch corpus) | sweep (reference crews side by side on the same seeds)
+#   LANE         branch (record + branch corpus) | sweep (reference crews side by side on the same seeds) |
+#                jev (a strategic and tactical corpus whose alternatives the Jev captain proposes first,
+#                within the spend guard: JEV_PROPOSALS per point, JEV_CAP_USD over /training-archive/jev-ledger.jsonl)
 #   RUNGS        comma-separated rungs, one per cycle in turn
 #   LEVEL_SETS   branch: '|'-separated level sets, the next set after each full turn of RUNGS;
 #                button sets read button:<station>:<control>
@@ -15,6 +17,8 @@
 #   mining/_lanes/<lane>/cycles.jsonl   one line per cycle started: its seeds are never used again
 #   mining/<rung>/branches-<commit>.jsonl, sweep-<commit>.jsonl   every branch / run row of that code
 #   mining/<rung>/LATEST.md             the current commit's cumulative findings (mining.py)
+#   mining/jev-decisions.jsonl          every Jev decision with its payout (jev lane; day rows in <day>/jev-decisions.jsonl)
+#   jev-ledger.jsonl                    the Jev spend ledger: reservations and settlements, capped
 set -eu
 
 ARCHIVE=${ARCHIVE:-/training-archive}
@@ -50,10 +54,11 @@ timeout=$(printf '%s' "${TIMEOUTS:-}" | tr ',' '\n' | sed -n "s/^$rung=//p")
 [ -n "$timeout" ] && export TIMEOUT=$timeout
 
 kind=$LANE
+[ "$kind" = jev ] && LEVEL_SETS=strategic,tactical
 
 levels=
 branch_args=
-if [ "$kind" = branch ]; then
+if [ "$kind" = branch ] || [ "$kind" = jev ]; then
     nsets=$(count "${LEVEL_SETS:-strategic,tactical}" '|')
     set_=$(pick "${LEVEL_SETS:-strategic,tactical}" '|' $(((cycle / nrungs) % nsets)))
     case "$set_" in
@@ -82,6 +87,18 @@ branch)
     rows=$ARCHIVE/$day/branching/$run-corpus/branches.jsonl
     if [ "$status" = 0 ] && [ -s "$rows" ]; then
         cat "$rows" >>"$MINING/$rung/branches-$COMMIT.jsonl"
+    fi
+    ;;
+jev)
+    jev_args="--jev-proposals ${JEV_PROPOSALS:-3} --jev-cap-usd ${JEV_CAP_USD:-10} --jev-ledger $ARCHIVE/jev-ledger.jsonl --jev-index $MINING/jev-decisions.jsonl --jev-decisions $ARCHIVE/$day/jev-decisions.jsonl"
+    CREWS=$(printf '%s' "$CREWS" | cut -d, -f1) LEVELS=$levels BRANCH_ARGS=$jev_args run-job branch || status=$?
+    rows=$ARCHIVE/$day/branching/$run-corpus/branches.jsonl
+    if [ "$status" = 0 ] && [ -s "$rows" ]; then
+        cat "$rows" >>"$MINING/$rung/branches-$COMMIT.jsonl"
+        # the day's Jev decisions into the cumulative index, with the payouts this corpus measured
+        until mkdir "$MINING/.jev-index.lock" 2>/dev/null; do sleep 2; done
+        (cd /app/modules/ai && node dist/cli/branch.js join-ledger --index "$MINING/jev-decisions.jsonl"             --ledger "$ARCHIVE/$day/jev-decisions.jsonl" --corpus "$rows") || echo "jev ledger join failed"
+        rmdir "$MINING/.jev-index.lock"
     fi
     ;;
 sweep)

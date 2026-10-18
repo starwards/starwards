@@ -12,6 +12,7 @@ import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { SeatPlan } from '@starwards/bots';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { headlessCrew } from '../crew/crew';
+import { ledgerFromEnv } from '../brain/decision-ledger';
 import { loadCrew } from '../crew/crew-config';
 import path from 'node:path';
 
@@ -66,6 +67,7 @@ function crewed<R>(
         throw new Error(`unknown scenario ${options.scenario}; one of ${Object.keys(trainingScenarios).join(', ')}`);
     }
     const plan = loadCrew(crewPath, options.jevRequestsPerMinute);
+    const ledgerFile = ledgerFromEnv();
     const crew = headlessCrew({
         shipId: TRAINING_PLAYER_ID,
         seats: options.branch?.seats?.(plan.seats) ?? plan.seats,
@@ -73,6 +75,18 @@ function crewed<R>(
         doctrine: plan.doctrine,
         intervene: options.branch?.intervene,
         lens: options.branch?.lens,
+        // a branch replays decisions already in the ledger: only a recorded run writes rows
+        ...(ledgerFile && !options.branch
+            ? {
+                  decisionLedger: {
+                      file: ledgerFile,
+                      run: `${process.env.RUN_NAME ?? path.basename(options.outDir)}/${plan.name}/${options.scenario}_seed${options.seed}`,
+                      scenario: options.scenario,
+                      seed: options.seed,
+                      recording: path.join(options.outDir, plan.name, `${options.scenario}_seed${options.seed}.sgr`),
+                  },
+              }
+            : {}),
     });
     const result = run(scenario, {
         seed: options.seed,

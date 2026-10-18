@@ -20,9 +20,11 @@ import {
     sendOrderCommand,
 } from '@starwards/bots';
 import { SimClock, headlessStation } from '../console/headless';
+import { appendRows, decisionRow } from '../brain/decision-ledger';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
+import { jevCacheKey } from '../brain/jev-cache';
 
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
 const RADAR_CONTACT_LIMIT = 200;
@@ -43,6 +45,8 @@ export type CrewOptions = {
     intervene?: (seconds: number, board: OrdersBoard | undefined, send: (c: OrderCommand) => void) => void;
     /** Per station, what that seat is shown instead of its console: a branch narrowing what the captain sees. */
     lens?: Record<string, (display: Display, seconds: number) => Display>;
+    /** Appends one decision-ledger row per Jev decision to `file` (docs/integration/ai-training-k3s.md). */
+    decisionLedger?: { file: string; run: string; scenario: string; seed: number; recording: string };
 };
 
 /** Per control, over a whole run: how often each option was chosen and how sure the brain was. */
@@ -247,6 +251,40 @@ export function headlessCrew(options: CrewOptions) {
             }
         }
         stats.inputTokens += result.meta.inputTokens ?? 0;
+        ledger(seat, result);
+    }
+
+    /** One ledger row per decision of a Jev request; the request's tokens are charged to its first decision. */
+    function ledger(seat: Seat, result: Awaited<ReturnType<ButtonBrain['decide']>>) {
+        const target = options.decisionLedger;
+        if (!target || result.meta.policy !== 'jev') return;
+        const cacheKey = jevCacheKey(result.request, seat.plan.spec.model);
+        // the metered client answers a cached request with no tokens and no latency
+        const cacheHit = !result.meta.inputTokens && !result.meta.latencyMs;
+        appendRows(
+            target.file,
+            result.decisions.map((d, i) =>
+                decisionRow({
+                    run: target.run,
+                    scenario: target.scenario,
+                    seed: target.seed,
+                    seat: d.seat ?? seat.plan.station,
+                    t: game.seconds,
+                    control: d.control,
+                    origin: 'play',
+                    recording: target.recording,
+                    brain: result.meta.brain,
+                    version: result.meta.version,
+                    model: result.meta.model ?? seat.plan.spec.model,
+                    cacheKey,
+                    cacheHit,
+                    inputTokens: i === 0 ? (result.meta.inputTokens ?? 0) : 0,
+                    choice: d.choice,
+                    confidence: d.confidence ?? null,
+                    probabilities: d.probabilities ?? null,
+                }),
+            ),
+        );
     }
 
     /** Records the board as an `orders` event whenever it changed since the last one. */

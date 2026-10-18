@@ -113,13 +113,20 @@ for (const j of fillers) {
 }
 const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
 for (let i = 0; i < launch; i++) {
-    const lane = Object.keys(WEIGHTS).sort((a, b) => (running[a] ?? 0) / WEIGHTS[a] - (running[b] ?? 0) / WEIGHTS[b])[0];
+    // Jev fillers spend money: at most one at a time (the spend ledger caps the total)
+    const lanes = Object.keys(WEIGHTS).filter((l) => l !== 'jev' || !running.jev);
+    const lane = lanes.sort((a, b) => (running[a] ?? 0) / WEIGHTS[a] - (running[b] ?? 0) / WEIGHTS[b])[0];
     running[lane] = (running[lane] ?? 0) + 1;
     const template = await api(`/apis/batch/v1/namespaces/${NS}/cronjobs/rolling-${lane}`);
     const spec = structuredClone(template.spec.jobTemplate.spec);
-    const labels = { ...(template.spec.jobTemplate.metadata?.labels ?? {}), role: 'filler', 'starwards/lane': lane };
+    const labels = {
+        ...(template.spec.jobTemplate.metadata?.labels ?? {}),
+        role: 'filler',
+        'starwards/lane': lane,
+        ...(lane === 'jev' ? { jev: 'true' } : {}),
+    };
     spec.template.metadata = { ...(spec.template.metadata ?? {}) };
-    spec.template.metadata.labels = { ...(spec.template.metadata.labels ?? {}), role: 'filler', 'starwards/lane': lane };
+    spec.template.metadata.labels = { ...(spec.template.metadata.labels ?? {}), ...labels };
     const job = { apiVersion: 'batch/v1', kind: 'Job', metadata: { name: `filler-${lane}-${stamp}-${i}`, labels }, spec };
     if (env('DRY_RUN', '') === '1') {
         console.log(`would create ${job.metadata.name}`);

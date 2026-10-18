@@ -5,6 +5,7 @@ import { StateSummary } from './run-log';
 
 /** One branch: where it left the recorded run, what it did instead, and how that came out against the run. */
 export type BranchRow = {
+    scenario: string;
     seed: number;
     level: string;
     t: number;
@@ -12,6 +13,13 @@ export type BranchRow = {
     taken: string;
     alternative: string;
     kind: string;
+    /** Who put this alternative in the corpus: the level's enumeration, and Jev when it proposed it too. */
+    sources?: ('enumerated' | 'jev')[];
+    /** Jev's rank and probability for it, when Jev proposed it. */
+    jev?: { rank: number; probability: number };
+    /** The seat and control the branch changes: the captain's callout, or a button's. */
+    seat: string;
+    control: string;
     state: Omit<StateSummary, 'board'>;
     outcome: Outcome;
     /** The recorded run's own outcome: the paired baseline. */
@@ -29,7 +37,13 @@ export type CorpusRun = RunSpec & {
 };
 
 /** One unit of work: a branch at one point of one run. */
-type BranchJob = { run: CorpusRun; point: BranchPoint; alternative: string; kind: string };
+type BranchJob = {
+    run: CorpusRun;
+    point: BranchPoint;
+    alternative: string;
+    kind: string;
+    jev?: { rank: number; probability: number };
+};
 
 /**
  * The branches to play over `runs`, at most `budget` in all: every level's points and alternatives,
@@ -71,6 +85,7 @@ export async function playJob(
     const { board: _board, ...state } = job.point.state;
     const b = job.run.baseline;
     return {
+        scenario: job.run.scenario,
         seed: job.run.seed,
         level: job.point.level,
         t: job.point.t,
@@ -78,6 +93,10 @@ export async function playJob(
         taken: job.point.taken,
         alternative: job.alternative,
         kind: job.kind,
+        sources: job.jev ? ['enumerated', 'jev'] : ['enumerated'],
+        ...(job.jev ? { jev: job.jev } : {}),
+        seat: job.point.seat ?? 'captain',
+        control: job.point.control ?? 'callout',
         state,
         outcome,
         baseline: b,
