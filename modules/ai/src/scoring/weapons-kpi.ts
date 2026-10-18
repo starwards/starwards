@@ -303,13 +303,13 @@ export function shellReaches(
 }
 
 /**
- * Whether one `ammo` missile launched from `from` (moving with `own`) reaches `target`: inside its
- * launch envelope for the target's closing and crossing speed.
+ * Whether one `ammo` missile launched from `from` reaches `target`: inside its launch envelope for
+ * the target's own speed along and across the line of sight.
  */
-function missileReaches(ammo: string, from: { x: number; y: number }, own: ShipReading, target: ShipReading) {
+function missileReaches(ammo: string, from: { x: number; y: number }, target: ShipReading) {
     const now = { x: target.x - from.x, y: target.y - from.y };
     const d = Math.hypot(now.x, now.y);
-    const before = { x: now.x - (target.vx - own.vx), y: now.y - (target.vy - own.vy) };
+    const before = { x: now.x - target.vx, y: now.y - target.vy };
     const { closing, crossing } = rangeRate(before, now, 1);
     return d >= MISSILE_MIN_LAUNCH_METERS && d <= missileLaunchRange(ammo, closing, crossing);
 }
@@ -332,7 +332,7 @@ export function hasSolution(frame: TacticalFrame, enemy: ShipReading) {
         };
         if (shellReaches(shell, weapons.fuzeSeconds, ammo, enemy, SPREAD_SIGMAS * weapons.spreadDegrees)) return true;
     }
-    return weapons.tubesReady && weapons.targetId === enemy.id && missileReaches('HiExpMissile', own, own, enemy);
+    return weapons.tubesReady && weapons.targetId === enemy.id && missileReaches('HiExpMissile', own, enemy);
 }
 
 /** Living enemies' threat shares, uniform when none threatens. */
@@ -469,7 +469,7 @@ export function weaponsScore(
             if (!shellReaches(s, s.ttl, s.ammo, at)) nosol++;
             dominated += ammoShortfall(s.ammo, f.weapons.shellsInMagazine, target);
         } else {
-            if (s.targetId !== target.id || !missileReaches(s.ammo, s, f.own, at)) nosol++;
+            if (s.targetId !== target.id || !missileReaches(s.ammo, s, at)) nosol++;
         }
     }
     const hits = hitsOf(events, frames).filter((h) => h.shooterId === playerId);

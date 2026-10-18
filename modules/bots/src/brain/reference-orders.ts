@@ -90,11 +90,14 @@ export function captainOrders() {
                     const range = Number(h.values.range) * 1000;
                     const rad = (Number(h.values.bearing) * Math.PI) / 180;
                     const run = distance - range;
-                    helm = {
-                        kind: 'close',
-                        spot: { x: own.x + run * Math.cos(rad), y: own.y + run * Math.sin(rad) },
-                        at,
-                    };
+                    helm =
+                        run > 0
+                            ? {
+                                  kind: 'close',
+                                  spot: { x: own.x + run * Math.cos(rad), y: own.y + run * Math.sin(rad) },
+                                  at,
+                              }
+                            : { kind: 'hold', at };
                 } else if (h.callout === 'hold_here' && newer(at, helm)) {
                     helm = { kind: 'hold', at };
                 } else if (h.callout === 'engage' && h.values?.name && newer(at, engage)) {

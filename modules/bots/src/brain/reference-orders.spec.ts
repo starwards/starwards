@@ -76,6 +76,13 @@ describe('reference crew under captain orders', () => {
         });
     });
 
+    it('helms holds, never backs off, on an order to close to a range beyond the current distance', async () => {
+        const beyond: Heard = { ...closeTo, values: { ...closeTo.values, range: '60' } };
+        expect(await choices(helmsDisplay(), helmsCapabilities, [beyond])).toEqual(
+            await choices(helmsDisplay(), helmsCapabilities, [holdHere]),
+        );
+    });
+
     it('helms burns the afterburner on a long run to the ordered point once the nose bears on it', async () => {
         const afterBurner: Capabilities = { commands: [{ command: 'afterBurner' }] };
         const facing = (heading: number): Display => {

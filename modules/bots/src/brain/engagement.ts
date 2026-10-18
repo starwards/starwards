@@ -8,18 +8,18 @@ const REFERENCE_MISSILE = 'HiExpMissile';
 const CLOSE_MARGIN_METERS = 2000;
 
 /**
- * How fast `contact` closes on the own ship and crosses its line of sight, from where the radar
- * showed it a decision (`seconds`) ago; a target seen once counts as holding still.
+ * How fast `contact` flies along the line of sight toward the own ship and across it, from where the
+ * radar showed it a decision (`seconds`) ago: the target's own motion, not the own ship's, which the
+ * missile does not inherit. A target seen once counts as holding still.
  */
 function contactRates(contact: Contact, radar: Radar | undefined, previous: Radar | undefined, seconds: number) {
     const before = previous?.contacts?.find((c) => c.id === contact.id);
     const own = radar?.ownShip?.position;
-    const ownBefore = previous?.ownShip?.position;
-    if (!before?.position || !contact.position || !own || !ownBefore) {
+    if (!before?.position || !contact.position || !own) {
         return { closing: 0, crossing: 0 };
     }
     return rangeRate(
-        { x: before.position.x - ownBefore.x, y: before.position.y - ownBefore.y },
+        { x: before.position.x - own.x, y: before.position.y - own.y },
         { x: contact.position.x - own.x, y: contact.position.y - own.y },
         seconds,
     );
