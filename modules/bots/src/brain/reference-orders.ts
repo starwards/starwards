@@ -47,7 +47,7 @@ export function referenceCallout(request: BrainRequest, display: Display): Answe
 }
 
 /** The captain's latest order to helms: the world point to fly to, or to hold where the ship is. */
-export type HelmOrder = { kind: 'close'; spot: XY; at: number } | { kind: 'hold'; at: number };
+type HelmOrder = { kind: 'close'; spot: XY; at: number } | { kind: 'hold'; at: number };
 
 /**
  * What a reference seat remembers of the captain's orders, from what it hears: the latest helm order

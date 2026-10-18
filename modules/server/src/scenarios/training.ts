@@ -208,7 +208,7 @@ export function createTrainingT2Map(
 }
 
 /** The allied station of the directed rung (T3-directed). */
-export const TRAINING_STATION_ID = 'station';
+const TRAINING_STATION_ID = 'station';
 
 /**
  * T3-directed layout: the target at `distance` metres on `bearing` degrees from the GVTS, and the
