@@ -66,7 +66,7 @@ function shipWithMissileInBeam(scanLevel: ScanLevel = ScanLevel.FULL) {
 }
 
 describe('beam jamming (M4.27 ruling)', () => {
-    it('jams a FULL-scanned missile after 1 s of held jam: it drops its target, keeps faction and owner', () => {
+    it('jams a FULL-scanned missile once jamLevel reaches 1 after 1 s of held jam: it drops its target, keeps faction and owner', () => {
         const { missile, beam, run } = shipWithMissileInBeam();
         const factionBefore = missile.faction;
         beam.jamming = true;
@@ -101,15 +101,29 @@ describe('beam jamming (M4.27 ruling)', () => {
         expect(missile.jammed).to.equal(false);
     });
 
-    it('needs continuous dwell: releasing the key resets it', () => {
+    it('raises jamLevel while covered and lowers it at the same rate once released', () => {
         const { missile, beam, run } = shipWithMissileInBeam();
         beam.jamming = true;
-        run(0.7);
+        run(0.6);
+        expect(missile.jamLevel).to.be.closeTo(0.6, 0.06);
         beam.jamming = false;
-        run(0.1);
+        run(0.3);
+        expect(missile.jamLevel).to.be.closeTo(0.3, 0.06);
         beam.jamming = true;
-        run(0.7);
+        run(0.5);
         expect(missile.jammed).to.equal(false);
+        run(0.3);
+        expect(missile.jammed).to.equal(true);
+        expect(missile.jamLevel).to.equal(1);
+    });
+
+    it('decays jamLevel no lower than 0', () => {
+        const { missile, beam, run } = shipWithMissileInBeam();
+        beam.jamming = true;
+        run(0.3);
+        beam.jamming = false;
+        run(2);
+        expect(missile.jamLevel).to.equal(0);
     });
 
     it('does not jam a missile outside the beam', () => {
@@ -150,7 +164,7 @@ describe('jammed missile re-lock (M4.27 ruling)', () => {
         missile.shipId = 'owner';
         spaceMgr.insert(missile);
         spaceMgr.forceFlushEntities();
-        spaceMgr.jamMissile(missile);
+        missile.jammed = true;
         return { spaceMgr, missile };
     }
     const tick = (spaceMgr: SpaceManager) =>

@@ -377,7 +377,19 @@ export class Projectile extends SpaceObjectBase implements Craft {
     public targetId: string | null = null;
 
     /**
-     * Set once a scan beam has jammed this missile (M4.27 ruling): it dropped its target and its
+     * How jammed this missile is, 0 to 1 (M4.27 ruling). Rises while a jamming scan beam covers it
+     * and falls back towards 0 at the same rate once none does; reaching 1 jams it (`jammed`).
+     */
+    @gameField('float32')
+    public jamLevel = 0;
+
+    /** Seconds of jamming-beam cover that take `jamLevel` from 0 to 1; it decays at the same rate. */
+    @tweakable('number')
+    @gameField('float32')
+    public jamSeconds = 1;
+
+    /**
+     * Set once `jamLevel` reaches 1 (M4.27 ruling): this missile dropped its target and its
      * affiliation for good, keeps its `faction` and `shipId`, and locks onto any solid object that
      * comes within `jamLockRange`. Never cleared.
      */

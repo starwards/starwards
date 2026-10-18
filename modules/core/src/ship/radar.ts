@@ -51,8 +51,6 @@ export type RadarDesign = TurretDesign & {
     isScanBeam?: boolean;
     /** heat per second a scan beam gains while jamming (M4.27 ruling: short bursts). */
     jamHeatPerSecond?: number;
-    /** seconds of continuous jam dwell after which a FULL-scanned missile is jammed. */
-    jamDwellSeconds?: number;
 };
 
 export class RadarDesignState extends TurretDesignState implements RadarDesign {
@@ -66,7 +64,6 @@ export class RadarDesignState extends TurretDesignState implements RadarDesign {
     @gameField('float32') malfunctionRange = 0;
     @gameField('boolean') isScanBeam = false;
     @tweakable('number') @gameField('float32') jamHeatPerSecond = 20;
-    @tweakable('number') @gameField('float32') jamDwellSeconds = 1;
 
     /**
      * sweep area the radar can spread over its arc, derived live from `range` and `defaultArc`

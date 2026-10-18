@@ -108,6 +108,8 @@ export class SpaceManager implements Updateable {
     private attachments = new Map<string, string>();
     private attachmentCliques = new Map<string, Set<SpaceObject>>();
     private objectDamage = new Map<string, Damage[]>();
+    /** Ids of missiles a jamming scan beam covered this tick; drained by `updateJamLevels`. */
+    private jamCoveredMissileIds = new Set<string>();
     private objectOrder = new Map<string, BotOrder>();
     private toInsert: SpaceObject[] = [];
 
@@ -345,6 +347,7 @@ export class SpaceManager implements Updateable {
 
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
+        this.updateJamLevels(deltaSeconds);
         this.calcHomingProjectiles(deltaSeconds);
         // both act once per call regardless of elapsed time (a proximity check, a per-tick
         // damage/impulse resolution), so unlike the rest of this method they don't freeze on
@@ -488,13 +491,34 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    /** Marks a missile as covered by a jamming scan beam for the current tick (M4.27 ruling). */
+    public coverWithJamBeam(missile: Projectile) {
+        this.jamCoveredMissileIds.add(missile.id);
+    }
+
     /**
-     * Jams a missile (M4.27 ruling): it permanently loses its target and its affiliation, keeping
-     * its faction and owner ship, and flies on until a solid object enters its `jamLockRange`.
+     * Moves each unjammed missile's `jamLevel` by `deltaSeconds / jamSeconds`: up while a jamming
+     * beam covered it this tick, down otherwise. At 1 the missile is jammed (M4.27 ruling): it
+     * permanently loses its target and its affiliation, keeping its faction and owner ship, and
+     * flies on until a solid object enters its `jamLockRange`.
      */
-    public jamMissile(missile: Projectile) {
-        missile.jammed = true;
-        missile.targetId = null;
+    private updateJamLevels(deltaSeconds: number) {
+        if (deltaSeconds <= 0) {
+            return;
+        }
+        for (const missile of this.state.getAll('Projectile')) {
+            if (missile.jammed || (missile.jamLevel <= 0 && !this.jamCoveredMissileIds.has(missile.id))) {
+                continue;
+            }
+            const step = deltaSeconds / missile.jamSeconds;
+            const covered = this.jamCoveredMissileIds.has(missile.id);
+            missile.jamLevel = Math.min(1, Math.max(0, missile.jamLevel + (covered ? step : -step)));
+            if (missile.jamLevel >= 1) {
+                missile.jammed = true;
+                missile.targetId = null;
+            }
+        }
+        this.jamCoveredMissileIds.clear();
     }
 
     /**

@@ -11,14 +11,10 @@ import { sectorCovers } from '../logic/field-of-view';
 
 /**
  * Beam jamming (M4.27 ruling). While the Signals officer holds a scan beam's jam key the beam
- * heats fast (`design.jamHeatPerSecond`), and every FULL-scanned, unjammed missile it covers
- * accumulates dwell; after `design.jamDwellSeconds` of continuous dwell the missile is jammed.
- * Dwell resets the moment a missile leaves every jamming beam.
+ * heats fast (`design.jamHeatPerSecond`), and every FULL-scanned, unjammed missile it covers is
+ * reported to `SpaceManager.coverWithJamBeam`, which raises that missile's `jamLevel`.
  */
 export class BeamJamManager implements Updateable {
-    /** Seconds of continuous jam dwell, by missile id. */
-    private dwellSeconds = new Map<string, number>();
-
     constructor(
         private state: ShipState,
         private spaceManager: SpaceManager,
@@ -29,25 +25,15 @@ export class BeamJamManager implements Updateable {
         if (deltaSeconds <= 0) {
             return;
         }
-        const dwell = new Map<string, number>();
         for (const beam of this.state.radars) {
             if (!beam.design.isScanBeam || !beam.jamming || beam.range <= 0) {
                 continue;
             }
             this.heatSink.addHeat(beam.design.jamHeatPerSecond * deltaSeconds, beam);
             for (const missile of this.coveredMissiles(beam)) {
-                if (dwell.has(missile.id)) {
-                    continue;
-                }
-                const seconds = (this.dwellSeconds.get(missile.id) ?? 0) + deltaSeconds;
-                if (seconds >= beam.design.jamDwellSeconds) {
-                    this.spaceManager.jamMissile(missile);
-                } else {
-                    dwell.set(missile.id, seconds);
-                }
+                this.spaceManager.coverWithJamBeam(missile);
             }
         }
-        this.dwellSeconds = dwell;
     }
 
     private *coveredMissiles(beam: Radar): Iterable<Projectile> {
