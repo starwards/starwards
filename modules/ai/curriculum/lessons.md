@@ -499,6 +499,28 @@ Elec missile, P(hit):
 - **Reuse:** re-run the sweep after any change to missile speed, `MISSILE_LAUNCH`, `TERMINAL_SPRINT` or the
   projectile raycast.
 
+### Captain branching — what other captain orders would have done (2026-10-18)
+
+- **Change:** none to any crew. `npm run branch` replays `captain-reference` runs from their seeds,
+  leaves them at decision points and plays other orders: strategic (one order-board slot or a stance),
+  tactical (the captain's call held 30 s, or another target) and button (one control at one decision).
+- **Level:** archive `training-archive/2026-10-18/branching-v2/` (current order model) and
+  `branching/` (first model).
+  - T3-directed, 400 branches, 0 diverged: nothing beats the reference captain. `hold_position` costs
+    21 of 29 kills, `dock_for_repair` 12, the `defensive` stance −0.10 run value.
+  - T2-dock, first model, 320 strategic branches: a dock order at first contact turns 7/16 wins into
+    13/16.
+  - T2-dock, 160 tactical branches: with armor below 75%, `close_to` beats `engage` (21 up / 8 down,
+    sign p 0.024).
+- **Regression suite:** not run (no crew changed).
+- **Decision:** none; proposals for the reference captain are in SPEC-0009's results.
+- **Lesson:** replay is exact as long as the recording was made on the same code. A corpus branched
+  from runs recorded before a behaviour change diverges on every branch, so re-record first. The CLI
+  now exits 1 on any diverged branch.
+- **Reuse:** before tuning a captain rule, branch the baseline at the moments the rule would act and
+  keep only alternatives that beat the recorded play beyond noise. Then test the rule as a crew on the
+  same seeds: a branch changes one decision once, not a policy.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

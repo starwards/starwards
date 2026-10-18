@@ -512,7 +512,27 @@ interval, sign test and kills gained or lost; diverged branches are excluded.
 Corpus of 2026-10-18 (`captain-reference`, reference seats, $0; archive
 `training-archive/2026-10-18/branching/`):
 
-BRANCH_RESULTS
+- **Ruled order model** (`branching-v2/`, code 438bfec9).
+  - **Run:** T3-directed, 400 strategic and tactical branches over seeds 1–16, 0 diverged, 23 min on 12 workers.
+  - **Result:** no alternative beats the reference captain. Run value, branch − recorded, with kills lost:
+
+    | Level | Alternative | Δ run value | Kills lost |
+    | --- | --- | --- | --- |
+    | strategic | `hold_position` | −0.60 | 21/29 |
+    | strategic | `dock_for_repair` | −0.34 | 12/29 |
+    | strategic | `preserve_energy` | −0.27 | |
+    | strategic | stance `defensive` | −0.10 | 0 |
+    | tactical | `hold_here` | −0.03 | 0 (31 down / 10 up) |
+    | tactical | `engage` instead of `close_to` | −0.04 | 0 (22 down / 5 up) |
+
+    The `offensive`, `chase` and `take_opportunities` stances change nothing beyond noise.
+  - **Not finished:** the T2-dock and button corpora on this model were stopped when the host ran out of memory.
+- **First order model** (`branching/`). Dock completed after a 60 s dwell; the ranking was an order. Branches replayed their own recordings (0 diverged), but these numbers predate the rulings.
+  - **T2-dock, strategic** (320 branches). A dock order at first contact turns 7/16 wins into 13/16: lost → won on seeds 5, 7, 11, 12, 13, 15, 16; won → lost on seed 2; attackers killed 22 → 27. The paired run value is +0.05 [−0.07, +0.16] over every point. `dock_below_armor` gives 11/16. `hold_position` costs −0.34 (28 kills lost), `preserve_energy` −0.11, `retreat` −0.07.
+  - **T2-dock, tactical** (160 branches, re-recorded after the master merge).
+    - With armor below 75%, `close_to` instead of `engage` scores +0.04: 21 up / 8 down, sign p 0.024, kills +6 / −1.
+    - Engaging an enemy other than the nearest scores −0.10: 19 down / 9 up.
+  - **T3-directed, button** (96 branches, helms afterBurner). Every flip changes the run value by under 0.002. `reask` with the reference helms reproduces every recorded press.
 
 ## Curriculum
 
