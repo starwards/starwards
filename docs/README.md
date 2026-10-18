@@ -68,6 +68,7 @@ purpose; do not read as current.
 | [`integration/mcp-server.md`](integration/mcp-server.md)                           | MCP server seating an LLM at a sandboxed station.                                                                    |
 | [`integration/ai-crew.md`](integration/ai-crew.md)                                 | Station brains (`modules/bots`, `modules/ai`): GM-seated live bots, their headless training and decision recordings. |
 | [`integration/ai-training-k3s.md`](integration/ai-training-k3s.md)                 | Training image and K3S Jobs: sharded overnight train, suite and branch runs into the training archive.               |
+| [`integration/ai-training-k3s-handoff.md`](integration/ai-training-k3s-handoff.md) | Operator handoff for the K3S training jobs: image, variables, sizing, storage, checks, parameters to fill.           |
 | [`integration/docker.md`](integration/docker.md)                                   | Docker Compose services for MQTT/Node-RED.                                                                           |
 | [`integration/open-stage-control.md`](integration/open-stage-control.md)           | Touchscreen/MIDI control surfaces bridged via Node-RED.                                                              |
 | [`integration/mqtt.md`](integration/mqtt.md)                                       | Pub/sub bridging for external systems.                                                                               |

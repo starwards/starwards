@@ -130,6 +130,8 @@ suite)
     [ -n "${BASELINE:-}" ] && set -- "$@" --baseline "$BASELINE"
     cli cli/suite.ts "$@" || status=$?
     stamp "$out"
+    # the analysis store's query caches beside each recording rebuild on demand: 1.4 of a 2.2 GB suite
+    find "$out" -name '*.duckdb*' -delete
     manifest
     [ "${status:-0}" = 0 ] || echo "suite: regression against the baseline (see $out/suite.md)"
     exit "${status:-0}"
