@@ -21,7 +21,8 @@
         "score:weapons-runs": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-runs.ts",
         "score:weapons": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-validate.ts",
         "heatmap:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/heatmap/dataset.ts",
-        "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts"
+        "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts",
+        "branch": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/branch.ts"
     },
     "dependencies": {
         "@starwards/bots": "0.5.1",
