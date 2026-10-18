@@ -1,9 +1,7 @@
 import { Answer, Capabilities, Display, Heard } from '@starwards/bots';
-import { EVENTS_EXT, RecordingEventLine, parseEventLine } from '@starwards/core/internal';
+import { RecordingEventLine, isRecordingName, parseEventLine, sidecarName } from '@starwards/core/internal';
 
 import fs from 'node:fs';
-
-const RECORDING_EXT = '.sgr';
 
 /** A `decision` event as the crew records it. */
 export type RecordedDecision = Answer & {
@@ -32,9 +30,7 @@ export type RecordedRequest = {
 
 /** Reads the decision events recorded beside a recording (`x.sgr` or its `x.events.jsonl`). */
 export function readDecisionLog(recordingPath: string) {
-    const sidecar = recordingPath.endsWith(RECORDING_EXT)
-        ? recordingPath.slice(0, -RECORDING_EXT.length) + EVENTS_EXT
-        : recordingPath;
+    const sidecar = isRecordingName(recordingPath) ? sidecarName(recordingPath) : recordingPath;
     const lines = fs
         .readFileSync(sidecar, 'utf8')
         .split('\n')

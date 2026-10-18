@@ -17,6 +17,7 @@ import { answerCacheFromEnv, applyCacheFlags, meteredJevClient } from '../brain/
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
 import fs from 'node:fs';
+import { isRecordingName } from '@starwards/core/internal';
 import { jevClient } from '../brain/jev-client';
 import path from 'node:path';
 import { readDecisionLog } from '../training/decision-log';
@@ -30,7 +31,7 @@ function recordingsUnder(target: string): string[] {
     if (!fs.statSync(target).isDirectory()) return [target];
     return fs
         .readdirSync(target, { recursive: true, encoding: 'utf8' })
-        .filter((f) => f.endsWith('.sgr'))
+        .filter(isRecordingName)
         .sort()
         .map((f) => path.join(target, f));
 }

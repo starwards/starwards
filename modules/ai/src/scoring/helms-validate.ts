@@ -29,10 +29,10 @@ import {
     termsOf,
 } from './helms-kpi';
 import { MomentPoint, RankedPair, bootstrap, ci, fmt, mean, rankingValidity, rng, seedCorr } from './validate-stats';
+import { RecordingEventLine, isRecordingName } from '@starwards/core/internal';
 import { evaluate, featureSelector } from './model';
 import { readEvents, readFrames } from './recording';
 
-import { RecordingEventLine } from '@starwards/core/internal';
 import { scorers } from './score';
 
 function args(name: string) {
@@ -196,7 +196,7 @@ async function loadRuns(dirs: readonly string[]) {
         for (const crew of fs.readdirSync(dir)) {
             const policy = crew.replace(/^helms-/, '') as PolicyName;
             if (!crew.startsWith('helms-') || !POLICIES.includes(policy)) continue;
-            for (const file of fs.readdirSync(path.join(dir, crew)).filter((f) => f.endsWith('.sgr'))) {
+            for (const file of fs.readdirSync(path.join(dir, crew)).filter(isRecordingName)) {
                 const [, scenario, seed] = /^(.+)_seed(\d+)\.sgr$/.exec(file) ?? [];
                 if (!scenario) continue;
                 const loaded = await loadRun(path.join(dir, crew, file));

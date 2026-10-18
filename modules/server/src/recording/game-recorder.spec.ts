@@ -5,9 +5,11 @@ import * as path from 'node:path';
 import {
     EVENTS_EXT,
     POWER_DRAW_EXPONENT,
+    RECORDING_EXT,
     parseEventLine,
     parseFrameLine,
     parseHeader,
+    sidecarName,
     waitFor,
 } from '@starwards/core/internal';
 import { GameRecorder, RecordingConflictError, isRecordingFileName } from './game-recorder';
@@ -239,7 +241,7 @@ describe('GameRecorder', () => {
             recorder.appendEvent(decision);
             await new Promise((res) => setTimeout(res, 20));
 
-            const sidecar = filename.replace(/\.sgr$/, EVENTS_EXT);
+            const sidecar = sidecarName(filename);
             expect(await sidecars()).toEqual([sidecar]);
             const events = (await readLines(path.join(tmpDir, sidecar))).map(parseEventLine);
             expect(events).toHaveLength(2);
@@ -272,7 +274,7 @@ describe('GameRecorder', () => {
                 await gameDriver.gameManager.stopGame();
                 await ended;
 
-                const lines = await readLines(path.join(tmpDir, filename.replace(/\.sgr$/, EVENTS_EXT)));
+                const lines = await readLines(path.join(tmpDir, sidecarName(filename)));
                 expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
             } finally {
                 slowSidecar.mockRestore();
@@ -285,7 +287,7 @@ describe('GameRecorder', () => {
             const headerFirst: boolean[] = [];
             const spy = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
                 if (typeof file === 'string' && file.endsWith(EVENTS_EXT)) {
-                    const sgr = file.slice(0, -EVENTS_EXT.length) + '.sgr';
+                    const sgr = file.slice(0, -EVENTS_EXT.length) + RECORDING_EXT;
                     headerFirst.push((await realFs.readFile(sgr, 'utf-8')).includes('starwards-recording'));
                 }
                 return appendFile(file, data, options);
@@ -299,7 +301,7 @@ describe('GameRecorder', () => {
                 const filename = await recorder.startRecording();
                 await recorder.stopRecording();
 
-                const lines = await readLines(path.join(tmpDir, filename.replace(/\.sgr$/, EVENTS_EXT)));
+                const lines = await readLines(path.join(tmpDir, sidecarName(filename)));
                 expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
                 expect(headerFirst).toEqual([true]);
             } finally {
@@ -326,7 +328,7 @@ describe('GameRecorder', () => {
             recorder.appendEvent(decision);
             await recorder.stopRecording();
             expect(await recorder.listRecordings()).toEqual([
-                expect.objectContaining({ name: filename, events: filename.replace(/\.sgr$/, EVENTS_EXT) }),
+                expect.objectContaining({ name: filename, events: sidecarName(filename) }),
             ]);
         });
 

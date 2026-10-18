@@ -2,7 +2,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import {
-    EVENTS_EXT,
     Explosion,
     Projectile,
     RECORDING_EXT,
@@ -14,6 +13,7 @@ import {
     encodeEventLine,
     encodeFrameLine,
     encodeHeader,
+    sidecarName,
 } from '@starwards/core/internal';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
@@ -63,7 +63,7 @@ export class HeadlessRecorder {
     ) {
         fs.mkdirSync(dir, { recursive: true });
         this.filePath = path.join(dir, `${name}${RECORDING_EXT}`);
-        this.eventsPath = path.join(dir, `${name}${EVENTS_EXT}`);
+        this.eventsPath = sidecarName(this.filePath);
         fs.writeFileSync(this.eventsPath, '');
         fs.writeFileSync(
             this.filePath,

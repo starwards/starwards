@@ -185,6 +185,11 @@ export const EVENTS_EXT = '.events.jsonl';
 /** File extension of a recording. */
 export const RECORDING_EXT = '.sgr';
 
+/** True for a recording's file name or path, by its extension. */
+export function isRecordingName(name: string) {
+    return name.endsWith(RECORDING_EXT);
+}
+
 /** The sidecar's name (or path) beside a recording's; a name without `RECORDING_EXT` gets `EVENTS_EXT` appended. */
 export function sidecarName(recordingName: string) {
     const base = recordingName.endsWith(RECORDING_EXT) ? recordingName.slice(0, -RECORDING_EXT.length) : recordingName;

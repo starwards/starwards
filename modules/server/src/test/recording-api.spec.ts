@@ -1,12 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+import { sidecarName, waitFor } from '@starwards/core/internal';
 import { test_map_1, two_vs_one } from '../maps';
 
 import { HTTP_CONFLICT_STATUS } from '../server';
 import { makeDriver } from './driver';
 import supertest from 'supertest';
-import { waitFor } from '@starwards/core/internal';
 
 const HTTP_BAD_REQUEST_STATUS = 400;
 const HTTP_NOT_FOUND_STATUS = 404;
@@ -161,7 +161,7 @@ describe('recording HTTP API (issue #2101)', () => {
             );
         expect((await list())?.events).toBeUndefined();
 
-        const events = name.replace(/\.sgr$/, '.events.jsonl');
+        const events = sidecarName(name);
         const line = '{"t":0,"kind":"decision","objectId":"GVTS","data":{}}\n';
         await fs.writeFile(path.join(gameDriver.recordingsDir, events), line, 'utf-8');
 

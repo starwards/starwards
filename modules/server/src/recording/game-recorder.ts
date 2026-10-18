@@ -17,6 +17,7 @@ import {
     encodeHeader,
     encodeSegLine,
     encodeSegment,
+    isRecordingName,
     parseFrameLine,
     parseHeader,
     recordingSchemaHash,
@@ -47,7 +48,7 @@ export function isRecordingFileName(name: string): boolean {
     const ext = [RECORDING_EXT, EVENTS_EXT].find((e) => name.endsWith(e));
     return !!ext && name.length > ext.length && !/[/\\]/.test(name) && path.basename(name) === name;
 }
-const isRecordingName = (name: string) => name.endsWith(RECORDING_EXT) && isRecordingFileName(name);
+const isListedRecording = (name: string) => isRecordingName(name) && isRecordingFileName(name);
 
 /**
  * A precondition on the game itself, not a failure of the recording machinery — the caller
@@ -338,7 +339,7 @@ export class GameRecorder implements PatchTap {
         }
         const summaries: RecordingSummary[] = [];
         for (const name of entries) {
-            if (!isRecordingName(name)) continue;
+            if (!isListedRecording(name)) continue;
             const summary = await summarizeRecording(path.join(this.dir, name), name);
             if (summary) summaries.push(summary);
         }
