@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import { GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
+import { RungTracker, WaveOutcome, waveRung } from './wave-rung';
 import {
     T0Lab,
     T0Params,
@@ -67,6 +68,8 @@ export interface TrainingResult {
     /** Distinct explosions that ever overlapped the target (recorder sidecar, tick-exact). */
     readonly blastHits: number;
     readonly hz: number;
+    /** A wave rung's outcome; `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
+    readonly waves?: WaveOutcome;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
     /** Names of `analysis/checks.ts` checks that passed on this run's store. */
@@ -79,13 +82,15 @@ export interface TrainingResult {
 }
 
 /** A training rung: a fast-check arbitrary for its layout, and the map built from one sample. */
-interface TrainingScenario<P> {
+export interface TrainingScenario<P> {
     readonly name: string;
     readonly description: string;
     readonly params: fc.Arbitrary<P>;
     createMap(params: P): GameMap;
     /** Ids of every enemy the run must destroy; the first is the target the per-target metrics read. Default: the one target. */
     readonly enemies?: readonly string[];
+    /** A rung whose map decides its own outcome (waves): the map and a tracker that ends the run and scores it. */
+    track?(params: P): { map: GameMap; tracker: RungTracker };
 }
 
 const T0_PLAY_DEAD_DRAGONFLY: TrainingScenario<T0Params> = {
@@ -284,6 +289,9 @@ const W_OUTRANGED: TrainingScenario<T0Params> = {
     createMap: createTrainingWeaponsOutrangedMap,
 };
 
+/** The wave-defence rung (see {@link waveRung}). */
+const W_WAVES = { name: 'W-waves', waveIntervalSeconds: 480, passWaves: 3 };
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     'T0-wide': T0_WIDE as TrainingScenario<never>,
@@ -312,6 +320,12 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     ) as TrainingScenario<never>,
     'W-multi': W_MULTI as TrainingScenario<never>,
     'W-outranged': W_OUTRANGED as TrainingScenario<never>,
+    'W-waves': waveRung(W_WAVES) as TrainingScenario<never>,
+    'W-waves-endless': waveRung({
+        ...W_WAVES,
+        name: 'W-waves-endless',
+        passWaves: Infinity,
+    }) as TrainingScenario<never>,
 };
 
 /**
@@ -350,7 +364,8 @@ export async function playTraining<P>(
     { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording, crewedPlayer = false, beforeTick }: TrainingRunOptions,
 ) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
-    const game = HeadlessGame.start(scenario.createMap(params), seed, { crewedPlayer });
+    const tracked = scenario.track?.(params);
+    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');
@@ -381,8 +396,11 @@ export async function playTraining<P>(
         await beforeTick?.(game, recorder);
         game.tick(dt);
         await recorder.capture();
+        if (tracked?.tracker.done(game)) {
+            break;
+        }
         const living = enemies.filter(alive);
-        if (!living.length) {
+        if (!tracked && !living.length) {
             break;
         }
         const targetObject = game.spaceManager.state.get(living[0]);
@@ -392,7 +410,7 @@ export async function playTraining<P>(
     }
     await recorder.capture(true);
 
-    return { params, enemies, recorder, scratchDir, gunnery };
+    return { params, enemies, recorder, scratchDir, gunnery, waves: tracked?.tracker.outcome(game) };
 }
 
 /**
@@ -408,7 +426,7 @@ export async function runTraining<P>(
 ): Promise<TrainingResult> {
     const started = Date.now();
     const { seed, hz = SERVER_TICK_HZ, recording } = options;
-    const { params, enemies, recorder, scratchDir, gunnery } = await playTraining(scenario, options);
+    const { params, enemies, recorder, scratchDir, gunnery, waves } = await playTraining(scenario, options);
 
     const dbPath = storePathFor(recorder.filePath);
     const store = await ingest(dbPath, recorder.filePath, { player: TRAINING_PLAYER_ID, target: TRAINING_TARGET_ID });
@@ -424,7 +442,16 @@ export async function runTraining<P>(
         (t) => t !== null,
     ).length;
     await store.close();
-    const outcome = { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
+    const outcome = waves
+        ? {
+              ...metrics,
+              killed: waves.passedAt !== null,
+              kills: waves.raidersKilled,
+              enemies: waves.raidersSpawned,
+              seconds: waves.passedAt ?? metrics.seconds,
+              waves,
+          }
+        : { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
 
     const wallSeconds = (Date.now() - started) / 1000;
     if (recording) {

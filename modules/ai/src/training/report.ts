@@ -17,6 +17,9 @@ const meanOf = (xs: readonly number[]) => (xs.length ? xs.reduce((a, b) => a + b
 
 /** What a paired comparison is made on: one number per run. `better` says which way is good. */
 const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefined; better: 'higher' | 'lower' }[] = [
+    { name: 'waves survived', of: (r) => r.waves?.survived, better: 'higher' },
+    { name: 'stations lost', of: (r) => r.waves?.stationsLost, better: 'lower' },
+    { name: 'raiders killed', of: (r) => r.waves?.raidersKilled, better: 'higher' },
     { name: 'run value', of: (r) => r.score?.value, better: 'higher' },
     { name: 'killed', of: (r) => (r.killed ? 1 : 0), better: 'higher' },
     { name: 'seconds', of: (r) => r.seconds, better: 'lower' },
@@ -52,7 +55,9 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
             const b = seeds.map((seed) => metric.of(mine.get(seed)!));
             if (!seeds.length || [...a, ...b].some((v) => v === undefined || !Number.isFinite(v))) continue;
             const c = pairedComparison(a as number[], b as number[]);
-            const digits = metric.name === 'seconds' ? 1 : 3;
+            const digits = ['seconds', 'waves survived', 'stations lost', 'raiders killed'].includes(metric.name)
+                ? 1
+                : 3;
             const good = metric.better === 'higher' ? c.meanDiff > 0 : c.meanDiff < 0;
             const sign = (n: number) => `${n >= 0 ? '+' : '−'}${fmt(Math.abs(n), digits)}`;
             lines.push(
@@ -86,6 +91,9 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         lines.push(
             `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(meanOf(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
         );
+    }
+    if (results.some((r) => r.waves)) {
+        lines.push('', ...wavesSection(results, crews));
     }
     if (crews.length > 1) {
         lines.push('', ...pairedSection(results, baseline ?? crews[0]));
@@ -135,6 +143,26 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         );
     }
     return lines.join('\n') + '\n';
+}
+
+/** A wave rung per crew: runs passed, waves survived with every station alive, stations lost, raiders, the GVTS. */
+function wavesSection(results: readonly CrewRunResult[], crews: readonly string[]) {
+    const lines = [
+        '## Waves',
+        '',
+        '| crew | passed | waves survived min / median / max | stations lost (mean) | raiders killed / spawned | GVTS alive | GVTS health (mean) |',
+        '| --- | --- | --- | --- | --- | --- | --- |',
+    ];
+    for (const crew of crews) {
+        const waves = results.flatMap((r) => (r.crew === crew && r.waves ? [r.waves] : []));
+        if (!waves.length) continue;
+        const survived = waves.map((w) => w.survived);
+        const sum = (f: (w: (typeof waves)[number]) => number) => waves.reduce((a, w) => a + f(w), 0);
+        lines.push(
+            `| ${crew} | ${waves.filter((w) => w.passedAt !== null).length}/${waves.length} | ${Math.min(...survived)} / ${fmt(median(survived))} / ${Math.max(...survived)} | ${fmt(meanOf(waves.map((w) => w.stationsLost)), 2)} | ${sum((w) => w.raidersKilled)}/${sum((w) => w.raidersSpawned)} | ${waves.filter((w) => w.gvtsHealth > 0).length}/${waves.length} | ${fmt(meanOf(waves.map((w) => w.gvtsHealth)), 2)} |`,
+        );
+    }
+    return lines;
 }
 
 /** On a multi-enemy rung, the enemies killed over all runs, partial runs included. */
