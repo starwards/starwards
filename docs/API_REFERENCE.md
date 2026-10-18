@@ -31,7 +31,7 @@ retrieval helpers and worked examples.
 ### SpaceState
 **Location:** `modules/core/src/space/space-state.ts`
 
-**Properties:** `Projectile|Explosion|Nebula|Asteroid|Spaceship|Waypoint|Derelict: MapSchema<T>` (private; access via `getAll()`/`get()`), `lockedPaths: ArraySchema<string>`
+**Properties:** `Projectile|Explosion|Nebula|HazardCloud|Asteroid|Spaceship|Waypoint|Derelict: MapSchema<T>` (private; access via `getAll()`/`get()`), `lockedPaths: ArraySchema<string>`
 
 **Methods:**
 - `get(id): SpaceObject|undefined` - Find by ID

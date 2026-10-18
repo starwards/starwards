@@ -3,6 +3,7 @@ import {
     Explosion,
     Faction,
     FieldOfView,
+    HazardCloud,
     Nebula,
     Projectile,
     RadarSector,
@@ -64,6 +65,10 @@ function nebula(id: string, x: number, y: number, radius = 50) {
     return n;
 }
 
+function hazardCloud(id: string, x: number, y: number, radius = 50) {
+    return new HazardCloud().init(id, new Vec2(x, y), radius);
+}
+
 function explosion(id: string, x: number, y: number, radius = 200) {
     const e = new Explosion().init(id, new Vec2(x, y), 20);
     e.radius = radius;
@@ -86,7 +91,7 @@ function browserVisibleSet(spatial: SpatialIndex, objects: SpaceObject[], factio
         }
     }
     for (const object of objects) {
-        if (Nebula.isInstance(object)) {
+        if (Nebula.isInstance(object) || HazardCloud.isInstance(object)) {
             visible.add(object);
         }
     }
@@ -202,6 +207,18 @@ describe('RadarView', () => {
         const visible = ids(viewOf(objects).visibleObjects(Faction.Gravitas));
         expect(visible).to.include('fog');
         expect(visible).to.not.include('hidden');
+        expect(visible).to.deep.equal(ids(browserVisibleSet(makeSpatialIndex(objects), objects, Faction.Gravitas)));
+    });
+
+    it('a hazard cloud is always visible but, unlike a nebula, does not occlude (M4.40)', () => {
+        const objects = [
+            ship('own', 0, 0, Faction.Gravitas, 50_000),
+            hazardCloud('cloud', 1000, 0, 500),
+            asteroid('behind', 2000, 0, 50),
+            hazardCloud('far', 100_000, 0, 500),
+        ];
+        const visible = ids(viewOf(objects).visibleObjects(Faction.Gravitas));
+        expect(visible).to.include.members(['cloud', 'behind', 'far']);
         expect(visible).to.deep.equal(ids(browserVisibleSet(makeSpatialIndex(objects), objects, Faction.Gravitas)));
     });
 
