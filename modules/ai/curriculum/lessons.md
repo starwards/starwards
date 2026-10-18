@@ -506,12 +506,12 @@ Elec missile, P(hit):
   tactical (the captain's call held 30 s, or another target) and button (one control at one decision).
 - **Level:** archive `training-archive/2026-10-18/branching-v2/` (current order model) and
   `branching/` (first model).
-  - T3-directed, 400 branches, 0 diverged: nothing beats the reference captain. `hold_position` costs
-    21 of 29 kills, `dock_for_repair` 12, the `defensive` stance −0.10 run value.
-  - T2-dock, first model, 320 strategic branches: a dock order at first contact turns 7/16 wins into
-    13/16.
-  - T2-dock, 160 tactical branches: with armor below 75%, `close_to` beats `engage` (21 up / 8 down,
-    sign p 0.024).
+    - T3-directed, 400 branches, 0 diverged: nothing beats the reference captain. `hold_position` costs
+      21 of 29 kills, `dock_for_repair` 12, the `defensive` stance −0.10 run value.
+    - T2-dock, first model, 320 strategic branches: a dock order at first contact turns 7/16 wins into
+      13/16.
+    - T2-dock, 160 tactical branches: with armor below 75%, `close_to` beats `engage` (21 up / 8 down,
+      sign p 0.024).
 - **Regression suite:** not run (no crew changed).
 - **Decision:** none; proposals for the reference captain are in SPEC-0009's results.
 - **Lesson:** replay is exact as long as the recording was made on the same code. A corpus branched
@@ -520,6 +520,24 @@ Elec missile, P(hit):
 - **Reuse:** before tuning a captain rule, branch the baseline at the moments the rule would act and
   keep only alternatives that beat the recorded play beyond noise. Then test the rule as a crew on the
   same seeds: a branch changes one decision once, not a policy.
+
+### Order board synced, command-driven, with doctrine (2026-10-18)
+
+- **Change:** the order board moved from the crew process into `ShipState.orderBoard`, written only
+  through `crewOrderCommands`; the reference helms and weapons read orders from the board instead of
+  the radio; crews may run doctrine (`"doctrine": true`).
+- **Level:** T3-directed 1–16, `captain-reference` 16/16, median 86.4 s (before: 16/16, 90.5 s). An
+  order now lands at the ship's next tick, and helms recomputes the `close_to` spot from where the ship
+  is at each decision instead of from where it was when it heard the call. Ladder: no board 16/16,
+  245.7 s; doctrine 16/16, 106.8 s; captain 16/16, 86.4 s.
+- **Regression suite:** not run.
+- **Decision:** accepted (owner ruling: synced, command-driven, recorded; doctrine as the floor a
+  captain must beat).
+- **Lesson:** a command lands a tick later than a direct write. A wrapper that checks the board for an
+  order it just sent (the branched captain's `keepToBranchOrders`) must also remember the order in
+  flight, or the next call cancels it before it lands.
+- **Reuse:** accept a seat brain on a level both with and without a captain, paired on the same seeds;
+  a captain earns its seat only by beating doctrine.
 
 Copy this block for every candidate run on a level.
 

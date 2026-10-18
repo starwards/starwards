@@ -116,6 +116,7 @@ export function resetShipState(state: ShipState) {
     state.hullDamaged = false;
     state.repairQueue.cyclePriorityCommands = [];
     state.repairQueue.toggleModeCommands = [];
+    state.orderBoard.commands = [];
     state.lockCommands = [];
     // The WeakMap-keyed lock registry carries nothing across a `Schema.clone()` (NPC↔PC
     // conversion clones the whole state tree into fresh instances), so re-derive it from the

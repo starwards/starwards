@@ -89,7 +89,10 @@ describe('ship crew runner', () => {
         crew.addSeat('captain', 'bot-captain-1', 'reference');
         crew.addSeat('pilot', 'bot-pilot-2', 'reference');
         await until(() => statuses.length === 2, 10_000);
-        await until(() => crew.orders.slots.engagement?.kind === 'engage', 15_000);
+        const engagement = () => crew.orders?.orders.find((o) => o.slot === 'engagement');
+        await until(() => engagement()?.kind === 'engage', 15_000);
+        // the board is the ship's synced state: the server holds the captain's order the bots read
+        expect(gvts.state.orderBoard.slots.get('engagement')).toMatchObject({ kind: 'engage', issuer: 'captain' });
         await until(
             () =>
                 events.some(
@@ -113,8 +116,8 @@ describe('ship crew runner', () => {
         const before = bearing();
         await until(() => bearing() < Math.min(20, before / 2), 20_000);
         await crew.stop();
-        expect(crew.orders.slots.engagement).toMatchObject({ kind: 'engage', issuer: 'captain' });
-        expect(crew.orders.slots.engagement?.params.target?.name).toBeTruthy();
+        expect(engagement()).toMatchObject({ kind: 'engage', issuer: 'captain' });
+        expect(engagement()?.params.target?.name).toBeTruthy();
         expect(events.some((e) => e.kind === 'orders')).toBe(true);
         expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
     });

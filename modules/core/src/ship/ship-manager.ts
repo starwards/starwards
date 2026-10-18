@@ -12,6 +12,7 @@ import {
 
 import { AggroCharacter } from './threat-table';
 import { AggroManager } from './aggro-manager';
+import { CrewOrdersManager } from './crew-orders-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { EnergyManager } from './energy-manager';
 import { IterationData } from '../updateable';
@@ -24,6 +25,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
     readonly isPlayerShip = true;
     private energyManager: EnergyManager;
     private repairManager: RepairManager;
+    private crewOrdersManager: CrewOrdersManager;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private movementManager: MovementManager;
@@ -51,6 +53,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
         );
         this.energyManager = new EnergyManager(this.state, this.heatManager);
         this.repairManager = new RepairManager(this.state, this.energyManager, this.heatManager);
+        this.crewOrdersManager = new CrewOrdersManager(this.state.orderBoard);
         this.movementManager = new MovementManager(
             this.spaceObject,
             this.state,
@@ -90,6 +93,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
         this.handleToggleSmartPilotManeuveringMode();
         this.repairManager.update(id);
         this.energyManager.update(id);
+        this.crewOrdersManager.update(id);
     }
 
     protected validateWeaponsTargetId(deltaSeconds = 0) {

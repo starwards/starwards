@@ -2,19 +2,20 @@ import {
     Answer,
     BrainSpec,
     CALLOUT_QUESTION,
-    CrewOrders,
     Display,
     GivenOrder,
     MISSILE_LAUNCH_BAND_METERS,
-    ORDER_KINDS,
+    OrderCommand,
+    OrdersBoard,
     Policy,
     SILENCE,
-    STANCES,
     SeatPlan,
+    orderCommand,
     orderFromCallout,
     readOrders,
     stationControls,
 } from '@starwards/bots';
+import { CREW_ORDER_KINDS, STANCES } from '@starwards/core/internal';
 import { RunLog, StateSummary, requestAt, stateAt } from './run-log';
 
 import { CrewOptions } from '../crew/crew';
@@ -156,9 +157,9 @@ function group(moments: { t: number; reason: string }[], window = 2) {
 /**
  * The branched captain does not call an order that contradicts one it gave at the branch point (a
  * reference captain calling `close_to` every decision would otherwise cancel a `hold_position` at once):
- * such a call becomes silence while the branch's order stands on the board.
+ * such a call becomes silence while the branch's order stands on the board, or is sent and not yet on it.
  */
-function keepToBranchOrders(seats: SeatPlan[]) {
+function keepToBranchOrders(seats: SeatPlan[], inFlight: () => string | undefined) {
     return seats.map((seat): SeatPlan => {
         if (seat.station !== 'captain') return seat;
         const inner = seat.policy;
@@ -170,11 +171,14 @@ function keepToBranchOrders(seats: SeatPlan[]) {
                     const result = await inner.answer(request, controls, display, heard);
                     const call = result.answers[CALLOUT_QUESTION]?.choice;
                     const kind = call && orderFromCallout(call, {}, undefined)?.kind;
-                    const standing = readOrders(display).orders.filter(
-                        (o) => o.issuer === 'captain (branch)' && o.status === 'active',
-                    );
-                    const contradicts = (a: string, b: string) => ORDER_KINDS[a]?.contradicts?.includes(b) === true;
-                    return kind && standing.some((o) => contradicts(kind, o.kind) || contradicts(o.kind, kind))
+                    const standing = readOrders(display)
+                        .orders.filter((o) => o.issuer === 'captain' && o.origin === 'branch' && o.status === 'active')
+                        .map((o) => o.kind);
+                    const sent = inFlight();
+                    if (sent) standing.push(sent);
+                    const contradicts = (a: string, b: string) =>
+                        CREW_ORDER_KINDS[a]?.contradicts?.includes(b) === true;
+                    return kind && standing.some((o) => contradicts(kind, o) || contradicts(o, kind))
                         ? {
                               ...result,
                               answers: { ...result.answers, [CALLOUT_QUESTION]: { choice: SILENCE, source: 'rule' } },
@@ -193,21 +197,29 @@ function keepToBranchOrders(seats: SeatPlan[]) {
  */
 function giveAt(t: number, order: GivenOrder): Intervention {
     let given = false;
+    /** The branch order sent and not yet on the board: commands land at the ship's next update. */
+    let inFlight: string | undefined;
     return {
-        seats: keepToBranchOrders,
-        intervene: (seconds: number, orders: CrewOrders) => {
+        seats: (seats) => keepToBranchOrders(seats, () => inFlight),
+        intervene: (seconds: number, board: OrdersBoard | undefined, send: (c: OrderCommand) => void) => {
+            if (board?.orders.some((o) => o.origin === 'branch' && o.kind === inFlight)) inFlight = undefined;
+            const give = (o: GivenOrder) => {
+                const c = orderCommand(o, 'captain', 'branch');
+                if (c) send(c);
+                inFlight = o.kind;
+            };
             if (!given && seconds + 1e-9 >= t) {
                 given = true;
-                orders.give(order, 'captain (branch)', seconds);
+                give(order);
             }
-            const docked = orders.state.slots.navigation;
+            const docked = board?.orders.find((o) => o.slot === 'navigation');
             if (
                 given &&
                 docked?.kind === 'dock_for_repair' &&
                 docked.status === 'complete' &&
                 seconds - (docked.stepAt ?? seconds) >= UNDOCK_AFTER_SECONDS
             ) {
-                orders.give({ kind: 'undock' }, 'captain (branch)', seconds);
+                give({ kind: 'undock' });
             }
         },
     };

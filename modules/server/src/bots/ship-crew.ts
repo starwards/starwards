@@ -4,17 +4,21 @@ import {
     Capabilities,
     Display,
     ORDERS_PANEL,
+    OrderCommand,
     SeatPlan,
     StationSession,
     botSeatScreen,
     buttonBrain,
     crewChannel,
-    crewOrders,
+    crewDoctrine,
     energyDrawingSeats,
     observeStation,
+    orderCommand,
     orderFromCallout,
-    ordersBoard,
+    orderReports,
+    readBoard,
     referenceSeatPlan,
+    sendOrderCommand,
 } from '@starwards/bots';
 import { liveShipContext, liveStation } from './live-station';
 
@@ -69,12 +73,12 @@ export async function shipCrew(options: ShipCrewOptions) {
     const channel = crewChannel();
     /** Seat → the console commands it offers, for binding an order to preserve energy. */
     const seatCommands = new Map<string, string[]>();
-    /**
-     * The ship's order board: kept here, beside the crew channel, for the seats of this ship only. It
-     * is crew state, not game state, so it is never synced and no client sees it.
-     */
-    const orders = crewOrders(() => energyDrawingSeats(Object.fromEntries(seatCommands)));
-    let ordersRecorded = 0;
+    /** The ship's doctrine: fills every slot of the synced order board that no captain order holds. */
+    const doctrine = crewDoctrine();
+    /** The ship's order board as the seats read it, from the synced ship state. */
+    const boardNow = () =>
+        readBoard(ctx.shipDriver.state.orderBoard, energyDrawingSeats(Object.fromEntries(seatCommands)));
+    let recordedBoard = '';
     let recording = false;
     let stopped = false;
     let seconds = 0;
@@ -97,11 +101,14 @@ export async function shipCrew(options: ShipCrewOptions) {
             station,
             capabilities.commands.map((c) => c.command),
         );
-        orders.advance({ station, display: shown, seconds });
-        // the board shows once the first order is given, so a crew without a captain reads as it always did
-        const display: Display = orders.version
-            ? { ...shown, panels: { ...shown.panels, [ORDERS_PANEL]: ordersBoard(orders.state, seconds) } }
-            : shown;
+        const send = (c: OrderCommand) => sendOrderCommand(seat.session.shipDriver, c);
+        const board = boardNow();
+        orderReports(board, { station, display: shown, seconds: ctx.shipDriver.state.orderBoard.seconds }).forEach(
+            send,
+        );
+        doctrine.see(station, shown);
+        // the board shows once an order was ever given
+        const display: Display = board ? { ...shown, panels: { ...shown.panels, [ORDERS_PANEL]: board } } : shown;
         const heard = channel.heard(station, seconds);
         const result = await seat.brain.decide(display, capabilities, heard);
         if (seats.get(key) !== seat) {
@@ -123,11 +130,16 @@ export async function shipCrew(options: ShipCrewOptions) {
             const own = (display.radar as { ownShip?: { position?: { x: number; y: number } } } | undefined)?.ownShip;
             const order =
                 (said.seat ?? station) === 'captain' && orderFromCallout(said.callout, said.values, own?.position);
-            if (order) orders.give(order, 'captain', seconds);
+            const command = order && orderCommand(order, 'captain');
+            if (command) send(command);
+            doctrine.hear(said.seat ?? station, said, display);
         }
-        if (orders.version !== ordersRecorded) {
-            ordersRecorded = orders.version;
-            emit('orders', ordersBoard(orders.state, seconds));
+        doctrine.commands(boardNow()).forEach(send);
+        const boardKey = JSON.stringify(ctx.shipDriver.state.orderBoard.slots.toJSON());
+        if (boardKey !== recordedBoard) {
+            recordedBoard = boardKey;
+            const shownBoard = boardNow();
+            if (shownBoard) emit('orders', shownBoard);
         }
         for (const d of result.decisions) {
             const seatTag = d.seat === undefined ? {} : { seat: d.seat };
@@ -246,9 +258,9 @@ export async function shipCrew(options: ShipCrewOptions) {
         addSeat,
         removeSeat,
         setRecording: (on: boolean) => void (recording = on),
-        /** The ship's order board. */
+        /** The ship's order board as the seats read it. */
         get orders() {
-            return orders.state;
+            return boardNow();
         },
         get seatCount() {
             return seats.size;

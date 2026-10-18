@@ -24,6 +24,8 @@ import { z } from 'zod';
 const crewConfigSchema = z
     .object({
         name: z.string(),
+        /** The crew's doctrine fills every board slot no captain order holds (`crewDoctrine` in `@starwards/bots`). */
+        doctrine: z.boolean().optional(),
         seats: z.array(
             z
                 .object({
@@ -53,6 +55,7 @@ export function readCrewFile(filePath: string) {
     const config = crewConfigSchema.parse(JSON.parse(fs.readFileSync(filePath, 'utf8')));
     return {
         name: config.name,
+        doctrine: config.doctrine === true,
         seats: config.seats.map(({ station, policy, brain }) => ({
             station,
             policy,
@@ -64,7 +67,7 @@ export function readCrewFile(filePath: string) {
 }
 
 /** `jevUsage` counts what the crew's Jev seats ask from now on; absent for a crew without one. */
-type CrewPlan = { name: string; seats: SeatPlan[]; usesJev: boolean; jevUsage?: JevUsage };
+type CrewPlan = { name: string; doctrine: boolean; seats: SeatPlan[]; usesJev: boolean; jevUsage?: JevUsage };
 
 /**
  * Reads a crew file and builds its seats. A Jev seat needs `TYPESAFE_API_KEY`; the client is shared
@@ -100,5 +103,5 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
                       : makeEngineerPolicy(seat.policy as (typeof ENGINEER_POLICIES)[number], spec.decisionSeconds);
         return { station: seat.station, spec, policy };
     });
-    return { name: config.name, seats, usesJev, jevUsage: client?.usage };
+    return { name: config.name, doctrine: config.doctrine, seats, usesJev, jevUsage: client?.usage };
 }

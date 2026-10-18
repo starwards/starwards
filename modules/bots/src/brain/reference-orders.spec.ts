@@ -1,8 +1,9 @@
 import { Capabilities, Display, stationControls } from './controls';
+import { GivenOrder, ORDERS_PANEL, orderFromCallout } from '../crew/orders';
 
 import { BrainRequest } from './request';
-import { Heard } from './callout';
 import { makeReferencePolicy } from './reference-policy';
+import { testBoard } from '../crew/orders.fixtures';
 
 const helmsCapabilities: Capabilities = {
     commands: ['rotation', 'strafe', 'boost', 'antiDrift', 'rotationMode'].map((command) => ({ command })),
@@ -39,30 +40,25 @@ function helmsDisplay(contacts: Seen[] = [], rotationMode = 1): Display {
     };
 }
 
-const closeTo: Heard = {
-    speaker: 'captain',
-    callout: 'close_to',
-    phrase: 'close to 18 km of raider, now 50.0 km at bearing 090',
-    values: { name: 'raider', range: '18', distance: '50.0', bearing: '090' },
-    secondsAgo: 0.5,
-};
-const holdHere: Heard = { speaker: 'captain', callout: 'hold_here', phrase: 'hold here', secondsAgo: 0.5 };
-const engage = (name: string): Heard => ({
-    speaker: 'captain',
-    callout: 'engage',
-    phrase: `engage ${name}`,
-    values: { name },
-    secondsAgo: 0.5,
-});
+const closeTo = orderFromCallout(
+    'close_to',
+    { name: 'raider', range: '18', distance: '50.0', bearing: '090' },
+    { x: 0, y: 0 },
+);
+const holdHere: GivenOrder = { kind: 'hold_here' };
+const engage = (name: string): GivenOrder => ({ kind: 'engage', params: { target: { name } } });
 
 async function choices(
-    shown: Display,
+    display: Display,
     capabilities: Capabilities,
-    heard: Heard[] = [],
+    orders: GivenOrder[] = [],
     policy = makeReferencePolicy(1),
 ) {
+    const shown = orders.length
+        ? { ...display, panels: { ...display.panels, [ORDERS_PANEL]: testBoard().give(orders).shown } }
+        : display;
     const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
-    const { answers } = await policy.answer({} as BrainRequest, controls, shown, heard);
+    const { answers } = await policy.answer({} as BrainRequest, controls, shown, []);
     return Object.fromEntries(Object.entries(answers).map(([id, a]) => [id, a.choice]));
 }
 
@@ -87,16 +83,17 @@ describe('reference crew under captain orders', () => {
         };
         expect(await choices(facing(90), afterBurner, [closeTo])).toMatchObject({ afterBurner: 'engage' });
         expect(await choices(facing(0), afterBurner, [closeTo])).toMatchObject({ afterBurner: 'release' });
-        const near = { ...closeTo, values: { ...closeTo.values, distance: '19.0' } };
+        const near = orderFromCallout(
+            'close_to',
+            { name: 'raider', range: '18', distance: '19.0', bearing: '090' },
+            { x: 0, y: 0 },
+        );
         expect(await choices(facing(90), afterBurner, [near])).toMatchObject({ afterBurner: 'release' });
     });
 
-    it('helms keeps an order after it is no longer on the air, until the next one', async () => {
-        const policy = makeReferencePolicy(1);
-        await choices(helmsDisplay(), helmsCapabilities, [closeTo], policy);
-        expect(await choices(helmsDisplay(), helmsCapabilities, [], policy)).toMatchObject({ strafe: 'right' });
-        await choices(helmsDisplay(), helmsCapabilities, [holdHere], policy);
-        expect(await choices(helmsDisplay(), helmsCapabilities, [], policy)).toMatchObject({
+    it('helms flies the maneuver order on the board until another replaces it', async () => {
+        expect(await choices(helmsDisplay(), helmsCapabilities, [closeTo])).toMatchObject({ strafe: 'right' });
+        expect(await choices(helmsDisplay(), helmsCapabilities, [closeTo, holdHere])).toMatchObject({
             strafe: 'hold',
             antiDrift: 'engage',
         });

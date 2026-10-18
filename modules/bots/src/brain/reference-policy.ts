@@ -1,10 +1,11 @@
 import { Answer, Policy } from './brain';
-import { CaptainOrders, captainOrders, referenceCallout } from './reference-orders';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
 
 import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
 import { MISSILE_LAUNCH_BAND_METERS } from './engagement';
+import { captainOrdersFromBoard } from '../crew/orders';
+import { referenceCallout } from './reference-orders';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -109,10 +110,9 @@ export function makeReferencePolicy(
     let seconds = 0;
     let armed = false;
     let lastLaunch = -Infinity;
-    const orders = captainOrders();
     return {
         name,
-        answer(request, controls, shown, heard) {
+        answer(request, controls, shown) {
             const display = shown as Display;
             const ship = nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
@@ -120,7 +120,7 @@ export function makeReferencePolicy(
             }
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
-            orders.hear(heard, seconds, display.radar?.ownShip?.position);
+            const orders = captainOrdersFromBoard(display);
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
@@ -165,7 +165,7 @@ function referenceChoice(
     parking: Parking,
     engineer: EngineerStyle,
     launchTube: number | undefined,
-    orders: CaptainOrders,
+    orders: ReturnType<typeof captainOrdersFromBoard>,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;

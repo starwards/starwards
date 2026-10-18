@@ -1,13 +1,6 @@
 import { Answer, Policy } from './brain';
-import {
-    DOCKING_MODE,
-    ORDER_KINDS,
-    RETREAT_RUN_METERS,
-    ShownOrder,
-    ordersBinding,
-    readOrders,
-    whereIs,
-} from '../crew/orders';
+import { CREW_ORDER_KINDS, RETREAT_RUN_METERS } from '@starwards/core/internal';
+import { DOCKING_MODE, ShownOrder, ordersBinding, readOrders, whereIs } from '../crew/orders';
 
 import { Control } from './controls';
 
@@ -89,7 +82,7 @@ const seen = (d: Display, name: string | undefined) =>
     name === undefined ? undefined : d.radar?.contacts?.find((c) => c.name === name);
 /** Where an order's reference is for this seat, read frozen or live as its kind declares. */
 const where = (d: Display, order: ShownOrder, ref: 'target' | 'station') =>
-    whereIs(d, order.params[ref], ORDER_KINDS[order.kind]?.reference?.mode ?? 'frozen');
+    whereIs(d, order.params[ref], CREW_ORDER_KINDS[order.kind]?.reference?.mode ?? 'frozen');
 const lockOf = (d: Display) => {
     const id = (d.panels['targeting-status'] as { targetId?: string } | undefined)?.targetId;
     return d.radar?.contacts?.find((c) => c.id === id);
