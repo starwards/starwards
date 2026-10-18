@@ -11,6 +11,7 @@ import {
     isShellAmmo,
     shellAmmoTypes,
 } from '@starwards/core/internal';
+import { MISSILE_LAUNCH_BAND_METERS } from '@starwards/bots';
 
 /**
  * The tactical (helms + weapons) and weapons station scores, read from a recording: 1 s `SavedGame`
@@ -301,8 +302,6 @@ export function shellReaches(
     return miss <= fuze + blastRadius(ammo) + target.radius + spread;
 }
 
-const MISSILE_BAND: readonly [number, number] = [1000, 20_000];
-
 /** Whether the player had a firing solution on `enemy` in this frame: gun, or a missile in band on the held target. */
 export function hasSolution(frame: TacticalFrame, enemy: ShipReading) {
     const { own, weapons } = frame;
@@ -319,7 +318,12 @@ export function hasSolution(frame: TacticalFrame, enemy: ShipReading) {
         if (shellReaches(shell, weapons.fuzeSeconds, ammo, enemy, SPREAD_SIGMAS * weapons.spreadDegrees)) return true;
     }
     const d = Math.hypot(enemy.x - own.x, enemy.y - own.y);
-    return weapons.tubesReady && weapons.targetId === enemy.id && d >= MISSILE_BAND[0] && d <= MISSILE_BAND[1];
+    return (
+        weapons.tubesReady &&
+        weapons.targetId === enemy.id &&
+        d >= MISSILE_LAUNCH_BAND_METERS.min &&
+        d <= MISSILE_LAUNCH_BAND_METERS.max
+    );
 }
 
 /** Living enemies' threat shares, uniform when none threatens. */
@@ -457,7 +461,8 @@ export function weaponsScore(
             dominated += ammoShortfall(s.ammo, f.weapons.shellsInMagazine, target);
         } else {
             const d = Math.hypot(at.x - s.x, at.y - s.y);
-            if (s.targetId !== target.id || d < MISSILE_BAND[0] || d > MISSILE_BAND[1]) nosol++;
+            if (s.targetId !== target.id || d < MISSILE_LAUNCH_BAND_METERS.min || d > MISSILE_LAUNCH_BAND_METERS.max)
+                nosol++;
         }
     }
     const hits = hitsOf(events, frames).filter((h) => h.shooterId === playerId);

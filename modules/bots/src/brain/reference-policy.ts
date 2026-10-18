@@ -30,12 +30,17 @@ const TARGET = 2;
 const FIRE_ARC_DEGREES = 2;
 const FIRE_RANGE_METERS = 8000;
 /**
- * Missile launch band: past the missile's arming run, inside what it reaches in half its life. A
- * homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
+ * Missile launch band, shared by the reference weapons policy and the weapons KPI's firing
+ * solution: past the missile's arming run, inside what a HiExp missile reaches. Missile range sweep
+ * (`npm --prefix modules/server run missile-range`, 2026-10-18, table in `modules/ai/curriculum/lessons.md`):
+ * one HiExp missile hits a still dragonfly-MK1 from up to 45 km, a crossing one from up to 4 km, and
+ * one running from launch at cruise speed from no range at all; `max` is not yet set from it.
+ */
+export const MISSILE_LAUNCH_BAND_METERS = { min: 1000, max: 20_000 } as const;
+/**
+ * A homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
  * line: a side tube still fires at a target on the nose.
  */
-const MISSILE_MIN_RANGE_METERS = 1000;
-const MISSILE_MAX_RANGE_METERS = 20_000;
 const TUBE_ARC_DEGREES = 100;
 /** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
 const LAUNCH_INTERVAL_SECONDS = 10;
@@ -453,8 +458,8 @@ function tubeToLaunch(display: Display) {
     if (
         !target ||
         !isShip(target) ||
-        target.distance < MISSILE_MIN_RANGE_METERS ||
-        target.distance > MISSILE_MAX_RANGE_METERS
+        target.distance < MISSILE_LAUNCH_BAND_METERS.min ||
+        target.distance > MISSILE_LAUNCH_BAND_METERS.max
     ) {
         return undefined;
     }
