@@ -7,6 +7,7 @@ import { AdminDriver, Driver, EVENTS_EXT, GameStatus, parseEventLine, sleep, wai
 
 import { BotSupervisor } from './supervisor';
 import { GameManager } from '../admin/game-manager';
+import { botWorkerSource } from './worker-source';
 import { makeDriver } from '../test/driver';
 import { matchMaker } from '@colyseus/core';
 import { two_vs_one } from '../maps';
@@ -26,14 +27,21 @@ const settledHeap = async () => {
     return process.memoryUsage().heapUsed;
 };
 
-const readEvents = async (file: string) =>
-    (await fs.readFile(file, 'utf-8'))
-        .split('\n')
-        .filter((l) => l.trim())
-        .map((l) => parseEventLine(l));
+/** Complete lines only: a line still being appended (no trailing newline yet) is left for the next read. */
+const readEvents = async (file: string) => {
+    const lines = (await fs.readFile(file, 'utf-8')).split('\n');
+    lines.pop();
+    return lines.filter((l) => l.trim()).map((l) => parseEventLine(l));
+};
+const fileExists = (file: string) =>
+    fs.access(file).then(
+        () => true,
+        () => false,
+    );
+
+jest.setTimeout(60_000);
 
 describe('bot lifecycle', () => {
-    jest.setTimeout(60_000);
     const gameDriver = makeDriver();
     const manager = () => gameDriver.gameManager;
     const supervisor = () => manager().botSeats as BotSupervisor;
@@ -50,7 +58,6 @@ describe('bot lifecycle', () => {
     });
 
     describe('toggle', () => {
-        jest.setTimeout(300_000);
         it('toggling a bot 20 times and running 3 games leaks nothing', async () => {
             const baseline = await openConnections();
             let firstHeap = 0;
@@ -80,19 +87,26 @@ describe('bot lifecycle', () => {
             // eslint-disable-next-line no-console
             console.log(`heap after first cycle ${firstHeap}, after all ${lastHeap}`);
             expect(lastHeap).toBeLessThanOrEqual(firstHeap * 1.2);
-        });
+        }, 300_000);
     });
 
     it('a worker throw fails its bots and the game keeps running', async () => {
         const real = manager().botSeats;
+        let crashNext = false;
         const crashing = new BotSupervisor(
             manager(),
             () => gameDriver.url(),
             () => {},
-            () => "require('node:worker_threads').parentPort.once('message', () => { throw new Error('boom'); })",
+            () =>
+                crashNext
+                    ? "require('node:worker_threads').parentPort.once('message', () => { throw new Error('boom'); })"
+                    : botWorkerSource(),
         );
         manager().botSeats = crashing;
         try {
+            admin.assignBot({ shipId: 'GVTS2', seat: 'pilot', brain: 'reference' });
+            await waitStatus(admin, 'GVTS2', 'pilot', 'running');
+            crashNext = true;
             admin.assignBot({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
             admin.assignBot({ shipId: 'GVTS', seat: 'weapons', brain: 'reference' });
             await waitStatus(admin, 'GVTS', 'pilot', 'failed');
@@ -103,7 +117,8 @@ describe('bot lifecycle', () => {
             const before = manager().totalSeconds;
             await sleep(2_000);
             expect(manager().totalSeconds).toBeGreaterThan(before);
-            expect(crashing.workerCount).toBe(0);
+            expect(crashing.workerCount).toBe(1); // GVTS2's worker only
+            expect(admin.state.bots.get('GVTS2')?.seats.get('pilot')?.status).toBe('running');
         } finally {
             await crashing.stopAll();
             manager().botSeats = real;
@@ -147,7 +162,8 @@ describe('bot lifecycle', () => {
             const name = await admin.startRecording();
             const sidecar = path.join(gameDriver.recordingsDir, name.slice(0, -'.sgr'.length) + EVENTS_EXT);
             const decisions = async () =>
-                (await readEvents(sidecar).catch(() => [])).filter((e) => e?.kind === 'decision').length;
+                ((await fileExists(sidecar)) ? await readEvents(sidecar) : []).filter((e) => e?.kind === 'decision')
+                    .length;
             const human1 = await human('HUMAN1', 'helms');
             try {
                 const atAttach = await decisions();
