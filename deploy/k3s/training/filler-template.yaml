@@ -37,7 +37,7 @@ spec:
                           image: starwards-training
                           env:
                               - { name: JOB, value: rolling }
-                              - { name: branch, value: branch }
+                              - { name: LANE, value: branch }
                               # one rung per cycle in turn; branch: level set after each full turn
                               - { name: RUNGS, value: 'T3-directed,T3-incoming,T2-dock,W-waves' }
                               - { name: LEVEL_SETS, value: 'strategic,tactical|button:helms:afterBurner' }
