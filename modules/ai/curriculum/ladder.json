@@ -107,6 +107,18 @@
             "accept": { "killRate": 0.5, "checks": { "missile_beyond_own_radar": 0.5 } }
         },
         {
+            "id": "L5c",
+            "axis": "threat",
+            "changed": "The L5b picture, but the dragonfly-MK1 attacks the GVTS from 60-90 km, seen and identified only by an allied station near its start (T3-incoming): the oncoming aspect, where the missile envelope reaches farthest. A run counts once it kills, and the level also wants missiles launched beyond the weapons radar's reach at a target flying in.",
+            "status": "built",
+            "rungs": ["T3-incoming"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 16 },
+            "timeoutSeconds": 400,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5, "checks": { "missile_oncoming_beyond_radar": 0.5 } }
+        },
+        {
             "id": "L6",
             "axis": "threat",
             "changed": "Heavier attackers: dragonfly-MK2, then predator hulls.",

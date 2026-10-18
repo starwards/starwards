@@ -221,6 +221,19 @@ describe('computeChecks', () => {
             const check = (await run()).missile_beyond_own_radar;
             expect(check).toMatchObject({ status: 'skip', detail: { launches: 1, beyond: 0, outsideEnvelope: 1 } });
         });
+        it('passes the oncoming check on a launch beyond the reach at a target flying in at cruise', async () => {
+            await launch('shell0', 5, 'HiExpMissile', 60_000, -600);
+            const check = (await run()).missile_oncoming_beyond_radar;
+            expect(check).toMatchObject({ status: 'pass', t: 5, detail: { launches: 1, oncoming: 1 } });
+        });
+
+        it('skips the oncoming check on a launch beyond the reach at a still target', async () => {
+            await launch('shell0', 5, 'HiExpMissile', 18_000);
+            expect((await run()).missile_oncoming_beyond_radar).toMatchObject({
+                status: 'skip',
+                detail: { oncoming: 0 },
+            });
+        });
     });
 
     describe('frames_regular', () => {

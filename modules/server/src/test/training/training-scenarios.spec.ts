@@ -40,7 +40,7 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T2-constrained, T3-directed, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi and W-outranged', () => {
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T2-constrained, T3-directed, T3-incoming, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi and W-outranged', () => {
         expect(Object.keys(trainingScenarios)).toEqual([
             'T0',
             'T0-wide',
@@ -49,6 +49,7 @@ describe('training ladder', () => {
             'T2',
             'T2-constrained',
             'T3-directed',
+            'T3-incoming',
             'T1-MK2',
             'T1-predator',
             'T1-noweave',
@@ -91,6 +92,37 @@ describe('training ladder', () => {
             expect(game.spaceManager.isVisible(TRAINING_PLAYER_ID, TRAINING_TARGET_ID)).toBe(false);
             expect(game.spaceManager.isVisibleToFaction(Faction.Gravitas, TRAINING_TARGET_ID)).toBe(true);
             expect(playerScanLevel(target, Faction.Gravitas)).toBe(ScanLevel.BASIC);
+        }
+    });
+
+    it('T3-incoming: a dragonfly-MK1 attacking the GVTS from 60-90 km that only an allied station sees, identified', () => {
+        for (const seed of [1, 2, 3, 4]) {
+            const scenario = trainingScenarios['T3-incoming'];
+            const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
+            const game = HeadlessGame.start(scenario.createMap(params), seed, { crewedPlayer: true });
+            const distance = () =>
+                XY.lengthOf(
+                    XY.difference(
+                        game.spaceManager.state.getShip(TRAINING_TARGET_ID)!.position,
+                        game.spaceManager.state.getShip(TRAINING_PLAYER_ID)!.position,
+                    ),
+                );
+            const start = distance();
+            // radar ranges ease in from zero over the first seconds
+            for (let t = 0; t < 20; t += 1 / SERVER_TICK_HZ) {
+                game.tick(1 / SERVER_TICK_HZ);
+            }
+            const target = game.spaceManager.state.getShip(TRAINING_TARGET_ID)!;
+
+            expect(target.model).toBe('dragonfly-MK1');
+            expect(game.api.getShip(TRAINING_TARGET_ID)!.state.order).toBe(Order.ATTACK);
+            expect(game.api.getShip(TRAINING_TARGET_ID)!.state.orderTargetId).toBe(TRAINING_PLAYER_ID);
+            expect(start).toBeGreaterThanOrEqual(60_000);
+            expect(start).toBeLessThanOrEqual(90_000);
+            expect(distance()).toBeLessThan(start - 5_000);
+            expect(game.spaceManager.isVisible(TRAINING_PLAYER_ID, TRAINING_TARGET_ID)).toBe(false);
+            expect(game.spaceManager.isVisibleToFaction(Faction.Gravitas, TRAINING_TARGET_ID)).toBe(true);
+            expect(playerScanLevel(target, Faction.Gravitas)).toBeGreaterThanOrEqual(ScanLevel.BASIC);
         }
     });
 
