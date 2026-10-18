@@ -9,10 +9,10 @@ import {
     shipStatus,
     stationCapabilities,
     widgetReaders,
-} from '@starwards/bots';
+} from '..';
 
-import { makeDriver } from '@starwards/server/src/test/driver';
-import { maps } from '@starwards/server';
+import { makeDriver } from '../../../server/src/test/driver';
+import { maps } from '../../../server/src';
 
 const { test_map_1 } = maps;
 
