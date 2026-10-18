@@ -219,7 +219,10 @@ export const strategicLevel: DecisionLevel = {
             if (active.has(slot)) add(`revoke:${slot}`, 'revoke', { kind: 'revoke', params: { slot } });
         }
         const priorities = state.board?.priorities ?? [];
-        for (const slot of RAISED_SLOTS) {
+        // a ranking decides only between orders that bind one seat: with none in force, reranking changes nothing
+        const bound = (state.board?.orders ?? []).filter((o) => o.status === 'active').flatMap((o) => o.binds);
+        const contested = new Set(bound).size < bound.length;
+        for (const slot of contested ? RAISED_SLOTS : []) {
             if (priorities[0] !== slot) {
                 add(`prioritize:${slot}`, 'prioritize', { kind: 'prioritize', params: { ranking: [slot] } });
             }

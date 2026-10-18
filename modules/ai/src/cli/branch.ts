@@ -254,10 +254,19 @@ async function corpus() {
             ),
         )
     ).flat();
-    // round-robin over runs, so a cut budget still covers every seed
+    // round-robin over runs and levels, so a cut budget still covers every seed at every level
+    const seen = new Map<string, number>();
     const order = planned
-        .map((job, i) => ({ job, rank: planned.slice(0, i).filter((j) => j.run.seed === job.run.seed).length }))
-        .sort((a, b) => a.rank - b.rank || a.job.run.seed - b.job.run.seed)
+        .map((job) => {
+            const key = `${job.run.seed}/${job.level.name}`;
+            const rank = seen.get(key) ?? 0;
+            seen.set(key, rank + 1);
+            return { job, rank };
+        })
+        .sort(
+            (a, b) =>
+                a.rank - b.rank || a.job.run.seed - b.job.run.seed || a.job.level.name.localeCompare(b.job.level.name),
+        )
         .slice(0, budget)
         .map((x) => x.job);
     const wire: WireJob[] = order.map((j) => ({
