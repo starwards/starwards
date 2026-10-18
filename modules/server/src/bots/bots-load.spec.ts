@@ -1,14 +1,15 @@
 import { Driver, Faction, rosterSeats, sleep, waitFor } from '@starwards/core/internal';
 
+import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { makeDriver } from '../test/driver';
 import { newShip } from '../admin/map-helper';
-import { performance } from 'node:perf_hooks';
 import { two_vs_one } from '../maps';
 
-const MEASURE_MS = 60_000;
+const MEASURE_MS = Number(process.env.STARWARDS_LOAD_MS ?? 60_000);
 const p95 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length * 0.95)];
 
-// two minutes and timing-sensitive: opt-in with STARWARDS_LOAD=1
+// Two minutes and timing-sensitive: opt-in with STARWARDS_LOAD=1. 15 s windows (STARWARDS_LOAD_MS=15000)
+// were tried for CI and flaked: update() p95 varied +0.5% to +26% between identical runs.
 const run = process.env.STARWARDS_LOAD ? describe : describe.skip;
 
 run('bot load', () => {
@@ -23,18 +24,34 @@ run('bot load', () => {
         }
         await waitFor(() => expect(manager.state.playerShipIds.length).toBe(3), 10_000);
 
+        // update(): the tick's own work. interval: start-to-start, which also grows with whatever
+        // else the event loop runs between ticks (the bots' sockets and patches).
         let samples: number[] = [];
+        let intervals: number[] = [];
+        let lastStart = 0;
         const update = manager.update.bind(manager);
         manager.update = (deltaSeconds: number) => {
             const start = performance.now();
+            if (lastStart) intervals.push(start - lastStart);
+            lastStart = start;
             const result = update(deltaSeconds);
             samples.push(performance.now() - start);
             return result;
         };
         const measure = async () => {
             samples = [];
+            intervals = [];
+            lastStart = 0;
+            const loop = monitorEventLoopDelay({ resolution: 10 });
+            loop.enable();
             await sleep(MEASURE_MS);
-            return { p95: p95(samples), n: samples.length };
+            loop.disable();
+            return {
+                p95: p95(samples),
+                interval: p95(intervals),
+                loop: loop.percentile(95) / 1e6,
+                n: samples.length,
+            };
         };
 
         await sleep(2_000); // settle after map start
@@ -57,10 +74,9 @@ run('bot load', () => {
             }
             const b = await measure();
             // eslint-disable-next-line no-console
-            console.log(
-                `tick p95 without bots ${a.p95.toFixed(3)} ms (n=${a.n}), with bots ${b.p95.toFixed(3)} ms (n=${b.n})`,
-            );
+            console.log(`no bots ${JSON.stringify(a)}; with bots ${JSON.stringify(b)} (ms)`);
             expect(b.p95).toBeLessThanOrEqual(a.p95 * 1.1);
+            expect(b.interval).toBeLessThanOrEqual(a.interval * 1.1);
         } finally {
             driver.destroy();
         }
