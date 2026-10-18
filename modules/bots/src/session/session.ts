@@ -35,12 +35,20 @@ export type SessionSpaceDriver = Pick<SpaceDriver, 'state' | 'sendJsonCmd' | 'co
 type StationSessionOptions = {
     /** The radar picture. Defaults to one built from the space driver's room events. */
     radar?: RadarView;
-    /** Waits while a trigger is held. Defaults to a wall-clock wait. */
-    wait?: (seconds: number) => Promise<void>;
+    /** Waits while a trigger is held, resolving early once `signal` aborts. Defaults to a wall-clock wait. */
+    wait?: (seconds: number, signal: AbortSignal) => Promise<void>;
 };
 
-function wallClockWait(seconds: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+function wallClockWait(seconds: number, signal: AbortSignal): Promise<void> {
+    return new Promise((resolve) => {
+        const done = () => {
+            clearTimeout(timer);
+            signal.removeEventListener('abort', done);
+            resolve();
+        };
+        const timer = setTimeout(done, seconds * 1000);
+        signal.addEventListener('abort', done);
+    });
 }
 
 /**
@@ -52,7 +60,9 @@ function wallClockWait(seconds: number): Promise<void> {
  */
 export class StationSession {
     readonly radar: RadarView;
-    private readonly wait: (seconds: number) => Promise<void>;
+    private readonly wait: (seconds: number, signal: AbortSignal) => Promise<void>;
+    /** Aborted by {@link release}: ends every hold in progress and refuses new ones. */
+    private readonly releasing = new AbortController();
 
     constructor(
         readonly stationName: string,
@@ -164,12 +174,24 @@ export class StationSession {
         if (!(seconds > 0) || seconds > MAX_BURST_SECONDS) {
             throw new InvalidCommandError(`seconds must be greater than 0 and at most ${MAX_BURST_SECONDS}`);
         }
+        const { signal } = this.releasing;
+        if (signal.aborted) {
+            throw new InvalidCommandError(`station "${this.stationName}" was released`);
+        }
         this.shipDriver.sendJsonCmd(pointer, true);
         try {
-            await this.wait(seconds);
+            await this.wait(seconds, signal);
         } finally {
             this.shipDriver.sendJsonCmd(pointer, false);
         }
+    }
+
+    /**
+     * Lets go of every held trigger at once, without waiting for game time to pass, and refuses
+     * further holds. Call it when the seat's player leaves: the session must not be used after.
+     */
+    release(): void {
+        this.releasing.abort();
     }
 
     /**

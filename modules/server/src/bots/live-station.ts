@@ -12,22 +12,27 @@ const HOLD_POLL_MS = 50;
 
 /**
  * Holds last game seconds, not wall seconds, so a burst lasts as long as it did in training at any
- * game speed, and a paused game holds the trigger until play resumes.
+ * game speed, and a paused game holds the trigger until play resumes — or until `signal` aborts,
+ * which lets go at once whatever the game clock does.
  */
 function gameTimeWait(admin: { state: { speed: number } }) {
-    return (seconds: number) =>
+    return (seconds: number, signal: AbortSignal) =>
         new Promise<void>((resolve) => {
             let held = 0;
             let last = Date.now();
+            const done = () => {
+                clearInterval(timer);
+                signal.removeEventListener('abort', done);
+                resolve();
+            };
             const timer = setInterval(() => {
                 const now = Date.now();
                 held += ((now - last) / 1000) * admin.state.speed;
                 last = now;
-                if (held >= seconds) {
-                    clearInterval(timer);
-                    resolve();
-                }
+                if (held >= seconds) done();
             }, HOLD_POLL_MS);
+            if (signal.aborted) done();
+            else signal.addEventListener('abort', done);
         });
 }
 
@@ -36,7 +41,7 @@ type LiveShipContext = {
     shipDriver: ShipDriver;
     spaceDriver: SpaceDriver;
     radar: RadarView;
-    wait: (seconds: number) => Promise<void>;
+    wait: (seconds: number, signal: AbortSignal) => Promise<void>;
 };
 
 /** Everything a ship's seats share: one manifest fetch, one radar view, one game-time clock. */

@@ -165,13 +165,26 @@ export async function shipCrew(options: ShipCrewOptions) {
         }
     }
 
-    /** Resolves once the seat's decisions and held buttons in flight are done; it never presses again. */
-    async function removeSeat(seat: BridgeSeat) {
+    /** Removals still letting go of their seat's buttons; `stop` waits for them too. */
+    const removals = new Set<Promise<void>>();
+
+    /**
+     * Lets go of every button the seat holds at once, then resolves when its decisions and presses
+     * in flight are done; it never presses again. Needs no game time to pass, so it ends while paused.
+     */
+    function removeSeat(seat: BridgeSeat) {
         const s = seats.get(seat);
+        if (!s) return Promise.resolve();
         seats.delete(seat);
-        while (s?.inFlight.size) {
-            await Promise.allSettled([...s.inFlight]);
-        }
+        s.session.release();
+        const removal = (async () => {
+            while (s.inFlight.size) {
+                await Promise.allSettled([...s.inFlight]);
+            }
+        })();
+        removals.add(removal);
+        void removal.finally(() => removals.delete(removal));
+        return removal;
     }
 
     const loop = (async () => {
@@ -191,11 +204,12 @@ export async function shipCrew(options: ShipCrewOptions) {
         get seatCount() {
             return seats.size;
         },
-        /** Stops deciding, then waits for every seat's decisions and held buttons in flight. */
+        /** Stops deciding, lets go of every held button, and waits for every seat's removal, including ones already under way. */
         async stop() {
             stopped = true;
             await loop;
-            await Promise.all([...seats.keys()].map(removeSeat));
+            for (const seat of [...seats.keys()]) removeSeat(seat);
+            await Promise.all([...removals]);
         },
     };
 }
