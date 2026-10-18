@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import * as v8 from 'node:v8';
 import * as vm from 'node:vm';
 
-import { AdminDriver, Driver, EVENTS_EXT, GameStatus, parseEventLine, sleep, waitFor } from '@starwards/core/internal';
+import { AdminDriver, Driver, GameStatus, parseEventLine, sidecarName, sleep, waitFor } from '@starwards/core/internal';
 
 import { BotSupervisor } from './supervisor';
 import { GameManager } from '../admin/game-manager';
@@ -160,7 +160,7 @@ describe('bot lifecycle', () => {
             admin.assignBot({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
             await waitStatus(admin, 'GVTS', 'pilot', 'running');
             const name = await admin.startRecording();
-            const sidecar = path.join(gameDriver.recordingsDir, name.slice(0, -'.sgr'.length) + EVENTS_EXT);
+            const sidecar = path.join(gameDriver.recordingsDir, sidecarName(name));
             const decisions = async () =>
                 ((await fileExists(sidecar)) ? await readEvents(sidecar) : []).filter((e) => e?.kind === 'decision')
                     .length;
@@ -199,7 +199,7 @@ describe('bot lifecycle', () => {
         const name = await admin.startRecording();
         await sleep(5_000);
         const summary = await admin.stopRecording();
-        const sidecar = path.join(gameDriver.recordingsDir, name.slice(0, -'.sgr'.length) + EVENTS_EXT);
+        const sidecar = path.join(gameDriver.recordingsDir, sidecarName(name));
         const sizeAtStop = (await fs.stat(sidecar)).size;
         await sleep(3_000);
         expect((await fs.stat(sidecar)).size).toBe(sizeAtStop);
