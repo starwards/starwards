@@ -2,23 +2,25 @@
 audience: agent
 depth: deep
 source_of_truth:
-  - modules/core/src/logic/space-manager.ts
-  - modules/core/src/logic/xy.ts
+    - modules/core/src/logic/space-manager.ts
+    - modules/core/src/logic/xy.ts
 related:
-  - SUBSYSTEMS.md
+    - SUBSYSTEMS.md
 last_verified: 2026-07-20
 ---
 
 # Physics System
 
-**Server-authoritative physics with circular collision detection and raycast**
+**Server-authoritative physics with circular collision detection and swept projectile contact**
 
 ## SpaceManager
+
 **Location:** `modules/core/src/logic/space-manager.ts`
 
-**Responsibilities:** Collision detection | Raycast | Motion | Damage | Explosions | Docking
+**Responsibilities:** Collision detection | Projectile sweep | Motion | Damage | Explosions | Docking
 
 ### Update Loop
+
 ```typescript
 update({ deltaSeconds, totalSeconds }: IterationData) {
     applyLockCommands(state);          // GM lock/unlock first
@@ -40,6 +42,7 @@ update({ deltaSeconds, totalSeconds }: IterationData) {
 ```
 
 ### Equations of Motion
+
 ```typescript
 // Position: x(t) = x0 + v0*t + (a*t²)/2
 position.x += velocity.x * dt;
@@ -53,11 +56,13 @@ velocity.x += acceleration.x * dt;
 **Library:** `detect-collisions` (BVH broadphase + SAT narrowphase) — version in [DEPENDENCIES.md](DEPENDENCIES.md)
 
 **Complexity:**
+
 - Naive: O(n²) → comparisons = n×(n-1)/2
 - Optimized: O(n log n) avg w/ BVH broadphase
 - Worst: O(n²) for dense distributions
 
 **Implementation:**
+
 ```typescript
 import { System, Circle } from 'detect-collisions';
 const collisionSys = new System();
@@ -72,52 +77,33 @@ for (const other of circle.potentials()) {
 ```
 
 **Collision Response:**
+
 ```typescript
 // Calculate impulse
 const normal = normalize(subtract(objB.position, objA.position));
 const relVel = subtract(objA.velocity, objB.velocity);
-const impulse = -(1 + restitution) * dot(relVel, normal) / (1/massA + 1/massB);
+const impulse = (-(1 + restitution) * dot(relVel, normal)) / (1 / massA + 1 / massB);
 
 // Apply impulse + separate
 objA.velocity = add(objA.velocity, scale(normal, impulse / massA));
 objB.velocity = subtract(objB.velocity, scale(normal, impulse / massB));
 ```
 
-## Projectile Raycast
+## Projectile Sweep
 
-**Why:** Fast projectiles tunnel through objects between frames
+**Why:** at sprint or shell speed, a projectile and a crossing target cover more than a hull's width
+per tick, so an overlap check after the move lets the projectile pass through.
 
-**Ray-Sphere Intersection:**
-```typescript
-function raycast(rayOrigin, rayDir, sphereCenter, sphereRadius) {
-    const oc = subtract(rayOrigin, sphereCenter);
-    const a = dot(rayDir, rayDir);
-    const b = 2.0 * dot(oc, rayDir);
-    const c = dot(oc, oc) - radius²;
-    const discriminant = b² - 4ac;
+`SpaceManager.sweepProjectiles()` runs at the start of `applyPhysics()`, before anything moves. For
+each moving projectile it solves, in each nearby solid's frame (both on their current velocities),
+the first time within the tick that the gap closes to the solid's radius plus the projectile's
+radius. Objects already touching are left to the regular collision pass, as is own fire
+(`isOwnFire`). After every object has moved, a projectile with a contact is placed at its offset
+from that solid at contact time, a hair inside the contact distance, so the collision pass resolves
+its fuze the usual way: contact damage, or detonation for a proximity fuze.
 
-    if (discriminant < 0) return null;  // No hit
-    const t = (-b - √discriminant) / 2a;
-    if (t < 0) return null;  // Behind ray
-    return { point: rayOrigin + rayDir*t, distance: t };
-}
-```
-
-**Projectile Update:**
-```typescript
-const startPos = projectile.position.clone();
-const dist = length(velocity) * dt;
-projectile.position = add(startPos, scale(normalize(velocity), dist));
-
-for (const obj of spaceObjects) {
-    const hit = raycast(startPos, normalize(velocity), obj.position, obj.radius);
-    if (hit && hit.distance <= dist) {
-        applyDamage(obj, projectile.damage, hit.point);
-        destroyProjectile(projectile);
-        return;
-    }
-}
-```
+Proximity fuzes do not use the sweep for their range: homing missiles check `fuze.range` against the
+current gap in `calcHomingProjectiles()`, unguided rounds in `checkUnguidedProximityFuzes()`.
 
 ## Weapon Design
 
@@ -126,19 +112,19 @@ for (const obj of spaceObjects) {
 Weapons are designed for specific effectiveness ranges:
 
 1. **Close Range (CIWS):** Chaingun with airburst rounds
-   - High rate of fire, projectile velocity over accuracy
-   - Airburst detonates at set range for area denial
-   - Perfect for fighters/torpedoes, ineffective vs armored ships
+    - High rate of fire, projectile velocity over accuracy
+    - Airburst detonates at set range for area denial
+    - Perfect for fighters/torpedoes, ineffective vs armored ships
 
 2. **Intermediate Range:** Railguns (planned)
-   - Charge time prevents close use
-   - Dodgeable at long range due to travel time
-   - Optimal for mid-range engagements
+    - Charge time prevents close use
+    - Dodgeable at long range due to travel time
+    - Optimal for mid-range engagements
 
 3. **Long Range:** Self-propelled torpedoes
-   - Homing capability: 504–936°/s rotation, depending on the missile (see `homing.rotationCapacity` per missile in `modules/core/src/space/projectile.ts`)
-   - Flight time varies by warhead (see `secondsToLive` per missile in `modules/core/src/space/projectile.ts`)
-   - Fuze varies by warhead: proximity detonation at 100m (HiExp, Frag, Cluster), or contact (ArmPen, Elec)
+    - Homing capability: 504–936°/s rotation, depending on the missile (see `homing.rotationCapacity` per missile in `modules/core/src/space/projectile.ts`)
+    - Flight time varies by warhead (see `secondsToLive` per missile in `modules/core/src/space/projectile.ts`)
+    - Fuze varies by warhead: proximity detonation at 100m (HiExp, Frag, Cluster), or contact (ArmPen, Elec)
 
 **Chaingun Selection:** External chain-powered for blowback-free operation, variable motor speed controls rate of fire, misfires don't jam (round ejects, new round loads).
 
@@ -222,9 +208,9 @@ ship.velocity = parent.velocity.clone();
 
 ## Helper Systems
 
-| System | Location | Functions |
-|--------|----------|-----------|
-| HelmAssist | `logic/helm-assist.ts` | rotationFromTargetTurnSpeed, matchGlobalSpeed, matchLocalSpeed, moveToTarget, rotateToTarget |
+| System       | Location                 | Functions                                                                                                                                                           |
+| ------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HelmAssist   | `logic/helm-assist.ts`   | rotationFromTargetTurnSpeed, matchGlobalSpeed, matchLocalSpeed, moveToTarget, rotateToTarget                                                                        |
 | GunnerAssist | `logic/gunner-assist.ts` | predictHitLocation, calcRangediff, getKillZoneRadiusRange, isTargetInKillZone, calcShellSecondsToLive, getShellExplosionLocation, getTargetLocationAtShellExplosion |
 
 ## Performance

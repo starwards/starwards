@@ -125,9 +125,13 @@ export type ProjectileDesign = WarheadDesign & {
         rotationCapacity: number;
         velocityCapacity: number;
         maxSpeed: number;
-        /** terminal sprint: dramatic acceleration burst once within `range` of the target */
+        /**
+         * terminal sprint: dramatic acceleration burst once within `range` of the target, or
+         * within `fullScanRange` when the firing faction holds the target at FULL scan
+         */
         sprint: {
             range: number;
+            fullScanRange: number;
             speedMultiplier: number;
         };
     };
@@ -138,8 +142,10 @@ export type MissileDesign = ProjectileDesign & {
 };
 
 // design decision (bridge testplay 2026-08-09): every missile sprints once within 3km of
-// its target, defeating leisurely maneuvering solutions in the terminal phase
-const TERMINAL_SPRINT = { range: 3_000, speedMultiplier: 2.5 } as const;
+// its target, defeating leisurely maneuvering solutions in the terminal phase.
+// A target the firing faction holds at FULL scan is sprinted at from 6km (placeholder, to tune).
+// see: docs/SUBSYSTEMS.md#homing-missile-guidance
+const TERMINAL_SPRINT = { range: 3_000, fullScanRange: 6_000, speedMultiplier: 2.5 } as const;
 
 /**
  * Delayed launch (issue #2342, agreed 2026-07-12 for bridge drama): a missile leaves the tube

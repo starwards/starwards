@@ -17,7 +17,7 @@ Techniques used by the server-side simulation — collision and spatial indexing
     - Carrier and formation support
 
 3. **Raycast Optimization for Projectiles**
-    - [`raycast`](../../modules/core/src/logic/space-manager.ts) pre-checks collision path
+    - [`sweepProjectiles`](../../modules/core/src/logic/space-manager.ts) finds projectile contacts in each target's frame before the move
     - Prevents projectiles from tunneling through objects
     - Filter callback for collision eligibility
     - Early termination on hit

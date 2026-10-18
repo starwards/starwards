@@ -1,4 +1,14 @@
-import { Projectile, SpaceManager, Spaceship, Vec2, XY, ammoDesigns } from '../src';
+import {
+    Faction,
+    Projectile,
+    ScanLevel,
+    SpaceManager,
+    Spaceship,
+    Vec2,
+    XY,
+    ammoDesigns,
+    setOmniRadarSector,
+} from '../src';
 
 import { expect } from 'chai';
 import { tick } from './tick';
@@ -59,5 +69,53 @@ describe('missile terminal sprint (issue #2151)', () => {
         }
 
         expect(sprintSpeed).to.be.greaterThan(ammoDesigns.ArmPenMissile.homing.maxSpeed);
+    });
+});
+
+describe('missile terminal sprint from FULL scan range', () => {
+    const design = ammoDesigns.ArmPenMissile;
+    const SPRINT_CHECK_RANGE = 5_000;
+
+    function sprintsAt(scanLevel: ScanLevel) {
+        const spaceMgr = new SpaceManager();
+        const shooter = makeShip('fsr-shooter', 0, -10_000);
+        setOmniRadarSector(shooter, 20_000); // FULL scan holds only while the target is in sight
+        (shooter as { faction: Faction }).faction = Faction.Gravitas;
+        const target = makeShip('fsr-target', 0, 0);
+        (target as { faction: Faction }).faction = Faction.Raiders;
+        target.scanLevels[Faction.Gravitas] = scanLevel;
+        const missile = new Projectile('ArmPenMissile');
+        missile.init('fsr-missile', Vec2.make({ x: -(SPRINT_CHECK_RANGE + GENERIC_SHIP_RADIUS), y: 0 }));
+        missile.shipId = shooter.id;
+        missile.targetId = target.id;
+        missile.secondsToLive = 30;
+        missile.velocity = Vec2.make({ x: design.homing.maxSpeed, y: 0 });
+        missile.angle = 0;
+        spaceMgr.insertBulk([shooter, target, missile]);
+        spaceMgr.forceFlushEntities();
+        // half a second: still beyond the base sprint range
+        for (let i = 0; i < 10; i++) {
+            tick(spaceMgr, 0.05);
+        }
+        expect(XY.distance(target.position, missile.position) - target.radius).to.be.greaterThan(
+            design.homing.sprint.range,
+        );
+        return XY.lengthOf(missile.velocity) > design.homing.maxSpeed + 1;
+    }
+
+    it('every missile ammo sprints from farther out at FULL scan', () => {
+        for (const [model, ammo] of Object.entries(ammoDesigns)) {
+            if (ammo.homing) {
+                expect(design.homing.sprint.fullScanRange, model).to.be.greaterThan(design.homing.sprint.range);
+            }
+        }
+    });
+
+    it('sprints at 5km when the firing faction holds the target at FULL scan', () => {
+        expect(sprintsAt(ScanLevel.FULL)).to.equal(true);
+    });
+
+    it('does not sprint at 5km when the firing faction holds the target at BASIC scan', () => {
+        expect(sprintsAt(ScanLevel.BASIC)).to.equal(false);
     });
 });
