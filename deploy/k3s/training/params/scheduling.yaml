@@ -1,0 +1,13 @@
+# Low-priority tenant: the namespace quota rejects pods without this class. One training pod per node,
+# because training pods reserve their real memory and nodes have ~11-15 GiB actually free.
+- op: add
+  path: /spec/template/spec/priorityClassName
+  value: starwards-training
+- op: add
+  path: /spec/template/spec/affinity
+  value:
+      podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                    matchLabels: { app.kubernetes.io/name: starwards-training }

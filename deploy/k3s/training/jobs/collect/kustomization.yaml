@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: starwards-training # FILL: as ../../kustomization.yaml
+namespace: starwards-training
 resources:
     - job.yaml
 components:

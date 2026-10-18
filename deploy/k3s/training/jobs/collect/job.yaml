@@ -30,7 +30,7 @@ spec:
                       - { name: SCENARIO, value: T3-directed }
                       - { name: KEEP_SHARDS, value: '1' }
                   resources:
-                      requests: { cpu: '1', memory: 1Gi }
+                      requests: { cpu: 250m, memory: 1Gi }
                       limits: { memory: 2Gi }
                   securityContext:
                       allowPrivilegeEscalation: false
