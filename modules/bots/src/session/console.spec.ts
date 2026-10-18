@@ -81,6 +81,7 @@ describe('station console', () => {
         const helms = await seat('helms');
         const picture = radarContacts(helms, { offset: 0, limit: 1 });
         expect(picture.ownShip.id).toBe(test_map_1.testShipId);
+        expect(picture.ownShip.faction).toBe(helms.viewFaction);
         expect(picture.contacts.length).toBeLessThanOrEqual(1);
         const engineer = await seat('engineer');
         expect(engineer.radarWidgets).toEqual([]);
