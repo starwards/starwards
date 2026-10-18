@@ -29,7 +29,7 @@ describe('damageRadar gates each surface on the design actually declaring it', (
         damageManager.damageSystem(radar, { id: 'hit', amount: 1 }, 1);
 
         expect(radar.bearingSkew).to.equal(0);
-        expect(radar.bearingLimitFactor).to.be.lessThan(1);
+        expect(radar.turnSpeedFactor).to.be.lessThan(1);
     });
 
     it('rolls across bearingSkew too once the design declares a skew surface', () => {
@@ -39,7 +39,7 @@ describe('damageRadar gates each surface on the design actually declaring it', (
         radar.design.maxBearingSkew = 45; // design now declares a skew surface
 
         const die = new MockDie();
-        die.expectedRoll = 1.5; // second of three [0,3) surfaces: turnSpeedFactor, bearingSkew, bearingLimitFactor
+        die.expectedRoll = 1.5; // second of two [0,2) surfaces: turnSpeedFactor, bearingSkew
         const damageManager = new DamageManager(new Spaceship(), state, new SpaceManager(), die);
 
         damageManager.damageSystem(radar, { id: 'hit', amount: 1 }, 1);

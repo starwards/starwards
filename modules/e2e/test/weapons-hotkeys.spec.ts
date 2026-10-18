@@ -62,6 +62,21 @@ test.describe('Weapons hotkeys', () => {
         );
     });
 
+    // --- Smart gun (h) --- defaults on; the panel status follows the toggle
+    test('h key: smartGunnery toggles off and the smartGunStatus reads off', async ({ page }) => {
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.smartGunnery === true && ship.state.smartGunStatus === 'holding',
+            3000,
+        );
+        await page.keyboard.press('h');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.smartGunnery === false && ship.state.smartGunStatus === 'off',
+            3000,
+        );
+    });
+
     // --- Ammo load toggles (shift+1 for tube 0, g for chainGuns[0]) ---
     // Both start as `true` (loadAmmo = true by default), so press once → false.
 

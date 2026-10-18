@@ -1,6 +1,7 @@
 import {
     CANT_FIGHT_SECONDS,
     DEFAULT_WAVE_TUNING,
+    NEBULAS,
     OUT_OF_PLAY_DISTANCE_METERS,
     OUT_OF_PLAY_SECONDS,
     STATIONS,
@@ -989,6 +990,24 @@ describe('station radar power (issue #2084 design redirect)', () => {
 
         const player = gameDriver.getShip('GVTS');
         expect(player.state.radars.every((radar) => radar.power === PowerLevel.NORMAL)).toBe(true);
+    });
+});
+
+describe('wave_defence nebulas (issue #2123)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    it('places the scenario nebulas, clear of the player start and every station', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+
+        const placed = [...gameDriver.spaceManager.state.getAll('Nebula')];
+        expect(placed.map((n) => n.id).sort()).toEqual(NEBULAS.map((n) => n.id).sort());
+        for (const nebula of placed) {
+            const clearance = nebula.radius + 5000;
+            expect(XY.distance(nebula.position, XY.zero)).toBeGreaterThan(clearance);
+            for (const station of STATIONS) {
+                expect(XY.distance(nebula.position, station.position)).toBeGreaterThan(clearance);
+            }
+        }
     });
 });
 

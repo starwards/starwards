@@ -264,6 +264,24 @@ export class ShipState extends Schema implements Lockable {
     @commandable()
     public fireTubesCommand = false;
 
+    /**
+     * Player smartgun: while on, the computer swings the chain-gun mounts and sets the shell fuze
+     * onto `weaponsTarget`; the officer keeps target, ammo and trigger. Off hands `bearingCommand`
+     * and `shellRange` back to manual. Ignored on NPC ships (their gunnery is always automatic).
+     */
+    @tweakable('boolean')
+    @commandable()
+    @gameField('boolean')
+    smartGunnery = true;
+
+    /**
+     * What the smartgun is doing right now, for the Weapons panel: `off` (toggle off or no guns),
+     * `holding` (no visible target, mounts keep their last command), `resting` (a target, but no
+     * mount can bear), `tracking` (at least one mount is aimed at it). Written by automation.
+     */
+    @gameField('string')
+    smartGunStatus = 'off';
+
     /** Drained by `applyLockCommands` (`lock-commands.ts`) each tick. */
     public lockCommands = Array.of<LockPropertyArg>();
 
