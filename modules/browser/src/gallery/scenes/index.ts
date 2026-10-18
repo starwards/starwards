@@ -8,6 +8,7 @@ import { helmsScenes } from './helms';
 import { longRangeRadarScenes } from './long-range-radar';
 import { observationModeScenes } from './observation-mode';
 import { smartGunScenes } from './smart-gun';
+import { stationRosterScenes } from './station-roster';
 import { tacticalRadarScenes } from './tactical-radar';
 import { targetingScenes } from './targeting';
 import { tubesStatusScenes } from './tubes-status';
@@ -31,6 +32,7 @@ export const scenes: Record<string, Scene> = {
     ...longRangeRadarScenes,
     ...observationModeScenes,
     ...smartGunScenes,
+    ...stationRosterScenes,
     ...tacticalRadarScenes,
     ...targetingScenes,
     ...tubesStatusScenes,
