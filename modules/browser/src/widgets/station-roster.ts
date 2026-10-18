@@ -203,7 +203,7 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
                 shipBlocks.set(shipId, block);
                 shipsList.append(block);
             }
-            for (const { seat, bot, screens, unassigned } of seats) {
+            for (const { seat, bot, botBlockedBy, screens, unassigned } of seats) {
                 const seatRow = seatRows.get(`${shipId}|${seat}`);
                 if (!seatRow) {
                     continue;
@@ -217,6 +217,9 @@ function drawStationRoster(container: WidgetContainer, driver: Driver, adminDriv
                     [['none', 'none'], ...botBrains.map((b): [string, string] => [b, b])],
                     bot?.brain ?? 'none',
                 );
+                seatRow.botSelect
+                    .prop('disabled', !!botBlockedBy)
+                    .attr('title', botBlockedBy ? `the ${botBlockedBy} bot plays this seat's station` : '');
                 seatRow.botStatus.text(
                     !bot || bot.status === 'running' ? '' : bot.status + (bot.message ? `: ${bot.message}` : ''),
                 );

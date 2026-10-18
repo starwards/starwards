@@ -175,6 +175,12 @@ export function seatOfScreen(screen: string): BridgeSeat | undefined {
     return rosterSeats.find((s) => seatScreens(s).includes(screen));
 }
 
+/** True when bots on both seats would play a station in common (`tactical` against `pilot` or `weapons`). */
+export function botSeatsConflict(a: BridgeSeat, b: BridgeSeat): boolean {
+    const played = (seat: BridgeSeat) => (bridgeSeats[seat] as SeatRow).fuses ?? [bridgeSeats[seat].bot];
+    return a !== b && played(a).some((station) => played(b).includes(station));
+}
+
 /** Fused stations: seats whose bot plays several stations as one, keyed by the fused station. */
 export const multiplexedStations: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
     Object.values(bridgeSeats as Record<string, SeatRow>).flatMap((row) => (row.fuses ? [[row.bot, row.fuses]] : [])),

@@ -135,6 +135,7 @@ export type { AssignStationArg, RegisterStationArg } from './stations';
 
 // --- stations-manifest ---
 export {
+    botSeatsConflict,
     bridgeSeats,
     isAssignableSeat,
     isBridgeSeat,

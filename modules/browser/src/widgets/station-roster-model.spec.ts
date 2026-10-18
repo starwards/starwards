@@ -31,6 +31,20 @@ describe('rosterModel', () => {
         expect(seatOf(model([], { 'S1|tactical': bot }), 'tactical')?.bot).toEqual(bot);
     });
 
+    it('blocks the bots of seats that conflict with a seated bot, not their screens', () => {
+        const bot = { brain: 'reference', status: 'running', message: '' };
+        const withTactical = model([], { 'S1|tactical': bot });
+        expect(withTactical.ships[0]?.seats.map((s) => [s.seat, s.botBlockedBy])).toEqual([
+            ['pilot', 'tactical'],
+            ['weapons', 'tactical'],
+            ['engineer', null],
+            ['sigint', null],
+            ['tactical', null],
+        ]);
+        expect(seatOf(withTactical, 'pilot')?.screens.map((s) => s.screen)).toEqual(['helms']);
+        expect(seatOf(model([], { 'S1|weapons': bot }), 'tactical')?.botBlockedBy).toBe('weapons');
+    });
+
     it('a client on dradis holds that screen and assigns sigint', () => {
         const client = { id: 'abc', connected: true, shipId: 'S1', stationType: 'dradis' };
         const sigint = seatOf(model([client]), 'sigint');

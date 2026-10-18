@@ -54,4 +54,21 @@ test.describe('GM bot seats', () => {
         await expect(row).toHaveAttribute('data-unassigned', 'true', { timeout: 5000 });
         expect(gameDriver.gameManager.state.bots.get('GVTS')?.seats.get('pilot')).toBeUndefined();
     });
+
+    test('a tactical bot greys out the pilot and weapons bot dropdowns, not their screens', async ({ page }) => {
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        await page.locator('.lm_title', { hasText: 'roster' }).click();
+        await expect(page.locator('[data-id="Station Roster"]')).toBeVisible({ timeout: 10000 });
+
+        const bot = (seat: string) => page.locator(`[data-id="Roster Bot GVTS ${seat}"]`);
+        await bot('tactical').selectOption('reference');
+        await expect(bot('pilot')).toBeDisabled({ timeout: 5000 });
+        await expect(bot('weapons')).toBeDisabled();
+        await expect(bot('engineer')).toBeEnabled();
+        await expect(page.locator(`[data-id="Roster Screen GVTS helms"]`)).toBeEnabled();
+
+        await bot('tactical').selectOption('none');
+        await expect(bot('pilot')).toBeEnabled({ timeout: 5000 });
+        await expect(bot('weapons')).toBeEnabled();
+    });
 });
