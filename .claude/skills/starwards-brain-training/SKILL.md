@@ -71,6 +71,19 @@ The ladder (`modules/ai/curriculum/ladder.json`) orders levels by complexity axi
    `plateau.versions` versions, add the next level (one axis, or wider variance at equal difficulty)
    and rerun the suite for the reference and idle crews to baseline it.
 
+### A new seat or rung: Jev first, reference from it
+
+Jev is the oracle; the scripted `reference` is the student. In this order:
+
+1. Write the Jev brain file and play it headless until it makes the bar on the rung.
+2. Its answers are cached on disk, so reruns are cheap.
+3. Mine the cache and recordings (`decisions`, `read`) for what wins, and encode it as `reference` rules.
+4. Add the rung to the ladder once that `reference` wins it ("Add a rung once `reference` wins it" in
+   `lessons.md`).
+
+If Jev cannot make the bar within budget, stop and report. Never hand-write a reference first and then
+train Jev against it. Design record: `starwards-design` SPEC-0005, "Brain creation order".
+
 ## Rungs
 
 `T0` (target plays dead) for the basics; `T1-lite` (stand-ground target that fires back, capsule
