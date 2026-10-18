@@ -1,6 +1,7 @@
 import { BrainSpec, brainSpecSchema } from './brain/spec';
 
 import { Policy } from './brain/brain';
+import captain from './brains/captain.v1.json';
 import engineer from './brains/engineer.v1.json';
 import helms from './brains/helms.v1.json';
 import { makeReferencePolicy } from './brain/reference-policy';
@@ -11,7 +12,7 @@ import weapons from './brains/weapons.v1.json';
 /** One seat of a crew: a station, the brain that plays it, and what answers its questions. */
 export type SeatPlan = { station: string; spec: BrainSpec; policy: Policy };
 
-const referenceBrains: Record<string, unknown> = { helms, weapons, engineer, signals, tactical };
+const referenceBrains: Record<string, unknown> = { helms, weapons, engineer, signals, tactical, captain };
 
 /** Where the reference brain files live, for crew files that name them by path. */
 export const REFERENCE_BRAINS_DIR = `${__dirname}/brains`;
