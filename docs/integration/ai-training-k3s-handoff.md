@@ -280,10 +280,18 @@ Not marked, but sized for a node with at least 4 free cores and 7 GiB per runnin
 
 ## 10. Known gaps
 
-- `modules/ai` has a bundled JavaScript build of `train` and `branch` (`train:js`, `branch:js`) that starts
-  faster and uses less memory (≈ 580–660 MB per worker) than the TypeScript-on-the-fly setup the image
-  uses. It is on the `engine-runtime` branch (commit 6902e9fe), and a further start-up optimisation is in
-  progress there. The image does not use it yet.
+- A precompiled worker CLI exists only on the `engine-runtime` branch (commit 3eabdb5b), which is not
+  pushed to GitHub, and is not in the image. `npm --prefix modules/ai run build:cli` writes
+  `modules/ai/dist/cli`: an esbuild bundle, a small entry that enables the V8 compile cache, and a
+  prebuilt compile cache. Worker start-up drops from 828 ms (TypeScript compiled on the fly, as in the
+  image) to 275 ms. Output is identical, which a test (`bundle.spec.ts`) pins. Wall time, CPU and memory
+  are unchanged beyond noise. The suggested Dockerfile change is in
+  `docs/testing/headless-runtime-benchmarks.md` ("Precompiled worker CLI") on that branch. It has not
+  been tested in an image.
+- Pod density option, not applied: capping each worker's heap at 768–1536 MB (`--max-old-space-size`;
+  here `HEAP_MB`, which today also caps the parent) cut worker memory by 25–35% in benchmarks, but its
+  CPU cost is unclear, measured anywhere from +0% to +15%. Re-measure before lowering the memory sizing
+  in section 3.
 - The image tag is a commit, so a tag says which code ran but the manifests must be edited (`newTag`) for
   each new build. There is no `latest` tag, on purpose: shards on different builds would not merge.
 - The `missile-range` spec fails on 8 seeds on the base branch (`captain-branching`). It is a test of the
