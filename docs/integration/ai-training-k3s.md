@@ -5,6 +5,9 @@ source_of_truth:
     - docker/training
     - deploy/k3s/training
     - modules/ai/src/cli/merge-shards.ts
+    - docker/training/rolling.sh
+    - docker/training/mining.py
+    - docker/training/dispatch.mjs
 related:
     - ai-crew.md
     - docker.md
@@ -22,8 +25,9 @@ rebuilds that day's `manifest.jsonl`. Commands for the CLIs themselves: [ai-crew
 
 [`docker/training/Dockerfile`](../../docker/training/Dockerfile), context the repo root; its context filter
 is `docker/training/Dockerfile.dockerignore`. Node 24.22.0 on bookworm-slim, pinned by digest, the same Node as the host: last-bit Math results differ between engines, so a recording replays and its branches fingerprint only on the engine that made it;
-`core` and `bots` built to `cjs`, `server` and `ai` run from source through ts-node (transpile-only), as
-on a host. Runs as `node` (uid 1000). No key or `.env` is copied in.
+`core` and `bots` built to `cjs`; `train` and `branch` run precompiled (`dist/cli`, `build:cli`, with its V8
+compile cache written in the image; output identical to ts-node), the other CLIs from source through ts-node
+(transpile-only), as on a host. Runs as `node` (uid 1000). No key or `.env` is copied in.
 
 ```bash
 COMMIT=$(git rev-parse --short HEAD)
@@ -102,7 +106,8 @@ Manifests: [`deploy/k3s/training/`](../../deploy/k3s/training) (kustomize).
 | `params/`                            | component holding the cluster parameters (image, node selector), used by every job |
 | `namespace.yaml`, `archive-pvc.yaml` | namespace, archive claim                                                           |
 | `cronjob-suite.yaml`                 | nightly regression suite of `crews/reference.json`, every built level              |
-| `cronjob-branch.yaml`                | nightly T3-directed branch corpus, 4 shards × 4 seeds, 400 branches                |
+| `rolling-branch.yaml`, `rolling-sweep.yaml` | the two filler lanes of continuous training (below)                         |
+| `dispatcher/`                        | optional component: fills the third slot when idle (needs `dispatcher/rbac.yaml`) |
 | `jobs/branch/`                       | the same corpus as a one-off Indexed Job                                           |
 | `jobs/train-jev/`                    | `reference` vs `jev-helms-weapons` on T1, 4 shards × 8 seeds, with the Jev key     |
 | `jobs/collect/`                      | re-runs a merge (after re-running a failed shard by hand)                          |
@@ -146,6 +151,56 @@ kubectl -n starwards-training run fetch --rm -i --image=busybox:1.37 --overrides
 A failed shard (after `backoffLimitPerIndex` retries) fails the Job and no merge happens; the other shards stay
 in `_shards/<day>/<run>/`. Re-run that seed range by hand into the same shard folder, then run `jobs/collect`
 with the run's name, day, scenario and kind.
+
+## Continuous training
+
+Filler work keeps the slots busy around the clock on reference crews ($0). Every filler Job is one cycle of
+[`rolling.sh`](../../docker/training/rolling.sh) (`JOB=rolling`), labelled `role=filler` and
+`starwards/lane=<lane>`, one pod, 4 workers, hard stop at 90 min:
+
+| Lane     | CronJob          | Rungs, in turn                                             | Per cycle                                                    | Wall      |
+| -------- | ---------------- | ---------------------------------------------------------- | ------------------------------------------------------------ | --------- |
+| `branch` | `rolling-branch` | T3-directed, T3-incoming, T2-dock, W-waves; level set `strategic,tactical`, then `button` (helms `afterBurner`) after each full turn | `captain-reference` records 48 seeds (W-waves 12), then up to 1200 branches | ~45 min |
+| `sweep`  | `rolling-sweep`  | T1, T2, T2-constrained, T3-directed, T3-incoming, T2-dock, W-waves | `reference` and `captain-reference` on 120 held-out seeds (W-waves 24), paired by seed | 15–45 min |
+
+Both CronJobs fire every 10 minutes with `concurrencyPolicy: Forbid`: a new cycle starts within 10 minutes
+of the last one ending. Together they hold 2 of the 3 slots; the third is for ad-hoc and nightly Jobs.
+
+- **Seeds** never repeat: a cycle claims index _c_ in `mining/_lanes/<lane>/cycles.jsonl` (under a lock),
+  and plays seeds `base + 1000c` onwards (`branch` 1 000 000, `sweep` 5 000 000), far from the curriculum's
+  1–16. A failed cycle's seeds stay claimed.
+- **Mining** accumulates outside the day folders, so the 30-day retention keeps it:
+
+    | Path under `/training-archive/mining/<rung>/` | What                                                                                     |
+    | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+    | `branches-<commit>.jsonl`                     | every branch row of that code, all cycles                                                |
+    | `sweep-<commit>.jsonl`                        | every sweep run row (crew, seed, killed, kills, seconds, score)                          |
+    | `LATEST.md`                                   | current commit: top alternatives by paired Δ run value, 95% t interval, sign test, seeds that gained or lost a kill; sweep crews against the reference |
+    | `history.md`                                  | one line per cycle                                                                        |
+
+  [`mining.py`](../../docker/training/mining.py) rebuilds `LATEST.md` after every cycle. A `BEATS` row is
+  evidence for a reference rule, to replay with `branch fork` before writing one. The full per-state report:
+  `npm run branch -- mine --corpus <archive>/mining/<rung>/branches-<commit>.jsonl`.
+- Day folders keep the runs: `<day>/branching/rolling-branch-c<c>-<rung>-runs|-corpus`,
+  `<day>/headless/rolling-sweep-c<c>-<rung>/`, and the day's `manifest.jsonl`.
+
+### Ad-hoc Jobs and the dispatcher
+
+Label ad-hoc Jobs `role=adhoc` (and the usual `app.kubernetes.io/name: starwards-training`, which gives one
+pod per node). With the lanes alone, an ad-hoc Job takes the free third slot at once.
+
+The dispatcher ([`dispatch.mjs`](../../docker/training/dispatch.mjs), every 5 min) fills the third slot too:
+
+- Any unfinished Job without `role=filler` (ad-hoc, nightly, pending on quota) is demand: no new filler, so
+  a slot frees when the next filler cycle ends.
+- A CronJob that fires within 60 min (a filler cycle's wall) caps fillers at 2.
+- Otherwise fillers fill 3 slots; each running lane CronJob reserves one, the dispatcher creates the rest
+  from the lanes' `jobTemplate`, the lane picked by `LANE_WEIGHTS` (`branch=2,sweep=1`).
+
+In the cluster it runs as CronJob `filler-dispatcher` under its own account: enable `- dispatcher` in
+`kustomization.yaml` once the cluster repo has applied [`dispatcher/rbac.yaml`](../../deploy/k3s/training/dispatcher/rbac.yaml)
+(the training-manager account cannot create RBAC). Outside the cluster: `kubectl proxy --port=8001`, then
+`KUBE_API=http://127.0.0.1:8001 node docker/training/dispatch.mjs` (`DRY_RUN=1` prints the decision only).
 
 ## Cost and the Jev cap
 
