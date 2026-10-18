@@ -1,0 +1,41 @@
+{
+    "id": "captain",
+    "version": 2,
+    "station": "captain",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 5,
+    "role": "captain of the warship GVTS: you read the whole picture the fleet sees on the dradis and give the crew their orders by radio; you press no keys",
+    "mission": "bring the ship to missile range of the nearest enemy ship and have weapons engage it; hold the ship still while no enemy is in sight",
+    "view": "verbal",
+    "controls": {
+        "callout": {
+            "instructions": "You are the captain. The console lists every contact the fleet sees, with range and bearing; an enemy ship is one identified as another faction's. Which order do you give on the radio now? Give an order again when the situation changed; stay silent when the crew already has the right order. Weapons reports its lock, whether the locked ship is inside missile range, each missile it launches and a lost or destroyed target; signals reports an enemy it lost. Do not change an order because you see no result yet, and keep your last order while a contact is reported lost.",
+            "hears": [
+                "signals.enemy_position",
+                "signals.contact_lost",
+                "weapons.target_locked",
+                "weapons.in_envelope",
+                "weapons.out_of_envelope",
+                "weapons.salvo_away",
+                "weapons.target_destroyed",
+                "weapons.lost_lock"
+            ]
+        }
+    },
+    "callouts": {
+        "close_to": {
+            "say": "close to {range} km of {name}, now {distance} km at bearing {bearing}",
+            "fill": "closeOrder",
+            "when": "orders helms to fly to missile range of the nearest enemy ship; the range, the enemy's distance and its world bearing are filled in from the dradis. Choose this when the nearest enemy ship is farther than missile range, or weapons reports it beyond missile range"
+        },
+        "engage": {
+            "say": "engage {name}",
+            "fill": "engageOrder",
+            "when": "orders weapons to lock the nearest enemy ship and launch missiles at it. Choose this when that enemy is inside missile range, or weapons reports it in missile range, and you have not ordered it engaged"
+        },
+        "hold_here": {
+            "say": "hold here",
+            "when": "orders helms to stop the ship where it is. Choose this when the dradis shows no enemy ship and signals has not just reported one lost"
+        }
+    }
+}

@@ -1,6 +1,14 @@
 import { BrainSpec, CalloutFill } from './spec';
 import { Radar, offNose } from './verbal';
-import { bearingWords, closeRange, launchRange, nearestEnemy, offNoseWords } from './engagement';
+import {
+    bearingWords,
+    closeRange,
+    launchRange,
+    lockedContact,
+    missilesInMagazine,
+    nearestEnemy,
+    offNoseWords,
+} from './engagement';
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
@@ -68,7 +76,13 @@ function degreesAndSide(degrees: number): FillValues | undefined {
  */
 const calloutFills: Record<
     CalloutFill,
-    (display: Display, previous: Display | undefined, seconds: number) => FillValues | undefined
+    (
+        display: Display,
+        previous: Display | undefined,
+        seconds: number,
+        /** Values the speaking seat supplies from what it remembers itself doing (its own launches). */
+        supplied?: FillValues,
+    ) => FillValues | undefined
 > = {
     /** Weapons: how far the locked contact lies off the nose (the gun line), and to which side. */
     lockedOffNose: ({ panels, radar }) => {
@@ -188,6 +202,56 @@ const calloutFills: Record<
             }
         );
     },
+    /** Weapons: the ship the lock holds, by name. */
+    lockedTarget: (display) => {
+        const locked = lockedContact(display);
+        return locked && { name: locked.name };
+    },
+    /**
+     * Weapons: the locked ship's range, the launch envelope of the missile the reference loads for how
+     * it moves since the previous decision, and how much range is still to close to it, km.
+     */
+    lockedEnvelope: (display, previous, seconds) => {
+        const locked = lockedContact(display);
+        const r = display.radar as Radar | undefined;
+        if (!locked) {
+            return undefined;
+        }
+        const envelope = launchRange(locked, r, previous?.radar as Radar | undefined, seconds);
+        return {
+            name: locked.name,
+            range: (locked.distance / 1000).toFixed(1),
+            envelope: (envelope / 1000).toFixed(0),
+            range_to_go: (Math.max(0, locked.distance - envelope) / 1000).toFixed(1),
+        };
+    },
+    /**
+     * Weapons: the missiles left in the magazine, from the ammo panel, and the launches of the current
+     * engagement and how many of them still fly, which only the seat itself counts: a seat that
+     * supplies no count says nothing.
+     */
+    salvoTally: (display, _previous, _seconds, supplied) => {
+        const magazine = missilesInMagazine(display);
+        return supplied?.n === undefined || supplied.in_flight === undefined || magazine === undefined
+            ? undefined
+            : { n: supplied.n, in_flight: supplied.in_flight, magazine: String(magazine) };
+    },
+    /** Weapons: the ship the lock held at the previous decision, which it holds no more. */
+    lostLock: (display, previous) => {
+        const before = previous && lockedContact(previous);
+        return before && lockedContact(display)?.id !== before.id ? { name: before.name } : undefined;
+    },
+    /**
+     * Signals: the nearest enemy ship the radar showed at the previous decision and shows no more, and
+     * its last world bearing.
+     */
+    lostContact: ({ radar }, previous) => {
+        const before = nearestEnemy(previous?.radar as Radar | undefined);
+        const now = (radar as Radar | undefined)?.contacts ?? [];
+        return before && !now.some((c) => c.id === before.id)
+            ? { name: before.name, last_bearing: bearingWords(before.bearing) }
+            : undefined;
+    },
     /** Captain: engage the nearest enemy, by the name the crew's radars show. */
     engageOrder: ({ radar }) => {
         const enemy = nearestEnemy(radar as Radar | undefined);
@@ -258,6 +322,8 @@ export function calloutSaid(
     question = CALLOUT_QUESTION,
     /** What the speaker's display showed at its previous decision. */
     previous?: Display,
+    /** Values the speaking seat supplies itself, for a fill that needs them (`salvoTally`). */
+    supplied?: FillValues,
 ): Said | undefined {
     const source = calloutSources(spec).find((s) => s.question === question);
     const callout = choice === SILENCE ? undefined : source?.callouts[choice];
@@ -268,7 +334,7 @@ export function calloutSaid(
     if (!callout.fill) {
         return { callout: choice, phrase: callout.say, ...seat };
     }
-    const values = calloutFills[callout.fill](display, previous, spec.decisionSeconds);
+    const values = calloutFills[callout.fill](display, previous, spec.decisionSeconds, supplied);
     return (
         values && {
             callout: choice,

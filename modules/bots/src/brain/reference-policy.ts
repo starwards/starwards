@@ -1,12 +1,12 @@
 import { Answer, Policy } from './brain';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
+import { SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
-import { inLaunchEnvelope, launchRange } from './engagement';
+import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
 
 import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
-import { referenceCallout } from './reference-orders';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -48,6 +48,12 @@ const FIRE_RANGE_METERS = 8000;
 const TUBE_ARC_DEGREES = 100;
 /** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
 const LAUNCH_INTERVAL_SECONDS = 10;
+/**
+ * A HiExp missile's cruise speed (T3-incoming, 2026-10-19: 600 m/s from launch to detonation) and the
+ * slack on its time of flight: weapons counts a missile in flight until then.
+ */
+const MISSILE_SPEED = 600;
+const FLIGHT_SLACK_SECONDS = 5;
 /**
  * Where the pilot parks: this far straight behind the target's motion. Space caps a shell's speed at
  * its muzzle speed, so a shell chasing a receding target detonates short by ~a quarter of the range,
@@ -112,9 +118,12 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
+    const talk = calloutMemory();
+    /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
+    let salvo: { targetId: string; arrivals: number[] } | undefined;
     return {
         name,
-        answer(request, controls, shown) {
+        answer(request, controls, shown, heard) {
             const display = shown as Display;
             const ship = nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
@@ -131,6 +140,7 @@ export function makeReferencePolicy(
                     ? tubeToLaunch(display, previous, decisionSeconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
+            let launched: SalvoTally | undefined;
             for (const control of controls) {
                 const choice =
                     referenceChoice(
@@ -147,9 +157,15 @@ export function makeReferencePolicy(
                 answers[control.id] = { choice, source: 'rule' };
                 if (control.command === 'fireTube' && choice === 'fire') {
                     lastLaunch = seconds;
+                    salvo = countLaunch(salvo, display, previous, decisionSeconds, seconds);
+                    launched = salvo && tally(salvo, seconds);
                 }
             }
-            const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage);
+            const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage, {
+                heard,
+                state: talk,
+                salvo: launched,
+            });
             previous = display;
             if (callout) {
                 answers[CALLOUT_QUESTION] = callout;
@@ -157,6 +173,35 @@ export function makeReferencePolicy(
             return Promise.resolve({ answers });
         },
     };
+}
+
+/** Adds a launch at the locked ship to the count, which restarts when the lock moves to another ship. */
+function countLaunch(
+    salvo: { targetId: string; arrivals: number[] } | undefined,
+    display: Display,
+    previous: Display | undefined,
+    decisionSeconds: number,
+    now: number,
+) {
+    const targetId = display.panels['targeting-status']?.targetId as string | undefined;
+    const target = display.radar?.contacts?.find((c) => c.id === targetId);
+    if (!targetId || !target) {
+        return salvo;
+    }
+    const closing = closingSpeed(
+        target as unknown as ShownContact,
+        display.radar as ShownRadar | undefined,
+        previous?.radar as ShownRadar | undefined,
+        decisionSeconds,
+    );
+    const flight = target.distance / Math.max(MISSILE_SPEED / 2, MISSILE_SPEED + closing) + FLIGHT_SLACK_SECONDS;
+    const arrivals = salvo?.targetId === targetId ? salvo.arrivals : [];
+    return { targetId, arrivals: [...arrivals, now + flight] };
+}
+
+/** Launches at the locked ship so far, and those still flying at `now`. */
+function tally(salvo: { arrivals: number[] }, now: number): SalvoTally {
+    return { n: salvo.arrivals.length, inFlight: salvo.arrivals.filter((t) => t > now).length };
 }
 
 /** Where the helms parks now, and how wide it weaves across the spot. */

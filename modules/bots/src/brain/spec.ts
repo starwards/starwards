@@ -12,7 +12,12 @@ import { z } from 'zod';
  * closes), `closeOrder` and `engageOrder` (captain: the order to close to missile range of the
  * nearest enemy, and to engage it), `dockOrder` (captain: the nearest allied station to dock at, its
  * distance, world bearing and radius), `patrolOrder` (captain: the nearest nebula to patrol behind, and
- * the nearest enemy it hides the ship from).
+ * the nearest enemy it hides the ship from), `lockedTarget` (weapons: the locked ship's name),
+ * `lockedEnvelope` (weapons: the locked ship's range, the launch envelope for how it moves, and the
+ * range still to close), `salvoTally` (weapons: missiles launched under the engagement, those still
+ * in flight, and the missiles left in the magazine), `lostLock` (weapons: the ship the lock held at the
+ * previous decision and has lost), `lostContact` (signals: the enemy ship the radar showed at the
+ * previous decision and shows no more, and its last world bearing).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -23,6 +28,11 @@ export const calloutFills = [
     'engageOrder',
     'dockOrder',
     'patrolOrder',
+    'lockedTarget',
+    'lockedEnvelope',
+    'salvoTally',
+    'lostLock',
+    'lostContact',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
