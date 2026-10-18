@@ -234,13 +234,18 @@ function referenceChoice(
             const [up, down] = command === 'boost' ? ['forward', 'back'] : ['right', 'left'];
             return current < goal - 0.025 ? up : current > goal + 0.025 ? down : 'hold';
         }
-        case 'afterBurner':
-            // a target flung at our top speed is never closed on without the afterburner
-            return aligned &&
+        case 'afterBurner': {
+            // a target flung at our top speed is never closed on without the afterburner, nor one the captain orders us after
+            const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
+            return (aligned &&
                 (ship.distance > standoff + PURSUIT_METERS ||
-                    (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))
+                    (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))) ||
+                (order?.kind === 'close' &&
+                    length(sub(order.spot, own)) > PURSUIT_METERS &&
+                    Math.abs(delta(bearingTo(display, order.spot), heading)) < 15)
                 ? 'engage'
                 : 'release';
+        }
         case 'beamDirection':
             return beamChoice(display);
         case 'systemPower':

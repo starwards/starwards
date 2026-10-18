@@ -76,6 +76,21 @@ describe('reference crew under captain orders', () => {
         });
     });
 
+    it('helms burns the afterburner on a long run to the ordered point once the nose bears on it', async () => {
+        const afterBurner: Capabilities = { commands: [{ command: 'afterBurner' }] };
+        const facing = (heading: number): Display => {
+            const shown = helmsDisplay();
+            return {
+                ...shown,
+                radar: { ...(shown.radar as object), ownShip: { heading, faction: 1, position: { x: 0, y: 0 } } },
+            };
+        };
+        expect(await choices(facing(90), afterBurner, [closeTo])).toMatchObject({ afterBurner: 'engage' });
+        expect(await choices(facing(0), afterBurner, [closeTo])).toMatchObject({ afterBurner: 'release' });
+        const near = { ...closeTo, values: { ...closeTo.values, distance: '19.0' } };
+        expect(await choices(facing(90), afterBurner, [near])).toMatchObject({ afterBurner: 'release' });
+    });
+
     it('helms keeps an order after it is no longer on the air, until the next one', async () => {
         const policy = makeReferencePolicy(1);
         await choices(helmsDisplay(), helmsCapabilities, [closeTo], policy);
