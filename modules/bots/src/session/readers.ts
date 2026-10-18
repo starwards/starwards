@@ -5,6 +5,7 @@ import {
     System,
     helmsRadarReach,
     magazineStocks,
+    orderRepairQueue,
 } from '@starwards/core/internal';
 
 import { StationSession } from './session';
@@ -94,6 +95,8 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             breaks: ship.breaks,
             rotationMode: ship.smartPilot?.rotationMode,
             maneuveringMode: ship.smartPilot?.maneuveringMode,
+            // the helms radar draws the weapons lock as the line from the ship to its target
+            targetLocked: !!ship.weaponsTarget?.targetId,
         };
     },
 
@@ -156,10 +159,13 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
 
     'repair-queue': (s) => {
         const queue = s.shipDriver.state.repairQueue;
+        const order = orderRepairQueue(queue?.slots ?? []);
         return {
             slots: [...(queue?.slots ?? [])].map((slot) => ({
                 protocolId: slot.protocolId,
                 priority: RepairPriority[slot.priority],
+                /** 1-based place in run order (issue #2434, `orderRepairQueue`); absent while OFF. */
+                queuePosition: order.includes(slot) ? order.indexOf(slot) + 1 : undefined,
                 progress: slot.progress,
                 energyStarved: slot.energyStarved,
                 refusalReason: slot.refusalReason,

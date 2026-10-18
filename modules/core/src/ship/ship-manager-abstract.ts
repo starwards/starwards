@@ -101,6 +101,7 @@ export function resetShipState(state: ShipState) {
         slot.starvedSeconds = 0;
         slot.energyStarved = false;
         slot.refusalReason = '';
+        slot.queuedSeq = 0;
         slot.mode = RepairProtocolMode.Responsive;
     }
     for (const at of magazineStocks) {

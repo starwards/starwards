@@ -6,7 +6,10 @@ import {
     SavedPowerEntry,
     ToggleRepairProtocolModeArg,
     isCycleRepairPriorityArg,
+    isRepairPriorityActive,
+    isRepairPriorityPending,
     isToggleRepairProtocolModeArg,
+    orderRepairQueue,
 } from './repair-queue';
 import { IterationData, Updateable } from '../updateable';
 import { PowerLevel, SystemState } from './system';
@@ -110,6 +113,7 @@ export class RepairManager implements Updateable {
         this.checkAvailabilityLoss();
         this.ensureRunning();
         this.tickRunning(deltaSeconds);
+        this.syncQueuedSeq();
     }
 
     private get slots() {
@@ -143,17 +147,32 @@ export class RepairManager implements Updateable {
     }
 
     private getRunning(): RepairProtocolSlot | undefined {
-        return this.slots.find(
-            (s) => s.priority === RepairPriority.RUNNING || s.priority === RepairPriority.CANCELLING,
-        );
+        return this.slots.find((s) => isRepairPriorityActive(s.priority));
     }
 
     private isPending(slot: RepairProtocolSlot): boolean {
-        return (
-            slot.priority === RepairPriority.LOW ||
-            slot.priority === RepairPriority.MEDIUM ||
-            slot.priority === RepairPriority.HIGH
-        );
+        return isRepairPriorityPending(slot.priority);
+    }
+
+    /** One past the highest `queuedSeq` held by any slot — later than every slot already queued. */
+    private nextQueuedSeq(): number {
+        return this.slots.reduce((max, s) => Math.max(max, s.queuedSeq), 0) + 1;
+    }
+
+    /**
+     * Keeps `queuedSeq` consistent with every way a slot's priority can change outside
+     * `handleCycle` (completion, cancellation, refusal, force-stop): an OFF slot holds no place in
+     * line, and a non-OFF slot without one (e.g. state from before this field existed) is queued
+     * behind everything already there.
+     */
+    private syncQueuedSeq() {
+        for (const slot of this.slots) {
+            if (slot.priority === RepairPriority.OFF) {
+                slot.queuedSeq = 0;
+            } else if (slot.queuedSeq === 0) {
+                slot.queuedSeq = this.nextQueuedSeq();
+            }
+        }
     }
 
     private drainCycleCommands() {
@@ -172,6 +191,10 @@ export class RepairManager implements Updateable {
      * (`HIGH -> MEDIUM -> LOW -> OFF`, clamps at `OFF`). Either key on a RUNNING slot starts the
      * wind-down (`CANCELLING`); either key on an already-CANCELLING slot is ignored — the wind-down
      * always completes to `OFF` (issue #2247's open decision, option a).
+     *
+     * Every change that leaves the slot pending re-stamps `queuedSeq` (issue #2434): the slot goes
+     * to the back of its new level, so the protocol the engineer touched last waits behind the ones
+     * already at that level — including OFF and back up again, which is the reorder gesture.
      */
     private handleCycle({ protocolId, direction }: CycleRepairPriorityArg) {
         const slot = this.getSlot(protocolId);
@@ -207,6 +230,7 @@ export class RepairManager implements Updateable {
             }
             slot.priority = slot.priority - 1;
         }
+        slot.queuedSeq = slot.priority === RepairPriority.OFF ? 0 : this.nextQueuedSeq();
     }
 
     private drainToggleModeCommands() {
@@ -287,17 +311,18 @@ export class RepairManager implements Updateable {
 
     /**
      * Promotes the highest-priority pending slot to RUNNING once nothing else is RUNNING/CANCELLING
-     * — no pre-emption, so raising a slot to HIGH never interrupts one already running. Ties go to
-     * catalog order (`Array.prototype.sort` is stable, and `this.slots` is already catalog-order).
+     * — no pre-emption, so raising a slot to HIGH never interrupts one already running. Order is
+     * `orderRepairQueue` (priority, then first queued), the same order the widget shows.
      * A candidate that turns out unavailable right at promotion time (e.g. the last energy cell was
      * spent by a protocol that just finished) drops to OFF with a reason and the next candidate is
      * tried instead, rather than blocking the whole schedule.
      */
     private ensureRunning() {
+        this.syncQueuedSeq();
         if (this.getRunning()) {
             return;
         }
-        const pending = this.slots.filter((s) => this.isPending(s)).sort((a, b) => b.priority - a.priority);
+        const pending = orderRepairQueue(this.slots).filter((s) => this.isPending(s));
         for (const slot of pending) {
             const protocol = this.getProtocol(slot.protocolId);
             if (!protocol) {
