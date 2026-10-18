@@ -63,6 +63,10 @@ interface WaveRecord {
     readonly targetStationId: string;
     /** First sim-second any of its raiders was within {@link ARRIVAL_RADIUS_METERS} of `targetStationId`. */
     arrivedAt?: number;
+    /** First sim-second any station held one of its raiders in its field of view (the warning line). */
+    detectedAt?: number;
+    /** That raider's distance (m) from `targetStationId` at {@link detectedAt}. */
+    detectedDistance?: number;
     /** Next wave's spawn, or run end. */
     endedAt: number;
     /** Each station's `healthRatio` (a mission-kill measure, not death) when this wave ended; 0 once destroyed. */
@@ -482,6 +486,7 @@ export function runWaveDefence({
             }
         }
         sampleArrival(game, waves, raiders, live, capsuleBefore, blastOverlaps, dt);
+        sampleDetection(game, waves, raiders, live);
         for (const id of live) {
             const record = raiders.get(id);
             if (!record) {
@@ -573,6 +578,27 @@ function tapGvtsDamage(game: HeadlessGame, waves: readonly WaveRecord[], raiders
             raider.arrival.gvtsDamageEvents++;
         }
     });
+}
+
+/** Stamps {@link WaveRecord.detectedAt} on the first tick any station sees one of a wave's live raiders. */
+function sampleDetection(
+    game: HeadlessGame,
+    waves: readonly WaveRecord[],
+    raiders: ReadonlyMap<string, RaiderRecord>,
+    live: ReadonlySet<string>,
+) {
+    for (const id of live) {
+        const wave = waves[(raiders.get(id)?.wave ?? 0) - 1];
+        const raider = game.api.getObject(id);
+        if (!wave || wave.detectedAt !== undefined || !raider || raider.destroyed) {
+            continue;
+        }
+        if (STATIONS.some((station) => game.spaceManager.isVisible(station.id, id))) {
+            const target = STATIONS.find((station) => station.id === wave.targetStationId);
+            wave.detectedAt = game.seconds;
+            wave.detectedDistance = target ? XY.distance(raider.position, target.position) : NaN;
+        }
+    }
 }
 
 /**
@@ -697,15 +723,15 @@ export function sweepToMarkdown(cells: SweepCell[], maxSimSeconds: number, hz: n
         lines.push(`### ${cell.label}`);
         lines.push('');
         lines.push(
-            "| wave | budget | hulls | runs | sim-s in wave | station HP at end (avg of 3) | killed | can't fight | out of play | alive at end |",
+            "| wave | budget | hulls | runs | sim-s in wave | station HP at end (avg of 3) | killed | can't fight | out of play | alive at end | detected (sim-s after spawn) | detected (km from target) |",
         );
-        lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+        lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
         const maxWave = Math.max(...cell.runs.map((r) => r.waveReached));
         for (let wave = 1; wave <= maxWave; wave++) {
             const records = cell.runs.flatMap((r) => r.waves.filter((w) => w.wave === wave));
             const wr = cell.runs.flatMap((r) => r.raiders.filter((x) => x.wave === wave));
             lines.push(
-                `| ${wave} | ${records[0]?.budget ?? '–'} | ${fmt(mean(records.map((w) => w.hulls)), 1)} | ${records.length} | ${fmt(mean(records.map((w) => w.endedAt - w.spawnedAt)))} | ${fmt(mean(records.map(totalStationHealth)), 2)} | ${wr.filter((x) => x.fate === 'killed').length} | ${wr.filter((x) => x.fate === 'cant-fight').length} | ${wr.filter((x) => x.fate === 'out-of-play').length} | ${wr.filter((x) => !x.fate).length} |`,
+                `| ${wave} | ${records[0]?.budget ?? '–'} | ${fmt(mean(records.map((w) => w.hulls)), 1)} | ${records.length} | ${fmt(mean(records.map((w) => w.endedAt - w.spawnedAt)))} | ${fmt(mean(records.map(totalStationHealth)), 2)} | ${wr.filter((x) => x.fate === 'killed').length} | ${wr.filter((x) => x.fate === 'cant-fight').length} | ${wr.filter((x) => x.fate === 'out-of-play').length} | ${wr.filter((x) => !x.fate).length} | ${fmt(mean(records.filter((w) => w.detectedAt !== undefined).map((w) => (w.detectedAt ?? 0) - w.spawnedAt)))} | ${fmt(mean(records.filter((w) => w.detectedDistance !== undefined).map((w) => (w.detectedDistance ?? 0) / 1000)), 1)} |`,
             );
         }
     }

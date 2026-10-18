@@ -957,11 +957,11 @@ describe('station radar power (issue #2084 design redirect)', () => {
         ).spaceObject.id;
     }
 
-    it('A1: a healthy station-large radar detects a dragonfly-MK1 at 119km -- full design range, no idle-power tax', async () => {
+    it('A1: a healthy station-large radar detects a dragonfly-MK1 at 24km on its 25km omni -- full design range, no idle-power tax', async () => {
         const map = createWaveDefenceMap(() => 0);
         await gameDriver.gameManager.startGame(map);
 
-        const contactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(119_000, 0))));
+        const contactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(24_000, 0))));
         gameDriver.gameManager.update(1 / 20); // flushes the contact and recomputes the station's field of view
 
         expect(gameDriver.spaceManager.isVisible('station-large', contactId)).toBe(true);
@@ -976,8 +976,8 @@ describe('station radar power (issue #2084 design redirect)', () => {
             }),
         );
 
-        const nearContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(84_000, 0))));
-        const farContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(119_000, 0))));
+        const nearContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(17_000, 0))));
+        const farContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(24_000, 0))));
         gameDriver.gameManager.update(1 / 20);
 
         expect(gameDriver.spaceManager.isVisible('station-large', nearContactId)).toBe(true);
