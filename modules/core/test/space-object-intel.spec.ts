@@ -1,4 +1,4 @@
-import { Asteroid, Derelict, Faction, ScanLevel, SpaceObject, Spaceship, Vec2 } from '@starwards/core';
+import { Asteroid, Derelict, Faction, Projectile, ScanLevel, SpaceObject, Spaceship, Vec2 } from '@starwards/core';
 import { objectDisplayName, scanCycleTargets } from '../src/client/space-object-intel';
 
 describe('objectDisplayName', () => {
@@ -72,6 +72,15 @@ describe('scanCycleTargets', () => {
     test('reaches identified ships, so a ship at SNAPSHOT can be marked and rescanned', () => {
         const objects = [at(new Spaceship(), 'known', ScanLevel.SNAPSHOT)];
         expect(ids(objects)).toEqual(['known']);
+    });
+
+    test('reaches an identified missile until its warhead is read (M4.26)', () => {
+        const objects = [
+            at(new Projectile('FragMissile'), 'msl', ScanLevel.BASIC),
+            at(new Projectile('ElecMissile'), 'read', ScanLevel.FULL),
+            at(new Projectile('HiExpShell'), 'shell', ScanLevel.BASIC),
+        ];
+        expect(ids(objects)).toEqual(['msl']);
     });
 
     test('skips an identified non-ship — a rock at BASIC has nothing left to reveal', () => {
