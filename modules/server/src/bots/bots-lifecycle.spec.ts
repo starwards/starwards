@@ -42,7 +42,8 @@ const fileExists = (file: string) =>
 jest.setTimeout(60_000);
 
 describe('bot lifecycle', () => {
-    const gameDriver = makeDriver();
+    // the recording tests start their own recordings mid-game
+    const gameDriver = makeDriver({ recordEveryGame: false });
     const manager = () => gameDriver.gameManager;
     const supervisor = () => manager().botSeats as BotSupervisor;
     let driver: Driver;
