@@ -208,7 +208,7 @@ export async function shipCrew(options: ShipCrewOptions) {
         async stop() {
             stopped = true;
             await loop;
-            for (const seat of [...seats.keys()]) removeSeat(seat);
+            for (const seat of [...seats.keys()]) void removeSeat(seat);
             await Promise.all([...removals]);
         },
     };
