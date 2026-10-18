@@ -88,36 +88,77 @@ const levelOptions = (): LevelOptions => ({
 /** A worker's job, as it crosses the process boundary. */
 type WireJob = { run: CorpusRun; level: string; t: number; alternative: string; kind: string; options: LevelOptions };
 
-async function playWire(jobs: WireJob[]) {
-    const logs = new Map<string, { log: RunLog; asked?: Map<number, string> }>();
-    const rows: BranchRow[] = [];
-    for (const job of jobs) {
-        let read = logs.get(job.run.recording);
-        if (!read) {
-            const log = readRunLog(job.run.recording);
-            read = { log, asked: job.level === 'button' ? await reaskChoices(log, job.options) : undefined };
-            logs.set(job.run.recording, read);
-        }
-        const { log, asked } = read;
-        const [level] = levelsFor([job.level], job.options, asked);
-        const point = level.points(log).find((p) => Math.abs(p.t - job.t) < 1e-9);
-        if (!point) throw new Error(`no ${job.level} point at ${job.t} in ${job.run.recording}`);
-        const started = Date.now();
-        rows.push(await playJob({ run: job.run, point, alternative: job.alternative, kind: job.kind }, level, log));
-        process.stderr.write(
-            `seed ${job.run.seed} ${job.level} t=${job.t.toFixed(1)} ${job.alternative}: ${((Date.now() - started) / 1000).toFixed(1)} s\n`,
-        );
+/** Run logs (and button-level reask choices) read so far by this process, by recording. */
+const logs = new Map<string, { log: RunLog; asked?: Map<number, string> }>();
+
+async function playWire(job: WireJob) {
+    let read = logs.get(job.run.recording);
+    if (!read) {
+        const log = readRunLog(job.run.recording);
+        read = { log, asked: job.level === 'button' ? await reaskChoices(log, job.options) : undefined };
+        logs.set(job.run.recording, read);
     }
+    const { log, asked } = read;
+    const [level] = levelsFor([job.level], job.options, asked);
+    const point = level.points(log).find((p) => Math.abs(p.t - job.t) < 1e-9);
+    if (!point) throw new Error(`no ${job.level} point at ${job.t} in ${job.run.recording}`);
+    const started = Date.now();
+    const row = await playJob({ run: job.run, point, alternative: job.alternative, kind: job.kind }, level, log);
+    process.stderr.write(
+        `seed ${job.run.seed} ${job.level} t=${job.t.toFixed(1)} ${job.alternative}: ${((Date.now() - started) / 1000).toFixed(1)} s
+`,
+    );
+    return row;
+}
+
+/** Plays `jobs` on `workers` worker processes, each taking the next job as it finishes one. */
+async function playPool(jobs: readonly WireJob[], workers: number) {
+    if (workers === 1) {
+        const rows: BranchRow[] = [];
+        for (const job of jobs) rows.push(await playWire(job));
+        return rows;
+    }
+    const queue = [...jobs];
+    const rows: BranchRow[] = [];
+    await Promise.all(
+        Array.from(
+            { length: Math.min(workers, jobs.length) },
+            () =>
+                new Promise<void>((resolve, reject) => {
+                    const child = forkProcess(__filename, [], { execArgv: process.execArgv });
+                    const next = () => {
+                        const job = queue.shift();
+                        if (job) child.send(job);
+                        else child.disconnect();
+                    };
+                    child.on('message', (row) => {
+                        rows.push(row as BranchRow);
+                        next();
+                    });
+                    child.once('error', reject);
+                    child.once('exit', (code) => (code ? reject(new Error(`worker exit ${code}`)) : resolve()));
+                    next();
+                }),
+        ),
+    );
     return rows;
 }
 
 if (process.send) {
-    process.once('message', (jobs: WireJob[]) => {
-        void playWire(jobs).then((rows) => process.send?.(rows, () => process.exit(0)));
+    process.on('message', (job: WireJob) => {
+        void playWire(job).then(
+            (row) => process.send?.(row),
+            (e: unknown) => {
+                process.stderr.write(`${(e as Error).stack ?? String(e)}
+`);
+                process.exit(1);
+            },
+        );
     });
 } else {
     void main().catch((e: unknown) => {
-        process.stderr.write(`${(e as Error).stack ?? String(e)}\n`);
+        process.stderr.write(`${(e as Error).stack ?? String(e)}
+`);
         process.exit(1);
     });
 }
@@ -279,26 +320,9 @@ async function corpus() {
     }));
     process.stderr.write(`${runs.length} runs, ${wire.length} branches planned, ${workers} worker(s)\n`);
     const started = Date.now();
-    const shards: WireJob[][] = Array.from({ length: workers }, () => []);
-    wire.forEach((job, i) => shards[i % workers].push(job));
-    const rows = (
-        workers === 1
-            ? await playWire(shards[0])
-            : (
-                  await Promise.all(
-                      shards.map(
-                          (jobs) =>
-                              new Promise<BranchRow[]>((resolve, reject) => {
-                                  const child = forkProcess(__filename, [], { execArgv: process.execArgv });
-                                  child.once('message', (r) => resolve(r as BranchRow[]));
-                                  child.once('error', reject);
-                                  child.once('exit', (code) => code && reject(new Error(`worker exit ${code}`)));
-                                  child.send(jobs);
-                              }),
-                      ),
-                  )
-              ).flat()
-    ).sort((a, b) => a.seed - b.seed || a.t - b.t || a.alternative.localeCompare(b.alternative));
+    const rows = (await playPool(wire, workers)).sort(
+        (a, b) => a.seed - b.seed || a.t - b.t || a.alternative.localeCompare(b.alternative),
+    );
     const wall = (Date.now() - started) / 1000;
     fs.mkdirSync(out, { recursive: true });
     fs.writeFileSync(path.join(out, 'branches.jsonl'), rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
