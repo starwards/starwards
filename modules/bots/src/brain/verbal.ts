@@ -135,6 +135,9 @@ const panelTemplates = {
         return [
             `Heading ${(p.heading as number).toFixed(0)}°, speed ${(p.speed as number).toFixed(0)} m/s, ${Math.abs(turn) < 0.5 ? 'not turning' : `turning ${Math.abs(turn).toFixed(0)}°/s ${turn > 0 ? 'right' : 'left'}`}.`,
             `Rotation mode ${modeName(p.rotationMode as number)}${p.rotationMode === SmartPilotMode.TARGET ? ': the nose follows the weapons target by itself' : ''}; rotation keys set to ${(p.rotationCommand as number).toFixed(2)}.`,
+            p.targetLocked
+                ? 'Weapons holds a target lock: the line on the radar links the ship to it.'
+                : 'Weapons holds no target lock.',
             `Maneuvering mode ${modeName(p.maneuveringMode as number)}${p.maneuveringMode === SmartPilotMode.TARGET ? ': the ship matches the weapons target velocity, boost and strafe move it relative to the target' : ''}; boost set to ${mc.x.toFixed(2)}, strafe set to ${mc.y.toFixed(2)}.`,
             `Afterburner ${p.afterBurner ? 'held' : 'off'}, anti-drift ${p.antiDrift ? 'held' : 'off'}, brakes ${p.breaks ? 'held' : 'off'}. Energy ${(p.energy as number).toFixed(0)}, afterburner fuel ${(p.afterBurnerFuel as number).toFixed(0)}.`,
         ];

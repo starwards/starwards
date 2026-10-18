@@ -25,7 +25,12 @@ type Radar = {
     scanBeam?: { bearing: number; arc: number } | null;
 };
 type Display = { panels: Record<string, Record<string, unknown> | undefined>; radar?: Radar };
-type Helms = { rotationMode?: number; maneuveringMode?: number; maneuveringCommand?: Partial<XY> };
+type Helms = {
+    rotationMode?: number;
+    targetLocked?: boolean;
+    maneuveringMode?: number;
+    maneuveringCommand?: Partial<XY>;
+};
 
 /** Smart-pilot mode numbers as `helms-stats` shows them. */
 const VELOCITY = 1;
@@ -200,9 +205,9 @@ function referenceChoice(
         case 'fireTube':
             return launchTube !== undefined && control.id === `fireTube:${launchTube}` ? 'fire' : 'hold_fire';
         case 'rotationMode':
-            // the target mode is refused until weapons holds a lock; weapons' radar reaches twice as far
-            // as helms', so keep pressing while helms shows nothing: a refused press changes nothing
-            return helms && helms.rotationMode !== TARGET && (!ship || ship.scanLevel !== 'UFO') ? 'press' : 'wait';
+            // the target mode is refused until weapons holds a lock, and helms sees the lock (the line to
+            // the target), so press only then: a press without a lock just cycles the mode back
+            return helms && helms.targetLocked && helms.rotationMode !== TARGET ? 'press' : 'wait';
         case 'maneuveringMode':
             // matching the target's velocity needs the same lock, which shows as the rotation lock holding
             return helms && helms.rotationMode === TARGET && helms.maneuveringMode !== TARGET ? 'press' : 'wait';

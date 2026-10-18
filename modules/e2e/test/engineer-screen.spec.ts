@@ -189,6 +189,31 @@ test.describe('Engineer Screen', () => {
         expect(await rowValue(runningRow, 'priority')).toBe('RUNNING');
     });
 
+    test('up-next list shows run order with priority, and the folder title carries the priority (#2434)', async ({
+        page,
+    }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const upNext = (position: number) =>
+            repairQueuePanel
+                .locator('.sw-up-next', { hasText: String(position) })
+                .first()
+                .locator('input');
+        await page.keyboard.press('Alt+1'); // actuatorRecalibration runs
+        await expect(upNext(1)).toHaveValue('Actuator recalibration · RUNNING', { timeout: 5000 });
+        await page.keyboard.press('Alt+2'); // thrustLinePurge LOW
+        await page.keyboard.press('Alt+3'); // third protocol LOW, queued after
+        await expect(upNext(2)).toHaveValue('Thrust-line purge · LOW', { timeout: 2000 });
+        // OFF and back up again sends thrustLinePurge behind the other LOW
+        await page.keyboard.press('Alt+Shift+2');
+        await expect(upNext(3)).toBeHidden({ timeout: 2000 });
+        await page.keyboard.press('Alt+2');
+        await expect(upNext(3)).toHaveValue('Thrust-line purge · LOW', { timeout: 2000 });
+        await expect(
+            protocolRow(repairQueuePanel, 'Thrust-line purge').locator(':scope > .tp-fldv_b .tp-fldv_t'),
+        ).toHaveText('Thrust-line purge · LOW');
+    });
+
     test('crew station cannot raise a docked-tier protocol while undocked, even via its hotkey', async ({ page }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
