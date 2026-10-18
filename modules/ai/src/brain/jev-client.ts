@@ -44,7 +44,7 @@ export function jevClient(options: JevClientOptions = {}): JevClient {
     const apiKey = options.apiKey ?? process.env.TYPESAFE_API_KEY;
     if (!apiKey) {
         throw new Error(
-            'TYPESAFE_API_KEY is not set: a Jev brain cannot run without it. Set it in the environment, not in a file.',
+            'TYPESAFE_API_KEY is not set: a Jev brain cannot run without it. Put it in helios/.env.jev (loaded by the npm scripts), never in a repo.',
         );
     }
     if (process.env.CI && !options.fetchImpl) {
