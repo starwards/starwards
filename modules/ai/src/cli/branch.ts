@@ -331,6 +331,14 @@ async function corpus() {
     const report = mineReport(rows, mine(rows));
     fs.writeFileSync(path.join(out, 'mine.md'), `${header}\n\n${report}`);
     process.stdout.write(`${header}\nwrote ${out}/branches.jsonl, corpus.md, mine.md\n`);
+    const diverged = rows.filter((r) => !r.prefixMatches);
+    if (diverged.length) {
+        // a branch that did not replay its recording up to its point compares nothing: re-record before reading
+        process.stderr.write(
+            `DIVERGED: ${diverged.length} of ${rows.length} branches did not replay their recording up to their point (excluded from mine.md); re-record the runs on this code\n`,
+        );
+        process.exitCode = 1;
+    }
 }
 
 function corpusTable(rows: readonly BranchRow[], header: string) {
