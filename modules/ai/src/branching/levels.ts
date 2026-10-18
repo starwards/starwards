@@ -281,7 +281,7 @@ export const strategicLevel: DecisionLevel = {
         }
         // a stance sets the slot ranking and its own button-level rules
         for (const stance of STANCES) {
-            if (active.get('stance')?.kind !== stance) add(`stance:${stance}`, 'stance', { kind: stance });
+            if (active.get('stance')?.kind !== stance) add(`stance:${stance}`, `stance:${stance}`, { kind: stance });
         }
         return alts;
     },
