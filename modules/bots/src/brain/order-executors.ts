@@ -1,6 +1,7 @@
 import { Answer, Policy } from './brain';
-import { CREW_ORDER_KINDS, RETREAT_RUN_METERS } from '@starwards/core/internal';
+import { CREW_ORDER_KINDS, RETREAT_RUN_METERS, SALVO_MISSILES } from '@starwards/core/internal';
 import { DOCKING_MODE, ShownOrder, ordersBinding, readOrders, whereIs } from '../crew/orders';
+import { flightSeconds, stillFlying } from './salvo';
 
 import { Control } from './controls';
 
@@ -273,22 +274,51 @@ const lockNamed: OrderExecutor = {
     },
 };
 
+/** The tubes held: every launch held and every tube's safety on. */
+function holdTubes(controls: readonly Control[]) {
+    return Object.fromEntries(
+        controls.flatMap((c) =>
+            c.command === 'tubeSafety' ? [[c.id, 'on']] : c.command === 'fireTube' ? [[c.id, 'hold_fire']] : [],
+        ),
+    );
+}
+
+/**
+ * Weapons lets its policy launch until `count` missiles of the salvo fly, then holds the tubes; a
+ * missile counts until it is due at the target, so one that arrived without a kill frees a launch.
+ * Each launch it lets through is due after the flight time to the lock as it closes.
+ */
+const salvoDiscipline: OrderExecutor = {
+    constrains: ['fireTube', 'tubeSafety'],
+    propose(order, { display, controls, base, memory }) {
+        const now = order.issuedAt + order.secondsAgo;
+        const lock = lockOf(display);
+        const fix = memory.get('salvoFix') as { id?: string; distance: number; at: number } | undefined;
+        const closing =
+            lock && fix && fix.id === lock.id && now > fix.at ? (fix.distance - lock.distance) / (now - fix.at) : 0;
+        if (lock) memory.set('salvoFix', { id: lock.id, distance: lock.distance, at: now });
+        const launches = controls.filter((c) => c.command === 'fireTube' && base[c.id]?.choice === 'fire');
+        if (!launches.length) return {};
+        const key = `salvo:${order.id}`;
+        const arrivals = (memory.get(key) as number[] | undefined) ?? [];
+        if (stillFlying(arrivals, now) >= (order.params.count ?? SALVO_MISSILES)) return holdTubes(controls);
+        const due = now + flightSeconds(lock?.distance ?? 0, closing);
+        memory.set(key, [...arrivals, ...launches.map(() => due)]);
+        return {};
+    },
+};
+
 const weaponsExecutors: Record<string, OrderExecutor> = {
     chase_target: lockNamed,
     engage: lockNamed,
     hold_fire: {
         constrains: ['fireChainGun', 'fireTube', 'tubeSafety'],
-        propose: (_o, { controls }) =>
-            Object.fromEntries(
-                controls.flatMap((c) =>
-                    c.command === 'tubeSafety'
-                        ? [[c.id, 'on']]
-                        : c.command === 'fireChainGun' || c.command === 'fireTube'
-                          ? [[c.id, 'hold_fire']]
-                          : [],
-                ),
-            ),
+        propose: (_o, { controls }) => ({
+            ...holdTubes(controls),
+            ...Object.fromEntries(controls.filter((c) => c.command === 'fireChainGun').map((c) => [c.id, 'hold_fire'])),
+        }),
     },
+    salvo: salvoDiscipline,
     preserve_energy: {
         constrains: ['fireChainGun'],
         propose: (_o, { display, controls }) =>

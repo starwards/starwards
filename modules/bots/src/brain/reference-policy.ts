@@ -3,6 +3,7 @@ import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from 
 import { SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
+import { flightSeconds, stillFlying } from './salvo';
 
 import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
@@ -48,12 +49,6 @@ const FIRE_RANGE_METERS = 8000;
 const TUBE_ARC_DEGREES = 100;
 /** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
 const LAUNCH_INTERVAL_SECONDS = 10;
-/**
- * A HiExp missile's cruise speed (T3-incoming, 2026-10-19: 600 m/s from launch to detonation) and the
- * slack on its time of flight: weapons counts a missile in flight until then.
- */
-const MISSILE_SPEED = 600;
-const FLIGHT_SLACK_SECONDS = 5;
 /**
  * Where the pilot parks: this far straight behind the target's motion. Space caps a shell's speed at
  * its muzzle speed, so a shell chasing a receding target detonates short by ~a quarter of the range,
@@ -135,8 +130,13 @@ export function makeReferencePolicy(
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
+            // a salvo order holds the tubes while its missiles fly
+            const salvoFull =
+                orders.salvo !== undefined &&
+                salvo !== undefined &&
+                stillFlying(salvo.arrivals, seconds) >= orders.salvo;
             const launchTube =
-                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS
+                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS && !salvoFull
                     ? tubeToLaunch(display, previous, decisionSeconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
@@ -165,6 +165,7 @@ export function makeReferencePolicy(
                 heard,
                 state: talk,
                 salvo: launched,
+                salvoOrdered: orders.salvo !== undefined,
             });
             previous = display;
             if (callout) {
@@ -194,14 +195,14 @@ function countLaunch(
         previous?.radar as ShownRadar | undefined,
         decisionSeconds,
     );
-    const flight = target.distance / Math.max(MISSILE_SPEED / 2, MISSILE_SPEED + closing) + FLIGHT_SLACK_SECONDS;
+    const flight = flightSeconds(target.distance, closing);
     const arrivals = salvo?.targetId === targetId ? salvo.arrivals : [];
     return { targetId, arrivals: [...arrivals, now + flight] };
 }
 
 /** Launches at the locked ship so far, and those still flying at `now`. */
 function tally(salvo: { arrivals: number[] }, now: number): SalvoTally {
-    return { n: salvo.arrivals.length, inFlight: salvo.arrivals.filter((t) => t > now).length };
+    return { n: salvo.arrivals.length, inFlight: stillFlying(salvo.arrivals, now) };
 }
 
 /** Where the helms parks now, and how wide it weaves across the spot. */

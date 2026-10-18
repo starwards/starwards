@@ -48,9 +48,10 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
  * - `station`: a station to dock at (name, position, radius);
  * - `body`: a large body such as a nebula (name, position, radius);
  * - `meters`: a distance;
- * - `share`: a fraction 0..1.
+ * - `share`: a fraction 0..1;
+ * - `count`: a whole number of things, 1 or more.
  */
-export type OrderParamType = 'contact' | 'station' | 'body' | 'meters' | 'share';
+export type OrderParamType = 'contact' | 'station' | 'body' | 'meters' | 'share' | 'count';
 export const ORDER_PARAMS = {
     /** A ship to close on, chase, engage or retreat from. */
     target: 'contact',
@@ -64,16 +65,20 @@ export const ORDER_PARAMS = {
     range: 'meters',
     /** The share a standing order triggers below. */
     threshold: 'share',
+    /** How many missiles a `salvo` keeps in flight. */
+    count: 'count',
 } as const satisfies Record<string, OrderParamType>;
 export type OrderParamName = keyof typeof ORDER_PARAMS;
 export const REF_PARAMS = ['target', 'station', 'region', 'from'] as const satisfies readonly OrderParamName[];
 export type RefParamName = (typeof REF_PARAMS)[number];
-export const NUMBER_PARAMS = ['range', 'threshold'] as const satisfies readonly OrderParamName[];
+export const NUMBER_PARAMS = ['range', 'threshold', 'count'] as const satisfies readonly OrderParamName[];
 
 /** A world object an order names, as the issuer saw it when giving the order. */
 export type OrderRefArg = { name?: string; position?: { x: number; y: number }; radius?: number };
 /** An order's parameters as a command carries them. */
-export type OrderParamsArg = Partial<Record<RefParamName, OrderRefArg> & Record<'range' | 'threshold', number>>;
+export type OrderParamsArg = Partial<
+    Record<RefParamName, OrderRefArg> & Record<(typeof NUMBER_PARAMS)[number], number>
+>;
 
 /**
  * How an order's world reference is read by the seats that carry it out:
@@ -99,6 +104,9 @@ export type CrewOrderKind = {
     /** Stances: the slot ranking while this stance is in force. */
     ranking?: readonly OrderSlot[];
 };
+
+/** The missiles a `salvo` keeps in flight when the order names none. */
+export const SALVO_MISSILES = 2;
 
 /** How far a retreat runs from the enemy before it completes, metres. */
 export const RETREAT_RUN_METERS = 10_000;
@@ -231,6 +239,16 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
     chase: stance('chase: run them down', ['maneuver', 'engagement']),
     take_opportunities: stance('take opportunities: hit whatever comes close', ['engagement', 'navigation']),
     preserve_ammo: stance('preserve ammo: fire only where it tells', ['repair', 'navigation', 'energy']),
+    /**
+     * Fire discipline, in the stance slot: weapons launches until `count` missiles of this order fly,
+     * holds the tubes, and launches again once one of them arrived without a kill.
+     */
+    salvo: {
+        slot: 'stance',
+        binds: ['weapons'],
+        params: { count: 'required' },
+        describe: (p) => `salvo ${p.count ?? SALVO_MISSILES}, then hold the tubes`,
+    },
 };
 
 /** The stances, by kind. */
@@ -257,6 +275,8 @@ export class CrewOrderParams extends Schema {
     /** Metres. */
     @gameField('float64') range = 0;
     @gameField('float64') threshold = 0;
+    /** A `count` parameter: missiles. */
+    @gameField('float64') count = 0;
 }
 
 /** One order on the board: its kind and parameters, who gave it and when, and how far it has got. */

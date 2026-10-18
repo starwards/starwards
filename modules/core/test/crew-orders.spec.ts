@@ -46,6 +46,19 @@ describe('crew order board', () => {
         expect(state.orderBoard.issued).to.equal(0);
     });
 
+    it('places a salvo with a whole missile count in the stance slot, and refuses any other count', () => {
+        const { state, tick, slot } = ship();
+        for (const count of [0, 1.5, -2, undefined]) {
+            issueOrder.setValue(state, { kind: 'salvo', params: { count }, issuer: 'captain' } as never);
+        }
+        tick();
+        expect(state.orderBoard.slots.size).to.equal(0);
+        issueOrder.setValue(state, { kind: 'salvo', params: { count: 2 }, issuer: 'captain' });
+        tick();
+        expect(slot('stance')?.kind).to.equal('salvo');
+        expect(orderParams(slot('stance')!.params)).to.eql({ count: 2 });
+    });
+
     it('revokes contradicted orders, ignores a repeat, and revokes a slot', () => {
         const { state, tick, slot } = ship();
         issueOrder.setValue(state, { kind: 'engage', params: { target: { name: 'r' } }, issuer: 'captain' });

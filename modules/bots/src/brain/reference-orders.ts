@@ -25,6 +25,8 @@ type Picture = {
     now: number;
     /** Weapons: a missile leaves a tube at this decision, and the tally including it. */
     salvo?: SalvoTally;
+    /** Captain: the board holds a salvo order. */
+    salvoOrdered: boolean;
 };
 
 /** Seconds the captain keeps its last order after signals reports the enemy lost: a contact drops for a few seconds when the relaying station is hit. */
@@ -167,6 +169,8 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     },
     /** Captain: an enemy inside the launch envelope, by its own reckoning or as weapons reports it, not yet ordered engaged. */
     engage: (picture) => enemyInside(picture) === true && nearestEnemy(picture.radar)?.name !== picture.engaged,
+    /** Captain: fire discipline once it ordered an enemy engaged and the board holds no salvo yet. */
+    salvo: (p) => p.engaged !== undefined && !p.salvoOrdered && nearestEnemy(p.radar) !== undefined,
     /** Captain: no enemy in sight, and none reported lost a moment ago. */
     hold_here: (p) => !holdingOnLostContact(p) && nearestEnemy(p.radar) === undefined,
 };
@@ -194,7 +198,13 @@ export function referenceCallout(
         heard = [],
         state = calloutMemory(),
         salvo,
-    }: { heard?: readonly Heard[]; state?: ReturnType<typeof calloutMemory>; salvo?: SalvoTally } = {},
+        salvoOrdered = false,
+    }: {
+        heard?: readonly Heard[];
+        state?: ReturnType<typeof calloutMemory>;
+        salvo?: SalvoTally;
+        salvoOrdered?: boolean;
+    } = {},
 ): Answer | undefined {
     const options = Object.keys(request.questions?.[CALLOUT_QUESTION]?.criteria ?? {}).filter((o) => o in calloutRules);
     if (!options.length) {
@@ -212,6 +222,7 @@ export function referenceCallout(
         memory: state.memory,
         now: state.now,
         salvo,
+        salvoOrdered,
     };
     // a lost contact is noted whatever the captain says, so the hold covers the following decisions
     if (options.includes(CAPTAIN_HOLD)) {

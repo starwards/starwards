@@ -4,6 +4,7 @@ import {
     CrewOrderBoard,
     CrewOrderRef,
     IssueOrderArg,
+    NUMBER_PARAMS,
     ORDER_ISSUERS,
     ORDER_PARAMS,
     ORDER_SLOTS,
@@ -45,7 +46,9 @@ function validIssue(c: Record<string, unknown>): c is IssueOrderArg & Record<str
                 ? !finite(value) || value < 0
                 : type === 'share'
                   ? !finite(value) || value < 0 || value > 1
-                  : !validRef(value)
+                  : type === 'count'
+                    ? !Number.isInteger(value) || (value as number) < 1
+                    : !validRef(value)
         ) {
             return false;
         }
@@ -102,8 +105,7 @@ export class CrewOrdersManager implements Updateable {
         const order = new CrewOrder();
         order.kind = kind;
         for (const name of REF_PARAMS) writeRef(order.params[name], params[name]);
-        order.params.range = params.range ?? 0;
-        order.params.threshold = params.threshold ?? 0;
+        for (const name of NUMBER_PARAMS) order.params[name] = params[name] ?? 0;
         const current = this.board.slots.get(def.slot);
         if (current?.kind === kind && current.status === 'active' && this.sameParams(current, order)) return;
         const displaced = [...this.board.slots.entries()].filter(
@@ -124,8 +126,7 @@ export class CrewOrdersManager implements Updateable {
     private sameParams(a: CrewOrder, b: CrewOrder) {
         return (
             REF_PARAMS.every((n) => sameRef(a.params[n], b.params[n])) &&
-            a.params.range === b.params.range &&
-            a.params.threshold === b.params.threshold
+            NUMBER_PARAMS.every((n) => a.params[n] === b.params[n])
         );
     }
 

@@ -1,5 +1,6 @@
 import { BrainSpec, CalloutFill } from './spec';
 import { Radar, offNose } from './verbal';
+import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 import {
     bearingWords,
     closeRange,
@@ -12,7 +13,6 @@ import {
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
-import { radarReach } from '@starwards/core/internal';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';
@@ -252,6 +252,8 @@ const calloutFills: Record<
             ? { name: before.name, last_bearing: bearingWords(before.bearing) }
             : undefined;
     },
+    /** Captain: a salvo of the default size. */
+    salvoOrder: () => ({ count: String(SALVO_MISSILES) }),
     /** Captain: engage the nearest enemy, by the name the crew's radars show. */
     engageOrder: ({ radar }) => {
         const enemy = nearestEnemy(radar as Radar | undefined);

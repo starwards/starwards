@@ -17,7 +17,8 @@ import { z } from 'zod';
  * range still to close), `salvoTally` (weapons: missiles launched under the engagement, those still
  * in flight, and the missiles left in the magazine), `lostLock` (weapons: the ship the lock held at the
  * previous decision and has lost), `lostContact` (signals: the enemy ship the radar showed at the
- * previous decision and shows no more, and its last world bearing).
+ * previous decision and shows no more, and its last world bearing), `salvoOrder` (captain: the
+ * missiles a salvo keeps in flight).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -33,6 +34,7 @@ export const calloutFills = [
     'salvoTally',
     'lostLock',
     'lostContact',
+    'salvoOrder',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 

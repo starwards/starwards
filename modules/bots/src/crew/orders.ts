@@ -11,6 +11,7 @@ import {
     RETREAT_RUN_METERS,
     ReportOrderProgressArg,
     RevokeOrderArg,
+    SALVO_MISSILES,
     STANCES,
     boardRanking,
     crewOrderCommands,
@@ -37,6 +38,8 @@ export type OrderParams = {
     range?: number;
     /** A share (0..1) a standing order triggers below. */
     threshold?: number;
+    /** How many missiles a `salvo` keeps in flight. */
+    count?: number;
     /** `revoke`: the slot it empties. */
     slot?: OrderSlot;
 };
@@ -183,6 +186,7 @@ export function paramsArg(p: OrderParams = {}): OrderParamsArg {
     if (p.region?.from) out.from = ref(p.region.from);
     if (p.range !== undefined) out.range = p.range;
     if (p.threshold !== undefined) out.threshold = p.threshold;
+    if (p.count !== undefined) out.count = p.count;
     return out;
 }
 
@@ -319,8 +323,15 @@ export function ordersSummary(board: OrdersBoard): string {
 /** The board's maneuver order to helms, in the shape the reference policy flies it. */
 type HelmOrder = { kind: 'close'; spot: XY } | { kind: 'hold' };
 
-/** The board's maneuver order (`helm`) and the ship it says to engage (`engage`), for the reference seats. */
-export function captainOrdersFromBoard(display: Display | undefined): { helm?: HelmOrder; engage?: string } {
+/**
+ * The board's maneuver order (`helm`), the ship it says to engage (`engage`) and the missiles a salvo
+ * keeps in flight (`salvo`), for the reference seats.
+ */
+export function captainOrdersFromBoard(display: Display | undefined): {
+    helm?: HelmOrder;
+    engage?: string;
+    salvo?: number;
+} {
     const board = readOrders(display);
     const m = board.orders.find((o) => o.slot === 'maneuver' && o.status === 'active');
     let helm: HelmOrder | undefined;
@@ -343,7 +354,12 @@ export function captainOrdersFromBoard(display: Display | undefined): { helm?: H
         }
     }
     const engage = board.orders.find((o) => o.kind === 'engage' && o.status === 'active');
-    return { helm, engage: engage?.params.target?.name };
+    const salvo = board.orders.find((o) => o.kind === 'salvo' && o.status === 'active');
+    return {
+        helm,
+        engage: engage?.params.target?.name,
+        ...(salvo ? { salvo: salvo.params.count ?? SALVO_MISSILES } : {}),
+    };
 }
 
 /** A world point `distance` km away on world `bearing` degrees (as a captain's callout fills them) from `origin`. */
@@ -391,6 +407,7 @@ const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => Give
         };
     },
     push_on: () => ({ kind: 'revoke', params: { slot: 'navigation' } }),
+    salvo: (v) => ({ kind: 'salvo', params: { count: Number(v.count) } }),
     ...Object.fromEntries(STANCES.map((s) => [s, () => ({ kind: s })])),
 };
 
