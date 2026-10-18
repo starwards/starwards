@@ -189,10 +189,8 @@ line, thrust along the nose still drives it along the line, and its turn rate sc
 A hull that could only thrust along its nose would need a turn radius that grows with speed
 squared, and would loop past a maneuvering target.
 
-The fuze checks the closest approach over the coming tick in the target's frame, not just the
-current gap. At sprint speed a missile and a crossing target cover more than a hull's width per
-tick, so a body-overlap check alone lets a contact warhead pass through the target; the physics step's
-projectile raycast tests against the target's start-of-tick position, so it misses the same cases.
+Hits are found by the generic projectile sweep in the physics step, which solves contact in the
+target's frame, so a crossing target cannot slip between ticks. See `docs/PHYSICS.md#projectile-sweep`.
 
 `missile-terminal-hit-rate.spec.ts` measures the result: from the sprint boundary, every homing
 design must miss a maneuvering Dragonfly MK-I (constant course, jinking, break turn, full reverse,

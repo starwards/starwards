@@ -574,20 +574,8 @@ export class SpaceManager implements Updateable {
                 if (target) {
                     const distanceToTarget = XY.distance(target.position, projectile.position) - target.radius;
                     const fuze = projectile.fuze;
-                    // closest approach over the coming tick, in the target's frame: at sprint speed
-                    // a missile and a crossing target cover more than the hull's width per tick,
-                    // so a body-overlap check alone lets the warhead pass through.
-                    const [approachSeconds, approachDistance] = closestApproach(projectile, target, deltaSeconds);
-                    const fuzeRange = fuze.type === 'proximity' ? fuze.range : projectile.radius;
-                    if (approachDistance - target.radius < fuzeRange) {
-                        projectile.position.setValue(
-                            addScale(projectile.position, projectile.velocity, approachSeconds),
-                        );
-                        if (fuze.type === 'proximity') {
-                            this.explodeProjectile(projectile);
-                        } else {
-                            this.resolveProjectileContactDamage(projectile, target, deltaSeconds);
-                        }
+                    if (fuze.type === 'proximity' && distanceToTarget < fuze.range) {
+                        this.explodeProjectile(projectile);
                     } else {
                         const homing = projectile.design.homing;
                         // lead at sprint speed: that's what it closes at once sprinting.
@@ -753,26 +741,62 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    private allowRaycastCollision = (potential: Body) => {
+    private isSweepTarget = (potential: Body) => {
         const object = this.collisionToState.get(potential as Circle);
         const ignore = !object || this.isProjectile(object) || HazardCloud.isInstance(object);
         return !ignore;
     };
 
+    /**
+     * Swept contact for every moving projectile, before anything moves this tick: the first solid it
+     * touches (hull plus projectile radius) with both on their velocities, and where the projectile sits
+     * relative to it at that moment. Solving in the other object's frame catches a target that crosses
+     * the projectile's path during the tick, which a ray against the target's start position misses.
+     */
+    private sweepProjectiles(deltaSeconds: number) {
+        const contacts = new Map<SpaceObject, { other: SpaceObject; offset: XY }>();
+        for (const projectile of this.state.getAll('Projectile')) {
+            if (projectile.freeze || XY.isZero(projectile.velocity, ZERO_VELOCITY_THRESHOLD)) {
+                continue;
+            }
+            const travel = XY.scale(projectile.velocity, deltaSeconds);
+            const reach = XY.lengthOf(travel) / 2 + ABSOLUTE_MAX_SPEED * deltaSeconds + projectile.radius;
+            const queryArea = new Circle(XY.add(projectile.position, XY.scale(travel, 0.5)), reach);
+            let earliest: { other: SpaceObject; time: number } | null = null;
+            for (const other of this.spatialIndex.selectPotentials(queryArea)) {
+                const data = this.stateToExtraData.get(other);
+                if (
+                    other === projectile ||
+                    !data ||
+                    !this.isSweepTarget(data.body) ||
+                    this.isOwnFire(projectile, other)
+                ) {
+                    continue;
+                }
+                const time = firstContactSeconds(projectile, other, other.radius + projectile.radius, deltaSeconds);
+                if (time !== null && (!earliest || time < earliest.time)) {
+                    earliest = { other, time };
+                }
+            }
+            if (earliest) {
+                const offset = XY.difference(
+                    addScale(projectile.position, projectile.velocity, earliest.time),
+                    addScale(earliest.other.position, earliest.other.velocity, earliest.time),
+                );
+                contacts.set(projectile, { other: earliest.other, offset });
+            }
+        }
+        return contacts;
+    }
+
     private applyPhysics(deltaSeconds: number) {
+        const contacts = this.sweepProjectiles(deltaSeconds);
         // loop over objects and apply velocity
         for (const subject of this.state) {
             if (!XY.isZero(subject.velocity, ZERO_VELOCITY_THRESHOLD)) {
                 const positionDelta = XY.scale(subject.velocity, deltaSeconds);
                 for (const obj of this.attachmentCliques.get(subject.id) || [subject]) {
-                    let destination = XY.add(obj.position, positionDelta);
-                    if (this.isProjectile(obj)) {
-                        const res = this.collisions.raycast(obj.position, destination, this.allowRaycastCollision);
-                        if (res) {
-                            destination = res.point;
-                        }
-                    }
-                    obj.position.setValue(destination);
+                    obj.position.setValue(XY.add(obj.position, positionDelta));
                     this.toUpdateCollisions.add(obj);
                 }
             }
@@ -790,6 +814,12 @@ export class SpaceManager implements Updateable {
                     }
                 }
             }
+        }
+        // a projectile that touched something this tick ends it in contact, where the collision pass
+        // resolves its fuze
+        for (const [projectile, { other, offset }] of contacts) {
+            // a hair inside the contact distance, so the collision pass sees an overlap
+            projectile.position.setValue(XY.add(other.position, XY.scale(offset, 1 - EPSILON)));
         }
     }
 
@@ -1178,16 +1208,22 @@ export function overSteer(position: XY, velocity: XY, waypoint: XY): XY {
 }
 
 /**
- * When within the next `seconds`, on current velocities, `mover` comes closest to `target`'s centre,
- * and how close.
+ * Seconds into the next `seconds` at which `mover` first comes within `contactDistance` of `other`'s
+ * centre, both on their current velocities; null when it doesn't.
  */
-function closestApproach(mover: SpaceObject, target: SpaceObject, seconds: number): [number, number] {
-    const relativePosition = XY.difference(target.position, mover.position);
-    const relativeVelocity = XY.difference(mover.velocity, target.velocity);
-    const speedSquared = XY.dot(relativeVelocity, relativeVelocity);
-    const time =
-        speedSquared > 0
-            ? Math.min(seconds, Math.max(0, XY.dot(relativePosition, relativeVelocity) / speedSquared))
-            : 0;
-    return [time, XY.distance(relativePosition, XY.scale(relativeVelocity, time))];
+function firstContactSeconds(mover: SpaceObject, other: SpaceObject, contactDistance: number, seconds: number) {
+    const relativePosition = XY.difference(mover.position, other.position);
+    const relativeVelocity = XY.difference(mover.velocity, other.velocity);
+    const c = XY.dot(relativePosition, relativePosition) - contactDistance * contactDistance;
+    if (c <= 0) {
+        return null; // already touching: the collision pass has it
+    }
+    const a = XY.dot(relativeVelocity, relativeVelocity);
+    const b = 2 * XY.dot(relativePosition, relativeVelocity);
+    const discriminant = b * b - 4 * a * c;
+    if (a === 0 || b >= 0 || discriminant < 0) {
+        return null;
+    }
+    const time = (-b - Math.sqrt(discriminant)) / (2 * a);
+    return time <= seconds ? time : null;
 }
