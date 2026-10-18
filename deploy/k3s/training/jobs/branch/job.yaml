@@ -10,7 +10,7 @@ metadata:
 spec:
     completionMode: Indexed
     completions: 4 # = SHARDS
-    parallelism: 4 # shards running at once; each takes WORKERS cores
+    parallelism: 3 # one shard per node (params/scheduling.yaml)
     backoffLimitPerIndex: 1
     maxFailedIndexes: 0
     ttlSecondsAfterFinished: 604800
@@ -42,7 +42,7 @@ spec:
                         valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
                   resources:
                       # WORKERS x 1.5 GiB + 0.5 GiB (measured peak RSS: worker <= 1.4 GiB, parent <= 0.5 GiB), see docs/integration/ai-training-k3s.md
-                      requests: { cpu: '4', memory: 6656Mi }
+                      requests: { cpu: 500m, memory: 6656Mi } # low on purpose: bursts into idle cores, yields under contention
                       limits: { memory: 7Gi }
                   securityContext:
                       allowPrivilegeEscalation: false

@@ -6,9 +6,8 @@ metadata:
     name: nightly-suite
     labels: { app.kubernetes.io/name: starwards-training, starwards/job: nightly-suite }
 spec:
-    # FILL: schedule and time zone
-    schedule: '0 0 * * *'
-    timeZone: Etc/UTC
+    schedule: '0 1 * * *'
+    timeZone: Europe/Amsterdam
     concurrencyPolicy: Forbid
     successfulJobsHistoryLimit: 7
     failedJobsHistoryLimit: 7
@@ -36,7 +35,7 @@ spec:
                               - name: JOB_NAME
                                 valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
                           resources:
-                              requests: { cpu: '4', memory: 6656Mi }
+                              requests: { cpu: 500m, memory: 6656Mi } # low on purpose: bursts into idle cores, yields under contention
                               limits: { memory: 7Gi }
                           securityContext:
                               allowPrivilegeEscalation: false
