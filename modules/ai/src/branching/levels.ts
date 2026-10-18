@@ -336,10 +336,10 @@ export function tacticalLevel(captainSpec?: BrainSpec): DecisionLevel {
                 }
                 const distance = stateAt(log, d.t).nearestEnemy?.distance;
                 if (distance !== undefined && previousDistance !== undefined) {
-                    const inBand = (x: number) => x >= MISSILE_MIN_LAUNCH_METERS && x <= STILL_TARGET_ENVELOPE;
-                    if (inBand(distance) && !inBand(previousDistance))
+                    const inEnvelope = (x: number) => x >= MISSILE_MIN_LAUNCH_METERS && x <= STILL_TARGET_ENVELOPE;
+                    if (inEnvelope(distance) && !inEnvelope(previousDistance))
                         moments.push({ t: d.t, reason: 'enemy enters envelope' });
-                    if (!inBand(distance) && inBand(previousDistance))
+                    if (!inEnvelope(distance) && inEnvelope(previousDistance))
                         moments.push({ t: d.t, reason: 'enemy leaves envelope' });
                 }
                 previousDistance = distance;

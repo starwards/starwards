@@ -17,7 +17,7 @@ const referenceBrains: Record<string, unknown> = { helms, weapons, engineer, sig
 
 /**
  * Seats only a bot takes, by the screen each one reads. The captain reads the whole fleet picture on
- * the dradis and gives orders by radio; none of the dradis's waypoint commands is a button a brain
+ * the dradis and gives orders as callouts, which land on the order board; none of the dradis's waypoint commands is a button a brain
  * presses, so the seat has no controls.
  */
 const botSeatScreens: Readonly<Record<string, string>> = { captain: 'dradis' };
