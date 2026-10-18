@@ -182,6 +182,15 @@ export function parseFrameLine(line: string): RecordingFrameLine | null {
 /** File extension of the sidecar written beside a `.sgr` recording; replay readers never open it. */
 export const EVENTS_EXT = '.events.jsonl';
 
+/** File extension of a recording. */
+export const RECORDING_EXT = '.sgr';
+
+/** The sidecar's name (or path) beside a recording's; a name without `RECORDING_EXT` gets `EVENTS_EXT` appended. */
+export function sidecarName(recordingName: string) {
+    const base = recordingName.endsWith(RECORDING_EXT) ? recordingName.slice(0, -RECORDING_EXT.length) : recordingName;
+    return base + EVENTS_EXT;
+}
+
 /**
  * One timed line of a recording's sidecar. Any module can add its own kinds: the sidecar is kept
  * out of the `.sgr` so replay readers, which expect only frame and delta lines, never see them.

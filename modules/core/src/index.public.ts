@@ -79,6 +79,7 @@ export { getRange } from './range';
 // --- recording ---
 export {
     EVENTS_EXT,
+    RECORDING_EXT,
     SPACE_ROOM_KEY,
     ReplayRoom,
     SavedGame,
@@ -86,6 +87,7 @@ export {
     decodeRecordedBytes,
     decodeSegment,
     encodeSegment,
+    sidecarName,
     deepAssignSchema,
     parseBaseLine,
     parseEventLine,

@@ -11,6 +11,7 @@ import {
     parseFrameLine,
     parseHeader,
     parseSegLine,
+    sidecarName,
 } from '../src';
 
 describe('recording-format', () => {
@@ -48,6 +49,11 @@ describe('recording-format', () => {
 });
 
 describe('recording-format sidecar events', () => {
+    it('names the sidecar beside a recording', () => {
+        expect(sidecarName('map_1.sgr')).toBe('map_1.events.jsonl');
+        expect(sidecarName('dir/map_1.sgr')).toBe('dir/map_1.events.jsonl');
+    });
+
     it('encodes and parses an event line round-trip, keeping arbitrary data', () => {
         const event = { t: 3.25, kind: 'decision', objectId: 'GVTS', data: { any: ['json', 1], nested: { ok: true } } };
         expect(parseEventLine(encodeEventLine(event))).toEqual(event);

@@ -1,3 +1,4 @@
+import { EVENTS_EXT, RECORDING_EXT } from '@starwards/core';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
 
@@ -46,8 +47,8 @@ test.describe('GM bot seats', () => {
         await controls.locator('button.tp-btnv_b', { hasText: 'Stop Recording' }).click();
         await expect.poll(() => downloads.length, { timeout: 10000 }).toBe(2);
         const names = downloads.map((d) => d.suggestedFilename());
-        expect(names.some((n) => n.endsWith('.sgr'))).toBe(true);
-        expect(names.some((n) => n.endsWith('.events.jsonl'))).toBe(true);
+        expect(names.some((n) => n.endsWith(RECORDING_EXT))).toBe(true);
+        expect(names.some((n) => n.endsWith(EVENTS_EXT))).toBe(true);
 
         await page.locator('.lm_title', { hasText: 'roster' }).click();
         await page.locator('[data-id="Roster Bot GVTS pilot"]').selectOption('none');
