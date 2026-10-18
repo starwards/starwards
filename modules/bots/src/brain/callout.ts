@@ -133,12 +133,61 @@ const calloutFills: Record<CalloutFill, (display: Display, previous?: Display) =
             }
         );
     },
+    /** Captain: dock at the nearest allied station (a ship-sized ally is no dock), `distance` away on world `bearing`. */
+    dockOrder: ({ radar }) => {
+        const r = radar as Radar | undefined;
+        const own = r?.ownShip?.faction;
+        const station = (r?.contacts ?? [])
+            .filter(
+                (c) =>
+                    c.type === 'Spaceship' &&
+                    own !== undefined &&
+                    c.faction === own &&
+                    (c.radius ?? 0) >= DOCK_HOST_RADIUS,
+            )
+            .sort((a, b) => a.distance - b.distance)[0];
+        return (
+            station && {
+                name: station.name,
+                distance: (station.distance / 1000).toFixed(1),
+                bearing: bearingWords(station.bearing),
+                radius: ((station.radius ?? 0) / 1000).toFixed(1),
+            }
+        );
+    },
+    /**
+     * Captain: patrol behind the nearest large body the dradis draws (a nebula: no ship, never scanned),
+     * kept between the ship and the nearest enemy when one is in sight.
+     */
+    patrolOrder: ({ radar }) => {
+        const r = radar as Radar | undefined;
+        const body = (r?.contacts ?? [])
+            .filter((c) => c.type !== 'Spaceship' && (c.radius ?? 0) >= BODY_RADIUS)
+            .sort((a, b) => a.distance - b.distance)[0];
+        const enemy = nearestEnemy(r);
+        return (
+            body && {
+                name: body.name,
+                distance: (body.distance / 1000).toFixed(1),
+                bearing: bearingWords(body.bearing),
+                radius: ((body.radius ?? 0) / 1000).toFixed(1),
+                ...(enemy
+                    ? { fromDistance: (enemy.distance / 1000).toFixed(1), fromBearing: bearingWords(enemy.bearing) }
+                    : {}),
+            }
+        );
+    },
     /** Captain: engage the nearest enemy, by the name the crew's radars show. */
     engageOrder: ({ radar }) => {
         const enemy = nearestEnemy(radar as Radar | undefined);
         return enemy && { name: enemy.name };
     },
 };
+
+/** A contact this wide or wider is a station a ship docks at, not a ship. */
+const DOCK_HOST_RADIUS = 200;
+/** A blip this wide that is no ship is a body to hide behind: a nebula. */
+const BODY_RADIUS = 2000;
 
 /** A range change smaller than this between two decisions is called holding range. */
 const RANGE_CHANGE_METERS = 50;

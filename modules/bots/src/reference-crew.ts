@@ -8,6 +8,7 @@ import { makeReferencePolicy } from './brain/reference-policy';
 import signals from './brains/signals.v1.json';
 import tactical from './brains/tactical.v1.json';
 import weapons from './brains/weapons.v1.json';
+import { withOrderBoard } from './brain/order-executors';
 
 /** One seat of a crew: a station, the brain that plays it, and what answers its questions. */
 export type SeatPlan = { station: string; spec: BrainSpec; policy: Policy };
@@ -19,7 +20,11 @@ export const REFERENCE_BRAINS_DIR = `${__dirname}/brains`;
 
 /** A seat that plays `spec` with the rule-based reference policy. */
 export function referenceSeat(spec: BrainSpec): SeatPlan {
-    return { station: spec.station, spec, policy: makeReferencePolicy(spec.decisionSeconds) };
+    return {
+        station: spec.station,
+        spec,
+        policy: withOrderBoard(makeReferencePolicy(spec.decisionSeconds), spec.station),
+    };
 }
 
 /** The rule-based reference brain for a station, as the live bots and the headless curriculum both play it. */

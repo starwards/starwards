@@ -6,6 +6,7 @@ import {
     StationWidget,
     repairProtocols,
 } from '@starwards/core/internal';
+import { ORDERS_PANEL, OrdersBoard, ordersLines } from '../crew/orders';
 
 import { Display } from './controls';
 
@@ -399,6 +400,9 @@ export function verbalReader(secondsBetweenReadings: number) {
                 lines.push(...template(panel, context));
             }
         }
+        // the crew's order board: every slot in force, in the captain's priority order, and the ranking
+        const orders = display.panels[ORDERS_PANEL] as OrdersBoard | undefined;
+        if (orders) lines.push(...ordersLines(orders));
         previous = new Map(
             ((display.radar as Radar | undefined)?.contacts ?? []).map((c) => [
                 c.id,
