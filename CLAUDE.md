@@ -33,7 +33,7 @@ npm run dev
 # Development (3 terminals)
 cd modules/core && npm run build:watch     # Terminal 1: Core watch
 cd modules/browser && npm start             # Terminal 2: Frontend (localhost:3000)
-node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 3: Backend (localhost:8080); bot workers load @starwards/* from sources
+node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 3: Backend (localhost:8080); run from source like this, bot workers load @starwards/* from sources
 
 # UI Gallery (no server needed, just browser dev server)
 # http://localhost:3000/gallery.html

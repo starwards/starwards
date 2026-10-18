@@ -46,8 +46,8 @@ npm run build:exe # → dist/exec/starwards-win.exe, dist/exec/starwards-linux (
 ```bash
 npm run dev
 # core watch + API server + webpack dev server in one terminal
-# the server waits for core, then starts; bot workers load @starwards/* from sources, so a bots edit
-# reaches the next bot seated
+# the server waits for core, then starts from source; bot workers of a server run from source load
+# @starwards/* from sources, so a bots edit reaches the next bot seated
 # Zellij pane-grid variant: npm run dev:zellij
 ```
 
@@ -70,7 +70,7 @@ cd modules/browser && npm start
 
 ```bash
 node -r ts-node/register/transpile-only modules/server/src/dev.ts
-# Runs on http://localhost:8080; needs the core build. Bot workers load @starwards/* from sources
+# Runs on http://localhost:8080; needs the core build. When the server runs from source, bot workers load @starwards/* from sources
 # (modules/server/src/bots/worker-source.ts), so they need no build and pick up edits on the next bot seated
 ```
 
