@@ -109,6 +109,12 @@ export class GameRecorder implements PatchTap {
     private eventWrites: Promise<void> = Promise.resolve();
     /** whether this recording's `.sgr` header landed; sidecar events wait for it */
     private headerWritten: Promise<boolean> = Promise.resolve(false);
+    /** the game (its `SpaceManager`) the current recording belongs to */
+    private recordedGame: object | null = null;
+    /** the last game `recordEveryGame` saw, so each game gets one automatic recording */
+    private seenGame: object | null = null;
+    private gameWatch: ReturnType<typeof setInterval> | null = null;
+    private autoStart: Promise<void> | null = null;
     /** Told whenever recording starts or ends, so bot workers post decisions only while they are kept. */
     public onRecordingChange: (on: boolean) => void = () => {};
 
@@ -118,6 +124,43 @@ export class GameRecorder implements PatchTap {
         private intervalMs = 1000,
         private useDeltas = recordingDeltasEnabled,
     ) {}
+
+    /**
+     * Records each game from its start, however it was started. A game is told apart by its
+     * `SpaceManager`, which every start and load replaces; a new game finalizes the previous
+     * game's recording. A GM who stops the automatic recording keeps it stopped for that game.
+     */
+    public recordEveryGame(pollMs = 50) {
+        this.gameWatch ??= setInterval(() => this.watchGames(), pollMs);
+        this.gameWatch.unref();
+    }
+
+    /** stops watching for new games and waits for an automatic start already under way */
+    public async stopRecordingEveryGame() {
+        if (this.gameWatch) clearInterval(this.gameWatch);
+        this.gameWatch = null;
+        await this.autoStart;
+    }
+
+    private watchGames() {
+        const game = this.manager.spaceManager;
+        if (this.autoStart || !this.manager.state.isGameRunning || game === this.seenGame) return;
+        this.seenGame = game;
+        if (this.recordedGame === game) return; // recorded by hand already
+        this.autoStart = (async () => {
+            if (this.filePath) await this.stopRecording(); // the previous game's
+            if (this.manager.spaceManager === game) await this.startRecording();
+        })()
+            .catch((e: unknown) => logError(`can't record the new game:`, e))
+            .finally(() => {
+                this.autoStart = null;
+            });
+    }
+
+    /** the recorded game's state, or null once that game has ended (or another replaced it) */
+    private saveRecordedGame() {
+        return this.manager.spaceManager === this.recordedGame ? this.manager.saveGame() : null;
+    }
 
     public async startRecording(): Promise<string> {
         if (!this.manager.state.isGameRunning) {
@@ -155,6 +198,7 @@ export class GameRecorder implements PatchTap {
             header.schemaHash = recordingSchemaHash();
         }
         this.lastWrittenT = null;
+        this.recordedGame = this.manager.spaceManager;
         this.baseSeconds = this.manager.totalSeconds;
         this.manager.state.isRecordingGame = true;
         this.manager.state.recordingName = filename;
@@ -275,6 +319,7 @@ export class GameRecorder implements PatchTap {
         this.filePath = null;
         this.eventsPath = null;
         this.lastWrittenT = null;
+        this.recordedGame = null;
         this.segment = null;
         this.keyframeDue = false;
         this.deltas = false;
@@ -305,7 +350,7 @@ export class GameRecorder implements PatchTap {
     private tick() {
         if (this.inFlight) return;
         if (this.deltas) {
-            if (this.manager.state.isGameRunning) {
+            if (this.manager.state.isGameRunning && this.manager.spaceManager === this.recordedGame) {
                 this.keyframeDue = true;
             } else {
                 this.autoFinalizeDeltas();
@@ -334,7 +379,7 @@ export class GameRecorder implements PatchTap {
     private async writeFrame(): Promise<void> {
         const filePath = this.filePath;
         if (!filePath) return;
-        const savedGame = this.manager.saveGame();
+        const savedGame = this.saveRecordedGame();
         if (!savedGame) {
             // the game ended: the recording is done only once its sidecar is complete
             this.eventsPath = null;
@@ -380,7 +425,7 @@ export class GameRecorder implements PatchTap {
         if (this.lastWrittenT !== null && t === this.lastWrittenT) return; // paused: the segment goes on
         // the base first: saveGame() flushes pending entities into the live state
         const spaceBase = space.fullState();
-        const savedGame = this.manager.saveGame();
+        const savedGame = this.saveRecordedGame();
         if (!savedGame) {
             this.autoFinalizeDeltas();
             return;

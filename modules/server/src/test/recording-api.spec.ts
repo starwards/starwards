@@ -1,9 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+import { test_map_1, two_vs_one } from '../maps';
+
 import { HTTP_CONFLICT_STATUS } from '../server';
 import { makeDriver } from './driver';
 import supertest from 'supertest';
+import { waitFor } from '@starwards/core/internal';
 
 const HTTP_BAD_REQUEST_STATUS = 400;
 const HTTP_NOT_FOUND_STATUS = 404;
@@ -21,21 +24,60 @@ interface RecordingSummary {
 describe('recording HTTP API (issue #2101)', () => {
     const gameDriver = makeDriver();
 
+    /** the name of the recording the running game is recorded to, once it has one */
+    const recordingOf = async (mapName: string) => {
+        await waitFor(() => expect(gameDriver.gameManager.state.recordingName).toMatch(`${mapName}_`), 5_000, 20);
+        return gameDriver.gameManager.state.recordingName;
+    };
+
     /** starts a game and stops the recording it starts with, leaving the GM to record by hand */
     async function startUnrecordedGame() {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await recordingOf('test_map_1');
         await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
     }
 
     it('POST /start-game records the game from its start', async () => {
         gameDriver.pauseGameCommand();
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
-        const { recordingName } = gameDriver.gameManager.state;
-        expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
+        const recordingName = await recordingOf('test_map_1');
         expect(recordingName).toMatch(/^test_map_1_\d+\.sgr$/);
 
         const stopRes = await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
         expect(stopRes.body).toMatchObject({ name: recordingName, mapName: 'test_map_1' });
+    });
+
+    it('records a game started on the manager directly', async () => {
+        gameDriver.pauseGameCommand();
+        await gameDriver.gameManager.startGame(test_map_1);
+        const name = await recordingOf('test_map_1');
+        await gameDriver.gameManager.stopGame();
+        await waitFor(() => expect(gameDriver.gameManager.state.isRecordingGame).toBe(false), 5_000, 20);
+        const listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200))
+            .body as RecordingSummary[];
+        expect(listed.map((r) => r.name)).toEqual([name]);
+    });
+
+    it('gives each game its own recording, however quickly the next one starts', async () => {
+        gameDriver.pauseGameCommand();
+        await gameDriver.gameManager.startGame(test_map_1);
+        const first = await recordingOf('test_map_1');
+        await gameDriver.gameManager.stopGame();
+        await gameDriver.gameManager.startGame(two_vs_one);
+        const second = await recordingOf('two_vs_one');
+        await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
+
+        const listed = (await supertest(gameDriver.httpServer).get('/recordings').expect(200))
+            .body as RecordingSummary[];
+        expect(listed.map((r) => r.name).sort()).toEqual([first, second].sort());
+        expect(listed.find((r) => r.name === first)).toMatchObject({ mapName: 'test_map_1' });
+    });
+
+    it('a GM who stops the recording keeps it stopped for that game', async () => {
+        gameDriver.pauseGameCommand();
+        await startUnrecordedGame();
+        await new Promise((res) => setTimeout(res, 300));
+        expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
     });
 
     it('POST /start-recording rejects when no game is running', async () => {
@@ -87,7 +129,7 @@ describe('recording HTTP API (issue #2101)', () => {
 
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
-        expect(gameDriver.gameManager.state.recordingName).toMatch(/^two_vs_one_/);
+        await recordingOf('two_vs_one');
     });
 
     it('GET /recordings/:name serves a recording, and rejects unknown or out-of-directory names', async () => {

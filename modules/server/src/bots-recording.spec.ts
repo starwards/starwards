@@ -5,6 +5,7 @@ import { AdminDriver, Driver, parseEventLine, sidecarName, waitFor } from '@star
 
 import { makeDriver } from './test/driver';
 import supertest from 'supertest';
+import { two_vs_one } from './maps';
 
 jest.setTimeout(60_000);
 
@@ -25,9 +26,9 @@ describe('a game is recorded from its start', () => {
     });
 
     it("keeps a bot's decisions without the GM pressing record", async () => {
-        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        await gameDriver.gameManager.startGame(two_vs_one);
+        await waitFor(() => expect(gameDriver.gameManager.state.recordingName).not.toBe(''), 5_000, 20);
         const { recordingName } = gameDriver.gameManager.state;
-        expect(recordingName).not.toBe('');
         const recording = path.join(gameDriver.recordingsDir, recordingName);
         const sidecar = sidecarName(recording);
 

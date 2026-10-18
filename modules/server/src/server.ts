@@ -74,6 +74,8 @@ export async function server(
     // detection) stays active.
     wsTransportOverrides?: { pingInterval?: number; pingMaxRetries?: number },
     recordingsDir: string = recordingsDirPath(),
+    /** off only for tests that drive their own `GameRecorder` on this game */
+    { recordEveryGame = true }: { recordEveryGame?: boolean } = {},
 ) {
     const gameRecorder = new GameRecorder(manager, recordingsDir, recordingIntervalMs());
     // reassigned once gameServer.listen() resolves the actual bound port (the caller may pass 0)
@@ -84,15 +86,7 @@ export async function server(
         (e) => gameRecorder.appendEvent(e),
     );
     gameRecorder.onRecordingChange = (on) => bots.setRecording(on);
-    // every game is recorded from its first moment; the GM can still stop and restart the recording
-    const recordNewGame = async () => {
-        if (manager.state.isRecordingGame) return; // a start request for a game already running
-        try {
-            await gameRecorder.startRecording();
-        } catch (e) {
-            logError(`can't record the new game:`, e);
-        }
-    };
+    if (recordEveryGame) gameRecorder.recordEveryGame();
     manager.botSeats = bots;
     const app = express();
     app.use(express.json() as express.RequestHandler);
@@ -206,7 +200,6 @@ export async function server(
             const map = mapsMap.get(String(mapName));
             if (map) {
                 await manager.startGame(map);
-                await recordNewGame();
                 res.send();
             } else {
                 logError(`can't find map named "${String(mapName)}`);
@@ -237,10 +230,7 @@ export async function server(
                 const savedGameData = await stringToSchema(SavedGame, data);
                 const map = mapsMap.get(savedGameData.mapName);
                 if (map) {
-                    // the game being replaced ends here, and so does its recording
-                    await gameRecorder.stopRecording();
                     await manager.loadGame(savedGameData, map);
-                    await recordNewGame();
                     res.send();
                 } else {
                     logError(`can't find map named "${savedGameData.mapName}`);
@@ -285,6 +275,7 @@ export async function server(
         close: async () => {
             // Bot workers hold client connections to this server: drain them while it still answers.
             await bots.stopAll();
+            await gameRecorder.stopRecordingEveryGame();
             // Close the recording before the transport goes away, so no frame write outlives
             // the server (and races whoever cleans up the recordings directory).
             await gameRecorder.stopRecording();

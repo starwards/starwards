@@ -23,7 +23,7 @@ async function readLines(filePath: string): Promise<string[]> {
 const keyframesOnly = () => false;
 
 describe('GameRecorder', () => {
-    const gameDriver = makeDriver();
+    const gameDriver = makeDriver({ recordEveryGame: false });
     let tmpDir: string;
 
     beforeEach(async () => {
@@ -276,6 +276,34 @@ describe('GameRecorder', () => {
                 expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
             } finally {
                 slowSidecar.mockRestore();
+            }
+        });
+
+        it('keeps an event sent as soon as bots are told to record, writing it after the .sgr header', async () => {
+            const realFs = jest.requireActual<typeof import('node:fs/promises')>('node:fs/promises');
+            const appendFile = realFs.appendFile.bind(realFs);
+            const headerFirst: boolean[] = [];
+            const spy = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
+                if (typeof file === 'string' && file.endsWith(EVENTS_EXT)) {
+                    const sgr = file.slice(0, -EVENTS_EXT.length) + '.sgr';
+                    headerFirst.push((await realFs.readFile(sgr, 'utf-8')).includes('starwards-recording'));
+                }
+                return appendFile(file, data, options);
+            });
+            try {
+                gameDriver.pauseGameCommand();
+                await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+                const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 20, keyframesOnly);
+                // bots are told to record before the header is written: what they send at once is kept
+                recorder.onRecordingChange = (on) => on && recorder.appendEvent(decision);
+                const filename = await recorder.startRecording();
+                await recorder.stopRecording();
+
+                const lines = await readLines(path.join(tmpDir, filename.replace(/\.sgr$/, EVENTS_EXT)));
+                expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
+                expect(headerFirst).toEqual([true]);
+            } finally {
+                spy.mockRestore();
             }
         });
 
