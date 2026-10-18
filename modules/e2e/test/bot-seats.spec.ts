@@ -51,12 +51,12 @@ test.describe('GM bot seats', () => {
         await page.locator('.lm_title', { hasText: 'controls' }).click();
         const controls = page.locator('[data-id="Game Controls"]');
         await expect(controls).toBeVisible({ timeout: 15000 });
-        await controls.locator('button.tp-btnv_b', { hasText: 'Record' }).click();
+        // every game records from its start
         await expect(() => expect(gameDriver.gameManager.state.isRecordingGame).toBe(true)).toPass({ timeout: 5000 });
         await page.waitForTimeout(5000);
         const downloads: Download[] = [];
         page.on('download', (d) => downloads.push(d));
-        await controls.locator('button.tp-btnv_b', { hasText: 'Stop Recording' }).click();
+        await controls.getByRole('button', { name: 'Stop Recording', exact: true }).click();
         await expect.poll(() => downloads.length, { timeout: 10000 }).toBe(2);
         const names = downloads.map((d) => d.suggestedFilename());
         expect(names.some((n) => n.endsWith(RECORDING_EXT))).toBe(true);
@@ -103,7 +103,8 @@ test.describe('GM bot seats', () => {
         test.setTimeout(60_000);
         const post = async (path: string) =>
             expect((await page.request.post(`${gameDriver.baseURL}${path}`, { data: {} })).ok()).toBe(true);
-        if (gameDriver.gameManager.state.isRecordingGame) await post('/stop-recording');
+        await expect.poll(() => gameDriver.gameManager.state.isRecordingGame, { timeout: 5000 }).toBe(true);
+        await post('/stop-recording');
         await openRoster(page);
         const banner = page.locator('[data-id="Roster Bots Not Recording"]');
         await expect(banner).toBeHidden();

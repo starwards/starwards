@@ -44,13 +44,34 @@ test.describe('GM game controls widget', () => {
         }).toPass({ timeout: 5000 });
     });
 
+    test('a new game is recording without pressing Record', async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(single_ship);
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+
+        const controls = await openGameControls(page);
+        await expect(() => {
+            expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
+        }).toPass({ timeout: 5000 });
+        await expect(controls.getByRole('button', { name: 'Stop Recording', exact: true })).toBeVisible();
+        await expect(page.locator('[data-id="observation-mode"]')).toBeVisible();
+    });
+
     test('records from the GM screen and confirms what was saved', async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
         await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
 
         const controls = await openGameControls(page);
-        await controls.locator('button.tp-btnv_b', { hasText: 'Record' }).click();
+        // stop the recording every game starts with, then record again from the GM screen
+        await expect(() => {
+            expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
+        }).toPass({ timeout: 5000 });
+        await controls.getByRole('button', { name: 'Stop Recording', exact: true }).click();
+        await expect(() => {
+            expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
+        }).toPass({ timeout: 5000 });
+        await controls.getByRole('button', { name: 'Record', exact: true }).click();
         await expect(() => {
             expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
         }).toPass({ timeout: 5000 });
@@ -60,7 +81,7 @@ test.describe('GM game controls widget', () => {
         await page.waitForTimeout(2500); // a couple of frames past frame 0
         // ending the recording hands the file to the GM's browser
         const download = page.waitForEvent('download');
-        await controls.locator('button.tp-btnv_b', { hasText: 'Stop Recording' }).click();
+        await controls.getByRole('button', { name: 'Stop Recording', exact: true }).click();
         await expect(() => {
             expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
         }).toPass({ timeout: 5000 });

@@ -7,11 +7,18 @@ import { navigateToScreen } from './test-infrastructure';
 const gameDriver = makeDriver(test);
 const { single_ship } = maps;
 
+/** Every game records from its start: lets that recording run a couple of frames past frame 0, then stops it. */
+async function recordStartedGame(page: Page) {
+    await expect.poll(() => gameDriver.gameManager.state.recordingName, { timeout: 5000 }).not.toBe('');
+    const name = gameDriver.gameManager.state.recordingName;
+    await page.waitForTimeout(2500);
+    expect((await page.request.post(`${gameDriver.baseURL}/stop-recording`, { data: {} })).ok()).toBe(true);
+    return name;
+}
+
 test('a recorded game opens from the lobby in the recording player, with no game running', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
-    await page.request.post(`${gameDriver.baseURL}/start-recording`);
-    await page.waitForTimeout(2500); // a couple of frames past frame 0
-    await page.request.post(`${gameDriver.baseURL}/stop-recording`);
+    await recordStartedGame(page);
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
 
     await page.goto(`${gameDriver.baseURL}/`);
@@ -27,11 +34,7 @@ test('a recorded game opens from the lobby in the recording player, with no game
 
 test('a recording file dropped on the lobby plays in the recording player', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
-    const { name } = (await (await page.request.post(`${gameDriver.baseURL}/start-recording`)).json()) as {
-        name: string;
-    };
-    await page.waitForTimeout(2500); // a couple of frames past frame 0
-    await page.request.post(`${gameDriver.baseURL}/stop-recording`);
+    const name = await recordStartedGame(page);
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
     const content = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).text();
 
@@ -93,11 +96,7 @@ test('a saved game dropped on the lobby while a game is running is refused', asy
 test('the GM screen loads a dropped saved game and plays a dropped recording', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
     const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
-    const { name } = (await (await page.request.post(`${gameDriver.baseURL}/start-recording`)).json()) as {
-        name: string;
-    };
-    await page.waitForTimeout(2500);
-    await page.request.post(`${gameDriver.baseURL}/stop-recording`);
+    const name = await recordStartedGame(page);
     const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).text();
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
 
@@ -120,11 +119,7 @@ test('the GM screen loads a dropped saved game and plays a dropped recording', a
 test('the lobby Load button takes a saved game or a recording, like a drop', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
     const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
-    const { name } = (await (await page.request.post(`${gameDriver.baseURL}/start-recording`)).json()) as {
-        name: string;
-    };
-    await page.waitForTimeout(2500);
-    await page.request.post(`${gameDriver.baseURL}/stop-recording`);
+    const name = await recordStartedGame(page);
     const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).text();
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
 
