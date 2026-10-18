@@ -376,6 +376,19 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @gameField('string')
     public targetId: string | null = null;
 
+    /**
+     * Set once a scan beam has jammed this missile (M4.27 ruling): it dropped its target and its
+     * affiliation for good, keeps its `faction` and `shipId`, and locks onto any solid object that
+     * comes within `jamLockRange`. Never cleared.
+     */
+    @gameField('boolean')
+    public jammed = false;
+
+    /** Radius (m) within which a jammed missile locks onto the nearest solid object. */
+    @tweakable('number')
+    @gameField('float32')
+    public jamLockRange = 1_000;
+
     @tweakable({ type: 'string enum', enum: ammoTypes })
     @gameField('string')
     public model: AmmoType = 'HiExpShell';

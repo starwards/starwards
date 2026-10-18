@@ -488,8 +488,50 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    /**
+     * Jams a missile (M4.27 ruling): it permanently loses its target and its affiliation, keeping
+     * its faction and owner ship, and flies on until a solid object enters its `jamLockRange`.
+     */
+    public jamMissile(missile: Projectile) {
+        missile.jammed = true;
+        missile.targetId = null;
+    }
+
+    /**
+     * A jammed missile with no live target locks onto the nearest solid object within its
+     * `jamLockRange` — friend or foe, anything but its own launcher, which it can never hit.
+     */
+    private lockJammedMissile(missile: Projectile) {
+        if (missile.targetId && this.state.get(missile.targetId)?.destroyed === false) {
+            return;
+        }
+        missile.targetId = null;
+        let nearest: SpaceObject | null = null;
+        let nearestDistance = Infinity;
+        const queryArea = new Circle(XY.clone(missile.position), missile.jamLockRange);
+        for (const object of this.spatialIndex.selectPotentials(queryArea)) {
+            if (
+                (Spaceship.isInstance(object) || Asteroid.isInstance(object) || Derelict.isInstance(object)) &&
+                !object.destroyed &&
+                object.id !== missile.shipId
+            ) {
+                const distance = XY.distance(object.position, missile.position) - object.radius;
+                if (distance <= missile.jamLockRange && distance < nearestDistance) {
+                    nearest = object;
+                    nearestDistance = distance;
+                }
+            }
+        }
+        if (nearest) {
+            missile.targetId = nearest.id;
+        }
+    }
+
     private calcHomingProjectiles(deltaSeconds: number) {
         for (const projectile of this.state.getAll('Projectile')) {
+            if (projectile.jammed && !projectile.freeze && projectile.armed) {
+                this.lockJammedMissile(projectile);
+            }
             if (!projectile.freeze && projectile.armed && projectile.design.homing && projectile.targetId) {
                 const [target] = this.getObjectPtr(projectile.targetId);
                 if (target) {

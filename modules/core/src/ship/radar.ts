@@ -49,6 +49,10 @@ export type RadarDesign = TurretDesign & {
      * can be promoted to FULL — the omni alone only ever establishes detection and BASIC.
      */
     isScanBeam?: boolean;
+    /** heat per second a scan beam gains while jamming (M4.27 ruling: short bursts). */
+    jamHeatPerSecond?: number;
+    /** seconds of continuous jam dwell after which a FULL-scanned missile is jammed. */
+    jamDwellSeconds?: number;
 };
 
 export class RadarDesignState extends TurretDesignState implements RadarDesign {
@@ -61,6 +65,8 @@ export class RadarDesignState extends TurretDesignState implements RadarDesign {
     @gameField('float32') rangeEaseFactor = 0;
     @gameField('float32') malfunctionRange = 0;
     @gameField('boolean') isScanBeam = false;
+    @tweakable('number') @gameField('float32') jamHeatPerSecond = 20;
+    @tweakable('number') @gameField('float32') jamDwellSeconds = 1;
 
     /**
      * sweep area the radar can spread over its arc, derived live from `range` and `defaultArc`
@@ -246,6 +252,15 @@ export class Radar extends Turret {
     set arc(value: number) {
         this.arcSetting = value;
     }
+
+    /**
+     * Held by the Signals officer's momentary jam key (M4.27 ruling), like the chain-gun trigger.
+     * Only a scan beam jams, and only crew set this: automation never does.
+     */
+    @tweakable('boolean')
+    @commandable()
+    @gameField('boolean')
+    jamming = false;
 
     /**
      * live blend weight between the design's malfunction floor area and its full area, driven by

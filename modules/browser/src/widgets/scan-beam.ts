@@ -1,6 +1,6 @@
-import { Radar, ShipDriver, radarRangeFromArea } from '@starwards/core';
+import { MAX_SYSTEM_HEAT, Radar, ShipDriver, radarRangeFromArea } from '@starwards/core';
 import { addBareBarBlade, addTextBlade, createWidgetPane } from '../panel';
-import { propertyStub, readNumberProp } from '../property-wrappers';
+import { propertyStub, readNumberProp, readProp } from '../property-wrappers';
 
 import { EmitterLoop } from '../loop';
 import { WidgetContainer } from '../container';
@@ -36,6 +36,20 @@ export function drawScanBeam(container: WidgetContainer, shipDriver: ShipDriver,
     };
     addTextBlade(pane, range, { label: 'Range', format: (v: number) => `${(v / 1000).toFixed(0)} KM` }, cleanup.add);
     addBareBarBlade(pane, range, cleanup.add);
+
+    addTextBlade(
+        pane,
+        readProp<boolean>(shipDriver, `${beamPointer}/jamming`),
+        { label: 'Jam', format: (v: boolean) => (v ? 'JAMMING' : 'OFF') },
+        cleanup.add,
+    );
+    const heat = {
+        ...readNumberProp(shipDriver, `${beamPointer}/heat`),
+        range: [0, MAX_SYSTEM_HEAT] as [number, number],
+    };
+    addTextBlade(pane, heat, { label: 'Heat', format: (v: number) => `${Math.round(v)}` }, cleanup.add);
+    addBareBarBlade(pane, heat, cleanup.add);
+
     const loop = new EmitterLoop(200);
     cleanup.add(() => loop.stop());
     loop.onLoop(() => range.setValue(beam.range));
