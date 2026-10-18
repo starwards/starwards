@@ -12,7 +12,8 @@ import { z } from 'zod';
  * closes), `closeOrder` and `engageOrder` (captain: the order to close to missile range of the
  * nearest enemy, and to engage it), `dockOrder` (captain: the nearest allied station to dock at, its
  * distance, world bearing and radius), `patrolOrder` (captain: the nearest nebula to patrol behind, and
- * the nearest enemy it hides the ship from).
+ * the nearest enemy it hides the ship from), `threatCloseOrder` and `threatEngageOrder` (captain: close to
+ * and engage the enemy nearest any allied station, the raider threatening it).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -23,6 +24,8 @@ export const calloutFills = [
     'engageOrder',
     'dockOrder',
     'patrolOrder',
+    'threatCloseOrder',
+    'threatEngageOrder',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 

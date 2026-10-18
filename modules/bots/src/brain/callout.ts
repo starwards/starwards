@@ -1,5 +1,5 @@
 import { BrainSpec, CalloutFill } from './spec';
-import { Radar, offNose } from './verbal';
+import { Contact, Radar, offNose } from './verbal';
 import { bearingWords, closeRange, launchRange, nearestEnemy, offNoseWords } from './engagement';
 
 import { ChoiceQuestion } from './request';
@@ -146,17 +146,7 @@ const calloutFills: Record<
     },
     /** Captain: dock at the nearest allied station (a ship-sized ally is no dock), `distance` away on world `bearing`. */
     dockOrder: ({ radar }) => {
-        const r = radar as Radar | undefined;
-        const own = r?.ownShip?.faction;
-        const station = (r?.contacts ?? [])
-            .filter(
-                (c) =>
-                    c.type === 'Spaceship' &&
-                    own !== undefined &&
-                    c.faction === own &&
-                    (c.radius ?? 0) >= DOCK_HOST_RADIUS,
-            )
-            .sort((a, b) => a.distance - b.distance)[0];
+        const station = alliedStations(radar as Radar | undefined).sort((a, b) => a.distance - b.distance)[0];
         return (
             station && {
                 name: station.name,
@@ -193,7 +183,61 @@ const calloutFills: Record<
         const enemy = nearestEnemy(radar as Radar | undefined);
         return enemy && { name: enemy.name };
     },
+    /**
+     * Captain: close to the enemy nearest any allied station (the raider threatening it), `distance`
+     * from us on world `bearing`, at the range {@link closeRange} gives for it.
+     */
+    threatCloseOrder: ({ radar }, previous, seconds) => {
+        const r = radar as Radar | undefined;
+        const threat = stationThreat(r);
+        return (
+            threat && {
+                name: threat.enemy.name,
+                station: threat.station.name,
+                range: (
+                    closeRange(
+                        threat.enemy.distance,
+                        launchRange(threat.enemy, r, previous?.radar as Radar | undefined, seconds),
+                    ) / 1000
+                ).toFixed(0),
+                distance: (threat.enemy.distance / 1000).toFixed(1),
+                bearing: bearingWords(threat.enemy.bearing),
+            }
+        );
+    },
+    /** Captain: engage the enemy nearest any allied station. */
+    threatEngageOrder: ({ radar }) => {
+        const threat = stationThreat(radar as Radar | undefined);
+        return threat && { name: threat.enemy.name };
+    },
 };
+
+/** Allied stations on the radar: own-faction ships big enough to dock at. */
+function alliedStations(r: Radar | undefined) {
+    const own = r?.ownShip?.faction;
+    return (r?.contacts ?? []).filter(
+        (c) => c.type === 'Spaceship' && own !== undefined && c.faction === own && (c.radius ?? 0) >= DOCK_HOST_RADIUS,
+    );
+}
+
+/** The identified enemy ship nearest any allied station on the radar, and that station. */
+export function stationThreat(r: Radar | undefined) {
+    const own = r?.ownShip?.faction;
+    const stations = alliedStations(r).filter((s) => s.position);
+    let best: { enemy: Contact; station: Contact; gap: number } | undefined;
+    for (const enemy of r?.contacts ?? []) {
+        if (enemy.type !== 'Spaceship' || enemy.faction === undefined || enemy.faction === own || !enemy.position) {
+            continue;
+        }
+        for (const station of stations) {
+            const gap = Math.hypot(enemy.position.x - station.position!.x, enemy.position.y - station.position!.y);
+            if (!best || gap < best.gap) {
+                best = { enemy, station, gap };
+            }
+        }
+    }
+    return best;
+}
 
 /** A contact this wide or wider is a station a ship docks at, not a ship. */
 const DOCK_HOST_RADIUS = 200;
