@@ -90,3 +90,21 @@ export async function playJob(
         prefixMatches: outcome.prefix === recorded.prefix,
     };
 }
+
+/** One markdown row per branch, as `branch corpus` writes `corpus.md`. */
+export function corpusTable(rows: readonly BranchRow[], header: string) {
+    const f = (n: number | null | undefined, d = 3) => (n === null || n === undefined ? '–' : n.toFixed(d));
+    return [
+        `# Branch corpus`,
+        '',
+        header,
+        '',
+        '| seed | level | t | reasons | enemy (m) | armor | energy | orders in force | taken | alternative | value recorded → branch | Δ value | Δ kills | prefix |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        ...rows.map(
+            (r) =>
+                `| ${r.seed} | ${r.level} | ${r.t.toFixed(1)} | ${r.reasons.join('; ')} | ${r.state.nearestEnemy?.distance ?? '–'} | ${f(r.state.armor, 2)} | ${f(r.state.energy, 2)} | ${r.state.orders} | ${r.taken} | ${r.alternative} | ${f(r.baseline.value)} → ${f(r.outcome.value)} | ${f(r.delta.value)} | ${r.delta.kills} | ${r.prefixMatches ? 'ok' : 'DIVERGED'} |`,
+        ),
+        '',
+    ].join('\n');
+}

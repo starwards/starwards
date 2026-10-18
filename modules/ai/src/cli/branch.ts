@@ -11,7 +11,7 @@
  * The scenario and seed of a recording come from its name (`<scenario>_seed<N>.sgr`). Seats must be
  * deterministic (reference, or Jev answered from the answer cache) for a replay to match its recording.
  */
-import { BranchRow, CorpusRun, planCorpus, playJob } from '../branching/corpus';
+import { BranchRow, CorpusRun, corpusTable, planCorpus, playJob } from '../branching/corpus';
 import { DecisionLevel, buttonLevel, setTacticalWindow, strategicLevel, tacticalLevel } from '../branching/levels';
 import { RunLog, readRunLog } from '../branching/run-log';
 import { fingerprint, runBranch } from '../branching/fork';
@@ -339,23 +339,6 @@ async function corpus() {
         );
         process.exitCode = 1;
     }
-}
-
-function corpusTable(rows: readonly BranchRow[], header: string) {
-    const f = (n: number | null | undefined, d = 3) => (n === null || n === undefined ? '–' : n.toFixed(d));
-    return [
-        `# Branch corpus`,
-        '',
-        header,
-        '',
-        '| seed | level | t | reasons | enemy (m) | armor | energy | orders in force | taken | alternative | value recorded → branch | Δ value | Δ kills | prefix |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
-        ...rows.map(
-            (r) =>
-                `| ${r.seed} | ${r.level} | ${r.t.toFixed(1)} | ${r.reasons.join('; ')} | ${r.state.nearestEnemy?.distance ?? '–'} | ${f(r.state.armor, 2)} | ${f(r.state.energy, 2)} | ${r.state.orders} | ${r.taken} | ${r.alternative} | ${f(r.baseline.value)} → ${f(r.outcome.value)} | ${f(r.delta.value)} | ${r.delta.kills} | ${r.prefixMatches ? 'ok' : 'DIVERGED'} |`,
-        ),
-        '',
-    ].join('\n');
 }
 
 function mineCommand() {
