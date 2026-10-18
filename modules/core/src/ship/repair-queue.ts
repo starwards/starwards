@@ -89,6 +89,40 @@ export class RepairProtocolSlot extends Schema {
      * nothing to show.
      */
     @gameField('string') refusalReason = '';
+
+    /**
+     * When this slot joined the queue at its current pending level (issue #2434): a ship-wide
+     * increasing number, re-stamped by `RepairManager` on every player priority change that leaves
+     * the slot pending, and 0 while OFF. Breaks ties between same-priority slots — first queued runs
+     * first — see `orderRepairQueue`.
+     */
+    @gameField('uint32') queuedSeq = 0;
+}
+
+/** RUNNING or CANCELLING: the one slot that holds the repair crew right now. */
+export function isRepairPriorityActive(priority: RepairPriority): boolean {
+    return priority === RepairPriority.RUNNING || priority === RepairPriority.CANCELLING;
+}
+
+/** LOW, MEDIUM or HIGH: waiting for its turn. */
+export function isRepairPriorityPending(priority: RepairPriority): boolean {
+    return priority === RepairPriority.LOW || priority === RepairPriority.MEDIUM || priority === RepairPriority.HIGH;
+}
+
+/**
+ * The repair queue's one ordering (issue #2434), shared by `RepairManager` (which promotes the
+ * first pending entry) and every display of the queue, so what the crew sees is what will run.
+ * Returns every non-OFF slot: the active (RUNNING/CANCELLING) slot first, then pending slots by
+ * priority descending, then `queuedSeq` ascending (first queued runs first). Remaining ties keep
+ * input order (the sort is stable; slots are in catalog order).
+ */
+export function orderRepairQueue<T extends Pick<RepairProtocolSlot, 'priority' | 'queuedSeq'>>(
+    slots: Iterable<T>,
+): T[] {
+    const rank = (slot: T) => (isRepairPriorityActive(slot.priority) ? Number.MAX_SAFE_INTEGER : slot.priority);
+    return [...slots]
+        .filter((slot) => slot.priority !== RepairPriority.OFF)
+        .sort((a, b) => rank(b) - rank(a) || a.queuedSeq - b.queuedSeq);
 }
 
 export type CycleRepairPriorityArg = { protocolId: string; direction: 'up' | 'down' };

@@ -75,6 +75,9 @@ The Engineer screen provides detailed system management, power distribution, and
     - `alt+<n>`: Raise priority OFF->LOW->MEDIUM->HIGH, or start wind-down if the protocol is RUNNING
     - `alt+shift+<n>`: Lower priority
     - `ctrl+alt+<n>`: Toggle mode
+- **Up next** (top of the widget, issue #2434): numbered lines in run order — RUNNING/CANCELLING first, then pending protocols by priority, then first queued. Same `orderRepairQueue` function the server promotes from, so the list is exactly what will run next.
+- **Priority on the folder title**: a non-OFF protocol's folder title reads `<name> · <PRIORITY>`, so it shows while the folder is collapsed.
+- **Reordering within a level**: every priority change re-queues the protocol at the back of its new level. To send one behind its peers, lower it to OFF and raise it again (`alt+shift+<n>` then `alt+<n>` the same number of times). No dedicated reorder hotkey.
 
 ## User Workflows
 

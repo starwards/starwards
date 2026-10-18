@@ -1,4 +1,12 @@
-import { RepairPriority, RepairProtocolStats, ShipState, hasProtocolEquipment, repairProtocols } from '@starwards/core';
+import {
+    RepairPriority,
+    RepairProtocolSlot,
+    RepairProtocolStats,
+    ShipState,
+    hasProtocolEquipment,
+    orderRepairQueue,
+    repairProtocols,
+} from '@starwards/core';
 
 /**
  * Whether a catalog protocol's row should render at all in the repair-queue widget. Equipment fit
@@ -107,4 +115,45 @@ export function wantsRepairSlotOpen(priority: RepairPriority | undefined, refusa
  */
 export function repairSlotExpansion(wasOpen: boolean | undefined, open: boolean): boolean | undefined {
     return wasOpen === open ? undefined : open;
+}
+
+export function formatRepairPriority(priority: RepairPriority): string {
+    return RepairPriority[priority] ?? String(priority);
+}
+
+/** A slot's folder title (issue #2434): the priority rides in the title, so a collapsed folder still shows it. */
+export function repairSlotTitle(name: string, priority: RepairPriority | undefined): string {
+    return priority === undefined || priority === RepairPriority.OFF
+        ? name
+        : `${name} · ${formatRepairPriority(priority)}`;
+}
+
+type RepairUpNextEntry = { position: number; protocolId: string; priority: RepairPriority };
+
+/**
+ * The "up next" list (issue #2434): every non-OFF slot in the exact order the server runs them —
+ * it is `orderRepairQueue`, the function `RepairManager` promotes from — numbered from 1.
+ */
+export function getRepairUpNext(
+    slots: Iterable<Pick<RepairProtocolSlot, 'protocolId' | 'priority' | 'queuedSeq'>>,
+): RepairUpNextEntry[] {
+    return orderRepairQueue(slots).map((slot, index) => ({
+        position: index + 1,
+        protocolId: slot.protocolId,
+        priority: slot.priority,
+    }));
+}
+
+/** One up-next line: `<name> · <PRIORITY>`; the position is the blade's label. */
+export function formatRepairUpNextEntry(
+    entry: RepairUpNextEntry | undefined,
+    catalog: Record<string, RepairProtocolStats> = repairProtocols,
+): string {
+    if (!entry) {
+        return '';
+    }
+    const name = Object.prototype.hasOwnProperty.call(catalog, entry.protocolId)
+        ? catalog[entry.protocolId].name
+        : entry.protocolId;
+    return `${name} · ${formatRepairPriority(entry.priority)}`;
 }
