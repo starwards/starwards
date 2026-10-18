@@ -29,7 +29,7 @@ Guide: `docs/integration/ai-crew.md`.
 
 ## Procedure
 
-1. **Preflight.** `npm run build:core` if core changed. Jev seats need `TYPESAFE_API_KEY` in
+1. **Preflight.** `npm run build:core` if core changed, then `npm run build:bots` if core or `modules/bots` changed. Jev seats need `TYPESAFE_API_KEY` in
    `modules/ai/.env`. Always include `crews/reference.json` (must kill) and `crews/idle.json` (must
    not): if either control fails, the harness is broken, not the brain.
 2. **Baseline.** Train the current brain version on seeds 1–8; keep the report.

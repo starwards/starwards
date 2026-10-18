@@ -13,7 +13,7 @@ related_skills:
 
 ## Overview
 
-Starwards uses npm workspaces with 4 interdependent modules. Understanding build order, dependencies, and workflow prevents wasted time.
+Starwards uses npm workspaces with interdependent modules. Understanding build order, dependencies, and workflow prevents wasted time.
 
 **Core principle:** Core builds first. Others depend on it.
 
@@ -63,10 +63,11 @@ core (no deps)
 ```bash
 # Build all modules (correct order)
 npm run build
-# Runs: core → (server, browser, node-red in parallel)
+# Runs: core → bots → (server, browser, node-red, mcp in parallel)
 
 # Build specific module
 npm run build:core
+npm run build:bots
 npm run build:browser
 npm run build:server
 npm run build:node-red
@@ -275,16 +276,18 @@ npm run test:e2e
 ```bash
 npm run build
 # 1. Build core first (required)
-# 2. Build server, browser, node-red in parallel
+# 2. Build bots (depends on core)
+# 3. Build server, browser, node-red, mcp in parallel
 ```
 
 **Manual (module by module):**
 ```bash
 # CORRECT order
 npm run build:core       # 1st
-npm run build:server     # 2nd (can run parallel with browser)
-npm run build:browser    # 2nd (can run parallel with server)
-npm run build:node-red   # 2nd (can run parallel with others)
+npm run build:bots       # 2nd (server, mcp and ai import it)
+npm run build:server     # 3rd (can run parallel with browser)
+npm run build:browser    # 3rd (can run parallel with server)
+npm run build:node-red   # 3rd (can run parallel with others)
 
 # WRONG order
 npm run build:browser  # FAILS - core not built yet
