@@ -1,6 +1,6 @@
 # Rolling sweep lane: a filler cycle (role=filler) whenever the previous one ended, every 10 min at most.
 # The two lanes hold 2 of the 3 slots around the clock and leave one for ad-hoc and nightly Jobs; with
-# the dispatcher component they are suspended and the dispatcher fills slots instead.
+# the dispatcher component they are suspended and the dispatcher creates fillers from their jobTemplate.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -39,12 +39,13 @@ spec:
                               - { name: JOB, value: rolling }
                               - { name: LANE, value: sweep }
                               # one rung per cycle in turn; branch: level set after each full turn
-                              - { name: RUNGS, value: 'T3-directed,T3-incoming,T2-dock,W-waves' }
+                              - { name: RUNGS, value: 'T1,T2,T2-constrained,T3-directed,T3-incoming,T2-dock,W-waves' }
                               - { name: LEVEL_SETS, value: 'strategic,tactical|button:helms:afterBurner' }
                               - { name: TIMEOUTS, value: 'W-waves=1800' }
-                              # the branch lane records and branches the first crew; the sweep plays all three
-                              - { name: CREWS, value: 'crews/captain-reference.json,crews/captain-orders-reference.json,crews/captain-doctrine-reference.json' }
-                              - { name: SEEDS, value: '6' }
+                              # held-out regression: the curriculum's reference crew and the reference captain, paired by seed
+                              - { name: CREWS, value: 'crews/reference.json,crews/captain-reference.json' }
+                              - { name: SEEDS, value: '120' } # ~240 runs: 15-45 min by rung
+                              - { name: SEEDS_BY_RUNG, value: 'W-waves=24' }
                               - { name: BUDGET, value: '0' } # unused by the sweep
                               - { name: WORKERS, value: '4' }
                               - name: JOB_NAME

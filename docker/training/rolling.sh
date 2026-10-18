@@ -8,6 +8,7 @@
 #   LEVEL_SETS   branch: '|'-separated level sets, the next set after each full turn of RUNGS;
 #                button sets read button:<station>:<control>
 #   SEEDS        seeds per cycle; BUDGET branches per cycle (branch); CREWS crews (sweep; the first is the reference)
+#   SEEDS_BY_RUNG  per-rung seeds per cycle, e.g. W-waves=24 (default SEEDS)
 #   TIMEOUTS     per-rung run timeout, e.g. W-waves=1800 (default: run-job's)
 #
 # State lives under ARCHIVE/mining (outside the day folders, so retention keeps it):
@@ -38,11 +39,12 @@ count() { printf '%s' "$1" | tr "$2" '\n' | grep -c .; }
 
 nrungs=$(count "$RUNGS" ,)
 rung=$(pick "$RUNGS" , $((cycle % nrungs)))
-seeds=${SEEDS:-4}
+seeds=$(printf '%s' "${SEEDS_BY_RUNG:-}" | tr ',' '\n' | sed -n "s/^$rung=//p")
+seeds=${seeds:-${SEEDS:-4}}
 # lanes draw from disjoint seed blocks far above the curriculum's 1-16: held out from every baseline
-case "$LANE" in branch) base=100000 ;; sweep) base=500000 ;; *) base=900000 ;; esac
-first=$((base + cycle * 100))
-[ "$seeds" -le 100 ] || { echo "SEEDS must be <= 100"; exit 2; }
+case "$LANE" in branch) base=1000000 ;; sweep) base=5000000 ;; *) base=9000000 ;; esac
+first=$((base + cycle * 1000))
+[ "$seeds" -le 1000 ] || { echo "SEEDS must be <= 1000"; exit 2; }
 day=$(date -u +%F)
 timeout=$(printf '%s' "${TIMEOUTS:-}" | tr ',' '\n' | sed -n "s/^$rung=//p")
 [ -n "$timeout" ] && export TIMEOUT=$timeout
@@ -99,7 +101,7 @@ until mkdir "$MINING/$rung/.lock" 2>/dev/null; do
     [ "$tries" -lt 60 ] || { rmdir "$MINING/$rung/.lock" 2>/dev/null || true; tries=0; }
     sleep 2
 done
-python3 /app/mining.py "$MINING/$rung" "$COMMIT" "$rung" || echo "mining summary failed"
+REFERENCE_CREW=$(node -p "require('/app/modules/ai/$(printf '%s' "$CREWS" | cut -d, -f1)').name") python3 /app/mining.py "$MINING/$rung" "$COMMIT" "$rung" || echo "mining summary failed"
 rmdir "$MINING/$rung/.lock"
 printf '{"cycle":%s,"lane":"%s","status":%s,"finished":"%s"}\n' "$cycle" "$LANE" "$status" "$(date -u +%FT%TZ)" >>"$STATE/results.jsonl"
 exit "$status"

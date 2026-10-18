@@ -7,10 +7,11 @@
 // - Due: a non-suspended CronJob (other than ignored ones) fires within HORIZON_MIN minutes: fillers capped
 //   at SLOTS - 1, so the CronJob finds a slot.
 // - Otherwise fillers fill up to SLOTS.
-// Fillers are Jobs made from the suspended CronJob TEMPLATE's jobTemplate, labelled role=filler and
-// starwards/lane=<lane>; lanes are picked by LANE_WEIGHTS against the fillers already running.
+// Fillers are Jobs made from the jobTemplate of the lane's CronJob rolling-<lane> (suspended while the
+// dispatcher runs), labelled role=filler and starwards/lane=<lane>; lanes are picked by LANE_WEIGHTS
+// against the fillers already running.
 //
-// Env: NAMESPACE, SLOTS (3), HORIZON_MIN (60), TEMPLATE (filler-template), LANE_WEIGHTS (branch=2,sweep=1),
+// Env: NAMESPACE, SLOTS (3), HORIZON_MIN (60), LANE_WEIGHTS (branch=2,sweep=1),
 // IGNORE (comma-separated name prefixes, default filler-dispatcher,archive-retention), DRY_RUN=1,
 // KUBE_API (outside the cluster, e.g. http://127.0.0.1:8001 from `kubectl proxy`).
 import fs from 'node:fs';
@@ -19,7 +20,6 @@ const env = (k, d) => process.env[k] ?? d;
 const NS = env('NAMESPACE', 'starwards-training');
 const SLOTS = Number(env('SLOTS', '3'));
 const HORIZON = Number(env('HORIZON_MIN', '60'));
-const TEMPLATE = env('TEMPLATE', 'filler-template');
 const IGNORE = env('IGNORE', 'filler-dispatcher,archive-retention').split(',').filter(Boolean);
 const WEIGHTS = Object.fromEntries(
     env('LANE_WEIGHTS', 'branch=2,sweep=1')
@@ -84,7 +84,8 @@ const live = jobs.items.filter((j) => !finished(j) && !j.spec.suspend);
 const fillers = live.filter((j) => j.metadata.labels?.role === 'filler');
 const demand = live.filter((j) => j.metadata.labels?.role !== 'filler' && !ignored(j.metadata.name));
 const due = crons.items
-    .filter((c) => !c.spec.suspend && !ignored(c.metadata.name) && c.metadata.name !== TEMPLATE)
+    // filler lanes are fillers themselves, not work to make room for
+    .filter((c) => !c.spec.suspend && !ignored(c.metadata.name) && c.spec.jobTemplate.metadata?.labels?.role !== 'filler')
     .map((c) => ({ name: c.metadata.name, in: dueWithin(c.spec.schedule, c.spec.timeZone, HORIZON) }))
     .filter((c) => c.in !== null);
 const cap = demand.length ? fillers.length : due.length ? SLOTS - 1 : SLOTS;
@@ -101,7 +102,6 @@ console.log(
 );
 if (launch === 0) process.exit(0);
 
-const template = await api(`/apis/batch/v1/namespaces/${NS}/cronjobs/${TEMPLATE}`);
 const running = {};
 for (const j of fillers) {
     const lane = j.metadata.labels?.['starwards/lane'];
@@ -111,13 +111,11 @@ const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
 for (let i = 0; i < launch; i++) {
     const lane = Object.keys(WEIGHTS).sort((a, b) => (running[a] ?? 0) / WEIGHTS[a] - (running[b] ?? 0) / WEIGHTS[b])[0];
     running[lane] = (running[lane] ?? 0) + 1;
+    const template = await api(`/apis/batch/v1/namespaces/${NS}/cronjobs/rolling-${lane}`);
     const spec = structuredClone(template.spec.jobTemplate.spec);
     const labels = { ...(template.spec.jobTemplate.metadata?.labels ?? {}), role: 'filler', 'starwards/lane': lane };
     spec.template.metadata = { ...(spec.template.metadata ?? {}) };
     spec.template.metadata.labels = { ...(spec.template.metadata.labels ?? {}), role: 'filler', 'starwards/lane': lane };
-    for (const c of spec.template.spec.containers) {
-        c.env = [...(c.env ?? []).filter((e) => e.name !== 'LANE'), { name: 'LANE', value: lane }];
-    }
     const job = { apiVersion: 'batch/v1', kind: 'Job', metadata: { name: `filler-${lane}-${stamp}-${i}`, labels }, spec };
     if (env('DRY_RUN', '') === '1') {
         console.log(`would create ${job.metadata.name}`);

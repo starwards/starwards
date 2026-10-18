@@ -1,6 +1,6 @@
 # Rolling branch lane: a filler cycle (role=filler) whenever the previous one ended, every 10 min at most.
 # The two lanes hold 2 of the 3 slots around the clock and leave one for ad-hoc and nightly Jobs; with
-# the dispatcher component they are suspended and the dispatcher fills slots instead.
+# the dispatcher component they are suspended and the dispatcher creates fillers from their jobTemplate.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -44,8 +44,9 @@ spec:
                               - { name: TIMEOUTS, value: 'W-waves=1800' }
                               # the branch lane records and branches the first crew; the sweep plays all three
                               - { name: CREWS, value: 'crews/captain-reference.json,crews/captain-orders-reference.json,crews/captain-doctrine-reference.json' }
-                              - { name: SEEDS, value: '4' }
-                              - { name: BUDGET, value: '150' } # branches per cycle: sized for a <= 60 min shard
+                              - { name: SEEDS, value: '48' }
+                              - { name: SEEDS_BY_RUNG, value: 'W-waves=12' }
+                              - { name: BUDGET, value: '1200' } # branches per cycle: sized for a <= 60 min shard
                               - { name: WORKERS, value: '4' }
                               - name: JOB_NAME
                                 valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }

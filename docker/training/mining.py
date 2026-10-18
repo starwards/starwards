@@ -107,7 +107,9 @@ def sweep_section(rows):
     for r in rows:
         if r['crew'] not in crews:
             crews.append(r['crew'])
-    ref = crews[0]
+    ref = os.environ.get('REFERENCE_CREW') or crews[0]
+    if ref not in crews:
+        ref = crews[0]
     value = lambda r: (r.get('score') or {}).get('value')
     by = {}
     for r in rows:

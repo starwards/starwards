@@ -8,7 +8,6 @@ kind: Kustomization
 namespace: starwards-training
 resources:
     - cronjob-suite.yaml
-    - filler-template.yaml
     - rolling-branch.yaml
     - rolling-sweep.yaml
 components:
