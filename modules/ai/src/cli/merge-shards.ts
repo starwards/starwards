@@ -1,6 +1,7 @@
 /**
  * Merges the shard outputs of a sharded `train` or `branch corpus` run (one shard per pod of a
  * Kubernetes Indexed Job, see deploy/k3s/training) into one run folder, as one host run would write it.
+ * Shards stamped with different `runtime.json` (node version, commit) are refused.
  *
  *   merge-shards --shards <dir> --scenario <rung> --runs-out <dir> [--corpus-out <dir>]
  *
@@ -39,6 +40,16 @@ const shards = fs
     .map((d) => path.join(shardsDir, d));
 if (!shards.length) throw new Error(`no shard-<i> folders in ${shardsDir}`);
 
+// a recording replays, and its branches fingerprint, only on the engine and code that made it
+const runtimes = shards.map((shard) => {
+    const file = path.join(shard, 'runtime.json');
+    return fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim() : 'unstamped';
+});
+if (new Set(runtimes).size > 1) {
+    const list = shards.map((s, i) => `${s}: ${runtimes[i]}`).join('\n');
+    throw new Error(`shards ran on different runtimes, not merged:\n${list}`);
+}
+
 const results: CrewRunResult[] = [];
 const headers: string[] = [];
 for (const shard of shards) {
@@ -69,6 +80,7 @@ results.sort((a, b) => a.seed - b.seed || a.crew.localeCompare(b.crew));
 const seeds = [...new Set(results.map((r) => r.seed))];
 const header = `merged ${shards.length} shard(s), ${seeds.length} seeds (${Math.min(...seeds)}–${Math.max(...seeds)})\n\n${headers.map((h) => `- ${h}`).join('\n')}`;
 fs.mkdirSync(runsOut, { recursive: true });
+fs.writeFileSync(path.join(runsOut, 'runtime.json'), `${runtimes[0]}\n`);
 fs.writeFileSync(path.join(runsOut, `${scenario}-crews.md`), crewReport(scenario, results, header, baseline));
 fs.writeFileSync(path.join(runsOut, `${scenario}-crews.json`), JSON.stringify(results, null, 2));
 process.stdout.write(`runs: ${results.length} → ${runsOut}\n`);
@@ -87,6 +99,7 @@ if (corpusOut) {
     const diverged = rows.filter((r) => !r.prefixMatches).length;
     const corpusHeader = `${scenario}, ${seeds.length} runs, ${rows.length} branches (${diverged} diverged), merged from ${shards.length} shard(s)`;
     fs.mkdirSync(corpusOut, { recursive: true });
+    fs.writeFileSync(path.join(corpusOut, 'runtime.json'), `${runtimes[0]}\n`);
     fs.writeFileSync(path.join(corpusOut, 'branches.jsonl'), rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
     fs.writeFileSync(path.join(corpusOut, 'corpus.md'), corpusTable(rows, corpusHeader));
     fs.writeFileSync(path.join(corpusOut, 'mine.md'), `${corpusHeader}\n\n${mineReport(rows, mine(rows))}`);

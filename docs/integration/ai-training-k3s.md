@@ -21,7 +21,7 @@ rebuilds that day's `manifest.jsonl`. Commands for the CLIs themselves: [ai-crew
 ## Image
 
 [`docker/training/Dockerfile`](../../docker/training/Dockerfile), context the repo root; its context filter
-is `docker/training/Dockerfile.dockerignore`. Node 24.18.0 (`.nvmrc`) on bookworm-slim, pinned by digest;
+is `docker/training/Dockerfile.dockerignore`. Node 24.22.0 on bookworm-slim, pinned by digest, the same Node as the host: last-bit Math results differ between engines, so a recording replays and its branches fingerprint only on the engine that made it;
 `core` and `bots` built to `cjs`, `server` and `ai` run from source through ts-node (transpile-only), as
 on a host. Runs as `node` (uid 1000). No key or `.env` is copied in.
 
@@ -66,6 +66,7 @@ docker run --rm -v "$PWD/archive:/training-archive" -e JOB=branch -e SCENARIO=T3
 | `train`              | `<day>/headless/<run>/`: `<crew>/<scenario>_seed<N>.sgr` + `.events.jsonl`, `<scenario>-crews.md/json` over every seed |
 | `branch`             | `<day>/branching/<run>-runs/` as above, `<day>/branching/<run>-corpus/`: `branches.jsonl`, `corpus.md`, `mine.md`      |
 | `suite`              | `<day>/suite/<crew>-<HHMMSS>/` (`suite.md/json`, per-level runs)                                                       |
+| every run folder     | `runtime.json`: Node version and code commit; a merge refuses shards whose stamps differ                               |
 | every job            | `<day>/manifest.jsonl` rebuilt by the archive's `build_manifest.py`, when it is on the volume                          |
 | Jev answers          | `jev-cache/` (the CLIs' default cache path resolves there)                                                             |
 
@@ -81,7 +82,8 @@ Measured in the image (per-process VmRSS sampled each second, `branch` jobs of `
 | T3-directed                           | 0.55–0.64 GiB  | 0.71–1.13 GiB   | 0.36 GiB                  | 3.5 GiB                 |
 | T2-dock                               | 0.65–0.96 GiB  | 1.06–1.41 GiB   | 0.48 GiB                  | 4.7 GiB                 |
 
-Plan **1.5 GiB per worker plus 0.5 GiB** per pod: 4 workers request 6.5 GiB (limit 7 GiB).
+On the host under ts-node the same jobs peak lower (train ≈ 610 MB, branch ≈ 800 MB per worker); the image
+numbers above are the ones to size pods by. Plan **1.5 GiB per worker plus 0.5 GiB** per pod: 4 workers request 6.5 GiB (limit 7 GiB).
 
 Requests and limits in the manifests are `WORKERS × per-worker + parent`. Twelve workers of a
 16-core host ran out of memory on the T2-dock corpus: size `WORKERS` by memory, not cores.

@@ -47,6 +47,12 @@ RUN_NAME=${RUN_NAME:-${JOB_NAME:-$JOB-${SCENARIO:-run}}}
 SHARD_ROOT=$ARCHIVE/_shards/$RUN_DATE/$RUN_NAME
 SHARD_DIR=$SHARD_ROOT/shard-$IDX
 
+# the engine and code a folder's runs were made on; merge-shards refuses to mix them
+stamp() {
+    mkdir -p "$1"
+    printf '{"node":"%s","commit":"%s"}\n' "$(node -v)" "${GIT_COMMIT:-unknown}" >"$1/runtime.json"
+}
+
 first_crew() { printf '%s' "${CREWS:?CREWS is required}" | cut -d, -f1; }
 crew_args() { printf '%s' "${CREWS:?CREWS is required}" | tr ',' '\n' | sed 's/^/--crew /' | tr '\n' ' '; }
 cli() {
@@ -70,6 +76,7 @@ train_shard() {
     cli cli/train.ts --scenario "${SCENARIO:?SCENARIO is required}" $(crew_args) \
         --first-seed "$SHARD_FIRST" --seeds "$SHARD_COUNT" --timeout "${TIMEOUT:-$1}" \
         --workers "$WORKERS" --out "$SHARD_DIR/runs"
+    stamp "$SHARD_DIR"
 }
 
 manifest() {
@@ -126,6 +133,7 @@ suite)
     [ -n "${LEVELS:-}" ] && set -- "$@" --levels "$LEVELS"
     [ -n "${BASELINE:-}" ] && set -- "$@" --baseline "$BASELINE"
     cli cli/suite.ts "$@" || status=$?
+    stamp "$out"
     manifest
     [ "${status:-0}" = 0 ] || echo "suite: regression against the baseline (see $out/suite.md)"
     exit "${status:-0}"

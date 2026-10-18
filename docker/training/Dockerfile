@@ -2,8 +2,8 @@
 # Build from the repo root:  docker build -f docker/training/Dockerfile -t <registry>/starwards-training:<commit> --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) .
 # Usage and the K3S jobs that run it: docs/integration/ai-training-k3s.md
 
-# node 24.18.0 (.nvmrc), bookworm-slim
-ARG NODE_IMAGE=node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
+# node 24.22.0, the host's: recordings and branch fingerprints hold only on the engine that made them
+ARG NODE_IMAGE=node:24.22.0-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
 
 FROM ${NODE_IMAGE} AS manifests
 WORKDIR /app
