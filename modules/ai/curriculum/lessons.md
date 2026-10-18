@@ -227,7 +227,7 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 ### L3 — `reference`, chain gun power backoff (2026-10-09)
 
 - **Change:** the reference engineer drops the chain gun to low power at heat 60 and back to normal
-  below 40, the NPC automation's hysteresis (`reference-policy.ts`, `powerGoal`).
+  below 40, the NPC automation's hysteresis (`reference-engineer.ts`, `powerGoal`).
 - **Level:** T1 seeds 1–16: 10/16, median 131.7 s, run value 0.249 (before: 5/16, 138.5 s, 0.228).
   Fresh seeds 17–48: 19/32, run value 0.264 (before: 10/32, 0.200). Suite report:
   `training-archive/2026-10-09/suite/reference-210935/`; `idle` 0/16 (`idle-211042/`); diagnosis runs
@@ -273,7 +273,7 @@ Not filed. Draft text:
   `idle` 0/16, `reference` before 0/16 (enemies 6/32; seeds 17–48: 1/32, 13/64).
 - **Change:** the reference engineer queues a field repair for a reactor defect (store above 30%), and
   while the damage report shows a reactor defect shuts the thrusters down below 40% of the store, back
-  on above 50% (`reference-policy.ts`, `REFERENCE_ENGINEER`, `powerGoal`).
+  on above 50% (`reference-engineer.ts`, `REFERENCE_ENGINEER`, `powerGoal`).
 - **Level result:** seeds 1–16: 2/16, median 237.3 s, enemies 9/32, run value 0.043 (before 0.006);
   seeds 17–48: 0/32, enemies 23/64. Enemies killed per seed over seeds 1–48: 18 up / 6 down, sign
   p 0.023. Suite report: `training-archive/2026-10-10/suite/reference-015256/`; `idle` 0/16
@@ -497,7 +497,7 @@ Elec missile, P(hit):
   until it expires. Inference: the projectile raycast in `SpaceManager.applyPhysics` tests against the target's
   body from the previous tick, so the missile stops at the old surface and the target has moved 10 m on before
   the collision check. The same likely explains ArmPen's erratic crossing column. A core bug, not fixed here.
-- **Not changed:** `MISSILE_LAUNCH_BAND_METERS` (bots `reference-policy.ts`, shared with the weapons KPI) keeps
+- **Not changed:** `MISSILE_LAUNCH_BAND_METERS` (bots `engagement.ts`, shared with the weapons KPI and the captain's orders) keeps
   1-20 km. The fleeing definition gives no range to set it to; the value waits on a ruling.
 - **Lesson:** against a target that runs from launch, the tube is a still- or slow-target weapon: HiExp reaches
   45 km still, 4 km crossing. A fleeing dragonfly at cruise is untouchable by any missile while the stern-chase

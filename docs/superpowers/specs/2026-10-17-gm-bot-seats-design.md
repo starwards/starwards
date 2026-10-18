@@ -6,7 +6,7 @@ Date: 2026-10-17. Status: draft for approval.
 
 AI bots become an integral part of the game product. The GM puts a bot on a bridge seat from the same **station roster** pane they use to assign web clients, with nothing else to launch. The roster becomes the GM's at-a-glance view of the whole bridge: every seat of every player ship, who (or what) is on it, and which seats nobody covers.
 
-The bots are the rule-based `reference` policy (`modules/ai/src/brain/reference-policy.ts`) — playable bots, not only a training control. Jev brains come later; the UI must already be shaped for a brain choice.
+The bots are the rule-based `reference` policy (`modules/bots/src/brain/reference-policy.ts`) — playable bots, not only a training control. Jev brains come later; the UI must already be shaped for a brain choice.
 
 ## Vocabulary
 

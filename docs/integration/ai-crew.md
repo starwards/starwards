@@ -66,9 +66,10 @@ model, decision interval, confidence floor, role, mission, per-control wording o
 skip and display parts to hide. Tuning a brain means writing its next version; the code is shared by
 every brain and every host.
 
-Policies answer a brain's questions: `jev`, `reference` (hand-written rules for helms and weapons —
-the harness's positive control: it shows a kill is reachable through the buttons) and `idle` (presses
-nothing — the negative control).
+Policies answer a brain's questions: `jev`, `reference` (hand-written rules for every seat — the
+harness's positive control: it shows a kill is reachable through the buttons; it also says the
+callouts it has a rule for, and obeys the captain's orders it hears) and `idle` (presses nothing —
+the negative control).
 
 ## Same console as a live seat
 
@@ -77,6 +78,15 @@ Brains read and press through the MCP station sandbox itself
 game, [`console/headless.ts`](../../modules/ai/src/console/headless.ts) seats a real `StationSession`
 on in-process drivers that apply the same JSON-pointer handler and typed commands the rooms do, on
 simulated time. A brain therefore sees exactly the fog of war a live MCP seat sees.
+
+A seat reads the full scope its widgets admit (`RadarView.seatContacts`,
+[`session/radar-view.ts`](../../modules/bots/src/session/radar-view.ts); reach rule
+`radarWidgetPerceivedReach` in [`core/src/client/radar-reach.ts`](../../modules/core/src/client/radar-reach.ts)):
+a fixed-camera radar (helms 5 km, tactical 10 km) as drawn, a zoomable one (long range to its 250 km
+preset, dradis without limit) as far out as its operator can zoom, and the weapons lock wherever the
+faction sees it, as the targeting panel tracks it. The browser widgets still open at their drawn
+reach. The radar's `ownShip` names the own faction, so a brain can tell an identified ally from an
+enemy.
 
 ## Verbal UI
 
@@ -158,11 +168,17 @@ keeps the seat silent and is recorded as a fallback; `reference` and `idle` seat
 callout or silence; the numbers are deterministic, and a seat can only say what its station shows:
 a display that does not show the value says nothing.
 
-| `fill`          | Speaker  | Read from                                                            | Example                                          |
-| --------------- | -------- | -------------------------------------------------------------------- | ------------------------------------------------ |
-| `lockedOffNose` | weapons  | `targeting-status` lock + its radar contact's bearing vs our heading | "need you 6° left"                               |
-| `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                         | "gun skewed 8° left"                             |
-| `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km        | "contact UFO-12 at 7.4 km, 20° left of the nose" |
+| `fill`          | Speaker  | Read from                                                                            | Example                                                   |
+| --------------- | -------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `lockedOffNose` | weapons  | `targeting-status` lock + its radar contact's bearing vs our heading                 | "need you 6° left"                                        |
+| `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                                         | "gun skewed 8° left"                                      |
+| `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km                        | "contact UFO-12 at 7.4 km, 20° left of the nose"          |
+| `enemyContact`  | signals  | nearest identified enemy ship on its radar; range change since its previous decision | "enemy raider at 42.3 km, 30° right of the nose, closing" |
+| `closeOrder`    | captain  | nearest identified enemy ship on the dradis; the launch band's far edge less 2 km    | "close to 18 km of raider, now 52.3 km at bearing 045"    |
+| `engageOrder`   | captain  | nearest identified enemy ship on the dradis                                          | "engage raider"                                           |
+
+The filled values travel with the phrase (`values` on what a listener hears), so a rule-based
+listener acts on the numbers rather than parsing words.
 
 **Pub-sub, filtered per decision.** Every crew run has one in-memory channel
 ([`crew/channel.ts`](../../modules/bots/src/crew/channel.ts)), the same in the headless crew and the
@@ -187,15 +203,18 @@ Owner's rule: a callout, and a trigger listening for it, only carries informatio
 what the listener's own station displays. From the manifest widgets and the sandbox readers
 ([`modules/bots/src/session/readers.ts`](../../modules/bots/src/session/readers.ts)):
 
-| Speaker → listener | Speaker shows, listener does not                                              | Callout kept                                                    |
-| ------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| weapons → helms    | which contact is locked; where it sits against the gun line                   | "target locked"; "need you {degrees}° {side}" (`lockedOffNose`) |
-| engineer → weapons | damage report: chain gun bearing skew, rate-of-fire damage; repair queue      | "gun skewed {degrees}° {side}" (`gunSkew`)                      |
-| engineer → helms   | damage report fields of helms systems (smart pilot offset, thruster capacity) | none: helms' own status strip already flags them damaged        |
-| helms → weapons    | helms stats: rotation/maneuvering mode, strafe, boost                         | none: weapons sees the target's own motion on its radar         |
-| signals → helms    | contacts between the helms radar's 5 km and its own 50 km                     | "contact {name} at {range} km, {bearing}" (`farContact`)        |
-| signals → weapons  | contacts between the tactical radar's 10 km and 50 km                         | none: T1 enemies spawn 2–8 km, inside tactical reach            |
-| any → engineer     | nothing the engineer needs: it shows every system's heat, power and damage    | none                                                            |
+| Speaker → listener | Speaker shows, listener does not                                                | Callout kept                                                                         |
+| ------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| weapons → helms    | which contact is locked; where it sits against the gun line                     | "target locked"; "need you {degrees}° {side}" (`lockedOffNose`)                      |
+| engineer → weapons | damage report: chain gun bearing skew, rate-of-fire damage; repair queue        | "gun skewed {degrees}° {side}" (`gunSkew`)                                           |
+| engineer → helms   | damage report fields of helms systems (smart pilot offset, thruster capacity)   | none: helms' own status strip already flags them damaged                             |
+| helms → weapons    | helms stats: rotation/maneuvering mode, strafe, boost                           | none: weapons sees the target's own motion on its radar                              |
+| signals → helms    | contacts between the helms radar's 5 km and its own 50 km                       | "contact {name} at {range} km, {bearing}" (`farContact`)                             |
+| signals → weapons  | contacts between the tactical radar's 10 km and 50 km                           | none: T1 enemies spawn 2–8 km, inside tactical reach                                 |
+| signals → captain  | how the nearest enemy's range changes                                           | "enemy {name} at {range} km, {bearing}, {trend}" (`enemyContact`)                    |
+| captain → helms    | the fleet picture: an enemy beyond the helms radar, its range and world bearing | "close to {range} km of {name}, now {distance} km at bearing {bearing}"; "hold here" |
+| captain → weapons  | which enemy to engage when several are in range                                 | "engage {name}"                                                                      |
+| any → engineer     | nothing the engineer needs: it shows every system's heat, power and damage      | none                                                                                 |
 
 Dropped as already on the listener's console: helms "on its tail", "closing", "need a lock";
 weapons "on the gun line, firing"; engineer
@@ -253,6 +272,25 @@ Recommended crew: [`crews/recommended.json`](../../modules/ai/crews/recommended.
 `jev-complement-h16-w15-e10-s3`: every callout carries what the listener cannot see. Since the radar
 reach cut it fails L0 (7/8, median 132.6 s) and L1 (10/16); see the suite baselines under
 [Curriculum](#curriculum).
+
+### Captain: orders without buttons
+
+The `captain` seat (reference brain [`brains/captain.v1.json`](../../modules/bots/src/brains/captain.v1.json))
+has no controls: it reads the dradis picture (the whole faction view) and only talks. The headless
+crew seats it on the dradis screen, whose waypoint commands are not buttons, so its every decision
+asks only its callout question; a callout question lists what it hears (`controls.callout.hears`)
+like a control. Its orders: `close_to` while the nearest enemy is outside the missile launch band
+(`MISSILE_LAUNCH_BAND_METERS`, [`brain/engagement.ts`](../../modules/bots/src/brain/engagement.ts)),
+`engage` inside it, `hold_here` with no enemy in sight.
+
+The reference crew obeys ([`brain/reference-orders.ts`](../../modules/bots/src/brain/reference-orders.ts)):
+helms takes each order once, when first heard, and keeps it until the next. With no enemy on its own
+radar it flies a `close_to` order to the point the order names (afterburner on a long run once the
+nose bears), and holds anti-drift on `hold_here` or with nothing to fly after; it parks on enemies
+only. Weapons cycles its lock off identified allies and onto the ship named in `engage`; the
+engineer powers the tubes once an attack is ordered. Jev versions that listen: helms v20
+(`captain.close_to`, `captain.hold_here`), weapons v18 (`captain.engage`), signals v9 says
+`enemy_position`.
 
 ### Tactical: one brain for helms and weapons
 
@@ -361,20 +399,23 @@ level plateaus, reusing the lessons. The ladder,
 [`curriculum/ladder.json`](../../modules/ai/curriculum/ladder.json) (schema:
 [`suite/ladder.ts`](../../modules/ai/src/suite/ladder.ts)), orders levels along complexity axes:
 `baseline`, `variance` (same difficulty, wider situations), `threat`, `internal` (the ship's own
-energy, ammo and heat), `enemies`, `mission`, `space`. Each level names its rungs and station
+energy, ammo and heat), `enemies`, `command` (who decides: a captain directing the crew from the
+fleet's picture), `mission`, `space`. Each level names its rungs and station
 benchmarks, seeds, timeout, plateau criterion (no gain in its metric beyond seed noise for N versions)
-and acceptance thresholds (kill rate, median time to kill per rung).
+and acceptance thresholds (kill rate, median time to kill per rung, and optionally the share of runs
+that must pass named `analysis/checks.ts` checks; runs report the checks they passed).
 
-| Level | Axis                          | Plays                                                                                                                 | Seeds | Accept              |
-| ----- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----- | ------------------- |
-| L0    | baseline                      | `T0` and every station benchmark                                                                                      | 1–8   | 7/8, median ≤ 120 s |
-| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                                                              | 1–16  | 75%                 |
-| L1    | threat                        | `T1-lite`                                                                                                             | 1–16  | 75%                 |
-| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                                                   | 1–8   | 50%                 |
-| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                                                           | 1–16  | 50%                 |
-| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                                                           | 1–16  | 25%                 |
-| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained` and with 3–6 missiles per stock, 300 s | 1–16  | 62.5%               |
-| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                                                               |       |                     |
+| Level | Axis                          | Plays                                                                                                                                               | Seeds | Accept                                               |
+| ----- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------------------------------------------------- |
+| L0    | baseline                      | `T0` and every station benchmark                                                                                                                    | 1–8   | 7/8, median ≤ 120 s                                  |
+| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                                                                                            | 1–16  | 75%                                                  |
+| L1    | threat                        | `T1-lite`                                                                                                                                           | 1–16  | 75%                                                  |
+| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                                                                                 | 1–8   | 50%                                                  |
+| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                                                                                         | 1–16  | 50%                                                  |
+| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                                                                                         | 1–16  | 25%                                                  |
+| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained` and with 3–6 missiles per stock, 300 s                               | 1–16  | 62.5%                                                |
+| L5b   | command                       | `T3-directed`: a dead dragonfly-MK1 40–60 km out, seen and identified only by an allied station 5–12 km from it; the GVTS starts facing away, 400 s | 1–16  | 50%, and 50% of runs pass `missile_beyond_own_radar` |
+| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                                                                                             |       |                                                      |
 
 `T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
 `T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds. On `T2`
