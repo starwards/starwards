@@ -17,7 +17,13 @@ import { z } from 'zod';
  * - `ship-command` / `space-command` — a typed command sent to the ship or space room.
  */
 export type CommandBinding =
-    | { kind: 'fixed'; pointer: string; value: ValueKind }
+    | {
+          kind: 'fixed';
+          pointer: string;
+          value: ValueKind;
+          /** Where a held control springs back to when its player lets go (a stick, a held key). */
+          rest?: number;
+      }
     | { kind: 'indexed'; collection: 'tubes' | 'chainGuns'; field: string; value: ValueKind }
     | { kind: 'system'; field: 'power' | 'coolantFactor'; value: ValueKind }
     | { kind: 'beam'; field: 'bearingCommand' | 'arc'; value: ValueKind }
@@ -38,15 +44,15 @@ const waypointId = z.object({ id: z.string().describe('waypoint id') });
 
 export const commandBindings: Record<StationCommand, CommandBinding> = {
     // --- helms ---
-    rotation: { kind: 'fixed', pointer: '/smartPilot/rotation', value: 'number' },
-    strafe: { kind: 'fixed', pointer: '/smartPilot/maneuvering/y', value: 'number' },
-    boost: { kind: 'fixed', pointer: '/smartPilot/maneuvering/x', value: 'number' },
+    rotation: { kind: 'fixed', pointer: '/smartPilot/rotation', value: 'number', rest: 0 },
+    strafe: { kind: 'fixed', pointer: '/smartPilot/maneuvering/y', value: 'number', rest: 0 },
+    boost: { kind: 'fixed', pointer: '/smartPilot/maneuvering/x', value: 'number', rest: 0 },
     resetRotationOffset: { kind: 'fixed', pointer: '/smartPilot/rotationTargetOffset', value: 'number' },
     rotationMode: { kind: 'fixed', pointer: '/rotationModeCommand', value: 'trigger' },
     maneuveringMode: { kind: 'fixed', pointer: '/maneuveringModeCommand', value: 'trigger' },
-    afterBurner: { kind: 'fixed', pointer: '/afterBurnerCommand', value: 'number' },
-    antiDrift: { kind: 'fixed', pointer: '/antiDrift', value: 'number' },
-    breaks: { kind: 'fixed', pointer: '/breaks', value: 'number' },
+    afterBurner: { kind: 'fixed', pointer: '/afterBurnerCommand', value: 'number', rest: 0 },
+    antiDrift: { kind: 'fixed', pointer: '/antiDrift', value: 'number', rest: 0 },
+    breaks: { kind: 'fixed', pointer: '/breaks', value: 'number', rest: 0 },
     warpUp: { kind: 'fixed', pointer: '/warp/levelUpCommand', value: 'trigger' },
     warpDown: { kind: 'fixed', pointer: '/warp/levelDownCommand', value: 'trigger' },
     dock: { kind: 'fixed', pointer: '/docking/toggleCommand', value: 'trigger' },

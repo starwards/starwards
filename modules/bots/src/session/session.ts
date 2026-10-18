@@ -63,6 +63,8 @@ export class StationSession {
     private readonly wait: (seconds: number, signal: AbortSignal) => Promise<void>;
     /** Aborted by {@link release}: ends every hold in progress and refuses new ones. */
     private readonly releasing = new AbortController();
+    /** Held controls this session moved off rest, by pointer, with the value each springs back to. */
+    private readonly held = new Map<string, number>();
 
     constructor(
         readonly stationName: string,
@@ -174,24 +176,25 @@ export class StationSession {
         if (!(seconds > 0) || seconds > MAX_BURST_SECONDS) {
             throw new InvalidCommandError(`seconds must be greater than 0 and at most ${MAX_BURST_SECONDS}`);
         }
-        const { signal } = this.releasing;
-        if (signal.aborted) {
-            throw new InvalidCommandError(`station "${this.stationName}" was released`);
-        }
         this.shipDriver.sendJsonCmd(pointer, true);
         try {
-            await this.wait(seconds, signal);
+            await this.wait(seconds, this.releasing.signal);
         } finally {
             this.shipDriver.sendJsonCmd(pointer, false);
         }
     }
 
     /**
-     * Lets go of every held trigger at once, without waiting for game time to pass, and refuses
-     * further holds. Call it when the seat's player leaves: the session must not be used after.
+     * Lets go of every held trigger at once, without waiting for game time to pass, springs every
+     * held control it moved (stick, afterburner, brakes) back to rest, and refuses every command
+     * after. Call it when the seat's player leaves.
      */
     release(): void {
         this.releasing.abort();
+        for (const [pointer, rest] of this.held) {
+            this.shipDriver.sendJsonCmd(pointer, rest);
+        }
+        this.held.clear();
     }
 
     /**
@@ -203,9 +206,15 @@ export class StationSession {
         args: { index?: number; system?: string; seconds?: number; id?: string; [key: string]: unknown } = {},
         value?: number | boolean | string,
     ): Promise<string> {
+        if (this.releasing.signal.aborted) {
+            throw new InvalidCommandError(`station "${this.stationName}" was released`);
+        }
         const binding = this.requireCommand(command);
         switch (binding.kind) {
             case 'fixed':
+                if (binding.rest !== undefined) {
+                    this.held.set(binding.pointer, binding.rest);
+                }
                 return this.sendValue(binding.pointer, binding.value, value);
             case 'indexed': {
                 const pointer = this.indexedPointer(binding, args.index ?? 0);

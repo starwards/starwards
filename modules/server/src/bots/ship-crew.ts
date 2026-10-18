@@ -22,6 +22,8 @@ type ShipCrewOptions = {
     logError: (message: string) => void;
     /** Wall milliseconds between clock polls. */
     pollMs?: number;
+    /** Overrides how a held button waits; tests pass one that only an abort ends. */
+    wait?: (seconds: number, signal: AbortSignal) => Promise<void>;
 };
 
 type Seat = {
@@ -54,6 +56,7 @@ function seatPlan(seat: BridgeSeat, brain: BotBrain): SeatPlan {
 export async function shipCrew(options: ShipCrewOptions) {
     const { shipId } = options;
     const ctx = await liveShipContext(options.driver, options.baseUrl, shipId);
+    if (options.wait) ctx.wait = options.wait;
     const admin = await options.driver.getAdminDriver();
     const seats = new Map<BridgeSeat, Seat>();
     const channel = crewChannel();
@@ -148,6 +151,10 @@ export async function shipCrew(options: ShipCrewOptions) {
     }
 
     function addSeat(seat: BridgeSeat, botId: string, brain: BotBrain) {
+        if (stopped) {
+            options.onStatus(seat, botId, 'failed', 'the ship crew has stopped');
+            return;
+        }
         try {
             const plan = seatPlan(seat, brain);
             seats.set(seat, {
@@ -166,24 +173,30 @@ export async function shipCrew(options: ShipCrewOptions) {
     }
 
     /** Removals still letting go of their seat's buttons; `stop` waits for them too. */
-    const removals = new Set<Promise<void>>();
+    /** Removals still letting go of their seat's buttons, by seat; `stop` waits for them too. */
+    const removals = new Map<BridgeSeat, Promise<void>>();
 
     /**
      * Lets go of every button the seat holds at once, then resolves when its decisions and presses
      * in flight are done; it never presses again. Needs no game time to pass, so it ends while paused.
+     * Removing a seat already being removed returns that removal.
      */
-    function removeSeat(seat: BridgeSeat) {
+    function removeSeat(seat: BridgeSeat): Promise<void> {
         const s = seats.get(seat);
-        if (!s) return Promise.resolve();
+        if (!s) return removals.get(seat) ?? Promise.resolve();
         seats.delete(seat);
         s.session.release();
+        const earlier = removals.get(seat);
         const removal = (async () => {
+            await earlier;
             while (s.inFlight.size) {
                 await Promise.allSettled([...s.inFlight]);
             }
         })();
-        removals.add(removal);
-        void removal.finally(() => removals.delete(removal));
+        removals.set(seat, removal);
+        void removal.finally(() => {
+            if (removals.get(seat) === removal) removals.delete(seat);
+        });
         return removal;
     }
 
@@ -209,7 +222,7 @@ export async function shipCrew(options: ShipCrewOptions) {
             stopped = true;
             await loop;
             for (const seat of [...seats.keys()]) void removeSeat(seat);
-            await Promise.all([...removals]);
+            await Promise.all([...removals.values()]);
         },
     };
 }
