@@ -616,6 +616,22 @@ Elec missile, P(hit):
 - **Reuse:** accept a seat brain on a level both with and without a captain, paired on the same seeds;
   a captain earns its seat only by beating doctrine.
 
+### Captain curriculum on the order board (2026-10-18)
+
+- **Change:** captain-curriculum merged onto the synced order board: the reference captain's
+  engage-then-close rule reads the engaged ship from the board's active `engage` order, and
+  `captainOrdersFromBoard` holds on a `close_to` whose range is beyond the current distance.
+- **Level:** `captain-reference` L5b 16/16, median 69.4 s (baseline 70.7 s, ok); L5c 16/16, median
+  80.3 s (baseline 73.2 s; run value −0.014 [−0.018, −0.010], 15 of 16 seeds slower). `doctrine-reference`
+  L5b 16/16, 109.8 s; L5c 16/16, 112.4 s. `reference` L5b 16/16, 241.1 s; L5c 15/16, 339.6 s.
+- **Regression suite:** `reference` L0b and L4 14/16 against 16/16 baselines last measured 2026-10-12,
+  before the omni shrink (#2425). The two L0b misses (seeds 11, 13) spawn 5.1 and 5.6 km out, beyond the
+  4.2 km omni: the GVTS never sees, locks or moves. captain-curriculum's head gives the same 14/16.
+- **Decision:** accepted as the integration base for wave defence.
+- **Lesson:** not yet isolated: the L5c slowdown is likely the board's one-tick landing and helms
+  recomputing the `close_to` spot each decision, against the remembered radio call it replaced.
+- **Reuse:** the wave-defence push starts here.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
