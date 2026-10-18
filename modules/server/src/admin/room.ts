@@ -11,6 +11,7 @@ import {
     isSetValueCommand,
     isValidStationId,
     registerStation,
+    resetAssignments,
 } from '@starwards/core/internal';
 
 import { Client, Room } from '@colyseus/core';
@@ -88,6 +89,7 @@ export class AdminRoom extends Room<{ state: AdminState }> {
         );
         this.onMessage(assignStation.cmdName, cmdReceiver(manager, assignStation));
         this.onMessage(assignBot.cmdName, cmdReceiver(manager, assignBot));
+        this.onMessage(resetAssignments.cmdName, cmdReceiver(manager, resetAssignments));
     }
 
     public onLeave(client: Client) {

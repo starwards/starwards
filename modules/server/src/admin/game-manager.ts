@@ -22,6 +22,7 @@ import {
     Spaceship,
     Vec2,
     XY,
+    botSeatsConflict,
     createLogger,
     isAssignableSeat,
     isBotBrain,
@@ -40,6 +41,15 @@ import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
+
+/** Applies one queued command; a malformed one is logged and dropped so it never costs the tick the rest of its work. */
+function applySafely(command: string, arg: unknown, apply: () => void) {
+    try {
+        apply();
+    } catch (e) {
+        logError(`dropped malformed ${command} command ${JSON.stringify(arg)}: ${(e as Error).message}`);
+    }
+}
 
 /** How long a disconnected, unassigned station stays in the registry before being pruned. */
 const STALE_STATION_GRACE_MS = 30_000;
@@ -159,24 +169,32 @@ export class GameManager {
      */
     private drainStationCommands() {
         for (const arg of this.state.registerStationCommands) {
-            const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
-            this.disconnectedStationSince.delete(arg.stationId);
-            if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
-                entry.shipId = arg.shipId;
-            }
+            applySafely('registerStation', arg, () => {
+                const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
+                this.disconnectedStationSince.delete(arg.stationId);
+                if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
+                    entry.shipId = arg.shipId;
+                }
+            });
         }
         this.state.registerStationCommands = [];
         for (const stationId of this.state.disconnectStationCommands) {
-            markStationDisconnected(this.state.stations, stationId);
-            this.disconnectedStationSince.set(stationId, Date.now());
+            applySafely('disconnectStation', stationId, () => {
+                markStationDisconnected(this.state.stations, stationId);
+                this.disconnectedStationSince.set(stationId, Date.now());
+            });
         }
         this.state.disconnectStationCommands = [];
+        if (this.state.resetAssignmentsRequested) {
+            this.state.resetAssignmentsRequested = false;
+            this.resetAssignments();
+        }
         for (const arg of this.state.assignStationCommands) {
-            this.applyStationAssignment(arg);
+            applySafely('assignStation', arg, () => this.applyStationAssignment(arg));
         }
         this.state.assignStationCommands = [];
         for (const arg of this.state.assignBotCommands) {
-            this.applyBotAssignment(arg);
+            applySafely('assignBot', arg, () => this.applyBotAssignment(arg));
         }
         this.state.assignBotCommands = [];
         // `playerShipIds` is empty or mid-teardown/mid-creation outside RUNNING: reconciling
@@ -185,6 +203,17 @@ export class GameManager {
             this.reconcileStationAssignments();
         }
         this.pruneStaleStations();
+    }
+
+    /** The GM's clean slate: every station, connected or sticky-disconnected, loses its ship and type, and every bot leaves. */
+    private resetAssignments() {
+        for (const entry of this.state.stations.values()) {
+            entry.shipId = '';
+            entry.stationType = '';
+        }
+        for (const [shipId, ship] of [...this.state.bots]) {
+            for (const seat of [...ship.seats.keys()]) this.removeBot(shipId, seat as BridgeSeat);
+        }
     }
 
     /**
@@ -219,7 +248,8 @@ export class GameManager {
     /**
      * A GM's bot assignment for a player ship's roster seat. Bots live in `state.bots` only —
      * never in the station registry — so they and human stations never displace each other.
-     * Invalid ship, seat or brain, or a game not RUNNING, is silently ignored.
+     * Invalid ship, seat or brain, a seat conflicting with one of the ship's seated bots (see
+     * `botSeatsConflict`), or a game not RUNNING, is silently ignored.
      */
     private applyBotAssignment({ shipId, seat, brain }: AssignBotArg) {
         if (
@@ -236,6 +266,10 @@ export class GameManager {
             return;
         }
         if (!isBotBrain(brain) || (current && current.brain === brain && current.status !== 'failed')) {
+            return;
+        }
+        const seated = [...(this.state.bots.get(shipId)?.seats.keys() ?? [])] as BridgeSeat[];
+        if (seated.some((other) => botSeatsConflict(bridgeSeat, other))) {
             return;
         }
         if (current) this.removeBot(shipId, bridgeSeat);

@@ -1,4 +1,4 @@
-import { BridgeSeat, Driver, GameStatus, sleep } from '@starwards/core/internal';
+import { BridgeSeat, Driver, GameStatus, resetAssignments, sleep } from '@starwards/core/internal';
 import { training_t0, two_vs_one } from '../maps';
 
 import { BotSeats } from './game-manager';
@@ -38,6 +38,27 @@ describe('GM bot seats', () => {
                 admin.assignBot({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
                 await waitUntil(() => manager.state.bots.get('GVTS')?.seats.get('pilot')?.brain === 'reference');
                 expect(manager.state.assignBotCommands).toEqual([]);
+            } finally {
+                driver.destroy();
+            }
+        });
+
+        it('resetAssignments arrives and clears every assignment', async () => {
+            const manager = gameDriver.gameManager;
+            await manager.startGame(two_vs_one);
+            const driver = new Driver(new URL(gameDriver.url())).connect();
+            try {
+                const admin = await driver.getAdminDriver();
+                admin.registerStation({ stationId: 'HUMAN', stationType: 'helms', shipId: 'GVTS' });
+                admin.assignBot({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
+                await waitUntil(
+                    () =>
+                        manager.state.stations.get('HUMAN')?.shipId === 'GVTS' &&
+                        !!manager.state.bots.get('GVTS')?.seats.get('pilot'),
+                );
+                admin.resetAssignments();
+                await waitUntil(() => manager.state.bots.size === 0);
+                expect(manager.state.stations.get('HUMAN')?.shipId).toBe('');
             } finally {
                 driver.destroy();
             }
@@ -167,6 +188,73 @@ describe('GM bot seats', () => {
             gameDriver.gameManager.update(0);
             expect(entry('GVTS', 'pilot')?.id).toBe('bot-pilot-1');
             expect(entry('GVTS2', 'sigint')?.id).toBe('bot-sigint-2');
+        });
+
+        it('rejects a seat that conflicts with a seated bot, either way round', () => {
+            assign('GVTS', 'tactical', 'reference');
+            assign('GVTS', 'pilot', 'reference');
+            expect(entry('GVTS', 'pilot')).toBeUndefined();
+            assign('GVTS2', 'pilot', 'reference');
+            assign('GVTS2', 'tactical', 'reference');
+            expect(entry('GVTS2', 'tactical')).toBeUndefined();
+            expect(fake.calls.filter((c) => c[0] === 'start').map((c) => [c[1], c[2]])).toEqual([
+                ['GVTS', 'tactical'],
+                ['GVTS2', 'pilot'],
+            ]);
+        });
+
+        it('drops a malformed assignBot and still applies the commands after it', () => {
+            const state = gameDriver.gameManager.state;
+            state.assignBotCommands.push(null as never, { shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
+            state.speed = 1;
+            const before = gameDriver.gameManager.totalSeconds;
+            gameDriver.gameManager.update(0.1);
+            expect(entry('GVTS', 'pilot')?.brain).toBe('reference');
+            expect(state.assignBotCommands).toEqual([]);
+            expect(gameDriver.gameManager.totalSeconds).toBeGreaterThan(before);
+        });
+
+        it('drops a malformed assignStation and still applies the commands after it', () => {
+            const state = gameDriver.gameManager.state;
+            state.registerStationCommands.push({ stationId: 'HUMAN', stationType: 'helms', shipId: '' });
+            gameDriver.gameManager.update(0);
+            state.assignStationCommands.push(null as never, {
+                stationId: 'HUMAN',
+                shipId: 'GVTS2',
+                stationType: 'helms',
+            });
+            state.assignBotCommands.push({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
+            gameDriver.gameManager.update(0);
+            expect(state.stations.get('HUMAN')?.shipId).toBe('GVTS2');
+            expect(state.assignStationCommands).toEqual([]);
+            expect(entry('GVTS', 'pilot')?.brain).toBe('reference');
+        });
+
+        it('resetAssignments clears every station, disconnected ones included, and stops every bot', () => {
+            const state = gameDriver.gameManager.state;
+            state.registerStationCommands.push(
+                { stationId: 'HUMAN', stationType: 'helms', shipId: 'GVTS' },
+                { stationId: 'GONE', stationType: 'weapons', shipId: 'GVTS2' },
+            );
+            gameDriver.gameManager.update(0);
+            state.disconnectStationCommands.push('GONE');
+            gameDriver.gameManager.update(0);
+            expect(state.stations.get('GONE')?.shipId).toBe('GVTS2');
+            assign('GVTS', 'pilot', 'reference');
+            assign('GVTS2', 'sigint', 'reference');
+
+            resetAssignments.setValue(state, null);
+            gameDriver.gameManager.update(0);
+
+            for (const id of ['HUMAN', 'GONE']) {
+                expect(state.stations.get(id)?.toJSON()).toMatchObject({ shipId: '', stationType: '' });
+            }
+            expect(bots().size).toBe(0);
+            expect(fake.calls.filter((c) => c[0] === 'stop').map((c) => [c[1], c[2]])).toEqual([
+                ['GVTS', 'pilot'],
+                ['GVTS2', 'sigint'],
+            ]);
+            expect(state.resetAssignmentsRequested).toBe(false);
         });
     });
 

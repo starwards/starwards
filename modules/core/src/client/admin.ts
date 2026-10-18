@@ -1,4 +1,4 @@
-import { AdminState, type AssignBotArg, assignBot } from '../admin';
+import { AdminState, type AssignBotArg, assignBot, resetAssignments } from '../admin';
 import {
     type AssignStationArg,
     REGISTER_STATION_REJECTED,
@@ -66,6 +66,8 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<unknown,
         assignStation: (arg: AssignStationArg) => adminRoom.send(assignStation.cmdName, { value: arg }),
         /** GM: seats a bot of `brain` at `(shipId, seat)`, or stops the seat's bot (`brain: 'none'`). */
         assignBot: (arg: AssignBotArg) => adminRoom.send(assignBot.cmdName, { value: arg }),
+        /** GM: unassigns every station, disconnected ones included, and stops every bot on every ship. */
+        resetAssignments: () => adminRoom.send(resetAssignments.cmdName, { value: null }),
         /** Fires when the server rejects a `registerStation` request for `stationId` (see `AdminRoom`'s collision check). */
         onRegisterStationRejected: (cb: (stationId: string) => void): (() => void) => {
             rejectedListeners.add(cb);

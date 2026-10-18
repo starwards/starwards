@@ -2,6 +2,7 @@ import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import { AssignBotArg, BotAssignable, ShipBots } from './bots';
 import { AssignStationArg, RegisterStationArg, StationRegistrable, StationRegistryEntry } from '../stations';
 
+import { StateCommand } from '../commands';
 import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
@@ -39,6 +40,9 @@ export class AdminState extends Schema implements StationRegistrable, BotAssigna
 
     public assignBotCommands = Array.of<AssignBotArg>();
 
+    /** Set by {@link resetAssignments}; `GameManager.update()` clears it once applied. */
+    public resetAssignmentsRequested = false;
+
     /** True while the running game is being recorded to disk for later replay. */
     @gameField('boolean')
     isRecordingGame = false;
@@ -72,3 +76,14 @@ export class AdminState extends Schema implements StationRegistrable, BotAssigna
         return this.gameStatus === GameStatus.RUNNING;
     }
 }
+
+/**
+ * `resetAssignments` command: the GM clears every station assignment, disconnected sticky ones
+ * included, and stops every bot on every ship.
+ */
+export const resetAssignments: StateCommand<unknown, AdminState, void> = {
+    cmdName: 'resetAssignments',
+    setValue: (state) => {
+        state.resetAssignmentsRequested = true;
+    },
+};
