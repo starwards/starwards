@@ -1,6 +1,12 @@
 import { ControlStats, CrewOptions } from '../crew/crew';
 import { RunScore, scoreRun } from '../scoring/run-score';
-import { TrainingResult, runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
+import {
+    TrainingResult,
+    TrainingRunOptions,
+    playTraining,
+    runTraining,
+    trainingScenarios,
+} from '@starwards/server/src/test/training/training-scenarios';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { SeatPlan } from '@starwards/bots';
@@ -49,11 +55,12 @@ export type CrewRunResult = TrainingResult & {
     score: RunScore | null;
 };
 
-/**
- * Plays one seed of a training rung with a crewed GVTS driven by the crew in `crewPath`, recording
- * every request, decision and command beside the game recording.
- */
-export async function runCrewTraining(crewPath: string, options: CrewRunOptions): Promise<CrewRunResult> {
+/** Seats the crew in `crewPath` on a training rung and gives `run` the tick hook and options that drive it. */
+function crewed<R>(
+    crewPath: string,
+    options: CrewRunOptions,
+    run: (scenario: (typeof trainingScenarios)[string], runOptions: TrainingRunOptions) => Promise<R>,
+) {
     const scenario = trainingScenarios[options.scenario];
     if (!scenario) {
         throw new Error(`unknown scenario ${options.scenario}; one of ${Object.keys(trainingScenarios).join(', ')}`);
@@ -66,7 +73,7 @@ export async function runCrewTraining(crewPath: string, options: CrewRunOptions)
         intervene: options.branch?.intervene,
         lens: options.branch?.lens,
     });
-    const result = await runTraining(scenario, {
+    const result = run(scenario, {
         seed: options.seed,
         timeoutSeconds: options.timeoutSeconds,
         crewedPlayer: true,
@@ -76,6 +83,21 @@ export async function runCrewTraining(crewPath: string, options: CrewRunOptions)
         },
         recording: { dir: path.join(options.outDir, plan.name), intervalSimSeconds: options.intervalSimSeconds },
     });
+    return { plan, crew, result };
+}
+
+/** Plays one seed of a training rung with the crew in `crewPath` and records it, without analysing the recording. */
+export function playCrewTraining(crewPath: string, options: CrewRunOptions) {
+    return crewed(crewPath, options, playTraining).result;
+}
+
+/**
+ * Plays one seed of a training rung with a crewed GVTS driven by the crew in `crewPath`, recording
+ * every request, decision and command beside the game recording.
+ */
+export async function runCrewTraining(crewPath: string, options: CrewRunOptions): Promise<CrewRunResult> {
+    const { plan, crew, result: running } = crewed(crewPath, options, runTraining);
+    const result = await running;
     const score = result.recording
         ? await scoreRun(result.recording, {
               killed: result.killed,

@@ -322,17 +322,13 @@ export interface TrainingRunOptions {
 }
 
 /**
- * One run: `seed` drives both the fast-check layout sample and the die. `TrainingResult`'s
- * scalars are computed by `analysis/extract.ts` from a recording -- there is exactly one
- * implementation of these metrics, not one inline and one in the analysis CLI. When the caller
- * doesn't ask for a persisted recording, the run still records (at `SCRATCH_INTERVAL_SECONDS`)
- * into a scratch directory that is deleted before returning.
+ * Plays one run to its end and records it, without analysing the recording: `seed` drives both the
+ * fast-check layout sample and the die. The run ends at the timeout or once every enemy is gone.
  */
-export async function runTraining<P>(
+export async function playTraining<P>(
     scenario: TrainingScenario<P>,
     { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording, crewedPlayer = false, beforeTick }: TrainingRunOptions,
-): Promise<TrainingResult> {
-    const started = Date.now();
+) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
     const game = HeadlessGame.start(scenario.createMap(params), seed, { crewedPlayer });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
@@ -375,6 +371,24 @@ export async function runTraining<P>(
         }
     }
     await recorder.capture(true);
+
+    return { params, enemies, recorder, scratchDir, gunnery };
+}
+
+/**
+ * One run: `seed` drives both the fast-check layout sample and the die. `TrainingResult`'s
+ * scalars are computed by `analysis/extract.ts` from a recording -- there is exactly one
+ * implementation of these metrics, not one inline and one in the analysis CLI. When the caller
+ * doesn't ask for a persisted recording, the run still records (at `SCRATCH_INTERVAL_SECONDS`)
+ * into a scratch directory that is deleted before returning.
+ */
+export async function runTraining<P>(
+    scenario: TrainingScenario<P>,
+    options: TrainingRunOptions,
+): Promise<TrainingResult> {
+    const started = Date.now();
+    const { seed, hz = SERVER_TICK_HZ, recording } = options;
+    const { params, enemies, recorder, scratchDir, gunnery } = await playTraining(scenario, options);
 
     const dbPath = storePathFor(recorder.filePath);
     const store = await ingest(dbPath, recorder.filePath, { player: TRAINING_PLAYER_ID, target: TRAINING_TARGET_ID });

@@ -1,12 +1,15 @@
-import { CrewRunResult, runCrewTraining } from '../training/train-crew';
 import { isRecordingName, sidecarName } from '@starwards/core/internal';
+import { readEvents, readFrames } from '../scoring/recording';
 
 import { Intervention } from './levels';
+import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { playCrewTraining } from '../training/train-crew';
 import { rmDirRetrying } from '@starwards/server/src/test/training/analysis/__fixtures__/rm-retry';
+import { scoreFrames } from '../scoring/run-score';
 
 /** The run a branch replays: the crew, rung, seed and timeout of a recorded run. */
 export type RunSpec = { crew: string; scenario: string; seed: number; timeoutSeconds: number; latencySeconds?: number };
@@ -42,22 +45,29 @@ export function fingerprint(recordingOrSidecar: string, t: number) {
     return { prefix: prefix.digest('hex').slice(0, 12), whole: whole.digest('hex').slice(0, 12) };
 }
 
-function outcomeOf(result: CrewRunResult, recording: string, t: number): Outcome {
-    return {
-        killed: result.killed,
-        seconds: result.seconds,
-        kills: result.kills,
-        enemies: result.enemies,
-        value: result.score?.value ?? null,
-        ...fingerprint(recording, t),
-    };
+type Frames = Awaited<ReturnType<typeof readFrames>>;
+
+/**
+ * Whether `id` was killed in `frames`, as the analysis store's `killedAt` finds it: a frame caught it
+ * destroyed, or it left the recording before the run's last frame.
+ */
+function killedIn(frames: Frames, id: string, lastT: number) {
+    let seen: number | undefined;
+    for (const { t, saved } of frames) {
+        const object = saved.fragment.space.get(id);
+        if (!object) continue;
+        if (object.destroyed) return true;
+        seen = t;
+    }
+    return seen !== undefined && seen < lastT;
 }
 
 /**
  * Replays a recorded run from its seed and, from the branch point `t` on, plays `intervention`
  * instead; with no intervention, a plain replay. The harness is deterministic (same seed, same crew:
  * the same run), so the replay reproduces the recording up to `t` -- `prefix` lets a caller check it.
- * The branch's recording goes to a scratch folder deleted afterwards; only its outcome is kept.
+ * The outcome is read from the branch's recording alone (no analysis store), which goes to a scratch
+ * folder deleted afterwards.
  */
 export async function runBranch(
     run: RunSpec,
@@ -67,7 +77,7 @@ export async function runBranch(
 ): Promise<Outcome> {
     const dir = keepDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'starwards-branch-'));
     try {
-        const result = await runCrewTraining(run.crew, {
+        const { recorder, enemies } = await playCrewTraining(run.crew, {
             scenario: run.scenario,
             seed: run.seed,
             timeoutSeconds: run.timeoutSeconds,
@@ -76,8 +86,24 @@ export async function runBranch(
             intervalSimSeconds: 1,
             branch: intervention,
         });
-        if (!result.recording) throw new Error('branch run left no recording');
-        return outcomeOf(result, result.recording, t);
+        const recording = recorder.filePath;
+        const frames = await readFrames(recording);
+        const seconds = Math.max(0, ...frames.map((f) => f.t));
+        const kills = enemies.filter((id) => killedIn(frames, id, seconds)).length;
+        const killed = kills === enemies.length;
+        const score = scoreFrames(
+            frames,
+            { killed, seconds, timeoutSeconds: run.timeoutSeconds, playerId: TRAINING_PLAYER_ID },
+            readEvents(recording),
+        );
+        return {
+            killed,
+            seconds,
+            kills,
+            enemies: enemies.length,
+            value: score?.value ?? null,
+            ...fingerprint(recording, t),
+        };
     } finally {
         if (!keepDir) await rmDirRetrying(dir);
     }

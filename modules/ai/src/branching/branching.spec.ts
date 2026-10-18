@@ -1,5 +1,5 @@
-import { RunSpec, runBranch } from './fork';
-import { buttonLevel, strategicLevel, tacticalLevel } from './levels';
+import { Intervention, buttonLevel, strategicLevel, tacticalLevel } from './levels';
+import { RunSpec, fingerprint, runBranch } from './fork';
 
 import fs from 'node:fs';
 import { loadBrainSpec } from '@starwards/bots';
@@ -7,9 +7,34 @@ import os from 'node:os';
 import path from 'node:path';
 import { readRunLog } from './run-log';
 import { rmDirRetrying } from '@starwards/server/src/test/training/analysis/__fixtures__/rm-retry';
+import { runCrewTraining } from '../training/train-crew';
 
 const crew = path.resolve(__dirname, '../../crews/captain-orders-reference.json');
 const run: RunSpec = { crew, scenario: 'T3-directed', seed: 1, timeoutSeconds: 120 };
+
+/** A branch's outcome as the fully analysed training run (recording ingested into its store) reports it. */
+async function analysedOutcome(t: number, intervention?: Intervention) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'branching-analysed-'));
+    try {
+        const result = await runCrewTraining(crew, {
+            ...run,
+            latencySeconds: 0.2,
+            outDir: dir,
+            intervalSimSeconds: 1,
+            branch: intervention,
+        });
+        return {
+            killed: result.killed,
+            seconds: result.seconds,
+            kills: result.kills,
+            enemies: result.enemies,
+            value: result.score?.value ?? null,
+            ...fingerprint(result.recording!, t),
+        };
+    } finally {
+        await rmDirRetrying(dir);
+    }
+}
 
 describe('captain branching', () => {
     jest.setTimeout(300_000);
@@ -27,6 +52,19 @@ describe('captain branching', () => {
         const again = await runBranch(run, 0);
         expect(again).toEqual(replay);
         expect(replay.killed).toBe(true);
+    });
+
+    it('scores a branch from its recording alone, as the analysed run scores it', async () => {
+        expect(fs.readdirSync(path.join(dir, 'captain-orders-reference')).filter((f) => f.endsWith('.duckdb'))).toEqual(
+            [],
+        );
+        expect(replay).toEqual(await analysedOutcome(0));
+        const [point] = strategicLevel.points(log);
+        // an intervention keeps state over its run: each run gets its own
+        const hold = () => strategicLevel.alternatives(point, log).find((a) => a.id === 'hold_position')!.intervention;
+        const branched = await runBranch(run, point.t, hold());
+        expect(branched.killed).toBe(false);
+        expect(branched).toEqual(await analysedOutcome(point.t, hold()));
     });
 
     it('a strategic branch keeps the run up to its point and plays the new order state after it', async () => {
