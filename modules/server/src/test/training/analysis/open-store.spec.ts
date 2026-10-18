@@ -6,9 +6,8 @@ import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID } from '../../../scenarios/train
 import { isStoreStale, openRecordingStore } from './open-store';
 import { runTraining, trainingScenarios } from '../training-scenarios';
 
-import { EVENTS_EXT } from '@starwards/core/internal';
-import { RECORDING_EXT } from '../../../recording/game-recorder';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
+import { sidecarName } from '@starwards/core/internal';
 
 describe('openRecordingStore', () => {
     jest.setTimeout(60_000);
@@ -60,7 +59,7 @@ describe('openRecordingStore', () => {
     });
 
     it('is stale when the store is missing, or older than the recording or its events sidecar', () => {
-        const sidecar = recording.slice(0, -RECORDING_EXT.length) + EVENTS_EXT;
+        const sidecar = sidecarName(recording);
         const freshPath = path.join(dir, 'stale-probe.duckdb');
         expect(isStoreStale(freshPath, recording)).toBe(true);
 

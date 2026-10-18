@@ -5,6 +5,7 @@ import {
     EVENTS_EXT,
     Explosion,
     Projectile,
+    RECORDING_EXT,
     RecordingEventLine,
     ShipManager,
     ShipManagerPc,
@@ -16,7 +17,6 @@ import {
 } from '@starwards/core/internal';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
-import { RECORDING_EXT } from '../recording/game-recorder';
 import { schemaToString } from '../serialization/game-state-serialization';
 
 type Flying = { shipId: string; x: number; y: number; health: number };

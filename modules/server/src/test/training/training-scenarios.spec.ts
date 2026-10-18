@@ -2,21 +2,21 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import {
-    EVENTS_EXT,
     IdleStrategy,
     Order,
+    RECORDING_EXT,
     ShipManagerPc,
     ShipModel,
     magazineStocks,
     parseEventLine,
     shipConfigurations,
+    sidecarName,
 } from '@starwards/core/internal';
-import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET2_ID, TRAINING_TARGET_ID } from '../../scenarios/training';
 import { runTraining, trainingScenarios } from './training-scenarios';
 
-import { RECORDING_EXT } from '../../recording/game-recorder';
 import fc from 'fast-check';
 import { rmDirRetrying } from './analysis/__fixtures__/rm-retry';
 
@@ -176,7 +176,7 @@ describe('runTraining', () => {
             expect(result.frames).toBe(frameLines.length);
             const targetBlasts = new Set(
                 fs
-                    .readFileSync(result.recording!.replace(RECORDING_EXT, EVENTS_EXT), 'utf-8')
+                    .readFileSync(sidecarName(result.recording!), 'utf-8')
                     .split('\n')
                     .filter((line) => line)
                     .map((line) => parseEventLine(line)!)

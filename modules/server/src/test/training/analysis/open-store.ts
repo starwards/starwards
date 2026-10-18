@@ -1,9 +1,8 @@
 import * as fs from 'node:fs';
 
+import { RECORDING_EXT, sidecarName } from '@starwards/core/internal';
 import { Store, ingest, storePathFor } from './store';
 
-import { EVENTS_EXT } from '@starwards/core/internal';
-import { RECORDING_EXT } from '../../../recording/game-recorder';
 import { computeChecks } from './checks';
 import { computeEvents } from './events';
 
@@ -39,9 +38,7 @@ export function isStoreStale(dbPath: string, recordingPath: string): boolean {
         return true;
     }
     const storeTime = fs.statSync(dbPath).mtimeMs;
-    const sidecar = recordingPath.endsWith(RECORDING_EXT)
-        ? recordingPath.slice(0, -RECORDING_EXT.length) + EVENTS_EXT
-        : null;
+    const sidecar = recordingPath.endsWith(RECORDING_EXT) ? sidecarName(recordingPath) : null;
     const sources = [recordingPath, ...(sidecar && fs.existsSync(sidecar) ? [sidecar] : [])];
     return sources.some((source) => storeTime < fs.statSync(source).mtimeMs);
 }
