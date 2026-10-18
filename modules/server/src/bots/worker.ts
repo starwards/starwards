@@ -37,6 +37,7 @@ void shipCrew({
     baseUrl: new URL(baseUrl),
     shipId,
     emit: (e) => send({ type: 'event', ...e }),
+    logError: (message) => log('error', message),
     onStatus: (seat, botId, status, message) => {
         if (status === 'failed') log('error', `${botId} on ${seat} failed: ${message ?? ''}`);
         send({ type: 'status', seat, botId, status, message });

@@ -154,6 +154,7 @@ export const bridgeSeats = {
     tactical: { screens: ['helms', 'weapons'], bot: 'tactical', botOnly: true },
 } as const satisfies Record<string, SeatRow>;
 
+/** A seat on a ship's bridge, taken by a human or a GM-assigned bot. */
 export type BridgeSeat = keyof typeof bridgeSeats;
 
 /** Seats a human can take, in bridge order. Excludes bot-only seats. */

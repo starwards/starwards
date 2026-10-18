@@ -17,7 +17,7 @@ import { describeContact } from './contacts';
 /**
  * What a seat reads and does, as plain functions over a `StationSession`.
  *
- * The live MCP tools and an in-process bot (`modules/ai`) both call these, so a bot sees exactly the
+ * The live MCP tools and the server-run bot seats (`modules/server/src/bots`) both call these, so a bot sees exactly the
  * percepts and affordances a live seat does — two implementations would drift into two fog-of-war rules.
  */
 

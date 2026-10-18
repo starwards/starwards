@@ -18,6 +18,8 @@ type ShipCrewOptions = {
     /** Receives every sidecar event while recording; the server stamps the time. */
     emit: (event: Omit<RecordingEventLine, 't'>) => void;
     onStatus: (seat: BridgeSeat, botId: string, status: BotStatus, message?: string) => void;
+    /** Receives every brain error, recording or not; the supervisor prefixes the ship. */
+    logError: (message: string) => void;
     /** Wall milliseconds between clock polls. */
     pollMs?: number;
 };
@@ -47,7 +49,7 @@ function seatPlan(seat: BridgeSeat, brain: BotBrain): SeatPlan {
  * Runs the bots of one ship of a live game: each seat decides on its own cadence in game time,
  * hearing the others' callouts on the crew channel, and presses its buttons through a real station
  * session. Seats come and go while it runs; a seat still deciding skips its turn rather than queue
- * one. A seat whose brain throws emits `brain_error` and keeps its cadence.
+ * one. A seat whose brain throws logs the error, emits `brain_error` and keeps its cadence.
  */
 export async function shipCrew(options: ShipCrewOptions) {
     const { shipId } = options;
@@ -65,7 +67,7 @@ export async function shipCrew(options: ShipCrewOptions) {
     };
     const track = (seat: Seat, p: Promise<unknown>) => {
         seat.inFlight.add(p);
-        void p.finally(() => seat.inFlight.delete(p));
+        void p.finally(() => seat.inFlight.delete(p)).catch(() => {});
     };
 
     async function decide(key: BridgeSeat, seat: Seat) {
@@ -137,6 +139,7 @@ export async function shipCrew(options: ShipCrewOptions) {
                 seat,
                 decide(key, seat)
                     .catch((e: unknown) => {
+                        options.logError(`${seat.botId} on ${key} brain error: ${(e as Error).message}`);
                         emit('brain_error', { station: seat.plan.station, message: (e as Error).message });
                     })
                     .finally(() => (seat.busy = false)),

@@ -38,6 +38,7 @@ describe('ship crew runner', () => {
             shipId: SHIP,
             emit: (e) => events.push(e),
             onStatus: (seat, botId, status, message) => statuses.push({ seat, botId, status, message }),
+            logError: () => undefined,
         });
 
     it('plays every seated station, reports running and emits only while recording', async () => {
