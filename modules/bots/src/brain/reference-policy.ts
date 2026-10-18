@@ -2,7 +2,7 @@ import { Answer, Policy } from './brain';
 import { CaptainOrders, captainOrders, referenceCallout } from './reference-orders';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
-import { inLaunchEnvelope, launchRange } from './engagement';
+import { inLaunchEnvelope, launchRange, nearestEnemy } from './engagement';
 
 import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
@@ -106,6 +106,8 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
+    /** The enemy this seat (as captain) last ordered engaged: local until the shared order state lands. */
+    let engaged: string | undefined;
     const orders = captainOrders();
     return {
         name,
@@ -144,7 +146,10 @@ export function makeReferencePolicy(
                     lastLaunch = seconds;
                 }
             }
-            const callout = referenceCallout(request, shown, previous, decisionSeconds);
+            const callout = referenceCallout(request, shown, previous, decisionSeconds, engaged);
+            if (callout?.choice === 'engage') {
+                engaged = nearestEnemy(shown.radar as ShownRadar | undefined)?.name;
+            }
             previous = display;
             if (callout) {
                 answers[CALLOUT_QUESTION] = callout;

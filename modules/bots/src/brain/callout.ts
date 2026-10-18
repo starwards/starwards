@@ -126,7 +126,8 @@ const calloutFills: Record<
     },
     /**
      * Captain: close to missile range of the nearest enemy, which lies `distance` away on world
-     * `bearing`; the range is inside the envelope for how the enemy moves since the previous decision.
+     * `bearing`; the range is inside the envelope for how the enemy moves since the previous decision,
+     * or gun range once the enemy is inside it.
      */
     closeOrder: ({ radar }, previous, seconds) => {
         const r = radar as Radar | undefined;
@@ -135,7 +136,8 @@ const calloutFills: Record<
             enemy && {
                 name: enemy.name,
                 range: (
-                    closeRange(launchRange(enemy, r, previous?.radar as Radar | undefined, seconds)) / 1000
+                    closeRange(enemy.distance, launchRange(enemy, r, previous?.radar as Radar | undefined, seconds)) /
+                    1000
                 ).toFixed(0),
                 distance: (enemy.distance / 1000).toFixed(1),
                 bearing: bearingWords(enemy.bearing),

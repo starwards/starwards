@@ -1,8 +1,8 @@
 {
     "name": "reference",
     "crew": "reference",
-    "commit": "f238c5c9",
-    "date": "2026-10-17",
+    "commit": "234b0dd9",
+    "date": "2026-10-18",
     "levels": [
         {
             "id": "L0",
@@ -410,6 +410,52 @@
                         0.001578254686983597,
                         0.7939607842743085
                     ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L5b",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 400,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T3-directed",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 220.25833333340074,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.5585260119328542,
+                        0.5562016433967951,
+                        0.5437007990614049,
+                        0.5475689157440908,
+                        0.3005146316213978,
+                        0.45351426544135026,
+                        0.5245792073392445,
+                        0.30667223383957654,
+                        0.5433462868736726,
+                        0.4666364065760949,
+                        0.4701708454685844,
+                        0.48289033477873894,
+                        0.3393361666001904,
+                        0.5596153848601285,
+                        0.30303075127796164,
+                        0.3377788765057477
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 16,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 14,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16
+                    },
                     "paidTokens": 0,
                     "cachedTokens": 0
                 }

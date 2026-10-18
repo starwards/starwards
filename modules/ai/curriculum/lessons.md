@@ -520,6 +520,26 @@ Elec missile, P(hit):
 - **Reuse:** re-run the sweep after any change to missile speed, `MISSILE_LAUNCH`, `TERMINAL_SPRINT` or the
   projectile raycast, and copy the result into `missile-envelope.ts`.
 
+### L5b — captain-reference, rule mined from the Jev captain (2026-10-18)
+
+- **Oracle:** `crews/jev-captain-c1-ref.json` (Jev captain v1, reference signals, helms, weapons and engineer) on
+  T3-directed seeds 1-16: kills 15/16, median 98.3 s, `missile_beyond_own_radar` 16/16; Jev spend $0.023 over three
+  runs. Archive: `training-archive/2026-10-18/missile-envelope/`.
+- **Mined:** the Jev captain says `engage` once the target is inside the launch envelope, then `close_to` again
+  (seed 1: engage at 25 s, close_to at 30 s with the target 40.5 km out; launches from 36 s; kill 102.9 s), so
+  the ship flies in while the missiles fly. The reference captain held the ship and re-said `engage` (seed 1: 12
+  launches from 40 km, kill 171.7 s).
+- **Change:** reference captain says `close_to` gun range (2 km) once it has ordered the enemy inside the envelope
+  engaged (`reference-orders.ts`, `closeRange` in `engagement.ts`).
+- **Level:** captain-reference kills 16/16, median 70.7 s, `missile_beyond_own_radar` 16/16 (before: 16/16, median
+  128.4 s); `reference` without a captain 16/16, median 220.3 s, 0/16; idle 0/16. Suite reports:
+  `training-archive/2026-10-18/suite/captain-reference-144112/`, `reference-144452/`, `idle-144443/`.
+- **Decision:** L5b built; captain-reference baseline saved. The captain-free reference fails it on the check.
+- **Lesson:** the envelope lets missiles start the fight from the fleet's picture, but the kill comes faster when
+  the ship closes during their flight: missiles and the gun finish together.
+- **Reuse:** a candidate captain on L5b starts from engage-then-close; read the launch range per run
+  (`missile_beyond_own_radar` detail) before tuning wording.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

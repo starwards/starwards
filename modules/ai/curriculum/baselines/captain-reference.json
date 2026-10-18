@@ -1,0 +1,55 @@
+{
+    "name": "captain-reference",
+    "crew": "captain-reference",
+    "commit": "234b0dd9",
+    "date": "2026-10-18",
+    "levels": [
+        {
+            "id": "L5b",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 400,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T3-directed",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 70.74999999999727,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.8655952766344627,
+                        0.8614793721170261,
+                        0.8650370955424419,
+                        0.865321364714671,
+                        0.8241930384917902,
+                        0.817030996945341,
+                        0.8636842234862332,
+                        0.8262463662951965,
+                        0.8628126615595977,
+                        0.8364163670734679,
+                        0.839712968686178,
+                        0.8433355802045303,
+                        0.8348213019274516,
+                        0.8617885241029334,
+                        0.8271078335406161,
+                        0.8336124260010467
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 16,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 16,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16,
+                        "missile_beyond_own_radar": 16
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        }
+    ]
+}

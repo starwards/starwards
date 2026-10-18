@@ -55,6 +55,11 @@ describe('reference captain', () => {
         expect(await order(dradis(30_000))).toMatchObject({ callout: 'engage', values: { name: 'raider' } });
     });
 
+    it('once it has ordered the engage, orders the ship in to gun range while the missiles fly', async () => {
+        const said = await order(dradis(30_000), dradis(30_000));
+        expect(said).toMatchObject({ callout: 'close_to', values: { range: '2', distance: '30.0' } });
+    });
+
     it('orders weapons to engage an enemy closing at cruise speed from 60 km', async () => {
         expect(await order(...moving(60_000, 600))).toMatchObject({ callout: 'engage' });
     });
