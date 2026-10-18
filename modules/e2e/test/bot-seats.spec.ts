@@ -103,8 +103,11 @@ test.describe('GM bot seats', () => {
         test.setTimeout(60_000);
         const post = async (path: string) =>
             expect((await page.request.post(`${gameDriver.baseURL}${path}`, { data: {} })).ok()).toBe(true);
-        await expect.poll(() => gameDriver.gameManager.state.isRecordingGame, { timeout: 5000 }).toBe(true);
+        // let the recording every game starts with get going (named, first frame written) before stopping it
+        await expect.poll(() => gameDriver.gameManager.state.recordingName, { timeout: 5000 }).not.toBe('');
+        await page.waitForTimeout(1500);
         await post('/stop-recording');
+        await expect.poll(() => gameDriver.gameManager.state.isRecordingGame, { timeout: 5000 }).toBe(false);
         await openRoster(page);
         const banner = page.locator('[data-id="Roster Bots Not Recording"]');
         await expect(banner).toBeHidden();
@@ -116,16 +119,32 @@ test.describe('GM bot seats', () => {
         await expect(banner).toBeVisible({ timeout: 5000 });
     });
 
-    test('reset clears every screen assignment and bot', async ({ page }) => {
+    test('reset clears every screen assignment and bot', async ({ page, browser }) => {
+        const stationContext = await browser.newContext();
+        const stationPage = await stationContext.newPage();
+        setupPageErrorHandlers(stationPage);
+        await navigateToScreen(stationPage, '/station.html', { baseURL: gameDriver.baseURL });
+        const waitingId = stationPage.locator('[data-id="Waiting Screen"] [data-id="station-id"]');
+        await expect(waitingId).toBeVisible({ timeout: 10000 });
+        const stationId = (await waitingId.textContent())!.trim();
+
         await openRoster(page);
         const r = roster(page);
-        await r.seatBot('engineer').click();
-        await waitRunning('engineer');
+        const engineerScreen = page.locator('[data-id="Roster Screen GVTS engineer"]');
+        await expect(page.locator(`[data-id="Roster Unassigned ${stationId}"]`)).toBeVisible({ timeout: 10000 });
+        await engineerScreen.selectOption(stationId);
+        await expect
+            .poll(() => gameDriver.gameManager.state.stations.get(stationId)?.shipId, { timeout: 5000 })
+            .toBe('GVTS');
+        await r.seatBot('pilot').click();
+        await waitRunning('pilot');
+
         await page.locator('[data-id="Roster Reset"]').click();
-        await expect(r.status('engineer')).toHaveText('none', { timeout: 5000 });
+        await expect(r.status('pilot')).toHaveText('none', { timeout: 5000 });
+        await expect(engineerScreen).toHaveValue('', { timeout: 5000 });
         expect(gameDriver.gameManager.state.bots.size).toBe(0);
-        for (const entry of gameDriver.gameManager.state.stations.values()) {
-            expect(entry.shipId).toBe('');
-        }
+        expect(gameDriver.gameManager.state.stations.get(stationId)?.shipId).toBe('');
+        expect(gameDriver.gameManager.state.stations.get(stationId)?.stationType).toBe('');
+        await stationContext.close();
     });
 });

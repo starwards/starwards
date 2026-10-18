@@ -48,6 +48,8 @@ export function rosterModel<E extends Entry>(input: {
     const shown = new Set(ships.flatMap((ship) => ship.seats.flatMap((seat) => seat.screens.map((s) => s.holder))));
     return {
         ships,
+        /** Whether any seated bot is starting or running, i.e. not failed. */
+        botsRunning: ships.some((ship) => ship.seats.some((seat) => seat.bot && seat.bot.status !== 'failed')),
         /** Connected clients no seat row shows: no ship, or a ship/screen the roster does not list. */
         unassignedClients: entries.filter((e) => e.connected && !shown.has(e)).map((e) => e.id),
     };

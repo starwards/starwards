@@ -36,7 +36,7 @@ export function stationRosterWidget(driver: Driver, adminDriver: AdminDriver): D
 }
 
 /** The enabled (assignable) station types per ship; `undefined` while not known yet. */
-export type EnabledScreens = { getEnabledTypes(shipId: string): readonly string[] | undefined };
+type EnabledScreens = { getEnabledTypes(shipId: string): readonly string[] | undefined };
 
 /**
  * The enabled station types for a ship, fetched from `/stations-manifest/:shipId` and cached per
@@ -78,11 +78,25 @@ function createManifestCache(driver: Driver, onLoaded: () => void): EnabledScree
     };
 }
 
+type RosterBot = { brain: string; status: string; message: string };
+type RosterStation = { id: string; connected: boolean; shipId: string; stationType: string };
+
+/** The slice of `AdminDriver` the roster reads and drives. */
+export type RosterAdmin = Pick<AdminDriver, 'assignBot' | 'assignStation' | 'resetAssignments'> & {
+    readonly state: {
+        readonly playerShipIds: Iterable<string>;
+        readonly stations: { values(): Iterable<RosterStation> };
+        readonly bots: { get(shipId: string): { seats: { get(seat: string): RosterBot | undefined } } | undefined };
+        readonly isRecordingGame: boolean;
+    };
+    readonly events: Pick<AdminDriver['events'], 'on' | 'off'>;
+};
+
 const buttonCss = { marginRight: '0.3em', font: 'inherit' };
 
 export function drawStationRoster(
     container: WidgetContainer,
-    adminDriver: AdminDriver,
+    adminDriver: RosterAdmin,
     enabledScreens: (onLoaded: () => void) => EnabledScreens,
 ): void {
     const root = container.getElement();
@@ -236,7 +250,6 @@ export function drawStationRoster(
     }
 
     function render() {
-        banner.toggle(adminDriver.state.bots.size > 0 && !adminDriver.state.isRecordingGame);
         const stations = [...adminDriver.state.stations.values()];
         const model = rosterModel({
             playerShipIds: [...adminDriver.state.playerShipIds],
@@ -244,6 +257,7 @@ export function drawStationRoster(
             bots: (shipId, seat) => adminDriver.state.bots.get(shipId)?.seats.get(seat),
             enabledScreens: (shipId) => manifests.getEnabledTypes(shipId) ?? [],
         });
+        banner.toggle(model.botsRunning && !adminDriver.state.isRecordingGame);
         const clientOptions = (holder: (typeof stations)[number] | null): [string, string][] => [
             ['', '— none —'],
             ...stations

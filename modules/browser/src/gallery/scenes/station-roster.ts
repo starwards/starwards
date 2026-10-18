@@ -1,6 +1,6 @@
+import { RosterAdmin, drawStationRoster } from '../../widgets/station-roster';
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
-import { drawStationRoster } from '../../widgets/station-roster';
 
 type Bot = { brain: string; status: string; message: string };
 type Station = { id: string; connected: boolean; shipId: string; stationType: string };
@@ -8,14 +8,18 @@ type Station = { id: string; connected: boolean; shipId: string; stationType: st
 const screens = ['helms', 'weapons', 'engineer', 'signals', 'dradis'];
 
 /** The admin state slice the roster reads, with no server behind it. */
-function mockAdminDriver(opts: { bots?: Record<string, Bot>; stations?: Station[]; isRecordingGame?: boolean }) {
+function mockAdminDriver(opts: {
+    bots?: Record<string, Bot>;
+    stations?: Station[];
+    isRecordingGame?: boolean;
+}): RosterAdmin {
     const seats = new Map(Object.entries(opts.bots ?? {}));
     const noop = () => undefined;
     return {
         state: {
             playerShipIds: ['GVTS'],
             stations: new Map((opts.stations ?? []).map((s) => [s.id, s])),
-            bots: seats.size ? new Map([['GVTS', { seats }]]) : new Map(),
+            bots: new Map(seats.size ? [['GVTS', { seats }]] : []),
             isRecordingGame: !!opts.isRecordingGame,
         },
         events: { on: noop, off: noop },
@@ -36,7 +40,7 @@ function rosterScene(
             description,
             async setup(container: HTMLElement) {
                 container.style.background = '#0a0a0a';
-                drawStationRoster(createMockContainer(container, 520, 260), mockAdminDriver(opts) as never, () => ({
+                drawStationRoster(createMockContainer(container, 520, 260), mockAdminDriver(opts), () => ({
                     getEnabledTypes: () => screens,
                 }));
                 // DOM text lays out again when a web font lands; settle before the gallery measures

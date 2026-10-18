@@ -53,6 +53,14 @@ describe('rosterModel', () => {
         expect(seatOf(m, 'engineer')?.unassigned).toBe(true);
     });
 
+    it('counts starting and running bots as running, not failed ones', () => {
+        const bot = (status: string) => ({ brain: 'reference', status, message: '' });
+        expect(model([]).botsRunning).toBe(false);
+        expect(model([], { 'S1|pilot': bot('failed') }).botsRunning).toBe(false);
+        expect(model([], { 'S1|pilot': bot('starting') }).botsRunning).toBe(true);
+        expect(model([], { 'S1|pilot': bot('failed'), 'S1|sigint': bot('running') }).botsRunning).toBe(true);
+    });
+
     it('a client on dradis holds that screen and assigns sigint', () => {
         const client = { id: 'abc', connected: true, shipId: 'S1', stationType: 'dradis' };
         const sigint = seatOf(model([client]), 'sigint');
