@@ -5,7 +5,8 @@ type Bot = { brain: string; status: string; message: string };
 
 /**
  * The GM roster as data: per player ship, each roster seat with its bot and the client (registry
- * entry) holding each enabled screen. A seat with neither bot nor client is `unassigned`.
+ * entry) holding each enabled screen. A seat with screens but neither bot nor client is `unassigned`;
+ * a bot-only seat (no screens) is optional.
  */
 export function rosterModel<E extends Entry>(input: {
     playerShipIds: readonly string[];
@@ -29,7 +30,12 @@ export function rosterModel<E extends Entry>(input: {
                     .filter((screen) => enabled.includes(screen))
                     .map((screen) => ({ screen, holder: holderOf(shipId, screen) }));
                 const bot = input.bots(shipId, seat) ?? null;
-                return { seat, bot, screens, unassigned: !bot && screens.every((s) => !s.holder) };
+                return {
+                    seat,
+                    bot,
+                    screens,
+                    unassigned: !bot && screens.length > 0 && screens.every((s) => !s.holder),
+                };
             }),
         };
     });

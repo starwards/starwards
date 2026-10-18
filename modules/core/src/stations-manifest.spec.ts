@@ -1,8 +1,8 @@
 import { multiplexedStations, rosterSeats, seatOfScreen, seatScreens } from './stations-manifest';
 
 describe('bridge seat table', () => {
-    it('lists the roster seats without the bot-only seat', () => {
-        expect(rosterSeats).toEqual(['pilot', 'weapons', 'engineer', 'sigint']);
+    it('lists every seat on the roster, the bot-only tactical seat last', () => {
+        expect(rosterSeats).toEqual(['pilot', 'weapons', 'engineer', 'sigint', 'tactical']);
     });
 
     it('gives sigint three screens', () => {
@@ -15,7 +15,7 @@ describe('bridge seat table', () => {
         expect(seatOfScreen('gm')).toBeUndefined();
     });
 
-    it('derives multiplexed stations from seats whose bot station is not one of their screens', () => {
+    it('derives multiplexed stations from the seats that fuse stations', () => {
         expect(multiplexedStations).toEqual({ tactical: ['helms', 'weapons'] });
     });
 });

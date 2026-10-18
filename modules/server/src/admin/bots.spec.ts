@@ -81,6 +81,12 @@ describe('GM bot seats', () => {
             expect(fake.calls).toEqual([['start', 'GVTS', 'pilot', 'bot-pilot-1', 'reference']]);
         });
 
+        it('seats a bot on the bot-only tactical seat', () => {
+            assign('GVTS', 'tactical', 'reference');
+            expect(entry('GVTS', 'tactical')?.id).toBe('bot-tactical-1');
+            expect(fake.calls).toEqual([['start', 'GVTS', 'tactical', 'bot-tactical-1', 'reference']]);
+        });
+
         it('counts bot ids server-wide', () => {
             assign('GVTS', 'pilot', 'reference');
             assign('GVTS2', 'weapons', 'reference');
@@ -98,7 +104,6 @@ describe('GM bot seats', () => {
         it.each([
             ['an unknown ship', 'NOPE', 'pilot', 'reference'],
             ['a non-player ship', 'R2D2', 'pilot', 'reference'],
-            ['a bot-only seat', 'GVTS', 'tactical', 'reference'],
             ['an unknown seat', 'GVTS', 'cook', 'reference'],
             ['an unknown brain', 'GVTS', 'pilot', 'jev'],
         ])('ignores %s', (_, shipId, seat, brain) => {

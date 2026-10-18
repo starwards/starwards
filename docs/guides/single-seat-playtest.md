@@ -60,9 +60,11 @@ each restart.
 | `weapons`  | weapons                         |
 | `engineer` | engineer                        |
 | `sigint`   | signals, dradis, target-details |
+| `tactical` | none (bot only)                 |
 
-A seat with no bot and no client on any of its screens is marked `UNASSIGNED`. The `sigint` bot plays
-the signals station; no bot plays Dradis.
+A seat with screens but no bot and no client on any of them is marked `UNASSIGNED`. The `sigint` bot
+plays the signals station; no bot plays Dradis. The `tactical` bot flies and fights as one station
+(helms and weapons together), so seat it instead of the `pilot` and `weapons` bots, not alongside them.
 
 ### 4. Take your seat
 

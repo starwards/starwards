@@ -66,6 +66,18 @@ describe('ship crew runner', () => {
         ]);
     });
 
+    it('plays the fused tactical station from the bot-only tactical seat', async () => {
+        const crew = await start();
+        crew.setRecording(true);
+        crew.addSeat('tactical', 'bot-tactical-1', 'reference');
+        await until(() => statuses.length === 1, 10_000);
+        await until(() => events.some((e) => e.kind === 'decision'), 15_000);
+        await crew.stop();
+        expect(statuses.map((s) => [s.seat, s.status])).toEqual([['tactical', 'running']]);
+        expect(new Set(events.filter((e) => e.kind === 'decision').map(stationOf))).toEqual(new Set(['tactical']));
+        expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
+    });
+
     it('emits nothing while recording is off', async () => {
         const crew = await start();
         crew.addSeat('pilot', 'bot-pilot-1', 'reference');

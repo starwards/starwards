@@ -14,14 +14,21 @@ function model(stations: Entry[], bots: Record<string, { brain: string; status: 
 const seatOf = (m: ReturnType<typeof model>, seat: string) => m.ships[0]?.seats.find((s) => s.seat === seat);
 
 describe('rosterModel', () => {
-    it('an empty bridge has every roster seat unassigned', () => {
+    it('an empty bridge has every seat with screens unassigned', () => {
         const m = model([]);
         expect(m.ships[0]?.seats.map((s) => [s.seat, s.unassigned])).toEqual([
             ['pilot', true],
             ['weapons', true],
             ['engineer', true],
             ['sigint', true],
+            ['tactical', false],
         ]);
+    });
+
+    it('lists tactical as a bot-only seat with no screens', () => {
+        const bot = { brain: 'reference', status: 'running', message: '' };
+        expect(seatOf(model([]), 'tactical')?.screens).toEqual([]);
+        expect(seatOf(model([], { 'S1|tactical': bot }), 'tactical')?.bot).toEqual(bot);
     });
 
     it('a client on dradis holds that screen and assigns sigint', () => {

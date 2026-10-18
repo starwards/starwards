@@ -141,9 +141,9 @@ export function isAssignableSeat(entry: StationEntry | undefined): boolean {
 /**
  * A seat is what one player (or one bot) plays; a screen is what one client shows. A human may need
  * several clients for one seat. `bot` is the station a bot of this seat plays through: one of its
- * screens, or a fused station of several (`tactical`). A `botOnly` seat never appears on the roster.
+ * screens, or a fused station of the stations in `fuses`. A seat with no screens is bot-only.
  */
-type SeatRow = { screens: readonly string[]; bot: string; botOnly?: boolean };
+type SeatRow = { screens: readonly string[]; bot: string; fuses?: readonly string[] };
 
 /** The seat table: the single source of which screens each bridge seat spans. */
 export const bridgeSeats = {
@@ -151,16 +151,14 @@ export const bridgeSeats = {
     weapons: { screens: ['weapons'], bot: 'weapons' },
     engineer: { screens: ['engineer'], bot: 'engineer' },
     sigint: { screens: ['signals', 'dradis', 'target-details'], bot: 'signals' },
-    tactical: { screens: ['helms', 'weapons'], bot: 'tactical', botOnly: true },
+    tactical: { screens: [], bot: 'tactical', fuses: ['helms', 'weapons'] },
 } as const satisfies Record<string, SeatRow>;
 
 /** A seat on a ship's bridge, taken by a human or a GM-assigned bot. */
 export type BridgeSeat = keyof typeof bridgeSeats;
 
-/** Seats a human can take, in bridge order. Excludes bot-only seats. */
-export const rosterSeats = (Object.keys(bridgeSeats) as BridgeSeat[]).filter(
-    (s) => !(bridgeSeats[s] as SeatRow).botOnly,
-);
+/** Seats the GM roster lists, in bridge order. */
+export const rosterSeats = Object.keys(bridgeSeats) as BridgeSeat[];
 
 /** True when `seat` names a row of the seat table. */
 export function isBridgeSeat(seat: string): seat is BridgeSeat {
@@ -177,9 +175,7 @@ export function seatOfScreen(screen: string): BridgeSeat | undefined {
     return rosterSeats.find((s) => seatScreens(s).includes(screen));
 }
 
-/** Fused stations: seats whose bot plays a station that is none of their screens, keyed by that station. */
+/** Fused stations: seats whose bot plays several stations as one, keyed by the fused station. */
 export const multiplexedStations: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-    Object.values(bridgeSeats as Record<string, SeatRow>)
-        .filter((row) => !row.screens.includes(row.bot))
-        .map((row) => [row.bot, row.screens]),
+    Object.values(bridgeSeats as Record<string, SeatRow>).flatMap((row) => (row.fuses ? [[row.bot, row.fuses]] : [])),
 );

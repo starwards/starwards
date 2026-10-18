@@ -1,4 +1,4 @@
-import { Driver, Faction, rosterSeats, sleep, waitFor } from '@starwards/core/internal';
+import { Driver, Faction, rosterSeats, seatScreens, sleep, waitFor } from '@starwards/core/internal';
 
 import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { makeDriver } from '../test/driver';
@@ -57,14 +57,16 @@ run('bot load', () => {
         await sleep(2_000); // settle after map start
         const a = await measure();
 
+        // a full human bridge: the bot-only tactical seat would double up on pilot and weapons
+        const crewSeats = rosterSeats.filter((seat) => seatScreens(seat).length > 0);
         const driver = new Driver(new URL(gameDriver.url())).connect();
         try {
             const admin = await driver.getAdminDriver();
             for (const shipId of manager.state.playerShipIds) {
-                for (const seat of rosterSeats) admin.assignBot({ shipId, seat, brain: 'reference' });
+                for (const seat of crewSeats) admin.assignBot({ shipId, seat, brain: 'reference' });
             }
             for (const shipId of manager.state.playerShipIds) {
-                for (const seat of rosterSeats) {
+                for (const seat of crewSeats) {
                     await waitFor(
                         () => expect(admin.state.bots.get(shipId)?.seats.get(seat)?.status).toBe('running'),
                         30_000,
