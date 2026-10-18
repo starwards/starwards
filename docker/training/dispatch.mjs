@@ -6,7 +6,7 @@
 //   is not ignored. Demand present: no new filler, so a slot frees when the next filler shard ends.
 // - Due: a non-suspended CronJob (other than ignored ones) fires within HORIZON_MIN minutes: fillers capped
 //   at SLOTS - 1, so the CronJob finds a slot.
-// - Otherwise fillers fill up to SLOTS.
+// - Otherwise fillers fill up to SLOTS. A filler lane CronJob that is not suspended reserves one slot.
 // Fillers are Jobs made from the jobTemplate of the lane's CronJob rolling-<lane> (suspended while the
 // dispatcher runs), labelled role=filler and starwards/lane=<lane>; lanes are picked by LANE_WEIGHTS
 // against the fillers already running.
@@ -88,13 +88,17 @@ const due = crons.items
     .filter((c) => !c.spec.suspend && !ignored(c.metadata.name) && c.spec.jobTemplate.metadata?.labels?.role !== 'filler')
     .map((c) => ({ name: c.metadata.name, in: dueWithin(c.spec.schedule, c.spec.timeZone, HORIZON) }))
     .filter((c) => c.in !== null);
-const cap = demand.length ? fillers.length : due.length ? SLOTS - 1 : SLOTS;
-const launch = Math.max(0, cap - fillers.length);
+// a running filler lane (CronJob rolling-<lane>, not suspended) holds its slot even between its cycles
+const lanes = crons.items.filter((c) => !c.spec.suspend && c.spec.jobTemplate.metadata?.labels?.role === 'filler');
+const own = fillers.filter((j) => !(j.metadata.ownerReferences ?? []).some((o) => o.kind === 'CronJob'));
+const cap = due.length ? SLOTS - 1 : SLOTS;
+const launch = demand.length ? 0 : Math.max(0, cap - lanes.length - own.length);
 console.log(
     JSON.stringify({
         at: new Date().toISOString(),
         fillers: fillers.map((j) => j.metadata.name),
         demand: demand.map((j) => j.metadata.name),
+        lanes: lanes.map((c) => c.metadata.name),
         due,
         cap,
         launch,
