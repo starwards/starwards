@@ -13,14 +13,14 @@ npm test                   # Verify
 
 ## Build
 
-| Command              | Purpose                     |
-| -------------------- | --------------------------- |
-| `npm run build`      | Build all modules           |
-| `npm run build:core` | Core only                   |
-| `npm run clean`      | Remove artifacts            |
+| Command              | Purpose                              |
+| -------------------- | ------------------------------------ |
+| `npm run build`      | Build all modules                    |
+| `npm run build:core` | Core only                            |
+| `npm run clean`      | Remove artifacts                     |
 | `npm run build:exe`  | Native executables (Windows + Linux) |
 
-**Build order:** core → (server, browser, node-red, mcp in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
+**Build order:** core → bots → (server, browser, node-red, mcp in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
 
 **Production build:**
 
@@ -46,6 +46,7 @@ npm run build:exe # → dist/exec/starwards-win.exe, dist/exec/starwards-linux (
 ```bash
 npm run dev
 # core watch + API server + webpack dev server in one terminal
+# the server waits for core, builds bots once, then starts; rerun `npm run build:bots` after editing modules/bots
 # Zellij pane-grid variant: npm run dev:zellij
 ```
 
@@ -67,6 +68,7 @@ cd modules/browser && npm start
 **Terminal 3: API Server**
 
 ```bash
+npm run build:bots   # once core is built, and again after editing modules/bots
 node -r ts-node/register/transpile-only modules/server/src/dev.ts
 # Runs on http://localhost:8080
 ```
