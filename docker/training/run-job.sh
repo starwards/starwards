@@ -2,7 +2,7 @@
 # Entry point of the training image. The job spec comes from the environment (the first argument
 # overrides JOB); see docs/integration/ai-training-k3s.md.
 #
-#   JOB              train | branch | suite | merge | help
+#   JOB              train | branch | suite | merge | rolling | dispatch | help
 #   RUN_NAME         run folder name (default: the Kubernetes job name, else JOB-SCENARIO)
 #   RUN_DATE         archive day YYYY-MM-DD (default: from a CronJob's job name, else today UTC)
 #   ARCHIVE          archive root, laid out as training-archive (default /training-archive)
@@ -19,6 +19,7 @@
 #   BASELINE         suite baseline name (default the crew's)                (suite)
 #   HEAP_MB          V8 old-space cap per process (default 4096)
 #   EXTRA_ARGS       appended to the CLI call
+#   BRANCH_ARGS      appended to the corpus call only, e.g. --station helms --control afterBurner (branch)
 #   KEEP_SHARDS      1 keeps _shards/<date>/<run> after a merge (default 0)
 #
 # Every shard writes ARCHIVE/_shards/<date>/<run>/shard-<i>/ and a `done` marker; the shard that
@@ -59,8 +60,15 @@ cli() {
     script=$1
     shift
     cd "$AI"
-    # shellcheck disable=SC2086
-    node --max-old-space-size="$HEAP_MB" -r ts-node/register/transpile-only "src/$script" "$@" ${EXTRA_ARGS:-}
+    # train and branch run precompiled (dist/cli, same output as ts-node); the rest through ts-node
+    bundle=dist/cli/$(basename "$script" .ts).js
+    if [ -f "$bundle" ]; then
+        # shellcheck disable=SC2086
+        node --max-old-space-size="$HEAP_MB" "$bundle" "$@" ${EXTRA_ARGS:-}
+    else
+        # shellcheck disable=SC2086
+        node --max-old-space-size="$HEAP_MB" -r ts-node/register/transpile-only "src/$script" "$@" ${EXTRA_ARGS:-}
+    fi
 }
 
 shard_seeds() {
@@ -118,7 +126,7 @@ branch)
     # record this shard's seeds, then branch them on the same code (a branch replays its recording from the seed)
     train_shard 400
     cli cli/branch.ts corpus --runs "$SHARD_DIR/runs" --crew "$(first_crew)" --scenario "$SCENARIO" \
-        --levels "${LEVELS:-strategic,tactical}" --budget "${BUDGET:-25}" --workers "$WORKERS" --out "$SHARD_DIR/corpus"
+        --levels "${LEVELS:-strategic,tactical}" --budget "${BUDGET:-25}" --workers "$WORKERS" --out "$SHARD_DIR/corpus" ${BRANCH_ARGS:-}
     finish_shard
     ;;
 suite)
@@ -139,7 +147,13 @@ suite)
 merge)
     merge
     ;;
+rolling)
+    exec rolling
+    ;;
+dispatch)
+    exec node /app/dispatch.mjs
+    ;;
 help | *)
-    sed -n '2,24p' "$0"
+    sed -n '2,25p' "$0"
     ;;
 esac

@@ -8,6 +8,6 @@ images:
       newTag: 2a9b72db
 patches:
     - path: scheduling.yaml
-      target: { kind: Job }
+      target: { kind: Job, labelSelector: app.kubernetes.io/name=starwards-training }
     - path: scheduling-cron.yaml
-      target: { kind: CronJob }
+      target: { kind: CronJob, labelSelector: app.kubernetes.io/name=starwards-training }

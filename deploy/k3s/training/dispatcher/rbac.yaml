@@ -1,0 +1,24 @@
+# For the cluster repo (manifests/35-starwards-training.yaml): the dispatcher's account may read Jobs and
+# CronJobs and create Jobs in the namespace, nothing else. Not part of the kustomization: the
+# training-manager account may not create RBAC.
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: starwards-dispatcher, namespace: starwards-training }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: starwards-dispatcher, namespace: starwards-training }
+rules:
+    - apiGroups: [batch]
+      resources: [jobs]
+      verbs: [get, list, create]
+    - apiGroups: [batch]
+      resources: [cronjobs]
+      verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: starwards-dispatcher, namespace: starwards-training }
+subjects:
+    - { kind: ServiceAccount, name: starwards-dispatcher, namespace: starwards-training }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: starwards-dispatcher }

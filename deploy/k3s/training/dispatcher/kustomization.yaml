@@ -1,0 +1,13 @@
+# Filler dispatcher: every 5 min, creates filler Jobs from filler-template so idle slots never sit empty,
+# and yields to every other Job (docker/training/dispatch.mjs). Replaces the fixed rolling lanes.
+# rbac.yaml must be applied by the cluster owner first: the training-manager account cannot create RBAC.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+    - cronjob.yaml
+patches:
+    - target: { kind: CronJob, name: rolling-.* }
+      patch: |-
+          - op: replace
+            path: /spec/suspend
+            value: true

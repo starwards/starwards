@@ -14,10 +14,15 @@
 !modules/ai/crews
 !modules/ai/brains
 !modules/ai/curriculum
+!modules/ai/build-cli.mjs
 !docker/training/run-job.sh
 !docker/training/build_manifest.py
+!docker/training/rolling.sh
+!docker/training/mining.py
+!docker/training/dispatch.mjs
 **/node_modules
 **/cjs
+**/dist
 **/*.tgz
 **/.env
 **/.env.*

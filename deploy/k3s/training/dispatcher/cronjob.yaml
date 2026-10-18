@@ -1,0 +1,49 @@
+# Not labelled app.kubernetes.io/name=starwards-training: no one-per-node anti-affinity, so it schedules
+# beside three fillers. Small enough to fit the quota beside them.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+    name: filler-dispatcher
+    labels: { starwards/job: filler-dispatcher }
+spec:
+    schedule: '*/5 * * * *'
+    timeZone: Europe/Amsterdam
+    concurrencyPolicy: Forbid
+    startingDeadlineSeconds: 120
+    successfulJobsHistoryLimit: 1
+    failedJobsHistoryLimit: 3
+    jobTemplate:
+        metadata:
+            labels: { role: dispatcher }
+        spec:
+            backoffLimit: 0
+            activeDeadlineSeconds: 240
+            ttlSecondsAfterFinished: 3600
+            template:
+                metadata:
+                    labels: { role: dispatcher }
+                spec:
+                    serviceAccountName: starwards-dispatcher
+                    priorityClassName: starwards-training
+                    restartPolicy: Never
+                    securityContext:
+                        runAsNonRoot: true
+                        runAsUser: 1000
+                        runAsGroup: 1000
+                        seccompProfile: { type: RuntimeDefault }
+                    containers:
+                        - name: dispatch
+                          image: starwards-training
+                          args: [dispatch]
+                          env:
+                              - { name: SLOTS, value: '3' }
+                              - { name: HORIZON_MIN, value: '60' } # a filler shard's max wall: fillers cap at 2 this long before any CronJob fires
+                              - { name: LANE_WEIGHTS, value: 'branch=2,sweep=1' }
+                              - { name: NODE_EXTRA_CA_CERTS, value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt }
+                          resources:
+                              requests: { cpu: 50m, memory: 128Mi }
+                              limits: { memory: 256Mi }
+                          securityContext:
+                              allowPrivilegeEscalation: false
+                              readOnlyRootFilesystem: true
+                              capabilities: { drop: [ALL] }

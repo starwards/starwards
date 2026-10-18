@@ -1,0 +1,66 @@
+# Rolling sweep lane: a filler cycle (role=filler) whenever the previous one ended, every 10 min at most.
+# The two lanes hold 2 of the 3 slots around the clock and leave one for ad-hoc and nightly Jobs; with
+# the dispatcher component they are suspended and the dispatcher fills slots instead.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+    name: rolling-sweep
+    labels: { app.kubernetes.io/name: starwards-training, starwards/job: rolling-sweep }
+spec:
+    schedule: '*/10 * * * *'
+    timeZone: Europe/Amsterdam
+    suspend: false
+    concurrencyPolicy: Forbid
+    startingDeadlineSeconds: 300
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 5
+    jobTemplate:
+        metadata:
+            labels: { role: filler, starwards/lane: sweep }
+        spec:
+            backoffLimit: 0
+            activeDeadlineSeconds: 5400 # a filler shard must turn over: 90 min hard stop
+            ttlSecondsAfterFinished: 86400
+            template:
+                metadata:
+                    labels: { app.kubernetes.io/name: starwards-training, starwards/job: rolling, role: filler, starwards/lane: sweep }
+                spec:
+                    restartPolicy: Never
+                    securityContext:
+                        runAsNonRoot: true
+                        runAsUser: 1000
+                        runAsGroup: 1000
+                        fsGroup: 1000
+                        seccompProfile: { type: RuntimeDefault }
+                    containers:
+                        - name: filler
+                          image: starwards-training
+                          env:
+                              - { name: JOB, value: rolling }
+                              - { name: sweep, value: sweep }
+                              # one rung per cycle in turn; branch: level set after each full turn
+                              - { name: RUNGS, value: 'T3-directed,T3-incoming,T2-dock,W-waves' }
+                              - { name: LEVEL_SETS, value: 'strategic,tactical|button:helms:afterBurner' }
+                              - { name: TIMEOUTS, value: 'W-waves=1800' }
+                              # the branch lane records and branches the first crew; the sweep plays all three
+                              - { name: CREWS, value: 'crews/captain-reference.json,crews/captain-orders-reference.json,crews/captain-doctrine-reference.json' }
+                              - { name: SEEDS, value: '6' }
+                              - { name: BUDGET, value: '0' } # unused by the sweep
+                              - { name: WORKERS, value: '4' }
+                              - name: JOB_NAME
+                                valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
+                          resources:
+                              requests: { cpu: 500m, memory: 6656Mi } # WORKERS x 1.5 GiB + 0.5 GiB
+                              limits: { memory: 7Gi }
+                          securityContext:
+                              allowPrivilegeEscalation: false
+                              readOnlyRootFilesystem: true
+                              capabilities: { drop: [ALL] }
+                          volumeMounts:
+                              - { name: archive, mountPath: /training-archive }
+                              - { name: tmp, mountPath: /tmp }
+                    volumes:
+                        - name: archive
+                          persistentVolumeClaim: { claimName: training-archive }
+                        - name: tmp
+                          emptyDir: {}

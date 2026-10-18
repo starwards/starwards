@@ -25,6 +25,10 @@ COPY custom-typings custom-typings
 COPY modules/core modules/core
 COPY modules/bots modules/bots
 RUN npm --prefix modules/core run build && npm --prefix modules/bots run build
+# precompiled train/branch CLIs (esbuild, a root dev dependency): docs/testing/headless-runtime-benchmarks.md
+COPY modules/server modules/server
+COPY modules/ai modules/ai
+RUN npm --prefix modules/ai run build:cli
 
 # production dependencies of the four workspaces only
 FROM manifests AS deps
@@ -59,8 +63,12 @@ COPY modules/ai/src modules/ai/src
 COPY modules/ai/crews modules/ai/crews
 COPY modules/ai/brains modules/ai/brains
 COPY modules/ai/curriculum modules/ai/curriculum
+# the bundles, and their V8 compile cache written here at the runtime paths (a cache entry holds only for its source and Node)
+COPY --from=build /app/modules/ai/dist/cli modules/ai/dist/cli
+RUN cd modules/ai && for cli in train branch; do       node -e "process.send = () => true; require('./dist/cli/$cli.js')"; done
 COPY --chmod=755 docker/training/run-job.sh /usr/local/bin/run-job
-COPY docker/training/build_manifest.py /app/build_manifest.py
+COPY --chmod=755 docker/training/rolling.sh /usr/local/bin/rolling
+COPY docker/training/build_manifest.py docker/training/mining.py docker/training/dispatch.mjs /app/
 # the archive volume mounts at /training-archive: the jev answer cache resolves to /training-archive/jev-cache
 RUN mkdir -p /training-archive && chown node:node /training-archive
 USER node
