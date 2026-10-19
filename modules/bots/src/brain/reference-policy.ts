@@ -126,7 +126,7 @@ export function makeReferencePolicy(
             }
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
-            const orders = captainOrdersFromBoard(display);
+            const orders = captainOrdersFromBoard(display, previous);
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
@@ -166,6 +166,7 @@ export function makeReferencePolicy(
                 state: talk,
                 salvo: launched,
                 salvoOrdered: orders.salvo !== undefined,
+                focusOrdered: orders.focus === true,
             });
             previous = display;
             if (callout) {

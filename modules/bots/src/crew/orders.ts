@@ -3,6 +3,7 @@ import {
     CrewOrderBoard,
     DEFAULT_PRIORITIES,
     DOCK_BELOW_ARMOR_SHARE,
+    FocusPick,
     IssueOrderArg,
     OrderIssuer,
     OrderParamsArg,
@@ -40,6 +41,10 @@ export type OrderParams = {
     threshold?: number;
     /** How many missiles a `salvo` keeps in flight. */
     count?: number;
+    /** The ships a `focus` order fights, first first. */
+    targets?: OrderRef[];
+    /** How a `focus` order picks among the enemy ships in sight. */
+    pick?: FocusPick;
     /** `revoke`: the slot it empties. */
     slot?: OrderSlot;
 };
@@ -81,8 +86,16 @@ type OrderProgress = {
 /** `docking-status` mode numbers (`DockingMode`). */
 export const DOCKING_MODE = { DOCKED: 0, UNDOCKED: 1, DOCKING: 2, UNDOCKING: 3 } as const;
 
-type Contact = { name?: string; distance: number; position?: XY; radius?: number };
-type Radar = { ownShip?: { position?: XY }; contacts?: Contact[] };
+type Contact = {
+    id?: string;
+    name?: string;
+    distance: number;
+    position?: XY;
+    radius?: number;
+    type?: string;
+    faction?: number;
+};
+type Radar = { ownShip?: { position?: XY; faction?: number }; contacts?: Contact[] };
 const own = (d: Display) => (d.radar as Radar | undefined)?.ownShip?.position;
 const km = (m: number) => `${(m / 1000).toFixed(1)} km`;
 /** The share of armor plates still healthy a display shows. */
@@ -104,12 +117,46 @@ export function whereIs(display: Display, ref: OrderRef | undefined, mode: 'froz
     return (mode === 'live' ? seenAs(display, ref)?.position : undefined) ?? ref?.position;
 }
 
+/**
+ * The ship a `focus` order points a seat at now, among the enemy ships its radar shows: the first of
+ * its `targets` in sight; or, with a `pick`, the enemy nearest the order's station or the one closing
+ * fastest since the `previous` display (the nearest without one). A destroyed ship drops off the
+ * radar, so the focus moves on to the next.
+ */
+export function focusTarget(params: OrderParams, display: Display, previous?: Display): Contact | undefined {
+    const radar = display.radar as Radar | undefined;
+    const faction = radar?.ownShip?.faction;
+    const enemies = (radar?.contacts ?? []).filter(
+        (c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== faction,
+    );
+    if (!params.pick) {
+        return (params.targets ?? []).flatMap((t) => enemies.filter((e) => e.name === t.name))[0];
+    }
+    const by = (score: (c: Contact) => number) => [...enemies].sort((a, b) => score(a) - score(b))[0];
+    if (params.pick === 'nearest_to') {
+        const at = whereIs(display, params.station, 'live');
+        return at && by((c) => (c.position ? Math.hypot(c.position.x - at.x, c.position.y - at.y) : Infinity));
+    }
+    const before = (previous?.radar as Radar | undefined)?.contacts ?? [];
+    // fastest closing: the largest drop in range since the previous display
+    return by((c) => {
+        const was = before.find((b) => b.id === c.id);
+        return was ? c.distance - was.distance : c.distance;
+    });
+}
+
 /** The progress and triggers of the kinds that have them; the kinds themselves are data in core (`CREW_ORDER_KINDS`). */
 const ORDER_PROGRESS: Record<string, OrderProgress> = {
     chase_target: {
         progress: (order, { station, display }) =>
             station === 'weapons' && !seenAs(display, order.params.target)
                 ? { status: 'aborted', note: 'target lost' }
+                : undefined,
+    },
+    focus: {
+        progress: (order, { station, display }) =>
+            station === 'weapons' && !order.params.pick && !focusTarget(order.params, display)
+                ? { status: 'aborted', note: 'targets lost or destroyed' }
                 : undefined,
     },
     engage: {
@@ -187,6 +234,8 @@ export function paramsArg(p: OrderParams = {}): OrderParamsArg {
     if (p.range !== undefined) out.range = p.range;
     if (p.threshold !== undefined) out.threshold = p.threshold;
     if (p.count !== undefined) out.count = p.count;
+    if (p.targets) out.targets = p.targets.map((t) => ref(t) ?? {});
+    if (p.pick !== undefined) out.pick = p.pick;
     return out;
 }
 
@@ -327,10 +376,16 @@ type HelmOrder = { kind: 'close'; spot: XY } | { kind: 'hold' };
  * The board's maneuver order (`helm`), the ship it says to engage (`engage`) and the missiles a salvo
  * keeps in flight (`salvo`), for the reference seats.
  */
-export function captainOrdersFromBoard(display: Display | undefined): {
+export function captainOrdersFromBoard(
+    display: Display | undefined,
+    /** The seat's previous display, for a focus that picks the fastest closing enemy. */
+    previous?: Display,
+): {
     helm?: HelmOrder;
     engage?: string;
     salvo?: number;
+    /** The board holds a focus order: `engage` names the ship it points at now. */
+    focus?: boolean;
 } {
     const board = readOrders(display);
     const m = board.orders.find((o) => o.slot === 'maneuver' && o.status === 'active');
@@ -355,9 +410,13 @@ export function captainOrdersFromBoard(display: Display | undefined): {
     }
     const engage = board.orders.find((o) => o.kind === 'engage' && o.status === 'active');
     const salvo = board.orders.find((o) => o.kind === 'salvo' && o.status === 'active');
+    const focus = board.orders.find((o) => o.kind === 'focus' && o.status === 'active');
     return {
         helm,
-        engage: engage?.params.target?.name,
+        engage:
+            engage?.params.target?.name ??
+            (focus && display ? focusTarget(focus.params, display, previous)?.name : undefined),
+        ...(focus ? { focus: true } : {}),
         ...(salvo ? { salvo: salvo.params.count ?? SALVO_MISSILES } : {}),
     };
 }
@@ -408,6 +467,10 @@ const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => Give
     },
     push_on: () => ({ kind: 'revoke', params: { slot: 'navigation' } }),
     salvo: (v) => ({ kind: 'salvo', params: { count: Number(v.count) } }),
+    focus: (v) =>
+        v.pick === 'nearest_to'
+            ? { kind: 'focus', params: { pick: 'nearest_to', station: { name: v.station } } }
+            : { kind: 'focus', params: { targets: (v.names ?? '').split(', ').map((name) => ({ name })) } },
     ...Object.fromEntries(STANCES.map((s) => [s, () => ({ kind: s })])),
 };
 

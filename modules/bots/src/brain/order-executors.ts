@@ -1,6 +1,6 @@
 import { Answer, Policy } from './brain';
 import { CREW_ORDER_KINDS, RETREAT_RUN_METERS, SALVO_MISSILES } from '@starwards/core/internal';
-import { DOCKING_MODE, ShownOrder, ordersBinding, readOrders, whereIs } from '../crew/orders';
+import { DOCKING_MODE, ShownOrder, focusTarget, ordersBinding, readOrders, whereIs } from '../crew/orders';
 import { flightSeconds, stillFlying } from './salvo';
 
 import { Control } from './controls';
@@ -34,6 +34,8 @@ type Context = {
     controls: readonly Control[];
     base: Record<string, Answer>;
     memory: Map<string, unknown>;
+    /** The seat's display at its previous decision. */
+    previous?: Display;
 };
 
 /**
@@ -229,6 +231,17 @@ const helmsExecutors: Record<string, OrderExecutor> = {
             return spot ? flyHelm(display, spot) : {};
         },
     },
+    focus: {
+        // the nose follows the focus as the engagement's does its named ship
+        constrains: ['rotation'],
+        propose(order, { display, previous }) {
+            const helms = display.panels['helms-stats'] as Helms | undefined;
+            const contact = focusTarget(order.params, display, previous);
+            if (!helms || !contact || helms.rotationMode === TARGET_MODE) return {};
+            const at = contact.position && bearingTo(own(display), contact.position);
+            return at === undefined ? {} : { rotation: turnToward(helms, delta(at, heading(display))) };
+        },
+    },
     engage: {
         // the gun is bolted to the nose: an engagement turns the ship onto its target, unless the smart pilot already holds it there
         constrains: ['rotation'],
@@ -308,7 +321,17 @@ const salvoDiscipline: OrderExecutor = {
     },
 };
 
+/** Weapons cycles its lock until it holds the ship the focus points at now. */
+const lockFocus: OrderExecutor = {
+    constrains: ['target'],
+    propose(order, { display, previous }) {
+        const wanted = focusTarget(order.params, display, previous)?.name;
+        return wanted && lockOf(display)?.name !== wanted ? { target: 'next' } : {};
+    },
+};
+
 const weaponsExecutors: Record<string, OrderExecutor> = {
+    focus: lockFocus,
     chase_target: lockNamed,
     engage: lockNamed,
     hold_fire: {
@@ -416,6 +439,7 @@ export const ORDER_EXECUTORS: Record<string, Record<string, OrderExecutor>> = {
 export function withOrderBoard(policy: Policy, station: string): Policy {
     const executors = ORDER_EXECUTORS[station] ?? {};
     const memory = new Map<string, unknown>();
+    let previous: Display | undefined;
     return {
         name: policy.name,
         async answer(request, controls, shown, heard) {
@@ -427,7 +451,13 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
             for (const order of ordersBinding(board, station)) {
                 const executor = executors[order.kind];
                 if (!executor) continue;
-                const proposal = executor.propose(order, { display, controls, base: result.answers, memory });
+                const proposal = executor.propose(order, {
+                    display,
+                    controls,
+                    base: result.answers,
+                    memory,
+                    previous,
+                });
                 for (const control of controls) {
                     const choice = proposal[control.id];
                     if (!decided.has(control.id) && choice !== undefined && choice in control.options) {
@@ -436,6 +466,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
                     }
                 }
             }
+            previous = display;
             return { ...result, answers };
         },
     };

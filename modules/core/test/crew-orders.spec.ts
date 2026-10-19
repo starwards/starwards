@@ -59,6 +59,38 @@ describe('crew order board', () => {
         expect(orderParams(slot('stance')!.params)).to.eql({ count: 2 });
     });
 
+    it('places a focus with an ordered list or a pick rule in the engagement slot, refusing one with neither', () => {
+        const { state, tick, slot } = ship();
+        const bad: unknown[] = [
+            { kind: 'focus', issuer: 'captain' },
+            { kind: 'focus', issuer: 'captain', params: { targets: [] } },
+            { kind: 'focus', issuer: 'captain', params: { pick: 'weakest' } },
+            { kind: 'focus', issuer: 'captain', params: { pick: 'nearest_to' } },
+        ];
+        for (const b of bad) issueOrder.setValue(state, b as never);
+        tick();
+        expect(state.orderBoard.slots.size).to.equal(0);
+        issueOrder.setValue(state, {
+            kind: 'focus',
+            params: { targets: [{ name: 'raider-2' }, { name: 'raider-1' }] },
+            issuer: 'captain',
+        });
+        tick();
+        expect(orderParams(slot('engagement')!.params)).to.eql({
+            targets: [{ name: 'raider-2' }, { name: 'raider-1' }],
+        });
+        issueOrder.setValue(state, {
+            kind: 'focus',
+            params: { pick: 'nearest_to', station: { name: 'Small Station' } },
+            issuer: 'captain',
+        });
+        tick();
+        expect(orderParams(slot('engagement')!.params)).to.eql({
+            pick: 'nearest_to',
+            station: { name: 'Small Station' },
+        });
+    });
+
     it('revokes contradicted orders, ignores a repeat, and revokes a slot', () => {
         const { state, tick, slot } = ship();
         issueOrder.setValue(state, { kind: 'engage', params: { target: { name: 'r' } }, issuer: 'captain' });

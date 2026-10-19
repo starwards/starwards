@@ -3,6 +3,7 @@ import {
     CrewOrder,
     CrewOrderBoard,
     CrewOrderRef,
+    FOCUS_PICKS,
     IssueOrderArg,
     NUMBER_PARAMS,
     ORDER_ISSUERS,
@@ -48,11 +49,18 @@ function validIssue(c: Record<string, unknown>): c is IssueOrderArg & Record<str
                   ? !finite(value) || value < 0 || value > 1
                   : type === 'count'
                     ? !Number.isInteger(value) || (value as number) < 1
-                    : !validRef(value)
+                    : type === 'contacts'
+                      ? !Array.isArray(value) || !value.length || !value.every(validRef)
+                      : type === 'pick'
+                        ? !FOCUS_PICKS.includes(value as never)
+                        : !validRef(value)
         ) {
             return false;
         }
     }
+    // a focus names its targets, a rule to pick them, or both; the station rule names its station
+    if (c.kind === 'focus' && ((!params.targets && !params.pick) || (params.pick === 'nearest_to' && !params.station)))
+        return false;
     return Object.entries(def.params).every(([name, need]) => need !== 'required' || params[name] !== undefined);
 }
 
@@ -106,6 +114,12 @@ export class CrewOrdersManager implements Updateable {
         order.kind = kind;
         for (const name of REF_PARAMS) writeRef(order.params[name], params[name]);
         for (const name of NUMBER_PARAMS) order.params[name] = params[name] ?? 0;
+        for (const t of params.targets ?? []) {
+            const ref = new CrewOrderRef();
+            writeRef(ref, t);
+            order.params.targets.push(ref);
+        }
+        order.params.pick = params.pick ?? '';
         const current = this.board.slots.get(def.slot);
         if (current?.kind === kind && current.status === 'active' && this.sameParams(current, order)) return;
         const displaced = [...this.board.slots.entries()].filter(
@@ -126,7 +140,10 @@ export class CrewOrdersManager implements Updateable {
     private sameParams(a: CrewOrder, b: CrewOrder) {
         return (
             REF_PARAMS.every((n) => sameRef(a.params[n], b.params[n])) &&
-            NUMBER_PARAMS.every((n) => a.params[n] === b.params[n])
+            NUMBER_PARAMS.every((n) => a.params[n] === b.params[n]) &&
+            a.params.pick === b.params.pick &&
+            a.params.targets.length === b.params.targets.length &&
+            a.params.targets.every((t, i) => sameRef(t, b.params.targets[i]))
         );
     }
 

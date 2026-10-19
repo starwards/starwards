@@ -1,4 +1,4 @@
-import { MapSchema, Schema } from '@colyseus/schema';
+import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 
 import { gameField } from '../game-field';
 
@@ -49,9 +49,18 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
  * - `body`: a large body such as a nebula (name, position, radius);
  * - `meters`: a distance;
  * - `share`: a fraction 0..1;
- * - `count`: a whole number of things, 1 or more.
+ * - `count`: a whole number of things, 1 or more;
+ * - `contacts`: ships in order of priority, each as a `contact`;
+ * - `pick`: one of {@link FOCUS_PICKS}.
  */
-export type OrderParamType = 'contact' | 'station' | 'body' | 'meters' | 'share' | 'count';
+export type OrderParamType = 'contact' | 'station' | 'body' | 'meters' | 'share' | 'count' | 'contacts' | 'pick';
+
+/**
+ * How a `focus` order picks its target among the enemy ships a seat sees, when it names a rule
+ * instead of (or beside) a list: `nearest_to` its `station`, or `fastest_closing` on the own ship.
+ */
+export const FOCUS_PICKS = ['nearest_to', 'fastest_closing'] as const;
+export type FocusPick = (typeof FOCUS_PICKS)[number];
 export const ORDER_PARAMS = {
     /** A ship to close on, chase, engage or retreat from. */
     target: 'contact',
@@ -67,6 +76,10 @@ export const ORDER_PARAMS = {
     threshold: 'share',
     /** How many missiles a `salvo` keeps in flight. */
     count: 'count',
+    /** The ships a `focus` order fights, first first. */
+    targets: 'contacts',
+    /** How a `focus` order picks among the enemy ships in sight. */
+    pick: 'pick',
 } as const satisfies Record<string, OrderParamType>;
 export type OrderParamName = keyof typeof ORDER_PARAMS;
 export const REF_PARAMS = ['target', 'station', 'region', 'from'] as const satisfies readonly OrderParamName[];
@@ -77,7 +90,8 @@ export const NUMBER_PARAMS = ['range', 'threshold', 'count'] as const satisfies 
 export type OrderRefArg = { name?: string; position?: { x: number; y: number }; radius?: number };
 /** An order's parameters as a command carries them. */
 export type OrderParamsArg = Partial<
-    Record<RefParamName, OrderRefArg> & Record<(typeof NUMBER_PARAMS)[number], number>
+    Record<RefParamName, OrderRefArg> &
+        Record<(typeof NUMBER_PARAMS)[number], number> & { targets: OrderRefArg[]; pick: FocusPick }
 >;
 
 /**
@@ -243,6 +257,19 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
      * Fire discipline, in the stance slot: weapons launches until `count` missiles of this order fly,
      * holds the tubes, and launches again once one of them arrived without a kill.
      */
+    focus: {
+        slot: 'engagement',
+        binds: ['weapons', 'engineer', 'helms'],
+        params: { targets: 'optional', pick: 'optional', station: 'optional' },
+        reference: LIVE_SHIP,
+        describe: (p) =>
+            p.pick === 'nearest_to'
+                ? `focus the enemy nearest ${named(p.station, 'the station')}`
+                : p.pick === 'fastest_closing'
+                  ? 'focus the fastest closing enemy'
+                  : `focus ${(p.targets ?? []).map((t) => named(t, 'a contact')).join(', then ')}`,
+        contradicts: ['hold_fire'],
+    },
     salvo: {
         slot: 'stance',
         binds: ['weapons'],
@@ -277,6 +304,10 @@ export class CrewOrderParams extends Schema {
     @gameField('float64') threshold = 0;
     /** A `count` parameter: missiles. */
     @gameField('float64') count = 0;
+    /** A `targets` parameter, first first; empty when not given. */
+    @gameField([CrewOrderRef]) targets = new ArraySchema<CrewOrderRef>();
+    /** A `pick` parameter ({@link FocusPick}), '' when not given. */
+    @gameField('string') pick = '';
 }
 
 /** One order on the board: its kind and parameters, who gave it and when, and how far it has got. */
@@ -341,20 +372,24 @@ export function boardRanking(board: CrewOrderBoard): OrderSlot[] {
     return [...((s && CREW_ORDER_KINDS[s.kind]?.ranking) ?? DEFAULT_PRIORITIES)];
 }
 
+function refArg(r: CrewOrderRef): OrderRefArg {
+    return {
+        ...(r.name ? { name: r.name } : {}),
+        ...(r.positioned ? { position: { x: r.x, y: r.y } } : {}),
+        ...(r.radius ? { radius: r.radius } : {}),
+    };
+}
+
 /** An order's parameters read back from the board, in the shape a command gives them. */
 export function orderParams(p: CrewOrderParams): OrderParamsArg {
     const out: OrderParamsArg = {};
     for (const name of REF_PARAMS) {
-        const r = p[name];
-        if (!r.given) continue;
-        out[name] = {
-            ...(r.name ? { name: r.name } : {}),
-            ...(r.positioned ? { position: { x: r.x, y: r.y } } : {}),
-            ...(r.radius ? { radius: r.radius } : {}),
-        };
+        if (p[name].given) out[name] = refArg(p[name]);
     }
     for (const name of NUMBER_PARAMS) {
         if (p[name]) out[name] = p[name];
     }
+    if (p.targets.length) out.targets = p.targets.map(refArg);
+    if (p.pick) out.pick = p.pick as FocusPick;
     return out;
 }

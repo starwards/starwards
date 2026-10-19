@@ -1,5 +1,5 @@
 import { BrainSpec, CalloutFill } from './spec';
-import { Radar, offNose } from './verbal';
+import { Contact, Radar, offNose } from './verbal';
 import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 import {
     bearingWords,
@@ -251,6 +251,46 @@ const calloutFills: Record<
         return before && !now.some((c) => c.id === before.id)
             ? { name: before.name, last_bearing: bearingWords(before.bearing) }
             : undefined;
+    },
+    /**
+     * Captain: the enemy ships in sight in the order to fight them. With an allied station in sight,
+     * the focus picks the enemy nearest the station an enemy is nearest to, and the names follow that
+     * order; otherwise the names are the order, nearest the own ship first.
+     */
+    focusOrder: ({ radar }) => {
+        const r = radar as Radar | undefined;
+        const own = r?.ownShip?.faction;
+        const enemies = (r?.contacts ?? []).filter(
+            (c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== own,
+        );
+        if (!enemies.length) {
+            return undefined;
+        }
+        const apart = (a: Contact, b: Contact) =>
+            a.position && b.position ? Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y) : Infinity;
+        const nearestEnemyTo = (s: Contact) => Math.min(...enemies.map((e) => apart(s, e)));
+        const station = (r?.contacts ?? [])
+            .filter(
+                (c) =>
+                    c.type === 'Spaceship' &&
+                    own !== undefined &&
+                    c.faction === own &&
+                    (c.radius ?? 0) >= DOCK_HOST_RADIUS,
+            )
+            .sort((a, b) => nearestEnemyTo(a) - nearestEnemyTo(b))[0];
+        const order = [...enemies].sort((a, b) =>
+            station ? apart(a, station) - apart(b, station) : a.distance - b.distance,
+        );
+        const names = order.map((e) => e.name).join(', ');
+        const values: FillValues = station
+            ? {
+                  names,
+                  pick: 'nearest_to',
+                  station: station.name,
+                  focus: `the enemy nearest ${station.name} (${names})`,
+              }
+            : { names, focus: names };
+        return values;
     },
     /** Captain: a salvo of the default size. */
     salvoOrder: () => ({ count: String(SALVO_MISSILES) }),

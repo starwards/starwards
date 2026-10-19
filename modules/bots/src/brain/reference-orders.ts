@@ -27,6 +27,8 @@ type Picture = {
     salvo?: SalvoTally;
     /** Captain: the board holds a salvo order. */
     salvoOrdered: boolean;
+    /** Captain: the board holds a focus order. */
+    focusOrdered: boolean;
 };
 
 /** Seconds the captain keeps its last order after signals reports the enemy lost: a contact drops for a few seconds when the relaying station is hit. */
@@ -168,7 +170,10 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
         return inside === false || (inside === true && nearestEnemy(picture.radar)?.name === picture.engaged);
     },
     /** Captain: an enemy inside the launch envelope, by its own reckoning or as weapons reports it, not yet ordered engaged. */
-    engage: (picture) => enemyInside(picture) === true && nearestEnemy(picture.radar)?.name !== picture.engaged,
+    engage: (picture) =>
+        !picture.focusOrdered && enemyInside(picture) === true && nearestEnemy(picture.radar)?.name !== picture.engaged,
+    /** Captain: two or more enemy ships in sight, and the board holds no focus yet. */
+    focus: (p) => !p.focusOrdered && (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= 2,
     /** Captain: fire discipline once it ordered an enemy engaged and the board holds no salvo yet. */
     salvo: (p) => p.engaged !== undefined && !p.salvoOrdered && nearestEnemy(p.radar) !== undefined,
     /** Captain: no enemy in sight, and none reported lost a moment ago. */
@@ -199,11 +204,13 @@ export function referenceCallout(
         state = calloutMemory(),
         salvo,
         salvoOrdered = false,
+        focusOrdered = false,
     }: {
         heard?: readonly Heard[];
         state?: ReturnType<typeof calloutMemory>;
         salvo?: SalvoTally;
         salvoOrdered?: boolean;
+        focusOrdered?: boolean;
     } = {},
 ): Answer | undefined {
     const options = Object.keys(request.questions?.[CALLOUT_QUESTION]?.criteria ?? {}).filter((o) => o in calloutRules);
@@ -223,6 +230,7 @@ export function referenceCallout(
         now: state.now,
         salvo,
         salvoOrdered,
+        focusOrdered,
     };
     // a lost contact is noted whatever the captain says, so the hold covers the following decisions
     if (options.includes(CAPTAIN_HOLD)) {
