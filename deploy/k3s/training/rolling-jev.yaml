@@ -47,7 +47,7 @@ spec:
                               - { name: CREWS, value: 'crews/captain-reference.json,crews/captain-orders-reference.json,crews/captain-doctrine-reference.json' }
                               - { name: SEEDS, value: '4' }
                               - { name: BUDGET, value: '60' } # branches per cycle: sized for a <= 60 min shard
-                              - { name: WORKERS, value: '3' } # 4 workers ran out of 7 GiB on T3 branch cycles
+                              - { name: WORKERS, value: '2' } # 3 workers ran out of 7 GiB on T3 branch cycles
                               - { name: WORKERS_BY_RUNG, value: 'W-waves=1,T2-dock=2' } # 4 workers ran out of 7 GiB on these rungs
                               - { name: JEV_PROPOSALS, value: '3' }
                               - { name: JEV_CAP_USD, value: '10' } # the cluster's share of the $20 budget
