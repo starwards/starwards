@@ -558,7 +558,8 @@ A wave run is heavy: at 8 workers, a 1500 s run takes about 15 min (12 min of pl
 the recording), and its sidecar holds 150-200 MB, mostly `brain_request` displays. Record frames
 every 5 s (`--interval 5`). Shard by seed (`--first-seed`, `--seeds`).
 
-Seeds 1-16, pass = 3 waves (2026-10-19; archive `training-archive/2026-10-19/waves/`):
+Seeds 1-16, pass = 3 waves, captain.v1 reference seats (2026-10-19; archive
+`training-archive/2026-10-19/waves/`):
 
 | Crew                         | Board              | Passed | Waves survived (median) |
 | ---------------------------- | ------------------ | ------ | ----------------------- |
@@ -568,7 +569,10 @@ Seeds 1-16, pass = 3 waves (2026-10-19; archive `training-archive/2026-10-19/wav
 | `captain-doctrine-reference` | captain + doctrine | 5/16   | 2                       |
 | `captain-reference`          | captain            | 9/16   | 3                       |
 
-Every crew loses all three stations by 2400 s. Without a board the GVTS never leaves its start: the
+The current `captain-reference` (captain.v7: status callouts, salvo and a focus on the raider nearest the
+threatened station) passes 9/16 as well (seeds 1-8 5/8, 9-16 4/8), on other seeds. It is L5d's baseline.
+
+Every crew above loses all three stations by 2400 s. Without a board the GVTS never leaves its start: the
 first station falls at the same second as with an idle crew. The reference captain names the enemy
 nearest the GVTS, so it chases raiders that attack the ship while others reach a station (seed 1: the
 platform falls at 789 s with the GVTS 40-100 km away, after wave 2's harass MK2s).

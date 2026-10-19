@@ -651,7 +651,7 @@ Elec missile, P(hit):
 - **Reuse:** wave-defence candidates start from captain.v7; signals beam bearing beyond the radar's
   bearing range is refused on W-waves (pre-existing, also without these changes).
 
-### W-waves — wave defence, calibrated; Jev captain short of the bar (2026-10-19)
+### L5d — W-waves calibration; Jev captain short of the bar (2026-10-19)
 
 - **Change:** rung `W-waves` (wave_defence map, the map's own wave timing, pass = 3 waves survived with
   every station alive, 1500 s) and `W-waves-endless` (calibration). Captain callouts `defend_close_to` /
@@ -662,8 +662,11 @@ Elec missile, P(hit):
   captains v1 2/8, v2 2/8, v3 3/8 against `captain-reference` 5/8; Jev $0.46. Archive:
   `training-archive/2026-10-19/waves/`.
 - **Regression suite:** not run (no seat brain or reference rule changed).
-- **Decision:** N = 3. Not admitted to the ladder: Jev, the oracle, does not beat the reference captain,
-  so there is no mined reference rule to admit with.
+- **Decision:** N = 3, the bar L5d uses. These are the captain.v1 reference seats; the focus-rule
+  `captain-reference` (captain.v7, signals.v10, weapons.v19) passes 9/16 at HEAD f5fb4f41 (seeds 1-8
+  5/8, 9-16 4/8; stations lost 1.00 per run), not the 7/8 on seeds 1-8 its L5d entry records, and wins
+  other seeds (1, 4, 5, 7 against v1's 2, 4, 5, 6, 7). Archive
+  `training-archive/2026-10-19/waves/captain-reference-v7-s1-16/`.
 - **Lesson:** with several raiders the reference captain's "nearest enemy" is the raider shadowing the
   ship, not the one reaching a station; the stations fall while the GVTS fights 40-100 km away. Doctrine
   alone moves the ship only to what signals reports and saves no station past wave 2. A Jev captain
