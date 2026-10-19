@@ -1,5 +1,5 @@
-import { isRecordingName, sidecarName } from '@starwards/core/internal';
-import { readEvents, readFrames } from '../scoring/recording';
+import { SavedGame, isRecordingName, sidecarName } from '@starwards/core/internal';
+import { readEvents, streamFrames } from '../scoring/recording';
 
 import { Intervention } from './levels';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
@@ -10,7 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { playCrewTraining } from '../training/train-crew';
 import { rmDirRetrying } from '@starwards/server/src/test/training/analysis/__fixtures__/rm-retry';
-import { scoreFrames } from '../scoring/run-score';
+import { runScorer } from '../scoring/run-score';
 
 /** The run a branch replays: the crew, rung, seed and timeout of a recorded run. */
 export type RunSpec = { crew: string; scenario: string; seed: number; timeoutSeconds: number; latencySeconds?: number };
@@ -48,21 +48,22 @@ export function fingerprint(recordingOrSidecar: string, t: number) {
     return { prefix: prefix.digest('hex').slice(0, 12), whole: whole.digest('hex').slice(0, 12) };
 }
 
-type Frames = Awaited<ReturnType<typeof readFrames>>;
-
 /**
- * Whether `id` was killed in `frames`, as the analysis store's `killedAt` finds it: a frame caught it
- * destroyed, or it left the recording before the run's last frame.
+ * Whether a ship was killed, as the analysis store's `killedAt` finds it: a frame caught it destroyed, or it
+ * left the recording before the run's last frame. Fed one frame at a time.
  */
-function killedIn(frames: Frames, id: string, lastT: number) {
+function killWatch(id: string) {
     let seen: number | undefined;
-    for (const { t, saved } of frames) {
-        const object = saved.fragment.space.get(id);
-        if (!object) continue;
-        if (object.destroyed) return true;
-        seen = t;
-    }
-    return seen !== undefined && seen < lastT;
+    let destroyed = false;
+    return {
+        add({ t, saved }: { t: number; saved: SavedGame }) {
+            const object = saved.fragment.space.get(id);
+            if (!object || destroyed) return;
+            if (object.destroyed) destroyed = true;
+            else seen = t;
+        },
+        killed: (lastT: number) => destroyed || (seen !== undefined && seen < lastT),
+    };
 }
 
 /**
@@ -90,15 +91,20 @@ export async function runBranch(
             branch: intervention,
         });
         const recording = recorder.filePath;
-        const frames = await readFrames(recording);
-        const seconds = Math.max(0, ...frames.map((f) => f.t));
-        const kills = waves ? waves.raidersKilled : enemies.filter((id) => killedIn(frames, id, seconds)).length;
-        const killed = waves ? waves.passedAt !== null : kills === enemies.length;
-        const score = scoreFrames(
-            frames,
-            { killed, seconds, timeoutSeconds: run.timeoutSeconds, playerId: TRAINING_PLAYER_ID },
+        const scorer = runScorer(
+            { timeoutSeconds: run.timeoutSeconds, playerId: TRAINING_PLAYER_ID },
             readEvents(recording),
         );
+        const watches = waves ? [] : enemies.map(killWatch);
+        let seconds = 0;
+        for await (const frame of streamFrames(recording)) {
+            scorer.add(frame);
+            for (const w of watches) w.add(frame);
+            seconds = Math.max(seconds, frame.t);
+        }
+        const kills = waves ? waves.raidersKilled : watches.filter((w) => w.killed(seconds)).length;
+        const killed = waves ? waves.passedAt !== null : kills === enemies.length;
+        const score = scorer.result({ killed, seconds });
         return {
             killed,
             seconds,
