@@ -284,8 +284,8 @@ export abstract class ShipManager implements Updateable {
         this.state.weaponsTarget.targetId = id;
         this.targetOccludedSeconds = 0;
         this.validateWeaponsTargetId();
-        if (this.weaponsTarget && !this.spaceManager.isVisible(this.spaceObject.id, this.weaponsTarget.id)) {
-            // a freshly assigned target must be visible right now — the occlusion grace period
+        if (this.weaponsTarget && !this.spaceManager.isVisibleToFaction(this.state.faction, this.weaponsTarget.id)) {
+            // a freshly assigned target must be in faction FoV right now — the occlusion grace period
             // only covers a lock already held, not initial acquisition
             this.state.weaponsTarget.targetId = null;
             this.validateWeaponsTargetId();
@@ -483,7 +483,7 @@ export abstract class ShipManager implements Updateable {
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
                 this.targetOccludedSeconds = 0;
-            } else if (this.spaceManager.isVisible(this.spaceObject.id, this.state.weaponsTarget.targetId)) {
+            } else if (this.spaceManager.isVisibleToFaction(this.state.faction, this.state.weaponsTarget.targetId)) {
                 this.targetOccludedSeconds = 0;
             } else {
                 // brief occlusion (an explosion, another hull drifting across the bearing) doesn't

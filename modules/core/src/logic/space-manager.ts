@@ -412,6 +412,36 @@ export class SpaceManager implements Updateable {
         return byFaction;
     }
 
+    /**
+     * Whether any object of the faction holds the target in its field of view (own-faction objects
+     * always count). Same answer as getFactionVisibleObjects(faction).has(target), without building the set.
+     */
+    public isVisibleToFaction(faction: Faction, targetId: string): boolean {
+        const [target] = this.getObjectPtr(targetId);
+        if (!target) {
+            return false;
+        }
+        if (target.faction === faction) {
+            return true;
+        }
+        if (isSensorInvisible(target)) {
+            return false;
+        }
+        for (const object of this.state) {
+            if (object.faction === faction) {
+                const data = this.stateToExtraData.get(object);
+                if (data) {
+                    for (const visibleArc of data.fov.view) {
+                        if (visibleArc.object === target) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public getFactionVisibleObjects(faction: Faction) {
         const visibleObjects = new Set<SpaceObject>();
         for (const object of this.state) {
