@@ -192,6 +192,11 @@ const calloutFills: Record<
             }
         );
     },
+    /** Weapons: the ally the targeting panel calls check fire on, in the line of fire before one by the target. */
+    allyAtRisk: ({ panels }) => {
+        const shown = checkFireOf(panels);
+        return shown && { name: shown.ally.name, range: (shown.ally.distance / 1000).toFixed(1), where: shown.where };
+    },
     /** Weapons: the ship the lock holds, by name. */
     lockedTarget: (display) => {
         const locked = lockedContact(display);
@@ -393,4 +398,15 @@ export function calloutSaid(
             ...seat,
         }
     );
+}
+
+type ShownAlly = { name: string; distance: number };
+
+/** The targeting panel's check-fire line: the ally at risk and where, or undefined while the line is clear. */
+export function checkFireOf(panels: Display['panels']) {
+    const t = panels['targeting-status'] as
+        { allyInLine?: ShownAlly | null; allyNearTarget?: ShownAlly | null } | undefined;
+    if (t?.allyInLine) return { ally: t.allyInLine, where: 'in the line of fire' };
+    if (t?.allyNearTarget) return { ally: t.allyNearTarget, where: 'by the target' };
+    return undefined;
 }

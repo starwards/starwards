@@ -1,4 +1,4 @@
-import { CALLOUT_QUESTION, Heard, SILENCE } from './callout';
+import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf } from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy } from './engagement';
 
@@ -35,6 +35,8 @@ type Picture = {
 const CONTACT_LOST_HOLD_SECONDS = 15;
 /** Seconds between two weapons reports that the locked ship is still beyond the envelope. */
 const OUT_OF_ENVELOPE_REPEAT_SECONDS = 10;
+/** Seconds between two weapons check-fire calls while an ally stays at risk. */
+const CHECK_FIRE_REPEAT_SECONDS = 10;
 /** A wreck this near where the lost ship was last seen says the ship was destroyed, not lost. */
 const WRECK_METERS = 1000;
 const SHIP_RADIUS_METERS = 5;
@@ -127,6 +129,24 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
         const lost = lostEnemy(p);
         return lost !== undefined && !wreckOf(lost, p.radar);
     },
+    /** Weapons: the targeting panel calls check fire; said when it starts, and again every few seconds while it holds. */
+    check_fire: (p) => {
+        if (!checkFireOf(p.display.panels)) {
+            p.memory.delete('checkFireSaidAt');
+            return false;
+        }
+        const said = p.memory.get('checkFireSaidAt') as number | undefined;
+        if (said !== undefined && p.now - said < CHECK_FIRE_REPEAT_SECONDS) {
+            return false;
+        }
+        p.memory.set('checkFireSaidAt', p.now);
+        return true;
+    },
+    /** Weapons: the check-fire line cleared since the previous decision. */
+    line_clear: (p) =>
+        !checkFireOf(p.display.panels) &&
+        p.previousDisplay !== undefined &&
+        checkFireOf(p.previousDisplay.panels) !== undefined,
     /** Weapons: a missile leaves a tube at this decision. */
     salvo_away: ({ salvo }) => salvo !== undefined,
     /** Weapons: the lock holds an enemy ship it did not hold at the previous decision. */

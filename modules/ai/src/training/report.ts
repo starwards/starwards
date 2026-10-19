@@ -21,6 +21,7 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
     { name: 'stations lost', of: (r) => r.waves?.stationsLost, better: 'lower' },
     { name: 'raiders killed', of: (r) => r.waves?.raidersKilled, better: 'higher' },
     { name: 'run value', of: (r) => r.score?.value, better: 'higher' },
+    { name: 'friendly hits', of: (r) => r.score?.friendlyHits, better: 'lower' },
     { name: 'killed', of: (r) => (r.killed ? 1 : 0), better: 'higher' },
     { name: 'seconds', of: (r) => r.seconds, better: 'lower' },
     { name: 'tactical score', of: (r) => r.score?.tactical, better: 'higher' },
@@ -55,7 +56,9 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
             const b = seeds.map((seed) => metric.of(mine.get(seed)!));
             if (!seeds.length || [...a, ...b].some((v) => v === undefined || !Number.isFinite(v))) continue;
             const c = pairedComparison(a as number[], b as number[]);
-            const digits = ['seconds', 'waves survived', 'stations lost', 'raiders killed'].includes(metric.name)
+            const digits = ['seconds', 'friendly hits', 'waves survived', 'stations lost', 'raiders killed'].includes(
+                metric.name,
+            )
                 ? 1
                 : 3;
             const good = metric.better === 'higher' ? c.meanDiff > 0 : c.meanDiff < 0;
@@ -80,8 +83,8 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         '',
         header,
         '',
-        '| crew | brains | kills | time to kill p10 / median / p90 (s) | run value | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| crew | brains | kills | time to kill p10 / median / p90 (s) | run value | friendly hits (runs) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const crew of crews) {
         const runs = results.filter((r) => r.crew === crew);
@@ -89,7 +92,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         const sum = (f: (r: CrewRunResult) => number) => runs.reduce((a, r) => a + f(r), 0);
         const tokens = sum((r) => r.inputTokens);
         lines.push(
-            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(meanOf(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
+            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(meanOf(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${sum((r) => r.score?.friendlyHits ?? 0)} (${runs.filter((r) => (r.score?.friendlyHits ?? 0) > 0).length}) | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
         );
     }
     if (results.some((r) => r.waves)) {
