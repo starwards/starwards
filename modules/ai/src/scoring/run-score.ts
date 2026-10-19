@@ -1,7 +1,7 @@
 import { RecordingEventLine, SavedGame } from '@starwards/core/internal';
 import { SnapshotScore, scoreSnapshot } from './score';
-import { observeTactical, weaponsScore } from './weapons-kpi';
-import { readEvents, readFrames } from './recording';
+import { TacticalFrame, observeTactical, weaponsScore } from './weapons-kpi';
+import { readEvents, streamFrames } from './recording';
 
 /**
  * A whole run as one number per score, each the time-mean of the snapshot score over the run's frames.
@@ -54,74 +54,93 @@ type RunOutcome = {
     playerId?: string;
 };
 
-/** `undefined` when no frame holds both the player and an opponent. */
-export function scoreFrames(
-    frames: readonly { t: number; saved: SavedGame }[],
-    { killed, seconds, timeoutSeconds, playerId }: RunOutcome,
+type Frame = { t: number; saved: SavedGame };
+
+/**
+ * Folds a run's frames one at a time, so a caller can stream a long recording instead of holding every decoded
+ * frame: it keeps one frame back (a frame's weight is the time until the next one), each ship's first-seen
+ * faction, and the player's tactical observations. `result` is `undefined` when no frame holds both the player
+ * and an opponent.
+ */
+export function runScorer(
+    { timeoutSeconds, playerId }: Pick<RunOutcome, 'timeoutSeconds' | 'playerId'>,
     events: readonly RecordingEventLine[] = [],
-): RunScore | undefined {
+) {
     let value = 0;
     const sums = Object.fromEntries(KEYS.map((k) => [k, 0])) as Record<keyof typeof READ, number>;
     let weight = 0;
-    frames.forEach(({ t, saved }, i) => {
+    let id = playerId;
+    let first = true;
+    let previous: Frame | undefined;
+    const factions = new Map<string, number>();
+    const fired = events.some((e) => e.kind === 'shot');
+    const tactical: TacticalFrame[] = [];
+
+    const weigh = ({ t, saved }: Frame, until: number) => {
         const score = scoreSnapshot(saved, playerId);
-        // a frame stands for the time until the next one; the last for the rest of the run
-        const dt = Math.max(0, (frames[i + 1]?.t ?? seconds) - t);
+        const dt = Math.max(0, until - t);
         if (!score || dt === 0) return;
         weight += dt;
         value += dt * score.overall.value;
         for (const k of KEYS) sums[k] += dt * READ[k](score);
-    });
-    if (weight === 0) return undefined;
-    const afterKill = killed ? Math.max(0, timeoutSeconds - seconds) : 0;
-    const friendlyHits = friendlyHitsOf(frames, events, playerId);
+    };
+
     return {
-        value: (value + afterKill) / (weight + afterKill) - FRIENDLY_HIT_COST * friendlyHits,
-        friendlyHits,
-        weapons: weaponsOf(frames, events, playerId),
-        ...(Object.fromEntries(KEYS.map((k) => [k, sums[k] / weight])) as Record<keyof typeof READ, number>),
+        add(frame: Frame) {
+            if (previous) weigh(previous, frame.t);
+            previous = frame;
+            if (first) {
+                first = false;
+                id ??= [...frame.saved.fragment.ship.values()].find((s) => s.isPlayerShip)?.id;
+            }
+            for (const ship of frame.saved.fragment.space.getAll('Spaceship')) {
+                if (!factions.has(ship.id)) factions.set(ship.id, ship.faction);
+            }
+            if (fired && id) {
+                const observed = observeTactical(frame.t, frame.saved, id);
+                if (observed) tactical.push(observed);
+            }
+        },
+        /** `killed` and `seconds` are asked for last, so a caller can learn them from the same pass. */
+        result({ killed, seconds }: Pick<RunOutcome, 'killed' | 'seconds'>): RunScore | undefined {
+            if (previous) weigh(previous, seconds);
+            previous = undefined;
+            if (weight === 0) return undefined;
+            const afterKill = killed ? Math.max(0, timeoutSeconds - seconds) : 0;
+            const own = id === undefined ? undefined : factions.get(id);
+            const friendlyHits =
+                own === undefined
+                    ? 0
+                    : events.filter(
+                          (e) =>
+                              e.kind === 'damage' &&
+                              !!e.objectId &&
+                              e.objectId !== id &&
+                              (e.data as { shooterId?: string }).shooterId === id &&
+                              factions.get(e.objectId) === own,
+                      ).length;
+            return {
+                value: (value + afterKill) / (weight + afterKill) - FRIENDLY_HIT_COST * friendlyHits,
+                friendlyHits,
+                weapons: id && fired ? weaponsScore(tactical, events, id).kw : null,
+                ...(Object.fromEntries(KEYS.map((k) => [k, sums[k] / weight])) as Record<keyof typeof READ, number>),
+            };
+        },
     };
 }
 
-/** Recorded `damage` events dealt by the player's rounds to another ship of its own faction. */
-function friendlyHitsOf(
-    frames: readonly { t: number; saved: SavedGame }[],
-    events: readonly RecordingEventLine[],
-    playerId: string | undefined,
-) {
-    const ships = frames[0]?.saved.fragment.ship;
-    const id = playerId ?? [...(ships?.values() ?? [])].find((s) => s.isPlayerShip)?.id;
-    const own = id === undefined ? undefined : factionOf(frames, id);
-    if (own === undefined) return 0;
-    return events.filter((e) => {
-        if (e.kind !== 'damage' || !e.objectId || e.objectId === id) return false;
-        return (e.data as { shooterId?: string }).shooterId === id && factionOf(frames, e.objectId) === own;
-    }).length;
+/** {@link runScorer} over frames already in memory. */
+export function scoreFrames(frames: readonly Frame[], outcome: RunOutcome, events: readonly RecordingEventLine[] = []) {
+    const scorer = runScorer(outcome, events);
+    for (const frame of frames) scorer.add(frame);
+    return scorer.result(outcome);
 }
 
-/** A ship's faction from the first frame that holds it. */
-function factionOf(frames: readonly { saved: SavedGame }[], id: string) {
-    for (const { saved } of frames) {
-        const faction = saved.fragment.space.getShip(id)?.faction;
-        if (faction !== undefined) return faction;
-    }
-    return undefined;
-}
-
-function weaponsOf(
-    frames: readonly { t: number; saved: SavedGame }[],
-    events: readonly RecordingEventLine[],
-    playerId: string | undefined,
-) {
-    const id = playerId ?? [...(frames[0]?.saved.fragment.ship.values() ?? [])].find((s) => s.isPlayerShip)?.id;
-    if (!id || !events.some((e) => e.kind === 'shot')) return null;
-    const tactical = frames.flatMap((f) => observeTactical(f.t, f.saved, id) ?? []);
-    return weaponsScore(tactical, events, id).kw;
-}
-
-/** Scores a recorded run from its `.sgr` frames and `.events.jsonl` sidecar. */
+/** Scores a recorded run from its `.sgr` frames, streamed, and its `.events.jsonl` sidecar. */
 export async function scoreRun(recording: string, outcome: RunOutcome) {
-    return scoreFrames(await readFrames(recording), outcome, readEvents(recording));
+    const scorer = runScorer(outcome, readEvents(recording));
+    for await (const frame of streamFrames(recording)) scorer.add(frame);
+    return scorer.result(outcome);
 }
 
 /** A station score of a crew's seat. */
