@@ -1,5 +1,15 @@
+import {
+    Asteroid,
+    SavedGame,
+    ShipManagerNpc,
+    ShipManagerPc,
+    SpaceObject,
+    Vec2,
+    makeId,
+    mulberry32,
+    uniqueId,
+} from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { SavedGame, ShipManagerNpc, ShipManagerPc, makeId, mulberry32, uniqueId } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, training_t1 } from '../scenarios/training';
 import { createWaveDefenceMap } from '../scenarios/wave-defence';
 
@@ -18,6 +28,21 @@ describe('HeadlessGame.start', () => {
         const first = run();
         expect(first).not.toBe('');
         expect(run()).toBe(first);
+    });
+});
+
+describe('HeadlessGame.saveGame', () => {
+    it('takes a snapshot without changing the live game', () => {
+        const game = HeadlessGame.start(training_t1, 1);
+        game.tick(1 / SERVER_TICK_HZ);
+        game.spaceManager.insert(new Asteroid().init('pending-asteroid', new Vec2(0, 0), 10));
+        const ids = (objects: Iterable<SpaceObject>) => [...objects].map((o) => o.id);
+        const live = ids(game.spaceManager.state);
+
+        const saved = game.saveGame();
+
+        expect(ids(game.spaceManager.state)).toEqual(live);
+        expect(ids(saved.fragment.space)).toEqual(expect.arrayContaining([...live, 'pending-asteroid']));
     });
 });
 

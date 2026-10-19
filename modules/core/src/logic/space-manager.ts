@@ -711,6 +711,11 @@ export class SpaceManager implements Updateable {
         return this.state.getShip(shipId) || this.toInsert.find(({ id }) => id === shipId);
     }
 
+    /** Objects inserted since the last update, not yet in `state`; they join it at the start of the next update. */
+    public get pendingInserts(): readonly SpaceObject[] {
+        return this.toInsert;
+    }
+
     public insert(object: SpaceObject) {
         this.toInsert.push(object);
     }
