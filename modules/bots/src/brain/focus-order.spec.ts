@@ -111,4 +111,33 @@ describe('focus order', () => {
             params: { targets: [{ name: 'a' }, { name: 'b' }] },
         });
     });
+
+    it('the reference captain runs a lone enemy down instead of parking at missile range, but not under a focus', () => {
+        const request = {
+            state: {},
+            questions: {
+                callout: {
+                    type: 'choice',
+                    instructions: '',
+                    criteria: { salvo: '', focus: '', engage: '', chase_target: '', silence: '' },
+                },
+            },
+        } as BrainRequest;
+        const far = picture([{ id: 'a', x: 60_000 }]);
+        expect(referenceCallout(request, far, far, 5)?.choice).toBe('chase_target');
+        const near = picture([{ id: 'a', x: 30_000 }]);
+        expect(referenceCallout(request, near, near, 5)?.choice).toBe('engage');
+        expect(referenceCallout(request, near, near, 5, 'a')?.choice).toBe('salvo');
+        expect(referenceCallout(request, near, near, 5, 'a', { salvoOrdered: true })?.choice).toBe('chase_target');
+        expect(referenceCallout(request, near, near, 5, 'a', { salvoOrdered: true, focusOrdered: true })?.choice).toBe(
+            'silence',
+        );
+        const board = testBoard().give([
+            { kind: 'chase_target', params: { target: { name: 'a', position: { x: 30_000, y: 0 } } } },
+        ]).shown;
+        expect(captainOrdersFromBoard({ ...near, panels: { [ORDERS_PANEL]: board } }).helm).toEqual({
+            kind: 'close',
+            spot: { x: 30_000, y: 0 },
+        });
+    });
 });

@@ -176,6 +176,11 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     focus: (p) => !p.focusOrdered && (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= 2,
     /** Captain: fire discipline once it ordered an enemy engaged and the board holds no salvo yet. */
     salvo: (p) => p.engaged !== undefined && !p.salvoOrdered && nearestEnemy(p.radar) !== undefined,
+    /**
+     * Captain: run the enemy down to gun range, with a fresh fix whenever nothing more urgent is said,
+     * so the ship never parks at missile range; not while a focus spreads the fight over several enemies.
+     */
+    chase_target: (p) => !p.focusOrdered && nearestEnemy(p.radar) !== undefined,
     /** Captain: no enemy in sight, and none reported lost a moment ago. */
     hold_here: (p) => !holdingOnLostContact(p) && nearestEnemy(p.radar) === undefined,
 };

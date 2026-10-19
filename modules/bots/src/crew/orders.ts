@@ -392,6 +392,8 @@ export function captainOrdersFromBoard(
     let helm: HelmOrder | undefined;
     if (m?.kind === 'hold_here') {
         helm = { kind: 'hold' };
+    } else if (m?.kind === 'chase_target' && m.params.target?.position) {
+        helm = { kind: 'close', spot: m.params.target.position };
     } else if (m?.kind === 'close_to' && m.params.target?.position) {
         const at = own(display ?? { panels: {} });
         const t = m.params.target.position;

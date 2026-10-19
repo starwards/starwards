@@ -651,6 +651,19 @@ Elec missile, P(hit):
 - **Reuse:** wave-defence candidates start from captain.v7; signals beam bearing beyond the radar's
   bearing range is refused on W-waves (pre-existing, also without these changes).
 
+### L5b-L5d — captain.v8, chase to gun range after engaging (2026-10-19)
+
+- **Change:** captain.v8 replaces close_to with chase_target (run the enemy down to gun range with a
+  fresh fix whenever nothing more urgent is said), so the ship never parks at the missile range.
+- **Level:** L5b 16/16, median 81.8 s (captain.v7 87.4 s); L5c 16/16, median 71.6 s (v7 87.8 s); L5d
+  W-waves 0/8 passed, 2.38 stations lost per run (v7 7/8, 0.13).
+- **Regression suite:** not run: rejected on L5d.
+- **Decision:** rejected; captain-reference stays on captain.v7. Chasing before engaging was tried
+  too: L5b 86.9 s, L5c 73.5 s, worse than engaging first (the first missile at t=5 matters).
+- **Lesson:** pressing in wins a lone duel but in wave defence it drags the ship after one raider,
+  away from the stations the others shell; a press-in order needs a leash to the defended station.
+- **Reuse:** chase_target as the press-in call where no station is defended.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
