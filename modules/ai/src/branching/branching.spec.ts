@@ -113,3 +113,17 @@ describe('captain branching', () => {
         ]);
     });
 });
+
+describe('branching a wave rung', () => {
+    it("reads a wave run's pass, raiders killed and spawned, and its wave outcome", async () => {
+        const waves: RunSpec = {
+            crew: path.resolve(__dirname, '../../crews/idle.json'),
+            scenario: 'W-waves',
+            seed: 1,
+            timeoutSeconds: 60,
+        };
+        const outcome = await runBranch(waves, 0);
+        expect(outcome).toMatchObject({ killed: false, kills: 0, enemies: 2 });
+        expect(outcome.waves).toMatchObject({ survived: 0, reached: 1, raidersSpawned: 2 });
+    }, 120_000);
+});
