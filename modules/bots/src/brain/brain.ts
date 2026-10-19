@@ -12,6 +12,8 @@ export type Answer = {
     confidence?: number;
     probabilities?: Record<string, number>;
     source: 'model' | 'rule' | 'fallback';
+    /** A callout's values the seat supplies itself, for a fill that needs them (a rule seat's own launch count). */
+    values?: Record<string, string>;
 };
 
 /** What answered a whole request, and what it cost. */
@@ -106,7 +108,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                     continue;
                 }
                 decisions.push({ control: question, ...(seat === undefined ? {} : { seat }), ...answer });
-                const said = calloutSaid(spec, answer.choice, display, question, previous);
+                const said = calloutSaid(spec, answer.choice, display, question, previous, answer.values);
                 if (said) {
                     callouts.push(said);
                 }

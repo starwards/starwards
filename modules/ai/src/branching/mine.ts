@@ -40,6 +40,9 @@ type Finding = {
     value: PairedComparison;
     killsUp: number;
     killsDown: number;
+    /** Branches that won a run the recording lost (`killed`: a kill, or a wave rung's pass), and the reverse. */
+    passUp: number;
+    passDown: number;
     /** Branches whose replay diverged from the recording before their point: excluded. */
     excluded: number;
 };
@@ -75,6 +78,8 @@ export function mine(rows: readonly BranchRow[], minBranches = 3): Finding[] {
                 ),
                 killsUp: valid.filter((r) => r.delta.kills > 0).length,
                 killsDown: valid.filter((r) => r.delta.kills < 0).length,
+                passUp: valid.filter((r) => r.delta.killed > 0).length,
+                passDown: valid.filter((r) => r.delta.killed < 0).length,
                 excluded: list.filter((r) => holds(r) && !r.prefixMatches).length,
             });
         }
@@ -101,11 +106,11 @@ export function mineReport(rows: readonly BranchRow[], findings: readonly Findin
         '',
     );
     const table = (list: readonly Finding[]) => [
-        '| kind | source | state | taken | branches | run value (branch − recorded) | kills gained / lost |',
-        '| --- | --- | --- | --- | --- | --- | --- |',
+        '| kind | source | state | taken | branches | run value (branch − recorded) | kills gained / lost | runs won gained / lost |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- |',
         ...list.map(
             (f) =>
-                `| ${f.kind} | ${f.source} | ${f.feature} | ${f.taken.join(', ')} | ${f.branches} | ${pairedText(f.value)} | ${f.killsUp} / ${f.killsDown} |`,
+                `| ${f.kind} | ${f.source} | ${f.feature} | ${f.taken.join(', ')} | ${f.branches} | ${pairedText(f.value)} | ${f.killsUp} / ${f.killsDown} | ${f.passUp} / ${f.passDown} |`,
         ),
     ];
     for (const level of levels) {

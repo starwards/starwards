@@ -33,7 +33,7 @@ export interface RungTracker {
 }
 
 /** A wave rung's layout: only the seed of the map's own wave rng. */
-export interface WaveRungParams {
+interface WaveRungParams {
     readonly waveSeed: number;
 }
 

@@ -153,7 +153,6 @@ export class HeadlessGame {
     saveGame(): SavedGame {
         const state = new SavedGame();
         state.mapName = this.map.name;
-        this.spaceManager.forceFlushEntities();
         state.fragment.space = this.spaceManager.state;
         for (const [shipId, shipManager] of this.shipManagers) {
             state.fragment.ship.set(shipId, shipManager.state);
@@ -162,6 +161,12 @@ export class HeadlessGame {
         for (const destroyed of snapshot.fragment.space[Symbol.iterator](true)) {
             snapshot.fragment.space.delete(destroyed);
             snapshot.fragment.ship.delete(destroyed.id);
+        }
+        // pending objects go into the copy only: flushing them into the live game would change the run
+        for (const pending of this.spaceManager.pendingInserts) {
+            if (!pending.destroyed) {
+                snapshot.fragment.space.set(pending.clone());
+            }
         }
         return snapshot;
     }

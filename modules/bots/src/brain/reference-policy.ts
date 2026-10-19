@@ -1,12 +1,13 @@
 import { Answer, Policy } from './brain';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
+import { SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
-import { inLaunchEnvelope, launchRange } from './engagement';
+import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
+import { flightSeconds, stillFlying } from './salvo';
 
 import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
-import { referenceCallout } from './reference-orders';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -112,9 +113,12 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
+    const talk = calloutMemory();
+    /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
+    let salvo: { targetId: string; arrivals: number[] } | undefined;
     return {
         name,
-        answer(request, controls, shown) {
+        answer(request, controls, shown, heard) {
             const display = shown as Display;
             const ship = nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
@@ -122,15 +126,21 @@ export function makeReferencePolicy(
             }
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
-            const orders = captainOrdersFromBoard(display);
+            const orders = captainOrdersFromBoard(display, previous);
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
+            // a salvo order holds the tubes while its missiles fly
+            const salvoFull =
+                orders.salvo !== undefined &&
+                salvo !== undefined &&
+                stillFlying(salvo.arrivals, seconds) >= orders.salvo;
             const launchTube =
-                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS
+                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS && !salvoFull
                     ? tubeToLaunch(display, previous, decisionSeconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
+            let launched: SalvoTally | undefined;
             for (const control of controls) {
                 const choice =
                     referenceChoice(
@@ -147,9 +157,17 @@ export function makeReferencePolicy(
                 answers[control.id] = { choice, source: 'rule' };
                 if (control.command === 'fireTube' && choice === 'fire') {
                     lastLaunch = seconds;
+                    salvo = countLaunch(salvo, display, previous, decisionSeconds, seconds);
+                    launched = salvo && tally(salvo, seconds);
                 }
             }
-            const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage);
+            const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage, {
+                heard,
+                state: talk,
+                salvo: launched,
+                salvoOrdered: orders.salvo !== undefined,
+                focusOrdered: orders.focus === true,
+            });
             previous = display;
             if (callout) {
                 answers[CALLOUT_QUESTION] = callout;
@@ -157,6 +175,35 @@ export function makeReferencePolicy(
             return Promise.resolve({ answers });
         },
     };
+}
+
+/** Adds a launch at the locked ship to the count, which restarts when the lock moves to another ship. */
+function countLaunch(
+    salvo: { targetId: string; arrivals: number[] } | undefined,
+    display: Display,
+    previous: Display | undefined,
+    decisionSeconds: number,
+    now: number,
+) {
+    const targetId = display.panels['targeting-status']?.targetId as string | undefined;
+    const target = display.radar?.contacts?.find((c) => c.id === targetId);
+    if (!targetId || !target) {
+        return salvo;
+    }
+    const closing = closingSpeed(
+        target as unknown as ShownContact,
+        display.radar as ShownRadar | undefined,
+        previous?.radar as ShownRadar | undefined,
+        decisionSeconds,
+    );
+    const flight = flightSeconds(target.distance, closing);
+    const arrivals = salvo?.targetId === targetId ? salvo.arrivals : [];
+    return { targetId, arrivals: [...arrivals, now + flight] };
+}
+
+/** Launches at the locked ship so far, and those still flying at `now`. */
+function tally(salvo: { arrivals: number[] }, now: number): SalvoTally {
+    return { n: salvo.arrivals.length, inFlight: stillFlying(salvo.arrivals, now) };
 }
 
 /** Where the helms parks now, and how wide it weaves across the spot. */

@@ -3,12 +3,13 @@
     "seats": [
         {
             "station": "captain",
-            "policy": "reference"
+            "policy": "reference",
+            "brain": "../brains/captain.v7.json"
         },
         {
             "station": "signals",
             "policy": "reference",
-            "brain": "../brains/signals.v9.json"
+            "brain": "../brains/signals.v10.json"
         },
         {
             "station": "helms",
@@ -16,7 +17,8 @@
         },
         {
             "station": "weapons",
-            "policy": "reference"
+            "policy": "reference",
+            "brain": "../brains/weapons.v19.json"
         },
         {
             "station": "engineer",

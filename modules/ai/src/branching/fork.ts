@@ -3,6 +3,7 @@ import { readEvents, readFrames } from '../scoring/recording';
 
 import { Intervention } from './levels';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
+import { WaveOutcome } from '@starwards/server/src/test/training/wave-rung';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -22,6 +23,8 @@ export type Outcome = {
     enemies: number;
     /** Run value (`scoring/run-score.ts`): the time-mean snapshot score, the time after a kill counting 1. */
     value: number | null;
+    /** A wave rung's outcome: `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
+    waves?: WaveOutcome;
     /** Fingerprint of the crew's decisions, callouts, commands and orders before the branch point. */
     prefix: string;
     /** Fingerprint of the whole run's crew events: equal for two runs that played identically. */
@@ -77,7 +80,7 @@ export async function runBranch(
 ): Promise<Outcome> {
     const dir = keepDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'starwards-branch-'));
     try {
-        const { recorder, enemies } = await playCrewTraining(run.crew, {
+        const { recorder, enemies, waves } = await playCrewTraining(run.crew, {
             scenario: run.scenario,
             seed: run.seed,
             timeoutSeconds: run.timeoutSeconds,
@@ -89,8 +92,8 @@ export async function runBranch(
         const recording = recorder.filePath;
         const frames = await readFrames(recording);
         const seconds = Math.max(0, ...frames.map((f) => f.t));
-        const kills = enemies.filter((id) => killedIn(frames, id, seconds)).length;
-        const killed = kills === enemies.length;
+        const kills = waves ? waves.raidersKilled : enemies.filter((id) => killedIn(frames, id, seconds)).length;
+        const killed = waves ? waves.passedAt !== null : kills === enemies.length;
         const score = scoreFrames(
             frames,
             { killed, seconds, timeoutSeconds: run.timeoutSeconds, playerId: TRAINING_PLAYER_ID },
@@ -100,7 +103,8 @@ export async function runBranch(
             killed,
             seconds,
             kills,
-            enemies: enemies.length,
+            enemies: waves ? waves.raidersSpawned : enemies.length,
+            ...(waves ? { waves } : {}),
             value: score?.value ?? null,
             ...fingerprint(recording, t),
         };

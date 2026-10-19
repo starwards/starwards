@@ -542,6 +542,47 @@ Helms brain versions so far, T0 seeds 1–4, 120 s:
 `--latency` delays every press by simulated seconds, as a network would; held triggers end on
 simulated time.
 
+### Wave defence: `W-waves`
+
+`W-waves` ([`wave-rung.ts`](../../modules/server/src/test/training/wave-rung.ts)) plays the
+`wave_defence` map with a crewed GVTS under the map's own wave timing: the next wave spawns 15 s after
+the latest is cleared, or 480 s after it spawned. A wave counts as survived once the next wave spawns
+with all three stations alive. A run passes after 3 waves survived, and ends then or at its timeout.
+Use a 1500 s timeout: the fourth wave spawns by 1440 s.
+`W-waves-endless` never passes, so its runs show how far a crew gets (calibration only). Results carry
+`waves`: waves survived and reached, stations lost, the time of the first loss, raiders killed and
+spawned, and GVTS health. The crew report adds a Waves table and pairs waves survived, stations lost and
+raiders killed seed by seed. Station guns kill raiders too, so raiders killed is not the crew's tally.
+
+A wave run is heavy: at 8 workers, a 1500 s run takes about 15 min (12 min of play, the rest ingesting
+the recording), and its sidecar holds 150-200 MB, mostly `brain_request` displays. Record frames
+every 5 s (`--interval 5`). Shard by seed (`--first-seed`, `--seeds`).
+
+Seeds 1-16, pass = 3 waves, captain.v1 reference seats (2026-10-19; archive
+`training-archive/2026-10-19/waves/`):
+
+| Crew                         | Board              | Passed | Waves survived (median) |
+| ---------------------------- | ------------------ | ------ | ----------------------- |
+| `idle`                       | none               | 0/16   | 1                       |
+| `signals-reference`          | none               | 0/16   | 1                       |
+| `doctrine-reference`         | doctrine           | 0/16   | 2                       |
+| `captain-doctrine-reference` | captain + doctrine | 5/16   | 2                       |
+| `captain-reference`          | captain            | 9/16   | 3                       |
+
+The current `captain-reference` (captain.v7: status callouts, salvo and a focus on the raider nearest the
+threatened station) passes 9/16 as well (seeds 1-8 5/8, 9-16 4/8), on other seeds. It is L5d's baseline.
+
+Every crew above loses all three stations by 2400 s. Without a board the GVTS never leaves its start: the
+first station falls at the same second as with an idle crew. The reference captain names the enemy
+nearest the GVTS, so it chases raiders that attack the ship while others reach a station (seed 1: the
+platform falls at 789 s with the GVTS 40-100 km away, after wave 2's harass MK2s).
+
+The captain callouts `defend_close_to` and `defend_engage` (fills `threatCloseOrder`,
+`threatEngageOrder`) name the enemy nearest any allied station instead. Jev captains on seeds 1-8:
+v1 2/8, v2 (defend callouts, dock and undock) 2/8, v3 (v2 without docking) 3/8, against
+`captain-reference` 5/8. v2 docks after wave 1 and then alternates dock, undock and defend while
+wave 2 reaches a station.
+
 ## Branching: what if the crew had decided otherwise
 
 Owner's idea: keep a corpus of recordings and decision logs, go back to key decision points and try

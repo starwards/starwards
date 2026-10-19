@@ -9,6 +9,7 @@ helios/training-archive/build_manifest.py is a copy of it.
     ARCHIVE=/training-archive python3 /app/build_manifest.py 2026-10-02 <code commit>
 """
 import glob
+import gzip
 import json
 import os
 import sys
@@ -18,7 +19,7 @@ day, commit = sys.argv[1], sys.argv[2]
 os.chdir(os.path.join(os.environ.get('ARCHIVE') or os.path.dirname(os.path.abspath(__file__)), day))
 KEEP = ('crew', 'brain', 'brains', 'killed', 'seconds', 'shellsFired', 'blastHits', 'killZoneFraction',
         'targetHealth', 'armorStrippedAt', 'metrics', 'decisions', 'fallbacks', 'refused', 'inputTokens',
-        'failedChecks', 'scenario', 'benchmark')
+        'failedChecks', 'scenario', 'benchmark', 'kills', 'enemies', 'waves')
 
 
 def key(path):
@@ -77,9 +78,12 @@ with open('manifest.jsonl', 'w', encoding='utf-8', newline='\n') as out:
             header = json.loads(f.readline())
             frames = sum(1 for _ in f)
         sidecar = sgr[:-4] + '.events.jsonl'
+        if not os.path.exists(sidecar) and os.path.exists(sidecar + '.gz'):
+            sidecar += '.gz'
         stations, kinds = {}, {}
         if os.path.exists(sidecar):
-            for line in open(sidecar, encoding='utf-8'):
+            lines = gzip.open(sidecar, 'rt', encoding='utf-8') if sidecar.endswith('.gz') else open(sidecar, encoding='utf-8')
+            for line in lines:
                 try:
                     event = json.loads(line)
                 except Exception:

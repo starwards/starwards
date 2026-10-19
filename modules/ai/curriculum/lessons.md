@@ -632,6 +632,62 @@ Elec missile, P(hit):
   recomputing the `close_to` spot each decision, against the remembered radio call it replaced.
 - **Reuse:** the wave-defence push starts here.
 
+### L5b-L5d — captain-reference with status callouts, salvo and focus (2026-10-19)
+
+- **Change:** weapons.v19 and signals.v10 say status callouts (lock, envelope, salvo away, lost or
+  destroyed target, lost contact); captain.v7 hears them, orders `salvo 2` after engaging and a `focus`
+  once two or more enemies are in sight.
+- **Level:** L5b 16/16, median 87.4 s (before 69.4 s); L5c 16/16, median 87.8 s (before 80.3 s);
+  L5d (new, W-waves, 8 seeds) passed 7/8, stations lost 0.13 per run. Without the focus call
+  (captain.v6) W-waves passed 1/8, 1.50 stations lost per run. Missiles fired over 16 seeds: L5b 90 -> 33,
+  L5c 65 -> 44.
+- **Regression suite:** L5b and L5c ok by the suite's rule (slowdown under 25%) but every seed slower
+  (sign p 0.000 / 0.001): the salvo holds the tubes while two missiles fly.
+- **Decision:** accepted as captain-reference's baseline for wave defence, where missiles are the
+  binding resource; the T3 slowdown is the price.
+- **Lesson:** on a single target the first launches carry the kill and the rest only speed it; fire
+  discipline pays only once the magazine must last several targets. Target priority is what holds
+  stations: the focus on the raider nearest the threatened station.
+- **Reuse:** wave-defence candidates start from captain.v7; signals beam bearing beyond the radar's
+  bearing range is refused on W-waves (pre-existing, also without these changes).
+
+### L5b-L5d — captain.v8, chase to gun range after engaging (2026-10-19)
+
+- **Change:** captain.v8 replaces close_to with chase_target (run the enemy down to gun range with a
+  fresh fix whenever nothing more urgent is said), so the ship never parks at the missile range.
+- **Level:** L5b 16/16, median 81.8 s (captain.v7 87.4 s); L5c 16/16, median 71.6 s (v7 87.8 s); L5d
+  W-waves 0/8 passed, 2.38 stations lost per run (v7 7/8, 0.13).
+- **Regression suite:** not run: rejected on L5d.
+- **Decision:** rejected; captain-reference stays on captain.v7. Chasing before engaging was tried
+  too: L5b 86.9 s, L5c 73.5 s, worse than engaging first (the first missile at t=5 matters).
+- **Lesson:** pressing in wins a lone duel but in wave defence it drags the ship after one raider,
+  away from the stations the others shell; a press-in order needs a leash to the defended station.
+- **Reuse:** chase_target as the press-in call where no station is defended.
+
+### L5d — W-waves calibration; Jev captain short of the bar (2026-10-19)
+
+- **Change:** rung `W-waves` (wave_defence map, the map's own wave timing, pass = 3 waves survived with
+  every station alive, 1500 s) and `W-waves-endless` (calibration). Captain callouts `defend_close_to` /
+  `defend_engage` name the enemy nearest any allied station. Jev captain v2 (those callouts plus dock and
+  undock) and v3 (v2 without docking). Branch outcomes on a wave rung now read the wave tracker.
+- **Level:** seeds 1-16: `captain-reference` 9/16, `captain-doctrine-reference` 5/16, `doctrine-reference`
+  0/16, `signals-reference` 0/16, `idle` 0/16. Median waves survived 3 / 2 / 2 / 1 / 1. Seeds 1-8, Jev
+  captains v1 2/8, v2 2/8, v3 3/8 against `captain-reference` 5/8; Jev $0.46. Archive:
+  `training-archive/2026-10-19/waves/`.
+- **Regression suite:** not run (no seat brain or reference rule changed).
+- **Decision:** N = 3, the bar L5d uses. These are the captain.v1 reference seats; the focus-rule
+  `captain-reference` (captain.v7, signals.v10, weapons.v19) passes 9/16 at HEAD f5fb4f41 (seeds 1-8
+  5/8, 9-16 4/8; stations lost 1.00 per run), not the 7/8 on seeds 1-8 its L5d entry records, and wins
+  other seeds (1, 4, 5, 7 against v1's 2, 4, 5, 6, 7). Archive
+  `training-archive/2026-10-19/waves/captain-reference-v7-s1-16/`.
+- **Lesson:** with several raiders the reference captain's "nearest enemy" is the raider shadowing the
+  ship, not the one reaching a station; the stations fall while the GVTS fights 40-100 km away. Doctrine
+  alone moves the ship only to what signals reports and saves no station past wave 2. A Jev captain
+  with a dock order docks between waves and is late for the next one.
+- **Reuse:** branch `captain-reference` W-waves runs at the tactical level (`engage@<enemy>` alternatives,
+  $0) to test "engage the raider nearest a station" before writing it as a reference rule; a wave run is
+  15 min at 8 workers, so budget the corpus by seed shards.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

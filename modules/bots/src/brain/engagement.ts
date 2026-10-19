@@ -1,6 +1,8 @@
 import { Contact, Radar, offNose } from './verbal';
 import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './missile-envelope';
 
+import { Display } from './controls';
+
 /** The missile the reference loads: its envelope sets where the reference captain sends the ship. */
 const REFERENCE_MISSILE = 'HiExpMissile';
 
@@ -67,6 +69,37 @@ export function nearestEnemy(radar: Radar | undefined): Contact | undefined {
     return (radar?.contacts ?? [])
         .filter((c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== own)
         .sort((a, b) => a.distance - b.distance)[0];
+}
+
+/** The contact the weapons lock holds, as the seat's radar shows it; undefined without a lock or while the radar does not show it. */
+export function lockedContact(display: Display): Contact | undefined {
+    const targetId = (display.panels['targeting-status'] as { targetId?: string | null } | undefined)?.targetId;
+    return targetId ? (display.radar as Radar | undefined)?.contacts?.find((c) => c.id === targetId) : undefined;
+}
+
+/**
+ * The missiles left in the magazine of the kinds the tubes load (as the tubes panel shows them), from
+ * the ammo panel; every missile kind when no tube shows one; undefined without the ammo panel.
+ */
+export function missilesInMagazine(display: Display): number | undefined {
+    const ammo = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    const tubes = (display.panels['tubes-status'] ?? []) as { loadedProjectile?: string; projectile?: string }[];
+    const loaded = new Set(
+        tubes.flatMap((t) => [t.loadedProjectile, t.projectile]).filter((k) => k?.endsWith('Missile')),
+    );
+    return ammo
+        ? Object.entries(ammo)
+              .filter(([kind]) => kind.endsWith('Missile') && (!loaded.size || loaded.has(kind)))
+              .reduce((sum, [, stock]) => sum + (stock.count ?? 0), 0)
+        : undefined;
+}
+
+/**
+ * How fast `contact` closes on the own ship along the line of sight (negative: opening), from where
+ * the radar showed it a decision (`seconds`) ago.
+ */
+export function closingSpeed(contact: Contact, radar: Radar | undefined, previous: Radar | undefined, seconds: number) {
+    return contactRates(contact, radar, previous, seconds).closing;
 }
 
 /** Where a contact lies off the nose, as said on the radio: `30° right of the nose`. */

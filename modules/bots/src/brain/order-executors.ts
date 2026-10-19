@@ -1,6 +1,7 @@
 import { Answer, Policy } from './brain';
-import { CREW_ORDER_KINDS, RETREAT_RUN_METERS } from '@starwards/core/internal';
-import { DOCKING_MODE, ShownOrder, ordersBinding, readOrders, whereIs } from '../crew/orders';
+import { CREW_ORDER_KINDS, RETREAT_RUN_METERS, SALVO_MISSILES } from '@starwards/core/internal';
+import { DOCKING_MODE, ShownOrder, focusTarget, ordersBinding, readOrders, whereIs } from '../crew/orders';
+import { flightSeconds, stillFlying } from './salvo';
 
 import { Control } from './controls';
 
@@ -33,6 +34,8 @@ type Context = {
     controls: readonly Control[];
     base: Record<string, Answer>;
     memory: Map<string, unknown>;
+    /** The seat's display at its previous decision. */
+    previous?: Display;
 };
 
 /**
@@ -228,6 +231,17 @@ const helmsExecutors: Record<string, OrderExecutor> = {
             return spot ? flyHelm(display, spot) : {};
         },
     },
+    focus: {
+        // the nose follows the focus as the engagement's does its named ship
+        constrains: ['rotation'],
+        propose(order, { display, previous }) {
+            const helms = display.panels['helms-stats'] as Helms | undefined;
+            const contact = focusTarget(order.params, display, previous);
+            if (!helms || !contact || helms.rotationMode === TARGET_MODE) return {};
+            const at = contact.position && bearingTo(own(display), contact.position);
+            return at === undefined ? {} : { rotation: turnToward(helms, delta(at, heading(display))) };
+        },
+    },
     engage: {
         // the gun is bolted to the nose: an engagement turns the ship onto its target, unless the smart pilot already holds it there
         constrains: ['rotation'],
@@ -273,22 +287,61 @@ const lockNamed: OrderExecutor = {
     },
 };
 
+/** The tubes held: every launch held and every tube's safety on. */
+function holdTubes(controls: readonly Control[]) {
+    return Object.fromEntries(
+        controls.flatMap((c) =>
+            c.command === 'tubeSafety' ? [[c.id, 'on']] : c.command === 'fireTube' ? [[c.id, 'hold_fire']] : [],
+        ),
+    );
+}
+
+/**
+ * Weapons lets its policy launch until `count` missiles of the salvo fly, then holds the tubes; a
+ * missile counts until it is due at the target, so one that arrived without a kill frees a launch.
+ * Each launch it lets through is due after the flight time to the lock as it closes.
+ */
+const salvoDiscipline: OrderExecutor = {
+    constrains: ['fireTube', 'tubeSafety'],
+    propose(order, { display, controls, base, memory }) {
+        const now = order.issuedAt + order.secondsAgo;
+        const lock = lockOf(display);
+        const fix = memory.get('salvoFix') as { id?: string; distance: number; at: number } | undefined;
+        const closing =
+            lock && fix && fix.id === lock.id && now > fix.at ? (fix.distance - lock.distance) / (now - fix.at) : 0;
+        if (lock) memory.set('salvoFix', { id: lock.id, distance: lock.distance, at: now });
+        const launches = controls.filter((c) => c.command === 'fireTube' && base[c.id]?.choice === 'fire');
+        if (!launches.length) return {};
+        const key = `salvo:${order.id}`;
+        const arrivals = (memory.get(key) as number[] | undefined) ?? [];
+        if (stillFlying(arrivals, now) >= (order.params.count ?? SALVO_MISSILES)) return holdTubes(controls);
+        const due = now + flightSeconds(lock?.distance ?? 0, closing);
+        memory.set(key, [...arrivals, ...launches.map(() => due)]);
+        return {};
+    },
+};
+
+/** Weapons cycles its lock until it holds the ship the focus points at now. */
+const lockFocus: OrderExecutor = {
+    constrains: ['target'],
+    propose(order, { display, previous }) {
+        const wanted = focusTarget(order.params, display, previous)?.name;
+        return wanted && lockOf(display)?.name !== wanted ? { target: 'next' } : {};
+    },
+};
+
 const weaponsExecutors: Record<string, OrderExecutor> = {
+    focus: lockFocus,
     chase_target: lockNamed,
     engage: lockNamed,
     hold_fire: {
         constrains: ['fireChainGun', 'fireTube', 'tubeSafety'],
-        propose: (_o, { controls }) =>
-            Object.fromEntries(
-                controls.flatMap((c) =>
-                    c.command === 'tubeSafety'
-                        ? [[c.id, 'on']]
-                        : c.command === 'fireChainGun' || c.command === 'fireTube'
-                          ? [[c.id, 'hold_fire']]
-                          : [],
-                ),
-            ),
+        propose: (_o, { controls }) => ({
+            ...holdTubes(controls),
+            ...Object.fromEntries(controls.filter((c) => c.command === 'fireChainGun').map((c) => [c.id, 'hold_fire'])),
+        }),
     },
+    salvo: salvoDiscipline,
     preserve_energy: {
         constrains: ['fireChainGun'],
         propose: (_o, { display, controls }) =>
@@ -386,6 +439,7 @@ export const ORDER_EXECUTORS: Record<string, Record<string, OrderExecutor>> = {
 export function withOrderBoard(policy: Policy, station: string): Policy {
     const executors = ORDER_EXECUTORS[station] ?? {};
     const memory = new Map<string, unknown>();
+    let previous: Display | undefined;
     return {
         name: policy.name,
         async answer(request, controls, shown, heard) {
@@ -397,7 +451,13 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
             for (const order of ordersBinding(board, station)) {
                 const executor = executors[order.kind];
                 if (!executor) continue;
-                const proposal = executor.propose(order, { display, controls, base: result.answers, memory });
+                const proposal = executor.propose(order, {
+                    display,
+                    controls,
+                    base: result.answers,
+                    memory,
+                    previous,
+                });
                 for (const control of controls) {
                     const choice = proposal[control.id];
                     if (!decided.has(control.id) && choice !== undefined && choice in control.options) {
@@ -406,6 +466,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
                     }
                 }
             }
+            previous = display;
             return { ...result, answers };
         },
     };
