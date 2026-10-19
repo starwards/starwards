@@ -4,6 +4,7 @@ import { DOCKING_MODE, ShownOrder, focusTarget, ordersBinding, readOrders, where
 import { flightSeconds, stillFlying } from './salvo';
 
 import { Control } from './controls';
+import { checkFireOf } from './callout';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -330,18 +331,32 @@ const lockFocus: OrderExecutor = {
     },
 };
 
+/** Gun and tubes held. */
+function holdFire(controls: readonly Control[]) {
+    return {
+        ...holdTubes(controls),
+        ...Object.fromEntries(controls.filter((c) => c.command === 'fireChainGun').map((c) => [c.id, 'hold_fire'])),
+    };
+}
+
 const weaponsExecutors: Record<string, OrderExecutor> = {
     focus: lockFocus,
     chase_target: lockNamed,
     engage: lockNamed,
     hold_fire: {
         constrains: ['fireChainGun', 'fireTube', 'tubeSafety'],
-        propose: (_o, { controls }) => ({
-            ...holdTubes(controls),
-            ...Object.fromEntries(controls.filter((c) => c.command === 'fireChainGun').map((c) => [c.id, 'hold_fire'])),
-        }),
+        propose: (_o, { controls }) => holdFire(controls),
     },
     salvo: salvoDiscipline,
+    /** Gun and tubes held while the line of fire shows an ally (the named one, when the order names one). */
+    check_fire: {
+        constrains: ['fireChainGun', 'fireTube', 'tubeSafety'],
+        propose(order, { display, controls }) {
+            const shown = checkFireOf(display.panels);
+            const named = order.params.target?.name;
+            return shown && (!named || shown.ally.name === named) ? holdFire(controls) : {};
+        },
+    },
     preserve_energy: {
         constrains: ['fireChainGun'],
         propose: (_o, { display, controls }) =>

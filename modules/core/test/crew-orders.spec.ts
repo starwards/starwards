@@ -1,4 +1,4 @@
-import { CrewOrdersManager, crewOrderCommands, demoShip, makeShipState, orderParams } from '../src';
+import { CrewOrdersManager, boardRanking, crewOrderCommands, demoShip, makeShipState, orderParams } from '../src';
 import { Decoder, Encoder } from '@colyseus/schema';
 import { expect } from 'chai';
 
@@ -87,6 +87,28 @@ describe('crew order board', () => {
             pick: 'nearest_to',
             station: { name: 'Small Station' },
         });
+    });
+
+    it('places check fire in its own slot beside engage and salvo, and ranks it first', () => {
+        const { state, tick, slot } = ship();
+        issueOrder.setValue(state, { kind: 'engage', params: { target: { name: 'r' } } });
+        setStance.setValue(state, { kind: 'salvo', params: { count: 2 } });
+        tick();
+        issueOrder.setValue(state, { kind: 'check_fire' });
+        tick();
+        expect([slot('fire_control')?.kind, slot('engagement')?.kind, slot('stance')?.kind]).to.eql([
+            'check_fire',
+            'engage',
+            'salvo',
+        ]);
+        expect(boardRanking(state.orderBoard)[0]).to.equal('fire_control');
+        setStance.setValue(state, { kind: 'offensive' });
+        tick();
+        expect(boardRanking(state.orderBoard)[0]).to.equal('fire_control');
+        revokeOrder.setValue(state, { slot: 'fire_control' });
+        tick();
+        expect(slot('fire_control')).to.equal(undefined);
+        expect(slot('engagement')?.kind).to.equal('engage');
     });
 
     it('revokes contradicted orders, ignores a repeat, and revokes a slot', () => {

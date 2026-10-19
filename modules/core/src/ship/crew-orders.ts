@@ -13,8 +13,18 @@ import { gameField } from '../game-field';
  * - `engagement`: whom to fight, or not to (engage a named ship, hold fire).
  * - `repair`: damage control (dock once armor falls low).
  * - `sensors`: emissions and scanning (no kind yet).
+ * - `fire_control`: fire safety (check fire); it outranks every other slot under any stance.
  */
-export const ORDER_SLOTS = ['navigation', 'maneuver', 'stance', 'energy', 'engagement', 'repair', 'sensors'] as const;
+export const ORDER_SLOTS = [
+    'navigation',
+    'maneuver',
+    'stance',
+    'energy',
+    'engagement',
+    'repair',
+    'sensors',
+    'fire_control',
+] as const;
 export type OrderSlot = (typeof ORDER_SLOTS)[number];
 
 /**
@@ -22,6 +32,7 @@ export type OrderSlot = (typeof ORDER_SLOTS)[number];
  * the order in the higher slot decides that control.
  */
 export const DEFAULT_PRIORITIES: readonly OrderSlot[] = [
+    'fire_control',
     'repair',
     'navigation',
     'engagement',
@@ -143,14 +154,18 @@ const FROZEN_STATION: ReferenceMode = {
     why: 'stations do not move, and the order names the dock it was given',
 };
 
-/** A stance: its ranking is the slots given, the rest after them in the default order. */
+/** A stance: its ranking is fire control, then the slots given, the rest after them in the default order. */
 function stance(words: string, first: readonly OrderSlot[]): CrewOrderKind {
     return {
         slot: 'stance',
         binds: ['helms', 'weapons', 'engineer', 'signals'],
         params: {},
         describe: () => words,
-        ranking: [...first, ...DEFAULT_PRIORITIES.filter((s) => !first.includes(s))],
+        ranking: [
+            'fire_control',
+            ...first,
+            ...DEFAULT_PRIORITIES.filter((s) => s !== 'fire_control' && !first.includes(s)),
+        ],
     };
 }
 
@@ -253,10 +268,6 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
     chase: stance('chase: run them down', ['maneuver', 'engagement']),
     take_opportunities: stance('take opportunities: hit whatever comes close', ['engagement', 'navigation']),
     preserve_ammo: stance('preserve ammo: fire only where it tells', ['repair', 'navigation', 'energy']),
-    /**
-     * Fire discipline, in the stance slot: weapons launches until `count` missiles of this order fly,
-     * holds the tubes, and launches again once one of them arrived without a kill.
-     */
     focus: {
         slot: 'engagement',
         binds: ['weapons', 'engineer', 'helms'],
@@ -270,11 +281,26 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
                   : `focus ${(p.targets ?? []).map((t) => named(t, 'a contact')).join(', then ')}`,
         contradicts: ['hold_fire'],
     },
+    /**
+     * Fire discipline, in the stance slot: weapons launches until `count` missiles of this order fly,
+     * holds the tubes, and launches again once one of them arrived without a kill.
+     */
     salvo: {
         slot: 'stance',
         binds: ['weapons'],
         params: { count: 'required' },
         describe: (p) => `salvo ${p.count ?? SALVO_MISSILES}, then hold the tubes`,
+    },
+    /**
+     * Fire safety, in its own slot: weapons holds gun and tubes whenever its line of fire shows an
+     * ally (`target`, when named; any ally otherwise), and fires again once the line is clear.
+     */
+    check_fire: {
+        slot: 'fire_control',
+        binds: ['weapons'],
+        params: { target: 'optional' },
+        reference: LIVE_SHIP,
+        describe: (p) => (p.target ? `check fire: keep ${named(p.target, 'the ally')} out of the line` : 'check fire'),
     },
 };
 

@@ -49,9 +49,9 @@ describe('crew order board as seats read it', () => {
             { kind: 'chase' },
         ]);
         expect(slot(b, 'energy')).toBeUndefined();
-        expect(b.shown.priorities.slice(0, 3)).toEqual(['maneuver', 'engagement', 'repair']);
+        expect(b.shown.priorities.slice(0, 3)).toEqual(['fire_control', 'maneuver', 'engagement']);
         b.give([{ kind: 'revoke', params: { slot: 'stance' } }]);
-        expect(b.shown.priorities[0]).toBe('repair');
+        expect(b.shown.priorities.slice(0, 2)).toEqual(['fire_control', 'repair']);
     });
 
     it('aborts an engagement whose target weapons no longer sees, and says why', () => {
@@ -122,7 +122,7 @@ describe('crew order board as seats read it', () => {
         b.tick(12);
         expect(ordersLines(b.shown)).toEqual([
             'Standing orders: navigation: dock at dock for armor repairs (en route, 4.0 km), from the captain 12 s ago; maneuver: close to 2.0 km of raider, from doctrine, from signals 10 s ago.',
-            'Priorities: repair > navigation > engagement > energy > maneuver > stance > sensors.',
+            'Priorities: fire_control > repair > navigation > engagement > energy > maneuver > stance > sensors.',
         ]);
     });
 

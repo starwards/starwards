@@ -167,6 +167,7 @@ export function makeReferencePolicy(
                 salvo: launched,
                 salvoOrdered: orders.salvo !== undefined,
                 focusOrdered: orders.focus === true,
+                checkFireOrdered: orders.checkFire === true,
             });
             previous = display;
             if (callout) {
