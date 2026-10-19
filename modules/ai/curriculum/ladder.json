@@ -119,6 +119,18 @@
             "accept": { "killRate": 0.5, "checks": { "missile_oncoming_beyond_radar": 0.5 } }
         },
         {
+            "id": "L5d",
+            "axis": "mission",
+            "changed": "Wave defence on the wave-defence map (W-waves): the crewed GVTS defends three stations against raider waves, several raiders at once; a run passes once it survives 3 waves with every station alive.",
+            "status": "built",
+            "rungs": ["W-waves"],
+            "benchmarks": [],
+            "seeds": { "first": 1, "count": 8 },
+            "timeoutSeconds": 1500,
+            "plateau": { "metric": "kills", "versions": 2 },
+            "accept": { "killRate": 0.5 }
+        },
+        {
             "id": "L6",
             "axis": "threat",
             "changed": "Heavier attackers: dragonfly-MK2, then predator hulls.",
