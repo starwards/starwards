@@ -38,7 +38,7 @@ function recordingsUnder(target: string): string[] {
 
 /** Asks `spec` each recorded display, as `reask` does; a fresh verbal reader per run. */
 function askedChoices(spec: BrainSpec, policy: Policy): StudentChoices {
-    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
+    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds, { checkFire: spec.checkFire }) : undefined;
     return async (recorded, controls, display) => {
         const request = buildRequest(spec, display, controls, read?.(display), recorded.heard);
         const { answers } = await policy.answer(request, controls, display);

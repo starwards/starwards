@@ -8,6 +8,7 @@ import {
 } from '@starwards/core/internal';
 import { ORDERS_PANEL, OrdersBoard, ordersLines } from '../crew/orders';
 
+import { AllyAtRisk } from '../session/line-of-fire';
 import { Display } from './controls';
 
 /**
@@ -73,6 +74,8 @@ type ReadingContext = {
     heading?: number;
     /** The radar picture, when the station has one: panels may relate their reading to a contact on it. */
     radar?: Radar;
+    /** Whether the targeting panel's check-fire line is read out (a brain opts in with `checkFire`). */
+    checkFire: boolean;
 };
 
 type PanelTemplate = (panel: never, context: ReadingContext) => string[];
@@ -250,11 +253,14 @@ const panelTemplates = {
             shipOnly: boolean;
             enemyOnly: boolean;
             shortRangeOnly: boolean;
+            allyInLine?: AllyAtRisk | null;
+            allyNearTarget?: AllyAtRisk | null;
         },
         context: ReadingContext,
     ) => [
         p.targetId ? `Weapons locked on ${p.targetId}.` : 'No weapons lock.',
         ...gunLine(p.targetId, context),
+        ...(context.checkFire ? checkFireLines(p) : []),
         `Targeting filters: ships only ${p.shipOnly ? 'on' : 'off'}, enemies only ${p.enemyOnly ? 'on' : 'off'}, short range only ${p.shortRangeOnly ? 'on' : 'off'}.`,
     ],
     'target-info': (p: { target: Contact | null }) => [
@@ -288,6 +294,18 @@ const panelTemplates = {
     'waypoint-edit': (p: { title: string; collection: string }[]) =>
         p.map((w) => `Waypoint ${w.title} in ${w.collection}.`),
 } as const satisfies Record<Exclude<StationWidget, StationRadarWidget>, PanelTemplate>;
+
+/** The targeting panel's check-fire line (`session/line-of-fire.ts`). */
+function checkFireLines(p: { allyInLine?: AllyAtRisk | null; allyNearTarget?: AllyAtRisk | null }) {
+    const lines: string[] = [];
+    if (p.allyInLine)
+        lines.push(`CHECK FIRE: ally ${p.allyInLine.name} in the line of fire, ${metres(p.allyInLine.distance)}.`);
+    if (p.allyNearTarget)
+        lines.push(
+            `CHECK FIRE: ally ${p.allyNearTarget.name} ${metres(p.allyNearTarget.distance)} from the locked target, inside the blast.`,
+        );
+    return lines.length ? lines : ['Line of fire clear of allies.'];
+}
 
 function identity(c: Contact) {
     if (c.scanLevel === 'UFO' || c.type === undefined) return 'unidentified';
@@ -382,7 +400,7 @@ function readRadar(radar: Radar, context: ReadingContext): string[] {
  * A reader for one seat: it remembers the last radar picture so it can say what is closing or
  * opening, as an officer watching the screen would.
  */
-export function verbalReader(secondsBetweenReadings: number) {
+export function verbalReader(secondsBetweenReadings: number, { checkFire = false }: { checkFire?: boolean } = {}) {
     let previous = new Map<string, Sighting>();
     return (display: Display) => {
         const context: ReadingContext = {
@@ -391,6 +409,7 @@ export function verbalReader(secondsBetweenReadings: number) {
             secondsSincePrevious: secondsBetweenReadings,
             heading: (display.radar as Radar | undefined)?.ownShip?.heading,
             radar: display.radar as Radar | undefined,
+            checkFire,
         };
         const lines: string[] = [];
         if (display.radar) lines.push(...readRadar(display.radar, context));

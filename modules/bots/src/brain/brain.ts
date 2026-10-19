@@ -1,4 +1,4 @@
-import { BrainRequest, buildRequest } from './request';
+import { BrainRequest, buildRequest, displayFor } from './request';
 import { BrainSpec, specHash } from './spec';
 import { Capabilities, Control, Display, Press, stationControls } from './controls';
 import { Heard, Said, calloutSaid, calloutSources } from './callout';
@@ -65,13 +65,14 @@ type DecisionResult = {
  */
 export function buttonBrain(spec: BrainSpec, policy: Policy) {
     const hash = specHash(spec);
-    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
+    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds, { checkFire: spec.checkFire }) : undefined;
     const forecast = whatIfForecaster(spec);
     let previous: Display | undefined;
     return {
         spec,
         policy,
-        async decide(display: Display, capabilities: Capabilities, heard?: readonly Heard[]): Promise<DecisionResult> {
+        async decide(shown: Display, capabilities: Capabilities, heard?: readonly Heard[]): Promise<DecisionResult> {
+            const display = displayFor(spec, shown);
             const controls = stationControls({
                 display,
                 capabilities,

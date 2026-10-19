@@ -136,7 +136,7 @@ export function makeReferencePolicy(
                 salvo !== undefined &&
                 stillFlying(salvo.arrivals, seconds) >= orders.salvo;
             const launchTube =
-                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS && !salvoFull
+                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS && !salvoFull && !checkFire(display)
                     ? tubeToLaunch(display, previous, decisionSeconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
@@ -247,6 +247,7 @@ function referenceChoice(
             const target = display.radar?.contacts?.find((c) => c.id === targeting?.targetId);
             return target &&
                 !gunTooHot(display) &&
+                !checkFire(display) &&
                 Math.abs(delta(target.bearing, heading)) <= FIRE_ARC_DEGREES &&
                 target.distance <= FIRE_RANGE_METERS
                 ? 'fire'
@@ -424,6 +425,12 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
             Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES &&
             inEnvelope(t.loadedProjectile),
     )?.index;
+}
+
+/** Whether the targeting panel calls check fire: an ally in the line of fire or inside the blast at the lock. */
+function checkFire(display: Display) {
+    const shown = display.panels['targeting-status'] as { allyInLine?: unknown; allyNearTarget?: unknown } | undefined;
+    return Boolean(shown?.allyInLine || shown?.allyNearTarget);
 }
 
 /** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */

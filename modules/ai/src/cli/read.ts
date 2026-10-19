@@ -25,7 +25,7 @@ const index = Math.max(
     requests.findIndex((r) => r.t >= at - 1e-6),
 );
 const interval = requests.length > 1 ? requests[1].t - requests[0].t : 1;
-const read = verbalReader(interval);
+const read = verbalReader(interval, { checkFire: true });
 let lines: string[] = [];
 for (const request of requests.slice(Math.max(0, index - 1), index + 1)) {
     lines = read(request.display);

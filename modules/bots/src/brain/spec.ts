@@ -21,7 +21,8 @@ import { z } from 'zod';
  * missiles a salvo keeps in flight), `focusOrder` (captain: the enemy ships in sight in the order to
  * fight them, nearest the most threatened allied station first when one is in sight), `threatCloseOrder`
  * and `threatEngageOrder` (captain: close to and engage the enemy nearest any allied station, the raider
- * threatening it).
+ * threatening it), `allyAtRisk` (weapons: the ally the targeting panel's check-fire line shows, its range,
+ * and whether it is in the line of fire or by the target).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -41,6 +42,7 @@ export const calloutFills = [
     'focusOrder',
     'threatCloseOrder',
     'threatEngageOrder',
+    'allyAtRisk',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
@@ -102,6 +104,11 @@ export const brainSpecSchema = z
          * the same display read out as sentences by `verbal.ts` (`console` in the state).
          */
         view: z.enum(['display', 'verbal']).default('display'),
+        /**
+         * Reads the targeting panel's check-fire line (`allyInLine`, `allyNearTarget`): allies the next
+         * round would cross or the blast at the lock would catch. Absent, the brain reads the panel without it.
+         */
+        checkFire: z.boolean().optional(),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
         /**

@@ -55,7 +55,9 @@ export function buildRequest(
             station: spec.station,
             role: spec.role,
             mission: spec.mission,
-            ...(reading ? { console: reading } : { display: visibleDisplay(display, spec.hide) }),
+            ...(reading
+                ? { console: reading }
+                : { display: visibleDisplay(display, spec.hide, spec.checkFire === true) }),
             ...(heard && !perDecision ? { heard: heardLines(heard) } : {}),
         },
         questions,
@@ -81,9 +83,29 @@ function pick(record: Record<string, string>, keys: readonly string[]) {
     return Object.fromEntries(Object.entries(record).filter(([k]) => keys.includes(k)));
 }
 
-function visibleDisplay(display: Display, hide: readonly string[]) {
+function visibleDisplay(display: Display, hide: readonly string[], checkFire: boolean) {
     const panels = Object.fromEntries(
-        Object.entries(display.panels).filter(([name]) => !hide.includes(`panels.${name}`)),
+        Object.entries(display.panels)
+            .filter(([name]) => !hide.includes(`panels.${name}`))
+            .map(([name, panel]) => [
+                name,
+                name === 'targeting-status' && !checkFire ? withoutCheckFire(panel) : panel,
+            ]),
     );
     return hide.includes('radar') || display.radar === undefined ? { panels } : { panels, radar: display.radar };
+}
+
+/** The display as `spec` sees it: the targeting panel's check-fire line only for a brain that opts into `checkFire`. */
+export function displayFor(spec: BrainSpec, display: Display): Display {
+    const targeting = display.panels['targeting-status'];
+    return spec.checkFire || !targeting
+        ? display
+        : { ...display, panels: { ...display.panels, 'targeting-status': withoutCheckFire(targeting) } };
+}
+
+/** The targeting panel as a brain that has not opted into `checkFire` reads it. */
+function withoutCheckFire(panel: unknown) {
+    if (!panel || typeof panel !== 'object') return panel;
+    const { allyInLine: _line, allyNearTarget: _near, ...rest } = panel as Record<string, unknown>;
+    return rest;
 }
