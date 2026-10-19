@@ -221,7 +221,7 @@ function alliedStations(r: Radar | undefined) {
 }
 
 /** The identified enemy ship nearest any allied station on the radar, and that station. */
-export function stationThreat(r: Radar | undefined) {
+function stationThreat(r: Radar | undefined) {
     const own = r?.ownShip?.faction;
     const stations = alliedStations(r).filter((s) => s.position);
     let best: { enemy: Contact; station: Contact; gap: number } | undefined;
