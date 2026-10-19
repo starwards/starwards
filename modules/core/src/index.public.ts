@@ -14,6 +14,7 @@ export {
     ClientStatus,
     Driver,
     ShipDriver,
+    SnapshotFetch,
     SpaceDriver,
     Status,
     beginStationRegistration,
@@ -23,6 +24,7 @@ export {
     helmsRadarReach,
     radarReach,
     scanCycleTargets,
+    snapshotShipDriver,
 } from './client';
 export type {
     NetworkAddress,
@@ -123,13 +125,14 @@ export {
     SmartPilotMode,
     TargetedStatus,
     WarpFrequency,
+    decodeShipSnapshot,
     getDirectionConfigFromAngle,
     isRestockingAmmo,
     isRestockingEnergyCells,
     makeShipState,
     repairCommands,
 } from './ship';
-export type { DefectibleValue, RepairProtocolSlot, System } from './ship';
+export type { DefectibleValue, RepairProtocolSlot, SnapshotMessage, System } from './ship';
 
 // --- stations ---
 export { StationRegistryEntry, isValidStationId } from './stations';

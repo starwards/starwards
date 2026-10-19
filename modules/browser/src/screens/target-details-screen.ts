@@ -1,4 +1,16 @@
-import { Driver, Faction, ScanLevel, SpaceDriver, SpaceObject, Spaceship, playerScanLevel } from '@starwards/core';
+import {
+    Driver,
+    Faction,
+    ScanLevel,
+    ShipDriver,
+    SnapshotFetch,
+    SpaceDriver,
+    SpaceObject,
+    Spaceship,
+    decodeShipSnapshot,
+    playerScanLevel,
+    snapshotShipDriver,
+} from '@starwards/core';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 import { addTextBlade, createWidgetPane } from '../panel';
 
@@ -16,7 +28,8 @@ import { stationGrid } from '../container';
 /**
  * Target Details (SPEC-0008): read-only view of the contact marked on this ship's Signals station
  * (`ShipState.signalsTargetId`). At FULL scan it draws the target ship's internals live from the
- * target's own room; at every lower level it shows "no data". No hotkeys, no commands.
+ * target's own room; at SNAPSHOT it draws the faction's frozen snapshot, fetched from this ship's
+ * room; at every lower level it shows "no data". No hotkeys, no commands.
  */
 export async function initTargetDetailsScreen(
     driver: Driver,
@@ -32,26 +45,30 @@ export async function initTargetDetailsScreen(
     drawRadarHeader(grid.center({ fill: true }), 'TARGET DETAILS', `SHIP ${shipId}`);
     const noData = drawNoData(grid.center({ fill: true }));
 
-    // internals slots are created per subject and removed on teardown, which disposes their panes
-    let liveSubjectId: string | undefined;
-    let teardownLive: (() => void) | undefined;
-    const stopLive = () => {
-        teardownLive?.();
-        teardownLive = undefined;
-        liveSubjectId = undefined;
+    const snapshots = new SnapshotFetch((msg) => shipDriver.needSnapshot(msg));
+    const stopSnapshots = shipDriver.onSnapshot((msg) => snapshots.receive(msg));
+
+    // internals slots are created per source (live room or snapshot) and removed on teardown,
+    // which disposes their panes
+    let panelsKey: string | undefined;
+    let teardownPanels: (() => void) | undefined;
+    const stopPanels = () => {
+        teardownPanels?.();
+        teardownPanels = undefined;
+        panelsKey = undefined;
     };
 
-    function startLive(subjectId: string) {
-        liveSubjectId = subjectId;
-        void driver.getShipDriver(subjectId).then((subjectDriver) => {
-            if (liveSubjectId !== subjectId) return; // subject changed (or screen torn down) while awaiting
+    function startPanels(key: string, source: Promise<ShipDriver>) {
+        panelsKey = key;
+        void source.then((subjectDriver) => {
+            if (panelsKey !== key) return; // source changed (or screen torn down) while awaiting
             const armorSlot = grid.center({ fill: true });
             const tubesSlot = grid.left({ scroll: true });
             const systemsSlot = grid.right({ scroll: true });
             const armorApp = drawArmorStatus(armorSlot, subjectDriver, 300);
             drawTargetTubes(tubesSlot, subjectDriver);
             drawFullSystemsStatus(systemsSlot, subjectDriver, subjectDriver.systems, true);
-            teardownLive = () => {
+            teardownPanels = () => {
                 void armorApp.then((app) => app.destroy({ removeView: true }, true));
                 for (const slot of [armorSlot, tubesSlot, systemsSlot]) slot.getElement().remove();
             };
@@ -60,25 +77,39 @@ export async function initTargetDetailsScreen(
 
     const loop = new EmitterLoop(200);
     loop.onLoop(() => {
+        const faction = shipDriver.state.faction;
         const subject = spaceDriver.state.get(shipDriver.state.signalsTargetId);
-        const scanLevel = subject ? playerScanLevel(subject, shipDriver.state.faction) : undefined;
-        header.show(subject, scanLevel);
-        const live = subject && scanLevel !== undefined && scanLevel >= ScanLevel.FULL && Spaceship.isInstance(subject);
-        if (live) {
-            if (subject.id !== liveSubjectId) {
-                stopLive();
-                startLive(subject.id);
+        const scanLevel = subject ? playerScanLevel(subject, faction) : undefined;
+        const ship = subject && Spaceship.isInstance(subject) ? subject : undefined;
+        const live = ship && scanLevel !== undefined && scanLevel >= ScanLevel.FULL;
+        const frozen = ship && scanLevel === ScanLevel.SNAPSHOT ? ship : undefined;
+        snapshots.update(frozen?.id, frozen?.scanSnapshotCapturedAt[Number(faction)] ?? 0);
+        const snapshot = frozen && snapshots.snapshot;
+
+        const key = live ? `live/${ship.id}` : snapshot ? `snapshot/${snapshot.targetId}/${snapshot.capturedAt}` : '';
+        if (key !== (panelsKey ?? '')) {
+            stopPanels();
+            if (live) {
+                startPanels(key, driver.getShipDriver(ship.id));
+            } else if (snapshot) {
+                startPanels(key, Promise.resolve(snapshotShipDriver(decodeShipSnapshot(snapshot.data))));
             }
-        } else if (liveSubjectId) {
-            stopLive();
         }
-        noData.show(!subject ? 'NO TARGET' : live ? '' : 'NO DATA');
+        const intel = live ? 'LIVE' : snapshot ? `LAST KNOWN · ${formatAge(snapshot.ageSeconds)}` : 'NO DATA';
+        header.show(subject, scanLevel, intel);
+        noData.show(!subject ? 'NO TARGET' : key ? '' : 'NO DATA');
     });
     loop.start();
     return () => {
         loop.stop();
-        stopLive();
+        stopSnapshots();
+        stopPanels();
     };
+}
+
+function formatAge(seconds: number) {
+    const whole = Math.max(0, Math.floor(seconds));
+    return whole < 60 ? `${whole}s` : `${Math.floor(whole / 60)}m ${whole % 60}s`;
 }
 
 function drawSubjectHeader(container: WidgetContainer, spaceDriver: SpaceDriver) {
@@ -98,7 +129,7 @@ function drawSubjectHeader(container: WidgetContainer, spaceDriver: SpaceDriver)
     intelBlade.element.classList.add('sw-mode');
 
     return {
-        show(subject: SpaceObject | undefined, scanLevel: ScanLevel | undefined) {
+        show(subject: SpaceObject | undefined, scanLevel: ScanLevel | undefined, intel: string) {
             if (!subject || scanLevel === undefined) {
                 for (const prop of [trackProp, typeProp, factionProp, modelProp, scanLevelProp, intelProp]) {
                     prop.setValue('—');
@@ -114,9 +145,8 @@ function drawSubjectHeader(container: WidgetContainer, spaceDriver: SpaceDriver)
             const ship = identified ? spaceDriver.state.getShip(subject.id) : undefined;
             modelProp.setValue(ship?.model ?? '—');
             scanLevelProp.setValue(ScanLevel[scanLevel]);
-            const live = scanLevel >= ScanLevel.FULL && Spaceship.isInstance(subject);
-            intelProp.setValue(live ? 'LIVE' : 'NO DATA');
-            intelBlade.element.dataset.tone = live ? '' : 'caution';
+            intelProp.setValue(intel);
+            intelBlade.element.dataset.tone = intel === 'LIVE' ? '' : 'caution';
         },
     };
 }

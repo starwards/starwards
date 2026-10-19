@@ -1,4 +1,18 @@
-import { Asteroid, Faction, FactionIntelManager, ScanLevel, SpaceObject, SpaceState, Spaceship, Vec2 } from '../src';
+import {
+    Asteroid,
+    Faction,
+    FactionIntelManager,
+    ScanLevel,
+    ShipState,
+    SpaceObject,
+    SpaceState,
+    Spaceship,
+    Vec2,
+    decodeShipSnapshot,
+    encodeShipSnapshot,
+    makeShipState,
+    shipConfigurations,
+} from '../src';
 
 import { expect } from 'chai';
 
@@ -164,5 +178,105 @@ describe('FactionIntelManager scan demotion', () => {
         }
 
         expect(intel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+    });
+});
+
+describe('FactionIntelManager snapshot store', () => {
+    function setupWithShipState() {
+        const target = makeShip('target'); // no faction, so both factions can scan it
+        const { state, intel } = setup(target);
+        const targetState = makeShipState('target', shipConfigurations['dragonfly-MK1']);
+        const shipStates = new Map<string, ShipState>([['target', targetState]]);
+        intel.encodeShip = (id) => {
+            const shipState = shipStates.get(id);
+            return shipState && encodeShipSnapshot(shipState);
+        };
+        return { state, intel, target, targetState };
+    }
+
+    function demote(intel: FactionIntelManager, faction: Faction, atSeconds: number) {
+        intel.setScanLevel('target', faction, ScanLevel.FULL);
+        intel.update(atSeconds, 1, visibility());
+    }
+
+    it('captures the target ship state on FULL to SNAPSHOT demotion', () => {
+        const { intel, targetState } = setupWithShipState();
+        targetState.armor.armorPlates[0].layers[0].health = 7;
+
+        demote(intel, Faction.Gravitas, 42);
+
+        const snapshot = intel.getSnapshot('target', Faction.Gravitas);
+        expect(snapshot?.capturedAt).to.equal(42);
+        const decoded = decodeShipSnapshot(snapshot!.data);
+        expect(decoded.id).to.equal('target');
+        expect(decoded.armor.armorPlates[0].layers[0].health).to.equal(7);
+    });
+
+    it('is frozen: damage after demotion does not change the snapshot', () => {
+        const { intel, targetState } = setupWithShipState();
+        targetState.armor.armorPlates[0].layers[0].health = 7;
+        demote(intel, Faction.Gravitas, 42);
+
+        targetState.armor.armorPlates[0].layers[0].health = 1;
+        intel.update(43, 1, visibility());
+
+        const decoded = decodeShipSnapshot(intel.getSnapshot('target', Faction.Gravitas)!.data);
+        expect(decoded.armor.armorPlates[0].layers[0].health).to.equal(7);
+    });
+
+    it('keeps factions independent', () => {
+        const { intel, targetState } = setupWithShipState();
+        targetState.armor.armorPlates[0].layers[0].health = 7;
+        demote(intel, Faction.Gravitas, 42);
+        targetState.armor.armorPlates[0].layers[0].health = 3;
+
+        expect(intel.getSnapshot('target', Faction.Raiders)).to.equal(undefined);
+        demote(intel, Faction.Raiders, 50);
+
+        const first = decodeShipSnapshot(intel.getSnapshot('target', Faction.Gravitas)!.data);
+        const second = decodeShipSnapshot(intel.getSnapshot('target', Faction.Raiders)!.data);
+        expect(first.armor.armorPlates[0].layers[0].health).to.equal(7);
+        expect(second.armor.armorPlates[0].layers[0].health).to.equal(3);
+    });
+
+    it('overwrites the snapshot on the next demotion and keeps it through re-promotion', () => {
+        const { intel, targetState } = setupWithShipState();
+        demote(intel, Faction.Gravitas, 42);
+        intel.setScanLevel('target', Faction.Gravitas, ScanLevel.FULL);
+        expect(intel.getSnapshot('target', Faction.Gravitas)?.capturedAt).to.equal(42);
+
+        targetState.armor.armorPlates[0].layers[0].health = 2;
+        intel.update(60, 1, visibility());
+
+        const snapshot = intel.getSnapshot('target', Faction.Gravitas)!;
+        expect(snapshot.capturedAt).to.equal(60);
+        expect(decodeShipSnapshot(snapshot.data).armor.armorPlates[0].layers[0].health).to.equal(2);
+    });
+
+    it('clears the snapshot when the target is destroyed', () => {
+        const { intel, target } = setupWithShipState();
+        demote(intel, Faction.Gravitas, 42);
+
+        target.destroyed = true;
+        intel.update(43, 1, visibility());
+        target.destroyed = false;
+
+        expect(intel.getSnapshot('target', Faction.Gravitas)).to.equal(undefined);
+    });
+
+    it('has no snapshot for a GM-set SNAPSHOT that was never captured', () => {
+        const { intel } = setupWithShipState();
+        intel.setScanLevel('target', Faction.Gravitas, ScanLevel.SNAPSHOT);
+        intel.update(42, 1, visibility());
+
+        expect(intel.getSnapshot('target', Faction.Gravitas)).to.equal(undefined);
+    });
+
+    it('reports how old a snapshot is in game seconds', () => {
+        const { intel } = setupWithShipState();
+        demote(intel, Faction.Gravitas, 42);
+        intel.update(50, 1, visibility());
+
+        expect(intel.getSnapshotAge('target', Faction.Gravitas)).to.equal(8);
     });
 });

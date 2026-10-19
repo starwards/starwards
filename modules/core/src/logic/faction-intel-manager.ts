@@ -1,4 +1,5 @@
 import { Faction, ScanLevel, SpaceObject, SpaceState } from '../space';
+import type { ShipSnapshot } from '../ship/ship-snapshot';
 import { drainCommands } from '../commands';
 
 /** How long a FULL scan survives without any friendly scan beam on the target (M4.19 ruling). */
@@ -6,12 +7,21 @@ export const FULL_SCAN_GRACE_SECONDS = 0.5;
 
 /**
  * Owns the per-faction intel a faction holds on space objects: scan levels, the moment a
- * SNAPSHOT was captured, and the GM commands that write them. Every write to `scanLevels`
+ * SNAPSHOT was captured, the captured snapshots themselves, and the GM commands that write them. Every write to `scanLevels`
  * goes through here, so the faction bounds guard cannot be routed around.
  */
 export class FactionIntelManager {
     /** seconds each (ship, faction) FULL has gone without scan-beam cover, keyed `${shipId}/${faction}` */
     private uncoveredSeconds = new Map<string, number>();
+    /** captured SNAPSHOTs, keyed by target id then faction. Plain memory: never synced (SPEC-0008 §5). */
+    private snapshots = new Map<string, Map<Faction, ShipSnapshot>>();
+    private totalSeconds = 0;
+
+    /**
+     * Encodes a ship's current `ShipState` (`encodeShipSnapshot`), called on FULL→SNAPSHOT demotion
+     * to capture the snapshot. Set by the owner of the ship managers; without it nothing is captured.
+     */
+    public encodeShip: (shipId: string) => Uint8Array | undefined = () => undefined;
 
     constructor(private state: SpaceState) {}
 
@@ -27,8 +37,44 @@ export class FactionIntelManager {
         deltaSeconds: number,
         beamCoveredByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>,
     ) {
+        this.totalSeconds = totalSeconds;
         this.processSetScanLevelCommands();
         this.updateScanDemotion(totalSeconds, deltaSeconds, beamCoveredByFaction);
+        this.clearDestroyedSnapshots();
+    }
+
+    private clearDestroyedSnapshots() {
+        for (const targetId of this.snapshots.keys()) {
+            const target = this.state.get(targetId);
+            if (!target || target.destroyed) {
+                this.snapshots.delete(targetId);
+            }
+        }
+    }
+
+    private captureSnapshot(targetId: string, faction: Faction, atSeconds: number) {
+        const data = this.encodeShip(targetId);
+        if (!data) return;
+        let byFaction = this.snapshots.get(targetId);
+        if (!byFaction) {
+            byFaction = new Map();
+            this.snapshots.set(targetId, byFaction);
+        }
+        byFaction.set(faction, { capturedAt: atSeconds, data });
+    }
+
+    /**
+     * The faction's last captured SNAPSHOT of the target, shared by every ship of that faction.
+     * Undefined if the faction never demoted the target from FULL, or the target is gone.
+     */
+    public getSnapshot(targetId: string, faction: Faction): ShipSnapshot | undefined {
+        return this.getScanSlot(targetId, faction) ? this.snapshots.get(targetId)?.get(faction) : undefined;
+    }
+
+    /** Game seconds since the faction's snapshot of the target was captured; undefined without one. */
+    public getSnapshotAge(targetId: string, faction: Faction): number | undefined {
+        const snapshot = this.getSnapshot(targetId, faction);
+        return snapshot && this.totalSeconds - snapshot.capturedAt;
     }
 
     private processSetScanLevelCommands() {
@@ -65,6 +111,7 @@ export class FactionIntelManager {
                 if (seconds > FULL_SCAN_GRACE_SECONDS) {
                     this.setScanLevel(ship.id, faction, ScanLevel.SNAPSHOT);
                     this.setScanSnapshotCapturedAt(ship.id, faction, totalSeconds);
+                    this.captureSnapshot(ship.id, faction, totalSeconds);
                 } else {
                     uncovered.set(key, seconds);
                 }

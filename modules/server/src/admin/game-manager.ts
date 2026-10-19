@@ -25,6 +25,7 @@ import {
     botSeatsConflict,
     createLogger,
     drainCommands,
+    encodeShipSnapshot,
     isAssignableSeat,
     isBotBrain,
     isSlotTaken,
@@ -64,7 +65,7 @@ export class GameManager {
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
     private die = new ShipDie();
-    public spaceManager = new SpaceManager();
+    public spaceManager = this.makeSpaceManager();
     /** Runs the bots seated in `state.bots`. */
     public botSeats: BotSeats = noBots;
     /** Server-wide: bot ids stay unique across ships, games and restarts of a seat. */
@@ -110,6 +111,16 @@ export class GameManager {
             this.state.message = message;
         },
     };
+
+    /** wires snapshot capture (SPEC-0008) to the ship managers, which own every `ShipState` */
+    private makeSpaceManager() {
+        const spaceManager = new SpaceManager();
+        spaceManager.factionIntel.encodeShip = (shipId) => {
+            const shipState = this.shipManagers.get(shipId)?.state;
+            return shipState && encodeShipSnapshot(shipState);
+        };
+        return spaceManager;
+    }
 
     public get totalSeconds() {
         return this._totalSeconds;
@@ -381,7 +392,7 @@ export class GameManager {
             this.state.gameStatus = GameStatus.STARTING;
             this.map = map;
             this.shipManagers = new Map<string, ShipManager>();
-            this.spaceManager = new SpaceManager();
+            this.spaceManager = this.makeSpaceManager();
             map.init(this.scriptApi);
             await this.waitForAllShipRoomsInit();
             this.spaceManager.forceFlushEntities();
@@ -429,7 +440,7 @@ export class GameManager {
         );
         this.state.gameStatus = GameStatus.STARTING;
         this.map = map;
-        this.spaceManager = new SpaceManager();
+        this.spaceManager = this.makeSpaceManager();
         this.spaceManager.insertBulk(fragment.space);
         this.spaceManager.forceFlushEntities();
         await matchMaker.createRoom('space', { manager: this.spaceManager });
@@ -496,13 +507,18 @@ export class GameManager {
         this.shipManagers.set(id, shipManager);
 
         // All ships get rooms (PC and NPC alike)
-        const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
-            await this.waitForRoom({ roomId: id, name: 'ship' });
-            this.state.shipIds.push(id);
-            if (isPlayerShip) {
-                this.state.playerShipIds.push(id);
-            }
-        });
+        const createRoomPromise = matchMaker
+            .createRoom('ship', {
+                manager: shipManager,
+                factionIntel: this.spaceManager.factionIntel,
+            })
+            .then(async () => {
+                await this.waitForRoom({ roomId: id, name: 'ship' });
+                this.state.shipIds.push(id);
+                if (isPlayerShip) {
+                    this.state.playerShipIds.push(id);
+                }
+            });
         this.shipCleanups.set(id, async () => {
             await createRoomPromise;
             if (this.shipCleanups.delete(id)) {

@@ -1,5 +1,9 @@
 import {
+    FactionIntelManager,
     GM_SET_VALUE,
+    NEED_SNAPSHOT,
+    NeedSnapshotMessage,
+    SNAPSHOT,
     ShipManager,
     ShipState,
     cmdReceivers,
@@ -25,7 +29,7 @@ export class ShipRoom extends Room<{ state: ShipState }> {
         this.autoDispose = false;
     }
 
-    public onCreate({ manager }: { manager: ShipManager }) {
+    public onCreate({ manager, factionIntel }: { manager: ShipManager; factionIntel: FactionIntelManager }) {
         this.roomId = manager.spaceObject.id;
         this.recordingSerializer = recordingSerializerFor(shipRoomKey(manager.spaceObject.id));
         this.setState(manager.state);
@@ -47,6 +51,15 @@ export class ShipRoom extends Room<{ state: ShipState }> {
         this.onMessage(GM_SET_VALUE, (_, message: unknown) => {
             if (!handleGmSetValueCommand(message, manager.state)) {
                 logError(`GM onMessage for message="${JSON.stringify(message)}" not registered.`);
+            }
+        });
+        // SPEC-0008 snapshot fetch: read-only, answered with this ship's faction snapshot when newer
+        this.onMessage(NEED_SNAPSHOT, (client, message: NeedSnapshotMessage) => {
+            const targetId = String(message?.targetId);
+            const snapshot = factionIntel.getSnapshot(targetId, manager.state.faction);
+            if (snapshot && snapshot.capturedAt > (Number(message.haveCapturedAt) || 0)) {
+                const ageSeconds = factionIntel.getSnapshotAge(targetId, manager.state.faction) ?? 0;
+                client.send(SNAPSHOT, { targetId, ageSeconds, ...snapshot });
             }
         });
         this.onMessage('*', (_, type, message: unknown) => {
