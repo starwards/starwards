@@ -334,8 +334,9 @@ export class CrewOrder extends Schema {
     @gameField('boolean') fired = false;
 }
 
-export type IssueOrderArg = { kind: string; params?: OrderParamsArg; issuer: OrderIssuer; origin?: string };
-export type RevokeOrderArg = { slot: OrderSlot; issuer: OrderIssuer };
+/** An order to place. Carries no issuer: the server derives it from the command that carried it. */
+export type IssueOrderArg = { kind: string; params?: OrderParamsArg; origin?: string };
+export type RevokeOrderArg = { slot: OrderSlot };
 export type ReportOrderProgressArg = {
     id: number;
     step?: string;
@@ -345,13 +346,14 @@ export type ReportOrderProgressArg = {
 };
 
 export type CrewOrderCommand =
-    | ({ type: 'issue' } & IssueOrderArg)
-    | ({ type: 'revoke' } & RevokeOrderArg)
+    | ({ type: 'issue'; issuer: OrderIssuer } & IssueOrderArg)
+    | ({ type: 'stance'; issuer: OrderIssuer } & IssueOrderArg)
+    | ({ type: 'revoke'; issuer: OrderIssuer } & RevokeOrderArg)
     | ({ type: 'progress' } & ReportOrderProgressArg);
 
 /**
- * A ship's order board: one order per slot, the active stance in the `stance` slot. Synced to the
- * ship room (the ship's own stations and the GM), recorded in every frame, and written only through
+ * A ship's order board: one order per slot, the active stance in the `stance` slot. Synced whole to
+ * every client of the ship room (the ship's own stations, bots and the GM), never filtered by seat, recorded in every frame, and written only through
  * `crewOrderCommands`, which `CrewOrdersManager` validates.
  */
 export class CrewOrderBoard extends Schema {

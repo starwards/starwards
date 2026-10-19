@@ -1,4 +1,4 @@
-import { DOCKING_MODE, orderFromCallout, ordersLines } from './orders';
+import { DOCKING_MODE, orderCommand, orderFromCallout, ordersLines } from './orders';
 
 import { Display } from '../brain/controls';
 import { testBoard } from './orders.fixtures';
@@ -11,6 +11,21 @@ const helms = (mode: number, x = 0, healthy = 16): Display => ({
 const slot = (b: ReturnType<typeof testBoard>, s: string) => b.shown.orders.find((o) => o.slot === s);
 
 describe('crew order board as seats read it', () => {
+    it('picks the command by issuer and never sends an issuer; a captain stance goes through setStance', () => {
+        expect(orderCommand({ kind: 'hold_here' }, 'captain')).toEqual({
+            command: 'issueOrder',
+            arg: { kind: 'hold_here', params: {}, origin: '' },
+        });
+        expect(orderCommand({ kind: 'chase' }, 'captain')?.command).toBe('setStance');
+        expect(orderCommand({ kind: 'undock' }, 'captain')?.command).toBe('issueOrder');
+        expect(orderCommand({ kind: 'engage' }, 'doctrine', 'weapons')?.command).toBe('doctrineIssueOrder');
+        expect(orderCommand({ kind: 'revoke', params: { slot: 'energy' } }, 'doctrine')).toEqual({
+            command: 'doctrineRevokeOrder',
+            arg: { slot: 'energy' },
+        });
+        expect(orderCommand({ kind: 'revoke', params: { slot: 'stance' } }, 'captain')?.command).toBe('revokeOrder');
+    });
+
     it('keeps one order per slot, binding the energy-drawing seats to preserve energy', () => {
         const b = testBoard(['helms', 'weapons']);
         b.give([{ kind: 'close_to', params: { target: { name: 'raider' }, range: 2000 } }]);

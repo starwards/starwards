@@ -1,4 +1,4 @@
-import { TargetedStatus } from '@starwards/core';
+import { ShipState, TargetedStatus } from '@starwards/core';
 import { makeMultiClientDriver } from './multi-client-driver';
 import { sleep } from '@starwards/core/internal';
 import supertest from 'supertest';
@@ -128,5 +128,30 @@ describe('ShipRoom JSON pointer commands', () => {
         await client.sendCommand(room, '/warp/jammed', { value: true });
         await waitForServer(() => shipManager.state.warp!.jammed === true);
         expect(shipManager.state.warp!.jammed).toEqual(true);
+    });
+
+    it('syncs the order board whole to every client of the ship room, issuer derived from the command', async () => {
+        const { client, room, shipId } = await connectShip('captain');
+        const others = await Promise.all([connectShip('helms'), connectShip('weapons'), connectShip('gm')]);
+        driver.serverDriver.gameManager.state.speed = 1; // the board is drained at the ship's update
+        const board = () => driver.serverDriver.getShip(shipId).state.orderBoard;
+        await client.sendCommand(room, 'issueOrder', { value: { kind: 'undock', issuer: 'doctrine' } });
+        await client.sendCommand(room, 'setStance', { value: { kind: 'defensive' } });
+        await client.sendCommand(room, 'doctrineIssueOrder', { value: { kind: 'hold_here', issuer: 'captain' } });
+        await waitForServer(() => board().slots.size === 3);
+        const seen = (state: ShipState) =>
+            ['navigation', 'stance', 'maneuver'].map((s) => {
+                const o = state.orderBoard.slots.get(s);
+                return o && `${o.kind}/${o.issuer}`;
+            });
+        expect(seen(driver.serverDriver.getShip(shipId).state)).toEqual([
+            'undock/captain',
+            'defensive/captain',
+            'hold_here/doctrine',
+        ]);
+        for (const o of [{ client, room }, ...others]) {
+            await o.client.waitForSync(o.room, (state: ShipState) => seen(state).every(Boolean));
+            expect(seen(o.room.state)).toEqual(seen(driver.serverDriver.getShip(shipId).state));
+        }
     });
 });

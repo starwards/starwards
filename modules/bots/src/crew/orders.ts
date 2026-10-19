@@ -208,8 +208,8 @@ const ORDER_PROGRESS: Record<string, OrderProgress> = {
 
 /** A write to the order board, as one of its commands carries it. */
 export type OrderCommand =
-    | { command: 'issueOrder'; arg: IssueOrderArg }
-    | { command: 'revokeOrder'; arg: RevokeOrderArg }
+    | { command: 'issueOrder' | 'setStance' | 'doctrineIssueOrder'; arg: IssueOrderArg }
+    | { command: 'revokeOrder' | 'doctrineRevokeOrder'; arg: RevokeOrderArg }
     | { command: 'reportOrderProgress'; arg: ReportOrderProgressArg };
 
 /** Sends an order command through a ship driver: a seat's session in a live game or a headless one. */
@@ -244,12 +244,22 @@ function paramsOf(p: OrderParamsArg): OrderParams {
     return { ...rest, ...(region ? { region: { ...region, ...(from ? { from } : {}) } } : {}) };
 }
 
-/** The command that gives an order (`revoke` empties its `params.slot`). */
+/**
+ * The command that gives an order (`revoke` empties its `params.slot`). The issuer picks the command,
+ * never a field: the server derives the issuer from it. A captain's stance goes through `setStance`.
+ */
 export function orderCommand(given: GivenOrder, issuer: OrderIssuer, origin = ''): OrderCommand | undefined {
+    const doctrine = issuer === 'doctrine';
     if (given.kind === 'revoke') {
-        return given.params?.slot ? { command: 'revokeOrder', arg: { slot: given.params.slot, issuer } } : undefined;
+        const slot = given.params?.slot;
+        return slot ? { command: doctrine ? 'doctrineRevokeOrder' : 'revokeOrder', arg: { slot } } : undefined;
     }
-    return { command: 'issueOrder', arg: { kind: given.kind, params: paramsArg(given.params), issuer, origin } };
+    const command = doctrine
+        ? 'doctrineIssueOrder'
+        : CREW_ORDER_KINDS[given.kind]?.slot === 'stance'
+          ? 'setStance'
+          : 'issueOrder';
+    return { command, arg: { kind: given.kind, params: paramsArg(given.params), origin } };
 }
 
 /** The order board panel as every seat sees it: each slot's order with its age and plain words, and the ranking. */
