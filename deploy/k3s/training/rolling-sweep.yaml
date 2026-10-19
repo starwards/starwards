@@ -45,7 +45,8 @@ spec:
                               # held-out regression: the curriculum's reference crew and the reference captain, paired by seed
                               - { name: CREWS, value: 'crews/reference.json,crews/captain-reference.json' }
                               - { name: SEEDS, value: '120' } # ~240 runs: 15-45 min by rung
-                              - { name: SEEDS_BY_RUNG, value: 'W-waves=24' }
+                              - { name: SEEDS_BY_RUNG, value: 'W-waves=6' }
+                              - { name: WORKERS_BY_RUNG, value: 'W-waves=1' } # 4 W-waves workers ran out of 7 GiB; 6 seeds fit the 90 min deadline
                               - { name: BUDGET, value: '0' } # unused by the sweep
                               - { name: WORKERS, value: '4' }
                               - name: JOB_NAME

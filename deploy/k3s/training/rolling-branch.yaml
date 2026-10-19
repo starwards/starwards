@@ -48,7 +48,7 @@ spec:
                               - { name: SEEDS_BY_RUNG, value: 'W-waves=4,T2-dock=24' }
                               - { name: WORKERS_BY_RUNG, value: 'W-waves=1,T2-dock=2' } # 4 workers ran out of 7 GiB on these rungs
                               - { name: BUDGET, value: '1200' } # branches per cycle: sized for a <= 60 min shard
-                              - { name: WORKERS, value: '4' }
+                              - { name: WORKERS, value: '3' } # 4 workers ran out of 7 GiB on T3 branch cycles
                               - name: JOB_NAME
                                 valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
                           resources:
