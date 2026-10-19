@@ -123,9 +123,8 @@ export class SpaceManager implements Updateable {
 
     public spatialIndex = ((mgr: SpaceManager) => ({
         *selectPotentials(area: Body): Iterable<SpaceObject> {
-            mgr.collisions.insert(area);
-            mgr.cleanupBodies.push(area);
-            for (const potential of mgr.collisions.getPotentials(area)) {
+            // a bbox search, not an inserted body: a temporary body would stay in the tree through checkAll
+            for (const potential of mgr.collisions.search(area.getAABBAsBBox()) as Body[]) {
                 const object = mgr.collisionToState.get(potential);
                 if (object && !object.destroyed) {
                     yield object;
