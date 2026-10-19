@@ -1,5 +1,5 @@
 # Low-priority tenant: the namespace quota rejects pods without this class. One training pod per node,
-# because training pods reserve their real memory and nodes have ~11-15 GiB actually free.
+# because training pods reserve their real memory and nodes have 16.1 / 8.6 / 16.5 GiB free for training (node1/2/3, admin 2026-10-19).
 - op: add
   path: /spec/template/spec/priorityClassName
   value: starwards-training
