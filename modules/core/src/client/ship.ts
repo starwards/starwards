@@ -1,9 +1,9 @@
+import { NEED_SNAPSHOT, NeedSnapshotMessage, SNAPSHOT, ShipState, SnapshotMessage } from '../ship';
 import { Primitive, wireEvents } from 'colyseus-events';
 import { RoomEventEmitter, getSystems, sendGmJsonCmd, sendJsonCmd } from '..';
 
 import EventEmitter2 from 'eventemitter2';
 import { Room } from '@colyseus/sdk';
-import { ShipState } from '../ship';
 import { StateCommand } from '../commands';
 import { waitForEvents } from '../async-utils';
 
@@ -79,5 +79,28 @@ export async function ShipDriver(shipRoom: Room<unknown, ShipState>) {
         command: <T>(cmd: StateCommand<T, ShipState, void>, value: T) => {
             shipRoom.send(cmd.cmdName, { value, path: undefined });
         },
+        /** asks this ship's room for its faction's snapshot of a target (SPEC-0008) */
+        needSnapshot: (msg: NeedSnapshotMessage) => shipRoom.send(NEED_SNAPSHOT, msg),
+        /** @returns unsubscribe */
+        onSnapshot: (cb: (msg: SnapshotMessage) => void): (() => void) => shipRoom.onMessage(SNAPSHOT, cb),
+    };
+}
+
+/**
+ * A `ShipDriver` over a detached, never-changing `ShipState` (a decoded snapshot), so the station
+ * widgets draw it exactly as they draw a live ship. No events ever fire; every write is dropped.
+ */
+export function snapshotShipDriver(state: ShipState): ShipDriver {
+    const noop = () => undefined;
+    return {
+        events: new EventEmitter2(emitter2Options) as RoomEventEmitter,
+        id: state.id,
+        state,
+        systems: getSystems(state),
+        sendJsonCmd: noop,
+        sendGmJsonCmd: noop,
+        command: noop,
+        needSnapshot: noop,
+        onSnapshot: () => noop,
     };
 }

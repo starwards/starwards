@@ -164,14 +164,47 @@ test.describe('Target Details screen', () => {
         await expect(page.locator('[data-id="Systems"]')).toHaveCount(0);
     });
 
-    test('at snapshot level, shows no data', async ({ page }) => {
+    test('at snapshot level without a capture (GM-set), shows no data', async ({ page }) => {
         markSignalsTarget(targetShipId);
         setTargetScanLevel(ScanLevel.SNAPSHOT);
         await openTargetDetails(page);
 
         await expect.poll(() => getPropertyValue(page, 'Scan level', 'Target'), { timeout: 5000 }).toBe('SNAPSHOT');
+        await page.waitForTimeout(1500); // a poll would have answered by now
         await expect(page.locator('[data-id="No Data"]')).toHaveText(/no data/i);
         await expect(page.locator('[data-id="Armor"]')).toHaveCount(0);
+    });
+
+    test('after FULL drops to SNAPSHOT, draws the frozen snapshot as LAST KNOWN', async ({ page }) => {
+        const target = gameDriver.getShip(targetShipId);
+        gameDriver.gameManager.spaceManager.state.getShip(targetShipId)!.faction = Faction.Raiders; // own faction never demotes
+        target.state.tubes[0].loadedProjectile = 'HiExpMissile';
+        markSignalsTarget(targetShipId);
+        setTargetScanLevel(ScanLevel.FULL);
+        await openTargetDetails(page);
+        await expect.poll(() => getPropertyValue(page, 'Intel', 'Target'), { timeout: 5000 }).toBe('LIVE');
+
+        // the scan beam's grace running out, by hand: the own ship's beam may still cover the target
+        const { gameManager } = gameDriver;
+        gameManager.spaceManager.factionIntel.update(gameManager.totalSeconds, 1, []);
+
+        await expect.poll(() => getPropertyValue(page, 'Scan level', 'Target'), { timeout: 5000 }).toBe('SNAPSHOT');
+        await expect
+            .poll(() => getPropertyValue(page, 'Intel', 'Target'), { timeout: 5000 })
+            .toMatch(/^LAST KNOWN · \d+s$/);
+        await expect(page.locator('[data-id="Armor"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[data-id="Systems"]')).toBeVisible();
+        await expect(page.locator('[data-id="No Data"]')).toBeHidden();
+        const tubesPanel = page.locator('[data-id="Target Tubes"]');
+        await expect(async () => expect(await inputValues(tubesPanel)).toContain('HiExpMissile')).toPass({
+            timeout: 5000,
+        });
+
+        // frozen: a change on the target after capture does not show
+        target.state.tubes[0].loadedProjectile = 'None';
+        await page.waitForTimeout(1500);
+        expect(await inputValues(tubesPanel)).toContain('HiExpMissile');
+        expect(await inputValues(tubesPanel)).not.toContain('None');
     });
 
     test('at full scan, draws the target live armor, systems and tubes', async ({ page }) => {

@@ -20,6 +20,7 @@ export * from './ship-die';
 export * from './ship-direction';
 export * from './ship-manager';
 export * from './ship-manager-abstract';
+export * from './ship-snapshot';
 export * from './ship-state';
 export * from './capsule';
 export * from './threat-table';
