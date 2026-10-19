@@ -280,33 +280,6 @@ const calloutFills: Record<
         const enemy = nearestEnemy(radar as Radar | undefined);
         return enemy && { name: enemy.name };
     },
-    /**
-     * Captain: close to the enemy nearest any allied station (the raider threatening it), `distance`
-     * from us on world `bearing`, at the range {@link closeRange} gives for it.
-     */
-    threatCloseOrder: ({ radar }, previous, seconds) => {
-        const r = radar as Radar | undefined;
-        const threat = stationThreat(r);
-        return (
-            threat && {
-                name: threat.enemy.name,
-                station: threat.station.name,
-                range: (
-                    closeRange(
-                        threat.enemy.distance,
-                        launchRange(threat.enemy, r, previous?.radar as Radar | undefined, seconds),
-                    ) / 1000
-                ).toFixed(0),
-                distance: (threat.enemy.distance / 1000).toFixed(1),
-                bearing: bearingWords(threat.enemy.bearing),
-            }
-        );
-    },
-    /** Captain: engage the enemy nearest any allied station. */
-    threatEngageOrder: ({ radar }) => {
-        const threat = stationThreat(radar as Radar | undefined);
-        return threat && { name: threat.enemy.name };
-    },
 };
 
 /** Allied stations on the radar: own-faction ships big enough to dock at. */

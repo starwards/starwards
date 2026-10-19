@@ -450,11 +450,6 @@ const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => Give
     close_to: (v, o) => ({ kind: 'close_to', params: { target: calloutRef(v, o), range: Number(v.range) * 1000 } }),
     hold_here: () => ({ kind: 'hold_here' }),
     engage: (v) => ({ kind: 'engage', params: { target: { name: v.name } } }),
-    defend_close_to: (v, o) => ({
-        kind: 'close_to',
-        params: { target: calloutRef(v, o), range: Number(v.range) * 1000 },
-    }),
-    defend_engage: (v) => ({ kind: 'engage', params: { target: { name: v.name } } }),
     hold_fire: () => ({ kind: 'hold_fire' }),
     chase_target: (v, o) => ({ kind: 'chase_target', params: { target: calloutRef(v, o) } }),
     preserve_energy: () => ({ kind: 'preserve_energy' }),

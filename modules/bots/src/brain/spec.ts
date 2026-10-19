@@ -19,9 +19,7 @@ import { z } from 'zod';
  * previous decision and has lost), `lostContact` (signals: the enemy ship the radar showed at the
  * previous decision and shows no more, and its last world bearing), `salvoOrder` (captain: the
  * missiles a salvo keeps in flight), `focusOrder` (captain: the enemy ships in sight in the order to
- * fight them, nearest the most threatened allied station first when one is in sight), `threatCloseOrder`
- * and `threatEngageOrder` (captain: close to and engage the enemy nearest any allied station, the raider
- * threatening it).
+ * fight them, nearest the most threatened allied station first when one is in sight).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -39,8 +37,6 @@ export const calloutFills = [
     'lostContact',
     'salvoOrder',
     'focusOrder',
-    'threatCloseOrder',
-    'threatEngageOrder',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 

@@ -577,11 +577,8 @@ first station falls at the same second as with an idle crew. The reference capta
 nearest the GVTS, so it chases raiders that attack the ship while others reach a station (seed 1: the
 platform falls at 789 s with the GVTS 40-100 km away, after wave 2's harass MK2s).
 
-The captain callouts `defend_close_to` and `defend_engage` (fills `threatCloseOrder`,
-`threatEngageOrder`) name the enemy nearest any allied station instead. Jev captains on seeds 1-8:
-v1 2/8, v2 (defend callouts, dock and undock) 2/8, v3 (v2 without docking) 3/8, against
-`captain-reference` 5/8. v2 docks after wave 1 and then alternates dock, undock and defend while
-wave 2 reaches a station.
+`focus nearest_to <station>` points the crew at the enemy nearest an allied station instead. Jev
+captain v1 on seeds 1-8: 2/8, against `captain-reference` 5/8.
 
 ## Branching: what if the crew had decided otherwise
 
