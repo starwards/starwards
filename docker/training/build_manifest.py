@@ -18,7 +18,7 @@ day, commit = sys.argv[1], sys.argv[2]
 os.chdir(os.path.join(os.environ.get('ARCHIVE') or os.path.dirname(os.path.abspath(__file__)), day))
 KEEP = ('crew', 'brain', 'brains', 'killed', 'seconds', 'shellsFired', 'blastHits', 'killZoneFraction',
         'targetHealth', 'armorStrippedAt', 'metrics', 'decisions', 'fallbacks', 'refused', 'inputTokens',
-        'failedChecks', 'scenario', 'benchmark')
+        'failedChecks', 'scenario', 'benchmark', 'kills', 'enemies', 'waves')
 
 
 def key(path):
