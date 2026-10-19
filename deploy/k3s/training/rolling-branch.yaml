@@ -45,7 +45,8 @@ spec:
                               # the branch lane records and branches the first crew; the sweep plays all three
                               - { name: CREWS, value: 'crews/captain-reference.json,crews/captain-orders-reference.json,crews/captain-doctrine-reference.json' }
                               - { name: SEEDS, value: '48' }
-                              - { name: SEEDS_BY_RUNG, value: 'W-waves=12' }
+                              - { name: SEEDS_BY_RUNG, value: 'W-waves=4,T2-dock=24' }
+                              - { name: WORKERS_BY_RUNG, value: 'W-waves=1,T2-dock=2' } # 4 workers ran out of 7 GiB on these rungs
                               - { name: BUDGET, value: '1200' } # branches per cycle: sized for a <= 60 min shard
                               - { name: WORKERS, value: '4' }
                               - name: JOB_NAME
