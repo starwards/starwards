@@ -1,23 +1,34 @@
 import { Faction, ScanLevel, SpaceObject, SpaceState } from '../space';
 import { drainCommands } from '../commands';
 
+/** How long a FULL scan survives without any friendly scan beam on the target (M4.19 ruling). */
+export const FULL_SCAN_GRACE_SECONDS = 0.5;
+
 /**
  * Owns the per-faction intel a faction holds on space objects: scan levels, the moment a
  * SNAPSHOT was captured, and the GM commands that write them. Every write to `scanLevels`
  * goes through here, so the faction bounds guard cannot be routed around.
  */
 export class FactionIntelManager {
+    /** seconds each (ship, faction) FULL has gone without scan-beam cover, keyed `${shipId}/${faction}` */
+    private uncoveredSeconds = new Map<string, number>();
+
     constructor(private state: SpaceState) {}
 
     /**
      * @param totalSeconds seconds since the game started, stamped on captured snapshots
-     * @param visibleByFaction the objects each faction sees this tick, indexed by faction.
-     * Supplied by the caller (not read back from a cache) so that demotion cannot run against
-     * a stale field of view.
+     * @param deltaSeconds seconds since the last update, counted against the FULL grace
+     * @param beamCoveredByFaction the objects each faction holds under a scan beam this tick,
+     * indexed by faction. Supplied by the caller (not read back from a cache) so that demotion
+     * cannot run against a stale field of view.
      */
-    public update(totalSeconds: number, visibleByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>) {
+    public update(
+        totalSeconds: number,
+        deltaSeconds: number,
+        beamCoveredByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>,
+    ) {
         this.processSetScanLevelCommands();
-        this.updateScanDemotion(totalSeconds, visibleByFaction);
+        this.updateScanDemotion(totalSeconds, deltaSeconds, beamCoveredByFaction);
     }
 
     private processSetScanLevelCommands() {
@@ -28,23 +39,38 @@ export class FactionIntelManager {
     }
 
     /**
-     * Per-faction passive demotion: a ship at FULL that is out of a faction's line of sight
-     * demotes to SNAPSHOT, capturing the moment of demotion. Promotion is driven by each
-     * ship's signals scan-job queue (SignalsJobManager). A projectile at FULL (its own faction's, or a
-     * Signals scan) keeps it for its short life; only ships demote.
+     * Per-faction FULL maintenance: a faction holds FULL on a ship only while one of its scan beams
+     * covers it. After `FULL_SCAN_GRACE_SECONDS` without cover the ship demotes to SNAPSHOT,
+     * capturing the moment of demotion. Promotion is driven by each ship's signals scan-job queue
+     * (SignalsJobManager). A projectile at FULL (its own faction's, or a Signals scan) keeps it for
+     * its short life; only ships demote.
      */
-    private updateScanDemotion(totalSeconds: number, visibleByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>) {
+    private updateScanDemotion(
+        totalSeconds: number,
+        deltaSeconds: number,
+        beamCoveredByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>,
+    ) {
+        const uncovered = new Map<string, number>();
         for (const ship of this.state.getAll('Spaceship')) {
             for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
                 if (
-                    !visibleByFaction[Number(faction)]?.has(ship) &&
-                    this.getScanLevel(ship.id, faction) === ScanLevel.FULL
+                    ship.faction === faction ||
+                    beamCoveredByFaction[Number(faction)]?.has(ship) ||
+                    this.getScanLevel(ship.id, faction) !== ScanLevel.FULL
                 ) {
+                    continue;
+                }
+                const key = `${ship.id}/${faction}`;
+                const seconds = (this.uncoveredSeconds.get(key) ?? 0) + deltaSeconds;
+                if (seconds > FULL_SCAN_GRACE_SECONDS) {
                     this.setScanLevel(ship.id, faction, ScanLevel.SNAPSHOT);
                     this.setScanSnapshotCapturedAt(ship.id, faction, totalSeconds);
+                } else {
+                    uncovered.set(key, seconds);
                 }
             }
         }
+        this.uncoveredSeconds = uncovered;
     }
 
     /**

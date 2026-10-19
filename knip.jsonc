@@ -1,14 +1,10 @@
 {
     "$schema": "https://unpkg.com/knip@5/schema.json",
-    "ignoreBinaries": [
-        // system binary (docker compose v1 syntax in npm scripts)
-        "docker-compose"
-    ],
     "ignore": [
         // agent workflow scripts, invoked by name at runtime
         ".claude/**",
         // runtime-mounted into containers, not part of the ts build graph
-        "docker/**"
+        "docker/**",
     ],
     "ignoreDependencies": [
         // emit helper, required by tsconfig importHelpers
@@ -18,14 +14,14 @@
         // git hooks in .husky/
         "husky",
         // jest reporter, referenced by CLI flag in .github/workflows/ci-cd.yml
-        "jest-junit"
+        "jest-junit",
     ],
     "ignoreUnresolved": [
         // ambient type-only packages resolved via tsconfig typeRoots (custom-typings/),
         // which knip does not follow the way it does compilerOptions.paths
         "mini-signals",
         "pixi__core",
-        "pixi__filter-noise"
+        "pixi__filter-noise",
     ],
     "workspaces": {
         ".": {
@@ -33,29 +29,30 @@
             "ignoreDependencies": [
                 // custom-typings/golden-layout is an ambient module augmentation; the
                 // real dependency lives in modules/browser
-                "golden-layout"
-            ]
+                "golden-layout",
+            ],
         },
         "modules/node-red": {
-            "entry": ["src/*/*.ts", "src/**/index.ts", "rollup.config*.mjs"]
+            "entry": ["src/*/*.ts", "src/**/index.ts", "rollup.config*.mjs"],
         },
         "modules/server": {
             // the bot worker runs in a worker thread, started from a code string (src/bots/worker-source.ts)
-            "entry": ["src/prod.ts", "src/bots/worker.ts"]
+            "entry": ["src/prod.ts", "src/bots/worker.ts"],
         },
         "modules/browser": {
             // webpack ProvidePlugin polyfill (webpack.common.js), referenced by name only
-            "ignoreDependencies": ["buffer"]
+            "ignoreDependencies": ["buffer"],
         },
         "modules/bots": {
-            "entry": ["src/index.ts"]
+            "entry": ["src/index.ts"],
         },
         "modules/mcp": {
-            "entry": ["src/cli.ts"]
+            "entry": ["src/cli.ts"],
         },
         "modules/ai": {
-            // command-line entry points, run through ts-node by the module's npm scripts
-            "entry": ["src/cli/*.ts"]
-        }
-    }
+            // command-line entry points, run through ts-node by the module's npm scripts;
+            // benchmarks are loaded by name at runtime (loadBenchmark require()s `./<name>.bench`)
+            "entry": ["src/cli/*.ts", "src/benchmarks/*.bench.ts"],
+        },
+    },
 }

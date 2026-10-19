@@ -208,8 +208,8 @@ const ORDER_PROGRESS: Record<string, OrderProgress> = {
 
 /** A write to the order board, as one of its commands carries it. */
 export type OrderCommand =
-    | { command: 'issueOrder'; arg: IssueOrderArg }
-    | { command: 'revokeOrder'; arg: RevokeOrderArg }
+    | { command: 'issueOrder' | 'setStance' | 'doctrineIssueOrder'; arg: IssueOrderArg }
+    | { command: 'revokeOrder' | 'doctrineRevokeOrder'; arg: RevokeOrderArg }
     | { command: 'reportOrderProgress'; arg: ReportOrderProgressArg };
 
 /** Sends an order command through a ship driver: a seat's session in a live game or a headless one. */
@@ -244,12 +244,22 @@ function paramsOf(p: OrderParamsArg): OrderParams {
     return { ...rest, ...(region ? { region: { ...region, ...(from ? { from } : {}) } } : {}) };
 }
 
-/** The command that gives an order (`revoke` empties its `params.slot`). */
+/**
+ * The command that gives an order (`revoke` empties its `params.slot`). The issuer picks the command,
+ * never a field: the server derives the issuer from it. A captain's stance goes through `setStance`.
+ */
 export function orderCommand(given: GivenOrder, issuer: OrderIssuer, origin = ''): OrderCommand | undefined {
+    const doctrine = issuer === 'doctrine';
     if (given.kind === 'revoke') {
-        return given.params?.slot ? { command: 'revokeOrder', arg: { slot: given.params.slot, issuer } } : undefined;
+        const slot = given.params?.slot;
+        return slot ? { command: doctrine ? 'doctrineRevokeOrder' : 'revokeOrder', arg: { slot } } : undefined;
     }
-    return { command: 'issueOrder', arg: { kind: given.kind, params: paramsArg(given.params), issuer, origin } };
+    const command = doctrine
+        ? 'doctrineIssueOrder'
+        : CREW_ORDER_KINDS[given.kind]?.slot === 'stance'
+          ? 'setStance'
+          : 'issueOrder';
+    return { command, arg: { kind: given.kind, params: paramsArg(given.params), origin } };
 }
 
 /** The order board panel as every seat sees it: each slot's order with its age and plain words, and the ranking. */
@@ -384,6 +394,8 @@ export function captainOrdersFromBoard(
     helm?: HelmOrder;
     engage?: string;
     salvo?: number;
+    /** The board holds a check fire order. */
+    checkFire?: boolean;
     /** The board holds a focus order: `engage` names the ship it points at now. */
     focus?: boolean;
 } {
@@ -413,12 +425,14 @@ export function captainOrdersFromBoard(
     const engage = board.orders.find((o) => o.kind === 'engage' && o.status === 'active');
     const salvo = board.orders.find((o) => o.kind === 'salvo' && o.status === 'active');
     const focus = board.orders.find((o) => o.kind === 'focus' && o.status === 'active');
+    const checkFire = board.orders.some((o) => o.kind === 'check_fire' && o.status === 'active');
     return {
         helm,
         engage:
             engage?.params.target?.name ??
             (focus && display ? focusTarget(focus.params, display, previous)?.name : undefined),
         ...(focus ? { focus: true } : {}),
+        ...(checkFire ? { checkFire: true } : {}),
         ...(salvo ? { salvo: salvo.params.count ?? SALVO_MISSILES } : {}),
     };
 }
@@ -450,11 +464,6 @@ const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => Give
     close_to: (v, o) => ({ kind: 'close_to', params: { target: calloutRef(v, o), range: Number(v.range) * 1000 } }),
     hold_here: () => ({ kind: 'hold_here' }),
     engage: (v) => ({ kind: 'engage', params: { target: { name: v.name } } }),
-    defend_close_to: (v, o) => ({
-        kind: 'close_to',
-        params: { target: calloutRef(v, o), range: Number(v.range) * 1000 },
-    }),
-    defend_engage: (v) => ({ kind: 'engage', params: { target: { name: v.name } } }),
     hold_fire: () => ({ kind: 'hold_fire' }),
     chase_target: (v, o) => ({ kind: 'chase_target', params: { target: calloutRef(v, o) } }),
     preserve_energy: () => ({ kind: 'preserve_energy' }),
@@ -473,6 +482,8 @@ const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => Give
         };
     },
     push_on: () => ({ kind: 'revoke', params: { slot: 'navigation' } }),
+    call_check_fire: () => ({ kind: 'check_fire' }),
+    clear_to_fire: () => ({ kind: 'revoke', params: { slot: 'fire_control' } }),
     salvo: (v) => ({ kind: 'salvo', params: { count: Number(v.count) } }),
     focus: (v) =>
         v.pick === 'nearest_to'

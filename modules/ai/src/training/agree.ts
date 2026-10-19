@@ -2,7 +2,7 @@ import { BrainRequest, Control, Display, makeReferencePolicy, stationControls } 
 import { RecordedDecision, RecordedRequest } from './decision-log';
 
 /** One control at one recorded decision: what the reference policy chose and what the brain chose. */
-export type AgreementSample = { control: string; teacher: string; student: string; teacherActs: boolean };
+type AgreementSample = { control: string; teacher: string; student: string; teacherActs: boolean };
 
 /** What the brain under test chose at a recorded decision, by control id; a control it left out is not scored. */
 export type StudentChoices = (

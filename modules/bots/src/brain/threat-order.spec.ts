@@ -1,7 +1,6 @@
 import { BrainSpec } from './spec';
 import { Display } from './controls';
 import { calloutSaid } from './callout';
-import { orderFromCallout } from '../crew/orders';
 
 const spec = {
     id: 'captain-waves',
@@ -14,8 +13,7 @@ const spec = {
     mission: 'm',
     controls: {},
     callouts: {
-        defend_close_to: { say: 'close to {range} km of {name}, near {station}', when: 'w', fill: 'threatCloseOrder' },
-        defend_engage: { say: 'engage {name}', when: 'w', fill: 'threatEngageOrder' },
+        focus: { say: 'focus {focus}', when: 'w', fill: 'focusOrder' },
     },
 } as unknown as BrainSpec;
 
@@ -38,48 +36,28 @@ function dradis(contacts: object[]): Display {
     };
 }
 
-describe('station-threat fills', () => {
-    // the raider nearest us is 5 km off; the one nearest a station is 60 km off, 3 km from it
-    const picture = dradis([
-        station('large', 0, 60_000),
-        raider('shadow', 5_000, 0),
-        raider('striker', 3_000, 60_000),
-        { ...station('picket', 1_000, 0), radius: 20 },
-    ]);
-
-    it('names the enemy nearest any allied station, not the nearest to us', () => {
-        expect(calloutSaid(spec, 'defend_engage', picture)?.values).toEqual({ name: 'striker' });
-        expect(calloutSaid(spec, 'defend_close_to', picture)?.values).toMatchObject({
-            name: 'striker',
+describe('focusOrder station threat', () => {
+    it('names the enemy nearest any allied station first, not the nearest to us', () => {
+        // the raider nearest us is 5 km off; the one nearest a station is 60 km off, 3 km from it
+        const picture = dradis([
+            station('large', 0, 60_000),
+            raider('shadow', 5_000, 0),
+            raider('striker', 3_000, 60_000),
+            { ...station('picket', 1_000, 0), radius: 20 },
+        ]);
+        expect(calloutSaid(spec, 'focus', picture)?.values).toMatchObject({
+            names: 'striker, shadow',
+            pick: 'nearest_to',
             station: 'large',
-            distance: '60.1',
-            bearing: '087',
         });
     });
 
     it('a ship-sized ally is no station to defend', () => {
         const values = calloutSaid(
             spec,
-            'defend_engage',
+            'focus',
             dradis([{ ...station('picket', 1_000, 0), radius: 20 }, raider('a', 1_100, 0)]),
         )?.values;
-        expect(values).toBeUndefined();
-    });
-
-    it('defend_close_to and defend_engage give close_to and engage orders', () => {
-        expect(orderFromCallout('defend_engage', { name: 'striker' }, { x: 0, y: 0 })).toEqual({
-            kind: 'engage',
-            params: { target: { name: 'striker' } },
-        });
-        expect(
-            orderFromCallout(
-                'defend_close_to',
-                { name: 'striker', range: '2', distance: '60.1', bearing: '087' },
-                {
-                    x: 0,
-                    y: 0,
-                },
-            ),
-        ).toMatchObject({ kind: 'close_to', params: { range: 2000, target: { name: 'striker' } } });
+        expect(values).toEqual({ names: 'a', focus: 'a' });
     });
 });

@@ -13,9 +13,14 @@ import { readEvents, readFrames } from './recording';
  * The other scores are means over the frames in which the duel was on, except `weapons`: the weapons
  * station score K_w (`weaponsScore`), computed exactly from the recorded `shot` and `damage` events over
  * the whole run; `null` without events or when no round was fired.
+ *
+ * Friendly fire costs the run: `value` is charged {@link FRIENDLY_HIT_COST} for every recorded `damage`
+ * event our rounds dealt an ally (`friendlyHits`), so 1/FRIENDLY_HIT_COST friendly hits erase a whole
+ * run's worth of value.
  */
 export type RunScore = {
     value: number;
+    friendlyHits: number;
     weapons: number | null;
     kill: number;
     damage: number;
@@ -26,8 +31,11 @@ export type RunScore = {
     engineer: number;
 };
 
+/** Run value lost per damage event our rounds deal an ally: 200 such hits cost as much as the whole run is worth. */
+export const FRIENDLY_HIT_COST = 0.005;
+
 /** Each run score's snapshot score, except `value` (which also counts the time after a kill). */
-const READ: Record<Exclude<keyof RunScore, 'value' | 'weapons'>, (s: SnapshotScore) => number> = {
+const READ: Record<Exclude<keyof RunScore, 'value' | 'weapons' | 'friendlyHits'>, (s: SnapshotScore) => number> = {
     kill: (s) => s.overall.kill,
     damage: (s) => s.overall.damage,
     tactical: (s) => s.tactical.score,
@@ -66,11 +74,38 @@ export function scoreFrames(
     });
     if (weight === 0) return undefined;
     const afterKill = killed ? Math.max(0, timeoutSeconds - seconds) : 0;
+    const friendlyHits = friendlyHitsOf(frames, events, playerId);
     return {
-        value: (value + afterKill) / (weight + afterKill),
+        value: (value + afterKill) / (weight + afterKill) - FRIENDLY_HIT_COST * friendlyHits,
+        friendlyHits,
         weapons: weaponsOf(frames, events, playerId),
         ...(Object.fromEntries(KEYS.map((k) => [k, sums[k] / weight])) as Record<keyof typeof READ, number>),
     };
+}
+
+/** Recorded `damage` events dealt by the player's rounds to another ship of its own faction. */
+function friendlyHitsOf(
+    frames: readonly { t: number; saved: SavedGame }[],
+    events: readonly RecordingEventLine[],
+    playerId: string | undefined,
+) {
+    const ships = frames[0]?.saved.fragment.ship;
+    const id = playerId ?? [...(ships?.values() ?? [])].find((s) => s.isPlayerShip)?.id;
+    const own = id === undefined ? undefined : factionOf(frames, id);
+    if (own === undefined) return 0;
+    return events.filter((e) => {
+        if (e.kind !== 'damage' || !e.objectId || e.objectId === id) return false;
+        return (e.data as { shooterId?: string }).shooterId === id && factionOf(frames, e.objectId) === own;
+    }).length;
+}
+
+/** A ship's faction from the first frame that holds it. */
+function factionOf(frames: readonly { saved: SavedGame }[], id: string) {
+    for (const { saved } of frames) {
+        const faction = saved.fragment.space.getShip(id)?.faction;
+        if (faction !== undefined) return faction;
+    }
+    return undefined;
 }
 
 function weaponsOf(

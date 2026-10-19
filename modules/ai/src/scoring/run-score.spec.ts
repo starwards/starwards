@@ -1,15 +1,20 @@
+import { FRIENDLY_HIT_COST, scoreFrames, seatScores } from './run-score';
 import { Faction, IdleStrategy, SavedGame, Spaceship, Vec2 } from '@starwards/core/internal';
-import { scoreFrames, seatScores } from './run-score';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { scoreSnapshot } from './score';
 
-function snapshot(distance: number, bearing: number, withTarget = true): SavedGame {
+function snapshot(distance: number, bearing: number, withTarget = true, withAlly = false): SavedGame {
     const game = HeadlessGame.start(
         {
             name: 'run_score_spec',
             init: (api) => {
                 api.addPlayerSpaceship(new Spaceship().init('GVTS', new Vec2(0, 0), 'gravitas', Faction.Gravitas));
+                if (withAlly) {
+                    api.addNpcSpaceship(
+                        new Spaceship().init('station', new Vec2(9000, 0), 'large-station', Faction.Gravitas),
+                    );
+                }
                 if (!withTarget) return;
                 const at = Vec2.make({
                     x: distance * Math.cos((bearing * Math.PI) / 180),
@@ -58,6 +63,28 @@ describe('run score', () => {
         expect(run(true, 4).value).toBeGreaterThan(run(false, 2).value);
         // station scores are means over the duel only
         expect(early.helms).toBeCloseTo(helmsOf(aimed), 9);
+    });
+
+    it('charges each hit our rounds land on an ally against the run value, and counts them', () => {
+        const withAlly = snapshot(1000, 0, true, true);
+        const frames = [{ t: 0, saved: withAlly }];
+        const outcome = { killed: false, seconds: 4, timeoutSeconds: 4, playerId: 'GVTS' };
+        const damage = (objectId: string, shooterId: string) => ({
+            t: 1,
+            kind: 'damage',
+            objectId,
+            data: { shooterId, plateLoss: 20, defects: 0 },
+        });
+        const clean = scoreFrames(frames, outcome)!;
+        const events = [
+            ...Array.from({ length: 10 }, () => damage('station', 'GVTS')),
+            damage('target', 'GVTS'),
+            damage('station', 'target'),
+        ];
+        const hit = scoreFrames(frames, outcome, events)!;
+        expect(clean.friendlyHits).toBe(0);
+        expect(hit.friendlyHits).toBe(10);
+        expect(hit.value).toBeCloseTo(clean.value - 10 * FRIENDLY_HIT_COST, 9);
     });
 
     it('is undefined when no frame holds both ships', () => {

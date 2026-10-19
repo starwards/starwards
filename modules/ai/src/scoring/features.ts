@@ -20,7 +20,7 @@ import { offNose } from '@starwards/bots';
  * scoring docs (`docs/integration/ai-crew.md#snapshot-scoring`) render it as a table.
  */
 
-export type Station = 'helms' | 'weapons' | 'tactical' | 'engineer' | 'signals' | 'overall';
+type Station = 'helms' | 'weapons' | 'tactical' | 'engineer' | 'signals' | 'overall';
 
 /**
  * The two ships a frame is scored for: their systems (`ShipState`) and their bodies in space. Physics
@@ -75,7 +75,7 @@ function readings({ saved, player }: Duel): FrameReadings {
 const enemyOf = (f: FrameReadings, id: string) => f.tactical?.enemies.find((e) => e.id === id);
 
 /** Inside this band the forward chain gun can reach the target (gravitas: min shell range .. ~1.5 s of flight). */
-export const GUN_BAND_METERS: readonly [number, number] = [500, 3000];
+const GUN_BAND_METERS: readonly [number, number] = [500, 3000];
 
 const b = (v: boolean) => (v ? 1 : 0);
 const mean = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
@@ -97,7 +97,7 @@ export function integrity(ship: ShipState) {
     return (armorRatio(ship) + ship.healthRatio + Math.max(0, ship.capsule.integrity)) / 3;
 }
 
-export function systemEffectiveness(ship: ShipState) {
+function systemEffectiveness(ship: ShipState) {
     const systems = ship.systems();
     return {
         mean: mean(systems.map((s) => s.effectiveness)),
@@ -110,7 +110,7 @@ export function systemEffectiveness(ship: ShipState) {
 }
 
 /** The player's scan level on the target, 0..3 (`ScanLevel`). */
-export function scanLevel({ playerBody, targetBody }: Pick<Duel, 'playerBody' | 'targetBody'>) {
+function scanLevel({ playerBody, targetBody }: Pick<Duel, 'playerBody' | 'targetBody'>) {
     return targetBody.scanLevels.at(playerBody.faction) ?? ScanLevel.UFO;
 }
 
@@ -157,7 +157,7 @@ export function geometry({
     };
 }
 
-export const FEATURES: readonly Feature[] = [
+const FEATURES: readonly Feature[] = [
     // helms: geometry and manoeuvre capacity
     {
         name: 'h_distance_km',

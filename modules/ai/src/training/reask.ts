@@ -22,7 +22,7 @@ export async function reask(
     decisions: readonly RecordedDecision[],
 ) {
     const rows: ReaskRow[] = [];
-    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
+    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds, { checkFire: spec.checkFire }) : undefined;
     const forecast = whatIfForecaster(spec);
     for (const recorded of requests.filter((r) => r.station === spec.station)) {
         const controls = stationControls({

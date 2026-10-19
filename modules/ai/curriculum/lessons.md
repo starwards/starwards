@@ -417,7 +417,7 @@ Not filed. Draft text:
 
 - **Instrument:** `npm --prefix modules/server run missile-range -- --ammo <ammo> --motion <motion> --ranges <km> --seeds 8`
   (`modules/server/src/test/training/missile-range.ts`), seeds 1-8 per cell, launches 2-70 km. One missile from GVTS
-  tube 0; the lock rides on the scan beam narrowed to 5° (70.7 km at normal power; the omni radar reaches 4.2 km). The target holds
+  tube 0; the lock rides on the scan beam narrowed to 5° (70.7 km at normal power; the omni radar reaches 6 km). The target holds
   still until the missile leaves the tube, then holds still, flies straight at the launcher, runs straight away,
   or crosses the launch line square, at 600 m/s (afterburner off) or 1200 m/s (afterburner on), with no ramp-up.
   Calibration only: it never turns, jams or shoots back.
@@ -667,12 +667,11 @@ Elec missile, P(hit):
 ### L5d — W-waves calibration; Jev captain short of the bar (2026-10-19)
 
 - **Change:** rung `W-waves` (wave_defence map, the map's own wave timing, pass = 3 waves survived with
-  every station alive, 1500 s) and `W-waves-endless` (calibration). Captain callouts `defend_close_to` /
-  `defend_engage` name the enemy nearest any allied station. Jev captain v2 (those callouts plus dock and
-  undock) and v3 (v2 without docking). Branch outcomes on a wave rung now read the wave tracker.
+  every station alive, 1500 s) and `W-waves-endless` (calibration). Branch outcomes on a wave rung now
+  read the wave tracker.
 - **Level:** seeds 1-16: `captain-reference` 9/16, `captain-doctrine-reference` 5/16, `doctrine-reference`
   0/16, `signals-reference` 0/16, `idle` 0/16. Median waves survived 3 / 2 / 2 / 1 / 1. Seeds 1-8, Jev
-  captains v1 2/8, v2 2/8, v3 3/8 against `captain-reference` 5/8; Jev $0.46. Archive:
+  captain v1 2/8 against `captain-reference` 5/8; Jev $0.46. Archive:
   `training-archive/2026-10-19/waves/`.
 - **Regression suite:** not run (no seat brain or reference rule changed).
 - **Decision:** N = 3, the bar L5d uses. These are the captain.v1 reference seats; the focus-rule

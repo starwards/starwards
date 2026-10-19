@@ -125,7 +125,7 @@
             "status": "built",
             "rungs": ["W-waves"],
             "benchmarks": [],
-            "seeds": { "first": 1, "count": 8 },
+            "seeds": { "first": 1, "count": 16 },
             "timeoutSeconds": 1500,
             "plateau": { "metric": "kills", "versions": 2 },
             "accept": { "killRate": 0.5 }

@@ -192,6 +192,11 @@ const calloutFills: Record<
             }
         );
     },
+    /** Weapons: the ally the targeting panel calls check fire on, in the line of fire before one by the target. */
+    allyAtRisk: ({ panels }) => {
+        const shown = checkFireOf(panels);
+        return shown && { name: shown.ally.name, range: (shown.ally.distance / 1000).toFixed(1), where: shown.where };
+    },
     /** Weapons: the ship the lock holds, by name. */
     lockedTarget: (display) => {
         const locked = lockedContact(display);
@@ -279,33 +284,6 @@ const calloutFills: Record<
     engageOrder: ({ radar }) => {
         const enemy = nearestEnemy(radar as Radar | undefined);
         return enemy && { name: enemy.name };
-    },
-    /**
-     * Captain: close to the enemy nearest any allied station (the raider threatening it), `distance`
-     * from us on world `bearing`, at the range {@link closeRange} gives for it.
-     */
-    threatCloseOrder: ({ radar }, previous, seconds) => {
-        const r = radar as Radar | undefined;
-        const threat = stationThreat(r);
-        return (
-            threat && {
-                name: threat.enemy.name,
-                station: threat.station.name,
-                range: (
-                    closeRange(
-                        threat.enemy.distance,
-                        launchRange(threat.enemy, r, previous?.radar as Radar | undefined, seconds),
-                    ) / 1000
-                ).toFixed(0),
-                distance: (threat.enemy.distance / 1000).toFixed(1),
-                bearing: bearingWords(threat.enemy.bearing),
-            }
-        );
-    },
-    /** Captain: engage the enemy nearest any allied station. */
-    threatEngageOrder: ({ radar }) => {
-        const threat = stationThreat(radar as Radar | undefined);
-        return threat && { name: threat.enemy.name };
     },
 };
 
@@ -420,4 +398,15 @@ export function calloutSaid(
             ...seat,
         }
     );
+}
+
+type ShownAlly = { name: string; distance: number };
+
+/** The targeting panel's check-fire line: the ally at risk and where, or undefined while the line is clear. */
+export function checkFireOf(panels: Display['panels']) {
+    const t = panels['targeting-status'] as
+        { allyInLine?: ShownAlly | null; allyNearTarget?: ShownAlly | null } | undefined;
+    if (t?.allyInLine) return { ally: t.allyInLine, where: 'in the line of fire' };
+    if (t?.allyNearTarget) return { ally: t.allyNearTarget, where: 'by the target' };
+    return undefined;
 }

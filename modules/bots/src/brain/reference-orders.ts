@@ -1,4 +1,4 @@
-import { CALLOUT_QUESTION, Heard, SILENCE } from './callout';
+import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf } from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy } from './engagement';
 
@@ -29,12 +29,16 @@ type Picture = {
     salvoOrdered: boolean;
     /** Captain: the board holds a focus order. */
     focusOrdered: boolean;
+    /** Captain: the board holds a check fire order. */
+    checkFireOrdered: boolean;
 };
 
 /** Seconds the captain keeps its last order after signals reports the enemy lost: a contact drops for a few seconds when the relaying station is hit. */
 const CONTACT_LOST_HOLD_SECONDS = 15;
 /** Seconds between two weapons reports that the locked ship is still beyond the envelope. */
 const OUT_OF_ENVELOPE_REPEAT_SECONDS = 10;
+/** Seconds between two weapons check-fire calls while an ally stays at risk. */
+const CHECK_FIRE_REPEAT_SECONDS = 10;
 /** A wreck this near where the lost ship was last seen says the ship was destroyed, not lost. */
 const WRECK_METERS = 1000;
 const SHIP_RADIUS_METERS = 5;
@@ -100,6 +104,14 @@ function wreckOf(ship: Contact, radar: Radar | undefined) {
 const wasHeard = (p: Picture, speakerCallout: string) =>
     p.heard.some((h) => `${h.speaker}.${h.callout}` === speakerCallout);
 
+/** Captain: whether weapons' latest word on its line of fire is check fire (true), line clear (false), or neither. */
+function lineFouled(p: Picture) {
+    const latest = p.heard
+        .filter((h) => h.speaker === 'weapons' && (h.callout === 'check_fire' || h.callout === 'line_clear'))
+        .sort((a, b) => a.secondsAgo - b.secondsAgo)[0];
+    return latest && latest.callout === 'check_fire';
+}
+
 /** Captain: whether it keeps its last order because signals reported the enemy lost a moment ago. */
 function holdingOnLostContact(p: Picture) {
     if (wasHeard(p, 'signals.contact_lost')) {
@@ -127,6 +139,24 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
         const lost = lostEnemy(p);
         return lost !== undefined && !wreckOf(lost, p.radar);
     },
+    /** Weapons: the targeting panel calls check fire; said when it starts, and again every few seconds while it holds. */
+    check_fire: (p) => {
+        if (!checkFireOf(p.display.panels)) {
+            p.memory.delete('checkFireSaidAt');
+            return false;
+        }
+        const said = p.memory.get('checkFireSaidAt') as number | undefined;
+        if (said !== undefined && p.now - said < CHECK_FIRE_REPEAT_SECONDS) {
+            return false;
+        }
+        p.memory.set('checkFireSaidAt', p.now);
+        return true;
+    },
+    /** Weapons: the check-fire line cleared since the previous decision. */
+    line_clear: (p) =>
+        !checkFireOf(p.display.panels) &&
+        p.previousDisplay !== undefined &&
+        checkFireOf(p.previousDisplay.panels) !== undefined,
     /** Weapons: a missile leaves a tube at this decision. */
     salvo_away: ({ salvo }) => salvo !== undefined,
     /** Weapons: the lock holds an enemy ship it did not hold at the previous decision. */
@@ -172,6 +202,10 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Captain: an enemy inside the launch envelope, by its own reckoning or as weapons reports it, not yet ordered engaged. */
     engage: (picture) =>
         !picture.focusOrdered && enemyInside(picture) === true && nearestEnemy(picture.radar)?.name !== picture.engaged,
+    /** Captain: weapons calls check fire, and the board holds no check fire yet. */
+    call_check_fire: (p) => !p.checkFireOrdered && lineFouled(p) === true,
+    /** Captain: weapons calls the line clear, and the board still holds check fire. */
+    clear_to_fire: (p) => p.checkFireOrdered && lineFouled(p) === false,
     /** Captain: two or more enemy ships in sight, and the board holds no focus yet. */
     focus: (p) => !p.focusOrdered && (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= 2,
     /** Captain: fire discipline once it ordered an enemy engaged and the board holds no salvo yet. */
@@ -210,12 +244,14 @@ export function referenceCallout(
         salvo,
         salvoOrdered = false,
         focusOrdered = false,
+        checkFireOrdered = false,
     }: {
         heard?: readonly Heard[];
         state?: ReturnType<typeof calloutMemory>;
         salvo?: SalvoTally;
         salvoOrdered?: boolean;
         focusOrdered?: boolean;
+        checkFireOrdered?: boolean;
     } = {},
 ): Answer | undefined {
     const options = Object.keys(request.questions?.[CALLOUT_QUESTION]?.criteria ?? {}).filter((o) => o in calloutRules);
@@ -236,6 +272,7 @@ export function referenceCallout(
         salvo,
         salvoOrdered,
         focusOrdered,
+        checkFireOrdered,
     };
     // a lost contact is noted whatever the captain says, so the hold covers the following decisions
     if (options.includes(CAPTAIN_HOLD)) {

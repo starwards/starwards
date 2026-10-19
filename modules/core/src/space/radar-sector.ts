@@ -18,9 +18,14 @@ export class RadarSector extends Schema {
     /** how far the sector reaches, in meters */
     @gameField('float32')
     range = 0;
+
+    /** whether the sector comes from a scan-beam radar, which earns and holds FULL scans */
+    @gameField('boolean')
+    isScanBeam = false;
 }
 
-export type RadarSectorValues = Pick<RadarSector, 'direction' | 'arc' | 'range'>;
+export type RadarSectorValues = Pick<RadarSector, 'direction' | 'arc' | 'range'> &
+    Partial<Pick<RadarSector, 'isScanBeam'>>;
 
 /**
  * Gives an object a single 360-degree sector of the given reach, replacing whatever it had.
@@ -46,5 +51,6 @@ export function applyRadarSectors(sectors: ArraySchema<RadarSector>, values: rea
         sector.direction = value.direction;
         sector.arc = value.arc;
         sector.range = value.range;
+        sector.isScanBeam = !!value.isScanBeam;
     }
 }

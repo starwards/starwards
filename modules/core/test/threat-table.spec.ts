@@ -161,7 +161,7 @@ describe('aggro on an NPC attacking a station', () => {
             return { obj, state, mgr: new ShipManagerNpc(obj, state, spaceMgr, new ShipDie(seed)) };
         };
         const station = make('station', { x: 0, y: 0 }, 'small-station', Faction.Gravitas, 1);
-        // inside the raider's M4.20 omni (~1.7 km), so it can see both
+        // inside the raider's omni (~2.4 km design), so it can see both
         const gvts = make('gvts', { x: 1000, y: 1200 }, 'gravitas', Faction.Gravitas, 2);
         const raider = make('raider', { x: 1000, y: 0 }, 'dragonfly-MK1', Faction.Raiders, 3);
         raider.mgr.setAggroCharacter(aggroCharacters[character]);

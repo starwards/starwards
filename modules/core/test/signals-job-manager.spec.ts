@@ -591,9 +591,9 @@ describe('SignalsJobManager', () => {
             expect(scanJobs(shipMgr)[0].status).to.equal(JobStatus.DORMANT);
             expect(scanJobs(shipMgr)[0].progress).to.equal(0);
 
-            // sight loss demotes FULL -> SNAPSHOT, and the standing order picks the scan back up
+            // beam loss demotes FULL -> SNAPSHOT after the grace, and the standing order picks the scan back up
             targetObj.position.x = 100_000;
-            t = runTicks(spaceMgr, 0.5, 20, t, shipMgr);
+            t = runTicks(spaceMgr, 1, 20, t, shipMgr);
             expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
 
             targetObj.position.x = 1000;

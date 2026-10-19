@@ -10,6 +10,7 @@ import {
     ORDER_PARAMS,
     ORDER_SLOTS,
     ORDER_STATUSES,
+    OrderIssuer,
     OrderParamName,
     OrderRefArg,
     REF_PARAMS,
@@ -32,7 +33,9 @@ function validRef(v: unknown): v is OrderRefArg {
 }
 
 /** An issue command that names a known kind, a known issuer and only that kind's parameters, each of its type. */
-function validIssue(c: Record<string, unknown>): c is IssueOrderArg & Record<string, unknown> {
+function validIssue(
+    c: Record<string, unknown>,
+): c is IssueOrderArg & { issuer: OrderIssuer } & Record<string, unknown> {
     const def = typeof c.kind === 'string' ? CREW_ORDER_KINDS[c.kind] : undefined;
     if (!def || !ORDER_ISSUERS.includes(c.issuer as never)) return false;
     if (c.origin !== undefined && typeof c.origin !== 'string') return false;
@@ -64,6 +67,10 @@ function validIssue(c: Record<string, unknown>): c is IssueOrderArg & Record<str
     return Object.entries(def.params).every(([name, need]) => need !== 'required' || params[name] !== undefined);
 }
 
+/** Stance-slot kinds come only through `setStance`, and `setStance` takes only them. */
+const stanceCommand = (c: Record<string, unknown>) =>
+    (c.type === 'stance') === (CREW_ORDER_KINDS[c.kind as string].slot === 'stance');
+
 function writeRef(to: CrewOrderRef, from: OrderRefArg | undefined) {
     to.given = !!from;
     to.name = from?.name ?? '';
@@ -86,8 +93,9 @@ const sameRef = (a: CrewOrderRef, b: CrewOrderRef) =>
  * the board. It checks shapes, never the world: it does not look up a named contact, so an order
  * carries exactly what its issuer saw and a refusal tells nothing about what exists.
  *
- * - `issue`: places the order in its kind's slot, revoking every order it contradicts. The same order
- *   again (kind and parameters) while the first is active is no change. A doctrine order never
+ * - `issue` / `stance`: places the order in its kind's slot, revoking every order it contradicts. The same order
+ *   again (kind and parameters) while the first is active is no change. Stance-slot kinds come only
+ *   as `stance`, and `stance` takes only them. A doctrine order never
  *   replaces or revokes a captain order: it is refused instead.
  * - `revoke`: empties a slot. Doctrine cannot revoke a captain order.
  * - `progress`: updates the named order while it is active (or marks a standing order fired);
@@ -102,13 +110,13 @@ export class CrewOrdersManager implements Updateable {
         this.board.commands = [];
         for (const c of commands) {
             if (!isObject(c)) continue;
-            if (c.type === 'issue' && validIssue(c)) this.issue(c);
-            else if (c.type === 'revoke') this.revoke(c as RevokeOrderArg);
+            if ((c.type === 'issue' || c.type === 'stance') && validIssue(c) && stanceCommand(c)) this.issue(c);
+            else if (c.type === 'revoke') this.revoke(c as RevokeOrderArg & { issuer: OrderIssuer });
             else if (c.type === 'progress') this.progress(c as ReportOrderProgressArg);
         }
     }
 
-    private issue({ kind, params = {}, issuer, origin = '' }: IssueOrderArg) {
+    private issue({ kind, params = {}, issuer, origin = '' }: IssueOrderArg & { issuer: OrderIssuer }) {
         const def = CREW_ORDER_KINDS[kind];
         const order = new CrewOrder();
         order.kind = kind;
@@ -147,7 +155,7 @@ export class CrewOrdersManager implements Updateable {
         );
     }
 
-    private revoke({ slot, issuer }: RevokeOrderArg) {
+    private revoke({ slot, issuer }: RevokeOrderArg & { issuer: OrderIssuer }) {
         const current = ORDER_SLOTS.includes(slot) ? this.board.slots.get(slot) : undefined;
         if (!current || (issuer === 'doctrine' && current.issuer === 'captain')) return;
         this.board.slots.delete(slot);

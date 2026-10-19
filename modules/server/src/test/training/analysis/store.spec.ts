@@ -55,9 +55,11 @@ describe('Store', () => {
 
     it('series downsamples to at most maxPoints while seriesStats keeps full-resolution extremes', async () => {
         // 1000 rows, a single sharp spike at t=500 that a coarse downsample could skip.
-        for (let t = 0; t < 1000; t++) {
-            await insertValue('a', '/speed', t, t === 500 ? 999 : 1);
-        }
+        // one statement: 1000 awaited single-row inserts are 1000 commits, slow enough to time out under load
+        await store.run(
+            "INSERT INTO value SELECT ?, 'a', '/speed', t, CASE WHEN t = 500 THEN 999 ELSE 1 END, NULL, NULL FROM range(1000) r(t)",
+            runId,
+        );
         const points = await store.series(runId, 'a', '/speed', 0, 999, 50);
         expect(points.length).toBeLessThanOrEqual(50);
 

@@ -436,6 +436,7 @@ export abstract class ShipManager implements Updateable {
                 direction: toPositiveDegreesDelta(radar.getGlobalBearing(this.state)),
                 arc: radar.arc,
                 range: radar.range,
+                isScanBeam: !!radar.design.isScanBeam,
             });
         }
         this.spaceManager.changeShipRadarSectors(this.spaceObject.id, sectors);
