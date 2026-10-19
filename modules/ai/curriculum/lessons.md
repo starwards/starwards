@@ -635,11 +635,11 @@ Elec missile, P(hit):
 ### L5b-L5d — captain-reference with status callouts, salvo and focus (2026-10-19)
 
 - **Change:** weapons.v19 and signals.v10 say status callouts (lock, envelope, salvo away, lost or
-  destroyed target, lost contact); captain.v4 hears them, orders `salvo 2` after engaging and a `focus`
+  destroyed target, lost contact); captain.v7 hears them, orders `salvo 2` after engaging and a `focus`
   once two or more enemies are in sight.
 - **Level:** L5b 16/16, median 87.4 s (before 69.4 s); L5c 16/16, median 87.8 s (before 80.3 s);
   L5d (new, W-waves, 8 seeds) passed 7/8, stations lost 0.13 per run. Without the focus call
-  (captain.v3) W-waves passed 1/8, 1.50 stations lost per run. Missiles fired over 16 seeds: L5b 90 -> 33,
+  (captain.v6) W-waves passed 1/8, 1.50 stations lost per run. Missiles fired over 16 seeds: L5b 90 -> 33,
   L5c 65 -> 44.
 - **Regression suite:** L5b and L5c ok by the suite's rule (slowdown under 25%) but every seed slower
   (sign p 0.000 / 0.001): the salvo holds the tubes while two missiles fly.
@@ -648,7 +648,7 @@ Elec missile, P(hit):
 - **Lesson:** on a single target the first launches carry the kill and the rest only speed it; fire
   discipline pays only once the magazine must last several targets. Target priority is what holds
   stations: the focus on the raider nearest the threatened station.
-- **Reuse:** wave-defence candidates start from captain.v4; signals beam bearing beyond the radar's
+- **Reuse:** wave-defence candidates start from captain.v7; signals beam bearing beyond the radar's
   bearing range is refused on W-waves (pre-existing, also without these changes).
 
 Copy this block for every candidate run on a level.

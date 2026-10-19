@@ -1,6 +1,6 @@
 {
     "id": "captain",
-    "version": 3,
+    "version": 6,
     "station": "captain",
     "model": "jev-1.13.0",
     "decisionSeconds": 5,

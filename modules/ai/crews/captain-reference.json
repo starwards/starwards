@@ -4,7 +4,7 @@
         {
             "station": "captain",
             "policy": "reference",
-            "brain": "../brains/captain.v4.json"
+            "brain": "../brains/captain.v7.json"
         },
         {
             "station": "signals",

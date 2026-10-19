@@ -1,6 +1,6 @@
 {
     "id": "captain",
-    "version": 4,
+    "version": 5,
     "station": "captain",
     "model": "jev-1.13.0",
     "decisionSeconds": 5,
@@ -9,7 +9,7 @@
     "view": "verbal",
     "controls": {
         "callout": {
-            "instructions": "You are the captain. The console lists every contact the fleet sees, with range and bearing; an enemy ship is one identified as another faction's. Which order do you give on the radio now? Give an order again when the situation changed; stay silent when the crew already has the right order. Weapons reports its lock, whether the locked ship is inside missile range, each missile it launches and a lost or destroyed target; signals reports an enemy it lost. Do not change an order because you see no result yet, and keep your last order while a contact is reported lost. With two or more enemies in sight, give a focus order so the crew fights them in your order.",
+            "instructions": "You are the captain. The console lists every contact the fleet sees, with range and bearing; an enemy ship is one identified as another faction's. Which order do you give on the radio now? Give an order again when the situation changed; stay silent when the crew already has the right order. Weapons reports its lock, whether the locked ship is inside missile range, each missile it launches and a lost or destroyed target; signals reports an enemy it lost. Do not change an order because you see no result yet, and keep your last order while a contact is reported lost.",
             "hears": [
                 "signals.enemy_position",
                 "signals.contact_lost",
@@ -23,16 +23,6 @@
         }
     },
     "callouts": {
-        "salvo": {
-            "say": "salvo {count}, then hold the tubes",
-            "fill": "salvoOrder",
-            "when": "orders weapons to keep only that many missiles in flight at the target and hold the tubes until one arrives without a kill: the first missiles carry the kill, and the magazine holds 12 with a long restock. Choose this right after ordering an enemy engaged, when no salvo order stands"
-        },
-        "focus": {
-            "say": "focus {focus}",
-            "fill": "focusOrder",
-            "when": "orders weapons to lock, and helms to keep the nose on, the enemy ships in sight one after the other in this order, moving on as each is destroyed: with an allied station in sight, the enemy nearest the station they threaten first. Choose this when two or more enemy ships are in sight and no focus order stands"
-        },
         "close_to": {
             "say": "close to {range} km of {name}, now {distance} km at bearing {bearing}",
             "fill": "closeOrder",
