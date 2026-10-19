@@ -12,7 +12,7 @@ const DEFAULT_CACHE_DIR = path.resolve(__dirname, '../../../../../training-archi
 /** What is kept of one Jev answer: everything a decision is made from, and the tokens it was paid with. */
 type CachedAnswer = Pick<JevResponse, 'model' | 'answers' | 'inputTokens'>;
 
-export type JevAnswerCache = {
+type JevAnswerCache = {
     get(key: string): CachedAnswer | undefined;
     put(key: string, answer: CachedAnswer): void;
 };

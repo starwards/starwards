@@ -51,7 +51,7 @@ const HELD_SECONDS = 5;
  * Weapons station `K_w = 1 − w1·nosol − w2·dominated − w3·friendly + w4·lockUptime`, rates per round;
  * undefined for a run that fired no round (no demand, no score: never firing is V's failure, not a K_w win).
  */
-export const WEAPONS_WEIGHTS = { nosol: 1, dominated: 1, friendly: 2, lock: 0.5 } as const;
+const WEAPONS_WEIGHTS = { nosol: 1, dominated: 1, friendly: 2, lock: 0.5 } as const;
 /** Rule values the ammo value reads (`capsule.ts`, `attack-resolution-manager.ts`, `damage-manager.ts`). */
 const CAPSULE_DEFECT_STEP = 0.1;
 const SURFACE_EFFECT_FACTOR = 0.05;

@@ -6,16 +6,7 @@ import { z } from 'zod';
 export const CURRICULUM_DIR = path.resolve(__dirname, '../../curriculum');
 
 /** What a level makes harder (or wider) than the one before it. */
-export const ladderAxes = [
-    'baseline',
-    'variance',
-    'threat',
-    'internal',
-    'enemies',
-    'command',
-    'mission',
-    'space',
-] as const;
+const ladderAxes = ['baseline', 'variance', 'threat', 'internal', 'enemies', 'command', 'mission', 'space'] as const;
 
 const seedsSchema = z.object({ first: z.number().int().min(1), count: z.number().int().min(1) }).strict();
 

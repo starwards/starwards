@@ -33,7 +33,7 @@ import { schemaToString } from '../serialization/game-state-serialization';
 
 const { error: logError } = createLogger('server:game-recorder');
 
-export interface RecordingSummary {
+interface RecordingSummary {
     name: string;
     mapName: string;
     startedAt: string;

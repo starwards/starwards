@@ -38,6 +38,7 @@ export enum IdleStrategy {
     /**
      * Fires on hostiles like every other idle strategy. Wandering movement is not yet
      * implemented, so this currently behaves exactly like {@link STAND_GROUND}.
+     * @public chosen at runtime from the tweak panel (enum values of the synced `idleStrategy` field)
      */
     ROAM,
     /** Fires on hostiles; never moves (no movement order is ever attached to this strategy). */
