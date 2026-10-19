@@ -417,7 +417,7 @@ Not filed. Draft text:
 
 - **Instrument:** `npm --prefix modules/server run missile-range -- --ammo <ammo> --motion <motion> --ranges <km> --seeds 8`
   (`modules/server/src/test/training/missile-range.ts`), seeds 1-8 per cell, launches 2-70 km. One missile from GVTS
-  tube 0; the lock rides on the scan beam narrowed to 5° (70.7 km at normal power; the omni radar reaches 4.2 km). The target holds
+  tube 0; the lock rides on the scan beam narrowed to 5° (70.7 km at normal power; the omni radar reaches 6 km). The target holds
   still until the missile leaves the tube, then holds still, flies straight at the launcher, runs straight away,
   or crosses the launch line square, at 600 m/s (afterburner off) or 1200 m/s (afterburner on), with no ramp-up.
   Calibration only: it never turns, jams or shoots back.

@@ -92,7 +92,7 @@ export function missileShot(
 
     const launcherObject = game.spaceManager.state.getShip(LAUNCHER_ID)!;
     const scanBeam = launcher.state.radars.find((radar) => radar.design.isScanBeam)!;
-    // the omni radar reaches 4.2 km at normal power: the lock rides on the scan beam, held on the target
+    // the omni radar reaches 6 km at normal power: the lock rides on the scan beam, held on the target
     scanBeam.arc = scanBeam.design.minArc;
     const trackTarget = () => {
         const toTarget = XY.angleOf(XY.difference(target.position, launcherObject.position));
