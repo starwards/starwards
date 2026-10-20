@@ -110,6 +110,7 @@ describe('callouts', () => {
         expect(calloutSaid(talker, 'need_turn', weapons(84))).toEqual({
             callout: 'need_turn',
             phrase: 'need you 6° left',
+            values: { degrees: '6', side: 'left' },
         });
         expect(calloutSaid(talker, 'need_turn', weapons(93.4))?.phrase).toBe('need you 3° right');
         expect(calloutSaid(talker, 'need_turn', weapons(90.2))).toBeUndefined();
@@ -144,6 +145,59 @@ describe('callouts', () => {
             'contact UFO-u at 7.4 km, 20° left of the nose',
         );
         expect(calloutSaid(signals, 'far_contact', radarDisplay([near, rock]))).toBeUndefined();
+    });
+
+    it('report the nearest identified enemy ship, its range, side of the nose and whether it closes', () => {
+        const signals = brainSpecSchema.parse({
+            ...spec,
+            callouts: {
+                enemy_position: {
+                    say: 'enemy {name} at {range} km, {bearing}, {trend}',
+                    when: 'enemy',
+                    fill: 'enemyContact',
+                },
+            },
+        });
+        const radarDisplay = (contacts: object[]) => ({
+            panels: {},
+            radar: { ownShip: { id: 'me', heading: 90, faction: 1 }, contacts },
+        });
+        const ally = { id: 'a', name: 'ally', distance: 2000, bearing: 90, type: 'Spaceship', faction: 1 };
+        const blip = { id: 'u', name: 'UFO-u', distance: 3000, bearing: 90 };
+        const enemy = (distance: number) => ({
+            id: 'e',
+            name: 'raider',
+            distance,
+            bearing: 120,
+            type: 'Spaceship',
+            faction: 2,
+        });
+        const said = (shown: object, previous?: object) =>
+            calloutSaid(signals, 'enemy_position', shown as Display, CALLOUT_QUESTION, previous as Display)?.phrase;
+
+        expect(said(radarDisplay([ally, blip, enemy(42_310)]))).toBe(
+            'enemy raider at 42.3 km, 30° right of the nose, new contact',
+        );
+        expect(said(radarDisplay([enemy(40_000)]), radarDisplay([enemy(42_000)]))).toBe(
+            'enemy raider at 40.0 km, 30° right of the nose, closing',
+        );
+        expect(said(radarDisplay([enemy(42_000)]), radarDisplay([enemy(40_000)]))).toMatch(/opening$/);
+        expect(said(radarDisplay([enemy(40_000)]), radarDisplay([enemy(40_010)]))).toMatch(/holding range$/);
+        expect(said(radarDisplay([ally, blip]))).toBeUndefined();
+    });
+
+    it('read out to a callout question the callouts it listens for, for a seat with no controls', () => {
+        const captain = brainSpecSchema.parse({
+            ...spec,
+            controls: { callout: { hears: ['signals.enemy_position'] } },
+        });
+        const request = buildRequest(captain, display, [], undefined, [
+            { speaker: 'signals', callout: 'enemy_position', phrase: 'enemy raider at 40.0 km', secondsAgo: 1 },
+            { speaker: 'weapons', callout: 'target_locked', phrase: 'target locked', secondsAgo: 1 },
+        ]);
+        expect(request.questions[CALLOUT_QUESTION].instructions).toMatch(
+            /On the radio: Signals said "enemy raider at 40.0 km" 1 s ago.$/,
+        );
     });
 
     it('read out to each decision only the callouts it listens for, and keep them out of the shared state', () => {

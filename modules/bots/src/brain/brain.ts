@@ -1,4 +1,4 @@
-import { BrainRequest, buildRequest } from './request';
+import { BrainRequest, buildRequest, displayFor } from './request';
 import { BrainSpec, specHash } from './spec';
 import { Capabilities, Control, Display, Press, stationControls } from './controls';
 import { Heard, Said, calloutSaid, calloutSources } from './callout';
@@ -12,6 +12,8 @@ export type Answer = {
     confidence?: number;
     probabilities?: Record<string, number>;
     source: 'model' | 'rule' | 'fallback';
+    /** A callout's values the seat supplies itself, for a fill that needs them (a rule seat's own launch count). */
+    values?: Record<string, string>;
 };
 
 /** What answered a whole request, and what it cost. */
@@ -25,7 +27,13 @@ export type Answers = {
 /** Answers a brain's request: the model, hand-written rules, or nothing at all. Rules read the raw `display`; a model reads only the request. */
 export type Policy = {
     name: string;
-    answer(request: BrainRequest, controls: readonly Control[], display: Display): Promise<Answers>;
+    answer(
+        request: BrainRequest,
+        controls: readonly Control[],
+        display: Display,
+        /** What the seat heard on the crew channel; a model reads it in the request instead. */
+        heard?: readonly Heard[],
+    ): Promise<Answers>;
 };
 
 /** One control's outcome at one decision, as recorded beside the game; `seat` is the member seat a fused brain decided it for. */
@@ -57,12 +65,14 @@ type DecisionResult = {
  */
 export function buttonBrain(spec: BrainSpec, policy: Policy) {
     const hash = specHash(spec);
-    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
+    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds, { checkFire: spec.checkFire }) : undefined;
     const forecast = whatIfForecaster(spec);
+    let previous: Display | undefined;
     return {
         spec,
         policy,
-        async decide(display: Display, capabilities: Capabilities, heard?: readonly Heard[]): Promise<DecisionResult> {
+        async decide(shown: Display, capabilities: Capabilities, heard?: readonly Heard[]): Promise<DecisionResult> {
+            const display = displayFor(spec, shown);
             const controls = stationControls({
                 display,
                 capabilities,
@@ -77,7 +87,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 forecast?.(display, controls),
             );
             const answered = Object.keys(request.questions).length
-                ? await policy.answer(request, controls, display)
+                ? await policy.answer(request, controls, display, heard)
                 : { answers: {} };
             const decisions: Decision[] = [];
             for (const control of controls) {
@@ -99,11 +109,12 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                     continue;
                 }
                 decisions.push({ control: question, ...(seat === undefined ? {} : { seat }), ...answer });
-                const said = calloutSaid(spec, answer.choice, display, question);
+                const said = calloutSaid(spec, answer.choice, display, question, previous, answer.values);
                 if (said) {
                     callouts.push(said);
                 }
             }
+            previous = display;
             return {
                 request,
                 decisions,

@@ -152,6 +152,7 @@ export const bridgeSeats = {
     engineer: { screens: ['engineer'], bot: 'engineer' },
     sigint: { screens: ['signals', 'dradis', 'target-details'], bot: 'signals' },
     tactical: { screens: [], bot: 'tactical', fuses: ['helms', 'weapons'] },
+    captain: { screens: [], bot: 'captain' },
 } as const satisfies Record<string, SeatRow>;
 
 /** A seat on a ship's bridge, taken by a human or a GM-assigned bot. */

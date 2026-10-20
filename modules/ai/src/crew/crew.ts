@@ -3,11 +3,21 @@ import {
     Capabilities,
     Display,
     Heard,
+    ORDERS_PANEL,
+    OrderCommand,
+    OrdersBoard,
     SeatPlan,
     StationSession,
     buttonBrain,
     crewChannel,
+    crewDoctrine,
+    energyDrawingSeats,
     observeStation,
+    orderCommand,
+    orderFromCallout,
+    orderReports,
+    readBoard,
+    sendOrderCommand,
 } from '@starwards/bots';
 import { SimClock, headlessStation } from '../console/headless';
 
@@ -17,13 +27,22 @@ import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
 const RADAR_CONTACT_LIMIT = 200;
 
-type CrewOptions = {
+export type CrewOptions = {
     shipId: string;
     seats: readonly SeatPlan[];
     /** Simulated seconds between a decision and its buttons reaching the ship, as on a live network. */
     latencySeconds: number;
     /** Radar contacts shown per decision. */
     radarLimit?: number;
+    /** The crew's doctrine fills every board slot no captain order holds. */
+    doctrine?: boolean;
+    /**
+     * Called before the seats decide on every tick, with the ship's order board and a way to send it
+     * commands: a branch changes the orders at its branch point here.
+     */
+    intervene?: (seconds: number, board: OrdersBoard | undefined, send: (c: OrderCommand) => void) => void;
+    /** Per station, what that seat is shown instead of its console: a branch narrowing what the captain sees. */
+    lens?: Record<string, (display: Display, seconds: number) => Display>;
 };
 
 /** Per control, over a whole run: how often each option was chosen and how sure the brain was. */
@@ -43,7 +62,7 @@ type Pending = {
     control: string;
     /** The member seat of a multiplexed station that this press is for. */
     member?: string;
-    press: { command: string; args: Record<string, unknown>; value?: number | boolean };
+    press: { command: string; args: Record<string, unknown>; value?: number | boolean | string };
 };
 
 /**
@@ -75,6 +94,13 @@ export function headlessCrew(options: CrewOptions) {
         controls: {} as Record<string, ControlStats>,
     };
     let channel = crewChannel();
+    let doctrine = options.doctrine ? crewDoctrine() : undefined;
+    let energySeats: string[] = [];
+    let recordedBoard = '';
+    const shipState = () => game.shipManagers.get(options.shipId)!.state;
+    const boardNow = () => readBoard(shipState().orderBoard, energySeats);
+    /** Order commands go through the ship's command path, as a seat's session sends them. */
+    const send = (c: OrderCommand) => sendOrderCommand(seats[0].session.shipDriver, c);
 
     /** The crew boards the game it is first called with: the training loop creates the game itself. */
     function board(boarded: HeadlessGame) {
@@ -87,6 +113,19 @@ export function headlessCrew(options: CrewOptions) {
             session: headlessStation(game, options.shipId, plan.station, clock),
             nextDecisionAt: game.seconds,
         }));
+        // an order to preserve energy binds every seat whose console spends it
+        energySeats = energyDrawingSeats(
+            Object.fromEntries(
+                seats.map((s) => [
+                    s.plan.station,
+                    (observeStation(s.session, { radarLimit: 0 }).capabilities as unknown as Capabilities).commands.map(
+                        (c) => c.command,
+                    ),
+                ]),
+            ),
+        );
+        doctrine = options.doctrine ? crewDoctrine() : undefined;
+        recordedBoard = '';
     }
 
     async function beforeTick(ticked: HeadlessGame, recorder: HeadlessRecorder) {
@@ -94,11 +133,14 @@ export function headlessCrew(options: CrewOptions) {
             board(ticked);
         }
         await clock.advance(game.seconds);
+        options.intervene?.(game.seconds, boardNow(), send);
         const asked = seats.filter((seat) => game.seconds + 1e-9 >= seat.nextDecisionAt).map(observe);
         const results = await Promise.all(
             asked.map(({ seat, display, capabilities, heard }) => seat.brain.decide(display, capabilities, heard)),
         );
         asked.forEach((ask, i) => land(ask, results[i], recorder));
+        doctrine?.commands(boardNow()).forEach(send);
+        recordOrders(recorder);
         const due = pending.filter((p) => p.at <= game.seconds + 1e-9);
         pending = pending.filter((p) => p.at > game.seconds + 1e-9);
         for (const p of due) {
@@ -109,9 +151,17 @@ export function headlessCrew(options: CrewOptions) {
     function observe(seat: Seat): Asked {
         seat.nextDecisionAt = game.seconds + seat.plan.spec.decisionSeconds;
         const observed = observeStation(seat.session, { radarLimit: options.radarLimit ?? RADAR_CONTACT_LIMIT });
+        const shown: Display = { panels: observed.panels, radar: observed.radar };
+        const orders = boardNow();
+        orderReports(orders, { station: seat.plan.station, display: shown, seconds: game.seconds }).forEach(send);
+        doctrine?.see(seat.plan.station, shown);
+        // the board shows once an order was ever given, so a crew with neither captain nor doctrine reads none
+        const panels = orders ? { ...shown.panels, [ORDERS_PANEL]: orders } : shown.panels;
+        const lens = options.lens?.[seat.plan.station];
+        const display = { ...shown, panels };
         return {
             seat,
-            display: { panels: observed.panels, radar: observed.radar },
+            display: lens ? lens(display, game.seconds) : display,
             capabilities: observed.capabilities as unknown as Capabilities,
             heard: channel.heard(seat.plan.station, game.seconds),
         };
@@ -136,6 +186,17 @@ export function headlessCrew(options: CrewOptions) {
         for (const said of result.callouts) {
             // a fused brain speaks as the member seat, so it hears itself next decision as the split crew would
             const delivered = channel.say(said.seat ?? station, said, game.seconds);
+            const order =
+                (said.seat ?? station) === 'captain' &&
+                orderFromCallout(
+                    said.callout,
+                    said.values,
+                    (display.radar as { ownShip?: { position?: { x: number; y: number } } } | undefined)?.ownShip
+                        ?.position,
+                );
+            const command = order && orderCommand(order, 'captain');
+            if (command) send(command);
+            doctrine?.hear(said.seat ?? station, said, display);
             stats[delivered ? 'callouts' : 'suppressed']++;
             recorder.record('callout', options.shipId, {
                 station,
@@ -188,6 +249,15 @@ export function headlessCrew(options: CrewOptions) {
         stats.inputTokens += result.meta.inputTokens ?? 0;
     }
 
+    /** Records the board as an `orders` event whenever it changed since the last one. */
+    function recordOrders(recorder: HeadlessRecorder) {
+        const key = JSON.stringify(shipState().orderBoard.slots.toJSON());
+        if (key === recordedBoard) return;
+        recordedBoard = key;
+        const shownBoard = boardNow();
+        if (shownBoard) recorder.record('orders', options.shipId, shownBoard);
+    }
+
     function execute({ seat, control, member, press }: Pending, recorder: HeadlessRecorder) {
         const record = (ok: boolean, result: string) => {
             stats.commands++;
@@ -210,5 +280,12 @@ export function headlessCrew(options: CrewOptions) {
         );
     }
 
-    return { beforeTick, stats };
+    return {
+        beforeTick,
+        stats,
+        /** The ship's order board as the seats read it. */
+        get orders() {
+            return boardNow();
+        },
+    };
 }

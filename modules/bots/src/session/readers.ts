@@ -1,8 +1,12 @@
 import {
+    AmmoType,
     JobStatus,
     RepairPriority,
+    Spaceship,
     StationWidget,
     System,
+    ammoTypes,
+    blastRadius,
     helmsRadarReach,
     magazineStocks,
     orderRepairQueue,
@@ -10,6 +14,7 @@ import {
 
 import { StationSession } from './session';
 import { describeContact } from './contacts';
+import { lineOfFire } from './line-of-fire';
 
 /**
  * What each widget shows, as data.
@@ -220,6 +225,7 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             shipOnly: targeting?.shipOnly,
             enemyOnly: targeting?.enemyOnly,
             shortRangeOnly: targeting?.shortRangeOnly,
+            ...checkFire(s, targeting?.targetId ?? undefined),
         };
     },
 
@@ -301,4 +307,38 @@ export function scanBeamStatus(session: StationSession) {
  */
 export function helmsRadarRange(session: StationSession): number {
     return helmsRadarReach(session.shipDriver.state.warp?.currentLevel);
+}
+
+const isAmmo = (a: string | undefined): a is AmmoType => ammoTypes.includes(a as AmmoType);
+
+/**
+ * The targeting panel's check-fire line (`lineOfFire`): allies the dradis shows across the gun's line or
+ * the line to the lock, and allies within the loaded rounds' blast radius of the lock.
+ */
+function checkFire(s: StationSession, targetId: string | undefined) {
+    const own = s.spaceDriver.state.getShip(s.shipDriver.id);
+    const gun = s.shipDriver.state.chainGuns.at(0);
+    if (!own || !gun) {
+        return { allyInLine: null, allyNearTarget: null };
+    }
+    const visible = s.radar.visibleObjects(s.viewFaction);
+    const target = targetId ? s.spaceDriver.state.get(targetId) : undefined;
+    const loaded = [gun.loadedProjectile, ...[...s.shipDriver.state.tubes].map((t) => t.loadedProjectile)];
+    const danger = Math.max(0, ...loaded.filter(isAmmo).map(blastRadius));
+    const allies = [...visible]
+        .filter((o) => o.id !== own.id && Spaceship.isInstance(o) && !o.destroyed && o.faction === s.viewFaction)
+        .map((o) => ({
+            id: o.id,
+            name: describeContact(o, s.viewFaction, own.position).name,
+            position: o.position,
+            radius: o.radius,
+        }));
+    return lineOfFire({
+        position: own.position,
+        bearing: gun.getGlobalBearing(s.shipDriver.state),
+        reach: gun.design.maxShellRange,
+        danger,
+        target: target && visible.has(target) ? target.position : undefined,
+        allies,
+    });
 }

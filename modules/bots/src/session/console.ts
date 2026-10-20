@@ -67,7 +67,7 @@ export function radarPriority(a: SpaceObject, b: SpaceObject, observer: { x: num
     );
 }
 
-/** Everything the seat's radar shows, nearest first; projectiles are paged after everything else. Throws `NotPermittedError` for a seat without a radar. */
+/** Everything the seat's radar shows (`RadarView.seatContacts`), nearest first; projectiles are paged after everything else. Throws `NotPermittedError` for a seat without a radar. */
 export function radarContacts(session: StationSession, { offset, limit }: { offset: number; limit: number }) {
     if (!session.isGameMaster && !session.radarWidgets.length) {
         throw new NotPermittedError(`station "${session.stationName}" has no radar`);
@@ -78,9 +78,12 @@ export function radarContacts(session: StationSession, { offset, limit }: { offs
     }
     const visible = session.isGameMaster
         ? session.radar.visibleObjects(undefined)
-        : session.radar.seatObjects(session.viewFaction, session.widgets.filter(isRadarWidget), {
+        : session.radar.seatContacts(session.viewFaction, session.widgets.filter(isRadarWidget), {
               ship: ownShip,
               warpLevel: session.shipDriver.state.warp?.currentLevel,
+              trackedId: session.widgets.includes('targeting-status')
+                  ? (session.shipDriver.state.weaponsTarget?.targetId ?? undefined)
+                  : undefined,
           });
     const ranked = [...visible]
         .filter((o) => o.id !== session.shipDriver.id)
@@ -90,6 +93,7 @@ export function radarContacts(session: StationSession, { offset, limit }: { offs
             id: ownShip.id,
             position: { x: ownShip.position.x, y: ownShip.position.y },
             heading: ownShip.angle,
+            faction: session.viewFaction,
         },
         radarRange: session.widgets.includes('helms-radar') ? helmsRadarRange(session) : undefined,
         scanBeam: session.widgets.includes('long-range-radar') ? scanBeamStatus(session) : undefined,

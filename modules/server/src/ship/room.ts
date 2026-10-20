@@ -8,6 +8,7 @@ import {
     ShipState,
     cmdReceivers,
     createLogger,
+    crewOrderCommands,
     handleGmSetValueCommand,
     handleJsonPointerCommand,
     lockCommands,
@@ -38,6 +39,10 @@ export class ShipRoom extends Room<{ state: ShipState }> {
         // would just let enqueueCommands/etc. accumulate forever with no consumer
         if (manager.state.isPlayerShip) {
             for (const [cmdName, handler] of cmdReceivers(repairCommands, manager)) {
+                this.onMessage(cmdName, handler);
+            }
+            // the order board is drained by ShipManagerPc's CrewOrdersManager, so only a player ship takes orders
+            for (const [cmdName, handler] of cmdReceivers(crewOrderCommands, manager)) {
                 this.onMessage(cmdName, handler);
             }
         }

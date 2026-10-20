@@ -8,6 +8,7 @@ import { range, rangeSchema } from '../range';
 import { Armor } from './armor';
 import { Capsule } from './capsule';
 import { ChainGun } from './chain-gun';
+import { CrewOrderBoard } from './crew-orders';
 import { DesignState } from './system';
 import { Docking } from './docking';
 import { FlightDoctrine } from './flight-doctrine';
@@ -37,6 +38,7 @@ export enum IdleStrategy {
     /**
      * Fires on hostiles like every other idle strategy. Wandering movement is not yet
      * implemented, so this currently behaves exactly like {@link STAND_GROUND}.
+     * @public chosen at runtime from the tweak panel (enum values of the synced `idleStrategy` field)
      */
     ROAM,
     /** Fires on hostiles; never moves (no movement order is ever attached to this strategy). */
@@ -206,6 +208,14 @@ export class ShipState extends Schema implements Lockable {
 
     @gameField(RepairQueue)
     repairQueue = new RepairQueue();
+
+    /**
+     * The crew's order board: the captain's and doctrine's orders, one per slot, and the stance.
+     * Ship-internal like the rest of this state: the ship room's clients (the ship's stations, the GM)
+     * read it; it changes only through `crewOrderCommands`.
+     */
+    @gameField(CrewOrderBoard)
+    orderBoard = new CrewOrderBoard();
 
     /**
      * JSON Pointer paths (relative to this ship's state root) whose GM lock is

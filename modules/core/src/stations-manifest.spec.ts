@@ -1,8 +1,8 @@
 import { botSeatsConflict, multiplexedStations, rosterSeats, seatOfScreen, seatScreens } from './stations-manifest';
 
 describe('bridge seat table', () => {
-    it('lists every seat on the roster, the bot-only tactical seat last', () => {
-        expect(rosterSeats).toEqual(['pilot', 'weapons', 'engineer', 'sigint', 'tactical']);
+    it('lists every seat on the roster, the bot-only tactical and captain seats last', () => {
+        expect(rosterSeats).toEqual(['pilot', 'weapons', 'engineer', 'sigint', 'tactical', 'captain']);
     });
 
     it('gives sigint three screens', () => {

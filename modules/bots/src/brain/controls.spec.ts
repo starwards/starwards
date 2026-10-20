@@ -72,6 +72,22 @@ describe('station controls', () => {
         expect(ids).toEqual(['boost']);
     });
 
+    it('offers one prioritize and one cancel key per signals job, sending that job`s id', () => {
+        const display: Display = {
+            panels: {
+                'signals-jobs': { paused: false, jobs: [{ id: 'job-7', status: 'QUEUED', target: { id: 'x' } }] },
+            },
+        };
+        const controls = controlsById(display, { commands: [{ command: 'prioritizeJob' }, { command: 'cancelJob' }] });
+        expect([...controls.keys()]).toEqual(['prioritizeJob:job-7', 'cancelJob:job-7']);
+        expect(controls.get('prioritizeJob:job-7')!.press('press')).toEqual({
+            command: 'prioritizeJob',
+            args: {},
+            value: 'job-7',
+        });
+        expect(controls.get('cancelJob:job-7')!.press('wait')).toBeUndefined();
+    });
+
     it('expands per gun and per system', () => {
         const display: Display = {
             panels: {

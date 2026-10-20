@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { CALLOUT_QUESTION, Policy, brainSpecSchema } from '@starwards/bots';
+import { CALLOUT_QUESTION, Policy, brainSpecSchema, referenceSeatPlan } from '@starwards/bots';
 import { runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
 
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
@@ -148,6 +148,49 @@ describe('a headless crew that talks', () => {
             const { decisions, requests } = readDecisionLog(result.recording!);
             expect(decisions.filter((d) => d.control === CALLOUT_QUESTION)).toHaveLength(3);
             expect(requests.filter((r) => r.station === 'helms').map((r) => r.heard?.length)).toEqual([0, 1, 1]);
+        } finally {
+            await rmDirRetrying(dir);
+        }
+    });
+});
+
+describe('a headless crew with a captain', () => {
+    jest.setTimeout(60_000);
+
+    it('seats a captain that presses nothing: it reads the dradis picture and gives orders the crew hears', async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crew-captain-'));
+        try {
+            const heardByHelms: unknown[] = [];
+            const listener: Policy = {
+                name: 'listener',
+                answer: (request, controls, display, heard) => {
+                    heardByHelms.push(heard);
+                    return idlePolicy.answer(request, controls, display);
+                },
+            };
+            const crew = headlessCrew({
+                shipId: TRAINING_PLAYER_ID,
+                latencySeconds: 0,
+                seats: [referenceSeatPlan('captain'), { station: 'helms', spec: brain('helms'), policy: listener }],
+            });
+            const result = await runTraining(trainingScenarios.T0, {
+                seed: 1,
+                timeoutSeconds: 1.5,
+                crewedPlayer: true,
+                beforeTick: crew.beforeTick,
+                recording: { dir, intervalSimSeconds: 1 },
+            });
+
+            const events = fs
+                .readFileSync(sidecarName(result.recording!), 'utf8')
+                .split('\n')
+                .filter(Boolean)
+                .map((l) => JSON.parse(l) as { kind: string; data: Record<string, unknown> });
+            const captain = (kind: string) => events.filter((e) => e.kind === kind && e.data.station === 'captain');
+            expect(captain('command')).toEqual([]);
+            expect(captain('brain_request')[0].data.capabilities).toMatchObject({ station: 'dradis' });
+            expect(['close_to', 'engage', 'hold_here']).toContain(captain('callout')[0].data.callout);
+            expect(heardByHelms[1]).toEqual([expect.objectContaining({ speaker: 'captain' })]);
         } finally {
             await rmDirRetrying(dir);
         }

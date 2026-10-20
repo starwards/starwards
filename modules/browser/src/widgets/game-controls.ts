@@ -62,7 +62,7 @@ export function gameControlsWidget(adminDriver: AdminDriver): DashboardWidget {
     };
 }
 
-export function drawGameControls(container: WidgetContainer, adminDriver: AdminDriver) {
+function drawGameControls(container: WidgetContainer, adminDriver: AdminDriver) {
     const { pane, cleanup } = createWidgetPane(container, 'Game Controls');
     const speed = readWriteNumberProp(adminDriver, '/speed');
     const isRecording = readProp<boolean>(adminDriver, '/isRecordingGame');

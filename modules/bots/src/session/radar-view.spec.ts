@@ -336,4 +336,42 @@ describe('RadarView', () => {
             expect(ids(seat)).to.deep.equal(['far', 'mid', 'near', 'own']);
         });
     });
+
+    describe('seatContacts', () => {
+        function scene() {
+            const own = ship('own', 0, 0, Faction.Gravitas, 6000);
+            // a picket far up +y, its radar a narrow beam pointing further up +y
+            const picket = ship('picket', 0, 70_000, Faction.Gravitas, 400_000, 10, 90);
+            const deep = ship('deep', 0, 400_000, Faction.Raiders);
+            deep.radius = 5000;
+            const objects: SpaceObject[] = [
+                own,
+                picket,
+                asteroid('near', 3000, 0, 300),
+                ship('raider', 0, 90_000, Faction.Raiders),
+                deep,
+                ship('unseen', -40_000, 0, Faction.Raiders),
+            ];
+            return { own, objects };
+        }
+        const seat = (widgets: StationRadarWidget[], trackedId?: string) => {
+            const { own, objects } = scene();
+            return ids(viewOf(objects).seatContacts(Faction.Gravitas, widgets, { ship: own, warpLevel: 0, trackedId }));
+        };
+
+        it('reads a fixed-camera radar as it is drawn', () => {
+            expect(seat(['helms-radar'])).to.deep.equal(['near', 'own']);
+            expect(seat(['tactical-radar'])).to.deep.equal(['near', 'own']);
+        });
+
+        it('reads a zoomable radar as far out as its operator can zoom', () => {
+            expect(seat(['long-range-radar'])).to.deep.equal(['near', 'own', 'picket', 'raider']);
+            expect(seat(['dradis-radar'])).to.deep.equal(['deep', 'near', 'own', 'picket', 'raider']);
+        });
+
+        it('tracks the weapons lock wherever the faction sees it, and nothing the faction does not see', () => {
+            expect(seat(['tactical-radar'], 'raider')).to.deep.equal(['near', 'own', 'raider']);
+            expect(seat(['tactical-radar'], 'unseen')).to.deep.equal(['near', 'own']);
+        });
+    });
 });

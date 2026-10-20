@@ -7,9 +7,40 @@ import { z } from 'zod';
  * Values a parameterised callout can carry, each read off the speaker's own display:
  * `lockedOffNose` (weapons: the locked contact's degrees and side off the nose) and `gunSkew`
  * (engineer: a chain gun's damage skew from the damage report), `farContact` (signals: the nearest
- * contact beyond the helms radar's reach, its name, range and side of the nose).
+ * contact beyond the helms radar's reach, its name, range and side of the nose), `enemyContact`
+ * (signals: the nearest identified enemy ship, its name, range, side of the nose and whether the range
+ * closes), `closeOrder` and `engageOrder` (captain: the order to close to missile range of the
+ * nearest enemy, and to engage it), `dockOrder` (captain: the nearest allied station to dock at, its
+ * distance, world bearing and radius), `patrolOrder` (captain: the nearest nebula to patrol behind, and
+ * the nearest enemy it hides the ship from), `lockedTarget` (weapons: the locked ship's name),
+ * `lockedEnvelope` (weapons: the locked ship's range, the launch envelope for how it moves, and the
+ * range still to close), `salvoTally` (weapons: missiles launched under the engagement, those still
+ * in flight, and the missiles left in the magazine), `lostLock` (weapons: the ship the lock held at the
+ * previous decision and has lost), `lostContact` (signals: the enemy ship the radar showed at the
+ * previous decision and shows no more, and its last world bearing), `salvoOrder` (captain: the
+ * missiles a salvo keeps in flight), `focusOrder` (captain: the enemy ships in sight in the order to
+ * fight them, nearest the most threatened allied station first when one is in sight), `allyAtRisk`
+ * (weapons: the ally the targeting panel's check-fire line shows, its range, and whether it is in the
+ * line of fire or by the target).
  */
-export const calloutFills = ['lockedOffNose', 'gunSkew', 'farContact'] as const;
+export const calloutFills = [
+    'lockedOffNose',
+    'gunSkew',
+    'farContact',
+    'enemyContact',
+    'closeOrder',
+    'engageOrder',
+    'dockOrder',
+    'patrolOrder',
+    'lockedTarget',
+    'lockedEnvelope',
+    'salvoTally',
+    'lostLock',
+    'lostContact',
+    'salvoOrder',
+    'focusOrder',
+    'allyAtRisk',
+] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
 const calloutsSchema = z.record(
@@ -70,6 +101,11 @@ export const brainSpecSchema = z
          * the same display read out as sentences by `verbal.ts` (`console` in the state).
          */
         view: z.enum(['display', 'verbal']).default('display'),
+        /**
+         * Reads the targeting panel's check-fire line (`allyInLine`, `allyNearTarget`): allies the next
+         * round would cross or the blast at the lock would catch. Absent, the brain reads the panel without it.
+         */
+        checkFire: z.boolean().optional(),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
         /**
