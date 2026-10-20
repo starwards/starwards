@@ -30,6 +30,7 @@ Guide: `docs/integration/ai-crew.md`.
 | Does a brain still act like the reference?     | `npm run agree -- --recording <dir> --station <helms\|weapons> [--brain brains/<station>.v<N+1>.json]`              |
 | Does a candidate hold on every level?          | `npm run suite -- --crew crews/<candidate>.json --baseline <accepted crew> --workers 4 --archive`                   |
 | What did the crew say to each other?           | from repo root: `npm --prefix modules/server run analyze -- events --recording <x.sgr> --kind callout`              |
+| Would another order or press have done better? | `npm run branch -- corpus --runs <train out> --crew crews/<crew>.json --scenario <rung> --levels strategic,tactical` |
 
 ## Procedure
 
@@ -54,6 +55,22 @@ Guide: `docs/integration/ai-crew.md`.
    without more refused commands. Record the result.
 8. Cost: the report prints paid and cached tokens and dollars. Jev answers are cached on disk, so
    rerunning a seed is free and identical. Stop a tuning session at an agreed budget.
+
+## Counterfactual branching
+
+To learn what a seat (the captain first) should have decided, branch recorded runs instead of
+guessing: guide section [Branching](../../../docs/integration/ai-crew.md#branching-what-if-the-crew-had-decided-otherwise).
+
+1. Record the baseline: `train` the crew on the rung's seeds (reference seats only: $0, and deterministic).
+2. `branch -- points --recording <x.sgr> --level strategic,tactical` on one run: check the points and
+   alternatives make sense, and `branch -- fork ... --t <t> --alt <id>` one of them (it prints
+   whether the replay matched the recording).
+3. `branch -- corpus` over every seed with a `--budget`; `--workers` up to the cores free.
+4. Read `mine.md`: an alternative that beats the recorded play beyond noise, under a state feature,
+   is a candidate rule change. Write it as a proposal, then test it as a crew on the same seeds — a
+   branch shows one decision changed once, not a policy.
+5. Any `DIVERGED` row means a seat is not deterministic (an uncached Jev answer, a stateful bug):
+   fix that before reading the corpus.
 
 ## Curriculum
 

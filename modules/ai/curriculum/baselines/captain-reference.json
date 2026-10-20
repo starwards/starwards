@@ -1,0 +1,632 @@
+{
+    "name": "captain-reference",
+    "crew": "captain-reference",
+    "commit": "33f3abc3",
+    "date": "2026-10-20",
+    "levels": [
+        {
+            "id": "L0",
+            "seeds": {
+                "first": 1,
+                "count": 8
+            },
+            "timeoutSeconds": 180,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T0",
+                    "runs": 8,
+                    "kills": 7,
+                    "medianSeconds": 73.59999999999711,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.8246432790522176,
+                        0.9512272227710127,
+                        0.926035452547892,
+                        0.8432359919777463,
+                        0.7475826390116203,
+                        0.9639635944271295,
+                        0.0025707458733190973,
+                        0.8647909523129697
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 8,
+                        "shells_damage_armor": 8,
+                        "player_stays_mobile": 7,
+                        "frames_regular": 8,
+                        "strip_leads_to_kill": 4
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-tag",
+                    "brain": "helms@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.8435243473430868,
+                    "sdScore": 0.038793097801643896,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        0.7889279763006881,
+                        0.89705610072209,
+                        0.8435474912053346,
+                        0.8191075726717301,
+                        0.7998518792816174,
+                        0.8802073690057414,
+                        0.8722458803925217,
+                        0.8472505091649717
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-hold",
+                    "brain": "helms@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.8721188558733713,
+                    "sdScore": 0.05139252083639908,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        0.8361566231602368,
+                        0.9658428214384901,
+                        0.8655928908636519,
+                        0.79311302415996,
+                        0.8969730630380472,
+                        0.8878089419605689,
+                        0.8414329352957546,
+                        0.8900305470702606
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "helms-intercept",
+                    "brain": "helms@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.7904398148148134,
+                    "sdScore": 0.04716091439903038,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        0.7679629629629618,
+                        0.8744444444444429,
+                        0.7642592592592584,
+                        0.7396296296296302,
+                        0.7559259259259256,
+                        0.8351851851851817,
+                        0.8207407407407367,
+                        0.7653703703703695
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "weapons-acquire",
+                    "brain": "weapons@20/reference",
+                    "runs": 8,
+                    "meanScore": 35.15364679748341,
+                    "sdScore": 30.93909047396291,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        37.31951129211509,
+                        85.30174009626306,
+                        55.97926693817263,
+                        5.331358756016441,
+                        51.9807478711603,
+                        0,
+                        0,
+                        45.31654942613975
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "weapons-range",
+                    "brain": "weapons@20/reference",
+                    "runs": 8,
+                    "meanScore": 104.657253864036,
+                    "sdScore": 44.61611379703076,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        88.27292110874,
+                        88.97528464315783,
+                        50.98583726742752,
+                        56.12762871646282,
+                        142.65734265733977,
+                        96.59863945578499,
+                        131.98900091658848,
+                        181.6513761467865
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "engineer-power-budget",
+                    "brain": "engineer@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.8266756156267419,
+                    "sdScore": 0.024897945842984572,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        0.8155279886440614,
+                        0.8056532740850577,
+                        0.8081219527247999,
+                        0.8074430660988645,
+                        0.8666913534531,
+                        0.8123804233783758,
+                        0.8370672097759753,
+                        0.8605196568536999
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "engineer-damage-control",
+                    "brain": "engineer@1/reference",
+                    "runs": 8,
+                    "meanScore": 0.6218367483387554,
+                    "sdScore": 0.15098527857198757,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        0.7341356538911878,
+                        0.7280051019357816,
+                        0.4783023719887393,
+                        0.43930753564159686,
+                        0.7276348001398206,
+                        0.7333950502992589,
+                        0.405538069081909,
+                        0.7283754037317489
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                },
+                {
+                    "kind": "benchmark",
+                    "name": "signals-scan",
+                    "brain": "signals@10/reference",
+                    "runs": 8,
+                    "meanScore": 0,
+                    "sdScore": 0,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "scores": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L0b",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 240,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T0-wide",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 49.89999999999845,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.8979992216852076,
+                        0.8844375631240311,
+                        0.9148638573668691,
+                        0.9192933357710261,
+                        0.8554467111612029,
+                        0.8862900733679739,
+                        0.9283600895251691,
+                        0.8616293606552274,
+                        0.8270277443247024,
+                        0.8452019099245769,
+                        0.9126445586096007,
+                        0.9138600456396205,
+                        0.832332536148686,
+                        0.8751569191246741,
+                        0.8671632044247147,
+                        0.815737066911214
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 15,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 11,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L1",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 180,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T1-lite",
+                    "runs": 16,
+                    "kills": 15,
+                    "medianSeconds": 15.650000000000357,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.9656887427049673,
+                        0.983882177431811,
+                        0.9667538881117578,
+                        0.9717989737667001,
+                        0.8823001853547419,
+                        0.9745046849110162,
+                        0.14263809778945016,
+                        0.9635539909906435,
+                        0.9886204907714763,
+                        0.9824953400061546,
+                        0.9689771687648382,
+                        0.9819279925574523,
+                        0.9663333967801189,
+                        0.9630277014439756,
+                        0.9356945771426066,
+                        0.9724327947235762
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 15,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 13,
+                        "player_stays_mobile": 15,
+                        "frames_regular": 16
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L2",
+            "seeds": {
+                "first": 1,
+                "count": 8
+            },
+            "timeoutSeconds": 240,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T0-constrained",
+                    "runs": 8,
+                    "kills": 5,
+                    "medianSeconds": 47.98333333333189,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.12214758150351372,
+                        0.9550106811724222,
+                        0.9223707442585483,
+                        0.8934902009324152,
+                        0.8601642799110497,
+                        0.9557843586487083,
+                        0.0025173981224517862,
+                        0.011946528694152171
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 8,
+                        "shells_damage_armor": 8,
+                        "player_stays_mobile": 7,
+                        "frames_regular": 8,
+                        "strip_leads_to_kill": 5
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L3",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 180,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T1",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 34.69166666666598,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.7490252018237914,
+                        0.9032932336381893,
+                        0.9136833849411465,
+                        0.8775157044909075,
+                        0.7964669964816483,
+                        0.8943098003717547,
+                        0.8163210114799769,
+                        0.7847360105900414,
+                        0.9064162778012304,
+                        0.8544355437381443,
+                        0.8508633804917939,
+                        0.8314450197339012,
+                        0.6556615531991105,
+                        0.8865760432998568,
+                        0.7620309300963175,
+                        0.823893947844971
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 16,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 15,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L4",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 300,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T2",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 60.14999999999787,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.8515925334098512,
+                        0.7532931265884898,
+                        0.8265462828868275,
+                        0.8029849917730861,
+                        0.8455561815355306,
+                        0.8212331164534826,
+                        0.7776068716782728,
+                        0.8437929066586902,
+                        0.8609929348230994,
+                        0.755999547327268,
+                        0.8719858163277737,
+                        0.8301315405312419,
+                        0.7928693295327472,
+                        0.6959071291803823,
+                        0.8221515157164621,
+                        0.7415027485829452
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 12,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 10,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L5",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 300,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T2-constrained",
+                    "runs": 16,
+                    "kills": 9,
+                    "medianSeconds": 57.63333333333134,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.7883327576563226,
+                        0.6224652112170407,
+                        0.10518552166156168,
+                        0.03010056253066087,
+                        0.001229310181182373,
+                        0.5798485344066796,
+                        0.0010561421609324919,
+                        0.014865556244245811,
+                        0.775744853956821,
+                        0.812634745804186,
+                        0.014949701812152015,
+                        0.8277338162195117,
+                        0.8181807351052022,
+                        0.8386340825167035,
+                        0.009363756566251972,
+                        0.8578527618270136
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 9,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 10,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16,
+                        "missile_beyond_own_radar": 1,
+                        "missile_oncoming_beyond_radar": 1
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L5b",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 400,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T3-directed",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 85.16666666666312,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.8444469682553049,
+                        0.8350927789409748,
+                        0.8395458326790821,
+                        0.8460869284216989,
+                        0.7698847175208632,
+                        0.7876406408203596,
+                        0.8428631460798087,
+                        0.7694620849141506,
+                        0.8388392796138572,
+                        0.8152993881036342,
+                        0.8187591260174142,
+                        0.8199743583095863,
+                        0.7953309261508744,
+                        0.8520379553087186,
+                        0.7791527979307331,
+                        0.7974698015965889
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 16,
+                        "shells_damage_armor": 16,
+                        "strip_leads_to_kill": 16,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16,
+                        "missile_beyond_own_radar": 14
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L5c",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 400,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "T3-incoming",
+                    "runs": 16,
+                    "kills": 16,
+                    "medianSeconds": 86.06666666666307,
+                    "refused": 0,
+                    "fallbacks": 0,
+                    "values": [
+                        0.8165860905558227,
+                        0.8000928747645626,
+                        0.7859630963125643,
+                        0.8227673751561713,
+                        0.7213209723257312,
+                        0.7555153140918354,
+                        0.8156106663641951,
+                        0.7336189973279,
+                        0.8258966922210703,
+                        0.8125045764847739,
+                        0.8002655401496996,
+                        0.7686430104923719,
+                        0.750528075980853,
+                        0.82473458820806,
+                        0.751462470230344,
+                        0.7901097825040566
+                    ],
+                    "passedChecks": {
+                        "fire_within_range": 16,
+                        "shells_damage_armor": 16,
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16,
+                        "missile_beyond_own_radar": 16,
+                        "missile_oncoming_beyond_radar": 16,
+                        "strip_leads_to_kill": 1
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        },
+        {
+            "id": "L5d",
+            "seeds": {
+                "first": 1,
+                "count": 16
+            },
+            "timeoutSeconds": 1500,
+            "items": [
+                {
+                    "kind": "rung",
+                    "name": "W-waves",
+                    "runs": 16,
+                    "kills": 12,
+                    "medianSeconds": 1189.3666666659137,
+                    "refused": 1069,
+                    "fallbacks": 0,
+                    "values": [
+                        0.18710248170035385,
+                        0.25863121458455585,
+                        -0.1343737332903529,
+                        0.17397051645938286,
+                        0.269745794493079,
+                        0.02561201939994273,
+                        0.02179386253848145,
+                        0.21439932117067104,
+                        0.2576771117372926,
+                        0.27007725526295756,
+                        0.08830357540940956,
+                        0.1188599059544892,
+                        0.009691870743591702,
+                        -0.23098953628331476,
+                        -0.08047998465419626,
+                        0.14715808068043576
+                    ],
+                    "passedChecks": {
+                        "player_stays_mobile": 16,
+                        "frames_regular": 16,
+                        "missile_beyond_own_radar": 15,
+                        "missile_oncoming_beyond_radar": 14
+                    },
+                    "paidTokens": 0,
+                    "cachedTokens": 0
+                }
+            ]
+        }
+    ]
+}

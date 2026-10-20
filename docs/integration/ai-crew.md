@@ -55,7 +55,7 @@ the console has it picks one of the buttons that control physically offers:
 
 Per-gun, per-tube and per-system controls are expanded (`fireChainGun:0`, `tubeSafety:1`, `systemPower:/reactor`); a tube fires only with its safety switched off. The whole
 catalogue, one entry per station command, is [`catalogue.ts`](../../modules/bots/src/brain/catalogue.ts);
-commands left out carry their reason there (signals job commands send no job id; waypoint commands are not buttons).
+commands left out carry their reason there (waypoint commands take free-form positions, not button presses). Every other station command is a button, tube firing and the signals job keys (one per job, sending its id) included.
 
 All of a decision's questions go to [Jev](https://docs.typesafe.ai) in one request: `state` is the
 display, plus the brain's `role` and `mission`; each control is one choice question. Code turns the
@@ -66,9 +66,10 @@ model, decision interval, confidence floor, role, mission, per-control wording o
 skip and display parts to hide. Tuning a brain means writing its next version; the code is shared by
 every brain and every host.
 
-Policies answer a brain's questions: `jev`, `reference` (hand-written rules for helms and weapons —
-the harness's positive control: it shows a kill is reachable through the buttons) and `idle` (presses
-nothing — the negative control).
+Policies answer a brain's questions: `jev`, `reference` (hand-written rules for every seat — the
+harness's positive control: it shows a kill is reachable through the buttons; it also says the
+callouts it has a rule for, and obeys the captain's orders it hears) and `idle` (presses nothing —
+the negative control).
 
 ## Same console as a live seat
 
@@ -77,6 +78,15 @@ Brains read and press through the MCP station sandbox itself
 game, [`console/headless.ts`](../../modules/ai/src/console/headless.ts) seats a real `StationSession`
 on in-process drivers that apply the same JSON-pointer handler and typed commands the rooms do, on
 simulated time. A brain therefore sees exactly the fog of war a live MCP seat sees.
+
+A seat reads the full scope its widgets admit (`RadarView.seatContacts`,
+[`session/radar-view.ts`](../../modules/bots/src/session/radar-view.ts); reach rule
+`radarWidgetPerceivedReach` in [`core/src/client/radar-reach.ts`](../../modules/core/src/client/radar-reach.ts)):
+a fixed-camera radar (helms 5 km, tactical 10 km) as drawn, a zoomable one (long range to its 250 km
+preset, dradis without limit) as far out as its operator can zoom, and the weapons lock wherever the
+faction sees it, as the targeting panel tracks it. The browser widgets still open at their drawn
+reach. The radar's `ownShip` names the own faction, so a brain can tell an identified ally from an
+enemy.
 
 ## Verbal UI
 
@@ -158,11 +168,17 @@ keeps the seat silent and is recorded as a fallback; `reference` and `idle` seat
 callout or silence; the numbers are deterministic, and a seat can only say what its station shows:
 a display that does not show the value says nothing.
 
-| `fill`          | Speaker  | Read from                                                            | Example                                          |
-| --------------- | -------- | -------------------------------------------------------------------- | ------------------------------------------------ |
-| `lockedOffNose` | weapons  | `targeting-status` lock + its radar contact's bearing vs our heading | "need you 6° left"                               |
-| `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                         | "gun skewed 8° left"                             |
-| `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km        | "contact UFO-12 at 7.4 km, 20° left of the nose" |
+| `fill`          | Speaker  | Read from                                                                            | Example                                                   |
+| --------------- | -------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `lockedOffNose` | weapons  | `targeting-status` lock + its radar contact's bearing vs our heading                 | "need you 6° left"                                        |
+| `gunSkew`       | engineer | `damage-report` `/chainGuns/*` `bearingSkew`                                         | "gun skewed 8° left"                                      |
+| `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km                        | "contact UFO-12 at 7.4 km, 20° left of the nose"          |
+| `enemyContact`  | signals  | nearest identified enemy ship on its radar; range change since its previous decision | "enemy raider at 42.3 km, 30° right of the nose, closing" |
+| `closeOrder`    | captain  | nearest identified enemy ship on the dradis; its HiExp launch range less 2 km        | "close to 43 km of raider, now 52.3 km at bearing 045"    |
+| `engageOrder`   | captain  | nearest identified enemy ship on the dradis                                          | "engage raider"                                           |
+
+The filled values travel with the phrase (`values` on what a listener hears), so a rule-based
+listener acts on the numbers rather than parsing words.
 
 **Pub-sub, filtered per decision.** Every crew run has one in-memory channel
 ([`crew/channel.ts`](../../modules/bots/src/crew/channel.ts)), the same in the headless crew and the
@@ -187,15 +203,18 @@ Owner's rule: a callout, and a trigger listening for it, only carries informatio
 what the listener's own station displays. From the manifest widgets and the sandbox readers
 ([`modules/bots/src/session/readers.ts`](../../modules/bots/src/session/readers.ts)):
 
-| Speaker → listener | Speaker shows, listener does not                                              | Callout kept                                                    |
-| ------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| weapons → helms    | which contact is locked; where it sits against the gun line                   | "target locked"; "need you {degrees}° {side}" (`lockedOffNose`) |
-| engineer → weapons | damage report: chain gun bearing skew, rate-of-fire damage; repair queue      | "gun skewed {degrees}° {side}" (`gunSkew`)                      |
-| engineer → helms   | damage report fields of helms systems (smart pilot offset, thruster capacity) | none: helms' own status strip already flags them damaged        |
-| helms → weapons    | helms stats: rotation/maneuvering mode, strafe, boost                         | none: weapons sees the target's own motion on its radar         |
-| signals → helms    | contacts between the helms radar's 5 km and its own 50 km                     | "contact {name} at {range} km, {bearing}" (`farContact`)        |
-| signals → weapons  | contacts between the tactical radar's 10 km and 50 km                         | none: T1 enemies spawn 2–8 km, inside tactical reach            |
-| any → engineer     | nothing the engineer needs: it shows every system's heat, power and damage    | none                                                            |
+| Speaker → listener | Speaker shows, listener does not                                                | Callout kept                                                                         |
+| ------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| weapons → helms    | which contact is locked; where it sits against the gun line                     | "target locked"; "need you {degrees}° {side}" (`lockedOffNose`)                      |
+| engineer → weapons | damage report: chain gun bearing skew, rate-of-fire damage; repair queue        | "gun skewed {degrees}° {side}" (`gunSkew`)                                           |
+| engineer → helms   | damage report fields of helms systems (smart pilot offset, thruster capacity)   | none: helms' own status strip already flags them damaged                             |
+| helms → weapons    | helms stats: rotation/maneuvering mode, strafe, boost                           | none: weapons sees the target's own motion on its radar                              |
+| signals → helms    | contacts between the helms radar's 5 km and its own 50 km                       | "contact {name} at {range} km, {bearing}" (`farContact`)                             |
+| signals → weapons  | contacts between the tactical radar's 10 km and 50 km                           | none: T1 enemies spawn 2–8 km, inside tactical reach                                 |
+| signals → captain  | how the nearest enemy's range changes                                           | "enemy {name} at {range} km, {bearing}, {trend}" (`enemyContact`)                    |
+| captain → helms    | the fleet picture: an enemy beyond the helms radar, its range and world bearing | "close to {range} km of {name}, now {distance} km at bearing {bearing}"; "hold here" |
+| captain → weapons  | which enemy to engage when several are in range                                 | "engage {name}"                                                                      |
+| any → engineer     | nothing the engineer needs: it shows every system's heat, power and damage      | none                                                                                 |
 
 Dropped as already on the listener's console: helms "on its tail", "closing", "need a lock";
 weapons "on the gun line, firing"; engineer
@@ -253,6 +272,182 @@ Recommended crew: [`crews/recommended.json`](../../modules/ai/crews/recommended.
 `jev-complement-h16-w15-e10-s3`: every callout carries what the listener cannot see. Since the radar
 reach cut it fails L0 (7/8, median 132.6 s) and L1 (10/16); see the suite baselines under
 [Curriculum](#curriculum).
+
+### Captain: orders without buttons
+
+The `captain` seat (reference brain [`brains/captain.v1.json`](../../modules/bots/src/brains/captain.v1.json))
+has no controls: it reads the dradis picture (the whole faction view) and only talks. The headless
+crew seats it on the dradis screen, whose waypoint commands are not buttons, so its every decision
+asks only its callout question; a callout question lists what it hears (`controls.callout.hears`)
+like a control. Its orders: `close_to` while the nearest enemy is outside the missile's launch envelope
+(`missileLaunchRange`, [`brain/missile-envelope.ts`](../../modules/bots/src/brain/missile-envelope.ts): 1 km out to
+Rmax for the enemy's closing and crossing speed, read off two dradis fixes),
+`engage` inside it, `hold_here` with no enemy in sight.
+
+The reference crew obeys ([`brain/reference-orders.ts`](../../modules/bots/src/brain/reference-orders.ts)):
+helms takes each order once, when first heard, and keeps it until the next. With no enemy on its own
+radar it flies a `close_to` order to the point the order names (afterburner on a long run once the
+nose bears), and holds anti-drift on `hold_here` or with nothing to fly after; it parks on enemies
+only. Weapons cycles its lock off identified allies and onto the ship named in `engage`; the
+engineer powers the tubes once an attack is ordered. Jev versions that listen: helms v20
+(`captain.close_to`, `captain.hold_here`), weapons v18 (`captain.engage`), signals v9 says
+`enemy_position`.
+
+Once the enemy is inside the envelope and engaged, the reference captain orders the ship in to gun
+range (`close_to` 2 km), so it arrives while the missiles fly: a rule mined from the Jev captain
+(`crews/jev-captain-c1-ref.json`), which kills on T3-directed 15/16, median 98.3 s, by alternating
+`engage` and `close_to`. On `T3-directed` (seeds 1–16, 400 s, 2026-10-18) `captain-reference` kills
+16/16, median 70.7 s, every run launching from 40–58 km, beyond the tactical radar; `reference`
+without a captain kills 16/16, median 220.3 s, and launches nothing beyond it.
+
+The captain's and weapons' launch range reads the target's own motion along and across the line of
+sight, never the own ship's, and helms holds on a `close_to` order whose range is beyond the current
+distance. On `T3-directed` after that change (2026-10-18) `captain-reference` kills 16/16, median
+69.4 s; the Jev captain 16/16, median 72.5 s.
+
+On `T3-incoming` (a dragonfly-MK1 attacking from 60–90 km, seen only by an allied station near its
+start; seeds 1–16, 400 s, 2026-10-18) `captain-reference` kills 16/16, median 73.2 s, every run
+passing `missile_oncoming_beyond_radar`; the Jev captain 16/16, median 72.3 s, 15/16; `reference`
+without a captain 15/16, median 339.6 s, 0/16; idle 0/16. Launches leave from 20–42 km: the
+attacker's combat weave keeps its closing speed at 520–590 m/s and its crossing speed at 90–320 m/s,
+so the HiExp envelope reads the still-target 45 km, not the 70 km of a straight run in.
+
+### Order board: orders as persistent state
+
+Orders are ship state, not radio. `ShipState.orderBoard`
+([`core/src/ship/crew-orders.ts`](../../modules/core/src/ship/crew-orders.ts)) holds one order per
+**slot**, synced whole to every client of the ship room (its stations, bots and the GM; never filtered by seat) and recorded in every `.sgr` frame. Each order has an id, a kind,
+typed parameters (`target`, `station`, `region`, `from`: a name, position and radius as the issuer saw
+them; `range` in metres; `threshold` a share), an issuer (`captain` or `doctrine`), an origin (the seat
+doctrine heard, `branch`, a standing order), an issue time in board seconds, a status (`active`,
+`complete`, `aborted`), a step and a note (the abort reason). An order stays in force until one of these happens:
+
+- another order in its slot replaces it;
+- it completes;
+- it is aborted, with the reason on the board;
+- its slot is revoked;
+- an order it **contradicts** is given.
+
+Contradictory orders cancel each other and the latest stands, whatever their slots: `engage` /
+`hold_fire`, `chase_target` / `retreat`, `hold_position` / `close_to`, `preserve_energy` / the `all_out`
+stance. The radio's hearing window and repeat suppression play no part.
+
+| Slot         | Kinds (data in `CREW_ORDER_KINDS`)                                                                                                                                                                                                                                    | Binds                                                                                                                                                                                                                          | Reference read as                                                                                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `navigation` | `dock_for_repair` (en route, docking; **complete once docked**: the ship stays docked and repairs), `undock` (complete once clear; casting off is its own order), `patrol` (behind a nebula, away from the threat), `retreat` (complete 10 km clear), `hold_position` | helms; engineer for docking                                                                                                                                                                                                    | dock: frozen (stations do not move); patrol: nebula frozen, threat live (the side to hide on turns with the enemy); retreat: live (run from where the enemy is now) |
+| `maneuver`   | `close_to`, `hold_here`, `chase_target` (aborted when weapons loses the target)                                                                                                                                                                                       | helms; weapons for chase                                                                                                                                                                                                       | `close_to` frozen (the call names a dradis point; the captain calls again with fresh numbers); chase live (the order is about the ship, not its old spot)           |
+| `stance`     | `defensive`, `offensive`, `all_out`, `chase`, `take_opportunities`, `preserve_ammo`                                                                                                                                                                                   | every seat                                                                                                                                                                                                                     | none                                                                                                                                                                |
+| `energy`     | `preserve_energy`                                                                                                                                                                                                                                                     | every seat whose commands spend energy, derived from the hull design's `energyCost…` fields ([`crew/energy-consumers.ts`](../../modules/bots/src/crew/energy-consumers.ts)): helms, weapons, engineer, signals on the gravitas | none                                                                                                                                                                |
+| `engagement` | `engage` (aborted when weapons loses the target), `hold_fire`                                                                                                                                                                                                         | weapons, engineer, and helms's rotation (the gun is bolted to the nose)                                                                                                                                                        | engage: live                                                                                                                                                        |
+| `repair`     | `dock_below_armor` (starts `dock_for_repair` once armor falls below its share)                                                                                                                                                                                        | helms, engineer                                                                                                                                                                                                                | frozen                                                                                                                                                              |
+| `sensors`    | none yet                                                                                                                                                                                                                                                              |                                                                                                                                                                                                                                |                                                                                                                                                                     |
+
+`revoke` empties one slot (`push_on` revokes `navigation`).
+
+**Writes are commands.** `crewOrderCommands` push onto the board's queue; `CrewOrdersManager` (run by
+`ShipManagerPc`) drains it in its update, in send order, so an order lands at the ship's next tick.
+The **issuer is the command**, never a field the sender sets (any `issuer` in the value is
+overwritten): the server has no per-connection identity, so, like the GM write channel, a writer is
+recognised by the channel it uses. A captain seat (bot or human) sends `issueOrder` / `revokeOrder` /
+`setStance`; only the crew's doctrine runner sends `doctrineIssueOrder` / `doctrineRevokeOrder`;
+any seat sends `reportOrderProgress`. `setStance` sets or replaces the `stance` slot and takes only
+stance-slot kinds (the stances and `salvo`); `issueOrder` refuses them. `undock` is an ordinary kind,
+issued with `issueOrder`. The manager refuses an unknown kind, a parameter the kind does not take or of
+the wrong type, and a missing required one. It checks shapes, never the world: it does not look a
+named contact up. A form can be generated from `CREW_ORDER_KINDS` (kind: slot, bound seats, parameters
+`required` or `optional`) and `ORDER_PARAMS` (parameter: `contact`, `station`, `body`, `meters`, `share`).
+
+**Who sees it.** The board is ship-internal, with the visibility of the rest of `ShipState`: the ship
+room's clients (that ship's stations, and the GM). A player-facing view shows only its own ship's
+board. An order's references carry exactly what the issuer's radar showed (a name and a position, no
+object id), so a reader learns nothing beyond the issuer's scan level. A UI's contact picker must offer
+contacts by scan level (CLAUDE.md, fog of war).
+
+**Priorities are stances.** Each stance sets the slot ranking and has its own button-level rules:
+
+| Stance               | Slots first                                                               | Button-level rules                                                  |
+| -------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| none                 | `repair > navigation > engagement > energy > maneuver > stance > sensors` | none                                                                |
+| `defensive`          | repair, navigation, energy                                                | no afterburner; the gun only inside 4 km                            |
+| `offensive`          | engagement, maneuver, navigation                                          | guns at full power                                                  |
+| `all_out`            | engagement, maneuver                                                      | guns, tubes and thrusters at full power; afterburner onto the enemy |
+| `chase`              | maneuver, engagement                                                      | afterburner onto the enemy                                          |
+| `take_opportunities` | engagement, navigation                                                    | weapons switches its lock to an enemy 2 km nearer than its target   |
+| `preserve_ammo`      | repair, navigation, energy                                                | guns and missiles only inside 3 km                                  |
+
+Conflicts resolve per control. Each seat's executor
+([`brain/order-executors.ts`](../../modules/bots/src/brain/order-executors.ts)) declares the commands
+it constrains and proposes choices for them. Where two orders propose for one control, the order in
+the higher slot decides it; the lower order still decides every other control.
+
+- With no stance, `chase_target` with `preserve_energy` steers and thrusts toward the target without
+  the afterburner; under the `chase` stance it burns the afterburner too.
+- A standing order's trigger (`dock_below_armor`) takes its target slot when idle, or from an order its
+  own slot outranks: a patrol yields to it with no stance, not under `offensive`.
+- A dock order powers the thrusters up en route and runs the docked repairs once docked.
+
+The headless crew ([`crew/crew.ts`](../../modules/ai/src/crew/crew.ts)) and the live crew worker
+([`server/src/bots/ship-crew.ts`](../../modules/server/src/bots/ship-crew.ts)) do the same:
+
+- send a captain seat's order callouts as `issueOrder` / `revokeOrder` / `setStance` (`orderFromCallout`,
+  `orderCommand`, which picks the command from the issuer and the kind's slot);
+- send each seat's progress reports and fired standing orders (`orderReports`);
+- run doctrine, when on;
+- show every seat the synced board as the `orders` panel (`readBoard`) once an order was ever placed;
+- record an `orders` event whenever the board changed.
+
+#### Doctrine: the board without a captain
+
+The same seat brain plays with or without a captain: seats read only the board. Each slot resolves in
+three layers: a captain order binds; else doctrine's; else the slot is empty and the seat decides.
+Doctrine ([`crew/doctrine.ts`](../../modules/bots/src/crew/doctrine.ts)) is a small, fixed rule set,
+never mined, tuned or derived from the reference captain:
+
+| Hears / sees                                    | Order (slot)                                   |
+| ----------------------------------------------- | ---------------------------------------------- |
+| signals `enemy_position`                        | `close_to` the reported enemy, 2 km (maneuver) |
+| weapons `target_locked`                         | `engage`, no name (engagement)                 |
+| an allied dock on any seat's radar              | `dock_below_armor` there at 50% (repair)       |
+| docked by its own dock order, armor back to 95% | `undock` (navigation)                          |
+
+It writes through `doctrineIssueOrder` / `doctrineRevokeOrder`, which the server stamps with issuer
+`doctrine`. The manager refuses a doctrine order
+that would replace or revoke a captain order; a captain order replaces doctrine's; a captain's revoke
+empties the slot and doctrine refills it on its next pass. The verbal view says who gave each order
+(`close to 2.0 km of raider, from doctrine, from signals 4 s ago`). A crew file turns it on with
+`"doctrine": true`; the live crew worker always runs it.
+
+On `T3-directed` (seeds 1–16, 400 s, 2026-10-18, 8 workers) the same reference seats, paired:
+
+| Crew                         | Board              | Kills | Median TTK | Run value |
+| ---------------------------- | ------------------ | ----- | ---------- | --------- |
+| `signals-reference`          | none               | 16/16 | 245.7 s    | 0.450     |
+| `doctrine-reference`         | doctrine           | 16/16 | 106.8 s    | 0.848     |
+| `captain-reference`          | captain            | 16/16 | 86.4 s     | 0.850     |
+| `captain-doctrine-reference` | captain + doctrine | 16/16 | 86.4 s     | 0.850     |
+
+Doctrine beats no board on every seed (run value +0.398 [+0.351, +0.445]). The captain beats doctrine
+on time to kill in 12 of 16 seeds and loses 4 (5, 7, 14, 15); its run value edge is 0.002. Doctrine's
+standing dock order never fired (armor stayed above 50%) and its `engage` rule never did (the reference
+weapons does not say `target_locked`), so here doctrine is its `close_to` rule. With a captain
+seated, doctrine changed no decision: the captain held `maneuver` throughout.
+
+Curriculum: a level's acceptance of a seat brain should hold both with and without a captain, paired
+on the same seeds.
+
+The verbal view reads it as `Standing orders: navigation: dock at dock for armor repairs (en route,
+2.1 km), from the captain 12 s ago; ….` and `Priorities: repair > navigation > ….`
+
+Reference seats wrap their policy in `withOrderBoard`. The reference helms flies the board's
+`close_to` / `hold_here` and weapons locks the ship `engage` names (`captainOrdersFromBoard`); none of
+them takes orders from the radio. The captain brain that can say every
+kind is [`brains/captain-orders.v1.json`](../../modules/ai/brains/captain-orders.v1.json). The
+reference captain still says only `close_to`, `engage` and `hold_here`.
+
+**Live games.** The GM can seat a `captain` bot: a bot-only roster seat, like `tactical`, that reads
+the dradis. Its orders go to the ship room as commands; the ship's crew worker runs doctrine, and every
+bot seat on that ship reads the synced board. A human captain or a no-code UI can set the same board
+through the same commands; no widget shows it yet.
 
 ### Tactical: one brain for helms and weapons
 
@@ -354,6 +549,104 @@ Helms brain versions so far, T0 seeds 1–4, 120 s:
 `--latency` delays every press by simulated seconds, as a network would; held triggers end on
 simulated time.
 
+### Wave defence: `W-waves`
+
+`W-waves` ([`wave-rung.ts`](../../modules/server/src/test/training/wave-rung.ts)) plays the
+`wave_defence` map with a crewed GVTS under the map's own wave timing: the next wave spawns 15 s after
+the latest is cleared, or 480 s after it spawned. A wave counts as survived once the next wave spawns
+with all three stations alive. A run passes after 3 waves survived, and ends then or at its timeout.
+Use a 1500 s timeout: the fourth wave spawns by 1440 s.
+`W-waves-endless` never passes, so its runs show how far a crew gets (calibration only). Results carry
+`waves`: waves survived and reached, stations lost, the time of the first loss, raiders killed and
+spawned, and GVTS health. The crew report adds a Waves table and pairs waves survived, stations lost and
+raiders killed seed by seed. Station guns kill raiders too, so raiders killed is not the crew's tally.
+
+A wave run is heavy: at 8 workers, a 1500 s run takes about 15 min (12 min of play, the rest ingesting
+the recording), and its sidecar holds 150-200 MB, mostly `brain_request` displays. Record frames
+every 5 s (`--interval 5`). Shard by seed (`--first-seed`, `--seeds`).
+
+Seeds 1-16, pass = 3 waves, captain.v1 reference seats (2026-10-19; archive
+`training-archive/2026-10-19/waves/`):
+
+| Crew                         | Board              | Passed | Waves survived (median) |
+| ---------------------------- | ------------------ | ------ | ----------------------- |
+| `idle`                       | none               | 0/16   | 1                       |
+| `signals-reference`          | none               | 0/16   | 1                       |
+| `doctrine-reference`         | doctrine           | 0/16   | 2                       |
+| `captain-doctrine-reference` | captain + doctrine | 5/16   | 2                       |
+| `captain-reference`          | captain            | 9/16   | 3                       |
+
+The current `captain-reference` (captain.v7: status callouts, salvo and a focus on the raider nearest the
+threatened station) passes 9/16 as well (seeds 1-8 5/8, 9-16 4/8), on other seeds. It is L5d's baseline.
+
+Every crew above loses all three stations by 2400 s. Without a board the GVTS never leaves its start: the
+first station falls at the same second as with an idle crew. The reference captain names the enemy
+nearest the GVTS, so it chases raiders that attack the ship while others reach a station (seed 1: the
+platform falls at 789 s with the GVTS 40-100 km away, after wave 2's harass MK2s).
+
+`focus nearest_to <station>` points the crew at the enemy nearest an allied station instead. Jev
+captain v1 on seeds 1-8: 2/8, against `captain-reference` 5/8.
+
+## Branching: what if the crew had decided otherwise
+
+Owner's idea: keep a corpus of recordings and decision logs, go back to key decision points and try
+other decisions, at every level from one button to the captain's mission priorities. The harness is
+deterministic (same crew, same seed: the same run), so a branch **replays** a recorded run from its
+seed and diverges at its point; no snapshot is restored. Every branch fingerprints the crew's
+`decision` / `callout` / `command` / `orders` events before its point and checks them against the
+recording (`prefixMatches`).
+
+```bash
+cd modules/ai
+npm run branch -- points --recording <x.sgr> [--level strategic,tactical | --level button --station helms --control afterBurner [--reask-brain <brain.json>]]
+npm run branch -- fork --recording <x.sgr> --crew crews/<crew>.json --t <s> --level <level> --alt <id> [--timeout 400] [--window 30]
+npm run branch -- prove --crew crews/<crew>.json --scenario <rung> --seed <n> [--recording <x.sgr>]
+npm run branch -- corpus --runs <train out dir> --crew crews/<crew>.json --scenario <rung> [--levels strategic,tactical] [--budget 400] [--workers 8] --out <dir>
+npm run branch -- mine --corpus <dir>/branches.jsonl
+```
+
+A **decision level** ([`branching/levels.ts`](../../modules/ai/src/branching/levels.ts)) names its
+branch points in a recorded run and the alternatives at each; fork, corpus and mining are shared.
+
+| Level       | Points                                                                                                                                                                                       | Alternatives (concrete at the point)                                                                                                                                    | A branch                                                                                                                                                                                                                                             |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `strategic` | enemy first in sight, enemy appears or lost, armor below 75/50/25%, energy below 30/15%                                                                                                      | `dock_for_repair@<station>`, `dock_below_armor@<station>`, `retreat@<enemy>`, `hold_position`, `patrol@<nebula>`, `preserve_energy`, `revoke:<slot>`, `stance:<stance>` | changes one slot of the order board at its point; the others keep their orders and the reference plays on under it. The branched captain does not call an order that contradicts its branch order, and orders the ship off a dock 60 s after docking |
+| `tactical`  | every change of the captain's call, the enemy entering or leaving the missile envelope (a still target's), an armor hit, an enemy appearing or lost (snapped to the captain's next decision) | the other calls the captain's brain can say (`close_to`, `engage`, `hold_here`, `chase_target`), and `engage@<enemy>` for each other enemy                              | the captain says it at every decision for `--window` s (30), then the reference captain resumes                                                                                                                                                      |
+| `button`    | every decision where one seat control's choice flips (`decisions`)                                                                                                                           | that control's other options, and the choice of `--reask-brain` there (`reask`, conditioned on the order board and what the seat heard)                                 | the seat presses it at that decision                                                                                                                                                                                                                 |
+
+The state summary of a point carries every active slot and the ranking (`orders`), what the seat
+heard (`heard`, button level), the nearest enemy, stations and nebulae on the dradis, armor, energy
+and docking. `corpus` plays branches round-robin over seeds and levels up to `--budget`, writes
+`branches.jsonl`, `corpus.md` (one row per branch) and `mine.md`: per level, alternative kind and
+state feature, the paired run value (branch − recorded run, the same pairing as `compare`), its 95% t
+interval, sign test and kills gained or lost; diverged branches are excluded.
+
+Corpus of 2026-10-18 (`captain-reference`, reference seats, $0; archive
+`training-archive/2026-10-18/branching/`):
+
+- **Ruled order model** (`branching-v2/`, code 438bfec9).
+    - **Run:** T3-directed, 400 strategic and tactical branches over seeds 1–16, 0 diverged, 23 min on 12 workers.
+    - **Result:** no alternative beats the reference captain. Run value, branch − recorded, with kills lost:
+
+        | Level     | Alternative                    | Δ run value | Kills lost          |
+        | --------- | ------------------------------ | ----------- | ------------------- |
+        | strategic | `hold_position`                | −0.60       | 21/29               |
+        | strategic | `dock_for_repair`              | −0.34       | 12/29               |
+        | strategic | `preserve_energy`              | −0.27       |                     |
+        | strategic | stance `defensive`             | −0.10       | 0                   |
+        | tactical  | `hold_here`                    | −0.03       | 0 (31 down / 10 up) |
+        | tactical  | `engage` instead of `close_to` | −0.04       | 0 (22 down / 5 up)  |
+
+        The `offensive`, `chase` and `take_opportunities` stances change nothing beyond noise.
+
+    - **Not finished:** the T2-dock and button corpora on this model were stopped when the host ran out of memory.
+- **First order model** (`branching/`). Dock completed after a 60 s dwell; the ranking was an order. Branches replayed their own recordings (0 diverged), but these numbers predate the rulings.
+    - **T2-dock, strategic** (320 branches). A dock order at first contact turns 7/16 wins into 13/16: lost → won on seeds 5, 7, 11, 12, 13, 15, 16; won → lost on seed 2; attackers killed 22 → 27. The paired run value is +0.05 [−0.07, +0.16] over every point. `dock_below_armor` gives 11/16. `hold_position` costs −0.34 (28 kills lost), `preserve_energy` −0.11, `retreat` −0.07.
+    - **T2-dock, tactical** (160 branches, re-recorded after the master merge).
+        - With armor below 75%, `close_to` instead of `engage` scores +0.04: 21 up / 8 down, sign p 0.024, kills +6 / −1.
+        - Engaging an enemy other than the nearest scores −0.10: 19 down / 9 up.
+    - **T3-directed, button** (96 branches, helms afterBurner). Every flip changes the run value by under 0.002. `reask` with the reference helms reproduces every recorded press.
+
 ## Curriculum
 
 Owner's approach: master a simple challenge, record what it taught, and add complexity only when a
@@ -361,20 +654,24 @@ level plateaus, reusing the lessons. The ladder,
 [`curriculum/ladder.json`](../../modules/ai/curriculum/ladder.json) (schema:
 [`suite/ladder.ts`](../../modules/ai/src/suite/ladder.ts)), orders levels along complexity axes:
 `baseline`, `variance` (same difficulty, wider situations), `threat`, `internal` (the ship's own
-energy, ammo and heat), `enemies`, `mission`, `space`. Each level names its rungs and station
+energy, ammo and heat), `enemies`, `command` (who decides: a captain directing the crew from the
+fleet's picture), `mission`, `space`. Each level names its rungs and station
 benchmarks, seeds, timeout, plateau criterion (no gain in its metric beyond seed noise for N versions)
-and acceptance thresholds (kill rate, median time to kill per rung).
+and acceptance thresholds (kill rate, median time to kill per rung, and optionally the share of runs
+that must pass named `analysis/checks.ts` checks; runs report the checks they passed).
 
-| Level | Axis                          | Plays                                                                                                                 | Seeds | Accept              |
-| ----- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----- | ------------------- |
-| L0    | baseline                      | `T0` and every station benchmark                                                                                      | 1–8   | 7/8, median ≤ 120 s |
-| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                                                              | 1–16  | 75%                 |
-| L1    | threat                        | `T1-lite`                                                                                                             | 1–16  | 75%                 |
-| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                                                   | 1–8   | 50%                 |
-| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                                                           | 1–16  | 50%                 |
-| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                                                           | 1–16  | 25%                 |
-| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained` and with 3–6 missiles per stock, 300 s | 1–16  | 62.5%               |
-| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                                                               |       |                     |
+| Level | Axis                          | Plays                                                                                                                                                            | Seeds | Accept                                                    |
+| ----- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | --------------------------------------------------------- |
+| L0    | baseline                      | `T0` and every station benchmark                                                                                                                                 | 1–8   | 7/8, median ≤ 120 s                                       |
+| L0b   | variance                      | `T0-wide`: 1–10 km, dragonfly MK1 or MK2                                                                                                                         | 1–16  | 75%                                                       |
+| L1    | threat                        | `T1-lite`                                                                                                                                                        | 1–16  | 75%                                                       |
+| L2    | internal                      | `T0-constrained`: 10–30% energy, 250–450 shells, guns at heat 40–70                                                                                              | 1–8   | 50%                                                       |
+| L3    | threat                        | `T1`: a dragonfly-MK1 attacking from 2–8 km                                                                                                                      | 1–16  | 50%                                                       |
+| L4    | enemies                       | `T2`: two `T1` attackers, each 2–8 km, 45–180° apart, 300 s                                                                                                      | 1–16  | 25%                                                       |
+| L5    | internal                      | `T2-constrained`: the `T2` attackers, the ship starting as on `T0-constrained` and with 3–6 missiles per stock, 300 s                                            | 1–16  | 62.5%                                                     |
+| L5b   | command                       | `T3-directed`: a dead dragonfly-MK1 40–60 km out, seen and identified only by an allied station 5–12 km from it; the GVTS starts facing away, 400 s              | 1–16  | 50%, and 50% of runs pass `missile_beyond_own_radar`      |
+| L5c   | threat                        | `T3-incoming`: a dragonfly-MK1 attacking from 60–90 km, seen and identified only by an allied station 5–15 km from its start; the GVTS starts facing away, 400 s | 1–16  | 50%, and 50% of runs pass `missile_oncoming_beyond_radar` |
+| L6–L8 | heavier hulls, mission, space | placeholders, not built                                                                                                                                          |       |                                                           |
 
 `T0-wide` and `T0-constrained` are calibration rungs (`createTrainingT0Map`'s `T0Lab`). On
 `T0-constrained` the reference fires 196–367 shells per kill, so the shell floor binds. On `T2`
@@ -483,9 +780,9 @@ those labels.
 Signals has no station score. The scan queue runs on its own: a contact rises a tier per 5 s in the
 ship's field of view from any radar, and the reference signals seat rests, so a scan label measures the
 queue, not the seat. It stays parked until the seat has levers to credit: the beam matters only beyond
-the omni radar's reach ([#2307](https://github.com/starwards/starwards/issues/2307)), brains cannot
-reorder the queue ([#2308](https://github.com/starwards/starwards/issues/2308)), and no signals callout
-carries a target or structured intel.
+the omni radar's reach ([#2307](https://github.com/starwards/starwards/issues/2307)), the reference
+signals seat leaves the queue order to its automation, and no signals callout carries a target or
+structured intel.
 
 The models are exported artefacts, `scoring/models/<version>.json` (feature list, dataset hash, metrics,
 parity fixture), trained by `modules/ai/ml` on the training archive; see
@@ -702,7 +999,7 @@ The module's scripts load that file; the key is never logged or recorded. Withou
 
 ## Limits
 
-- **Signals job commands are out**, until the station sandbox can pass a job id.
+- **Waypoint commands are out**: they take free-form positions, not button presses.
 - **Crew talk is fixed phrases only**: no free speech, no questions to a seat, no human on the channel.
 - **Confidence is uncalibrated** until thresholds are tuned on recorded runs; `minConfidence`
   defaults to 0.
