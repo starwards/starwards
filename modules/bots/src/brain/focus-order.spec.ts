@@ -112,6 +112,41 @@ describe('focus order', () => {
         });
     });
 
+    it('the reference captain re-focuses on the station the enemies now threaten, not on a near tie', () => {
+        const request = {
+            state: {},
+            questions: {
+                callout: { type: 'choice', instructions: '', criteria: { focus: '', silence: '' } },
+            },
+        } as BrainRequest;
+        const shifted = picture([
+            { id: 'home', x: -20_000, faction: 1, radius: 1200 },
+            { id: 'far', x: 30_000, faction: 1, radius: 1200 },
+            { id: 'a', x: 32_000 },
+            { id: 'b', x: 27_000 },
+        ]);
+        const standing = { focusOrdered: true, focusStation: 'home' };
+        expect(referenceCallout(request, shifted, shifted, 5, 'a', standing)?.choice).toBe('focus');
+        expect(
+            referenceCallout(request, shifted, shifted, 5, 'a', { focusOrdered: true, focusStation: 'far' })?.choice,
+        ).toBe('silence');
+        const tie = picture([
+            { id: 'home', x: -20_000, faction: 1, radius: 1200 },
+            { id: 'far', x: 30_000, faction: 1, radius: 1200 },
+            { id: 'a', x: 27_000 },
+            { id: 'b', x: -16_000 },
+        ]);
+        expect(referenceCallout(request, tie, tie, 5, 'b', standing)?.choice).toBe('silence');
+    });
+
+    it('reads the station a standing focus picks by', () => {
+        const shown = picture([{ id: 'a', x: 10_000 }]);
+        shown.panels[ORDERS_PANEL] = testBoard().give([
+            { kind: 'focus', params: { pick: 'nearest_to', station: { name: 'home' } } },
+        ]).shown;
+        expect(captainOrdersFromBoard(shown)).toMatchObject({ focus: true, focusStation: 'home' });
+    });
+
     it('the reference captain runs a lone enemy down instead of parking at missile range, but not under a focus', () => {
         const request = {
             state: {},

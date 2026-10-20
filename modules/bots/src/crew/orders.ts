@@ -398,6 +398,8 @@ export function captainOrdersFromBoard(
     checkFire?: boolean;
     /** The board holds a focus order: `engage` names the ship it points at now. */
     focus?: boolean;
+    /** The station a standing `nearest_to` focus picks by. */
+    focusStation?: string;
 } {
     const board = readOrders(display);
     const m = board.orders.find((o) => o.slot === 'maneuver' && o.status === 'active');
@@ -432,6 +434,7 @@ export function captainOrdersFromBoard(
             engage?.params.target?.name ??
             (focus && display ? focusTarget(focus.params, display, previous)?.name : undefined),
         ...(focus ? { focus: true } : {}),
+        ...(focus?.params.station?.name !== undefined ? { focusStation: focus.params.station.name } : {}),
         ...(checkFire ? { checkFire: true } : {}),
         ...(salvo ? { salvo: salvo.params.count ?? SALVO_MISSILES } : {}),
     };

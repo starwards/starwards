@@ -1,4 +1,4 @@
-import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf } from './callout';
+import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, stationThreat } from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy } from './engagement';
 
@@ -29,6 +29,8 @@ type Picture = {
     salvoOrdered: boolean;
     /** Captain: the board holds a focus order. */
     focusOrdered: boolean;
+    /** Captain: the station the standing focus picks the enemy nearest to. */
+    focusStation: string | undefined;
     /** Captain: the board holds a check fire order. */
     checkFireOrdered: boolean;
 };
@@ -42,6 +44,8 @@ const CHECK_FIRE_REPEAT_SECONDS = 10;
 /** A wreck this near where the lost ship was last seen says the ship was destroyed, not lost. */
 const WRECK_METERS = 1000;
 const SHIP_RADIUS_METERS = 5;
+/** The captain moves a standing focus to another station only once that station's nearest enemy is this much nearer than the focus station's. */
+const REFOCUS_MARGIN_METERS = 5000;
 
 /** Whether the nearest enemy is inside the reference missile's launch envelope for how it moves. */
 function enemyInEnvelope({ radar, previous, seconds }: Picture) {
@@ -110,6 +114,25 @@ function lineFouled(p: Picture) {
         .filter((h) => h.speaker === 'weapons' && (h.callout === 'check_fire' || h.callout === 'line_clear'))
         .sort((a, b) => a.secondsAgo - b.secondsAgo)[0];
     return latest && latest.callout === 'check_fire';
+}
+
+/**
+ * Captain: whether the enemies now threaten another station than the one the standing focus picks by:
+ * the enemy nearest any allied station is nearer to it, by a margin, than any enemy is to the focus station.
+ */
+function threatMoved(p: Picture) {
+    const threat = stationThreat(p.radar);
+    if (!p.focusStation || !threat || threat.station.name === p.focusStation) {
+        return false;
+    }
+    const focus = (p.radar?.contacts ?? []).find((c) => c.name === p.focusStation && c.position);
+    if (!focus) {
+        return false;
+    }
+    const gaps = (p.radar?.contacts ?? [])
+        .filter((c) => isEnemyShip(c, p.radar) && c.position)
+        .map((c) => Math.hypot(c.position!.x - focus.position!.x, c.position!.y - focus.position!.y));
+    return Math.min(...gaps) - threat.gap > REFOCUS_MARGIN_METERS;
 }
 
 /** Captain: whether it keeps its last order because signals reported the enemy lost a moment ago. */
@@ -206,8 +229,12 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     call_check_fire: (p) => !p.checkFireOrdered && lineFouled(p) === true,
     /** Captain: weapons calls the line clear, and the board still holds check fire. */
     clear_to_fire: (p) => p.checkFireOrdered && lineFouled(p) === false,
-    /** Captain: two or more enemy ships in sight, and the board holds no focus yet. */
-    focus: (p) => !p.focusOrdered && (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= 2,
+    /**
+     * Captain: two or more enemy ships in sight, and the board holds no focus yet; or the standing
+     * focus picks by a station the enemies no longer threaten most.
+     */
+    focus: (p) =>
+        p.focusOrdered ? threatMoved(p) : (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= 2,
     /** Captain: fire discipline once it ordered an enemy engaged and the board holds no salvo yet. */
     salvo: (p) => p.engaged !== undefined && !p.salvoOrdered && nearestEnemy(p.radar) !== undefined,
     /**
@@ -244,6 +271,7 @@ export function referenceCallout(
         salvo,
         salvoOrdered = false,
         focusOrdered = false,
+        focusStation,
         checkFireOrdered = false,
     }: {
         heard?: readonly Heard[];
@@ -251,6 +279,7 @@ export function referenceCallout(
         salvo?: SalvoTally;
         salvoOrdered?: boolean;
         focusOrdered?: boolean;
+        focusStation?: string;
         checkFireOrdered?: boolean;
     } = {},
 ): Answer | undefined {
@@ -272,6 +301,7 @@ export function referenceCallout(
         salvo,
         salvoOrdered,
         focusOrdered,
+        focusStation,
         checkFireOrdered,
     };
     // a lost contact is noted whatever the captain says, so the hold covers the following decisions
