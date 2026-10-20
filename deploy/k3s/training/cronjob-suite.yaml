@@ -37,8 +37,8 @@ spec:
                               - name: JOB_NAME
                                 valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
                           resources:
-                              requests: { cpu: 500m, memory: 8704Mi } # request = limit; <= 8.5 GiB so the pod can land on node2
-                              limits: { memory: 8704Mi }
+                              requests: { cpu: 500m, memory: 8Gi } # request = limit; node2 rejects 8704Mi; suite anon peak 6.1 GiB (2026-10-20)
+                              limits: { memory: 8Gi }
                           securityContext:
                               allowPrivilegeEscalation: false
                               readOnlyRootFilesystem: true
