@@ -1,0 +1,22 @@
+{
+    "name": "signals-reference",
+    "seats": [
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v9.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

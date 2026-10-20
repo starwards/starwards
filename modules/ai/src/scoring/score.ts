@@ -2,9 +2,6 @@ import { FEATURE_NAMES, extractFeatures, findDuel } from './features';
 import { ScorerArtefact, evaluate, featureSelector } from './model';
 
 import { SavedGame } from '@starwards/core/internal';
-import v1 from './models/v1.json';
-import v2 from './models/v2.json';
-import v3 from './models/v3.json';
 import v4 from './models/v4.json';
 
 /**
@@ -38,11 +35,22 @@ export interface SnapshotScore {
     readonly stations: { readonly helms: number; readonly engineer: number };
 }
 
-/** Every exported artefact, by version; `v1`, `v2` and `v3` stay for regression comparison. */
-export const scorers: Record<'v1' | 'v2' | 'v3' | 'v4', ScorerArtefact> = {
-    v1: v1 as ScorerArtefact,
-    v2: v2 as ScorerArtefact,
-    v3: v3 as ScorerArtefact,
+/**
+ * Every exported artefact, by version; `v1`, `v2` and `v3` stay for regression comparison. They load on
+ * first read: 6 MB of JSON that training and branching workers never touch.
+ */
+export const scorers: Readonly<Record<'v1' | 'v2' | 'v3' | 'v4', ScorerArtefact>> = {
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    get v1() {
+        return require('./models/v1.json') as ScorerArtefact;
+    },
+    get v2() {
+        return require('./models/v2.json') as ScorerArtefact;
+    },
+    get v3() {
+        return require('./models/v3.json') as ScorerArtefact;
+    },
+    /* eslint-enable @typescript-eslint/no-require-imports */
     v4: v4 as ScorerArtefact,
 };
 

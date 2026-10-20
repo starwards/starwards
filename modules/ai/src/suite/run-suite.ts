@@ -36,7 +36,7 @@ function runCli(script: 'train' | 'bench', args: string[], logPath: string) {
     });
 }
 
-export type SuiteOptions = { crewPath: string; outDir: string; workers: number };
+type SuiteOptions = { crewPath: string; outDir: string; workers: number };
 
 /**
  * Plays one level for a crew: every rung with the whole crew through `train`, every benchmark through

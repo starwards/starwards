@@ -1,0 +1,15 @@
+# Overnight headless training on K3S. Fill every FILL value, then:
+#   kubectl apply -k deploy/k3s/training              (namespace, archive volume, nightly CronJobs)
+#   kubectl create -k deploy/k3s/training/jobs        (one-off sharded runs)
+# Guide: docs/integration/ai-training-k3s.md
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# FILL: namespace (it is created by namespace.yaml)
+namespace: starwards-training
+resources:
+    - namespace.yaml
+    - archive-pvc.yaml
+    - cronjob-suite.yaml
+    - cronjob-branch.yaml
+components:
+    - params

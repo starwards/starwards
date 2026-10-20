@@ -12,10 +12,13 @@ import {
 
 import { stringToSchema } from '@starwards/server/src/serialization/game-state-serialization';
 
-/** Reads a `.sgr` recording's frames as `SavedGame`s with their time. A truncated tail line is dropped. */
-export async function readFrames(path: string): Promise<{ t: number; saved: SavedGame }[]> {
+/**
+ * Yields a `.sgr` recording's frames one at a time as `SavedGame`s with their time. A truncated tail line is
+ * dropped. A long run's decoded frames outgrow the heap together (W-waves: ~1 MB each), so prefer this to
+ * {@link readFrames} when one pass is enough.
+ */
+export async function* streamFrames(path: string): AsyncGenerator<{ t: number; saved: SavedGame }> {
     const rl = readline.createInterface({ input: fs.createReadStream(path, { encoding: 'utf8' }) });
-    const frames: { t: number; saved: SavedGame }[] = [];
     let sawHeader = false;
     for await (const line of rl) {
         if (!line.trim()) continue;
@@ -25,8 +28,14 @@ export async function readFrames(path: string): Promise<{ t: number; saved: Save
             continue;
         }
         const frame = parseFrameLine(line);
-        if (frame) frames.push({ t: frame.t, saved: await stringToSchema(SavedGame, frame.frame) });
+        if (frame) yield { t: frame.t, saved: await stringToSchema(SavedGame, frame.frame) };
     }
+}
+
+/** Reads a `.sgr` recording's frames as `SavedGame`s with their time. A truncated tail line is dropped. */
+export async function readFrames(path: string): Promise<{ t: number; saved: SavedGame }[]> {
+    const frames: { t: number; saved: SavedGame }[] = [];
+    for await (const frame of streamFrames(path)) frames.push(frame);
     return frames;
 }
 

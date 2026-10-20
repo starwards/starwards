@@ -1,0 +1,58 @@
+# Branch corpus of the reference captain on T3-directed, seeds 1-16, as one Indexed Job: shard i records
+# seeds 1+4i..4+4i and plays BUDGET branches over them; the last shard to finish merges every shard into
+# <day>/branching/<job name>-runs and -corpus and rebuilds <day>/manifest.jsonl. Reference seats: no Jev key.
+# Re-run: delete the Job first (or rename it: the job name is the run name).
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: branch-t3-directed
+    labels: { app.kubernetes.io/name: starwards-training, starwards/job: branch }
+spec:
+    completionMode: Indexed
+    completions: 4 # = SHARDS
+    parallelism: 4 # shards running at once; each takes WORKERS cores
+    backoffLimitPerIndex: 1
+    maxFailedIndexes: 0
+    ttlSecondsAfterFinished: 604800
+    template:
+        metadata:
+            labels: { app.kubernetes.io/name: starwards-training, starwards/job: branch }
+        spec:
+            restartPolicy: Never
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                fsGroup: 1000
+                seccompProfile: { type: RuntimeDefault }
+            containers:
+                - name: shard
+                  image: starwards-training
+                  env:
+                      - { name: JOB, value: branch }
+                      - { name: SCENARIO, value: T3-directed }
+                      - { name: CREWS, value: crews/captain-reference.json }
+                      - { name: SHARDS, value: '4' } # = completions
+                      - { name: FIRST_SEED, value: '1' }
+                      - { name: SEEDS_PER_SHARD, value: '4' }
+                      - { name: BUDGET, value: '100' } # per shard: 400 branches in all
+                      - { name: LEVELS, value: 'strategic,tactical' }
+                      - { name: WORKERS, value: '4' }
+                      - name: JOB_NAME
+                        valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
+                  resources:
+                      # WORKERS x 1.5 GiB + 0.5 GiB (measured peak RSS: worker <= 1.4 GiB, parent <= 0.5 GiB), see docs/integration/ai-training-k3s.md
+                      requests: { cpu: '4', memory: 6656Mi }
+                      limits: { memory: 7Gi }
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities: { drop: [ALL] }
+                  volumeMounts:
+                      - { name: archive, mountPath: /training-archive }
+                      - { name: tmp, mountPath: /tmp }
+            volumes:
+                - name: archive
+                  persistentVolumeClaim: { claimName: training-archive }
+                - name: tmp
+                  emptyDir: {}

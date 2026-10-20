@@ -10,7 +10,7 @@ import { headlessCrew } from '../crew/crew';
 import { loadBenchmark } from './benchmark';
 import path from 'node:path';
 
-export type BenchmarkRunOptions = {
+type BenchmarkRunOptions = {
     benchmark: string;
     /** The brain under test; it must play the benchmark's station. */
     brainPath: string;

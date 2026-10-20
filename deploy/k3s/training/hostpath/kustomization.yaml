@@ -1,0 +1,17 @@
+# Optional: the archive on a node directory instead of the claim. Add `- hostpath` (from ../, or
+# `- ../../hostpath` from jobs/<job>/) under components, after params. The directory must exist on the
+# node(s) the node selector picks and be writable by uid 1000 (fsGroup does not apply to hostPath):
+#   sudo mkdir -p /srv/training-archive && sudo chown 1000:1000 /srv/training-archive
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+    - path: volume.yaml
+      target: { kind: Job }
+    - path: volume-cron.yaml
+      target: { kind: CronJob }
+    - patch: |-
+          $patch: delete
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: training-archive

@@ -1,0 +1,46 @@
+# Re-runs the merge of a sharded run: after a shard failed and was re-run by hand, or to rebuild the merged
+# report and manifest. Set RUN_NAME/RUN_DATE/SCENARIO to the run's, KIND to train or branch.
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: collect
+    labels: { app.kubernetes.io/name: starwards-training, starwards/job: collect }
+spec:
+    backoffLimit: 0
+    ttlSecondsAfterFinished: 604800
+    template:
+        metadata:
+            labels: { app.kubernetes.io/name: starwards-training, starwards/job: collect }
+        spec:
+            restartPolicy: Never
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                fsGroup: 1000
+                seccompProfile: { type: RuntimeDefault }
+            containers:
+                - name: collect
+                  image: starwards-training
+                  env:
+                      - { name: JOB, value: merge }
+                      - { name: KIND, value: branch }
+                      - { name: RUN_NAME, value: branch-t3-directed }
+                      - { name: RUN_DATE, value: 'YYYY-MM-DD' }
+                      - { name: SCENARIO, value: T3-directed }
+                      - { name: KEEP_SHARDS, value: '1' }
+                  resources:
+                      requests: { cpu: '1', memory: 1Gi }
+                      limits: { memory: 2Gi }
+                  securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities: { drop: [ALL] }
+                  volumeMounts:
+                      - { name: archive, mountPath: /training-archive }
+                      - { name: tmp, mountPath: /tmp }
+            volumes:
+                - name: archive
+                  persistentVolumeClaim: { claimName: training-archive }
+                - name: tmp
+                  emptyDir: {}

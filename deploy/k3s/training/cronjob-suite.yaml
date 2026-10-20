@@ -1,0 +1,52 @@
+# Nightly regression suite of the reference crew over every built curriculum level (reference seats, no Jev
+# key). Lands in <day>/suite/reference-<time>/; the Job fails when a level regressed against the baseline.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+    name: nightly-suite
+    labels: { app.kubernetes.io/name: starwards-training, starwards/job: nightly-suite }
+spec:
+    # FILL: schedule and time zone
+    schedule: '0 0 * * *'
+    timeZone: Etc/UTC
+    concurrencyPolicy: Forbid
+    successfulJobsHistoryLimit: 7
+    failedJobsHistoryLimit: 7
+    jobTemplate:
+        spec:
+            backoffLimit: 0
+            template:
+                metadata:
+                    labels: { app.kubernetes.io/name: starwards-training, starwards/job: suite }
+                spec:
+                    restartPolicy: Never
+                    securityContext:
+                        runAsNonRoot: true
+                        runAsUser: 1000
+                        runAsGroup: 1000
+                        fsGroup: 1000
+                        seccompProfile: { type: RuntimeDefault }
+                    containers:
+                        - name: suite
+                          image: starwards-training
+                          env:
+                              - { name: JOB, value: suite }
+                              - { name: CREWS, value: crews/reference.json }
+                              - { name: WORKERS, value: '4' }
+                              - name: JOB_NAME
+                                valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
+                          resources:
+                              requests: { cpu: '4', memory: 6656Mi }
+                              limits: { memory: 7Gi }
+                          securityContext:
+                              allowPrivilegeEscalation: false
+                              readOnlyRootFilesystem: true
+                              capabilities: { drop: [ALL] }
+                          volumeMounts:
+                              - { name: archive, mountPath: /training-archive }
+                              - { name: tmp, mountPath: /tmp }
+                    volumes:
+                        - name: archive
+                          persistentVolumeClaim: { claimName: training-archive }
+                        - name: tmp
+                          emptyDir: {}
