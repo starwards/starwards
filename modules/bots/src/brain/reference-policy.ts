@@ -77,6 +77,8 @@ const STILL_SPEED = 50;
 const MAX_SPEED = 450;
 /** Beyond this past the standoff the pilot burns afterburner: blasts fling a dead target at our top speed. */
 const PURSUIT_METERS = 1500;
+/** The captain's close order leads the ship away from the nearest enemy only to a spot this far off: near, they fight it out together. */
+const LEAVE_NEAREST_METERS = 10_000;
 /** A target this fast was flung by our blasts and runs away at our top speed. */
 const FLUNG_SPEED = 0.9 * MAX_SPEED;
 
@@ -214,7 +216,7 @@ type Parking = { standoff: number; weaveMeters: number };
 function referenceChoice(
     control: Control,
     display: Display,
-    ship: Contact | undefined,
+    nearest: Contact | undefined,
     targetVelocity: XY,
     seconds: number,
     parking: Parking,
@@ -226,6 +228,16 @@ function referenceChoice(
     const heading = display.radar?.ownShip?.heading ?? 0;
     const helms = display.panels['helms-stats'] as Helms | undefined;
     const targeting = display.panels['targeting-status'];
+    // the captain ordering the ship to close on another, distant enemy than the nearest (one attacking
+    // a station, not a straggler alongside) flies the ship there instead of parking on the nearest
+    const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
+    const ship =
+        orders.helm?.kind === 'close' &&
+        orders.helm.target !== undefined &&
+        nearest?.name !== orders.helm.target &&
+        length(sub(orders.helm.spot, own)) > LEAVE_NEAREST_METERS
+            ? undefined
+            : nearest;
     const aligned = ship && Math.abs(delta(ship.bearing, heading)) < 15;
     // with no enemy on the helms radar, the captain's last order flies the ship
     const order = ship ? undefined : orders.helm;
@@ -297,7 +309,6 @@ function referenceChoice(
         }
         case 'afterBurner': {
             // a target flung at our top speed is never closed on without the afterburner, nor one the captain orders us after
-            const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
             return (aligned &&
                 (ship.distance > standoff + PURSUIT_METERS ||
                     (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))) ||

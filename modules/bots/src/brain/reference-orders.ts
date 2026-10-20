@@ -46,16 +46,23 @@ const WRECK_METERS = 1000;
 const SHIP_RADIUS_METERS = 5;
 /** The captain moves a standing focus to another station only once that station's nearest enemy is this much nearer than the focus station's. */
 const REFOCUS_MARGIN_METERS = 5000;
+/** Nor while an enemy is still this near the focus station: its attackers come first. */
+const STATION_HELD_METERS = 10_000;
+/** Seconds an enemy last seen near the focus station keeps the focus: far contacts drop off the radar for a decision or two. */
+const STATION_HELD_SECONDS = 30;
 
-/** Whether the nearest enemy is inside the reference missile's launch envelope for how it moves. */
-function enemyInEnvelope({ radar, previous, seconds }: Picture) {
-    const enemy = nearestEnemy(radar);
+/** The enemy the captain closes on: the one nearest an allied station in sight, else the nearest (as `closeOrder` fills it). */
+const closeTarget = (radar: Radar | undefined) => stationThreat(radar)?.enemy ?? nearestEnemy(radar);
+
+/** Whether `pick`'s enemy (the nearest by default) is inside the reference missile's launch envelope for how it moves. */
+function enemyInEnvelope({ radar, previous, seconds }: Picture, pick = nearestEnemy) {
+    const enemy = pick(radar);
     return enemy && inLaunchEnvelope(enemy.distance, launchRange(enemy, radar, previous, seconds));
 }
 
-/** Captain: whether the nearest enemy is inside the envelope, by its own reckoning or as weapons just reported it. */
-function enemyInside(p: Picture) {
-    const own = enemyInEnvelope(p);
+/** Captain: whether `pick`'s enemy is inside the envelope, by its own reckoning or as weapons just reported it. */
+function enemyInside(p: Picture, pick = nearestEnemy) {
+    const own = enemyInEnvelope(p, pick);
     return own === undefined ? undefined : own || wasHeard(p, 'weapons.in_envelope');
 }
 
@@ -118,7 +125,8 @@ function lineFouled(p: Picture) {
 
 /**
  * Captain: whether the enemies now threaten another station than the one the standing focus picks by:
- * the enemy nearest any allied station is nearer to it, by a margin, than any enemy is to the focus station.
+ * the enemy nearest any allied station is nearer to it, by a margin, than any enemy is to the focus station,
+ * and no enemy was seen near the focus station lately.
  */
 function threatMoved(p: Picture) {
     const threat = stationThreat(p.radar);
@@ -132,7 +140,12 @@ function threatMoved(p: Picture) {
     const gaps = (p.radar?.contacts ?? [])
         .filter((c) => isEnemyShip(c, p.radar) && c.position)
         .map((c) => Math.hypot(c.position!.x - focus.position!.x, c.position!.y - focus.position!.y));
-    return Math.min(...gaps) - threat.gap > REFOCUS_MARGIN_METERS;
+    const held = Math.min(...gaps);
+    if (held <= STATION_HELD_METERS) {
+        p.memory.set('focusHeldAt', p.now);
+    }
+    const heldAt = (p.memory.get('focusHeldAt') as number | undefined) ?? -Infinity;
+    return p.now - heldAt > STATION_HELD_SECONDS && held - threat.gap > REFOCUS_MARGIN_METERS;
 }
 
 /** Captain: whether it keeps its last order because signals reported the enemy lost a moment ago. */
@@ -219,8 +232,8 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
      * while the missiles fly.
      */
     close_to: (picture) => {
-        const inside = enemyInside(picture);
-        return inside === false || (inside === true && nearestEnemy(picture.radar)?.name === picture.engaged);
+        const inside = enemyInside(picture, closeTarget);
+        return inside === false || (inside === true && closeTarget(picture.radar)?.name === picture.engaged);
     },
     /** Captain: an enemy inside the launch envelope, by its own reckoning or as weapons reports it, not yet ordered engaged. */
     engage: (picture) =>

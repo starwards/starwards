@@ -139,13 +139,14 @@ const calloutFills: Record<
         };
     },
     /**
-     * Captain: close to missile range of the nearest enemy, which lies `distance` away on world
-     * `bearing`; the range is inside the envelope for how the enemy moves since the previous decision,
+     * Captain: close to missile range of the enemy that threatens an allied station most (nearest any
+     * station in sight), else of the nearest enemy, which lies `distance` away on world `bearing`; the range is inside the envelope for how the enemy moves since the previous decision,
      * or gun range once the enemy is inside it.
      */
     closeOrder: ({ radar }, previous, seconds) => {
         const r = radar as Radar | undefined;
-        const enemy = nearestEnemy(r);
+        // a straggler near the own ship must not drag it away from a station under attack
+        const enemy = stationThreat(r)?.enemy ?? nearestEnemy(r);
         return (
             enemy && {
                 name: enemy.name,

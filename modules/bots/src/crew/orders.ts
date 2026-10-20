@@ -380,7 +380,8 @@ export function ordersSummary(board: OrdersBoard): string {
 }
 
 /** The board's maneuver order to helms, in the shape the reference policy flies it. */
-type HelmOrder = { kind: 'close'; spot: XY } | { kind: 'hold' };
+/** `target`: the ship a close-to order names, if it names one. */
+type HelmOrder = { kind: 'close'; spot: XY; target?: string } | { kind: 'hold' };
 
 /**
  * The board's maneuver order (`helm`), the ship it says to engage (`engage`) and the missiles a salvo
@@ -420,6 +421,7 @@ export function captainOrdersFromBoard(
                     ? {
                           kind: 'close',
                           spot: { x: t.x + ((at.x - t.x) * range) / d, y: t.y + ((at.y - t.y) * range) / d },
+                          ...(m.params.target.name !== undefined ? { target: m.params.target.name } : {}),
                       }
                     : { kind: 'hold' };
         }
