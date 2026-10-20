@@ -227,7 +227,7 @@ at 16 seeds about ±3 near 12/16 (the suite's regression rule, `src/suite/regres
 ### L3 — `reference`, chain gun power backoff (2026-10-09)
 
 - **Change:** the reference engineer drops the chain gun to low power at heat 60 and back to normal
-  below 40, the NPC automation's hysteresis (`reference-policy.ts`, `powerGoal`).
+  below 40, the NPC automation's hysteresis (`reference-engineer.ts`, `powerGoal`).
 - **Level:** T1 seeds 1–16: 10/16, median 131.7 s, run value 0.249 (before: 5/16, 138.5 s, 0.228).
   Fresh seeds 17–48: 19/32, run value 0.264 (before: 10/32, 0.200). Suite report:
   `training-archive/2026-10-09/suite/reference-210935/`; `idle` 0/16 (`idle-211042/`); diagnosis runs
@@ -273,7 +273,7 @@ Not filed. Draft text:
   `idle` 0/16, `reference` before 0/16 (enemies 6/32; seeds 17–48: 1/32, 13/64).
 - **Change:** the reference engineer queues a field repair for a reactor defect (store above 30%), and
   while the damage report shows a reactor defect shuts the thrusters down below 40% of the store, back
-  on above 50% (`reference-policy.ts`, `REFERENCE_ENGINEER`, `powerGoal`).
+  on above 50% (`reference-engineer.ts`, `REFERENCE_ENGINEER`, `powerGoal`).
 - **Level result:** seeds 1–16: 2/16, median 237.3 s, enemies 9/32, run value 0.043 (before 0.006);
   seeds 17–48: 0/32, enemies 23/64. Enemies killed per seed over seeds 1–48: 18 up / 6 down, sign
   p 0.023. Suite report: `training-archive/2026-10-10/suite/reference-015256/`; `idle` 0/16
@@ -412,6 +412,280 @@ Not filed. Draft text:
   between 6 and 3 missiles a stock.
 - **Reuse:** a candidate on L5 starts with a weapons rule to change tube ammo when the loaded stock is empty or
   low; read missiles left per stock in the display before tuning anything else.
+
+### Missile deadly range — one GVTS missile vs a dragonfly-MK1, by target aspect (2026-10-18, after the projectile hit-check fix)
+
+- **Instrument:** `npm --prefix modules/server run missile-range -- --ammo <ammo> --motion <motion> --ranges <km> --seeds 8`
+  (`modules/server/src/test/training/missile-range.ts`), seeds 1-8 per cell, launches 2-70 km. One missile from GVTS
+  tube 0; the lock rides on the scan beam narrowed to 5° (70.7 km at normal power; the omni radar reaches 6 km). The target holds
+  still until the missile leaves the tube, then holds still, flies straight at the launcher, runs straight away,
+  or crosses the launch line square, at 600 m/s (afterburner off) or 1200 m/s (afterburner on), with no ramp-up.
+  Calibration only: it never turns, jams or shoots back.
+- **Result:** P(kill) is 0.00 in every cell: one missile never kills a dragonfly (3-4 do, #2334).
+
+HiExp missile, P(hit):
+
+| launch km | approach 1200 | approach 600 | still | cross 600 | cross 1200 | flee 600 | flee 1200 |
+| --------: | ------------: | -----------: | ----: | --------: | ---------: | -------: | --------: |
+|         2 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         3 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         4 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         5 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|         6 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|         8 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        10 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        15 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        20 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        25 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        30 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        35 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        40 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        45 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        50 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        55 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        60 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        65 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        70 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+
+ArmPen missile, P(hit):
+
+| launch km | approach 1200 | approach 600 | still | cross 600 | cross 1200 | flee 600 | flee 1200 |
+| --------: | ------------: | -----------: | ----: | --------: | ---------: | -------: | --------: |
+|         2 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         3 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         4 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         5 |          1.00 |         1.00 |  1.00 |      1.00 |       1.00 |     1.00 |      0.00 |
+|         6 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         8 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        10 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        15 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        20 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        25 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        30 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        35 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        40 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        45 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        50 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        55 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        60 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        65 |          1.00 |         1.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        70 |          1.00 |         0.00 |  0.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+
+Elec missile, P(hit):
+
+| launch km | approach 1200 | approach 600 | still | cross 600 | cross 1200 | flee 600 | flee 1200 |
+| --------: | ------------: | -----------: | ----: | --------: | ---------: | -------: | --------: |
+|         2 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         3 |          1.00 |         1.00 |  1.00 |      1.00 |       0.50 |     1.00 |      0.00 |
+|         4 |          1.00 |         1.00 |  1.00 |      1.00 |       0.38 |     1.00 |      0.00 |
+|         5 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         6 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|         8 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        10 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        15 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     1.00 |      0.00 |
+|        20 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        25 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        30 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        35 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        40 |          1.00 |         1.00 |  1.00 |      1.00 |       0.00 |     0.00 |      0.00 |
+|        45 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        50 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        55 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        60 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        65 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+|        70 |          1.00 |         1.00 |  1.00 |      0.00 |       0.00 |     0.00 |      0.00 |
+
+- **Terms:** Rmax is the farthest launch with P(hit) ≥ 0.8 against a target that holds its course and speed, by
+  aspect; Rne (no-escape) is Rmax against a target running away. Envelope (km; closing speed + toward us, − away):
+
+    | ammo   | +1200 | +600 | 0 (still) | −600 (Rne) | −1200 | crossing 600 | crossing 1200 |
+    | ------ | ----: | ---: | --------: | ---------: | ----: | -----------: | ------------: |
+    | HiExp  |   70+ |  70+ |        45 |          4 |  none |           10 |          none |
+    | ArmPen |   70+ |   65 |        40 |         15 |  none |           30 |          none |
+    | Elec   |   70+ |  70+ |       70+ |         15 |  none |           40 |          none |
+
+    70+ is the sweep's edge (the scan beam's reach). Rne against an afterburner run is none: a dragonfly at 1200 m/s
+    outruns every missile from 2 km.
+
+- **Changed:** `missileLaunchRange(ammo, closing, crossing)` (bots `brain/missile-envelope.ts`) holds this table and is the
+  one source for the reference weapons' launch (per tube ammo), the reference captain's `close_to` range (HiExp
+  envelope less 2 km, closing speed read off two dradis fixes) and `engage`, the weapons KPI's firing solution and
+  the `missile_beyond_own_radar` check (a launch beyond the tactical reach counts only inside the envelope). Between
+  measured closing speeds it takes the shorter neighbour; crossing speed shortens the range linearly, since a
+  stepped crossing table cut every HiExp launch from a moving GVTS to 10 km (T3-directed seeds 5, 6, 8: launches
+  only inside 8 km).
+- **Lesson:** a missile's reach is set by the target's aspect, not the missile: 45-70 km at a still or oncoming
+  target, 4-15 km at one running at cruise, none at afterburner. HiExp is the still- or oncoming-target missile;
+  ArmPen and Elec are the ones that catch a cruising runner.
+- **Reuse:** re-run the sweep after any change to missile speed, `MISSILE_LAUNCH`, `TERMINAL_SPRINT` or the
+  projectile raycast, and copy the result into `missile-envelope.ts`.
+
+### L5b — captain-reference, rule mined from the Jev captain (2026-10-18)
+
+- **Oracle:** `crews/jev-captain-c1-ref.json` (Jev captain v1, reference signals, helms, weapons and engineer) on
+  T3-directed seeds 1-16: kills 15/16, median 98.3 s, `missile_beyond_own_radar` 16/16; Jev spend $0.023 over three
+  runs. Archive: `training-archive/2026-10-18/missile-envelope/`.
+- **Mined:** the Jev captain says `engage` once the target is inside the launch envelope, then `close_to` again
+  (seed 1: engage at 25 s, close_to at 30 s with the target 40.5 km out; launches from 36 s; kill 102.9 s), so
+  the ship flies in while the missiles fly. The reference captain held the ship and re-said `engage` (seed 1: 12
+  launches from 40 km, kill 171.7 s).
+- **Change:** reference captain says `close_to` gun range (2 km) once it has ordered the enemy inside the envelope
+  engaged (`reference-orders.ts`, `closeRange` in `engagement.ts`).
+- **Level:** captain-reference kills 16/16, median 70.7 s, `missile_beyond_own_radar` 16/16 (before: 16/16, median
+  128.4 s); `reference` without a captain 16/16, median 220.3 s, 0/16; idle 0/16. Suite reports:
+  `training-archive/2026-10-18/suite/captain-reference-144112/`, `reference-144452/`, `idle-144443/`.
+- **Decision:** L5b built; captain-reference baseline saved. The captain-free reference fails it on the check.
+- **Lesson:** the envelope lets missiles start the fight from the fleet's picture, but the kill comes faster when
+  the ship closes during their flight: missiles and the gun finish together.
+- **Reuse:** a candidate captain on L5b starts from engage-then-close; read the launch range per run
+  (`missile_beyond_own_radar` detail) before tuning wording.
+
+### Launch envelope off the target's own motion (2026-10-18)
+
+- **Cause:** Jev captain T3-directed seed 6 timed out. `launchRange` took closing speed from the range rate, which
+  carries the own ship's motion: flying in, the HiExp envelope read 45 km; backing off, 4 km. `close_to` alternated
+  43 km and 2 km, and helms turned an ordered range beyond the current distance into a point behind the ship: a
+  20 s oscillation netting about 0.4 km per cycle.
+- **Change:** closing and crossing speeds come from the target's own motion along and across the line of sight
+  (`engagement.ts`, and the same in `missile_beyond_own_radar` and the weapons KPI); a `close_to` whose run is not
+  positive holds the ship (`reference-orders.ts`).
+- **Level:** L5b captain-reference 16/16, median 69.4 s, check 16/16 (before: 16/16, 70.7 s); Jev captain 16/16,
+  median 72.5 s, check 13/16 (seed 6 kills at 70.1 s). Archive: `training-archive/2026-10-18/envelope-fix/`.
+- **Lesson:** a missile does not inherit the launcher's approach in the measured envelope; read the target, not the
+  range rate.
+
+### L5c — T3-incoming, captain-reference unchanged (2026-10-18)
+
+- **Oracle:** Jev captain (`crews/jev-captain-c1-ref.json`) on T3-incoming seeds 1-8, then 9-16: 16/16, median
+  72.3 s, `missile_oncoming_beyond_radar` 15/16; Jev $0.010.
+- **Mined:** nothing that beats the reference. Paired with captain-reference on seeds 1-16: run value +0.000
+  [−0.004, +0.004], 8 up / 8 down; first oncoming launch median 47 s (Jev) vs 50 s, farthest launch median 31.8 vs
+  32.1 km. Jev says `engage` later (seed 1: 35 s at 41 km, the reference at 15 s at 55 km) and kills at the same time:
+  the kill is set by the attacker's run in, not by the first launch.
+- **Change:** none to the captain rules; the level stands on the envelope fix above.
+- **Level:** captain-reference 16/16, median 73.2 s, check 16/16; `reference` without a captain 15/16, median
+  339.6 s, 0/16 (gun only); idle 0/16. Suite reports: `training-archive/2026-10-18/suite/captain-reference-163414/`,
+  `reference-162632/`, `idle-172908/`; L5c added to the three baselines from those runs.
+- **Regression suite:** captain-reference L5b ok. `reference` regressed on L0b (14/16, seeds 11 and 13: one shell,
+  GVTS stopped) and L4 (14/16, seeds 9 and 12); the same four seeds lose with the envelope change reverted, so the
+  cause predates it (baseline 234b0dd9; suspect the master merge 25c6b8c8). Idle ok.
+- **Decision:** L5c built.
+- **Lesson:** the attacker's combat weave holds its closing speed at 520-590 m/s and crossing at 90-320 m/s, so the
+  HiExp envelope reads the still-target 45 km and launches leave from 20-42 km; the measured 70 km band (closing
+  ≥ 600 m/s, straight run) is not reached against the NPC attack AI.
+- **Reuse:** a two-raider T3-incoming is the next variance step; a longer reach needs ArmPen or Elec in the tubes or
+  an envelope measured against a weaving attacker.
+
+### Captain branching — what other captain orders would have done (2026-10-18)
+
+- **Change:** none to any crew. `npm run branch` replays `captain-reference` runs from their seeds,
+  leaves them at decision points and plays other orders: strategic (one order-board slot or a stance),
+  tactical (the captain's call held 30 s, or another target) and button (one control at one decision).
+- **Level:** archive `training-archive/2026-10-18/branching-v2/` (current order model) and
+  `branching/` (first model).
+    - T3-directed, 400 branches, 0 diverged: nothing beats the reference captain. `hold_position` costs
+      21 of 29 kills, `dock_for_repair` 12, the `defensive` stance −0.10 run value.
+    - T2-dock, first model, 320 strategic branches: a dock order at first contact turns 7/16 wins into
+      13/16.
+    - T2-dock, 160 tactical branches: with armor below 75%, `close_to` beats `engage` (21 up / 8 down,
+      sign p 0.024).
+- **Regression suite:** not run (no crew changed).
+- **Decision:** none; proposals for the reference captain are in SPEC-0009's results.
+- **Lesson:** replay is exact as long as the recording was made on the same code. A corpus branched
+  from runs recorded before a behaviour change diverges on every branch, so re-record first. The CLI
+  now exits 1 on any diverged branch.
+- **Reuse:** before tuning a captain rule, branch the baseline at the moments the rule would act and
+  keep only alternatives that beat the recorded play beyond noise. Then test the rule as a crew on the
+  same seeds: a branch changes one decision once, not a policy.
+
+### Order board synced, command-driven, with doctrine (2026-10-18)
+
+- **Change:** the order board moved from the crew process into `ShipState.orderBoard`, written only
+  through `crewOrderCommands`; the reference helms and weapons read orders from the board instead of
+  the radio; crews may run doctrine (`"doctrine": true`).
+- **Level:** T3-directed 1–16, `captain-reference` 16/16, median 86.4 s (before: 16/16, 90.5 s). An
+  order now lands at the ship's next tick, and helms recomputes the `close_to` spot from where the ship
+  is at each decision instead of from where it was when it heard the call. Ladder: no board 16/16,
+  245.7 s; doctrine 16/16, 106.8 s; captain 16/16, 86.4 s.
+- **Regression suite:** not run.
+- **Decision:** accepted (owner ruling: synced, command-driven, recorded; doctrine as the floor a
+  captain must beat).
+- **Lesson:** a command lands a tick later than a direct write. A wrapper that checks the board for an
+  order it just sent (the branched captain's `keepToBranchOrders`) must also remember the order in
+  flight, or the next call cancels it before it lands.
+- **Reuse:** accept a seat brain on a level both with and without a captain, paired on the same seeds;
+  a captain earns its seat only by beating doctrine.
+
+### Captain curriculum on the order board (2026-10-18)
+
+- **Change:** captain-curriculum merged onto the synced order board: the reference captain's
+  engage-then-close rule reads the engaged ship from the board's active `engage` order, and
+  `captainOrdersFromBoard` holds on a `close_to` whose range is beyond the current distance.
+- **Level:** `captain-reference` L5b 16/16, median 69.4 s (baseline 70.7 s, ok); L5c 16/16, median
+  80.3 s (baseline 73.2 s; run value −0.014 [−0.018, −0.010], 15 of 16 seeds slower). `doctrine-reference`
+  L5b 16/16, 109.8 s; L5c 16/16, 112.4 s. `reference` L5b 16/16, 241.1 s; L5c 15/16, 339.6 s.
+- **Regression suite:** `reference` L0b and L4 14/16 against 16/16 baselines last measured 2026-10-12,
+  before the omni shrink (#2425). The two L0b misses (seeds 11, 13) spawn 5.1 and 5.6 km out, beyond the
+  4.2 km omni: the GVTS never sees, locks or moves. captain-curriculum's head gives the same 14/16.
+- **Decision:** accepted as the integration base for wave defence.
+- **Lesson:** not yet isolated: the L5c slowdown is likely the board's one-tick landing and helms
+  recomputing the `close_to` spot each decision, against the remembered radio call it replaced.
+- **Reuse:** the wave-defence push starts here.
+
+### L5b-L5d — captain-reference with status callouts, salvo and focus (2026-10-19)
+
+- **Change:** weapons.v19 and signals.v10 say status callouts (lock, envelope, salvo away, lost or
+  destroyed target, lost contact); captain.v7 hears them, orders `salvo 2` after engaging and a `focus`
+  once two or more enemies are in sight.
+- **Level:** L5b 16/16, median 87.4 s (before 69.4 s); L5c 16/16, median 87.8 s (before 80.3 s);
+  L5d (new, W-waves, 8 seeds) passed 7/8, stations lost 0.13 per run. Without the focus call
+  (captain.v6) W-waves passed 1/8, 1.50 stations lost per run. Missiles fired over 16 seeds: L5b 90 -> 33,
+  L5c 65 -> 44.
+- **Regression suite:** L5b and L5c ok by the suite's rule (slowdown under 25%) but every seed slower
+  (sign p 0.000 / 0.001): the salvo holds the tubes while two missiles fly.
+- **Decision:** accepted as captain-reference's baseline for wave defence, where missiles are the
+  binding resource; the T3 slowdown is the price.
+- **Lesson:** on a single target the first launches carry the kill and the rest only speed it; fire
+  discipline pays only once the magazine must last several targets. Target priority is what holds
+  stations: the focus on the raider nearest the threatened station.
+- **Reuse:** wave-defence candidates start from captain.v7; signals beam bearing beyond the radar's
+  bearing range is refused on W-waves (pre-existing, also without these changes).
+
+### L5b-L5d — captain.v8, chase to gun range after engaging (2026-10-19)
+
+- **Change:** captain.v8 replaces close_to with chase_target (run the enemy down to gun range with a
+  fresh fix whenever nothing more urgent is said), so the ship never parks at the missile range.
+- **Level:** L5b 16/16, median 81.8 s (captain.v7 87.4 s); L5c 16/16, median 71.6 s (v7 87.8 s); L5d
+  W-waves 0/8 passed, 2.38 stations lost per run (v7 7/8, 0.13).
+- **Regression suite:** not run: rejected on L5d.
+- **Decision:** rejected; captain-reference stays on captain.v7. Chasing before engaging was tried
+  too: L5b 86.9 s, L5c 73.5 s, worse than engaging first (the first missile at t=5 matters).
+- **Lesson:** pressing in wins a lone duel but in wave defence it drags the ship after one raider,
+  away from the stations the others shell; a press-in order needs a leash to the defended station.
+- **Reuse:** chase_target as the press-in call where no station is defended.
+
+### L5d — W-waves calibration; Jev captain short of the bar (2026-10-19)
+
+- **Change:** rung `W-waves` (wave_defence map, the map's own wave timing, pass = 3 waves survived with
+  every station alive, 1500 s) and `W-waves-endless` (calibration). Branch outcomes on a wave rung now
+  read the wave tracker.
+- **Level:** seeds 1-16: `captain-reference` 9/16, `captain-doctrine-reference` 5/16, `doctrine-reference`
+  0/16, `signals-reference` 0/16, `idle` 0/16. Median waves survived 3 / 2 / 2 / 1 / 1. Seeds 1-8, Jev
+  captain v1 2/8 against `captain-reference` 5/8; Jev $0.46. Archive:
+  `training-archive/2026-10-19/waves/`.
+- **Regression suite:** not run (no seat brain or reference rule changed).
+- **Decision:** N = 3, the bar L5d uses. These are the captain.v1 reference seats; the focus-rule
+  `captain-reference` (captain.v7, signals.v10, weapons.v19) passes 9/16 at HEAD f5fb4f41 (seeds 1-8
+  5/8, 9-16 4/8; stations lost 1.00 per run), not the 7/8 on seeds 1-8 its L5d entry records, and wins
+  other seeds (1, 4, 5, 7 against v1's 2, 4, 5, 6, 7). Archive
+  `training-archive/2026-10-19/waves/captain-reference-v7-s1-16/`.
+- **Lesson:** with several raiders the reference captain's "nearest enemy" is the raider shadowing the
+  ship, not the one reaching a station; the stations fall while the GVTS fights 40-100 km away. Doctrine
+  alone moves the ship only to what signals reports and saves no station past wave 2. A Jev captain
+  with a dock order docks between waves and is late for the next one.
+- **Reuse:** branch `captain-reference` W-waves runs at the tactical level (`engage@<enemy>` alternatives,
+  $0) to test "engage the raider nearest a station" before writing it as a reference rule; a wave run is
+  15 min at 8 workers, so budget the corpus by seed shards.
 
 Copy this block for every candidate run on a level.
 
