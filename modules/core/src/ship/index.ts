@@ -1,9 +1,12 @@
+import * as _crewOrderCommands from './crew-order-commands';
 import * as _repairCommands from './repair-commands';
 
 export * from './ammo-manager';
 export * from './armor';
 export * from './attack-resolution-manager';
 export * from './chain-gun';
+export * from './crew-orders';
+export * from './crew-orders-manager';
 export * from './damage-manager';
 export * from './docking';
 export * from './flight-doctrine';
@@ -38,3 +41,5 @@ export * from './warp';
 // `spaceCommands` in `../space/index.ts`.
 export const repairCommands = _repairCommands;
 export { MAX_SYSTEM_HEAT } from './heat-manager';
+/** The order board's commands: issue an order, revoke a slot, report an order's progress. */
+export const crewOrderCommands = _crewOrderCommands;

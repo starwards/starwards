@@ -21,19 +21,25 @@ export function crewChannel({ heardSeconds = 5, repeatSeconds = 10 }: ChannelOpt
     let log: Callout[] = [];
     return {
         /** Puts a callout on the air at `at`; false when it was suppressed as a repeat. */
-        say(speaker: string, { callout, phrase }: Said, at: number): boolean {
+        say(speaker: string, { callout, phrase, values }: Said, at: number): boolean {
             log = log.filter((c) => at - c.at <= Math.max(heardSeconds, repeatSeconds));
             if (log.some((c) => c.speaker === speaker && c.phrase === phrase && at - c.at < repeatSeconds)) {
                 return false;
             }
-            log.push({ speaker, callout, phrase, at });
+            log.push({ speaker, callout, phrase, ...(values ? { values } : {}), at });
             return true;
         },
         /** What `listener` hears at `at`: the other seats' callouts of the last `heardSeconds`, oldest first. */
         heard(listener: string, at: number): Heard[] {
             return log
                 .filter((c) => c.speaker !== listener && c.at <= at && at - c.at <= heardSeconds)
-                .map((c) => ({ speaker: c.speaker, callout: c.callout, phrase: c.phrase, secondsAgo: at - c.at }));
+                .map((c) => ({
+                    speaker: c.speaker,
+                    callout: c.callout,
+                    phrase: c.phrase,
+                    ...(c.values ? { values: c.values } : {}),
+                    secondsAgo: at - c.at,
+                }));
         },
     };
 }

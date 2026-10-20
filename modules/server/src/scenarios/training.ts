@@ -2,6 +2,7 @@ import {
     Faction,
     GameMap,
     IdleStrategy,
+    ScanLevel,
     ShipModel,
     ShipState,
     Spaceship,
@@ -202,6 +203,95 @@ export function createTrainingT2Map(
                 game.orderAttack(id, TRAINING_PLAYER_ID);
             }
             game.orderAttack(TRAINING_PLAYER_ID, TRAINING_TARGET_ID);
+        },
+    };
+}
+
+/** The allied station of the directed rung (T3-directed). */
+const TRAINING_STATION_ID = 'station';
+
+/**
+ * T3-directed layout: the target at `distance` metres on `bearing` degrees from the GVTS, and the
+ * allied station `stationDistance` metres from the target, `stationBearing` degrees round it.
+ */
+export interface T3DirectedParams extends T0Params {
+    readonly stationDistance: number;
+    readonly stationBearing: number;
+}
+
+/**
+ * Training rung 3, directed: the T0 target far beyond the GVTS's own radar, where only an allied
+ * large station's radar sees it. The station has identified it (BASIC scan for the GVTS's faction),
+ * and the GVTS starts facing away from it, so at the start the crew knows of the target only through
+ * the fleet's picture.
+ */
+export function createTrainingT3DirectedMap(params: T3DirectedParams): GameMap {
+    return {
+        name: 'training_t3_directed',
+        init: (game) => {
+            const gvts = new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas);
+            gvts.angle = params.bearing + 180;
+            game.addPlayerSpaceship(gvts);
+            const position = XY.byLengthAndDirection(params.distance, params.bearing);
+            const targetShip = new Spaceship().init(
+                TRAINING_TARGET_ID,
+                Vec2.make(position),
+                'dragonfly-MK1',
+                Faction.Raiders,
+            );
+            targetShip.scanLevels[Faction.Gravitas] = ScanLevel.BASIC;
+            const target = game.addNpcSpaceship(targetShip);
+            target.state.idleStrategy = IdleStrategy.PLAY_DEAD;
+            target.state.smartPilot.design.maxSpeed = T0_TARGET_MAX_SPEED;
+            target.state.smartPilot.design.maxSpeedFromAfterBurner = T0_TARGET_MAX_SPEED;
+            const station = XY.add(position, XY.byLengthAndDirection(params.stationDistance, params.stationBearing));
+            game.addNpcSpaceship(
+                new Spaceship().init(TRAINING_STATION_ID, Vec2.make(station), 'large-station', Faction.Gravitas),
+            );
+        },
+    };
+}
+
+/**
+ * T3-incoming layout: the raider at `distance` metres on `bearing` degrees from the GVTS, and the
+ * allied station `stationDistance` metres from the raider, `stationOffset` degrees off the raider's
+ * line to the GVTS.
+ */
+export interface T3IncomingParams extends T0Params {
+    readonly stationDistance: number;
+    readonly stationOffset: number;
+}
+
+/**
+ * Training rung 3, incoming: a dragonfly-MK1 on an ATTACK order against the GVTS, starting far beyond
+ * the GVTS's own radar, where only an allied large station near its start sees it. The station has
+ * identified it (BASIC scan for the GVTS's faction), and the GVTS starts facing away from it, so the
+ * crew first learns of the raider from the fleet's picture while it flies straight in.
+ */
+export function createTrainingT3IncomingMap(params: T3IncomingParams): GameMap {
+    return {
+        name: 'training_t3_incoming',
+        init: (game) => {
+            const gvts = new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas);
+            gvts.angle = params.bearing + 180;
+            game.addPlayerSpaceship(gvts);
+            const position = XY.byLengthAndDirection(params.distance, params.bearing);
+            const raider = new Spaceship().init(
+                TRAINING_TARGET_ID,
+                Vec2.make(position),
+                'dragonfly-MK1',
+                Faction.Raiders,
+            );
+            raider.scanLevels[Faction.Gravitas] = ScanLevel.BASIC;
+            game.addNpcSpaceship(raider);
+            const station = XY.add(
+                position,
+                XY.byLengthAndDirection(params.stationDistance, params.bearing + 180 + params.stationOffset),
+            );
+            game.addNpcSpaceship(
+                new Spaceship().init(TRAINING_STATION_ID, Vec2.make(station), 'large-station', Faction.Gravitas),
+            );
+            game.orderAttack(TRAINING_TARGET_ID, TRAINING_PLAYER_ID);
         },
     };
 }

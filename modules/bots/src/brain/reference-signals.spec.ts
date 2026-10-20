@@ -1,11 +1,12 @@
 import { Capabilities, Display, stationControls } from './controls';
 
 import { BrainRequest } from './request';
+import { CALLOUT_QUESTION } from './callout';
 import { makeReferencePolicy } from './reference-policy';
 
 const capabilities: Capabilities = { commands: [{ command: 'beamDirection' }, { command: 'beamArc' }] };
 
-type Seen = { id: string; bearing: number; distance: number; scanLevel: string; radius?: number };
+type Seen = { id: string; bearing: number; distance: number; scanLevel: string; radius?: number; faction?: number };
 
 function display(beamBearing: number, contacts: Seen[], heading = 0): Display {
     return {
@@ -41,6 +42,26 @@ describe('reference signals', () => {
             { id: 'next', bearing: -90, distance: 3000, scanLevel: 'UFO' },
         ];
         expect(await beam(display(0, ships))).toBe('left');
+    });
+
+    it('calls out the enemy position whenever an identified enemy ship is shown, and nothing else', async () => {
+        const request = {
+            state: {},
+            questions: {
+                [CALLOUT_QUESTION]: { type: 'choice', instructions: '', criteria: { enemy_position: '', silence: '' } },
+            },
+        } as BrainRequest;
+        const callout = async (shown: Display) =>
+            (await makeReferencePolicy(2).answer(request, [], shown)).answers[CALLOUT_QUESTION]?.choice;
+        const enemy = { id: 'raider', bearing: 0, distance: 40_000, scanLevel: 'BASIC', faction: 2 };
+        const ally = { id: 'picket', bearing: 0, distance: 30_000, scanLevel: 'BASIC', faction: 1 };
+        const own = (shown: Display) => ({
+            ...shown,
+            radar: { ...(shown.radar as object), ownShip: { id: 'GVTS', heading: 0, faction: 1 } },
+        });
+
+        expect(await callout(own(display(0, [ally, enemy])))).toBe('enemy_position');
+        expect(await callout(own(display(0, [ally])))).toBe('silence');
     });
 
     it('holds the beam when every ship is scanned', async () => {

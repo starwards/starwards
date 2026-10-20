@@ -11,6 +11,7 @@ import {
     getSpatialIndex,
     isSensorInvisible,
     isWithinRadarReach,
+    radarWidgetPerceivedReach,
     radarWidgetReach,
 } from '@starwards/core/internal';
 
@@ -107,5 +108,27 @@ export class RadarView {
             }
         }
         return visible;
+    }
+
+    /**
+     * What a seat that reads its radar as data knows of space: the faction picture cut to its radars'
+     * perceived reach (`radarWidgetPerceivedReach`: a zoomable radar as far out as its operator can zoom),
+     * the own shells of a tactical radar, and the weapons lock (`trackedId`) wherever the faction sees it,
+     * as the targeting panel tracks it beyond the tactical radar.
+     */
+    seatContacts(
+        faction: Faction | undefined,
+        widgets: StationRadarWidget[],
+        own: { ship: SpaceObject; warpLevel: number | undefined; trackedId?: string },
+    ): Set<SpaceObject> {
+        const factionPicture = this.visibleObjects(faction);
+        const seen = this.seatObjects(faction, widgets, own);
+        const reach = Math.max(...widgets.map((widget) => radarWidgetPerceivedReach(widget, own.warpLevel)));
+        for (const object of factionPicture) {
+            if (isWithinRadarReach(own.ship.position, object.position, reach) || object.id === own.trackedId) {
+                seen.add(object);
+            }
+        }
+        return seen;
     }
 }

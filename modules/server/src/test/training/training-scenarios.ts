@@ -5,17 +5,23 @@ import * as path from 'node:path';
 import { GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
+import { RungTracker, WaveOutcome, waveRung } from './wave-rung';
 import {
     T0Lab,
     T0Params,
     T2Params,
+    T3DirectedParams,
+    T3IncomingParams,
     TRAINING_PLAYER_ID,
     TRAINING_TARGET2_ID,
     TRAINING_TARGET_ID,
     createTrainingT0Map,
     createTrainingT1Map,
     createTrainingT2Map,
+    createTrainingT3DirectedMap,
+    createTrainingT3IncomingMap,
 } from '../../scenarios/training';
+import { T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
     WeaponsMultiParams,
     createTrainingWeaponsMultiMap,
@@ -62,8 +68,12 @@ export interface TrainingResult {
     /** Distinct explosions that ever overlapped the target (recorder sidecar, tick-exact). */
     readonly blastHits: number;
     readonly hz: number;
+    /** A wave rung's outcome; `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
+    readonly waves?: WaveOutcome;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
+    /** Names of `analysis/checks.ts` checks that passed on this run's store. */
+    readonly passedChecks: readonly string[];
     /** The persisted `.sgr`, when the run was asked to keep one. */
     readonly recording?: string;
     /** Frames in the persisted recording. */
@@ -72,13 +82,15 @@ export interface TrainingResult {
 }
 
 /** A training rung: a fast-check arbitrary for its layout, and the map built from one sample. */
-interface TrainingScenario<P> {
+export interface TrainingScenario<P> {
     readonly name: string;
     readonly description: string;
     readonly params: fc.Arbitrary<P>;
     createMap(params: P): GameMap;
     /** Ids of every enemy the run must destroy; the first is the target the per-target metrics read. Default: the one target. */
     readonly enemies?: readonly string[];
+    /** A rung whose map decides its own outcome (waves): the map and a tracker that ends the run and scores it. */
+    track?(params: P): { map: GameMap; tracker: RungTracker };
 }
 
 const T0_PLAY_DEAD_DRAGONFLY: TrainingScenario<T0Params> = {
@@ -197,6 +209,61 @@ const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
     createMap: (params) => createTrainingT2Map(params, params),
 };
 
+/** T2-constrained beside an allied station to dock at: whether to push on, dock, retreat or hold is the captain's call. */
+const T2_DOCK: TrainingScenario<T2DockParams & T2ConstrainedParams> = {
+    ...T2_CONSTRAINED,
+    name: 'T2-dock',
+    description:
+        'T2-constrained beside an allied, unarmed large station 2-5 km (surface) from the GVTS, where it can dock to restock and repair',
+    params: fc.record({
+        distance: fc.integer({ min: 2000, max: 8000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        distance2: fc.integer({ min: 2000, max: 8000 }),
+        offset: fc.integer({ min: 45, max: 180 }),
+        playerEnergy: fc.integer({ min: 10, max: 30 }).map((p) => p / 100),
+        playerShells: fc.integer({ min: 250, max: 450 }),
+        playerGunHeat: fc.integer({ min: 40, max: 70 }),
+        playerMissiles: fc.integer({ min: 3, max: 6 }),
+        stationDistance: fc.integer({ min: 2000, max: 5000 }),
+        stationBearing: fc.integer({ min: 0, max: 359 }),
+    }),
+    createMap: (params) => createTrainingT2DockMap(params, params),
+};
+
+/**
+ * The T0 target beyond the GVTS's own radar, seen and identified only by an allied station: the crew
+ * finds and engages it from the fleet's picture.
+ */
+const T3_DIRECTED: TrainingScenario<T3DirectedParams> = {
+    name: 'T3-directed',
+    description:
+        'GVTS vs one PLAY_DEAD dragonfly-MK1 40-60 km away, any bearing, seen and identified only by an allied large station 5-12 km from it; the GVTS starts facing away',
+    params: fc.record({
+        distance: fc.integer({ min: 40_000, max: 60_000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        stationDistance: fc.integer({ min: 5_000, max: 12_000 }),
+        stationBearing: fc.integer({ min: 0, max: 359 }),
+    }),
+    createMap: createTrainingT3DirectedMap,
+};
+
+/**
+ * A dragonfly-MK1 attacking the GVTS from far beyond its own radar, seen and identified only by an
+ * allied station near its start: the oncoming aspect, where the missile envelope reaches farthest.
+ */
+const T3_INCOMING: TrainingScenario<T3IncomingParams> = {
+    name: 'T3-incoming',
+    description:
+        'GVTS vs one dragonfly-MK1 attacking it from 60-90 km, any bearing, seen and identified only by an allied large station 5-15 km from its start, within 45 degrees of its line in; the GVTS starts facing away',
+    params: fc.record({
+        distance: fc.integer({ min: 60_000, max: 90_000 }),
+        bearing: fc.integer({ min: 0, max: 359 }),
+        stationDistance: fc.integer({ min: 5_000, max: 15_000 }),
+        stationOffset: fc.integer({ min: -45, max: 45 }),
+    }),
+    createMap: createTrainingT3IncomingMap,
+};
+
 /** Weapons rung with a threat, a harmless decoy and an ally to choose between (calibration only). */
 const W_MULTI: TrainingScenario<WeaponsMultiParams> = {
     name: 'W-multi',
@@ -222,6 +289,9 @@ const W_OUTRANGED: TrainingScenario<T0Params> = {
     createMap: createTrainingWeaponsOutrangedMap,
 };
 
+/** The wave-defence rung (see {@link waveRung}). */
+const W_WAVES = { name: 'W-waves', waveIntervalSeconds: 480, passWaves: 3 };
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     'T0-wide': T0_WIDE as TrainingScenario<never>,
@@ -229,6 +299,9 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T1: T1_ATTACKING_DRAGONFLY as TrainingScenario<never>,
     T2: T2_TWO_ATTACKERS as TrainingScenario<never>,
     'T2-constrained': T2_CONSTRAINED as TrainingScenario<never>,
+    'T3-directed': T3_DIRECTED as TrainingScenario<never>,
+    'T3-incoming': T3_INCOMING as TrainingScenario<never>,
+    'T2-dock': T2_DOCK as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
     'T1-noweave': t1WithHull(
@@ -247,6 +320,12 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     ) as TrainingScenario<never>,
     'W-multi': W_MULTI as TrainingScenario<never>,
     'W-outranged': W_OUTRANGED as TrainingScenario<never>,
+    'W-waves': waveRung(W_WAVES) as TrainingScenario<never>,
+    'W-waves-endless': waveRung({
+        ...W_WAVES,
+        name: 'W-waves-endless',
+        passWaves: Infinity,
+    }) as TrainingScenario<never>,
 };
 
 /**
@@ -277,19 +356,16 @@ export interface TrainingRunOptions {
 }
 
 /**
- * One run: `seed` drives both the fast-check layout sample and the die. `TrainingResult`'s
- * scalars are computed by `analysis/extract.ts` from a recording -- there is exactly one
- * implementation of these metrics, not one inline and one in the analysis CLI. When the caller
- * doesn't ask for a persisted recording, the run still records (at `SCRATCH_INTERVAL_SECONDS`)
- * into a scratch directory that is deleted before returning.
+ * Plays one run to its end and records it, without analysing the recording: `seed` drives both the
+ * fast-check layout sample and the die. The run ends at the timeout or once every enemy is gone.
  */
-export async function runTraining<P>(
+export async function playTraining<P>(
     scenario: TrainingScenario<P>,
     { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording, crewedPlayer = false, beforeTick }: TrainingRunOptions,
-): Promise<TrainingResult> {
-    const started = Date.now();
+) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
-    const game = HeadlessGame.start(scenario.createMap(params), seed, { crewedPlayer });
+    const tracked = scenario.track?.(params);
+    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');
@@ -320,8 +396,11 @@ export async function runTraining<P>(
         await beforeTick?.(game, recorder);
         game.tick(dt);
         await recorder.capture();
+        if (tracked?.tracker.done(game)) {
+            break;
+        }
         const living = enemies.filter(alive);
-        if (!living.length) {
+        if (!tracked && !living.length) {
             break;
         }
         const targetObject = game.spaceManager.state.get(living[0]);
@@ -331,11 +410,30 @@ export async function runTraining<P>(
     }
     await recorder.capture(true);
 
+    return { params, enemies, recorder, scratchDir, gunnery, waves: tracked?.tracker.outcome(game) };
+}
+
+/**
+ * One run: `seed` drives both the fast-check layout sample and the die. `TrainingResult`'s
+ * scalars are computed by `analysis/extract.ts` from a recording -- there is exactly one
+ * implementation of these metrics, not one inline and one in the analysis CLI. When the caller
+ * doesn't ask for a persisted recording, the run still records (at `SCRATCH_INTERVAL_SECONDS`)
+ * into a scratch directory that is deleted before returning.
+ */
+export async function runTraining<P>(
+    scenario: TrainingScenario<P>,
+    options: TrainingRunOptions,
+): Promise<TrainingResult> {
+    const started = Date.now();
+    const { seed, hz = SERVER_TICK_HZ, recording } = options;
+    const { params, enemies, recorder, scratchDir, gunnery, waves } = await playTraining(scenario, options);
+
     const dbPath = storePathFor(recorder.filePath);
     const store = await ingest(dbPath, recorder.filePath, { player: TRAINING_PLAYER_ID, target: TRAINING_TARGET_ID });
     await computeEvents(store, recorder.filePath);
     const checkResults = await computeChecks(store, recorder.filePath);
     const failedChecks = checkResults.filter((c) => c.status === 'fail').map((c) => c.name);
+    const passedChecks = checkResults.filter((c) => c.status === 'pass').map((c) => c.name);
     const metrics = await extractMetrics(store, recorder.filePath, {
         playerId: TRAINING_PLAYER_ID,
         targetId: TRAINING_TARGET_ID,
@@ -344,7 +442,16 @@ export async function runTraining<P>(
         (t) => t !== null,
     ).length;
     await store.close();
-    const outcome = { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
+    const outcome = waves
+        ? {
+              ...metrics,
+              killed: waves.passedAt !== null,
+              kills: waves.raidersKilled,
+              enemies: waves.raidersSpawned,
+              seconds: waves.passedAt ?? metrics.seconds,
+              waves,
+          }
+        : { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
 
     const wallSeconds = (Date.now() - started) / 1000;
     if (recording) {
@@ -356,6 +463,7 @@ export async function runTraining<P>(
             ...gunneryFractions(gunnery),
             hz,
             failedChecks,
+            passedChecks,
             recording: recorder.filePath,
             frames: recorder.frameCount,
             wallSeconds,
@@ -370,6 +478,7 @@ export async function runTraining<P>(
         ...gunneryFractions(gunnery),
         hz,
         failedChecks,
+        passedChecks,
         wallSeconds,
     };
 }

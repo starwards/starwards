@@ -34,27 +34,40 @@ export function buildRequest(
             continue;
         }
         const instructions = wording.instructions ?? defaultInstructions(control, reading ? 'console' : 'display');
-        const radio = heard && wording.hears ? heardFor(heard, wording.hears) : [];
         questions[control.id] = {
             type: 'choice',
-            instructions: radio.length ? `${instructions} On the radio: ${radio.join('; ')}.` : instructions,
+            instructions: withRadio(instructions, heard, wording.hears),
             criteria: withForecasts(
                 { ...control.options, ...pick(wording.options ?? {}, Object.keys(control.options)) },
                 forecasts?.[control.id],
             ),
         };
     }
-    Object.assign(questions, calloutQuestions(spec));
+    for (const [id, question] of Object.entries(calloutQuestions(spec))) {
+        // a callout question listens like a control: a captain with no controls hears through it alone
+        questions[id] = {
+            ...question,
+            instructions: withRadio(question.instructions, heard, spec.controls[id]?.hears),
+        };
+    }
     return {
         state: {
             station: spec.station,
             role: spec.role,
             mission: spec.mission,
-            ...(reading ? { console: reading } : { display: visibleDisplay(display, spec.hide) }),
+            ...(reading
+                ? { console: reading }
+                : { display: visibleDisplay(display, spec.hide, spec.checkFire === true) }),
             ...(heard && !perDecision ? { heard: heardLines(heard) } : {}),
         },
         questions,
     };
+}
+
+/** A question's instructions with the heard callouts it listens for read out after them. */
+function withRadio(instructions: string, heard: readonly Heard[] | undefined, hears: readonly string[] | undefined) {
+    const radio = heard && hears ? heardFor(heard, hears) : [];
+    return radio.length ? `${instructions} On the radio: ${radio.join('; ')}.` : instructions;
 }
 
 function defaultInstructions(control: Control, view: 'console' | 'display') {
@@ -70,9 +83,29 @@ function pick(record: Record<string, string>, keys: readonly string[]) {
     return Object.fromEntries(Object.entries(record).filter(([k]) => keys.includes(k)));
 }
 
-function visibleDisplay(display: Display, hide: readonly string[]) {
+function visibleDisplay(display: Display, hide: readonly string[], checkFire: boolean) {
     const panels = Object.fromEntries(
-        Object.entries(display.panels).filter(([name]) => !hide.includes(`panels.${name}`)),
+        Object.entries(display.panels)
+            .filter(([name]) => !hide.includes(`panels.${name}`))
+            .map(([name, panel]) => [
+                name,
+                name === 'targeting-status' && !checkFire ? withoutCheckFire(panel) : panel,
+            ]),
     );
     return hide.includes('radar') || display.radar === undefined ? { panels } : { panels, radar: display.radar };
+}
+
+/** The display as `spec` sees it: the targeting panel's check-fire line only for a brain that opts into `checkFire`. */
+export function displayFor(spec: BrainSpec, display: Display): Display {
+    const targeting = display.panels['targeting-status'];
+    return spec.checkFire || !targeting
+        ? display
+        : { ...display, panels: { ...display.panels, 'targeting-status': withoutCheckFire(targeting) } };
+}
+
+/** The targeting panel as a brain that has not opted into `checkFire` reads it. */
+function withoutCheckFire(panel: unknown) {
+    if (!panel || typeof panel !== 'object') return panel;
+    const { allyInLine: _line, allyNearTarget: _near, ...rest } = panel as Record<string, unknown>;
+    return rest;
 }

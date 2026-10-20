@@ -1,20 +1,28 @@
 import { Answer, Policy } from './brain';
-import { RepairProtocolStats, repairProtocols } from '@starwards/core/internal';
+import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
+import { SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
+import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
+import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
+import { flightSeconds, stillFlying } from './salvo';
 
+import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
+import { captainOrdersFromBoard } from '../crew/orders';
 
 type XY = { x: number; y: number };
 type Contact = {
     id: string;
+    name?: string;
     distance: number;
     bearing: number;
     position: XY;
     scanLevel?: string;
     type?: string;
+    faction?: number;
     radius?: number;
 };
 type Radar = {
-    ownShip?: { heading?: number; position?: XY };
+    ownShip?: { heading?: number; position?: XY; faction?: number };
     contacts?: Contact[];
     /** Bearing relative to the nose, degrees. */
     scanBeam?: { bearing: number; arc: number } | null;
@@ -35,12 +43,9 @@ const TARGET = 2;
 const FIRE_ARC_DEGREES = 2;
 const FIRE_RANGE_METERS = 8000;
 /**
- * Missile launch band: past the missile's arming run, inside what it reaches in half its life. A
- * homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
+ * A homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
  * line: a side tube still fires at a target on the nose.
  */
-const MISSILE_MIN_RANGE_METERS = 1000;
-const MISSILE_MAX_RANGE_METERS = 20_000;
 const TUBE_ARC_DEGREES = 100;
 /** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
 const LAUNCH_INTERVAL_SECONDS = 10;
@@ -76,15 +81,6 @@ const PURSUIT_METERS = 1500;
 const FLUNG_SPEED = 0.9 * MAX_SPEED;
 
 /**
- * How the reference engineer varies, for validating an engineer score against known-better and
- * known-worse play: `jumpStart` jump-starts a dry reactor, `repair` queues the repair protocol for a
- * defect the damage report shows: on the reactor only, or on any system.
- */
-type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' };
-
-const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: 'reactor' };
-
-/**
  * How the reference helms varies, for validating a helms score against known-better and known-worse
  * play: where it parks (`standoff` before the target has fired, `armedStandoff` after), and the
  * lateral weave it flies across the parking spot once it has been fired on.
@@ -116,9 +112,13 @@ export function makeReferencePolicy(
     let seconds = 0;
     let armed = false;
     let lastLaunch = -Infinity;
+    let previous: Display | undefined;
+    const talk = calloutMemory();
+    /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
+    let salvo: { targetId: string; arrivals: number[] } | undefined;
     return {
         name,
-        answer(_request, controls, shown) {
+        answer(request, controls, shown, heard) {
             const display = shown as Display;
             const ship = nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
@@ -126,11 +126,21 @@ export function makeReferencePolicy(
             }
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
+            const orders = captainOrdersFromBoard(display, previous);
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
-            const launchTube = seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS ? tubeToLaunch(display) : undefined;
+            // a salvo order holds the tubes while its missiles fly
+            const salvoFull =
+                orders.salvo !== undefined &&
+                salvo !== undefined &&
+                stillFlying(salvo.arrivals, seconds) >= orders.salvo;
+            const launchTube =
+                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS && !salvoFull && !checkFire(display)
+                    ? tubeToLaunch(display, previous, decisionSeconds)
+                    : undefined;
             const answers: Record<string, Answer> = {};
+            let launched: SalvoTally | undefined;
             for (const control of controls) {
                 const choice =
                     referenceChoice(
@@ -142,15 +152,59 @@ export function makeReferencePolicy(
                         { standoff, weaveMeters },
                         engineer,
                         launchTube,
+                        orders,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
                 if (control.command === 'fireTube' && choice === 'fire') {
                     lastLaunch = seconds;
+                    salvo = countLaunch(salvo, display, previous, decisionSeconds, seconds);
+                    launched = salvo && tally(salvo, seconds);
                 }
+            }
+            const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage, {
+                heard,
+                state: talk,
+                salvo: launched,
+                salvoOrdered: orders.salvo !== undefined,
+                focusOrdered: orders.focus === true,
+                checkFireOrdered: orders.checkFire === true,
+            });
+            previous = display;
+            if (callout) {
+                answers[CALLOUT_QUESTION] = callout;
             }
             return Promise.resolve({ answers });
         },
     };
+}
+
+/** Adds a launch at the locked ship to the count, which restarts when the lock moves to another ship. */
+function countLaunch(
+    salvo: { targetId: string; arrivals: number[] } | undefined,
+    display: Display,
+    previous: Display | undefined,
+    decisionSeconds: number,
+    now: number,
+) {
+    const targetId = display.panels['targeting-status']?.targetId as string | undefined;
+    const target = display.radar?.contacts?.find((c) => c.id === targetId);
+    if (!targetId || !target) {
+        return salvo;
+    }
+    const closing = closingSpeed(
+        target as unknown as ShownContact,
+        display.radar as ShownRadar | undefined,
+        previous?.radar as ShownRadar | undefined,
+        decisionSeconds,
+    );
+    const flight = flightSeconds(target.distance, closing);
+    const arrivals = salvo?.targetId === targetId ? salvo.arrivals : [];
+    return { targetId, arrivals: [...arrivals, now + flight] };
+}
+
+/** Launches at the locked ship so far, and those still flying at `now`. */
+function tally(salvo: { arrivals: number[] }, now: number): SalvoTally {
+    return { n: salvo.arrivals.length, inFlight: stillFlying(salvo.arrivals, now) };
 }
 
 /** Where the helms parks now, and how wide it weaves across the spot. */
@@ -165,18 +219,27 @@ function referenceChoice(
     parking: Parking,
     engineer: EngineerStyle,
     launchTube: number | undefined,
+    orders: ReturnType<typeof captainOrdersFromBoard>,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
     const helms = display.panels['helms-stats'] as Helms | undefined;
     const targeting = display.panels['targeting-status'];
     const aligned = ship && Math.abs(delta(ship.bearing, heading)) < 15;
+    // with no enemy on the helms radar, the captain's last order flies the ship
+    const order = ship ? undefined : orders.helm;
     const [command] = control.id.split(':');
     switch (command) {
         case 'target': {
-            // an unscanned blip may be a shell: cycle past anything too small to be a ship
+            // an unscanned blip may be a shell, an identified ally is no target, and the captain names the enemy to engage
             const locked = display.radar?.contacts?.find((c) => c.id === targeting?.targetId);
-            return !targeting?.targetId || (locked && !isShip(locked)) ? 'next' : 'none';
+            return !targeting?.targetId ||
+                (locked &&
+                    (!isShip(locked) ||
+                        isAlly(locked, display) ||
+                        (orders.engage !== undefined && locked.name !== orders.engage)))
+                ? 'next'
+                : 'none';
         }
         case 'targetEnemyOnly':
             // the enemy-only filter waits on Signals' scan: while no ship is identified it lets no lock through
@@ -185,6 +248,7 @@ function referenceChoice(
             const target = display.radar?.contacts?.find((c) => c.id === targeting?.targetId);
             return target &&
                 !gunTooHot(display) &&
+                !checkFire(display) &&
                 Math.abs(delta(target.bearing, heading)) <= FIRE_ARC_DEGREES &&
                 target.distance <= FIRE_RANGE_METERS
                 ? 'fire'
@@ -203,191 +267,60 @@ function referenceChoice(
             // matching the target's velocity needs the same lock, which shows as the rotation lock holding
             return helms && helms.rotationMode === TARGET && helms.maneuveringMode !== TARGET ? 'press' : 'wait';
         case 'rotation': {
-            if (!helms || helms.rotationMode === TARGET || !ship) {
+            const aim = ship?.bearing ?? (order?.kind === 'close' ? bearingTo(display, order.spot) : undefined);
+            if (!helms || helms.rotationMode === TARGET || aim === undefined) {
                 return 'centre';
             }
-            const off = delta(ship.bearing, heading);
+            const off = delta(aim, heading);
             return Math.abs(off) < 5 ? 'centre' : off > 0 ? 'right' : 'left';
         }
+        case 'antiDrift':
+            // nothing to fly to or after: stop the ship drifting
+            return helms && !ship && (order?.kind === 'hold' || (!order && helms.rotationMode !== TARGET))
+                ? 'engage'
+                : 'release';
         case 'boost':
         case 'strafe': {
             const wanted =
                 helms &&
                 (ship
                     ? parkingCommand(display, helms, ship, targetVelocity, heading, seconds, parking)
-                    : closeIn(helms));
+                    : order
+                      ? order.kind === 'close' && flyTo(display, order.spot, heading)
+                      : closeIn(helms));
             const axis = command === 'boost' ? 'x' : 'y';
             const current = Number(helms?.maneuveringCommand?.[axis] ?? 0);
             const goal = wanted ? wanted[axis] : 0;
             const [up, down] = command === 'boost' ? ['forward', 'back'] : ['right', 'left'];
             return current < goal - 0.025 ? up : current > goal + 0.025 ? down : 'hold';
         }
-        case 'afterBurner':
-            // a target flung at our top speed is never closed on without the afterburner
-            return aligned &&
+        case 'afterBurner': {
+            // a target flung at our top speed is never closed on without the afterburner, nor one the captain orders us after
+            const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
+            return (aligned &&
                 (ship.distance > standoff + PURSUIT_METERS ||
-                    (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))
+                    (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))) ||
+                (order?.kind === 'close' &&
+                    length(sub(order.spot, own)) > PURSUIT_METERS &&
+                    Math.abs(delta(bearingTo(display, order.spot), heading)) < 15)
                 ? 'engage'
                 : 'release';
+        }
         case 'beamDirection':
             return beamChoice(display);
         case 'systemPower':
         case 'systemCoolant':
         case 'cycleRepairPriority':
-            return engineerChoice(command, control.id.slice(command.length + 1), display, engineer);
+            return engineerChoice(
+                command,
+                control.id.slice(command.length + 1),
+                display,
+                engineer,
+                orders.helm?.kind === 'close' || orders.engage !== undefined,
+            );
         default:
             return undefined;
     }
-}
-
-type SystemStatus = { pointer: string; power: number; coolantFactor: number; heat: number };
-type Engineering = { energy: number; maxEnergy: number; energyCells: number };
-type RepairSlot = { protocolId: string; priority: string; refusalReason?: string };
-type Defect = { system: string; field: string };
-
-/** Below this share of the energy store the thrusters drop to low power and the reactor bursts. */
-const LOW_STORE = 0.75;
-/** Above this share the thrusters go back to normal power. */
-const HIGH_STORE = 0.9;
-/**
- * With the damage report showing a reactor defect, below this share of the store the thrusters shut
- * down, and stay down until it climbs past {@link THRUSTER_RESTART_STORE}: they draw most of the
- * ship's energy, and with the reactor shot to pieces the store left goes to the gun and to repairs.
- * A sound reactor refills the store, so a ship that only starts short keeps flying.
- */
-const THRUSTER_SHUTDOWN_STORE = 0.4;
-const THRUSTER_RESTART_STORE = 0.5;
-/**
- * Once the ship has been hit (a plate gone or a defect reported) the tubes run at normal power while
- * the store holds more than this share, so weapons can load missiles; out of a fight they stay shut.
- */
-const TUBE_STORE = 0.5;
-/** The reactor bursts to full power only while cooler than this. */
-const REACTOR_BURST_HEAT = 50;
-/** Below this share of the store, with a cell left, the engineer jump-starts the reactor. */
-const JUMP_START_STORE = 0.1;
-/** The repairing engineer queues a repair only while the store holds more than this share. */
-const REPAIR_STORE = 0.3;
-/**
- * The chain gun drops to low power at this heat and returns to normal once below the release heat,
- * as the NPC automation backs off its guns: low power halves the rate of fire and quarters the heat
- * per second, so a gun held at the heat limit fires more shells at low power than at normal.
- */
-const GUN_BACKOFF_HEAT = 60;
-const GUN_RELEASE_HEAT = 40;
-const SHUTDOWN = 0;
-const LOW = 0.25;
-const NORMAL = 0.5;
-const MAX = 1;
-
-/**
- * The engineer of the wave-defence harness, through the console: warp and docking shut
- * down; the reactor at normal power, bursting to full while the store is low and it is still cool;
- * tubes at normal power once the ship has been hit and while the store holds half;
- * thrusters at low power while the store is low, and shut down while it is lower still and the
- * reactor is damaged; the chain gun at low power while hot; coolant shared in proportion to each
- * system's heat; a reactor jump-start when the store runs dry; and, one at a time, a field repair for
- * a reactor defect the damage report shows (a repairing engineer, for any system's defect).
- */
-function engineerChoice(command: string, key: string, display: Display, style: EngineerStyle) {
-    const systems = (display.panels['full-systems-status'] ?? []) as unknown as SystemStatus[];
-    const engineering = display.panels['engineering-status'] as Engineering | undefined;
-    if (!engineering) {
-        return undefined;
-    }
-    const store = engineering.energy / engineering.maxEnergy;
-    if (command === 'cycleRepairPriority') {
-        const slots = (display.panels['repair-queue'] as { slots?: RepairSlot[] } | undefined)?.slots ?? [];
-        const slot = slots.find((s) => s.protocolId === key);
-        if (key === 'reactorJumpStart') {
-            return style.jumpStart &&
-                slot?.priority === 'OFF' &&
-                store < JUMP_START_STORE &&
-                engineering.energyCells > 0
-                ? 'raise'
-                : 'none';
-        }
-        return style.repair !== 'none' && store > REPAIR_STORE && repairToQueue(display, slots, style.repair) === key
-            ? 'raise'
-            : 'none';
-    }
-    const system = systems.find((s) => s.pointer === key);
-    if (!system) {
-        return undefined;
-    }
-    if (command === 'systemCoolant') {
-        const hottest = Math.max(...systems.map((s) => s.heat));
-        return towards(system.coolantFactor, hottest > 0 ? system.heat / hottest : 0, 0.05);
-    }
-    const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
-    const reactorDamaged = defects.some((d) => systemKey(d.system) === 'reactor');
-    const goal = powerGoal(key, system, store, reactorDamaged, engaged(display, defects));
-    return goal === undefined ? 'hold' : towards(system.power, goal, 0.01);
-}
-
-/**
- * The first idle field repair, in catalogue order, that fixes a defect the damage report shows -- none
- * while another repair is queued or running.
- */
-function repairToQueue(display: Display, slots: readonly RepairSlot[], scope: 'reactor' | 'all') {
-    if (slots.some((s) => s.priority !== 'OFF')) {
-        return undefined;
-    }
-    const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
-    const catalogue: Record<string, RepairProtocolStats | undefined> = repairProtocols;
-    return slots.find((slot) => {
-        const protocol = catalogue[slot.protocolId];
-        return (
-            slot.priority === 'OFF' &&
-            !slot.refusalReason &&
-            protocol?.tier === 'field' &&
-            protocol.targets.some((t) =>
-                defects.some(
-                    (d) =>
-                        systemKey(d.system) === t.system &&
-                        d.field === t.field &&
-                        (scope === 'all' || t.system === scope),
-                ),
-            )
-        );
-    })?.protocolId;
-}
-
-/** `/chainGuns/0` -> `chainGuns`. */
-function systemKey(pointer: string) {
-    return pointer.split('/')[1];
-}
-
-function powerGoal(pointer: string, system: SystemStatus, store: number, reactorDamaged: boolean, inFight: boolean) {
-    if (pointer.startsWith('/tubes/')) {
-        return inFight && store > TUBE_STORE ? NORMAL : SHUTDOWN;
-    }
-    if (pointer === '/warp' || pointer === '/docking') {
-        return SHUTDOWN;
-    }
-    if (pointer === '/reactor') {
-        return store < LOW_STORE && system.heat < REACTOR_BURST_HEAT ? MAX : NORMAL;
-    }
-    if (pointer.startsWith('/chainGuns/')) {
-        return system.heat >= GUN_BACKOFF_HEAT ? LOW : system.heat < GUN_RELEASE_HEAT ? NORMAL : undefined;
-    }
-    if (pointer.startsWith('/thrusters/')) {
-        if (reactorDamaged && store < THRUSTER_SHUTDOWN_STORE) return SHUTDOWN;
-        if (reactorDamaged && store < THRUSTER_RESTART_STORE) return undefined;
-        return store < LOW_STORE ? LOW : store > HIGH_STORE ? NORMAL : undefined;
-    }
-    return undefined;
-}
-
-/** Whether the ship is in a fight, as the engineer can tell: it has lost a plate or carries a defect. */
-function engaged(display: Display, defects: readonly Defect[]) {
-    const armor = display.panels['armor-status'] as { numberOfPlates?: number; healthyPlates?: number } | undefined;
-    return defects.length > 0 || (armor !== undefined && (armor.healthyPlates ?? 0) < (armor.numberOfPlates ?? 0));
-}
-
-/** One key press from `current` toward `goal` on an axis, or `hold` within `tolerance` of it. */
-function towards(current: number, goal: number, tolerance: number) {
-    return current < goal - tolerance ? 'raise' : current > goal + tolerance ? 'lower' : 'hold';
 }
 
 /**
@@ -424,12 +357,32 @@ function parkingCommand(
     const weave = scale(across, weaveMeters * 2 * Math.PI * WEAVE_HZ * Math.cos(phase));
     const closing = add(scale(gap, PARKING_GAIN), weave);
     const capped = scale(closing, Math.min(1, MAX_PARKING_SPEED / Math.max(length(closing), 1)));
-    const world = helms.maneuveringMode === VELOCITY ? add(capped, targetVelocity) : capped;
+    return shipFrame(helms.maneuveringMode === VELOCITY ? add(capped, targetVelocity) : capped, heading);
+}
+
+/** A world velocity as a maneuvering command: ship frame, fractions of top speed. */
+function shipFrame(world: XY, heading: number) {
     const rad = (-heading * Math.PI) / 180;
     return {
         x: clamp((world.x * Math.cos(rad) - world.y * Math.sin(rad)) / MAX_SPEED),
         y: clamp((world.x * Math.sin(rad) + world.y * Math.cos(rad)) / MAX_SPEED),
     };
+}
+
+/** The fastest the pilot flies to a point the captain ordered: a long run, not a parking manoeuvre. */
+const ORDERED_SPEED = 0.9 * MAX_SPEED;
+
+/** The maneuvering command that flies the ship to the world point `spot`, slowing as it nears it. */
+function flyTo(display: Display, spot: XY, heading: number) {
+    const gap = sub(spot, display.radar?.ownShip?.position ?? { x: 0, y: 0 });
+    const closing = scale(gap, PARKING_GAIN);
+    return shipFrame(scale(closing, Math.min(1, ORDERED_SPEED / Math.max(length(closing), 1))), heading);
+}
+
+/** World bearing from the own ship to the world point `spot`, degrees. */
+function bearingTo(display: Display, spot: XY) {
+    const gap = sub(spot, display.radar?.ownShip?.position ?? { x: 0, y: 0 });
+    return (Math.atan2(gap.y, gap.x) * 180) / Math.PI;
 }
 
 /**
@@ -449,26 +402,36 @@ const GUN_HOLD_HEAT = 85;
 type TubeStatus = { index: number; loadedProjectile: string; loading: number; bearing: number };
 
 /**
- * The first loaded tube that bears on the locked ship, while that ship is inside the missile's
- * launch band; none without a lock.
+ * The first loaded tube that bears on the locked ship, while that ship is inside its missile's launch
+ * envelope for how the ship moves since the `previous` decision `seconds` ago; none without a lock.
  */
-function tubeToLaunch(display: Display) {
+function tubeToLaunch(display: Display, previous: Display | undefined, seconds: number) {
     const targetId = display.panels['targeting-status']?.targetId;
     const target = display.radar?.contacts?.find((c) => c.id === targetId);
-    if (
-        !target ||
-        !isShip(target) ||
-        target.distance < MISSILE_MIN_RANGE_METERS ||
-        target.distance > MISSILE_MAX_RANGE_METERS
-    ) {
+    if (!target || !isShip(target)) {
         return undefined;
     }
+    const shown = target as unknown as ShownContact;
+    const radar = display.radar as ShownRadar | undefined;
+    const inEnvelope = (ammo: string) =>
+        inLaunchEnvelope(
+            target.distance,
+            launchRange(shown, radar, previous?.radar as ShownRadar | undefined, seconds, ammo),
+        );
     const relative = delta(target.bearing, display.radar?.ownShip?.heading ?? 0);
     const tubes = (display.panels['tubes-status'] ?? []) as unknown as TubeStatus[];
     return tubes.find(
         (t) =>
-            t.loading >= 1 && t.loadedProjectile !== 'None' && Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES,
+            t.loading >= 1 &&
+            Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES &&
+            inEnvelope(t.loadedProjectile),
     )?.index;
+}
+
+/** Whether the targeting panel calls check fire: an ally in the line of fire or inside the blast at the lock. */
+function checkFire(display: Display) {
+    const shown = display.panels['targeting-status'] as { allyInLine?: unknown; allyNearTarget?: unknown } | undefined;
+    return Boolean(shown?.allyInLine || shown?.allyNearTarget);
 }
 
 /** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */
@@ -491,22 +454,30 @@ const BEAM_SLACK_DEGREES = 5;
 /**
  * Signals steers the scan beam onto the most threatening ship it has not scanned to FULL: the nearest,
  * since every hostile here closes to fight. Deep scans past BASIC need the beam on the contact. The
- * queue order is not the reference's to set while the brain cannot address a job (#2308).
+ * reference leaves the queue order to the signals automation.
  */
 function beamChoice(display: Display) {
     const beam = display.radar?.scanBeam;
     const heading = display.radar?.ownShip?.heading ?? 0;
     const next = (display.radar?.contacts ?? [])
-        .filter((c) => isShip(c) && c.scanLevel !== 'FULL')
+        .filter((c) => isShip(c) && !isAlly(c, display) && c.scanLevel !== 'FULL')
         .sort((a, b) => a.distance - b.distance)[0];
     if (!beam || !next) return 'hold';
     const off = delta(delta(next.bearing, heading), beam.bearing);
     return Math.abs(off) <= BEAM_SLACK_DEGREES ? 'hold' : off > 0 ? 'right' : 'left';
 }
 
-/** The nearest contact that is a ship. */
+/** A contact identified as the own faction's. */
+function isAlly(contact: Contact, display: Display) {
+    const own = display.radar?.ownShip?.faction;
+    return own !== undefined && contact.faction === own;
+}
+
+/** The nearest contact that is a ship and not an identified ally. */
 function nearestShip(display: Display) {
-    return (display.radar?.contacts ?? []).filter(isShip).sort((a, b) => a.distance - b.distance)[0];
+    return (display.radar?.contacts ?? [])
+        .filter((c) => isShip(c) && !isAlly(c, display))
+        .sort((a, b) => a.distance - b.distance)[0];
 }
 
 /** Signed difference between two bearings, in (-180, 180]. */

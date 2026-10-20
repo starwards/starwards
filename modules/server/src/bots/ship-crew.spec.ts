@@ -1,4 +1,4 @@
-import { BotStatus, BridgeSeat, Driver, RecordingEventLine } from '@starwards/core/internal';
+import { BotStatus, BridgeSeat, Driver, RecordingEventLine, ScanLevel } from '@starwards/core/internal';
 
 import { makeDriver } from '../test/driver';
 import { shipCrew } from './ship-crew';
@@ -75,6 +75,50 @@ describe('ship crew runner', () => {
         await crew.stop();
         expect(statuses.map((s) => [s.seat, s.status])).toEqual([['tactical', 'running']]);
         expect(new Set(events.filter((e) => e.kind === 'decision').map(stationOf))).toEqual(new Set(['tactical']));
+        expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
+    });
+
+    it('keeps a live order board: the captain bot orders, every seat reads the board, helms turns onto the target', async () => {
+        const target = gameDriver.getShip('target');
+        const gvts = gameDriver.getShip(SHIP);
+        // an identified enemy inside the missile envelope, square off the beam
+        target.spaceObject.position.setValue({ x: gvts.spaceObject.position.x, y: gvts.spaceObject.position.y + 2500 });
+        (target.spaceObject.scanLevels as unknown as ScanLevel[])[gvts.spaceObject.faction] = ScanLevel.BASIC;
+        const crew = await start();
+        crew.setRecording(true);
+        crew.addSeat('captain', 'bot-captain-1', 'reference');
+        crew.addSeat('pilot', 'bot-pilot-2', 'reference');
+        await until(() => statuses.length === 2, 10_000);
+        const engagement = () => crew.orders?.orders.find((o) => o.slot === 'engagement');
+        await until(() => engagement()?.kind === 'engage', 15_000);
+        // the board is the ship's synced state: the server holds the captain's order the bots read
+        expect(gvts.state.orderBoard.slots.get('engagement')).toMatchObject({ kind: 'engage', issuer: 'captain' });
+        await until(
+            () =>
+                events.some(
+                    (e) =>
+                        e.kind === 'brain_request' &&
+                        stationOf(e) === 'helms' &&
+                        JSON.stringify(
+                            (e.data as { display: { panels: Record<string, unknown> } }).display.panels.orders ?? '',
+                        ).includes('engage'),
+                ),
+            15_000,
+        );
+        const bearing = () => {
+            const d = {
+                x: target.spaceObject.position.x - gvts.spaceObject.position.x,
+                y: target.spaceObject.position.y - gvts.spaceObject.position.y,
+            };
+            const off = (((((Math.atan2(d.y, d.x) * 180) / Math.PI - gvts.spaceObject.angle) % 360) + 540) % 360) - 180;
+            return Math.abs(off);
+        };
+        const before = bearing();
+        await until(() => bearing() < Math.min(20, before / 2), 20_000);
+        await crew.stop();
+        expect(engagement()).toMatchObject({ kind: 'engage', issuer: 'captain' });
+        expect(engagement()?.params.target?.name).toBeTruthy();
+        expect(events.some((e) => e.kind === 'orders')).toBe(true);
         expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
     });
 

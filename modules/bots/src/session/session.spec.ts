@@ -35,6 +35,31 @@ describe('StationSession', () => {
         ]);
     });
 
+    it('sends a signals job command the job id it is given, and refuses one without', async () => {
+        const sent: [string, unknown][] = [];
+        const shipDriver = {
+            id: 'ship',
+            state: {},
+            systems: [],
+            sendJsonCmd: (pointer: string, value: unknown) => sent.push([pointer, value]),
+            command: () => undefined,
+        } as unknown as SessionShipDriver;
+        const session = new StationSession(
+            'signals',
+            { enabled: true, commands: ['prioritizeJob', 'cancelJob'] },
+            shipDriver,
+            {} as SessionSpaceDriver,
+            { radar: {} as RadarView },
+        );
+        await session.execute('prioritizeJob', {}, 'job-7');
+        await session.execute('cancelJob', {}, 'job-8');
+        await expect(session.execute('cancelJob', {}, true)).rejects.toThrow('job id');
+        expect(sent).toEqual([
+            ['/signals/prioritizeJobId', 'job-7'],
+            ['/signals/cancelJobId', 'job-8'],
+        ]);
+    });
+
     describe('release', () => {
         const make = (commands: string[]) => {
             const sent: [string, unknown][] = [];

@@ -1,5 +1,7 @@
 import { killedAt, meanDistance, shellsFired } from './metrics';
+import { missileLaunchRange, rangeRate } from '@starwards/bots';
 import { Store } from './store';
+import { radarReach } from '@starwards/core/internal';
 
 export type CheckStatus = 'pass' | 'fail' | 'skip';
 
@@ -63,7 +65,7 @@ export async function computeChecks(
         stripLeadsToKill(store, runId, roles, params),
         playerStaysMobile(store, runId, roles),
         framesRegular(store, runId),
-    ]);
+    ]).then(async (r) => [...r, ...(await missileBeyondOwnRadar(store, runId, roles))]);
     for (const r of results) {
         await insertCheck(store, runId, r);
     }
@@ -76,6 +78,16 @@ export const CHECK_CATALOGUE: ReadonlyArray<{ name: string; description: string 
     { name: 'strip_leads_to_kill', description: 'armor stripped but no kill within stripToKillSeconds' },
     { name: 'player_stays_mobile', description: 'player speed 0 at end with no propulsion break' },
     { name: 'frames_regular', description: 'frame t gaps deviate from interval_s by more than one frame' },
+    {
+        name: 'missile_beyond_own_radar',
+        description:
+            "passes when a player missile left at a target beyond the weapons station's tactical radar reach and inside the missile's launch envelope; skips otherwise",
+    },
+    {
+        name: 'missile_oncoming_beyond_radar',
+        description:
+            'as missile_beyond_own_radar, at a target closing at 300 m/s or faster (the oncoming envelope); skips otherwise',
+    },
 ];
 
 async function fireWithinRange(store: Store, runId: string, roles: RoleIds): Promise<CheckResult> {
@@ -231,4 +243,80 @@ async function framesRegular(store: Store, runId: string): Promise<CheckResult> 
         }
     }
     return { name: 'frames_regular', status: 'pass', t: null, detail: null };
+}
+
+/** Closing speed (m/s) from which a target counts as flying in: half a dragonfly's cruise. */
+const ONCOMING_CLOSING = 300;
+
+/**
+ * Whether the player launched a missile at a target its weapons station's own radar (the tactical
+ * radar's reach) could not show, one only the faction's picture held, from inside the missile's launch
+ * envelope for how the target moved (`missileLaunchRange`) -- and, for `missile_oncoming_beyond_radar`,
+ * at a target closing at {@link ONCOMING_CLOSING} or faster. A run without such a launch skips, since
+ * staying inside the reach is no fault on most rungs. Launch range is read at the missile's first
+ * frame, so it is late by up to one frame interval.
+ */
+async function missileBeyondOwnRadar(store: Store, runId: string, roles: RoleIds): Promise<CheckResult[]> {
+    const name = 'missile_beyond_own_radar';
+    const oncomingName = 'missile_oncoming_beyond_radar';
+    if (!roles.player) {
+        return [name, oncomingName].map((n) => ({ name: n, status: 'skip', t: null, detail: 'no player role' }));
+    }
+    const projectiles = await store.all<{ object_id: string; first_t: number }>(
+        "SELECT object_id, first_t FROM object WHERE run_id = ? AND type = 'Projectile' ORDER BY first_t",
+        runId,
+    );
+    const ranges: { t: number; range: number; reach: number; closing: number }[] = [];
+    for (const { object_id, first_t: t } of projectiles) {
+        const [shipId, model, targetId] = await Promise.all(
+            ['/shipId', '/model', '/targetId'].map((p) => store.valueAt(runId, object_id, p, t)),
+        );
+        if (shipId?.str !== roles.player || !model?.str?.endsWith('Missile') || !targetId?.str) {
+            continue;
+        }
+        const [px, py, tx, ty, tvx, tvy] = (
+            await Promise.all(
+                [
+                    [roles.player, '/position/x'],
+                    [roles.player, '/position/y'],
+                    [targetId.str, '/position/x'],
+                    [targetId.str, '/position/y'],
+                    [targetId.str, '/velocity/x'],
+                    [targetId.str, '/velocity/y'],
+                ].map(([id, p]) => store.valueAt(runId, id, p, t)),
+            )
+        ).map((v) => v?.num ?? 0);
+        const now = { x: tx - px, y: ty - py };
+        const { closing, crossing } = rangeRate({ x: now.x - tvx, y: now.y - tvy }, now, 1);
+        ranges.push({
+            t,
+            range: Math.hypot(now.x, now.y),
+            reach: missileLaunchRange(model.str, closing, crossing),
+            closing,
+        });
+    }
+    if (!ranges.length) {
+        return [name, oncomingName].map((n) => ({ name: n, status: 'skip', t: null, detail: 'no missile' }));
+    }
+    const unseen = ranges.filter((r) => r.range > radarReach.tactical);
+    const beyond = unseen.filter((r) => r.range <= r.reach);
+    const oncoming = beyond.filter((r) => r.closing >= ONCOMING_CLOSING);
+    const maxRange = Math.max(...ranges.map((r) => r.range));
+    const detail = {
+        launches: ranges.length,
+        beyond: beyond.length,
+        outsideEnvelope: unseen.length - beyond.length,
+        maxRange,
+    };
+    const oncomingDetail = {
+        launches: ranges.length,
+        oncoming: oncoming.length,
+        maxOncomingRange: oncoming.length ? Math.max(...oncoming.map((r) => r.range)) : null,
+    };
+    return [
+        beyond.length ? { name, status: 'pass', t: beyond[0].t, detail } : { name, status: 'skip', t: null, detail },
+        oncoming.length
+            ? { name: oncomingName, status: 'pass', t: oncoming[0].t, detail: oncomingDetail }
+            : { name: oncomingName, status: 'skip', t: null, detail: oncomingDetail },
+    ];
 }

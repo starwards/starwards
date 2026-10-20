@@ -3,6 +3,7 @@ import {
     SessionShipDriver,
     SessionSpaceDriver,
     StationSession,
+    botSeatScreen,
     openStation,
     withMultiplexedStations,
 } from '@starwards/bots';
@@ -10,6 +11,7 @@ import {
     ShipState,
     SpaceState,
     StateCommand,
+    crewOrderCommands,
     getSystems,
     handleJsonPointerCommand,
     repairCommands,
@@ -45,7 +47,10 @@ export class SimClock {
     }
 }
 
-const shipCommands: ReadonlyArray<StateCommand<unknown, ShipState, void>> = Object.values(repairCommands);
+const shipCommands: ReadonlyArray<StateCommand<unknown, ShipState, void>> = [
+    ...Object.values(repairCommands),
+    ...Object.values(crewOrderCommands),
+];
 
 /**
  * Seats a station in a headless game through the real MCP station sandbox, so a brain trained here
@@ -80,7 +85,7 @@ export function headlessStation(game: HeadlessGame, shipId: string, station: str
     const radar = new RadarView(game.spaceManager.spatialIndex, spaceState);
     return openStation(
         withMultiplexedStations(getStationsManifest(shipId)),
-        station,
+        botSeatScreen(station),
         (seat, entry) => new StationSession(seat, entry, shipDriver, spaceDriver, { radar, wait: clock.wait }),
     );
 }

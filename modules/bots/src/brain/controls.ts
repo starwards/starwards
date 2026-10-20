@@ -12,7 +12,7 @@ export type Capabilities = {
 };
 
 /** One command for the station console, in `execute_command` form. */
-export type Press = { command: StationCommand; args: Record<string, unknown>; value?: number | boolean };
+export type Press = { command: StationCommand; args: Record<string, unknown>; value?: number | boolean | string };
 
 /**
  * One physical control and the mutually exclusive things a player can do with it right now.
@@ -72,6 +72,10 @@ type Key = { suffix: string; args: Record<string, unknown>; fill: string | numbe
 
 function expansionKeys(design: ControlDesign, capability: Capabilities['commands'][number], display: Display): Key[] {
     const expand = 'expand' in design ? design.expand : 'single';
+    if (design.kind === 'job') {
+        const jobs = (panel(display, 'signals-jobs') as { jobs?: { id: string }[] } | undefined)?.jobs ?? [];
+        return jobs.map((j) => ({ suffix: `:${j.id}`, args: {}, fill: j.id }));
+    }
     if (design.kind === 'protocol') {
         const slots = (panel(display, 'repair-queue') as { slots?: { protocolId: string }[] } | undefined)?.slots ?? [];
         return slots.map((s) => ({
@@ -102,7 +106,7 @@ function expandControl(
 ): Control {
     const id = `${command}${key.suffix}`;
     const current = 'read' in design ? readValue(display, design.read, key.fill) : undefined;
-    const send = (value?: number | boolean, extra: Record<string, unknown> = {}): Press => ({
+    const send = (value?: number | boolean | string, extra: Record<string, unknown> = {}): Press => ({
         command,
         args: { ...key.args, ...extra },
         value,
@@ -174,6 +178,14 @@ function expandControl(
                 options: { fire: `pull the trigger for ${burstSeconds} seconds`, hold_fire: 'do not fire' },
                 rest: 'hold_fire',
                 press: (o) => (o === 'fire' ? send(undefined, { seconds: burstSeconds }) : undefined),
+            };
+        case 'job':
+            return {
+                id,
+                command,
+                options: { press: design.verb, wait: hold },
+                rest: 'wait',
+                press: (o) => (o === 'press' ? send(String(key.fill)) : undefined),
             };
         case 'protocol':
             return {
