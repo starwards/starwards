@@ -1,0 +1,63 @@
+# Nightly branch corpus of the reference captain on T3-directed (seeds 1-16, 400 branches; reference seats, no
+# Jev key). Lands in <day>/branching/nightly-branch-<n>-runs and -corpus; a DIVERGED branch fails the run.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+    name: nightly-branch
+    labels: { app.kubernetes.io/name: starwards-training, starwards/job: nightly-branch }
+spec:
+    # FILL: schedule and time zone
+    schedule: '0 1 * * *'
+    timeZone: Etc/UTC
+    concurrencyPolicy: Forbid
+    successfulJobsHistoryLimit: 7
+    failedJobsHistoryLimit: 7
+    jobTemplate:
+        spec:
+            completionMode: Indexed
+            completions: 4 # = SHARDS
+            parallelism: 4 # shards running at once; each takes WORKERS cores
+            backoffLimitPerIndex: 1
+            maxFailedIndexes: 0
+            template:
+                metadata:
+                    labels: { app.kubernetes.io/name: starwards-training, starwards/job: branch }
+                spec:
+                    restartPolicy: Never
+                    securityContext:
+                        runAsNonRoot: true
+                        runAsUser: 1000
+                        runAsGroup: 1000
+                        fsGroup: 1000
+                        seccompProfile: { type: RuntimeDefault }
+                    containers:
+                        - name: shard
+                          image: starwards-training
+                          env:
+                              - { name: JOB, value: branch }
+                              - { name: SCENARIO, value: T3-directed }
+                              - { name: CREWS, value: crews/captain-reference.json }
+                              - { name: SHARDS, value: '4' } # = completions
+                              - { name: FIRST_SEED, value: '1' }
+                              - { name: SEEDS_PER_SHARD, value: '4' }
+                              - { name: BUDGET, value: '100' } # per shard: 400 branches in all
+                              - { name: LEVELS, value: 'strategic,tactical' }
+                              - { name: WORKERS, value: '4' }
+                              - name: JOB_NAME
+                                valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
+                          resources:
+                              # WORKERS x 1.5 GiB + 0.5 GiB (measured peak RSS: worker <= 1.4 GiB, parent <= 0.5 GiB), see docs/integration/ai-training-k3s.md
+                              requests: { cpu: '4', memory: 6656Mi }
+                              limits: { memory: 7Gi }
+                          securityContext:
+                              allowPrivilegeEscalation: false
+                              readOnlyRootFilesystem: true
+                              capabilities: { drop: [ALL] }
+                          volumeMounts:
+                              - { name: archive, mountPath: /training-archive }
+                              - { name: tmp, mountPath: /tmp }
+                    volumes:
+                        - name: archive
+                          persistentVolumeClaim: { claimName: training-archive }
+                        - name: tmp
+                          emptyDir: {}

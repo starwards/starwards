@@ -1,0 +1,6 @@
+# FILL: the node directory
+- op: replace
+  path: /spec/template/spec/volumes/0
+  value:
+      name: archive
+      hostPath: { path: /srv/training-archive, type: Directory }

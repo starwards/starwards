@@ -1,0 +1,17 @@
+# The cluster-specific parameters, shared by the CronJobs (../) and the one-off Jobs (../jobs).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+images:
+    - name: starwards-training
+      # FILL: registry the cluster pulls from, e.g. registry.example.lan:5000/starwards-training
+      newName: REGISTRY/starwards-training
+      # FILL: the tag you pushed (the short commit: identical code gives identical runs)
+      newTag: COMMIT
+patches:
+    # FILL: node-selector.yaml (which nodes run training pods)
+    - path: node-selector.yaml
+      target:
+          kind: Job
+    - path: node-selector-cron.yaml
+      target:
+          kind: CronJob

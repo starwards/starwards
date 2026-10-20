@@ -1,0 +1,5 @@
+# FILL: the same selector as node-selector.yaml
+- op: add
+  path: /spec/jobTemplate/spec/template/spec/nodeSelector
+  value:
+      starwards/training: 'true'

@@ -9,7 +9,7 @@
  */
 import { answerCacheFromEnv, applyCacheFlags, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
-import { loadBrainSpec, makeReferencePolicy } from '@starwards/bots';
+import { loadBrainSpec, makeReferencePolicy, withOrderBoard } from '@starwards/bots';
 import { reask, reaskSummary } from '../training/reask';
 
 import { jevClient } from '../brain/jev-client';
@@ -33,7 +33,7 @@ async function main() {
     const policy = jev
         ? jevPolicy(spec, jev)
         : policyName === 'reference'
-          ? makeReferencePolicy(spec.decisionSeconds)
+          ? withOrderBoard(makeReferencePolicy(spec.decisionSeconds), spec.station)
           : idlePolicy;
     const { requests, decisions } = readDecisionLog(recording);
     const limit = Number(arg('limit', 'Infinity'));

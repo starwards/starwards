@@ -75,7 +75,7 @@ export interface RiskModel {
  * Fitted on the matched-seed validation of 2026-10-03 to P(integrity loss ≥ 0.02 in the next 30 s), with
  * non-negative coefficients: more danger never lowers risk.
  */
-export const RISK_MODEL: RiskModel = { bias: -4.803, coef: [2.323, 0.527, 1.997, 0, 0.883] };
+const RISK_MODEL: RiskModel = { bias: -4.803, coef: [2.323, 0.527, 1.997, 0, 0.883] };
 
 const LAMBDA_CAP = 0.6;
 /**
@@ -89,8 +89,8 @@ const MIN_DEMAND = 0.1;
 /** Half-width of the window requests are read over, seconds. */
 const DEMAND_WINDOW = 3;
 /** How far the integrity term looks ahead, seconds. */
-export const DAMAGE_HORIZON = 60;
-export const KPI_HORIZON = 30;
+const DAMAGE_HORIZON = 60;
+const KPI_HORIZON = 30;
 /** Contacts this far beyond the radar's nominal range still ask for scanning. */
 const RADAR_REACH_FACTOR = 1.5;
 /** A hostile this many of its own gun ranges away threatens the ship. */
@@ -106,7 +106,7 @@ interface SystemReading {
 }
 
 /** What one frame shows, before windows over neighbouring frames and events. */
-export interface EngineerObservation {
+interface EngineerObservation {
     readonly t: number;
     readonly systems: readonly SystemReading[];
     /** Largest standing helm request on the smart pilot: rotation, maneuvering, or a TARGET mode (1). */
@@ -240,7 +240,7 @@ interface Demand {
  * unresolved contacts; the reactor always; warp and docking only while requested. Anything else asks
  * nothing.
  */
-export function demandOf(kind: string, d: Demand) {
+function demandOf(kind: string, d: Demand) {
     switch (kind) {
         case 'thrusters':
         case 'maneuvering':

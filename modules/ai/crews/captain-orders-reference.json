@@ -1,0 +1,27 @@
+{
+    "name": "captain-orders-reference",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain-orders.v1.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v9.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

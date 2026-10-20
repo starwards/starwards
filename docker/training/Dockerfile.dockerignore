@@ -1,0 +1,23 @@
+# Context of docker/training/Dockerfile (BuildKit reads <Dockerfile>.dockerignore): only what the image uses
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!custom-typings
+!modules/*/package.json
+!modules/core
+!modules/bots
+!modules/server/tsconfig.json
+!modules/server/src
+!modules/ai/tsconfig.json
+!modules/ai/src
+!modules/ai/crews
+!modules/ai/brains
+!modules/ai/curriculum
+!docker/training/run-job.sh
+!docker/training/build_manifest.py
+**/node_modules
+**/cjs
+**/*.tgz
+**/.env
+**/.env.*

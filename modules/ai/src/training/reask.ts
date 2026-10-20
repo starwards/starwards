@@ -22,7 +22,7 @@ export async function reask(
     decisions: readonly RecordedDecision[],
 ) {
     const rows: ReaskRow[] = [];
-    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds) : undefined;
+    const read = spec.view === 'verbal' ? verbalReader(spec.decisionSeconds, { checkFire: spec.checkFire }) : undefined;
     const forecast = whatIfForecaster(spec);
     for (const recorded of requests.filter((r) => r.station === spec.station)) {
         const controls = stationControls({
@@ -41,6 +41,8 @@ export async function reask(
             ),
             controls,
             recorded.display,
+            // the radio and the order board as the seat had them: a rule policy acts on the board's orders
+            recorded.heard,
         );
         for (const [control, answer] of Object.entries(answered.answers)) {
             const before = decisions.find(

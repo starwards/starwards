@@ -1,0 +1,6 @@
+# FILL: a label your training node(s) carry, e.g. `kubectl label node <node> starwards/training=true`.
+# With the local-path storage class every training pod must land on the node holding the volume.
+- op: add
+  path: /spec/template/spec/nodeSelector
+  value:
+      starwards/training: 'true'

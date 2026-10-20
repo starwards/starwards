@@ -6,6 +6,9 @@
     "description": "Station brains that play Starwards, and the harness that trains them in the headless game",
     "scripts": {
         "train": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev -r ts-node/register/transpile-only ./src/cli/train.ts",
+        "build:cli": "node build-cli.mjs",
+        "pretrain:js": "npm run build:cli",
+        "train:js": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev ./dist/cli/train.js",
         "decisions": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev -r ts-node/register/transpile-only ./src/cli/decisions.ts",
         "reask": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev -r ts-node/register/transpile-only ./src/cli/reask.ts",
         "read": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev -r ts-node/register/transpile-only ./src/cli/read.ts",
@@ -21,7 +24,10 @@
         "score:weapons-runs": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-runs.ts",
         "score:weapons": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-validate.ts",
         "heatmap:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/heatmap/dataset.ts",
-        "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts"
+        "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts",
+        "branch": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/branch.ts",
+        "prebranch:js": "npm run build:cli",
+        "branch:js": "node --env-file-if-exists=.env --max-old-space-size=8192 ./dist/cli/branch.js"
     },
     "dependencies": {
         "@starwards/bots": "0.5.1",
