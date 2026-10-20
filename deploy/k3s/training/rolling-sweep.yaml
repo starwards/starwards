@@ -48,12 +48,12 @@ spec:
                               - { name: SEEDS_BY_RUNG, value: 'W-waves=6' }
                               - { name: WORKERS_BY_RUNG, value: 'W-waves=1' } # 4 W-waves workers ran out of 7 GiB; 6 seeds fit the 90 min deadline
                               - { name: BUDGET, value: '0' } # unused by the sweep
-                              - { name: WORKERS, value: '4' }
+                              - { name: WORKERS, value: '3' } # 4 suite workers reached 6.1 GiB anon
                               - name: JOB_NAME
                                 valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
                           resources:
-                              requests: { cpu: 500m, memory: 8Gi } # request = limit; node2 rejects 8704Mi; suite anon peak 6.1 GiB (2026-10-20)
-                              limits: { memory: 8Gi }
+                              requests: { cpu: 500m, memory: 6656Mi } # request = limit; node2 schedules 6656Mi but not 8Gi (probed 2026-10-20)
+                              limits: { memory: 6656Mi }
                           securityContext:
                               allowPrivilegeEscalation: false
                               readOnlyRootFilesystem: true
