@@ -16,7 +16,8 @@
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080",
         "test": "jest",
         "training": "node -r ts-node/register/transpile-only ./src/test/training/run-training.ts",
-        "analyze": "node -r ts-node/register/transpile-only ./src/test/training/analysis/cli.ts"
+        "analyze": "node -r ts-node/register/transpile-only ./src/test/training/analysis/cli.ts",
+        "missile-range": "node -r ts-node/register/transpile-only ./src/test/training/run-missile-range.ts"
     },
     "dependencies": {
         "@colyseus/core": "^0.18.19",

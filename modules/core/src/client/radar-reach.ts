@@ -41,6 +41,32 @@ export function radarWidgetReach(widget: StationRadarWidget, warpLevel: number |
     }
 }
 
+/**
+ * How far out the operator of a zoomable radar can zoom, in meters: the long range radar's widest zoom
+ * preset, and the dradis, whose zoom is free. Helms and tactical radars have a fixed camera.
+ */
+export const radarZoomOutReach = {
+    longRange: 250_000,
+    dradis: Infinity,
+} as const;
+
+/**
+ * How far a seat that reads its radar as data perceives through one radar widget. A headless seat
+ * reads the full scope its widgets admit, as a player who zooms out would see it: a fixed-camera
+ * radar (helms, tactical) its drawn reach, a zoomable one (long range, dradis) its widest zoom. The
+ * browser still opens every widget at {@link radarWidgetReach}.
+ */
+export function radarWidgetPerceivedReach(widget: StationRadarWidget, warpLevel: number | undefined): number {
+    switch (widget) {
+        case 'long-range-radar':
+            return radarZoomOutReach.longRange;
+        case 'dradis-radar':
+            return radarZoomOutReach.dradis;
+        default:
+            return radarWidgetReach(widget, warpLevel);
+    }
+}
+
 /** Whether a radar centred on `center` with `reach` draws an object at `position`. */
 export function isWithinRadarReach(center: XY, position: XY, reach: number): boolean {
     return XY.lengthOf(XY.difference(position, center)) <= reach;

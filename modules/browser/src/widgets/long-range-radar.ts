@@ -1,5 +1,5 @@
 import { Graphics, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject, Spaceship, degToRad } from '@starwards/core';
+import { ShipDriver, SpaceDriver, SpaceObject, Spaceship, degToRad, radarZoomOutReach } from '@starwards/core';
 import { green, radar as radarColors, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
@@ -28,7 +28,7 @@ const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
 
 // Zoom presets in meters (range visible)
-const ZOOM_PRESETS = [5_000, 10_000, 25_000, 50_000, 100_000, 250_000];
+const ZOOM_PRESETS = [5_000, 10_000, 25_000, 50_000, 100_000, radarZoomOutReach.longRange];
 const DEFAULT_RANGE = 50_000;
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';

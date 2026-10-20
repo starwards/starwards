@@ -478,7 +478,7 @@ export const tacticalDrawFunctions = {
 };
 
 /** Pixi `label` of a declutter group's count badge. */
-export const GROUP_BADGE_LABEL = 'group-badge';
+const GROUP_BADGE_LABEL = 'group-badge';
 
 const groupIconTexture: Partial<Record<string, keyof typeof textures>> = {
     Asteroid: 'dradis_asteroid',
@@ -519,7 +519,7 @@ export class DradisGroupMarker {
 }
 
 /** Pixi `label` of a POI marker's count badge. */
-export const POI_BADGE_LABEL = 'poi-badge';
+const POI_BADGE_LABEL = 'poi-badge';
 
 /** Rung 4 point of interest: a ring with the super-cluster's total-count badge (SPEC-0007 D4). */
 export class DradisPoiMarker {

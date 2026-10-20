@@ -33,7 +33,7 @@ import { schemaToString } from '../serialization/game-state-serialization';
 
 const { error: logError } = createLogger('server:game-recorder');
 
-export interface RecordingSummary {
+interface RecordingSummary {
     name: string;
     mapName: string;
     startedAt: string;
@@ -441,7 +441,6 @@ export class GameRecorder implements PatchTap {
     private keyframe(space: RecordingSerializer, t: number) {
         this.keyframeDue = false;
         if (this.lastWrittenT !== null && t === this.lastWrittenT) return; // paused: the segment goes on
-        // the base first: saveGame() flushes pending entities into the live state
         const spaceBase = space.fullState();
         const savedGame = this.saveRecordedGame();
         if (!savedGame) {

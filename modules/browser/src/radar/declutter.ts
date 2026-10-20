@@ -84,10 +84,10 @@ export type DeclutterResult = {
 export type Viewport = { width: number; height: number };
 
 /** Screen-space box centred on (x, y), standing for the given items. */
-export type Box = { x: number; y: number; size: number; ids: string[] };
+type Box = { x: number; y: number; size: number; ids: string[] };
 
 /** Intersection area as a fraction of the smaller box's area. */
-export function overlapFraction(a: Box, b: Box): number {
+function overlapFraction(a: Box, b: Box): number {
     const w = Math.min(a.x + a.size / 2, b.x + b.size / 2) - Math.max(a.x - a.size / 2, b.x - b.size / 2);
     const h = Math.min(a.y + a.size / 2, b.y + b.size / 2) - Math.max(a.y - a.size / 2, b.y - b.size / 2);
     if (w <= 0 || h <= 0) return 0;
@@ -95,7 +95,7 @@ export function overlapFraction(a: Box, b: Box): number {
 }
 
 /** Connected sets of two or more boxes overlapping by more than `DECLUTTER.poiOverlap`. */
-export function findSuperClusters(boxes: Box[]): Box[][] {
+function findSuperClusters(boxes: Box[]): Box[][] {
     const seen = new Set<Box>();
     const result: Box[][] = [];
     for (const start of boxes) {
@@ -192,7 +192,7 @@ function overlaps(a: Point, b: Point, box: number) {
  * Same-kind candidates whose boxes overlap, as connected components (each sorted by id).
  * `linked` joins pairs that should stay together regardless of overlap.
  */
-export function findClusters(
+function findClusters(
     items: DeclutterItem[],
     box: number,
     linked: (a: DeclutterItem, b: DeclutterItem) => boolean = () => false,

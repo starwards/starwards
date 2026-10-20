@@ -5,7 +5,7 @@ Keys are as the game binds them; unchecked items are marked **(may differ in you
 ## Overview
 
 - Five people, one ship (**Gravitas**): Pilot, Weapons, Signals, Engineer at screens; Captain has no screen.
-- Ship: forward-fixed chaingun, two missile tubes, 70 km omni radar + steerable 50 km scan beam, 1,000-energy reactor pool, afterburner (gamepad only).
+- Ship: forward-fixed chaingun, two missile tubes, omni radar (6 km rated, about 4 km at normal power) + steerable scan beam (50 km rated at its default 20° arc, about 35 km at normal power; narrowing the arc reaches farther, about 70 km at 5°), 1,000-energy reactor pool, afterburner (gamepad only).
 - Systems run at `power × (1 − hacked)`, zero when broken. Use spends shared energy; fast spending makes heat; over-limit heat damages; damaged systems drift (guns miss, thrusters skew, radar flickers) then break. Engineer raises a repair protocol's priority and runs repairs (10–240 s, most draw energy). Each field repair has two modes: **Responsive** (full time, nothing goes dark) or **Dark** (a third of the time, a named system goes dark).
 - Only Engineer sees power/heat/damage; only Signals sees far and identifies contacts (Weapons sees 10 km); gun points where Pilot points; Signals' and Weapons' targets are **separate**. Say contact names aloud ("Asteroid 47").
 - Unknown contact = **UFO** (grey dot, no name). Scan tiers UFO → BASIC (faction, model) → FULL (internals), 5 s per tier at full power, automatic. FULL can go stale to SNAPSHOT — see Signals.
