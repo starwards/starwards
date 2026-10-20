@@ -12,9 +12,10 @@ type Params = { heading: number; near: Contact[]; far: Contact[] };
 const TIERS_PER_CONTACT = 2;
 
 /**
- * Scan sweep: unarmed dragonflies that never move lie around the GVTS — three within the omni radar's
- * ~49 km reach, two beyond it at 55–68 km within 90° of the nose, which only the scan beam narrowed
- * to its 5° minimum (reaching ~70 km) and pointed at them can see. Nothing outside the field of view
+ * Scan sweep: unarmed dragonflies that never move lie around the GVTS — three at 2–5 km, inside the
+ * omni radar's ~6 km reach at NORMAL power, two at 55–68 km within 90° of the nose, beyond the scan
+ * beam's ~35 km at its default 20° arc, which only the beam narrowed to its 5° minimum (reaching
+ * ~71 km at NORMAL power) and pointed at them can see. Nothing outside the field of view
  * is shown or scanned, so the far ones must be found by sweeping. The scan queue starts PAUSED, as a
  * previous watch left it. Scanning works one contact at a time (5 s per tier at NORMAL power: the scan base
  * duration is halved here so the near contacts take ~30 s and the run turns on the far ones), and
@@ -32,7 +33,7 @@ const signalsScan: Benchmark<Params> = {
         near: fc
             .tuple(
                 fc.integer({ min: 0, max: 359 }),
-                fc.array(fc.integer({ min: 8_000, max: 45_000 }), {
+                fc.array(fc.integer({ min: 2_000, max: 5_000 }), {
                     minLength: 3,
                     maxLength: 3,
                 }),
