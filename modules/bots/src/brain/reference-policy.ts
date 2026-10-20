@@ -307,6 +307,17 @@ function referenceChoice(
                 ? 'engage'
                 : 'release';
         }
+        case 'changeGunAmmo': {
+            // the loaded shell type ran dry while another has stock: cycle on until the gun takes one with stock
+            const guns = (display.panels['gun-status'] ?? []) as unknown as { index: number; projectile: string }[];
+            const stock = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)
+                ?.ammo;
+            const gun = guns.find((g) => g.index === Number(control.id.split(':')[1] ?? 0));
+            if (!gun || !stock) return 'wait';
+            const left = (type: string) => stock[type]?.count ?? 0;
+            const others = Object.keys(stock).some((t) => t.endsWith('Shell') && t !== gun.projectile && left(t) > 0);
+            return left(gun.projectile) < 1 && others ? 'press' : 'wait';
+        }
         case 'beamDirection':
             return beamChoice(display);
         case 'systemPower':
