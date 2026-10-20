@@ -2,7 +2,7 @@ import * as os from 'os';
 
 import { NetworkAddress, NetworkInfo } from '@starwards/core/internal';
 
-export type { NetworkAddress, NetworkInfo };
+export type { NetworkInfo };
 
 const PRIVATE_172_RANGE = /^172\.(1[6-9]|2\d|3[01])\./;
 /** VirtualBox/VMware/Hyper-V/Docker/WSL adapters — real but not what a phone on the LAN can reach. */

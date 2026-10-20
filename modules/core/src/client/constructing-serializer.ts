@@ -10,7 +10,7 @@ import { ConstructingDecoder } from '../constructing-decoder';
  * The sdk assigns `serializer.decoder = new Decoder(state)` itself (in the `Room` constructor when
  * joining with a root schema, in `handshake()` otherwise), so the assignment is intercepted.
  */
-export class ConstructingSchemaSerializer<T extends Schema = Schema> extends SchemaSerializer<T> {
+class ConstructingSchemaSerializer<T extends Schema = Schema> extends SchemaSerializer<T> {
     constructor() {
         super();
         let decoder: Decoder<T> | undefined;

@@ -11,7 +11,7 @@ import { DeclutterLayer } from './blips/declutter-layer';
 
 type Rect = { x: number; y: number; side: number };
 
-export function regionCenter(region: Region): XY {
+function regionCenter(region: Region): XY {
     return { x: (region.minX + region.maxX) / 2, y: (region.minY + region.maxY) / 2 };
 }
 
