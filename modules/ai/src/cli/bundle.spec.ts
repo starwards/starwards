@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -27,6 +27,16 @@ describe('bundled training CLI', () => {
     let dir: string;
     beforeAll(() => {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-bundle-'));
+        // the bundle loads core and bots from their built cjs/ (build-cli.mjs keeps packages external)
+        for (const [pkg, entry] of [
+            ['core', 'cjs/index.internal.js'],
+            ['bots', 'cjs/index.js'],
+        ]) {
+            const pkgDir = path.resolve(moduleDir, '..', pkg);
+            if (!fs.existsSync(path.join(pkgDir, entry))) {
+                execSync('npm run build', { cwd: pkgDir, stdio: 'ignore' });
+            }
+        }
         execFileSync(process.execPath, ['build-cli.mjs'], { cwd: moduleDir });
     });
     afterAll(() => rmDirRetrying(dir));
