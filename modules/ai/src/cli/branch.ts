@@ -88,17 +88,20 @@ const levelOptions = (): LevelOptions => ({
 /** A worker's job, as it crosses the process boundary. */
 type WireJob = { run: CorpusRun; level: string; t: number; alternative: string; kind: string; options: LevelOptions };
 
-/** Run logs (and button-level reask choices) read so far by this process, by recording. */
-const logs = new Map<string, { log: RunLog; asked?: Map<number, string> }>();
+/**
+ * The run log (and button-level reask choices) of the last recording this process read. One only: a
+ * corpus interleaves seeds, so a cache by recording grows to every seed's log (~10 MB each) per worker.
+ */
+let lastLog: { recording: string; level: string; log: RunLog; asked?: Map<number, string> } | undefined;
 
 async function playWire(job: WireJob) {
-    let read = logs.get(job.run.recording);
-    if (!read) {
+    if (lastLog?.recording !== job.run.recording || lastLog.level !== job.level) {
+        lastLog = undefined;
         const log = readRunLog(job.run.recording);
-        read = { log, asked: job.level === 'button' ? await reaskChoices(log, job.options) : undefined };
-        logs.set(job.run.recording, read);
+        const asked = job.level === 'button' ? await reaskChoices(log, job.options) : undefined;
+        lastLog = { recording: job.run.recording, level: job.level, log, asked };
     }
-    const { log, asked } = read;
+    const { log, asked } = lastLog;
     const [level] = levelsFor([job.level], job.options, asked);
     const point = level.points(log).find((p) => Math.abs(p.t - job.t) < 1e-9);
     if (!point) throw new Error(`no ${job.level} point at ${job.t} in ${job.run.recording}`);
@@ -286,15 +289,16 @@ async function corpus() {
                 recording,
                 baseline: { killed: r.killed, seconds: r.seconds, kills: r.kills, value: r.score?.value ?? null },
             };
-            return { run, log: readRunLog(recording) };
+            return run;
         });
-    const planned = (
-        await Promise.all(
-            runs.map(async (r) =>
-                planCorpus([r], levelsFor(names, options, await reaskChoices(r.log, options)), Infinity),
-            ),
-        )
-    ).flat();
+    // one run log at a time: holding every seed's log through the corpus costs ~10 MB a seed
+    const planned: ReturnType<typeof planCorpus> = [];
+    for (const run of runs) {
+        const log = readRunLog(run.recording);
+        planned.push(
+            ...planCorpus([{ run, log }], levelsFor(names, options, await reaskChoices(log, options)), Infinity),
+        );
+    }
     // round-robin over runs and levels, so a cut budget still covers every seed at every level
     const seen = new Map<string, number>();
     const order = planned
