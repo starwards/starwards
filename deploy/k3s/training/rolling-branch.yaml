@@ -48,12 +48,12 @@ spec:
                               - { name: SEEDS_BY_RUNG, value: 'W-waves=4,T2-dock=24' }
                               - { name: WORKERS_BY_RUNG, value: 'W-waves=1,T2-dock=2' } # 4 workers ran out of 7 GiB on these rungs
                               - { name: BUDGET, value: '1200' } # branches per cycle: sized for a <= 60 min shard
-                              - { name: WORKERS, value: '3' } # 3 workers peaked at 9.0 GiB on T3 before the streaming-score fix
+                              - { name: WORKERS, value: '4' } # one per core; 3 peaked at 1.8 GiB after the log-cache fix
                               - name: JOB_NAME
                                 valueFrom: { fieldRef: { fieldPath: "metadata.labels['job-name']" } }
                           resources:
-                              requests: { cpu: 500m, memory: 10Gi } # request = limit; 3 T3 branch workers peaked at 9.0 GiB before the streaming-score fix (memprobe 2026-10-20); fits node1/node3 only
-                              limits: { memory: 10Gi }
+                              requests: { cpu: 500m, memory: 6656Mi } # request = limit, fits every node; 3 branch workers peaked at 1.8 GiB anon on 91cf0008
+                              limits: { memory: 6656Mi }
                           securityContext:
                               allowPrivilegeEscalation: false
                               readOnlyRootFilesystem: true
