@@ -19,7 +19,7 @@ spec:
             labels: { role: filler, starwards/lane: branch }
         spec:
             backoffLimit: 0
-            activeDeadlineSeconds: 5400 # a filler shard must turn over: 90 min hard stop
+            activeDeadlineSeconds: 7200 # a filler shard must turn over: 2 h hard stop, queued time included
             ttlSecondsAfterFinished: 86400
             template:
                 metadata:
