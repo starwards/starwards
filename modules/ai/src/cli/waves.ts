@@ -56,6 +56,7 @@ async function runJob(job: Job) {
                 seed,
                 wallSeconds: (Date.now() - started) / 1000,
                 fitness: waveFitness(result.waves),
+                passed: result.waves.passedAt !== null,
             });
         }
     }

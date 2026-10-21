@@ -29,6 +29,11 @@ describe('waveCompareSection', () => {
         expect(partial).toMatch(/\| cand \| holdSeconds \| 6 \|/);
     });
 
+    it('counts the passes of each crew on the paired seeds', () => {
+        const passing = runs.map((r) => ({ ...r, passed: r.crew === 'cand' || r.seed <= 2 }));
+        expect(waveCompareSection(passing, 'base').join('\n')).toMatch(/\| cand \| passes \| 6 \| 2 \| 6 \|/);
+    });
+
     it('reports wall time per run', () => {
         expect(text).toMatch(/wall 10\.0 s per run/);
     });

@@ -2,7 +2,8 @@ import { WAVE_METRICS, WaveFitness, bootstrapMeanCI } from '../scoring/wave-fitn
 import { isSignificant, pairedComparison } from './paired';
 
 /** One crew's run of one seed of a wave rung or cut, scored by its continuous fitness. */
-export type WaveRun = { crew: string; seed: number; wallSeconds: number; fitness: WaveFitness };
+/** `passed`: the rung's pass bar (every station alive through its pass waves); absent from older results files. */
+export type WaveRun = { crew: string; seed: number; wallSeconds: number; fitness: WaveFitness; passed?: boolean };
 
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(3)}`;
 const interval = ([low, high]: readonly number[]) => `[${signed(low)}, ${signed(high)}]`;
@@ -36,6 +37,10 @@ export function waveCompareSection(runs: readonly WaveRun[], baseline: string): 
             lines.push(
                 `| ${crew} | ${name} | ${seeds.length} | ${mean(b).toFixed(3)} | ${mean(c).toFixed(3)} | ${signed(t.meanDiff)} ${interval(t.ci)} | ${interval(boot)} | ${verdict} |`,
             );
+        }
+        if (seeds.every((s) => base.get(s)!.passed !== undefined && mine.get(s)!.passed !== undefined)) {
+            const passes = (crewRuns: Map<number, WaveRun>) => seeds.filter((s) => crewRuns.get(s)!.passed).length;
+            lines.push(`| ${crew} | passes | ${seeds.length} | ${passes(base)} | ${passes(mine)} | – | – | – |`);
         }
     }
     return lines;
