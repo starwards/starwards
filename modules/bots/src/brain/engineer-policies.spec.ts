@@ -99,6 +99,34 @@ describe('a magazine-first repairing engineer', () => {
     });
 });
 
+describe('a magazine-retrying repairing engineer', () => {
+    const defects = [{ system: '/magazine', field: 'capacity' }];
+    const cancelled = 'Feed-system overhaul was cancelled: insufficient reactor energy';
+
+    async function answer(repair: 'magazine' | 'magazine-retry', refusalReason: string) {
+        const shown = display(800, defects);
+        const slots = (shown.panels['repair-queue'] as { slots: { protocolId: string; refusalReason: string }[] })
+            .slots;
+        slots[0].refusalReason = refusalReason;
+        const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
+        const { answers } = await makeReferencePolicy(1, { jumpStart: true, repair }).answer(
+            {} as BrainRequest,
+            controls,
+            shown,
+        );
+        return answers['cycleRepairPriority:feedSystemOverhaul']?.choice;
+    }
+
+    it('queues the feed-system overhaul again after it was cancelled for lack of reactor energy', async () => {
+        expect(await answer('magazine', cancelled)).toBe('none');
+        expect(await answer('magazine-retry', cancelled)).toBe('raise');
+    });
+
+    it('still leaves a repair that is refused for another reason', async () => {
+        expect(await answer('magazine-retry', 'Feed-system overhaul needs a docked ship')).toBe('none');
+    });
+});
+
 describe('reference engineer', () => {
     const referenceCapabilities: Capabilities = {
         commands: [{ command: 'systemPower', systems: ['/thrusters/0'] }, { command: 'cycleRepairPriority' }],

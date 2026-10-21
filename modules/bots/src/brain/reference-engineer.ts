@@ -7,9 +7,10 @@ type Panels = { panels: Record<string, Record<string, unknown> | undefined> };
  * How the reference engineer varies, for validating an engineer score against known-better and
  * known-worse play: `jumpStart` jump-starts a dry reactor, `repair` queues the repair protocol for a
  * defect the damage report shows: on the reactor only, on any system, or on any system with the
- * magazine's capacity first (shells are the ship's one lasting weapon, and a docked ship restocks only to its capacity).
+ * magazine's capacity first (shells are the ship's one lasting weapon, and a docked ship restocks only to its capacity);
+ * `magazine-retry` also queues it again after the reactor ran short of energy and cancelled it part-way.
  */
-export type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' | 'magazine' };
+export type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' | 'magazine' | 'magazine-retry' };
 
 export const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: 'reactor' };
 
@@ -39,6 +40,8 @@ const TUBE_STORE = 0.5;
 const REACTOR_BURST_HEAT = 50;
 /** Below this share of the store, with a cell left, the engineer jump-starts the reactor. */
 const JUMP_START_STORE = 0.1;
+/** The refusal a repair shows after the reactor ran short of energy and cancelled it: it can be queued again. */
+const CANCELLED_FOR_ENERGY = /was cancelled: insufficient reactor energy/;
 /** The repairing engineer queues a repair only while the store holds more than this share. */
 const REPAIR_STORE = 0.3;
 /**
@@ -104,17 +107,18 @@ export function engineerChoice(command: string, key: string, display: Panels, st
  * while another repair is queued or running. With the `magazine` scope, the one that fixes the magazine's
  * capacity comes first.
  */
-function repairToQueue(display: Panels, slots: readonly RepairSlot[], scope: 'reactor' | 'all' | 'magazine') {
+function repairToQueue(display: Panels, slots: readonly RepairSlot[], scope: 'reactor' | 'all' | 'magazine' | 'magazine-retry') {
     if (slots.some((s) => s.priority !== 'OFF')) {
         return undefined;
     }
     const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
     const catalogue: Record<string, RepairProtocolStats | undefined> = repairProtocols;
+    const retry = scope === 'magazine-retry';
     const fixes = (slot: RepairSlot, only?: string) => {
         const protocol = catalogue[slot.protocolId];
         return (
             slot.priority === 'OFF' &&
-            !slot.refusalReason &&
+            (!slot.refusalReason || (retry && CANCELLED_FOR_ENERGY.test(slot.refusalReason))) &&
             protocol?.tier === 'field' &&
             protocol.targets.some(
                 (t) =>
@@ -123,7 +127,7 @@ function repairToQueue(display: Panels, slots: readonly RepairSlot[], scope: 're
             )
         );
     };
-    if (scope === 'magazine') {
+    if (scope === 'magazine' || retry) {
         const first = slots.find((slot) => fixes(slot, 'magazine'));
         if (first) return first.protocolId;
     }
