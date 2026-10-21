@@ -214,6 +214,19 @@ describe('focus order', () => {
         ).toBe('a');
     });
 
+    it('closes to gun range of the station attacker however far it is', () => {
+        const spec = {
+            decisionSeconds: 5,
+            callouts: { close_to: { say: 'close to {range} km of {name}', when: '', fill: 'gunCloseOrder' } },
+        } as unknown as BrainSpec;
+        const shown = picture([
+            { id: 'base', x: -60_000, faction: 1, radius: 1200 },
+            { id: 'straggler', x: 20_000 },
+            { id: 'raider', x: -58_000 },
+        ]);
+        expect(calloutSaid(spec, 'close_to', shown)?.values).toMatchObject({ name: 'raider', range: '2' });
+    });
+
     it('reads the station a standing focus picks by', () => {
         const shown = picture([{ id: 'a', x: 10_000 }]);
         shown.panels[ORDERS_PANEL] = testBoard().give([

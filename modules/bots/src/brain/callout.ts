@@ -2,6 +2,7 @@ import { BrainSpec, CalloutFill } from './spec';
 import { Contact, Radar, offNose } from './verbal';
 import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 import {
+    GUN_CLOSE_METERS,
     bearingWords,
     closeRange,
     launchRange,
@@ -154,6 +155,23 @@ const calloutFills: Record<
                     closeRange(enemy.distance, launchRange(enemy, r, previous?.radar as Radar | undefined, seconds)) /
                     1000
                 ).toFixed(0),
+                distance: (enemy.distance / 1000).toFixed(1),
+                bearing: bearingWords(enemy.bearing),
+            }
+        );
+    },
+    /**
+     * Captain: close to gun range of the enemy that threatens an allied station most, else of the nearest
+     * enemy, whatever its distance: the ship never parks at missile range while a focus has the crew fight
+     * the raiders one after the other.
+     */
+    gunCloseOrder: ({ radar }) => {
+        const r = radar as Radar | undefined;
+        const enemy = stationThreat(r)?.enemy ?? nearestEnemy(r);
+        return (
+            enemy && {
+                name: enemy.name,
+                range: (GUN_CLOSE_METERS / 1000).toFixed(0),
                 distance: (enemy.distance / 1000).toFixed(1),
                 bearing: bearingWords(enemy.bearing),
             }

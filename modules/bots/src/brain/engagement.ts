@@ -48,7 +48,7 @@ export function inLaunchEnvelope(distance: number, range: number) {
  * Where the captain sends the ship once the enemy is inside the launch envelope: in to gun range, so
  * the ship arrives while the missiles fly (mined from the Jev captain on T3-directed, 2026-10-18).
  */
-const GUN_CLOSE_METERS = 2000;
+export const GUN_CLOSE_METERS = 2000;
 
 /**
  * The range the captain orders the ship to close to, `distance` from an enemy whose launch envelope

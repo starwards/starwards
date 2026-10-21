@@ -9,8 +9,8 @@ import { z } from 'zod';
  * (engineer: a chain gun's damage skew from the damage report), `farContact` (signals: the nearest
  * contact beyond the helms radar's reach, its name, range and side of the nose), `enemyContact`
  * (signals: the nearest identified enemy ship, its name, range, side of the nose and whether the range
- * closes), `closeOrder` and `engageOrder` (captain: the order to close to missile range of the
- * nearest enemy, and to engage it), `dockOrder` (captain: the nearest allied station to dock at, its
+ * closes), `closeOrder`, `gunCloseOrder` and `engageOrder` (captain: the order to close to missile range, or to gun range,
+ * of the nearest enemy, and to engage it), `dockOrder` (captain: the nearest allied station to dock at, its
  * distance, world bearing and radius), `patrolOrder` (captain: the nearest nebula to patrol behind, and
  * the nearest enemy it hides the ship from), `lockedTarget` (weapons: the locked ship's name),
  * `lockedEnvelope` (weapons: the locked ship's range, the launch envelope for how it moves, and the
@@ -29,6 +29,7 @@ export const calloutFills = [
     'farContact',
     'enemyContact',
     'closeOrder',
+    'gunCloseOrder',
     'engageOrder',
     'dockOrder',
     'patrolOrder',
