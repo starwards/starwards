@@ -19,9 +19,10 @@ function display(projectile: string, counts: Record<string, number>): Display {
     };
 }
 
-async function choice(shown: Display) {
+async function choice(shown: Display, shellPreference?: readonly string[]) {
     const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
-    const result = await makeReferencePolicy(1).answer({} as BrainRequest, controls, shown);
+    const policy = makeReferencePolicy(1, undefined, 'reference', undefined, shellPreference);
+    const result = await policy.answer({} as BrainRequest, controls, shown);
     return result.answers['changeGunAmmo:0']?.choice;
 }
 
@@ -33,5 +34,27 @@ describe('reference weapons gun ammo', () => {
     it('keeps the loaded type while it has stock, or when no other shell type has any', async () => {
         expect(await choice(display('HiExpShell', { HiExpShell: 5, ArmPenShell: 40 }))).toBe('wait');
         expect(await choice(display('HiExpShell', { HiExpShell: 0, ArmPenShell: 0, HiExpMissile: 3 }))).toBe('wait');
+    });
+
+    describe('with a shell preference', () => {
+        const preference = ['HiExpShell', 'FragShell', 'ArmPenShell'];
+        const stock = { HiExpShell: 0, ArmPenShell: 40, FragShell: 40 };
+
+        it('changes ammo while the loaded type is not the first preferred type with stock', async () => {
+            expect(await choice(display('ArmPenShell', stock), preference)).toBe('press');
+            expect(await choice(display('HiExpShell', stock), preference)).toBe('press');
+            expect(await choice(display('FragShell', { ...stock, HiExpShell: 3 }), preference)).toBe('press');
+        });
+
+        it('keeps the loaded type once it is the first preferred type with stock', async () => {
+            expect(await choice(display('FragShell', stock), preference)).toBe('wait');
+            expect(await choice(display('HiExpShell', { ...stock, HiExpShell: 3 }), preference)).toBe('wait');
+        });
+
+        it('leaves the choice to the loaded type running dry when no preferred type has stock', async () => {
+            const onlyArmPen = { HiExpShell: 0, ArmPenShell: 40, FragShell: 0 };
+            expect(await choice(display('ArmPenShell', onlyArmPen), ['HiExpShell'])).toBe('wait');
+            expect(await choice(display('FragShell', onlyArmPen), ['HiExpShell'])).toBe('press');
+        });
     });
 });

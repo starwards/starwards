@@ -106,6 +106,12 @@ export const brainSpecSchema = z
          * round would cross or the blast at the lock would catch. Absent, the brain reads the panel without it.
          */
         checkFire: z.boolean().optional(),
+        /**
+         * Weapons: the chain-gun shell types in the order the reference rules prefer to load them (`HiExpShell`,
+         * `FragShell`, `ArmPenShell`): the gun is changed to the first one with stock. Absent, it changes
+         * only once the loaded type ran dry.
+         */
+        shellPreference: z.array(z.string()).optional(),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
         /**

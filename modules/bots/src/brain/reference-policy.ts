@@ -108,6 +108,7 @@ export function makeReferencePolicy(
     engineer: EngineerStyle = REFERENCE_ENGINEER,
     name = 'reference',
     helms: HelmsStyle = REFERENCE_HELMS,
+    shellPreference?: readonly string[],
 ): Policy {
     let lastFix: { id: string; position: XY } | undefined;
     let targetVelocity: XY = { x: 0, y: 0 };
@@ -155,6 +156,7 @@ export function makeReferencePolicy(
                         engineer,
                         launchTube,
                         orders,
+                        shellPreference,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
                 if (control.command === 'fireTube' && choice === 'fire') {
@@ -223,6 +225,7 @@ function referenceChoice(
     engineer: EngineerStyle,
     launchTube: number | undefined,
     orders: ReturnType<typeof captainOrdersFromBoard>,
+    shellPreference: readonly string[] | undefined,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
@@ -319,13 +322,16 @@ function referenceChoice(
                 : 'release';
         }
         case 'changeGunAmmo': {
-            // the loaded shell type ran dry while another has stock: cycle on until the gun takes one with stock
+            // cycle on until the gun takes the first preferred shell type with stock; without a preference
+            // (or none of them stocked), once the loaded type ran dry while another has stock
             const guns = (display.panels['gun-status'] ?? []) as unknown as { index: number; projectile: string }[];
             const stock = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)
                 ?.ammo;
             const gun = guns.find((g) => g.index === Number(control.id.split(':')[1] ?? 0));
             if (!gun || !stock) return 'wait';
             const left = (type: string) => stock[type]?.count ?? 0;
+            const wanted = shellPreference?.find((t) => left(t) > 0);
+            if (wanted) return gun.projectile === wanted ? 'wait' : 'press';
             const others = Object.keys(stock).some((t) => t.endsWith('Shell') && t !== gun.projectile && left(t) > 0);
             return left(gun.projectile) < 1 && others ? 'press' : 'wait';
         }

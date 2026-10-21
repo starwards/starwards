@@ -63,7 +63,7 @@ answers into console commands.
 
 **A brain is one data file**, [`modules/ai/brains/<station>.v<N>.json`](../../modules/ai/brains) (the reference brains are `modules/bots/src/brains/<station>.v1.json`):
 model, decision interval, confidence floor, role, mission, per-control wording overrides, controls to
-skip and display parts to hide. Tuning a brain means writing its next version; the code is shared by
+skip and display parts to hide; the reference weapons rules also read `shellPreference`, the chain-gun shell types in the order they load them. Tuning a brain means writing its next version; the code is shared by
 every brain and every host.
 
 Policies answer a brain's questions: `jev`, `reference` (hand-written rules for every seat — the
