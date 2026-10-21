@@ -312,8 +312,9 @@ const calloutFills: Record<
         const centre = stationsCentre(r);
         const own = r?.ownShip?.position;
         if (!centre || !own) return undefined;
-        const dx = centre.x - own.x;
-        const dy = centre.y - own.y;
+        const goal = pastStations(own, centre, alliedStations(r));
+        const dx = goal.x - own.x;
+        const dy = goal.y - own.y;
         return {
             name: 'the stations',
             range: (GUARD_RANGE_METERS / 1000).toFixed(0),
@@ -325,6 +326,40 @@ const calloutFills: Record<
 
 /** How near the centre of the stations a guard order brings the ship, metres. */
 export const GUARD_RANGE_METERS = 1000;
+
+type XY = { x: number; y: number };
+
+/** A station closer than this to the straight way to a guard point stands in the way. */
+const GUARD_CLEARANCE_METERS = 3_000;
+/** How wide of a station in the way a guard order passes it. */
+const GUARD_DETOUR_METERS = 4_000;
+
+/**
+ * Where to fly towards `goal` from `from`: the goal itself, or a point beside the nearest station that
+ * stands in the straight way, on the side the ship already is (the ship would stop against its hull).
+ */
+function pastStations(from: XY, goal: XY, stations: readonly Contact[]): XY {
+    const wx = goal.x - from.x;
+    const wy = goal.y - from.y;
+    const way = Math.hypot(wx, wy);
+    if (way < 1) return goal;
+    const [ux, uy] = [wx / way, wy / way];
+    const blocking = stations
+        .filter((s) => s.position)
+        .map((s) => {
+            const along = (s.position!.x - from.x) * ux + (s.position!.y - from.y) * uy;
+            const side = (s.position!.x - from.x) * -uy + (s.position!.y - from.y) * ux;
+            return { s, along, side };
+        })
+        .filter(({ along, side }) => along > 0 && along < way && Math.abs(side) < GUARD_CLEARANCE_METERS)
+        .sort((a, b) => a.along - b.along)[0];
+    if (!blocking) return goal;
+    const away = blocking.side > 0 ? -1 : 1;
+    return {
+        x: blocking.s.position!.x + -uy * away * GUARD_DETOUR_METERS,
+        y: blocking.s.position!.y + ux * away * GUARD_DETOUR_METERS,
+    };
+}
 
 /** The centre of the allied stations on the radar, undefined with none in sight. */
 export function stationsCentre(r: Radar | undefined) {

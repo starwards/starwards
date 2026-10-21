@@ -84,6 +84,24 @@ describe('reference captain guards the stations between waves', () => {
         expect(target.position.y).toBeCloseTo(0, -2);
     });
 
+    it('steers past a station that lies on the way to the centre', async () => {
+        // north of `large`, which sits between the ship and the centre
+        const own = { x: 40_100, y: 45_000 };
+        const { choice, said: words } = await said(captainSeat(true), dradis([], own));
+        const order = orderFromCallout(choice, words?.values, own);
+        const { x, y } = (order?.params as { target: { position: { x: number; y: number } } }).target.position;
+        const t = Math.max(
+            0,
+            Math.min(
+                1,
+                ((40_000 - own.x) * (x - own.x) + (30_000 - own.y) * (y - own.y)) /
+                    ((x - own.x) ** 2 + (y - own.y) ** 2),
+            ),
+        );
+        const miss = Math.hypot(own.x + t * (x - own.x) - 40_000, own.y + t * (y - own.y) - 30_000);
+        expect(miss).toBeGreaterThan(2_500);
+    });
+
     it('holds once at the centre', async () => {
         expect((await said(captainSeat(true), dradis([], { x: 39_000, y: 500 }))).choice).toBe('hold_here');
     });
