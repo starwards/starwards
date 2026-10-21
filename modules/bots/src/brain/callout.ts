@@ -144,10 +144,10 @@ const calloutFills: Record<
      * station in sight), else of the nearest enemy, which lies `distance` away on world `bearing`; the range is inside the envelope for how the enemy moves since the previous decision,
      * or gun range once the enemy is inside it.
      */
-    closeOrder: ({ radar }, previous, seconds) => {
+    closeOrder: ({ radar }, previous, seconds, supplied) => {
         const r = radar as Radar | undefined;
         // a straggler near the own ship must not drag it away from a station under attack
-        const enemy = stationThreat(r)?.enemy ?? nearestEnemy(r);
+        const enemy = suppliedTarget(r, supplied) ?? stationThreat(r)?.enemy ?? nearestEnemy(r);
         return (
             enemy && {
                 name: enemy.name,
@@ -165,9 +165,9 @@ const calloutFills: Record<
      * enemy, whatever its distance: the ship never parks at missile range while a focus has the crew fight
      * the raiders one after the other.
      */
-    gunCloseOrder: ({ radar }) => {
+    gunCloseOrder: ({ radar }, _previous, _seconds, supplied) => {
         const r = radar as Radar | undefined;
-        const enemy = stationThreat(r)?.enemy ?? nearestEnemy(r);
+        const enemy = suppliedTarget(r, supplied) ?? stationThreat(r)?.enemy ?? nearestEnemy(r);
         return (
             enemy && {
                 name: enemy.name,
@@ -271,7 +271,7 @@ const calloutFills: Record<
      * the focus picks the enemy nearest the station an enemy is nearest to, and the names follow that
      * order; otherwise the names are the order, nearest the own ship first.
      */
-    focusOrder: ({ radar }) => {
+    focusOrder: ({ radar }, _previous, _seconds, supplied) => {
         const r = radar as Radar | undefined;
         const own = r?.ownShip?.faction;
         const enemies = (r?.contacts ?? []).filter(
@@ -282,7 +282,9 @@ const calloutFills: Record<
         }
         const apart = (a: Contact, b: Contact) =>
             a.position && b.position ? Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y) : Infinity;
-        const station = stationThreat(r)?.station;
+        const station =
+            (supplied?.station !== undefined && r?.contacts?.find((c) => c.name === supplied.station)) ||
+            stationThreat(r)?.station;
         const order = [...enemies].sort((x, y) =>
             station ? apart(x, station) - apart(y, station) : x.distance - y.distance,
         );
@@ -307,6 +309,10 @@ const calloutFills: Record<
 };
 
 /** Allied stations on the radar: own-faction ships big enough to dock at. */
+/** The contact the speaking seat names in `supplied.target` (its own pick of the enemy), while the radar shows it. */
+const suppliedTarget = (r: Radar | undefined, supplied: FillValues | undefined) =>
+    supplied?.target === undefined ? undefined : r?.contacts?.find((c) => c.name === supplied.target);
+
 function alliedStations(r: Radar | undefined) {
     const own = r?.ownShip?.faction;
     return (r?.contacts ?? []).filter(

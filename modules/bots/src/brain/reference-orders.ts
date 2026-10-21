@@ -73,8 +73,62 @@ export type Resupply = { byCapacity?: boolean; dockClearMeters?: number; lowShar
 
 const resupplyOf = (p: Picture) => (p.memory.get('resupply') as Resupply | undefined) ?? {};
 
+/** An enemy this near an allied station closes on it. */
+const ATTACK_METERS = 20_000;
+/** The captain moves its target to another enemy of the same station only once that one is this much nearer the station. */
+const RETARGET_MARGIN_METERS = 3_000;
+
+type ThreatPick = { station: Contact; enemy: Contact };
+
+const apart = (a: Contact, b: Contact) =>
+    a.position && b.position ? Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y) : Infinity;
+
+/**
+ * Captain with `threatTarget`: the station the most enemies are within `ATTACK_METERS` of, and the enemy
+ * nearest it. The remembered station holds until another has strictly more enemies on it, or none is left
+ * on it; the remembered enemy holds until another is `RETARGET_MARGIN_METERS` nearer the station. With no
+ * enemy on any station, undefined. Picked once per decision.
+ */
+function threatPick(p: Picture): ThreatPick | undefined {
+    if (p.memory.get('threatPickAt') === p.now) return p.memory.get('threatPick') as ThreatPick | undefined;
+    const contacts = p.radar?.contacts ?? [];
+    const enemies = contacts.filter((c) => isEnemyShip(c, p.radar) && c.position);
+    const stations = contacts.filter(
+        (c) =>
+            c.type === 'Spaceship' &&
+            c.faction === p.radar?.ownShip?.faction &&
+            (c.radius ?? 0) >= STATION_RADIUS_METERS &&
+            c.position,
+    );
+    const on = (s: Contact) => enemies.filter((e) => apart(e, s) <= ATTACK_METERS);
+    const nearest = (s: Contact) => Math.min(...on(s).map((e) => apart(e, s)));
+    const ranked = stations
+        .filter((s) => on(s).length > 0)
+        .sort((a, b) => on(b).length - on(a).length || nearest(a) - nearest(b));
+    const before = p.memory.get('threatPick') as ThreatPick | undefined;
+    const kept = before && ranked.find((s) => s.name === before.station.name);
+    const station = kept && on(kept).length >= on(ranked[0]).length ? kept : ranked[0];
+    let pick: ThreatPick | undefined;
+    if (station) {
+        const best = on(station).sort((a, b) => apart(a, station) - apart(b, station))[0];
+        const held = before?.station.name === station.name && on(station).find((e) => e.name === before.enemy.name);
+        pick = {
+            station,
+            enemy: held && apart(held, station) - RETARGET_MARGIN_METERS <= apart(best, station) ? held : best,
+        };
+    }
+    p.memory.set('threatPick', pick);
+    p.memory.set('threatPickAt', p.now);
+    return pick;
+}
+
+const threatTargeting = (p: Picture) => p.memory.get('threatTarget') === true;
+
 /** The enemy the captain closes on: the one nearest an allied station in sight, else the nearest (as `closeOrder` fills it). */
 const closeTarget = (radar: Radar | undefined) => stationThreat(radar)?.enemy ?? nearestEnemy(radar);
+
+/** The captain's close target for this picture: by `threatPick` with `threatTarget`, else `closeTarget`. */
+const closeTargetOf = (p: Picture) => (threatTargeting(p) && threatPick(p)?.enemy) || closeTarget(p.radar);
 
 /** Whether `pick`'s enemy (the nearest by default) is inside the reference missile's launch envelope for how it moves. */
 function enemyInEnvelope({ radar, previous, seconds }: Picture, pick = nearestEnemy) {
@@ -151,6 +205,10 @@ function lineFouled(p: Picture) {
  * and no enemy was seen near the focus station lately.
  */
 function threatMoved(p: Picture) {
+    if (threatTargeting(p)) {
+        const picked = threatPick(p)?.station.name;
+        return picked !== undefined && picked !== p.focusStation;
+    }
     const threat = stationThreat(p.radar);
     if (!p.focusStation || !threat || threat.station.name === p.focusStation) {
         return false;
@@ -279,8 +337,9 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
      * while the missiles fly.
      */
     close_to: (picture) => {
-        const inside = enemyInside(picture, closeTarget);
-        return inside === false || (inside === true && closeTarget(picture.radar)?.name === picture.engaged);
+        const target = closeTargetOf(picture);
+        const inside = enemyInside(picture, () => target);
+        return inside === false || (inside === true && target?.name === picture.engaged);
     },
     /** Captain: an enemy inside the launch envelope, by its own reckoning or as weapons reports it, not yet ordered engaged. */
     engage: (picture) =>
@@ -346,8 +405,14 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
 const CAPTAIN_HOLD = 'hold_here';
 
 /** What the seat remembers for its callouts: one per seat. */
-export function calloutMemory(resupply: Resupply = {}) {
-    return { memory: new Map<string, unknown>([['resupply', resupply]]), now: 0 };
+export function calloutMemory(resupply: Resupply = {}, threatTarget = false) {
+    return {
+        memory: new Map<string, unknown>([
+            ['resupply', resupply],
+            ['threatTarget', threatTarget],
+        ]),
+        now: 0,
+    };
 }
 
 /**
@@ -411,11 +476,16 @@ export function referenceCallout(
         shellsLow(picture);
     }
     const choice = options.find((o) => calloutRules[o](picture)) ?? SILENCE;
+    const picked = threatTargeting(picture) ? threatPick(picture) : undefined;
     return {
         choice,
         source: 'rule',
         ...(choice === 'salvo_away' && salvo
             ? { values: { n: String(salvo.n), in_flight: String(salvo.inFlight) } }
             : {}),
+        ...(picked && (choice === 'close_to' || choice === 'chase_target')
+            ? { values: { target: picked.enemy.name ?? '' } }
+            : {}),
+        ...(picked && choice === 'focus' ? { values: { station: picked.station.name ?? '' } } : {}),
     };
 }

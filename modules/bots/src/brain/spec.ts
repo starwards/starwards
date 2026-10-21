@@ -117,6 +117,11 @@ export const brainSpecSchema = z
         repairs: z.enum(['reactor', 'all', 'magazine', 'magazine-retry']).optional(),
         /** Weapons: the reference rules fire the chain gun only at a locked target this close, metres; absent, the gun's own reach. */
         fireRangeMeters: z.number().positive().optional(),
+        /**
+         * Captain: the reference rules close on and focus by the station the most enemies close on, not the one
+         * an enemy is nearest to, and keep that station and its target until another clearly takes over (see `ThreatPick`).
+         */
+        threatTarget: z.boolean().optional(),
         /** Helms: the reference rules park off the gun line of an allied station behind or before the target, so weapons need not hold fire on it. */
         clearLine: z.boolean().optional(),
         /** Captain and weapons: how the shell stock is judged and when an enemy keeps the ship from docking to restock (see `Resupply`). */
