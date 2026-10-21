@@ -41,7 +41,13 @@ export function referenceSeat(spec: BrainSpec): SeatPlan {
                 spec.decisionSeconds,
                 spec.repairs && { ...REFERENCE_ENGINEER, repair: spec.repairs },
                 'reference',
-                spec.clearLine ? { ...REFERENCE_HELMS, clearLine: true } : undefined,
+                spec.clearLine || spec.parkOnEngaged
+                    ? {
+                          ...REFERENCE_HELMS,
+                          ...(spec.clearLine ? { clearLine: true } : {}),
+                          ...(spec.parkOnEngaged ? { parkOnEngaged: true } : {}),
+                      }
+                    : undefined,
                 spec.shellPreference,
                 spec.fireRangeMeters,
                 spec.resupply,

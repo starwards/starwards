@@ -128,6 +128,8 @@ export const brainSpecSchema = z
         guardCentre: z.boolean().optional(),
         /** Helms: the reference rules park off the gun line of an allied station behind or before the target, so weapons need not hold fire on it. */
         clearLine: z.boolean().optional(),
+        /** Helms: the reference rules park on the enemy the captain's engage or focus order names while it is in sight, not on the nearest enemy. */
+        parkOnEngaged: z.boolean().optional(),
         /** Captain and weapons: how the shell stock is judged and when an enemy keeps the ship from docking to restock (see `Resupply`). */
         resupply: z
             .object({

@@ -97,7 +97,14 @@ const STATION_RADIUS_METERS = 200;
  * play: where it parks (`standoff` before the target has fired, `armedStandoff` after), and the
  * lateral weave it flies across the parking spot once it has been fired on.
  */
-export type HelmsStyle = { standoff: number; armedStandoff: number; weaveMeters: number; clearLine?: boolean };
+export type HelmsStyle = {
+    standoff: number;
+    armedStandoff: number;
+    weaveMeters: number;
+    clearLine?: boolean;
+    /** Park on the enemy the captain's engage or focus order names while it is in sight, not on the nearest. */
+    parkOnEngaged?: boolean;
+};
 
 export const REFERENCE_HELMS: HelmsStyle = {
     standoff: STANDOFF_METERS,
@@ -137,13 +144,13 @@ export function makeReferencePolicy(
         name,
         answer(request, controls, shown, heard) {
             const display = shown as Display;
-            const ship = nearestShip(display);
+            const orders = captainOrdersFromBoard(display, previous);
+            const ship = (helms.parkOnEngaged && engagedShip(display, orders.engage)) || nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
                 targetVelocity = scale(sub(ship.position, lastFix.position), 1 / decisionSeconds);
             }
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
-            const orders = captainOrdersFromBoard(display, previous);
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
@@ -576,6 +583,13 @@ function nearestShip(display: Display) {
     return (display.radar?.contacts ?? [])
         .filter((c) => isShip(c) && !isAlly(c, display))
         .sort((a, b) => a.distance - b.distance)[0];
+}
+
+/** The enemy ship named `name` (the captain's engage or focus pick), if it is in sight. */
+function engagedShip(display: Display, name: string | undefined) {
+    return name === undefined
+        ? undefined
+        : (display.radar?.contacts ?? []).find((c) => c.name === name && isShip(c) && !isAlly(c, display));
 }
 
 /** Signed difference between two bearings, in (-180, 180]. */
