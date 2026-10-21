@@ -36,7 +36,14 @@ export function referenceSeat(spec: BrainSpec): SeatPlan {
         station: spec.station,
         spec,
         policy: withOrderBoard(
-            makeReferencePolicy(spec.decisionSeconds, undefined, 'reference', undefined, spec.shellPreference),
+            makeReferencePolicy(
+                spec.decisionSeconds,
+                undefined,
+                'reference',
+                undefined,
+                spec.shellPreference,
+                spec.fireRangeMeters,
+            ),
             spec.station,
         ),
     };

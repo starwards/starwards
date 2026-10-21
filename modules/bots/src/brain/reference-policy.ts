@@ -109,6 +109,7 @@ export function makeReferencePolicy(
     name = 'reference',
     helms: HelmsStyle = REFERENCE_HELMS,
     shellPreference?: readonly string[],
+    fireRangeMeters = FIRE_RANGE_METERS,
 ): Policy {
     let lastFix: { id: string; position: XY } | undefined;
     let targetVelocity: XY = { x: 0, y: 0 };
@@ -157,6 +158,7 @@ export function makeReferencePolicy(
                         launchTube,
                         orders,
                         shellPreference,
+                        fireRangeMeters,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
                 if (control.command === 'fireTube' && choice === 'fire') {
@@ -226,6 +228,7 @@ function referenceChoice(
     launchTube: number | undefined,
     orders: ReturnType<typeof captainOrdersFromBoard>,
     shellPreference: readonly string[] | undefined,
+    fireRangeMeters: number,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
@@ -266,7 +269,7 @@ function referenceChoice(
                 !gunTooHot(display) &&
                 !checkFire(display) &&
                 Math.abs(delta(target.bearing, heading)) <= FIRE_ARC_DEGREES &&
-                target.distance <= FIRE_RANGE_METERS
+                target.distance <= fireRangeMeters
                 ? 'fire'
                 : 'hold_fire';
         }

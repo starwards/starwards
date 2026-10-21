@@ -113,6 +113,8 @@ export const brainSpecSchema = z
          * only once the loaded type ran dry.
          */
         shellPreference: z.array(z.string()).optional(),
+        /** Weapons: the reference rules fire the chain gun only at a locked target this close, metres; absent, the gun's own reach. */
+        fireRangeMeters: z.number().positive().optional(),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
         /**
