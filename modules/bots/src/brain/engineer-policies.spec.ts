@@ -81,6 +81,24 @@ describe('scripted engineers', () => {
     });
 });
 
+describe('a magazine-first repairing engineer', () => {
+    it('queues the feed-system overhaul before another idle repair that also fixes a shown defect', async () => {
+        const defects = [
+            { system: '/chainGuns/0', field: 'bearingSkew' },
+            { system: '/magazine', field: 'capacity' },
+        ];
+        const shown = display(800, defects);
+        const slots = (shown.panels['repair-queue'] as { slots: { protocolId: string }[] }).slots;
+        slots.unshift({ protocolId: 'actuatorRecalibration', priority: 'OFF', refusalReason: '' });
+        const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
+        const answer = async (repair: 'all' | 'magazine') =>
+            (await makeReferencePolicy(1, { jumpStart: true, repair }).answer({} as BrainRequest, controls, shown))
+                .answers;
+        expect((await answer('all'))['cycleRepairPriority:feedSystemOverhaul']?.choice).toBe('none');
+        expect((await answer('magazine'))['cycleRepairPriority:feedSystemOverhaul']?.choice).toBe('raise');
+    });
+});
+
 describe('reference engineer', () => {
     const referenceCapabilities: Capabilities = {
         commands: [{ command: 'systemPower', systems: ['/thrusters/0'] }, { command: 'cycleRepairPriority' }],

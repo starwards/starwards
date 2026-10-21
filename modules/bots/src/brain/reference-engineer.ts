@@ -6,9 +6,10 @@ type Panels = { panels: Record<string, Record<string, unknown> | undefined> };
 /**
  * How the reference engineer varies, for validating an engineer score against known-better and
  * known-worse play: `jumpStart` jump-starts a dry reactor, `repair` queues the repair protocol for a
- * defect the damage report shows: on the reactor only, or on any system.
+ * defect the damage report shows: on the reactor only, on any system, or on any system with the
+ * magazine's capacity first (shells are the ship's one lasting weapon, and a docked ship restocks only to its capacity).
  */
-export type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' };
+export type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' | 'magazine' };
 
 export const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: 'reactor' };
 
@@ -100,30 +101,33 @@ export function engineerChoice(command: string, key: string, display: Panels, st
 
 /**
  * The first idle field repair, in catalogue order, that fixes a defect the damage report shows -- none
- * while another repair is queued or running.
+ * while another repair is queued or running. With the `magazine` scope, the one that fixes the magazine's
+ * capacity comes first.
  */
-function repairToQueue(display: Panels, slots: readonly RepairSlot[], scope: 'reactor' | 'all') {
+function repairToQueue(display: Panels, slots: readonly RepairSlot[], scope: 'reactor' | 'all' | 'magazine') {
     if (slots.some((s) => s.priority !== 'OFF')) {
         return undefined;
     }
     const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
     const catalogue: Record<string, RepairProtocolStats | undefined> = repairProtocols;
-    return slots.find((slot) => {
+    const fixes = (slot: RepairSlot, only?: string) => {
         const protocol = catalogue[slot.protocolId];
         return (
             slot.priority === 'OFF' &&
             !slot.refusalReason &&
             protocol?.tier === 'field' &&
-            protocol.targets.some((t) =>
-                defects.some(
-                    (d) =>
-                        systemKey(d.system) === t.system &&
-                        d.field === t.field &&
-                        (scope === 'all' || t.system === scope),
-                ),
+            protocol.targets.some(
+                (t) =>
+                    (only === undefined || t.system === only) &&
+                    defects.some((d) => systemKey(d.system) === t.system && d.field === t.field),
             )
         );
-    })?.protocolId;
+    };
+    if (scope === 'magazine') {
+        const first = slots.find((slot) => fixes(slot, 'magazine'));
+        if (first) return first.protocolId;
+    }
+    return slots.find((slot) => fixes(slot, scope === 'reactor' ? 'reactor' : undefined))?.protocolId;
 }
 
 /** `/chainGuns/0` -> `chainGuns`. */

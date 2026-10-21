@@ -1,6 +1,7 @@
 import { BrainSpec, brainSpecSchema } from './brain/spec';
 
 import { Policy } from './brain/brain';
+import { REFERENCE_ENGINEER } from './brain/reference-engineer';
 import captain from './brains/captain.v1.json';
 import engineer from './brains/engineer.v1.json';
 import helms from './brains/helms.v1.json';
@@ -38,7 +39,7 @@ export function referenceSeat(spec: BrainSpec): SeatPlan {
         policy: withOrderBoard(
             makeReferencePolicy(
                 spec.decisionSeconds,
-                undefined,
+                spec.repairs && { ...REFERENCE_ENGINEER, repair: spec.repairs },
                 'reference',
                 undefined,
                 spec.shellPreference,
