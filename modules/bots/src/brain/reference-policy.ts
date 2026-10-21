@@ -83,13 +83,21 @@ const LEAVE_NEAREST_METERS = 10_000;
 const FLUNG_SPEED = 0.9 * MAX_SPEED;
 
 /**
+ * Helms with `clearLine`: an allied station whose hull comes this near the gun line from the parking
+ * spot through the target fouls it (weapons calls check fire), so the pilot parks across the target from it.
+ */
+const LINE_CLEARANCE_METERS = 600;
+/** A contact this wide is a station, not a ship. */
+const STATION_RADIUS_METERS = 200;
+
+/**
  * How the reference helms varies, for validating a helms score against known-better and known-worse
  * play: where it parks (`standoff` before the target has fired, `armedStandoff` after), and the
  * lateral weave it flies across the parking spot once it has been fired on.
  */
-export type HelmsStyle = { standoff: number; armedStandoff: number; weaveMeters: number };
+export type HelmsStyle = { standoff: number; armedStandoff: number; weaveMeters: number; clearLine?: boolean };
 
-const REFERENCE_HELMS: HelmsStyle = {
+export const REFERENCE_HELMS: HelmsStyle = {
     standoff: STANDOFF_METERS,
     armedStandoff: ARMED_STANDOFF_METERS,
     weaveMeters: WEAVE_METERS,
@@ -154,7 +162,7 @@ export function makeReferencePolicy(
                         ship,
                         targetVelocity,
                         seconds,
-                        { standoff, weaveMeters },
+                        { standoff, weaveMeters, clearLine: helms.clearLine === true },
                         engineer,
                         launchTube,
                         orders,
@@ -216,8 +224,8 @@ function tally(salvo: { arrivals: number[] }, now: number): SalvoTally {
     return { n: salvo.arrivals.length, inFlight: stillFlying(salvo.arrivals, now) };
 }
 
-/** Where the helms parks now, and how wide it weaves across the spot. */
-type Parking = { standoff: number; weaveMeters: number };
+/** Where the helms parks now, how wide it weaves across the spot, and whether it keeps allied stations off the gun line. */
+type Parking = { standoff: number; weaveMeters: number; clearLine?: boolean };
 
 function referenceChoice(
     control: Control,
@@ -378,12 +386,13 @@ function parkingCommand(
     targetVelocity: XY,
     heading: number,
     seconds: number,
-    { standoff, weaveMeters }: Parking,
+    { standoff, weaveMeters, clearLine }: Parking,
 ) {
     const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
     const fromTarget = sub(own, ship.position);
     const speed = length(targetVelocity);
-    const behind = speed > STILL_SPEED ? scale(targetVelocity, -1 / speed) : scale(fromTarget, 1 / ship.distance);
+    const straight = speed > STILL_SPEED ? scale(targetVelocity, -1 / speed) : scale(fromTarget, 1 / ship.distance);
+    const behind = clearLine ? clearOfStations(display, ship, straight, standoff, fromTarget) : straight;
     const across = { x: -behind.y, y: behind.x };
     const phase = 2 * Math.PI * WEAVE_HZ * seconds;
     const spot = add(scale(behind, standoff), scale(across, weaveMeters * Math.sin(phase)));
@@ -392,6 +401,28 @@ function parkingCommand(
     const closing = add(scale(gap, PARKING_GAIN), weave);
     const capped = scale(closing, Math.min(1, MAX_PARKING_SPEED / Math.max(length(closing), 1)));
     return shipFrame(helms.maneuveringMode === VELOCITY ? add(capped, targetVelocity) : capped, heading);
+}
+
+/**
+ * The side of `ship` to park on so the gun line from there through it misses every allied station:
+ * `behind` when it already does, else square to the first station that fouls it, on the side nearer
+ * the own ship.
+ */
+function clearOfStations(display: Display, ship: Contact, behind: XY, standoff: number, fromTarget: XY) {
+    const fire = scale(behind, -1);
+    for (const station of display.radar?.contacts ?? []) {
+        if (!isAlly(station, display) || (station.radius ?? 0) < STATION_RADIUS_METERS) continue;
+        const rel = sub(station.position, ship.position);
+        const along = rel.x * fire.x + rel.y * fire.y;
+        const across = Math.abs(rel.x * fire.y - rel.y * fire.x);
+        if (along < -standoff || along > FIRE_RANGE_METERS || across > (station.radius ?? 0) + LINE_CLEARANCE_METERS) {
+            continue;
+        }
+        const gap = Math.max(length(rel), 1);
+        const square = { x: -rel.y / gap, y: rel.x / gap };
+        return square.x * fromTarget.x + square.y * fromTarget.y >= 0 ? square : scale(square, -1);
+    }
+    return behind;
 }
 
 /** A world velocity as a maneuvering command: ship frame, fractions of top speed. */
