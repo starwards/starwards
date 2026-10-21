@@ -119,7 +119,12 @@ export const brainSpecSchema = z
         fireRangeMeters: z.number().positive().optional(),
         /** Captain and weapons: how the shell stock is judged and when an enemy keeps the ship from docking to restock (see `Resupply`). */
         resupply: z
-            .object({ byCapacity: z.boolean().optional(), dockClearMeters: z.number().positive().optional() })
+            .object({
+                byCapacity: z.boolean().optional(),
+                dockClearMeters: z.number().positive().optional(),
+                lowShare: z.number().positive().max(1).optional(),
+                restockedShare: z.number().positive().max(1).optional(),
+            })
             .strict()
             .optional(),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */

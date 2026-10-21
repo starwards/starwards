@@ -66,9 +66,10 @@ const DOCK_NEAR_METERS = 45_000;
 /**
  * How a brain restocks, when it differs from the reference: `byCapacity` measures the shells against what the
  * magazine holds now rather than the most it ever held (a restock fills only to that), and `dockClearMeters`
- * is the range within which an enemy keeps the captain from docking and sends it off a dock.
+ * is the range within which an enemy keeps the captain from docking and sends it off a dock; `lowShare` and
+ * `restockedShare` replace the shares of the stock under which the shells are called low and over which restocked.
  */
-export type Resupply = { byCapacity?: boolean; dockClearMeters?: number };
+export type Resupply = { byCapacity?: boolean; dockClearMeters?: number; lowShare?: number; restockedShare?: number };
 
 const resupplyOf = (p: Picture) => (p.memory.get('resupply') as Resupply | undefined) ?? {};
 
@@ -287,14 +288,24 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Weapons: the shells fell below the low share of the capacity the magazine began with, since the last call. */
     shells_low: (p) => {
         const share = shellShare(p);
-        if (share === undefined || share >= SHELLS_LOW || p.memory.get('shellsLowSaid') === true) return false;
+        if (
+            share === undefined ||
+            share >= (resupplyOf(p).lowShare ?? SHELLS_LOW) ||
+            p.memory.get('shellsLowSaid') === true
+        )
+            return false;
         p.memory.set('shellsLowSaid', true);
         return true;
     },
     /** Weapons: the shells are back above the restocked share after a low call. */
     shells_restocked: (p) => {
         const share = shellShare(p);
-        if (share === undefined || share < SHELLS_RESTOCKED || p.memory.get('shellsLowSaid') !== true) return false;
+        if (
+            share === undefined ||
+            share < (resupplyOf(p).restockedShare ?? SHELLS_RESTOCKED) ||
+            p.memory.get('shellsLowSaid') !== true
+        )
+            return false;
         p.memory.set('shellsLowSaid', false);
         return true;
     },

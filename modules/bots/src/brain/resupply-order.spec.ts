@@ -162,3 +162,26 @@ describe('captain docking to restock with a clear range', () => {
         expect(said(state, [station, { id: 'raider', x: 8_000 }], true)).toBe('undock');
     });
 });
+
+describe('weapons shell stock callouts with the shares its brain names', () => {
+    it('calls the shells low under its low share and restocked over its restocked share', () => {
+        const state = calloutMemory({ lowShare: 0.2, restockedShare: 0.6 });
+        const said = (shells: number) =>
+            referenceCallout(
+                request('shells_low', 'shells_restocked'),
+                picture([], shells),
+                undefined,
+                0.5,
+                undefined,
+                {
+                    state,
+                },
+            )?.choice;
+        expect([said(30), said(19), said(50), said(61)]).toEqual([
+            'silence',
+            'shells_low',
+            'silence',
+            'shells_restocked',
+        ]);
+    });
+});
