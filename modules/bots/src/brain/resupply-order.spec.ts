@@ -118,3 +118,47 @@ describe('captain docking to restock', () => {
         expect(said([station], heard('shells_restocked'))).toBe('undock');
     });
 });
+
+describe('weapons shell stock callouts measured against the capacity', () => {
+    it('calls the shells low under 40% of what the magazine holds now, and restocked once it is full again', () => {
+        const state = calloutMemory({ byCapacity: true });
+        const said = (shells: number, max: number) => {
+            const d = picture([]);
+            d.panels['ammo-status'] = { fitted: true, ammo: { HiExpShell: { count: shells, max } } };
+            return referenceCallout(request('shells_low', 'shells_restocked'), d, undefined, 0.5, undefined, { state })
+                ?.choice;
+        };
+        expect([said(100, 100), said(14, 14), said(5, 14), said(9, 14), said(12, 14), said(13, 100)]).toEqual([
+            'silence',
+            'silence',
+            'shells_low',
+            'silence',
+            'shells_restocked',
+            'shells_low',
+        ]);
+    });
+});
+
+describe('captain docking to restock with a clear range', () => {
+    const options = request('undock', 'dock_for_repair', 'hold_here');
+    const said = (
+        state: ReturnType<typeof calloutMemory>,
+        ships: Ship[],
+        dockOrdered: boolean,
+        h = heard('shells_low'),
+    ) => referenceCallout(options, picture(ships), undefined, 5, undefined, { state, heard: h, dockOrdered })?.choice;
+
+    it('docks while the nearest enemy is beyond the range its brain names', () => {
+        const state = calloutMemory({ dockClearMeters: 10_000 });
+        expect(said(state, [station, { id: 'raider', x: 50_000 }], false)).toBe('dock_for_repair');
+        expect(said(calloutMemory({ dockClearMeters: 10_000 }), [station, { id: 'raider', x: 8_000 }], false)).toBe(
+            'silence',
+        );
+    });
+
+    it('casts off when an enemy comes inside that range', () => {
+        const state = calloutMemory({ dockClearMeters: 10_000 });
+        expect(said(state, [station, { id: 'raider', x: 50_000 }], true)).toBe('silence');
+        expect(said(state, [station, { id: 'raider', x: 8_000 }], true)).toBe('undock');
+    });
+});

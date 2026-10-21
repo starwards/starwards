@@ -117,6 +117,11 @@ export const brainSpecSchema = z
         repairs: z.enum(['reactor', 'all', 'magazine', 'magazine-retry']).optional(),
         /** Weapons: the reference rules fire the chain gun only at a locked target this close, metres; absent, the gun's own reach. */
         fireRangeMeters: z.number().positive().optional(),
+        /** Captain and weapons: how the shell stock is judged and when an enemy keeps the ship from docking to restock (see `Resupply`). */
+        resupply: z
+            .object({ byCapacity: z.boolean().optional(), dockClearMeters: z.number().positive().optional() })
+            .strict()
+            .optional(),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
         /**

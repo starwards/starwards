@@ -107,7 +107,11 @@ export function engineerChoice(command: string, key: string, display: Panels, st
  * while another repair is queued or running. With the `magazine` scope, the one that fixes the magazine's
  * capacity comes first.
  */
-function repairToQueue(display: Panels, slots: readonly RepairSlot[], scope: 'reactor' | 'all' | 'magazine' | 'magazine-retry') {
+function repairToQueue(
+    display: Panels,
+    slots: readonly RepairSlot[],
+    scope: 'reactor' | 'all' | 'magazine' | 'magazine-retry',
+) {
     if (slots.some((s) => s.priority !== 'OFF')) {
         return undefined;
     }

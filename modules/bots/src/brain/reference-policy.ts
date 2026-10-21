@@ -1,6 +1,6 @@
 import { Answer, Policy } from './brain';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
-import { SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
+import { Resupply, SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
 import { flightSeconds, stillFlying } from './salvo';
@@ -110,6 +110,7 @@ export function makeReferencePolicy(
     helms: HelmsStyle = REFERENCE_HELMS,
     shellPreference?: readonly string[],
     fireRangeMeters = FIRE_RANGE_METERS,
+    resupply?: Resupply,
 ): Policy {
     let lastFix: { id: string; position: XY } | undefined;
     let targetVelocity: XY = { x: 0, y: 0 };
@@ -117,7 +118,7 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
-    const talk = calloutMemory();
+    const talk = calloutMemory(resupply);
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
     return {

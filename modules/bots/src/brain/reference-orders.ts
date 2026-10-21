@@ -63,6 +63,15 @@ const DOCK_CLEAR_METERS = 100_000;
 /** Nor with the nearest allied station farther than this: the ship would be docking while the stations fall. */
 const DOCK_NEAR_METERS = 45_000;
 
+/**
+ * How a brain restocks, when it differs from the reference: `byCapacity` measures the shells against what the
+ * magazine holds now rather than the most it ever held (a restock fills only to that), and `dockClearMeters`
+ * is the range within which an enemy keeps the captain from docking and sends it off a dock.
+ */
+export type Resupply = { byCapacity?: boolean; dockClearMeters?: number };
+
+const resupplyOf = (p: Picture) => (p.memory.get('resupply') as Resupply | undefined) ?? {};
+
 /** The enemy the captain closes on: the one nearest an allied station in sight, else the nearest (as `closeOrder` fills it). */
 const closeTarget = (radar: Radar | undefined) => stationThreat(radar)?.enemy ?? nearestEnemy(radar);
 
@@ -167,7 +176,9 @@ function threatMoved(p: Picture) {
 function shellShare(p: Picture) {
     const stock = shellStock(p.display);
     if (!stock) return undefined;
-    const peak = Math.max(stock.max, (p.memory.get('shellCapacity') as number | undefined) ?? 0);
+    const peak = resupplyOf(p).byCapacity
+        ? stock.max
+        : Math.max(stock.max, (p.memory.get('shellCapacity') as number | undefined) ?? 0);
     p.memory.set('shellCapacity', peak);
     return peak > 0 ? stock.count / peak : undefined;
 }
@@ -180,7 +191,8 @@ function shellsLow(p: Picture) {
 }
 
 /** Captain: whether an enemy ship is within `DOCK_CLEAR_METERS`. */
-const enemyNear = (p: Picture) => (nearestEnemy(p.radar)?.distance ?? Infinity) < DOCK_CLEAR_METERS;
+const enemyNear = (p: Picture) =>
+    (nearestEnemy(p.radar)?.distance ?? Infinity) < (resupplyOf(p).dockClearMeters ?? DOCK_CLEAR_METERS);
 
 /** Captain: whether it keeps its last order because signals reported the enemy lost a moment ago. */
 function holdingOnLostContact(p: Picture) {
@@ -323,8 +335,8 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
 const CAPTAIN_HOLD = 'hold_here';
 
 /** What the seat remembers for its callouts: one per seat. */
-export function calloutMemory() {
-    return { memory: new Map<string, unknown>(), now: 0 };
+export function calloutMemory(resupply: Resupply = {}) {
+    return { memory: new Map<string, unknown>([['resupply', resupply]]), now: 0 };
 }
 
 /**
