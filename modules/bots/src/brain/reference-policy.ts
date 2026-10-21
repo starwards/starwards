@@ -122,6 +122,7 @@ export function makeReferencePolicy(
     fireRangeMeters = FIRE_RANGE_METERS,
     resupply?: Resupply,
     threatTarget = false,
+    guardCentre = false,
 ): Policy {
     let lastFix: { id: string; position: XY } | undefined;
     let targetVelocity: XY = { x: 0, y: 0 };
@@ -129,7 +130,7 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
-    const talk = calloutMemory(resupply, threatTarget);
+    const talk = calloutMemory(resupply, threatTarget, guardCentre);
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
     return {

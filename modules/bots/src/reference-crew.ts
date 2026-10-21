@@ -46,6 +46,7 @@ export function referenceSeat(spec: BrainSpec): SeatPlan {
                 spec.fireRangeMeters,
                 spec.resupply,
                 spec.threatTarget === true,
+                spec.guardCentre === true,
             ),
             spec.station,
         ),

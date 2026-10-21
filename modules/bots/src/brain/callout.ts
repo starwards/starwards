@@ -306,13 +306,41 @@ const calloutFills: Record<
         const enemy = nearestEnemy(radar as Radar | undefined);
         return enemy && { name: enemy.name };
     },
+    /** Captain: fly to the centre of the allied stations in sight, `distance` away on world `bearing`. */
+    guardOrder: ({ radar }) => {
+        const r = radar as Radar | undefined;
+        const centre = stationsCentre(r);
+        const own = r?.ownShip?.position;
+        if (!centre || !own) return undefined;
+        const dx = centre.x - own.x;
+        const dy = centre.y - own.y;
+        return {
+            name: 'the stations',
+            range: (GUARD_RANGE_METERS / 1000).toFixed(0),
+            distance: (Math.hypot(dx, dy) / 1000).toFixed(1),
+            bearing: bearingWords((Math.atan2(dy, dx) * 180) / Math.PI),
+        };
+    },
 };
 
-/** Allied stations on the radar: own-faction ships big enough to dock at. */
+/** How near the centre of the stations a guard order brings the ship, metres. */
+export const GUARD_RANGE_METERS = 1000;
+
+/** The centre of the allied stations on the radar, undefined with none in sight. */
+export function stationsCentre(r: Radar | undefined) {
+    const stations = alliedStations(r).filter((s) => s.position);
+    if (!stations.length) return undefined;
+    return {
+        x: stations.reduce((a, s) => a + s.position!.x, 0) / stations.length,
+        y: stations.reduce((a, s) => a + s.position!.y, 0) / stations.length,
+    };
+}
+
 /** The contact the speaking seat names in `supplied.target` (its own pick of the enemy), while the radar shows it. */
 const suppliedTarget = (r: Radar | undefined, supplied: FillValues | undefined) =>
     supplied?.target === undefined ? undefined : r?.contacts?.find((c) => c.name === supplied.target);
 
+/** Allied stations on the radar: own-faction ships big enough to dock at. */
 function alliedStations(r: Radar | undefined) {
     const own = r?.ownShip?.faction;
     return (r?.contacts ?? []).filter(

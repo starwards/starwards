@@ -472,6 +472,10 @@ const calloutRef = (v: Values, origin: XY | undefined): OrderRef => {
 const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => GivenOrder> = {
     close_to: (v, o) => ({ kind: 'close_to', params: { target: calloutRef(v, o), range: Number(v.range) * 1000 } }),
     hold_here: () => ({ kind: 'hold_here' }),
+    guard_station: (v, o) => ({
+        kind: 'close_to',
+        params: { target: calloutRef(v, o), range: Number(v.range) * 1000 },
+    }),
     engage: (v) => ({ kind: 'engage', params: { target: { name: v.name } } }),
     hold_fire: () => ({ kind: 'hold_fire' }),
     chase_target: (v, o) => ({ kind: 'chase_target', params: { target: calloutRef(v, o) } }),

@@ -1,4 +1,12 @@
-import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, stationThreat } from './callout';
+import {
+    CALLOUT_QUESTION,
+    GUARD_RANGE_METERS,
+    Heard,
+    SILENCE,
+    checkFireOf,
+    stationThreat,
+    stationsCentre,
+} from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy, shellStock } from './engagement';
 
@@ -72,6 +80,9 @@ const DOCK_NEAR_METERS = 45_000;
 export type Resupply = { byCapacity?: boolean; dockClearMeters?: number; lowShare?: number; restockedShare?: number };
 
 const resupplyOf = (p: Picture) => (p.memory.get('resupply') as Resupply | undefined) ?? {};
+
+/** A guarding captain sends the ship to the stations' centre only while it is farther off it than this. */
+const GUARD_SLACK_METERS = 3_000;
 
 /** An enemy this near an allied station closes on it. */
 const ATTACK_METERS = 20_000;
@@ -397,6 +408,18 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
      * so the ship never parks at missile range; not while a focus spreads the fight over several enemies.
      */
     chase_target: (p) => !p.focusOrdered && nearestEnemy(p.radar) !== undefined,
+    /**
+     * Captain with `guardCentre`: no enemy in sight, none reported lost a moment ago, no dock order, and the
+     * ship is off the centre of the allied stations in sight: the next raid may come at any of them.
+     */
+    guard_station: (p) => {
+        if (p.memory.get('guardCentre') !== true || p.dockOrdered || holdingOnLostContact(p) || nearestEnemy(p.radar)) {
+            return false;
+        }
+        const centre = stationsCentre(p.radar);
+        const own = p.radar?.ownShip?.position;
+        return !!centre && !!own && Math.hypot(centre.x - own.x, centre.y - own.y) > GUARD_SLACK_METERS;
+    },
     /** Captain: no enemy in sight, and none reported lost a moment ago. */
     hold_here: (p) => !holdingOnLostContact(p) && nearestEnemy(p.radar) === undefined,
 };
@@ -405,11 +428,12 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
 const CAPTAIN_HOLD = 'hold_here';
 
 /** What the seat remembers for its callouts: one per seat. */
-export function calloutMemory(resupply: Resupply = {}, threatTarget = false) {
+export function calloutMemory(resupply: Resupply = {}, threatTarget = false, guardCentre = false) {
     return {
         memory: new Map<string, unknown>([
             ['resupply', resupply],
             ['threatTarget', threatTarget],
+            ['guardCentre', guardCentre],
         ]),
         now: 0,
     };

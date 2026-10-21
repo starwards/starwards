@@ -21,7 +21,8 @@ import { z } from 'zod';
  * missiles a salvo keeps in flight), `focusOrder` (captain: the enemy ships in sight in the order to
  * fight them, nearest the most threatened allied station first when one is in sight), `allyAtRisk`
  * (weapons: the ally the targeting panel's check-fire line shows, its range, and whether it is in the
- * line of fire or by the target).
+ * line of fire or by the target), `guardOrder` (captain: the centre of the allied stations in sight, its
+ * distance and world bearing).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -41,6 +42,7 @@ export const calloutFills = [
     'salvoOrder',
     'focusOrder',
     'allyAtRisk',
+    'guardOrder',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
@@ -122,6 +124,8 @@ export const brainSpecSchema = z
          * an enemy is nearest to, and keep that station and its target until another clearly takes over (see `ThreatPick`).
          */
         threatTarget: z.boolean().optional(),
+        /** Captain: with no enemy in sight, the reference rules send the ship to the centre of the allied stations in sight instead of holding where it is. */
+        guardCentre: z.boolean().optional(),
         /** Helms: the reference rules park off the gun line of an allied station behind or before the target, so weapons need not hold fire on it. */
         clearLine: z.boolean().optional(),
         /** Captain and weapons: how the shell stock is judged and when an enemy keeps the ship from docking to restock (see `Resupply`). */
