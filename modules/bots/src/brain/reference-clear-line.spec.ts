@@ -23,7 +23,7 @@ const contact = (id: string, x: number, y: number, faction: number, radius: numb
 });
 
 /** The GVTS at the origin facing 0°, a still raider 3 km ahead, and an allied station `station` further on. */
-function display(station: { x: number; y: number }): Display {
+function display(station: { x: number; y: number }, raiderX = 3000): Display {
     return {
         panels: {
             'helms-stats': {
@@ -36,7 +36,7 @@ function display(station: { x: number; y: number }): Display {
         },
         radar: {
             ownShip: { id: 'GVTS', heading: 0, faction: 1, position: { x: 0, y: 0 } },
-            contacts: [contact('raider', 3000, 0, 2, 20), contact('station', station.x, station.y, 1, 1200)],
+            contacts: [contact('raider', raiderX, 0, 2, 20), contact('station', station.x, station.y, 1, 1200)],
         },
     };
 }
@@ -62,6 +62,27 @@ describe('reference helms clear line', () => {
 
     it('keeps the straight parking when the station is well off the line', async () => {
         expect(await choices(display({ x: 3000, y: 8000 }), true)).toMatchObject({ boost: 'forward', strafe: 'hold' });
+    });
+});
+
+describe('reference helms clear line from where the ship is', () => {
+    /** Raider 3 km ahead flying away along +x at 100 m/s: helms parks behind it, on the line it is already on. */
+    async function sidestep(station: { x: number; y: number }) {
+        const policy = makeReferencePolicy(1, undefined, 'reference', { ...REFERENCE_HELMS, clearLine: true });
+        const at = (x: number) => display(station, x);
+        const first = at(3000);
+        const controls = stationControls({ display: first, capabilities, burstSeconds: 1 });
+        await policy.answer({} as BrainRequest, controls, first, []);
+        const { answers } = await policy.answer({} as BrainRequest, controls, at(3100), []);
+        return answers.strafe.choice;
+    }
+
+    it('steps toward the side of a station beyond the target, swinging the line past it off it', async () => {
+        expect(await sidestep({ x: 7000, y: 600 })).toBe('right');
+    });
+
+    it('steps away from the side of a station between the ship and the target', async () => {
+        expect(await sidestep({ x: 1500, y: 600 })).toBe('left');
     });
 });
 

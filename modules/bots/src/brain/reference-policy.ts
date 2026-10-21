@@ -87,6 +87,8 @@ const FLUNG_SPEED = 0.9 * MAX_SPEED;
  * spot through the target fouls it (weapons calls check fire), so the pilot parks across the target from it.
  */
 const LINE_CLEARANCE_METERS = 600;
+/** How fast helms with `clearLine` steps across a fouled gun line. */
+const SIDESTEP_SPEED = MAX_PARKING_SPEED;
 /** A contact this wide is a station, not a ship. */
 const STATION_RADIUS_METERS = 200;
 
@@ -399,7 +401,10 @@ function parkingCommand(
     const spot = add(scale(behind, standoff), scale(across, weaveMeters * Math.sin(phase)));
     const gap = sub(spot, fromTarget);
     const weave = scale(across, weaveMeters * 2 * Math.PI * WEAVE_HZ * Math.cos(phase));
-    const closing = add(scale(gap, PARKING_GAIN), weave);
+    const parking = add(scale(gap, PARKING_GAIN), weave);
+    const step = clearLine ? sidestep(display, ship) : undefined;
+    // a fouled line: keep only the range-keeping part of the parking, and step across the line
+    const closing = step ? add(scale(step.fire, dot(parking, step.fire)), step.across) : parking;
     const capped = scale(closing, Math.min(1, MAX_PARKING_SPEED / Math.max(length(closing), 1)));
     return shipFrame(helms.maneuveringMode === VELOCITY ? add(capped, targetVelocity) : capped, heading);
 }
@@ -425,6 +430,32 @@ function clearOfStations(display: Display, ship: Contact, behind: XY, standoff: 
     }
     return behind;
 }
+
+const XY_ZERO = { x: 0, y: 0 };
+
+/**
+ * The velocity that swings the gun line from where the ship is now off the first allied station it fouls:
+ * square to the line, toward the station's side when it lies past the target (the line beyond pivots
+ * away from it) and away from it when it lies between.
+ */
+function sidestep(display: Display, ship: Contact) {
+    const own = display.radar?.ownShip?.position ?? XY_ZERO;
+    const line = sub(ship.position, own);
+    const fire = scale(line, 1 / Math.max(length(line), 1));
+    for (const station of display.radar?.contacts ?? []) {
+        if (!isAlly(station, display) || (station.radius ?? 0) < STATION_RADIUS_METERS) continue;
+        const rel = sub(station.position, own);
+        const along = rel.x * fire.x + rel.y * fire.y;
+        const side = fire.x * rel.y - fire.y * rel.x;
+        const clearance = (station.radius ?? 0) + LINE_CLEARANCE_METERS;
+        if (along <= 0 || along > FIRE_RANGE_METERS + clearance || Math.abs(side) > clearance) continue;
+        const toward = side >= 0 ? { x: -fire.y, y: fire.x } : { x: fire.y, y: -fire.x };
+        return { fire, across: scale(toward, along > length(line) ? SIDESTEP_SPEED : -SIDESTEP_SPEED) };
+    }
+    return undefined;
+}
+
+const dot = (a: XY, b: XY) => a.x * b.x + a.y * b.y;
 
 /** A world velocity as a maneuvering command: ship frame, fractions of top speed. */
 function shipFrame(world: XY, heading: number) {
