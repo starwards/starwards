@@ -1,6 +1,6 @@
 import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, stationThreat } from './callout';
 import { Contact, Radar } from './verbal';
-import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy } from './engagement';
+import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy, shellStock } from './engagement';
 
 import { Answer } from './brain';
 import { BrainRequest } from './request';
@@ -33,6 +33,8 @@ type Picture = {
     focusStation: string | undefined;
     /** Captain: the board holds a check fire order. */
     checkFireOrdered: boolean;
+    /** Captain: the board holds a dock order, under way or done. */
+    dockOrdered: boolean;
 };
 
 /** Seconds the captain keeps its last order after signals reports the enemy lost: a contact drops for a few seconds when the relaying station is hit. */
@@ -44,12 +46,22 @@ const CHECK_FIRE_REPEAT_SECONDS = 10;
 /** A wreck this near where the lost ship was last seen says the ship was destroyed, not lost. */
 const WRECK_METERS = 1000;
 const SHIP_RADIUS_METERS = 5;
+/** A contact this wide is a station a ship docks at. */
+const STATION_RADIUS_METERS = 200;
 /** The captain moves a standing focus to another station only once that station's nearest enemy is this much nearer than the focus station's. */
 const REFOCUS_MARGIN_METERS = 5000;
 /** Nor while an enemy is still this near the focus station: its attackers come first. */
 const STATION_HELD_METERS = 10_000;
 /** Seconds an enemy last seen near the focus station keeps the focus: far contacts drop off the radar for a decision or two. */
 const STATION_HELD_SECONDS = 30;
+
+/** Weapons calls the shells low below this share of the magazine, and restocked once they are back above `SHELLS_RESTOCKED`. */
+const SHELLS_LOW = 0.4;
+const SHELLS_RESTOCKED = 0.8;
+/** The captain docks to restock only with no enemy within this range, and casts off when one comes inside it. */
+const DOCK_CLEAR_METERS = 100_000;
+/** Nor with the nearest allied station farther than this: the ship would be docking while the stations fall. */
+const DOCK_NEAR_METERS = 45_000;
 
 /** The enemy the captain closes on: the one nearest an allied station in sight, else the nearest (as `closeOrder` fills it). */
 const closeTarget = (radar: Radar | undefined) => stationThreat(radar)?.enemy ?? nearestEnemy(radar);
@@ -148,6 +160,28 @@ function threatMoved(p: Picture) {
     return p.now - heldAt > STATION_HELD_SECONDS && held - threat.gap > REFOCUS_MARGIN_METERS;
 }
 
+/**
+ * Weapons: the share of the shells left, against the largest capacity the magazine showed: damage
+ * shrinks the capacity, and a magazine full to its shrunken capacity is still short of shells.
+ */
+function shellShare(p: Picture) {
+    const stock = shellStock(p.display);
+    if (!stock) return undefined;
+    const peak = Math.max(stock.max, (p.memory.get('shellCapacity') as number | undefined) ?? 0);
+    p.memory.set('shellCapacity', peak);
+    return peak > 0 ? stock.count / peak : undefined;
+}
+
+/** Captain: whether weapons last called the shells low (true) or restocked (false), as remembered across decisions. */
+function shellsLow(p: Picture) {
+    if (wasHeard(p, 'weapons.shells_low')) p.memory.set('shellsLow', true);
+    if (wasHeard(p, 'weapons.shells_restocked')) p.memory.set('shellsLow', false);
+    return p.memory.get('shellsLow') === true;
+}
+
+/** Captain: whether an enemy ship is within `DOCK_CLEAR_METERS`. */
+const enemyNear = (p: Picture) => (nearestEnemy(p.radar)?.distance ?? Infinity) < DOCK_CLEAR_METERS;
+
 /** Captain: whether it keeps its last order because signals reported the enemy lost a moment ago. */
 function holdingOnLostContact(p: Picture) {
     if (wasHeard(p, 'signals.contact_lost')) {
@@ -238,6 +272,32 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Captain: an enemy inside the launch envelope, by its own reckoning or as weapons reports it, not yet ordered engaged. */
     engage: (picture) =>
         !picture.focusOrdered && enemyInside(picture) === true && nearestEnemy(picture.radar)?.name !== picture.engaged,
+    /** Weapons: the shells fell below the low share of the capacity the magazine began with, since the last call. */
+    shells_low: (p) => {
+        const share = shellShare(p);
+        if (share === undefined || share >= SHELLS_LOW || p.memory.get('shellsLowSaid') === true) return false;
+        p.memory.set('shellsLowSaid', true);
+        return true;
+    },
+    /** Weapons: the shells are back above the restocked share after a low call. */
+    shells_restocked: (p) => {
+        const share = shellShare(p);
+        if (share === undefined || share < SHELLS_RESTOCKED || p.memory.get('shellsLowSaid') !== true) return false;
+        p.memory.set('shellsLowSaid', false);
+        return true;
+    },
+    /** Captain: weapons called the shells low, no enemy is near and an allied station is close: dock to restock. */
+    dock_for_repair: (p) => {
+        const station = (p.radar?.contacts ?? []).filter(
+            (c) =>
+                c.type === 'Spaceship' &&
+                c.faction === p.radar?.ownShip?.faction &&
+                (c.radius ?? 0) >= STATION_RADIUS_METERS,
+        );
+        return shellsLow(p) && !p.dockOrdered && !enemyNear(p) && station.some((c) => c.distance < DOCK_NEAR_METERS);
+    },
+    /** Captain: docked and the shells are restocked, or an enemy comes near: cast off. */
+    undock: (p) => p.dockOrdered && (!shellsLow(p) || enemyNear(p)),
     /** Captain: weapons calls check fire, and the board holds no check fire yet. */
     call_check_fire: (p) => !p.checkFireOrdered && lineFouled(p) === true,
     /** Captain: weapons calls the line clear, and the board still holds check fire. */
@@ -286,6 +346,7 @@ export function referenceCallout(
         focusOrdered = false,
         focusStation,
         checkFireOrdered = false,
+        dockOrdered = false,
     }: {
         heard?: readonly Heard[];
         state?: ReturnType<typeof calloutMemory>;
@@ -294,6 +355,7 @@ export function referenceCallout(
         focusOrdered?: boolean;
         focusStation?: string;
         checkFireOrdered?: boolean;
+        dockOrdered?: boolean;
     } = {},
 ): Answer | undefined {
     const options = Object.keys(request.questions?.[CALLOUT_QUESTION]?.criteria ?? {}).filter((o) => o in calloutRules);
@@ -316,10 +378,14 @@ export function referenceCallout(
         focusOrdered,
         focusStation,
         checkFireOrdered,
+        dockOrdered,
     };
     // a lost contact is noted whatever the captain says, so the hold covers the following decisions
     if (options.includes(CAPTAIN_HOLD)) {
         holdingOnLostContact(picture);
+    }
+    if (options.includes('dock_for_repair')) {
+        shellsLow(picture);
     }
     const choice = options.find((o) => calloutRules[o](picture)) ?? SILENCE;
     return {

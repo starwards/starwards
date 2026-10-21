@@ -1,6 +1,5 @@
 import { BrainSpec, CalloutFill } from './spec';
 import { Contact, Radar, offNose } from './verbal';
-import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 import {
     GUN_CLOSE_METERS,
     bearingWords,
@@ -11,6 +10,7 @@ import {
     nearestEnemy,
     offNoseWords,
 } from './engagement';
+import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';

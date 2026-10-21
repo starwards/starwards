@@ -401,6 +401,8 @@ export function captainOrdersFromBoard(
     focus?: boolean;
     /** The station a standing `nearest_to` focus picks by. */
     focusStation?: string;
+    /** The board holds a dock order that is under way or done: the ship is docking, docked or on its way. */
+    dock?: boolean;
 } {
     const board = readOrders(display);
     const m = board.orders.find((o) => o.slot === 'maneuver' && o.status === 'active');
@@ -430,6 +432,7 @@ export function captainOrdersFromBoard(
     const salvo = board.orders.find((o) => o.kind === 'salvo' && o.status === 'active');
     const focus = board.orders.find((o) => o.kind === 'focus' && o.status === 'active');
     const checkFire = board.orders.some((o) => o.kind === 'check_fire' && o.status === 'active');
+    const dock = board.orders.some((o) => o.kind === 'dock_for_repair' && o.status !== 'aborted');
     return {
         helm,
         engage:
@@ -438,6 +441,7 @@ export function captainOrdersFromBoard(
         ...(focus ? { focus: true } : {}),
         ...(focus?.params.station?.name !== undefined ? { focusStation: focus.params.station.name } : {}),
         ...(checkFire ? { checkFire: true } : {}),
+        ...(dock ? { dock: true } : {}),
         ...(salvo ? { salvo: salvo.params.count ?? SALVO_MISSILES } : {}),
     };
 }

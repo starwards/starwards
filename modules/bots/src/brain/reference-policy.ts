@@ -175,6 +175,7 @@ export function makeReferencePolicy(
                 focusOrdered: orders.focus === true,
                 focusStation: orders.focusStation,
                 checkFireOrdered: orders.checkFire === true,
+                dockOrdered: orders.dock === true,
             });
             previous = display;
             if (callout) {

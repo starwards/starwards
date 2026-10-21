@@ -94,6 +94,20 @@ export function missilesInMagazine(display: Display): number | undefined {
         : undefined;
 }
 
+/** The chain-gun shells in the magazine and the capacity they fit, from the ammo panel; undefined without the panel. */
+export function shellStock(display: Display): { count: number; max: number } | undefined {
+    const ammo = (
+        display.panels['ammo-status'] as { ammo?: Record<string, { count?: number; max?: number }> } | undefined
+    )?.ammo;
+    const shells = Object.entries(ammo ?? {}).filter(([kind]) => kind.endsWith('Shell'));
+    return shells.length
+        ? {
+              count: shells.reduce((sum, [, stock]) => sum + (stock.count ?? 0), 0),
+              max: shells.reduce((sum, [, stock]) => sum + (stock.max ?? 0), 0),
+          }
+        : undefined;
+}
+
 /**
  * How fast `contact` closes on the own ship along the line of sight (negative: opening), from where
  * the radar showed it a decision (`seconds`) ago.
