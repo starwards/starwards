@@ -1,4 +1,4 @@
-import { DockingMode, GameApi, Spaceship, XY } from '@starwards/core/internal';
+import { DockingMode, GameApi, Spaceship, XY, crewOrderCommands } from '@starwards/core/internal';
 import { FirstWave, WaveSetup, waveRung } from './wave-rung';
 
 import { STATIONS } from '../../scenarios/wave-defence';
@@ -8,7 +8,7 @@ import type { TrainingScenario } from './training-scenarios';
 /**
  * Scenario cuts of W-waves: short starts that put the crew straight into one known bottleneck, so a
  * single decision lever is measured over a few minutes of sim instead of a whole wave run. Each is the
- * wave_defence map with wave 1 brought in to {@link RAIDER_DISTANCE} of its target and the GVTS placed
+ * wave_defence map with wave `FIRST_WAVE` brought in to {@link RAIDER_DISTANCE} of its target (call it wave 1 below) and the GVTS placed
  * for the bottleneck; none passes (score them by their continuous wave fitness at the timeout).
  */
 const RAIDER_DISTANCE = 25_000;
@@ -65,18 +65,40 @@ const intercept = cut((game, { targetId }) => {
     placeGvts(game, other.id, towards(other.position, stationPosition(targetId)), STANDOFF);
 });
 
-/** (b) Undock: the GVTS is docked at another station, on its side facing wave 1's target. */
+/**
+ * The undock cut's reactor. W-waves seed 3 (captain-reference-resupply) docked on a quarter store with a
+ * reactor defect at 0.2-0.1 efficiency under more load; here 0.05 recharges the store from 0.25 to the
+ * engineer's thruster restart (0.5) in the same ~150 s.
+ */
+const UNDOCK_REACTOR_EFFICIENCY = 0.05;
+const UNDOCK_STORE = 0.25;
+
+/**
+ * (b) Undock: the GVTS is docked at another station, on its far side from wave 1's target, under the
+ * captain's dock order, with a reactor defect and a quarter store -- as in W-waves seed 3, where the
+ * engineer shut the thrusters down on that store and the ship sat 150 s in the clamp after casting off.
+ */
 const undock = cut((game, { targetId }) => {
     const [near] = otherStations(targetId);
     const gvts = mutable(game, TRAINING_PLAYER_ID);
     const station = mutable(game, near.id);
-    const bearing = towards(near.position, stationPosition(targetId));
+    const bearing = towards(stationPosition(targetId), near.position);
     gvts.position.setValue(XY.add(near.position, XY.scale(bearing, station.radius + gvts.radius + 5)));
     const docking = game.getShip(TRAINING_PLAYER_ID)!.state.docking;
     // The docking port faces the station: the ship turns so it lies at the port's angle.
     gvts.angle = XY.angleOf(XY.negate(bearing)) - docking.design.angle;
     docking.targetId = near.id;
     docking.mode = DockingMode.DOCKING;
+    const reactor = game.getShip(TRAINING_PLAYER_ID)!.state.reactor;
+    reactor.effeciencyFactor = UNDOCK_REACTOR_EFFICIENCY;
+    reactor.energy = UNDOCK_STORE * reactor.design.maxEnergy;
+    // As when the captain docked to restock: only a captain's own dock order is one it casts off from.
+    crewOrderCommands.issueOrder.setValue(game.getShip(TRAINING_PLAYER_ID)!.state, {
+        kind: 'dock_for_repair',
+        params: {
+            station: { name: near.id, position: { x: near.position.x, y: near.position.y }, radius: station.radius },
+        },
+    });
 });
 
 /** (c) Line of fire: the GVTS waits behind wave 1's target, the station between it and the raiders. */
@@ -95,18 +117,26 @@ const magazine = cut((game, wave1) => {
     game.getShip(TRAINING_PLAYER_ID)!.state.magazine.capacity = DEFECT_CAPACITY;
 });
 
+/** The cuts open on this wave of the map, not its two-fighter wave 1, so weaker crews lose stations within the timeout. */
+const FIRST_WAVE = 3;
+
 const cutRung = (name: string, setup: WaveSetup, description: string): TrainingScenario<never> =>
     waveRung({
         name,
         waveIntervalSeconds: 480,
         passWaves: Infinity,
+        firstWave: FIRST_WAVE,
         setup,
-        description: `W-waves cut: wave 1 starts ${RAIDER_DISTANCE / 1000} km from its target; ${description}. Never passes: score it by wave fitness at the timeout`,
+        description: `W-waves cut: wave ${FIRST_WAVE} starts ${RAIDER_DISTANCE / 1000} km from its target; ${description}. Never passes: score it by wave fitness at the timeout`,
     }) as TrainingScenario<never>;
 
 export const WAVE_CUTS = {
     'W-cut-intercept': cutRung('W-cut-intercept', intercept, 'the GVTS waits 3 km off another station, 60 km away'),
-    'W-cut-undock': cutRung('W-cut-undock', undock, 'the GVTS is docked at another station, 60 km away'),
+    'W-cut-undock': cutRung(
+        'W-cut-undock',
+        undock,
+        `the GVTS is docked at another station, 60 km away, on its far side, reactor efficiency ${UNDOCK_REACTOR_EFFICIENCY} and store ${UNDOCK_STORE}`,
+    ),
     'W-cut-lof': cutRung('W-cut-lof', lineOfFire, 'the GVTS waits 3 km behind it, the station in its line of fire'),
     'W-cut-magazine': cutRung(
         'W-cut-magazine',

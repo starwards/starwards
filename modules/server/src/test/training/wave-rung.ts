@@ -61,12 +61,15 @@ export function waveRung({
     name,
     waveIntervalSeconds,
     passWaves,
+    firstWave = 1,
     setup,
     description,
 }: {
     name: string;
     waveIntervalSeconds: number;
     passWaves: number;
+    /** The map's first spawn is this wave, at its strength. */
+    firstWave?: number;
     setup?: WaveSetup;
     description?: string;
 }): TrainingScenario<WaveRungParams> {
@@ -83,12 +86,12 @@ export function waveRung({
         let wave1: FirstWave | undefined;
         const waveMap = createWaveDefenceMap(
             mulberry32(waveSeed),
-            { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds },
+            { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds, firstWave },
             {
                 onWaveSpawned: (wave, shipIds, targetId) => {
                     wave1 ??= { targetId, raiderIds: shipIds };
-                    if (wave > 1 && !stationsLost) {
-                        survived = wave - 1;
+                    if (wave > firstWave && !stationsLost) {
+                        survived = wave - firstWave;
                     }
                     reached = wave;
                     shipIds.forEach((id) => raiders.add(id));

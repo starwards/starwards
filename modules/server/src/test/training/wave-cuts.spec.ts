@@ -43,6 +43,14 @@ describe('wave scenario cuts', () => {
         expect(XY.lengthOf(XY.difference(centre, target.position))).toBeCloseTo(25_000, -3);
     });
 
+    it.each(['W-cut-intercept', 'W-cut-undock', 'W-cut-lof', 'W-cut-magazine'])(
+        '%s opens on a wave heavier than the map wave 1 (two fighters)',
+        (name) => {
+            const { game } = started(name);
+            expect(raidersAndTarget(game).raiders.length).toBeGreaterThan(2);
+        },
+    );
+
     it('intercept: the GVTS waits 3 km off another station than the wave-1 target', () => {
         const { game } = started('W-cut-intercept');
         const { target } = raidersAndTarget(game);
@@ -58,6 +66,23 @@ describe('wave scenario cuts', () => {
         expect(docking.mode).toBe(DockingMode.DOCKED);
         expect(docking.targetId).not.toBe(target.id);
         expect(docking.targetId).not.toBe('');
+    });
+
+    it('undock: the board holds the captain dock order at that station, as when the captain docked to restock', () => {
+        const { game } = started('W-cut-undock');
+        game.tick(1 / 60);
+        const state = game.api.getShip(GVTS)!.state;
+        const dock = state.orderBoard.slots.get('navigation');
+        expect(dock).toMatchObject({ kind: 'dock_for_repair', issuer: 'captain' });
+        expect(dock!.status).not.toBe('aborted');
+        expect(dock!.params.station.name).toBe(state.docking.targetId);
+    });
+
+    it('undock: the GVTS starts on a quarter store with its reactor efficiency shot down to 0.05', () => {
+        const { game } = started('W-cut-undock');
+        const reactor = game.api.getShip(GVTS)!.state.reactor;
+        expect(reactor.energy / reactor.design.maxEnergy).toBeCloseTo(0.25, 2);
+        expect(reactor.effeciencyFactor).toBeCloseTo(0.05, 3);
     });
 
     it('line of fire: the GVTS sits 3 km behind the wave-1 target, the station between it and the raiders', () => {
