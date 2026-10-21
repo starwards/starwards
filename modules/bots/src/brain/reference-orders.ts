@@ -1,12 +1,4 @@
-import {
-    CALLOUT_QUESTION,
-    GUARD_RANGE_METERS,
-    Heard,
-    SILENCE,
-    checkFireOf,
-    stationThreat,
-    stationsCentre,
-} from './callout';
+import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, stationThreat, stationsCentre } from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy, shellStock } from './engagement';
 
