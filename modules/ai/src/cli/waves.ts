@@ -3,7 +3,7 @@
  * wave fitness (`scoring/wave-fitness.ts`): paired mean difference against the first crew, with its
  * t and bootstrap 95% intervals, per metric.
  *
- *   npm --prefix modules/ai run waves -- --scenario W-cut-lof --crew crews/a.json --crew crews/b.json [--seeds 16] [--first-seed 1] [--timeout 240] [--workers 2] [--out <dir>]
+ *   npm --prefix modules/ai run waves -- --scenario W-cut-lof --crew crews/a.json --crew crews/b.json [--seeds 16] [--first-seed 1] [--timeout 480] [--workers 2] [--out <dir>]
  *   npm --prefix modules/ai run waves -- --results <out>/<scenario>-waves.json [--baseline <crew>]
  *
  * Recordings land in `<out>/<crew>/<scenario>_seed<N>.sgr` (a frame every 5 s), the runs in
@@ -94,7 +94,7 @@ async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: strin
     const base = {
         crews,
         scenario,
-        timeoutSeconds: Number(arg('timeout', '240')),
+        timeoutSeconds: Number(arg('timeout', '480')),
         outDir,
         latencySeconds: Number(arg('latency', '0.2')),
     };
