@@ -217,8 +217,12 @@ async function main() {
             writeCrew(dir, 'mean', knobsOf(state.mean)),
             ...xs.map((x, i) => writeCrew(dir, `c${i}`, knobsOf(x))),
         ];
-        let workers = Math.max(2, Math.min(seeds, maxWorkers - othersWorkers(outDir)));
-        if (hostPressured()) workers = 2;
+        // the host's training workers stay within --max-workers across lanes: wait for a free one
+        let workers = Math.min(seeds, maxWorkers - othersWorkers(outDir));
+        while (workers < 1 || hostPressured()) {
+            await new Promise((r) => setTimeout(r, 60_000));
+            workers = Math.min(seeds, maxWorkers - othersWorkers(outDir));
+        }
         const started = Date.now();
         const runs = await playGeneration(dir, crews, Math.min(firstSeed, poolHi - seeds + 1), seeds, timeout, workers);
         sweep(dir);
