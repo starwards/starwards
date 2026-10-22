@@ -8,3 +8,4 @@ export * from './spatial-index';
 export * from './station-registration';
 export * from './radar-reach';
 export * from './snapshot-fetch';
+export * from './live-ship-intel';

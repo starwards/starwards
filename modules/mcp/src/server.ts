@@ -1,5 +1,6 @@
 import {
     Driver,
+    LiveShipIntel,
     ShipDriver,
     SpaceDriver,
     StationCommand,
@@ -210,10 +211,12 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
                 const shipDriver: ShipDriver = await driver.getShipDriver(shipId);
                 const spaceDriver: SpaceDriver = await driver.getSpaceDriver();
                 const radar = RadarView.fromDriver(spaceDriver);
+                const shipIntel = new LiveShipIntel((id) => driver.getShipDriver(id), shipDriver);
                 session = openStation(
                     manifest,
                     station,
-                    (seat, seatEntry) => new StationSession(seat, seatEntry, shipDriver, spaceDriver, { radar }),
+                    (seat, seatEntry) =>
+                        new StationSession(seat, seatEntry, shipDriver, spaceDriver, { radar, shipIntel }),
                 );
                 stationRegistrations.forEach((r) => r.dispose());
                 // a multiplexed seat takes each of its member seats on the GM roster

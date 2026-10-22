@@ -4,6 +4,7 @@ import {
     SmartPilotMode,
     StationRadarWidget,
     StationWidget,
+    TargetIntel,
     repairProtocols,
 } from '@starwards/core/internal';
 import { ORDERS_PANEL, OrdersBoard, ordersLines } from '../crew/orders';
@@ -284,6 +285,19 @@ const panelTemplates = {
                   .join('; ')}.`
             : `Scan queue empty${p.paused ? ' (PAUSED: nothing is being scanned)' : ''}.`,
     ],
+    'target-intel': (p: TargetIntel & { targetId: string | null }) => {
+        if (!p.targetId) return ['No contact marked for target details.'];
+        if (!p.design) {
+            return [`Target ${p.targetId}: ${p.intel === 'PENDING' ? 'internals loading' : 'no internals'}.`];
+        }
+        const { armor } = p.design;
+        const broken = armor.plates.filter((plate) => plate.broken).map((plate) => plate.index);
+        const freshness = p.intel === 'LIVE' ? 'live' : `last known ${Math.round(p.ageSeconds ?? 0)}s ago`;
+        return [
+            `Target ${p.targetId} (${freshness}): ${p.design.model}, ${p.design.tubes} tubes, ${p.design.chainGuns} guns.`,
+            `Armor ${armor.healthyPlates} of ${armor.numberOfPlates} plates holding${broken.length ? `; broken plates ${broken.join(', ')} (${armor.degreesPerPlate} degrees each)` : ''}.`,
+        ];
+    },
     'waypoint-groups': (p: Record<string, string[]>) => [
         `Waypoint groups: ${
             Object.entries(p)

@@ -8,10 +8,12 @@ import {
     withMultiplexedStations,
 } from '@starwards/bots';
 import {
+    ShipIntelSource,
     ShipState,
     SpaceState,
     StateCommand,
     crewOrderCommands,
+    decodeShipSnapshot,
     getSystems,
     handleJsonPointerCommand,
     repairCommands,
@@ -83,9 +85,28 @@ export function headlessStation(game: HeadlessGame, shipId: string, station: str
         command: (cmd, value) => cmd.setValue(spaceState, value),
     };
     const radar = new RadarView(game.spaceManager.spatialIndex, spaceState);
+    const shipIntel = inProcessShipIntel(game);
     return openStation(
         withMultiplexedStations(getStationsManifest(shipId)),
         botSeatScreen(station),
-        (seat, entry) => new StationSession(seat, entry, shipDriver, spaceDriver, { radar, wait: clock.wait }),
+        (seat, entry) =>
+            new StationSession(seat, entry, shipDriver, spaceDriver, { radar, wait: clock.wait, shipIntel }),
     );
+}
+
+/** Target internals straight from the game: live ship states, and the faction intel manager's snapshots. */
+function inProcessShipIntel(game: HeadlessGame): ShipIntelSource {
+    let decoded: { data: Uint8Array; state: ShipState } | undefined;
+    return {
+        live: (ship) => game.shipManagers.get(ship.id)?.state,
+        snapshot: (ship, faction) => {
+            const intel = game.spaceManager.factionIntel;
+            const snapshot = intel.getSnapshot(ship.id, faction);
+            if (!snapshot) return undefined;
+            if (decoded?.data !== snapshot.data) {
+                decoded = { data: snapshot.data, state: decodeShipSnapshot(snapshot.data) };
+            }
+            return { state: decoded.state, ageSeconds: intel.getSnapshotAge(ship.id, faction) ?? 0 };
+        },
+    };
 }
