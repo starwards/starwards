@@ -69,6 +69,37 @@ describe('reference weapons missile reserve', () => {
     });
 });
 
+describe('reference weapons missile escalation', () => {
+    it('is off by default: launches with no gunfire at the lock', async () => {
+        expect(REFERENCE_KNOB_DEFAULTS.MISSILE_ESCALATE_SECONDS).toBe(0);
+        expect(await fireTube(display(5))).toBe('fire');
+    });
+
+    it('MISSILE_ESCALATE_SECONDS holds launches until the gun fired that long at the lock', async () => {
+        setReferenceKnobs({ MISSILE_ESCALATE_SECONDS: 6 });
+        const policy = makeReferencePolicy(1);
+        for (let i = 0; i < 12; i++) expect(await fireTube(display(5), policy)).toBe('hold_fire');
+    });
+
+    it('launches once the gun fired MISSILE_ESCALATE_SECONDS at the lock', async () => {
+        setReferenceKnobs({ MISSILE_ESCALATE_SECONDS: 3 });
+        const gunCaps: Capabilities = {
+            commands: [...capabilities.commands, { command: 'fireChainGun', count: 1 }],
+        };
+        const policy = makeReferencePolicy(1);
+        const choices: string[] = [];
+        for (let i = 0; i < 6; i++) {
+            const shown = display(5);
+            const controls = stationControls({ display: shown, capabilities: gunCaps, burstSeconds: 1 });
+            const result = await policy.answer({} as BrainRequest, controls, shown);
+            const gun = Object.entries(result.answers).find(([id]) => id.startsWith('fireChainGun'))?.[1].choice;
+            choices.push(`${gun}/${result.answers['fireTube:0'].choice}`);
+        }
+        expect(choices.slice(0, 3)).toEqual(['fire/hold_fire', 'fire/hold_fire', 'fire/hold_fire']);
+        expect(choices[3]).toBe('fire/fire');
+    });
+});
+
 describe('reference weapons tube ammo fallback', () => {
     const tubeCaps: Capabilities = { commands: [{ command: 'changeTubeAmmo', count: 1 }] };
     const shown = (projectile: string, loading: number, stock: Record<string, number>): Display => ({

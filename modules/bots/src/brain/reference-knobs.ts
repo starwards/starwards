@@ -66,6 +66,8 @@ export const REFERENCE_KNOB_DEFAULTS = {
     MISSILE_RESERVE_SECONDS: 690,
     /** Above 0.5, weapons switches an empty tube to the next missile type with stock (HE, AP, Frag); else tubes keep their type. */
     TUBE_AMMO_FALLBACK: 0,
+    /** Weapons launches a missile only once its gun fired this many seconds at the current lock; 0 launches at once. */
+    MISSILE_ESCALATE_SECONDS: 0,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;

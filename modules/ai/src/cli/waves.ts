@@ -14,6 +14,7 @@ import { idealScript, parseIdeals } from '../training/ideal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { ammoTelemetry } from '../training/ammo-telemetry';
+import { missileTelemetry } from '../training/missile-telemetry';
 import { applyCacheFlags } from '../brain/jev-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
@@ -48,10 +49,12 @@ async function runJob(job: Job) {
             const [crewPath, ideals = ''] = crewSpec.split('#');
             const ideal = idealScript(parseIdeals(ideals));
             const telemetry = ammoTelemetry();
+            const missiles = missileTelemetry();
             let ended: HeadlessGame | undefined;
             const script = (game: HeadlessGame) => {
                 ideal?.(game);
                 telemetry.tick(game);
+                missiles.tick(game);
                 ended = game;
             };
             const started = Date.now();
@@ -75,6 +78,7 @@ async function runJob(job: Job) {
                 stationsLost: result.waves.stationsLost,
                 survived: result.waves.survived,
                 ammo: ended && telemetry.report(ended),
+                missiles: missiles.report(),
             });
         }
     }

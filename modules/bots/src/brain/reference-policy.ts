@@ -159,15 +159,18 @@ export function makeReferencePolicy(
                 orders.salvo !== undefined &&
                 salvo !== undefined &&
                 stillFlying(salvo.arrivals, seconds) >= orders.salvo;
-            const launchTube =
-                seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS && !salvoFull && !checkFire(display)
-                    ? tubeToLaunch(display, previous, decisionSeconds, seconds)
-                    : undefined;
-            const answers: Record<string, Answer> = {};
             const lockId = display.panels['targeting-status']?.targetId as string | undefined;
             if (lockId !== spend.lockId) spend.firedOn = 0;
             spend.lockId = lockId;
             spend.firstShells ??= shellsLeft(display);
+            const launchTube =
+                seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS &&
+                !salvoFull &&
+                !checkFire(display) &&
+                spend.firedOn >= referenceKnobs.MISSILE_ESCALATE_SECONDS
+                    ? tubeToLaunch(display, previous, decisionSeconds, seconds)
+                    : undefined;
+            const answers: Record<string, Answer> = {};
             let launched: SalvoTally | undefined;
             for (const control of controls) {
                 const choice =
