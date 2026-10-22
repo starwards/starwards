@@ -1,5 +1,5 @@
 import { Projectile, Vec2 } from '@starwards/core/internal';
-import { TRAINING_PLAYER_ID, createTrainingT1Map } from '@starwards/server/src/scenarios/training';
+import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '@starwards/server/src/scenarios/training';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { missileTelemetry } from './missile-telemetry';
@@ -8,7 +8,7 @@ function launch(game: HeadlessGame, secondsToLive?: number) {
     const missile = new Projectile('HiExpMissile');
     missile.init('test-missile', new Vec2(0, 0));
     missile.shipId = TRAINING_PLAYER_ID;
-    missile.targetId = game.spaceManager.state.getAll('Spaceship').find((s) => s.id !== TRAINING_PLAYER_ID)!.id;
+    missile.targetId = TRAINING_TARGET_ID;
     missile.secondsToLive = secondsToLive ?? missile.design.homing!.secondsToLive;
     game.spaceManager.insert(missile);
     return missile.targetId;

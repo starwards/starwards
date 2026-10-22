@@ -38,6 +38,7 @@ export function missileTelemetry() {
     const shellfire = new Map<string, { last: number; total: number }>();
     const diedAt = new Map<string, number>();
     let lastSeconds = 0;
+    let wasAlive = new Set<string>();
 
     const liveShip = (game: HeadlessGame, id: string | null) => {
         const s = id ? game.spaceManager.state.getShip(id) : undefined;
@@ -58,8 +59,12 @@ export function missileTelemetry() {
                 f.total += dt;
                 shellfire.set(locked, f);
             }
+            // a dead ship turns derelict: destroyed, or replaced by a new object
+            const alive = new Set<string>();
             for (const ship of game.spaceManager.state.getAll('Spaceship'))
-                if (ship.destroyed && !diedAt.has(ship.id)) diedAt.set(ship.id, now);
+                if (!ship.destroyed) alive.add(ship.id);
+            for (const id of wasAlive) if (!alive.has(id) && !diedAt.has(id)) diedAt.set(id, now);
+            wasAlive = alive;
             const seen = new Set<string>();
             for (const p of game.spaceManager.state.getAll('Projectile')) {
                 if (!isMissile(p) || p.shipId !== TRAINING_PLAYER_ID) continue;
