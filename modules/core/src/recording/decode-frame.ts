@@ -31,3 +31,10 @@ export async function decodeFrame<T extends Schema>(ctor: Constructor<T>, serial
     new ConstructingDecoder(obj).decode(await decodeRecordedBytes(serialized));
     return obj;
 }
+
+/** Decodes a recording frame's raw snapshot bytes (a binary recording's, or an inflated {@link decodeRecordedBytes}). */
+export function decodeFrameBytes<T extends Schema>(ctor: Constructor<T>, bytes: Uint8Array): T {
+    const obj = new ctor();
+    new ConstructingDecoder(obj).decode(bytes);
+    return obj;
+}

@@ -72,9 +72,9 @@ describe('Store', () => {
     it('ingest stores the recording header hz on the run row', async () => {
         const game = HeadlessGame.start(training_t0, 1);
         const recorder = new HeadlessRecorder(game, dir, 'hz', 0.1, undefined, 60);
-        await recorder.capture();
+        recorder.capture();
         game.tick(0.1);
-        await recorder.capture(true);
+        recorder.capture(true);
         const ingested = await ingest(path.join(dir, 'hz.duckdb'), recorder.filePath);
         const rows = await ingested.all<{ hz: number | null }>('SELECT hz FROM run');
         await ingested.close();

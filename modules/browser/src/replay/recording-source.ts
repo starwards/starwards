@@ -1,27 +1,21 @@
 import {
-    RecordingBaseLine,
     RecordingHeader,
-    RecordingSegLine,
     SPACE_ROOM_KEY,
     SavedGame,
-    decodeFrame,
-    decodeRecordedBytes,
+    decodeFrameBytes,
     decodeSegment,
-    parseBaseLine,
-    parseFrameLine,
-    parseHeader,
-    parseSegLine,
     reconstructSegment,
     recordingSchemaHash,
 } from '@starwards/core';
+import { parseRecords } from './read-records';
 
 const MAX_CACHED_FRAMES = 128;
 
 /** the patches after one keyframe (format v2), rebuilt into states all at once when first needed */
 interface Segment {
     keyframe: number;
-    base: RecordingBaseLine;
-    seg: RecordingSegLine;
+    base: Record<string, Uint8Array>;
+    seg: Uint8Array;
     /** indexes of this segment's states in the frame list */
     frames: number[];
 }
@@ -29,7 +23,7 @@ interface Segment {
 interface FrameEntry {
     t: number;
     /** a keyframe's encoded snapshot */
-    raw?: string;
+    raw?: Uint8Array;
     /** a state rebuilt from a segment's patches: `dt` after the segment's keyframe */
     segment?: Segment;
     dt?: number;
@@ -52,30 +46,20 @@ export class RecordingSource {
         private readonly frames: FrameEntry[],
     ) {}
 
-    static async parse(name: string, text: string): Promise<RecordingSource> {
-        const lines = text.split('\n').filter((l) => l.trim().length > 0);
-        if (lines.length === 0) {
+    static async parse(name: string, bytes: Uint8Array): Promise<RecordingSource> {
+        const records = await parseRecords(bytes);
+        const header = records.find((r) => r.kind === 'header')?.header;
+        if (!header) {
             throw new Error('empty recording');
         }
-        const header = parseHeader(lines[0]);
         const keyframes: FrameEntry[] = [];
-        const bases = new Map<number, RecordingBaseLine>();
-        const segs = new Map<number, RecordingSegLine>();
+        const bases = new Map<number, Record<string, Uint8Array>>();
+        const segs = new Map<number, Uint8Array>();
         const deltas = header.deltas === 1 && header.schemaHash === recordingSchemaHash();
-        for (const line of lines.slice(1)) {
-            const parsed = parseFrameLine(line);
-            if (parsed) {
-                keyframes.push({ t: parsed.t, raw: parsed.frame });
-                continue;
-            }
-            if (!deltas) continue;
-            const base = parseBaseLine(line);
-            if (base) {
-                bases.set(base.t, base);
-                continue;
-            }
-            const seg = parseSegLine(line);
-            if (seg) segs.set(seg.t, seg);
+        for (const record of records) {
+            if (record.kind === 'frame') keyframes.push({ t: record.t, raw: record.bytes });
+            else if (deltas && record.kind === 'base') bases.set(record.t, record.base);
+            else if (deltas && record.kind === 'seg') segs.set(record.t, record.bytes);
         }
         if (keyframes.length === 0) {
             throw new Error('recording has no frames');
@@ -88,7 +72,7 @@ export class RecordingSource {
             if (!base || !seg) continue;
             const until = keyframes[k + 1]?.t ?? Infinity;
             const segment: Segment = { keyframe: frames.length - 1, base, seg, frames: [] };
-            for (const dt of await stateTimes(base, seg)) {
+            for (const dt of stateTimes(base, seg)) {
                 if (dt <= 0 || keyframe.t + dt >= until) continue;
                 segment.frames.push(frames.length);
                 frames.push({ t: keyframe.t + dt, segment, dt });
@@ -143,7 +127,7 @@ export class RecordingSource {
             const entry = this.frames[index];
             const decoded = entry.segment
                 ? this.loadSegment(entry.segment, index)
-                : decodeFrame(SavedGame, entry.raw ?? '');
+                : Promise.resolve(decodeFrameBytes(SavedGame, entry.raw ?? new Uint8Array(0)));
             pending = decoded.then((frame) => {
                 this.loading.delete(index);
                 this.store(index, frame);
@@ -160,7 +144,7 @@ export class RecordingSource {
         const keyframe = await this.load(segment.keyframe);
         let byDt: Map<number, SavedGame>;
         try {
-            const states = await reconstructSegment(keyframe, segment.base, segment.seg);
+            const states = reconstructSegment(keyframe, segment.base, segment.seg);
             byDt = new Map(states.map((s) => [s.dt, s.game]));
         } catch {
             byDt = new Map(); // a bad segment: its keyframe stands in until the next one
@@ -181,10 +165,10 @@ export class RecordingSource {
 }
 
 /** game times (after the keyframe) of the states a segment holds: one per space room patch */
-async function stateTimes(base: RecordingBaseLine, seg: RecordingSegLine): Promise<number[]> {
-    const space = Object.keys(base.base).indexOf(SPACE_ROOM_KEY);
+function stateTimes(base: Record<string, Uint8Array>, seg: Uint8Array): number[] {
+    const space = Object.keys(base).indexOf(SPACE_ROOM_KEY);
     try {
-        const patches = decodeSegment(await decodeRecordedBytes(seg.seg));
+        const patches = decodeSegment(seg);
         return [...new Set(patches.filter((p) => p.room === space).map((p) => p.dt))];
     } catch {
         return [];

@@ -6,19 +6,25 @@ import {
     EVENTS_EXT,
     POWER_DRAW_EXPONENT,
     RECORDING_EXT,
+    RecordingRecord,
     parseEventLine,
-    parseFrameLine,
-    parseHeader,
     sidecarName,
     waitFor,
 } from '@starwards/core/internal';
 import { GameRecorder, RecordingConflictError, isRecordingFileName } from './game-recorder';
 import { makeDriver } from '../test/driver';
-import { writeV2Fixture } from '../test/v2-recording-fixture';
+import { readRecords } from './recording-file';
+import { writeTextRecording } from '../test/text-recording-fixture';
 
 async function readLines(filePath: string): Promise<string[]> {
     const content = await fs.readFile(filePath, 'utf-8');
     return content.split('\n').filter((l) => l.length > 0);
+}
+
+async function readSgr(filePath: string): Promise<RecordingRecord[]> {
+    const records: RecordingRecord[] = [];
+    for await (const record of readRecords(filePath)) records.push(record);
+    return records;
 }
 
 /** these cases pin the v1 (keyframes only) behavior; delta recording has its own spec */
@@ -49,10 +55,10 @@ describe('GameRecorder', () => {
         const filename = await recorder.startRecording();
 
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(true);
-        const lines = await readLines(path.join(tmpDir, filename));
+        const lines = await readSgr(path.join(tmpDir, filename));
         expect(lines).toHaveLength(2); // header + frame 0
-        expect(parseFrameLine(lines[1])).not.toBeNull();
-        expect(parseHeader(lines[0]).energyModel).toEqual({ powerDrawExponent: POWER_DRAW_EXPONENT });
+        expect(lines[1].kind).toBe('frame');
+        expect(lines[0]).toMatchObject({ header: { energyModel: { powerDrawExponent: POWER_DRAW_EXPONENT } } });
 
         await recorder.stopRecording();
     });
@@ -85,7 +91,7 @@ describe('GameRecorder', () => {
 
         await new Promise((res) => setTimeout(res, 200)); // let several intervals fire
 
-        const lines = await readLines(path.join(tmpDir, filename));
+        const lines = await readSgr(path.join(tmpDir, filename));
         expect(lines).toHaveLength(2); // header + frame 0 only, no duplicate frames written
 
         await recorder.stopRecording();
@@ -99,15 +105,15 @@ describe('GameRecorder', () => {
 
         await waitFor(
             async () => {
-                const lines = await readLines(path.join(tmpDir, filename));
+                const lines = await readSgr(path.join(tmpDir, filename));
                 if (lines.length < 3) throw new Error('waiting for more frames');
             },
             2000,
             20,
         );
 
-        const lines = await readLines(path.join(tmpDir, filename));
-        const frames = lines.slice(1).map((l) => parseFrameLine(l)!);
+        const lines = await readSgr(path.join(tmpDir, filename));
+        const frames = lines.flatMap((r) => (r.kind === 'frame' ? [r] : []));
         for (let i = 1; i < frames.length; i++) {
             expect(frames[i].t).toBeGreaterThan(frames[i - 1].t);
         }
@@ -157,9 +163,9 @@ describe('GameRecorder', () => {
         const filename = await recorder.startRecording();
         await recorder.stopRecording();
 
-        const linesAtStop = (await readLines(path.join(tmpDir, filename))).length;
+        const linesAtStop = (await readSgr(path.join(tmpDir, filename))).length;
         await new Promise((res) => setTimeout(res, 200)); // several intervals' worth
-        expect(await readLines(path.join(tmpDir, filename))).toHaveLength(linesAtStop);
+        expect(await readSgr(path.join(tmpDir, filename))).toHaveLength(linesAtStop);
     });
 
     it('stopRecording is idempotent', async () => {
@@ -193,7 +199,7 @@ describe('GameRecorder', () => {
 
         await waitFor(
             async () => {
-                const lines = await readLines(path.join(tmpDir, filename));
+                const lines = await readSgr(path.join(tmpDir, filename));
                 if (lines.length < 3) throw new Error('waiting for more frames');
             },
             2000,
@@ -208,14 +214,14 @@ describe('GameRecorder', () => {
         expect(recordings[0].durationSeconds).toBeGreaterThan(0);
     });
 
-    it('summarizes a format-v2 file by its keyframes only, also with a truncated delta tail', async () => {
+    it('summarizes a text-format file with delta lines by its keyframes only, also with a truncated delta tail', async () => {
         gameDriver.gameManager.state.speed = 1;
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
         const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15, keyframesOnly);
         const filename = await recorder.startRecording();
         await waitFor(
             async () => {
-                const lines = await readLines(path.join(tmpDir, filename));
+                const lines = await readSgr(path.join(tmpDir, filename));
                 if (lines.length < 4) throw new Error('waiting for more frames');
             },
             2000,
@@ -226,8 +232,11 @@ describe('GameRecorder', () => {
         const v2Dir = path.join(tmpDir, 'v2');
         await fs.mkdir(v2Dir);
         const v2Recorder = new GameRecorder(gameDriver.gameManager, v2Dir);
-        writeV2Fixture(path.join(tmpDir, filename), path.join(v2Dir, 'whole.sgr'));
-        writeV2Fixture(path.join(tmpDir, filename), path.join(v2Dir, 'truncated.sgr'), { truncateTail: true });
+        await writeTextRecording(path.join(tmpDir, filename), path.join(v2Dir, 'whole.sgr'), { deltas: true });
+        await writeTextRecording(path.join(tmpDir, filename), path.join(v2Dir, 'truncated.sgr'), {
+            deltas: true,
+            truncateTail: true,
+        });
 
         const summaries = await v2Recorder.listRecordings();
         expect(summaries).toHaveLength(2);
@@ -305,7 +314,7 @@ describe('GameRecorder', () => {
             const spy = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
                 if (typeof file === 'string' && file.endsWith(EVENTS_EXT)) {
                     const sgr = file.slice(0, -EVENTS_EXT.length) + RECORDING_EXT;
-                    headerFirst.push((await realFs.readFile(sgr, 'utf-8')).includes('starwards-recording'));
+                    headerFirst.push((await readSgr(sgr)).some((r) => r.kind === 'header'));
                 }
                 return appendFile(file, data, options);
             });

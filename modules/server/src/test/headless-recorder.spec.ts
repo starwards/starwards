@@ -5,18 +5,17 @@ import * as path from 'node:path';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import {
     RecordingEventLine,
+    RecordingHeader,
     SavedGame,
     XY,
     parseEventLine,
-    parseFrameLine,
-    parseHeader,
     sidecarName,
 } from '@starwards/core/internal';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
-
 import { HeadlessRecorder } from './headless-recorder';
+import { bytesToSchema } from '../serialization/game-state-serialization';
 import { decodeRecording } from './training/analysis/decode';
-import { stringToSchema } from '../serialization/game-state-serialization';
+import { readRecords } from '../recording/recording-file';
 
 const params: T0Params = { distance: 3000, bearing: 0 };
 const seed = 1;
@@ -33,19 +32,19 @@ describe('HeadlessRecorder', () => {
     /** Ground truth from live state: every projectile id seen after a tick. */
     const projectileIds = new Set<string>();
 
-    beforeAll(async () => {
+    beforeAll(() => {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), 'headless-recorder-'));
         const game = HeadlessGame.start(createTrainingT1Map(params), seed);
         recorder = new HeadlessRecorder(game, dir, `training_t1_seed${seed}`, 1, params, SERVER_TICK_HZ);
         const seen = new Set<string>();
-        await recorder.capture();
+        recorder.capture();
         while (game.seconds < timeoutSeconds) {
             game.tick(1 / SERVER_TICK_HZ);
             if (decisionAt === undefined && game.seconds >= 2.5) {
                 decisionAt = game.seconds;
                 recorder.record('decision', TRAINING_PLAYER_ID, decision);
             }
-            await recorder.capture();
+            recorder.capture();
             for (const p of game.spaceManager.state.getAll('Projectile')) {
                 projectileIds.add(p.id);
             }
@@ -64,12 +63,22 @@ describe('HeadlessRecorder', () => {
                 }
             }
         }
-        await recorder.capture(true);
+        recorder.capture(true);
     }, 60_000);
 
     afterAll(() => {
         fs.rmSync(dir, { recursive: true, force: true });
     });
+
+    async function readSgr(filePath: string) {
+        let header!: RecordingHeader;
+        const frames: { t: number; bytes: Uint8Array }[] = [];
+        for await (const record of readRecords(filePath)) {
+            if (record.kind === 'header') header = record.header;
+            else if (record.kind === 'frame') frames.push(record);
+        }
+        return { header, frames };
+    }
 
     const readEvents = () =>
         fs
@@ -79,10 +88,8 @@ describe('HeadlessRecorder', () => {
             .map((line) => parseEventLine(line)!);
 
     it('records a training run whose frames resume into the same trajectory', async () => {
-        const [headerLine, ...frameLines] = fs.readFileSync(recorder.filePath, 'utf-8').trim().split('\n');
-        const header = parseHeader(headerLine);
+        const { header, frames } = await readSgr(recorder.filePath);
         expect(header).toMatchObject({ mapName: 'training_t1', seed, params, hz: SERVER_TICK_HZ });
-        const frames = frameLines.map((line) => parseFrameLine(line)!);
         expect(frames.length).toBe(recorder.frameCount);
 
         // isFiring edges land at tick resolution, between 1 s frames, alternating start/stop per mount.
@@ -98,8 +105,8 @@ describe('HeadlessRecorder', () => {
 
         const branch = frames.find((f) => f.t >= 10)!;
         const end = frames.find((f) => f.t >= 12)!;
-        const saved = await stringToSchema(SavedGame, branch.frame);
-        const expected = await stringToSchema(SavedGame, end.frame);
+        const saved = bytesToSchema(SavedGame, branch.bytes);
+        const expected = bytesToSchema(SavedGame, end.bytes);
         const resumed = HeadlessGame.restore(
             saved,
             createTrainingT1Map(header.params as T0Params),
@@ -175,11 +182,9 @@ describe('HeadlessRecorder', () => {
     });
 
     it('keeps the .sgr replayable when extension events were recorded', async () => {
-        const [headerLine, ...frameLines] = fs.readFileSync(recorder.filePath, 'utf-8').trim().split('\n');
-        expect(() => parseHeader(headerLine)).not.toThrow();
-        // Replay readers count every non-header line as a frame, so each must be one.
-        expect(frameLines.every((line) => parseFrameLine(line) !== null)).toBe(true);
-        expect(frameLines.length).toBe(recorder.frameCount);
+        const { header, frames } = await readSgr(recorder.filePath);
+        expect(header.format).toBe('starwards-recording');
+        expect(frames.length).toBe(recorder.frameCount);
         let decoded = 0;
         for await (const _ of decodeRecording(recorder.filePath)) {
             decoded++;
@@ -187,13 +192,13 @@ describe('HeadlessRecorder', () => {
         expect(decoded).toBe(recorder.frameCount);
     });
 
-    it("records a crewed player ship's energy demand and grant with every frame", async () => {
+    it("records a crewed player ship's energy demand and grant with every frame", () => {
         const game = HeadlessGame.start(createTrainingT1Map(params), seed, { crewedPlayer: true });
         const crewed = new HeadlessRecorder(game, dir, 'crewed', 1, params, SERVER_TICK_HZ);
-        await crewed.capture();
+        crewed.capture();
         while (game.seconds < 5) {
             game.tick(1 / SERVER_TICK_HZ);
-            await crewed.capture();
+            crewed.capture();
         }
         const flows = fs
             .readFileSync(crewed.eventsPath, 'utf-8')

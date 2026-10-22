@@ -2,7 +2,8 @@ import { POWER_DRAW_EXPONENT } from '../ship/system';
 
 export interface RecordingHeader {
     format: 'starwards-recording';
-    version: 1;
+    /** `1`: text lines of gzip+base64 payloads; `2`: binary records in zstd frames (see `encodeRecord`). */
+    version: 1 | 2;
     mapName: string;
     startedAt: string;
     intervalMs: number;
@@ -157,7 +158,7 @@ export function encodeFrameLine(frame: RecordingFrameLine): string {
 
 export function parseHeader(line: string): RecordingHeader {
     const parsed = JSON.parse(line) as Partial<RecordingHeader>;
-    if (parsed.format !== 'starwards-recording' || parsed.version !== 1) {
+    if (parsed.format !== 'starwards-recording' || (parsed.version !== 1 && parsed.version !== 2)) {
         throw new Error(`not a starwards-recording header: ${line}`);
     }
     return parsed as RecordingHeader;

@@ -250,3 +250,18 @@ await waitForPropertyFloatValue(page, 'boostCommand', 0.05);
 **See:** [Testing Guide - E2E Anti-Patterns](testing/README.md#e2e-anti-patterns) for more details.
 
 **Related:** [API_REFERENCE.md](API_REFERENCE.md) | [PATTERNS.md](PATTERNS.md) | [Colyseus Docs](https://docs.colyseus.io/)
+
+## Recording File Formats (`.sgr`)
+
+Two on-disk formats, told apart by the first bytes; every reader accepts both through the same records
+(`RecordingRecord` in `modules/core/src/recording/recording-binary.ts`).
+
+| | Text (version 1) | Binary (version 2, written today) |
+| --- | --- | --- |
+| Starts with | `{` (JSON header line) | magic `SGR\x02` (`BINARY_MAGIC`) |
+| Layout | one JSON line per frame/base/seg; payloads gzip+base64 | `[u32 length][zstd level 3 frame]` chunks, each holding whole `encodeRecord` records with raw payloads |
+| Append/crash | a truncated last line is dropped | a truncated last chunk is dropped (each chunk is its own zstd frame, because decoders stop after the first frame of a concatenation) |
+
+- Node readers: `readRecords` (`modules/server/src/recording/recording-file.ts`), streaming; `payloads: false` skips inflating text frames when only counting.
+- Browser reader: `parseRecords` (`modules/browser/src/replay/read-records.ts`, zstd via `fzstd`).
+- Convert old files (recursive, idempotent, verified round-trip before replacing, `--out` to keep originals, `--dry-run` for the size saving): `npm --prefix modules/server run migrate-recordings -- <file|dir> [--out <dir>] [--dry-run]`.

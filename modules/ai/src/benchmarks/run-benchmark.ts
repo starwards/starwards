@@ -84,14 +84,14 @@ export async function runBenchmark(options: BenchmarkRunOptions): Promise<Benchm
     const crew = headlessCrew({ shipId: benchmark.shipId, seats, latencySeconds: options.latencySeconds });
     const scorer = benchmark.scorer();
     const dt = 1 / SERVER_TICK_HZ;
-    await recorder.capture();
+    recorder.capture();
     while (game.seconds < benchmark.timeoutSeconds && !scorer.done?.(game)) {
         await crew.beforeTick(game, recorder);
         game.tick(dt);
         scorer.sample(game, dt);
-        await recorder.capture();
+        recorder.capture();
     }
-    await recorder.capture(true);
+    recorder.capture(true);
     const own = Object.entries(crew.stats.controls).filter(([key]) => key.startsWith(`${spec.station}/`));
     return {
         benchmark: benchmark.name,

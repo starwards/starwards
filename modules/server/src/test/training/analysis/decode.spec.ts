@@ -6,21 +6,21 @@ import { decodeRecording, readRecordingHeader } from './decode';
 import { HeadlessGame } from '../../headless-game';
 import { HeadlessRecorder } from '../../headless-recorder';
 import { training_t0 } from '../../../scenarios/training';
-import { writeV2Fixture } from '../../v2-recording-fixture';
+import { writeTextRecording } from '../../text-recording-fixture';
 
 describe('decodeRecording', () => {
     let dir: string;
     let filePath: string;
 
-    beforeAll(async () => {
+    beforeAll(() => {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sw-analysis-decode-'));
         const game = HeadlessGame.start(training_t0, 1);
         const recorder = new HeadlessRecorder(game, dir, 'fixture', 0.1);
-        await recorder.capture();
+        recorder.capture();
         game.tick(0.1);
-        await recorder.capture();
+        recorder.capture();
         game.tick(0.1);
-        await recorder.capture();
+        recorder.capture();
         filePath = recorder.filePath;
     });
 
@@ -51,12 +51,10 @@ describe('decodeRecording', () => {
         expect(typeof gvtsPositionX?.num).toBe('number');
     });
 
-    it('drops a truncated tail line instead of throwing', async () => {
+    it('drops a truncated tail instead of throwing', async () => {
         const truncatedPath = path.join(dir, 'truncated.sgr');
-        const lines = fs.readFileSync(filePath, 'utf8').split('\n').filter(Boolean);
-        // header + first two frames intact, third frame line cut mid-way through.
-        const cut = lines[3].slice(0, Math.floor(lines[3].length / 2));
-        fs.writeFileSync(truncatedPath, [...lines.slice(0, 3), cut].join('\n') + '\n');
+        const bytes = fs.readFileSync(filePath);
+        fs.writeFileSync(truncatedPath, bytes.subarray(0, bytes.length - 10));
 
         const frames = [];
         for await (const frame of decodeRecording(truncatedPath)) {
@@ -65,15 +63,17 @@ describe('decodeRecording', () => {
         expect(frames).toHaveLength(2);
     });
 
-    it('reads a format-v2 file (delta lines, truncated tail) as exactly its keyframes', async () => {
-        const v2Path = path.join(dir, 'v2.sgr');
-        writeV2Fixture(filePath, v2Path, { truncateTail: true });
-        expect((await readRecordingHeader(v2Path)).deltas).toBe(1);
+    it.each([
+        ['a text-format file', {}],
+        ['a text-format file with delta lines and a truncated tail', { deltas: true, truncateTail: true }],
+    ])("reads %s as exactly the binary file's keyframes", async (_name, options) => {
+        const textPath = path.join(dir, 'text.sgr');
+        await writeTextRecording(filePath, textPath, options);
 
-        const v1 = [];
-        for await (const frame of decodeRecording(filePath)) v1.push(frame);
-        const v2 = [];
-        for await (const frame of decodeRecording(v2Path)) v2.push(frame);
-        expect(v2).toEqual(v1);
+        const binary = [];
+        for await (const frame of decodeRecording(filePath)) binary.push(frame);
+        const text = [];
+        for await (const frame of decodeRecording(textPath)) text.push(frame);
+        expect(text).toEqual(binary);
     });
 });

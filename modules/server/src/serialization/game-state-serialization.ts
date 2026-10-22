@@ -22,10 +22,15 @@ function reserveEncodeBuffer(size: number) {
     }
 }
 
-export async function schemaToString(fragment: Schema) {
+/** The whole-state encoding of `fragment`, as a copy that outlives the shared encode buffer. */
+export function schemaToBytes(fragment: Schema): Uint8Array {
     const encoded = new Encoder(fragment).encodeAll({ offset: 0 }, encodeBuffer);
     reserveEncodeBuffer(encoded.length);
-    const zipped = await do_gzip(Buffer.from(encoded));
+    return Uint8Array.from(encoded);
+}
+
+export async function schemaToString(fragment: Schema) {
+    const zipped = await do_gzip(Buffer.from(schemaToBytes(fragment)));
     return zipped.toString('base64');
 }
 type Constructor<T extends Schema> = new (...args: never[]) => T;
@@ -49,10 +54,17 @@ export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, ser
 }
 
 async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
-    const unzipped = await do_unzip(Buffer.from(serialized, 'base64'));
-    reserveEncodeBuffer(unzipped.length);
-    const decoder = new ConstructingDecoder(obj);
-    decoder.decode(Buffer.from(unzipped));
+    return bytesToSchemaObject(obj, await do_unzip(Buffer.from(serialized, 'base64')));
+}
+
+/** Inverse of {@link schemaToBytes}. */
+export function bytesToSchema<T extends Schema>(ctor: Constructor<T>, bytes: Uint8Array) {
+    return bytesToSchemaObject(new ctor(), bytes);
+}
+
+function bytesToSchemaObject<T extends Schema>(obj: T, bytes: Uint8Array) {
+    reserveEncodeBuffer(bytes.length);
+    new ConstructingDecoder(obj).decode(Buffer.from(bytes));
     return obj;
 }
 

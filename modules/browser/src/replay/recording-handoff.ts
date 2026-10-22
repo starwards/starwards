@@ -24,7 +24,7 @@ async function run<T>(mode: IDBTransactionMode, act: (store: IDBObjectStore) => 
     }
 }
 
-type PendingRecording = { name: string; text: string };
+type PendingRecording = { name: string; bytes: Uint8Array };
 
 /**
  * Passes a recording a user dropped on one page (the lobby) to the next (the player): a `File`

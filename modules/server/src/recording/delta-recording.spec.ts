@@ -4,44 +4,33 @@ import * as path from 'node:path';
 
 import { $changes, Schema } from '@colyseus/schema';
 import {
-    RecordingBaseLine,
-    RecordingFrameLine,
-    RecordingSegLine,
+    RecordingHeader,
     SavedGame,
-    decodeFrame,
-    parseBaseLine,
-    parseFrameLine,
-    parseHeader,
-    parseSegLine,
+    decodeFrameBytes,
     reconstructSegment,
     recordingSchemaHash,
     waitFor,
 } from '@starwards/core/internal';
 import { GameRecorder } from './game-recorder';
 import { RecordingSerializer } from './recording-serializer';
-import { gzipSync } from 'node:zlib';
 import { makeDriver } from '../test/driver';
 import { matchMaker } from '@colyseus/core';
-
-interface Recording {
-    frames: RecordingFrameLine[];
-    bases: RecordingBaseLine[];
-    segs: RecordingSegLine[];
-}
+import { readRecords } from './recording-file';
 
 async function readRecording(filePath: string) {
-    const [headerLine, ...lines] = (await fs.readFile(filePath, 'utf-8')).split('\n').filter((l) => l.length > 0);
-    const recording: Recording = { frames: [], bases: [], segs: [] };
-    for (const line of lines) {
-        const frame = parseFrameLine(line);
-        const base = parseBaseLine(line);
-        const seg = parseSegLine(line);
-        if (frame) recording.frames.push(frame);
-        else if (base) recording.bases.push(base);
-        else if (seg) recording.segs.push(seg);
-        else throw new Error(`unexpected line ${line.slice(0, 80)}`);
+    const recording = {
+        header: null as RecordingHeader | null,
+        frames: [] as { t: number; bytes: Uint8Array }[],
+        bases: [] as { t: number; base: Record<string, Uint8Array> }[],
+        segs: [] as { t: number; bytes: Uint8Array }[],
+    };
+    for await (const record of readRecords(filePath)) {
+        if (record.kind === 'header') recording.header = record.header;
+        else if (record.kind === 'frame') recording.frames.push(record);
+        else if (record.kind === 'base') recording.bases.push(record);
+        else recording.segs.push(record);
     }
-    return { header: parseHeader(headerLine), ...recording };
+    return { ...recording, header: recording.header! };
 }
 
 /** paths whose values differ; numbers compared with a tolerance relative to their magnitude */
@@ -127,7 +116,7 @@ describe('delta recording (SPEC-0006)', () => {
         const summary = await recorder.stopRecording();
 
         const { header, frames, bases, segs } = await readRecording(path.join(tmpDir, filename));
-        expect(header).toMatchObject({ version: 1, deltas: 1, patchRateMs: 50, schemaHash: recordingSchemaHash() });
+        expect(header).toMatchObject({ version: 2, deltas: 1, patchRateMs: 50, schemaHash: recordingSchemaHash() });
         expect(header.rooms).toEqual(expect.arrayContaining(['space', 'ship:GVTS', 'ship:GVTS2', 'ship:R2D2']));
         expect(frames.length).toBeGreaterThanOrEqual(3);
         expect(summary?.frameCount).toBe(frames.length);
@@ -137,13 +126,13 @@ describe('delta recording (SPEC-0006)', () => {
         for (let k = 0; k + 1 < frames.length; k++) {
             const seg = segs.find((s) => s.t === frames[k].t);
             if (!seg) throw new Error(`no segment for keyframe ${k}`);
-            const keyframe = await decodeFrame(SavedGame, frames[k].frame);
-            const states = await reconstructSegment(keyframe, bases[k], seg);
+            const keyframe = decodeFrameBytes(SavedGame, frames[k].bytes);
+            const states = reconstructSegment(keyframe, bases[k].base, seg.bytes);
             // 50 ms patches over a 1 s keyframe interval
             expect(states.length).toBeGreaterThan(10);
             const last = states[states.length - 1];
             expect(frames[k].t + last.dt).toBeCloseTo(frames[k + 1].t, 3);
-            const next = await decodeFrame(SavedGame, frames[k + 1].frame);
+            const next = decodeFrameBytes(SavedGame, frames[k + 1].bytes);
             expect(diffJson(last.game.fragment.space.toJSON(), next.fragment.space.toJSON())).toEqual([]);
             expect([...last.game.fragment.ship.keys()].sort()).toEqual([...next.fragment.ship.keys()].sort());
             // a ship room's base and patches run up to one patch interval apart from the space room's, so
@@ -160,15 +149,14 @@ describe('delta recording (SPEC-0006)', () => {
         await new Promise((res) => setTimeout(res, 700));
         await recorder.stopRecording();
         const { frames, bases, segs } = await readRecording(path.join(tmpDir, filename));
-        const keyframe = await decodeFrame(SavedGame, frames[0].frame);
+        const keyframe = decodeFrameBytes(SavedGame, frames[0].bytes);
         const seg = segs.find((s) => s.t === frames[0].t)!;
-        await expect(reconstructSegment(keyframe, bases[0], seg)).resolves.not.toHaveLength(0);
+        expect(reconstructSegment(keyframe, bases[0].base, seg.bytes)).not.toHaveLength(0);
 
-        const notGzip = { t: seg.t, seg: Buffer.from('not gzip').toString('base64') };
-        await expect(reconstructSegment(keyframe, bases[0], notGzip)).rejects.toThrow();
+        expect(() => reconstructSegment(keyframe, bases[0].base, Buffer.from('not a segment'))).toThrow();
         // a patch addressing a refId the base never had
-        const badRef = gzipSync(Buffer.from([0, 0, 0, 0, 0, 1, 0, 0, 0, 255, 200, 99, 1, 2])).toString('base64');
-        await expect(reconstructSegment(keyframe, bases[0], { t: seg.t, seg: badRef })).rejects.toThrow();
+        const badRef = Buffer.from([0, 0, 0, 0, 0, 1, 0, 0, 0, 255, 200, 99, 1, 2]);
+        expect(() => reconstructSegment(keyframe, bases[0].base, badRef)).toThrow();
     });
 
     it('does not record deltas without the flag', async () => {

@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import * as readline from 'node:readline';
 
+import { BINARY_FILE_MAGIC, encodeRecordChunk, readRecords } from './recording-file';
 import {
     EVENTS_EXT,
     RECORDING_EXT,
@@ -11,25 +11,16 @@ import {
     SegmentPatch,
     createLogger,
     currentEnergyModel,
-    encodeBaseLine,
     encodeEventLine,
-    encodeFrameLine,
-    encodeHeader,
-    encodeSegLine,
     encodeSegment,
     isRecordingName,
-    parseFrameLine,
-    parseHeader,
     recordingSchemaHash,
     sidecarName,
 } from '@starwards/core/internal';
 import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import { GameManager } from '../admin/game-manager';
-import { createReadStream } from 'node:fs';
-import { gzip } from 'node:zlib';
 import { matchMaker } from '@colyseus/core';
-import { promisify } from 'node:util';
-import { schemaToString } from '../serialization/game-state-serialization';
+import { schemaToBytes } from '../serialization/game-state-serialization';
 
 const { error: logError } = createLogger('server:game-recorder');
 
@@ -76,9 +67,6 @@ interface Segment {
 const BASE_WAIT_MS = 250;
 /** How long `startRecording` waits for the space room's first patch before recording keyframes only. */
 const FIRST_KEYFRAME_WAIT_MS = 2000;
-
-const do_gzip = promisify(gzip);
-const gz64 = async (bytes: Uint8Array) => (await do_gzip(bytes)).toString('base64');
 
 /**
  * Records a running game to a JSONL file on a wall-clock interval, for later replay
@@ -188,7 +176,7 @@ export class GameRecorder implements PatchTap {
             ![...RecordingSerializer.live].some((s) => s.filtered);
         const header: RecordingHeader = {
             format: 'starwards-recording',
-            version: 1,
+            version: 2,
             mapName: savedGame.mapName,
             startedAt,
             intervalMs: this.intervalMs,
@@ -206,7 +194,10 @@ export class GameRecorder implements PatchTap {
         this.manager.state.isRecordingGame = true;
         this.manager.state.recordingName = filename;
         this.manager.state.recordingSeconds = 0;
-        const headerWrite = fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
+        const headerPath = this.filePath;
+        const headerWrite = encodeRecordChunk({ kind: 'header', header }).then((chunk) =>
+            fs.writeFile(headerPath, Buffer.concat([BINARY_FILE_MAGIC, chunk])),
+        );
         // events from here on queue behind the header: written once the .sgr exists, so a failed
         // start leaves no orphan sidecar
         this.headerWritten = headerWrite.then(
@@ -409,9 +400,9 @@ export class GameRecorder implements PatchTap {
         if (this.lastWrittenT !== null && t === this.lastWrittenT) {
             return;
         }
-        const frame = await schemaToString(savedGame);
+        const chunk = await encodeRecordChunk({ kind: 'frame', t, bytes: schemaToBytes(savedGame) });
         if (this.filePath !== filePath) return; // finalized (or restarted) while serializing
-        await fs.appendFile(filePath, encodeFrameLine({ t, frame }), 'utf-8');
+        await fs.appendFile(filePath, chunk);
         this.lastWrittenT = t;
         this.manager.state.recordingSeconds = t;
     }
@@ -460,7 +451,8 @@ export class GameRecorder implements PatchTap {
         this.segment = segment;
         this.lastWrittenT = t;
         this.manager.state.recordingSeconds = t;
-        this.enqueue(async () => encodeFrameLine({ t, frame: await schemaToString(savedGame) }));
+        const bytes = schemaToBytes(savedGame);
+        this.enqueue(() => encodeRecordChunk({ kind: 'frame', t, bytes }));
         const onFirstKeyframe = this.onFirstKeyframe;
         if (onFirstKeyframe) {
             this.onFirstKeyframe = null;
@@ -478,14 +470,12 @@ export class GameRecorder implements PatchTap {
             segment.baseWritten = true;
             segment.pending.clear();
             const { t } = segment;
-            const entries = segment.rooms.map((s) => [s.key, segment.bases.get(s.key)] as const);
-            this.enqueue(async () => {
-                const base: Record<string, string> = {};
-                for (const [key, bytes] of entries) {
-                    if (bytes) base[key] = await gz64(bytes);
-                }
-                return encodeBaseLine({ t, base });
-            });
+            const base: Record<string, Uint8Array> = {};
+            for (const s of segment.rooms) {
+                const bytes = segment.bases.get(s.key);
+                if (bytes) base[s.key] = bytes;
+            }
+            this.enqueue(() => encodeRecordChunk({ kind: 'base', t, base }));
         }
         if (prev) this.writeSeg(prev);
     }
@@ -493,49 +483,42 @@ export class GameRecorder implements PatchTap {
     private writeSeg(segment: Segment) {
         const { t, patches } = segment;
         if (patches.length === 0) return;
-        this.enqueue(async () => encodeSegLine({ t, seg: await gz64(encodeSegment(patches)) }));
+        const bytes = encodeSegment(patches);
+        this.enqueue(() => encodeRecordChunk({ kind: 'seg', t, bytes }));
     }
 
-    private enqueue(line: () => Promise<string>) {
+    private enqueue(chunk: () => Promise<Buffer>) {
         const filePath = this.filePath;
         if (!filePath) return;
         this.writes = this.writes
             .then(async () => {
-                const text = await line();
-                if (this.filePath === filePath) await fs.appendFile(filePath, text, 'utf-8');
+                const bytes = await chunk();
+                if (this.filePath === filePath) await fs.appendFile(filePath, bytes);
             })
             .catch((e: unknown) => logError(`error writing recording line:`, e));
     }
 }
 
 /**
- * Reads a recording's header and counts its frame lines for the total length. Delta lines (`base`,
- * `seg`) and a truncated tail line are not frames, so only lines that parse as a frame count.
+ * Reads a recording's header and counts its keyframes for the total length. Delta records (`base`, `seg`)
+ * and a truncated tail are not frames.
  */
 async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
-    const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
-    const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
     let header: RecordingHeader | null = null;
     let frameCount = 0;
     let lastT = 0;
     try {
-        for await (const line of rl) {
-            if (!line) continue;
-            if (!header) {
-                header = parseHeader(line);
-                continue;
+        for await (const record of readRecords(filePath, { payloads: false })) {
+            if (record.kind === 'header') {
+                header = record.header;
+            } else if (record.kind === 'frame') {
+                frameCount++;
+                lastT = record.t;
             }
-            const frame = parseFrameLine(line);
-            if (!frame) continue;
-            frameCount++;
-            lastT = frame.t;
         }
     } catch (e) {
         logError(`can't read recording ${filePath}:`, e);
         return null;
-    } finally {
-        rl.close();
-        fileStream.close();
     }
     if (!header) return null;
     const summary: RecordingSummary = {

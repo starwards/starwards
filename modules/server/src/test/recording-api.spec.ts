@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { sidecarName, waitFor } from '@starwards/core/internal';
+import { isBinaryRecording, sidecarName, waitFor } from '@starwards/core/internal';
 import { test_map_1, two_vs_one } from '../maps';
 
 import { HTTP_CONFLICT_STATUS } from '../server';
@@ -154,8 +154,16 @@ describe('recording HTTP API (issue #2101)', () => {
         await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
         await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
 
-        const res = await supertest(gameDriver.httpServer).get(`/recordings/${name}`).expect(200);
-        expect(res.text.split('\n')[0]).toContain('starwards-recording');
+        const res = await supertest(gameDriver.httpServer)
+            .get(`/recordings/${name}`)
+            .buffer(true)
+            .parse((r, done) => {
+                const chunks: Buffer[] = [];
+                r.on('data', (chunk: Buffer) => chunks.push(chunk));
+                r.on('end', () => done(null, Buffer.concat(chunks)));
+            })
+            .expect(200);
+        expect(isBinaryRecording(res.body as Buffer)).toBe(true);
 
         await supertest(gameDriver.httpServer).get('/recordings/no-such-recording.sgr').expect(HTTP_NOT_FOUND_STATUS);
         for (const bad of ['notes.txt', '.sgr', '..%2F..%2Fetc%2Fpasswd']) {
