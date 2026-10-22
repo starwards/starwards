@@ -10,7 +10,10 @@
  * `<out>/<scenario>-waves.json`, the report in `<out>/<scenario>-waves.md`.
  */
 import { WaveRun, waveCompareSection } from '../training/wave-compare';
+import { idealScript, parseIdeals } from '../training/ideal';
 
+import { HeadlessGame } from '@starwards/server/src/test/headless-game';
+import { ammoTelemetry } from '../training/ammo-telemetry';
 import { applyCacheFlags } from '../brain/jev-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
@@ -18,7 +21,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { playCrewTraining } from '../training/train-crew';
 import { waveFitness } from '../scoring/wave-fitness';
-import { idealScript, parseIdeals } from '../training/ideal';
 
 type Job = {
     crews: string[];
@@ -44,7 +46,14 @@ async function runJob(job: Job) {
         for (const crewSpec of job.crews) {
             // `<crew.json>#<ideal>,<ideal>` plays the crew on an idealized GVTS (training/ideal.ts)
             const [crewPath, ideals = ''] = crewSpec.split('#');
-            const script = idealScript(parseIdeals(ideals)) ?? undefined;
+            const ideal = idealScript(parseIdeals(ideals));
+            const telemetry = ammoTelemetry();
+            let ended: HeadlessGame | undefined;
+            const script = (game: HeadlessGame) => {
+                ideal?.(game);
+                telemetry.tick(game);
+                ended = game;
+            };
             const started = Date.now();
             const result = await playCrewTraining(crewPath, {
                 script,
@@ -52,7 +61,8 @@ async function runJob(job: Job) {
                 seed,
                 timeoutSeconds: job.timeoutSeconds,
                 latencySeconds: job.latencySeconds,
-                outDir: job.outDir,
+                // each variant records into its own dir: the crew's name alone is shared across variants
+                outDir: ideals ? path.join(job.outDir, ideals.replace(/,/g, '+')) : job.outDir,
                 intervalSimSeconds: 5,
             });
             if (!result.waves) throw new Error(`${job.scenario} is not a wave rung`);
@@ -64,6 +74,7 @@ async function runJob(job: Job) {
                 passed: result.waves.passedAt !== null,
                 stationsLost: result.waves.stationsLost,
                 survived: result.waves.survived,
+                ammo: ended && telemetry.report(ended),
             });
         }
     }

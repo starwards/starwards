@@ -1,9 +1,21 @@
 import { WAVE_METRICS, WaveFitness, bootstrapMeanCI } from '../scoring/wave-fitness';
 import { isSignificant, pairedComparison } from './paired';
 
+import type { AmmoReport } from './ammo-telemetry';
+
 /** One crew's run of one seed of a wave rung or cut, scored by its continuous fitness. */
 /** `passed`: the rung's pass bar (every station alive through its pass waves); absent from older results files. */
-export type WaveRun = { crew: string; seed: number; wallSeconds: number; fitness: WaveFitness; passed?: boolean; stationsLost?: number; survived?: number };
+export type WaveRun = {
+    crew: string;
+    seed: number;
+    wallSeconds: number;
+    fitness: WaveFitness;
+    passed?: boolean;
+    stationsLost?: number;
+    survived?: number;
+    /** How the GVTS spent its magazine (mmo-telemetry.ts). */
+    ammo?: AmmoReport;
+};
 
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(3)}`;
 const interval = ([low, high]: readonly number[]) => `[${signed(low)}, ${signed(high)}]`;
