@@ -82,4 +82,35 @@ describe('ammo telemetry', () => {
         expect(report.emptyAt.FragShell).toBeUndefined();
         expect(start).toBeGreaterThan(3);
     });
+
+    test('shells: shells refill, missiles do not', () => {
+        const { game, magazine, script } = setUp(['shells']);
+        magazine.setCount('HiExpShell', 0);
+        const missiles = magazine.getCount('HiExpMissile');
+        magazine.setCount('HiExpMissile', Math.max(0, missiles - 1));
+        script(game);
+        expect(magazine.getCount('HiExpShell')).toBe(magazine.getMax('HiExpShell'));
+        expect(magazine.getCount('HiExpMissile')).toBe(Math.max(0, missiles - 1));
+    });
+
+    test('missiles: missiles refill, shells do not', () => {
+        const { game, magazine, script } = setUp(['missiles']);
+        magazine.setCount('HiExpShell', 0);
+        magazine.setCount('HiExpMissile', 0);
+        script(game);
+        expect(magazine.getCount('HiExpShell')).toBe(0);
+        expect(magazine.getCount('HiExpMissile')).toBe(magazine.getMax('HiExpMissile'));
+    });
+
+    test('duty: shells are emptied in the pause half of every 20 s, refilled in the fire half', () => {
+        const { game, magazine, script } = setUp(['ammo', 'duty']);
+        script(game);
+        expect(magazine.getCount('HiExpShell')).toBe(magazine.getMax('HiExpShell'));
+        while (game.seconds < 11) game.tick(0.5);
+        script(game);
+        expect(magazine.getCount('HiExpShell')).toBe(0);
+        while (game.seconds < 21) game.tick(0.5);
+        script(game);
+        expect(magazine.getCount('HiExpShell')).toBe(magazine.getMax('HiExpShell'));
+    });
 });

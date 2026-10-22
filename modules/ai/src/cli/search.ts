@@ -7,11 +7,19 @@
  * same `--out` resumes.
  *
  *   npm --prefix modules/ai run search -- --out <dir> [--base crews/captain-reference-guard.json] [--lambda 8]
- *       [--seeds 16] [--timeout 1500] [--max-workers 12] [--generations 1000]
+ *       [--seeds 16] [--timeout 1500] [--max-workers 12] [--generations 1000] [--fitness lexicographic|composite]
+ *       [--promote 3]
+ *
+ * `--fitness lexicographic` (default) ranks by W-waves passes, then time to the first station loss on
+ * failed runs, then wave-3 station damage (`lexicographic-fitness.ts`); `composite` by the paired
+ * composite with the pass non-inferiority penalty. `--promote k` replays a generation's top k
+ * candidates on the whole tuning bank and keeps the best by lexicographic fitness as `champion` in
+ * the state (and `champion-knobs.json`); the defaults' tuning-bank fitness is played once and kept.
  */
 import { REFERENCE_KNOB_DEFAULTS, ReferenceKnobs } from '@starwards/bots';
 
 import { CompositeWeights, compositeCompare } from '../scoring/composite-fitness';
+import { LexicographicFitness, compareLexicographic, lexicographicFitness } from '../scoring/lexicographic-fitness';
 import { TUNING_SEEDS } from '../training/seed-banks';
 import { WaveRun } from '../training/wave-compare';
 
@@ -101,6 +109,10 @@ type State = {
     scales?: number[];
     path: number[];
     rngState: number;
+    /** The defaults' lexicographic fitness on the whole tuning bank (`--promote`). */
+    defaultOnBank?: LexicographicFitness;
+    /** Best promoted candidate on the whole tuning bank. */
+    champion?: { generation: number; knobs: Partial<ReferenceKnobs>; fitness: LexicographicFitness };
     history: {
         generation: number;
         firstSeed: number;
@@ -112,6 +124,10 @@ type State = {
         bestFitness: number;
         bestPasses: number;
         bestKnobs: Partial<ReferenceKnobs>;
+        /** Tuning-bank fitness of the promoted candidates (`--promote`). */
+        promoted?: { knobs: Partial<ReferenceKnobs>; fitness: LexicographicFitness }[];
+        /** Lexicographic fitness of the defaults, the mean and the best candidate. */
+        lexicographic?: Record<'default' | 'mean' | 'best', LexicographicFitness>;
         /** Mean HE and AP shells drawn in wave 2 per W-waves run, by crew (diagnostic only). */
         wave2Shells?: Record<string, number>;
     }[];
@@ -260,6 +276,9 @@ async function main() {
     const timeout = Number(arg('timeout', '1500'));
     const maxWorkers = Number(arg('max-workers', '12'));
     const generations = Number(arg('generations', '1000'));
+    const fitnessKind = arg('fitness', 'lexicographic');
+    const promote = Number(arg('promote', '0'));
+    if (fitnessKind !== 'lexicographic' && fitnessKind !== 'composite') throw new Error(`unknown --fitness ${fitnessKind}`);
 
     const mu = Math.floor(lambda / 2);
     const rawW = Array.from({ length: mu }, (_, i) => Math.log(mu + 0.5) - Math.log(i + 1));
@@ -308,7 +327,8 @@ async function main() {
         }
         const started = Date.now();
         const runs: Record<string, WaveRun[]> = {};
-        for (const [scenario, scenarioTimeout] of SCENARIOS) {
+        // the lexicographic fitness reads W-waves only
+        for (const [scenario, scenarioTimeout] of fitnessKind === 'lexicographic' ? SCENARIOS.slice(0, 1) : SCENARIOS) {
             const scenarioDir = path.join(dir, scenario);
             runs[scenario] = await playGeneration(
                 scenarioDir,
@@ -324,14 +344,20 @@ async function main() {
         const isPass = (r: WaveRun) => r.stationsLost === 0 && (r.survived ?? 0) >= 3;
         const passesOf = (crew: string) => runs['W-waves'].filter((r) => r.crew === crew && isPass(r)).length;
         /** Composite against the defaults in noise units, minus 1 when W-waves passes fall beyond non-inferiority. */
+        const lex = (crew: string) => lexicographicFitness(runs['W-waves'], crew);
         const score = (crew: string) => {
+            if (fitnessKind === 'lexicographic') return { fitness: passesOf(crew), passes: passesOf(crew) };
             if (crew === 'default') return { fitness: 0, passes: passesOf(crew) };
             const composite = compositeCompare(weights, runs, 'default', crew).composite.estimate;
             const base = new Map(runs['W-waves'].filter((r) => r.crew === 'default').map((r) => [r.seed, isPass(r)]));
             const lost = runs['W-waves'].filter((r) => r.crew === crew && base.get(r.seed) && !isPass(r)).length;
             return { fitness: composite - (lost > Math.floor((2 * seeds) / 64) ? 1 : 0), passes: passesOf(crew) };
         };
-        const ranked = xs.map((x, i) => ({ x, z: zs[i], ...score(`c${i}`) })).sort((a, b) => b.fitness - a.fitness);
+        const ranked = xs
+            .map((x, i) => ({ x, z: zs[i], lex: lex(`c${i}`), ...score(`c${i}`) }))
+            .sort((a, b) =>
+                fitnessKind === 'lexicographic' ? compareLexicographic(a.lex, b.lex) : b.fitness - a.fitness,
+            );
         const zMean = Array.from({ length: N }, (_, i) =>
             ranked.slice(0, mu).reduce((a, r, k) => a + w[k] * r.z[i], 0),
         );
@@ -348,6 +374,33 @@ async function main() {
                 return [crew, +(shells.reduce((a, b) => a + b, 0) / Math.max(1, rows.length)).toFixed(1)];
             }),
         );
+        let promoted: { knobs: Partial<ReferenceKnobs>; fitness: LexicographicFitness }[] | undefined;
+        if (promote > 0) {
+            const top = ranked.slice(0, promote).map((r, i) => ({ name: `p${i}`, knobs: knobsOf(r.x) }));
+            const bankCrews = [
+                ...(state.defaultOnBank ? [] : [writeCrew(dir, 'default', {})]),
+                ...top.map((t) => writeCrew(dir, t.name, t.knobs)),
+            ];
+            const bankDir = path.join(dir, 'W-waves-bank');
+            const bank = await playGeneration(
+                bankDir,
+                'W-waves',
+                bankCrews,
+                poolLo,
+                poolSize,
+                timeout,
+                Math.min(poolSize, Math.max(1, maxWorkers - othersWorkers(outDir))),
+            );
+            sweep(bankDir);
+            state.defaultOnBank ??= lexicographicFitness(bank, 'default');
+            promoted = top.map((t) => ({ knobs: t.knobs, fitness: lexicographicFitness(bank, t.name) }));
+            for (const p of promoted) {
+                if (!state.champion || compareLexicographic(p.fitness, state.champion.fitness) < 0) {
+                    state.champion = { generation: g, ...p };
+                }
+            }
+            fs.writeFileSync(path.join(outDir, 'champion-knobs.json'), JSON.stringify(state.champion!.knobs, null, 1));
+        }
         const d = score('default');
         const m = score('mean');
         state.history.push({
@@ -361,17 +414,26 @@ async function main() {
             bestFitness: ranked[0].fitness,
             bestPasses: ranked[0].passes,
             bestKnobs: knobsOf(ranked[0].x),
+            promoted,
+            lexicographic: { default: lex('default'), mean: lex('mean'), best: ranked[0].lex },
             wave2Shells,
         });
         state.generation = g + 1;
         fs.writeFileSync(statePath + '.tmp', JSON.stringify(state, null, 1));
         fs.renameSync(statePath + '.tmp', statePath);
         fs.writeFileSync(path.join(outDir, 'mean-knobs.json'), JSON.stringify(knobsOf(state.mean), null, 1));
+        const fmt = (f: LexicographicFitness) =>
+            `${f.passes}/${f.failHoldSeconds.toFixed(0)}s/${f.wave3StationDamage.toFixed(0)}`;
         process.stdout.write(
-            `gen ${g} seeds ${firstSeed}+${seeds} workers ${workers} wall ${((Date.now() - started) / 1000).toFixed(0)} s: ` +
+            `gen ${g} lex default ${fmt(lex('default'))} mean ${fmt(lex('mean'))} best ${fmt(ranked[0].lex)} | ` +
+                `seeds ${firstSeed}+${seeds} workers ${workers} wall ${((Date.now() - started) / 1000).toFixed(0)} s: ` +
                 `default ${d.fitness.toFixed(3)} (${d.passes}) mean ${m.fitness.toFixed(3)} (${m.passes}) ` +
                 `best ${ranked[0].fitness.toFixed(3)} (${ranked[0].passes}) sigma ${state.sigma.toFixed(3)} ` +
-                `wave-2 HE+AP default ${wave2Shells.default} mean ${wave2Shells.mean}\n`,
+                `wave-2 HE+AP default ${wave2Shells.default} mean ${wave2Shells.mean}` +
+                (promoted
+                    ? ` | bank default ${fmt(state.defaultOnBank!)} promoted ${promoted.map((p) => fmt(p.fitness)).join(' ')} champion ${fmt(state.champion!.fitness)}`
+                    : '') +
+                '\n',
         );
     }
 }

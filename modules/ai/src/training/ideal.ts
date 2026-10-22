@@ -1,4 +1,4 @@
-import { ShipState, getSystems, magazineStocks } from '@starwards/core/internal';
+import { ShipState, getSystems, magazineStocks, shellAmmoTypes } from '@starwards/core/internal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
@@ -15,8 +15,12 @@ import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
  * - `gvts`: the GVTS is invulnerable: armor, capsule and every system defect restored.
  * - `dmg2`: every enemy loses twice the armor and capsule it lost since the previous tick.
  * - `frag`: the GVTS holds no HE or AP shells, and its Frag shells never run dry.
+ * - `shells`: like `ammo`, but only the gun's shells are refilled; missiles run down as in play.
+ * - `missiles`: like `ammo`, but only missiles are refilled; shells run down as in play.
+ * - `duty`: the gun gets no shells during the second half of every 20 s (fire 10 s, pause 10 s);
+ *   apply after a refilling ideal, which restores them.
  */
-export const IDEALS = ['ammo', 'stock', 'cap', 'nohit', 'eff', 'gvts', 'dmg2', 'frag'] as const;
+export const IDEALS = ['ammo', 'stock', 'cap', 'nohit', 'eff', 'gvts', 'dmg2', 'frag', 'shells', 'missiles', 'duty'] as const;
 export type Ideal = (typeof IDEALS)[number];
 
 export function parseIdeals(spec: string): Ideal[] {
@@ -48,8 +52,10 @@ function setStock(magazine: Magazine, stock: (typeof magazineStocks)[number], va
     (magazine as unknown as Record<string, number>)[`count_${stock}`] = value;
 }
 
-function refill(state: ShipState) {
-    for (const at of magazineStocks) setStock(state.magazine, at, state.magazine.getMax(at));
+const isShell = (at: string) => (shellAmmoTypes as readonly string[]).includes(at);
+
+function refill(state: ShipState, which: (at: string) => boolean = () => true) {
+    for (const at of magazineStocks) if (which(at)) setStock(state.magazine, at, state.magazine.getMax(at));
 }
 
 function heal(state: ShipState) {
@@ -63,7 +69,9 @@ function heal(state: ShipState) {
 }
 
 function installHitRules(game: HeadlessGame, ideals: Ideal[]) {
-    const keepCapacity = ideals.some((i) => i === 'cap' || i === 'nohit' || i === 'ammo');
+    const keepCapacity = ideals.some(
+        (i) => i === 'cap' || i === 'nohit' || i === 'ammo' || i === 'shells' || i === 'missiles',
+    );
     const keepStock = ideals.includes('nohit');
     if (!keepCapacity) return;
     wrapMagazineHit(game, (original) => (magazine, damageId) => {
@@ -104,6 +112,11 @@ export function idealScript(ideals: Ideal[]): ((game: HeadlessGame) => void) | n
             if (ideals.includes('eff')) enlarge(player);
         }
         if (ideals.includes('ammo') || ideals.includes('stock')) refill(player);
+        if (ideals.includes('shells')) refill(player, isShell);
+        if (ideals.includes('missiles')) refill(player, (at) => !isShell(at));
+        if (ideals.includes('duty') && Math.floor(game.seconds / 10) % 2 === 1) {
+            for (const at of shellAmmoTypes) setStock(player.magazine, at, 0);
+        }
         if (ideals.includes('gvts')) heal(player);
         if (ideals.includes('frag')) {
             setStock(player.magazine, 'HiExpShell', 0);
