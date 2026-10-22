@@ -3,15 +3,10 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import {
-    RecordingEventLine,
-    RecordingHeader,
-    SavedGame,
-    XY,
-    parseEventLine,
-    sidecarName,
-} from '@starwards/core/internal';
+import { RecordingEventLine, RecordingHeader, SavedGame, XY, parseEventLine } from '@starwards/core/internal';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
+
+import { findSidecar, readSidecar } from '../recording/sidecar-file';
 import { HeadlessRecorder } from './headless-recorder';
 import { bytesToSchema } from '../serialization/game-state-serialization';
 import { decodeRecording } from './training/analysis/decode';
@@ -80,9 +75,13 @@ describe('HeadlessRecorder', () => {
         return { header, frames };
     }
 
+    it('writes its sidecar zstd-compressed beside the recording', () => {
+        expect(recorder.eventsPath).toBe(recorder.filePath.replace(/\.sgr$/, '.events.jsonl.zst'));
+        expect(findSidecar(recorder.filePath)).toBe(recorder.eventsPath);
+    });
+
     const readEvents = () =>
-        fs
-            .readFileSync(sidecarName(recorder.filePath), 'utf-8')
+        readSidecar(findSidecar(recorder.filePath)!)
             .split('\n')
             .filter((line) => line)
             .map((line) => parseEventLine(line)!);
@@ -200,8 +199,8 @@ describe('HeadlessRecorder', () => {
             game.tick(1 / SERVER_TICK_HZ);
             crewed.capture();
         }
-        const flows = fs
-            .readFileSync(crewed.eventsPath, 'utf-8')
+        crewed.capture(true);
+        const flows = readSidecar(crewed.eventsPath)
             .split('\n')
             .filter((line) => line)
             .map((line) => parseEventLine(line)!)

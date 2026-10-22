@@ -58,7 +58,7 @@ for (const shard of shards) {
     if (!fs.existsSync(report)) throw new Error(`${report} missing: that shard did not finish`);
     for (const r of JSON.parse(fs.readFileSync(report, 'utf8')) as CrewRunResult[]) {
         if (r.recording) {
-            // the recording and its sidecars (`<stem>.events.jsonl`); not the `.sgr.duckdb` query cache
+            // the recording and its sidecars (`<stem>.events.jsonl[.zst]`); not the `.sgr.duckdb` query cache
             const stem = path.basename(r.recording).replace(/\.sgr$/, '');
             fs.mkdirSync(path.join(runsOut, r.crew), { recursive: true });
             for (const file of fs.readdirSync(path.join(runs, r.crew))) {

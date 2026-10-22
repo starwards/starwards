@@ -1,7 +1,6 @@
 import { Answer, Capabilities, Display, Heard } from '@starwards/bots';
-import { RecordingEventLine, isRecordingName, parseEventLine, sidecarName } from '@starwards/core/internal';
-
-import fs from 'node:fs';
+import { RecordingEventLine, parseEventLine } from '@starwards/core/internal';
+import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 
 /** A `decision` event as the crew records it. */
 export type RecordedDecision = Answer & {
@@ -28,12 +27,11 @@ export type RecordedRequest = {
     heard?: Heard[];
 };
 
-/** Reads the decision events recorded beside a recording (`x.sgr` or its `x.events.jsonl`). */
+/** Reads the decision events recorded beside a recording (`x.sgr` or its sidecar, plain or `.zst`). */
 export function readDecisionLog(recordingPath: string) {
-    const sidecar = isRecordingName(recordingPath) ? sidecarName(recordingPath) : recordingPath;
-    const lines = fs
-        .readFileSync(sidecar, 'utf8')
-        .split('\n')
+    const sidecar = findSidecar(recordingPath);
+    if (!sidecar) throw new Error(`no events sidecar for ${recordingPath}`);
+    const lines = readSidecarLines(sidecar)
         .map(parseEventLine)
         .filter((l): l is RecordingEventLine => l !== null);
     const data = (kind: string) => lines.filter((l) => l.kind === kind).map((l) => ({ t: l.t, ...(l.data as object) }));

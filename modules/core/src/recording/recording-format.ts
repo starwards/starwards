@@ -183,6 +183,14 @@ export function parseFrameLine(line: string): RecordingFrameLine | null {
 /** File extension of the sidecar written beside a `.sgr` recording; replay readers never open it. */
 export const EVENTS_EXT = '.events.jsonl';
 
+/** File extension of a zstd-compressed sidecar; every sidecar reader accepts it as well as {@link EVENTS_EXT}. */
+export const EVENTS_ZST_EXT = EVENTS_EXT + '.zst';
+
+/** True for a sidecar's file name or path, plain or zstd-compressed. */
+export function isSidecarName(name: string) {
+    return name.endsWith(EVENTS_EXT) || name.endsWith(EVENTS_ZST_EXT);
+}
+
 /** File extension of a recording. */
 export const RECORDING_EXT = '.sgr';
 
@@ -195,6 +203,11 @@ export function isRecordingName(name: string) {
 export function sidecarName(recordingName: string) {
     const base = recordingName.endsWith(RECORDING_EXT) ? recordingName.slice(0, -RECORDING_EXT.length) : recordingName;
     return base + EVENTS_EXT;
+}
+
+/** The zstd-compressed sidecar's name (or path) beside a recording's, as {@link sidecarName}. */
+export function zstSidecarName(recordingName: string) {
+    return sidecarName(recordingName) + '.zst';
 }
 
 /**

@@ -16,7 +16,6 @@
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as readline from 'node:readline';
 
 import { CELLS, cellIndex, cellOf, timeToReach } from './grid';
 import {
@@ -27,9 +26,9 @@ import {
     threatCellFeatures,
 } from './inputs';
 import { duelOf, findDuel, integrity } from '../scoring/features';
+import { findSidecar, streamSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 import { readFrames } from '../scoring/recording';
 import { scoreSnapshot } from '../scoring/score';
-import { sidecarName } from '@starwards/core/internal';
 
 interface ManifestLine {
     path: string;
@@ -72,11 +71,10 @@ class Csv {
     }
 }
 
-async function readHits(file: string) {
+async function readHits(file: string | null) {
     const hits: { t: number; id: string }[] = [];
-    if (!fs.existsSync(file)) return undefined;
-    const rl = readline.createInterface({ input: fs.createReadStream(file, { encoding: 'utf8' }) });
-    for await (const line of rl) {
+    if (!file) return undefined;
+    for await (const line of streamSidecarLines(file)) {
         if (!line.includes('"blast_hit"')) continue;
         const e = JSON.parse(line) as { t: number; objectId: string };
         hits.push({ t: e.t, id: e.objectId });
@@ -89,7 +87,7 @@ const META = ['run_id', 'map', 'scenario', 'seed', 'policy', 't'];
 async function run(day: string, archive: string, line: ManifestLine, out: Record<'threat' | 'cells' | 'iso', Csv>) {
     const file = path.join(archive, day, line.path);
     const frames = await readFrames(file);
-    const hits = await readHits(sidecarName(file));
+    const hits = await readHits(findSidecar(file));
     const policies = new Set(Object.values(line.stations ?? {}).map((s) => s.policy));
     const policy = policies.has('jev') ? 'jev' : policies.size === 1 ? [...policies][0] : 'mixed';
     const scenario = line.outcome?.scenario ?? path.basename(line.path).replace(/_seed\d+\.sgr$|\.sgr$/, '');

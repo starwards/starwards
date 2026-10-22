@@ -1,11 +1,11 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-
-import { RECORDING_EXT, encodeEventLine, sidecarName } from '@starwards/core/internal';
+import { RECORDING_EXT, encodeEventLine, sidecarName, zstSidecarName } from '@starwards/core/internal';
 import { Store } from './store';
 import { computeEvents } from './events';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
+import { zstdCompressSync } from 'node:zlib';
 
 jest.setTimeout(30_000);
 
@@ -176,10 +176,25 @@ describe('computeEvents', () => {
     });
 
     /** Points `runId` at a `.sgr` path whose sidecar holds `lines`, the way a headless run's ingest does. */
-    function sidecar(lines: string[]) {
+    function sidecar(lines: string[], zst = false) {
         runId = path.join(dir, `${runId}${RECORDING_EXT}`);
-        fs.writeFileSync(sidecarName(runId), lines.join('\n') + '\n');
+        const text = lines.join('\n') + '\n';
+        if (zst) fs.writeFileSync(zstSidecarName(runId), zstdCompressSync(text));
+        else fs.writeFileSync(sidecarName(runId), text);
     }
+
+    it('ingests a zstd-compressed sidecar like a plain one', async () => {
+        await frame(0);
+        sidecar([encodeEventLine({ t: 1.5, kind: 'decision', objectId: 'GVTS', data: { z: 1 } }).trim()], true);
+        await computeEvents(store, runId);
+        const decisions = await store.all<{ t: number; detail_json: string }>(
+            "SELECT t, detail_json FROM event WHERE run_id = ? AND kind = 'decision'",
+            runId,
+        );
+        expect(decisions).toHaveLength(1);
+        expect(decisions[0].t).toBe(1.5);
+        expect(JSON.parse(decisions[0].detail_json)).toEqual({ z: 1 });
+    });
 
     it('ingests a custom-kind sidecar event with its full data as detail_json', async () => {
         await frame(0);

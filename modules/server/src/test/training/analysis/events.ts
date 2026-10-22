@@ -1,6 +1,5 @@
-import * as fs from 'node:fs';
-
-import { RecordingEventLine, isRecordingName, parseEventLine, sidecarName } from '@starwards/core/internal';
+import { RecordingEventLine, isRecordingName, parseEventLine } from '@starwards/core/internal';
+import { findSidecar, readSidecarLines } from '../../../recording/sidecar-file';
 import { Store } from './store';
 import { median } from '../gunnery-metrics';
 
@@ -133,20 +132,17 @@ function recordedDetail(event: RecordingEventLine): unknown {
 }
 
 /**
- * `null` when `recordingPath` has no `.events.jsonl` sidecar (e.g. a live-server recording);
+ * `null` when `recordingPath` has no sidecar (`.events.jsonl` or `.events.jsonl.zst`) (e.g. a live-server recording);
  * otherwise its parsed events and the number of lines that did not parse.
  */
 function readRecordedEvents(recordingPath: string): { events: RecordingEventLine[]; malformed: number } | null {
-    const sidecar = isRecordingName(recordingPath) ? sidecarName(recordingPath) : null;
-    if (!sidecar || !fs.existsSync(sidecar)) {
+    const sidecar = isRecordingName(recordingPath) ? findSidecar(recordingPath) : null;
+    if (!sidecar) {
         return null;
     }
     const events: RecordingEventLine[] = [];
     let malformed = 0;
-    for (const line of fs.readFileSync(sidecar, 'utf8').split('\n')) {
-        if (!line.trim()) {
-            continue;
-        }
+    for (const line of readSidecarLines(sidecar)) {
         const event = parseEventLine(line);
         if (event) {
             events.push(event);

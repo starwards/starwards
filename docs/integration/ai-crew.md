@@ -483,7 +483,7 @@ npm run read -- --recording <out>/<crew>/T0_seed1.sgr --station helms --t 40
   decisions, fallbacks, refused commands, input tokens and cost per crew; per control: choice counts
   and mean confidence) and `<out>/<scenario>-crews.json`.
 - A crew file (`crews/*.json`) names a policy and optionally a brain file per station.
-- Every run is recorded (`<out>/<crew>/<scenario>_seed<N>.sgr`). The `.events.jsonl` beside it holds,
+- Every run is recorded (`<out>/<crew>/<scenario>_seed<N>.sgr`). The zstd-compressed `.events.jsonl.zst` beside it (`zstd -dc` reads it) holds,
   besides fire and blast events, one `brain_request` per decision (raw display, capabilities,
   questions, brain id, version and hash, model, tokens, latency), one `decision` per control (choice,
   confidence, probabilities, source: `model` / `rule` / `fallback`) and one `command` per press (with
