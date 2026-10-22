@@ -385,10 +385,12 @@ function referenceChoice(
             const stock = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)
                 ?.ammo;
             const tube = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
-            if (!tube || !stock || tube.loading > 0) return 'wait';
+            const apFirst = referenceKnobs.TUBE_AMMO_AP_FIRST > 0.5;
+            // AP first: re-type any tube without a round in it, even one already reloading
+            if (!tube || !stock || (apFirst ? tube.loadedProjectile !== 'None' : tube.loading > 0)) return 'wait';
             const left = (type: string) => stock[type]?.count ?? 0;
-            if (left(tube.projectile) >= 1) return 'wait';
-            const wanted = TUBE_AMMO_ORDER.find((t) => left(t) >= 1);
+            if (!apFirst && left(tube.projectile) >= 1) return 'wait';
+            const wanted = (apFirst ? TUBE_AMMO_ORDER_AP_FIRST : TUBE_AMMO_ORDER).find((t) => left(t) >= 1);
             return wanted && tube.projectile !== wanted ? 'press' : 'wait';
         }
         case 'beamDirection':
@@ -579,6 +581,9 @@ function reserved(display: Display, missile: string, now: number) {
 
 /** Missile types an empty tube falls back to, best first (`TUBE_AMMO_FALLBACK`). */
 const TUBE_AMMO_ORDER = ['HiExpMissile', 'ArmPenMissile', 'FragMissile'];
+
+/** The tube order with `TUBE_AMMO_AP_FIRST`: AP missiles before HE. */
+const TUBE_AMMO_ORDER_AP_FIRST = ['ArmPenMissile', 'HiExpMissile', 'FragMissile'];
 
 /** The shell order while the gun spends Frag first, saving HE and AP. */
 const FRAG_FIRST = ['FragShell', 'HiExpShell', 'ArmPenShell'];

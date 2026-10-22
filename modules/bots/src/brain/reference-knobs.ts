@@ -68,6 +68,8 @@ export const REFERENCE_KNOB_DEFAULTS = {
     TUBE_AMMO_FALLBACK: 0,
     /** Weapons launches a missile only once its gun fired this many seconds at the current lock; 0 launches at once. */
     MISSILE_ESCALATE_SECONDS: 0,
+    /** Above 0.5 (with `TUBE_AMMO_FALLBACK`), tubes load AP missiles first, then HE, then Frag. */
+    TUBE_AMMO_AP_FIRST: 0,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;
