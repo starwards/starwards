@@ -73,7 +73,9 @@ describe('reference weapons tube ammo fallback', () => {
     const tubeCaps: Capabilities = { commands: [{ command: 'changeTubeAmmo', count: 1 }] };
     const shown = (projectile: string, loading: number, stock: Record<string, number>): Display => ({
         panels: {
-            'tubes-status': [{ index: 0, projectile, loadedProjectile: loading ? projectile : 'None', loading, bearing: 0 }],
+            'tubes-status': [
+                { index: 0, projectile, loadedProjectile: loading ? projectile : 'None', loading, bearing: 0 },
+            ],
             'ammo-status': {
                 fitted: true,
                 ammo: Object.fromEntries(Object.entries(stock).map(([k, count]) => [k, { count, max: 20 }])),
