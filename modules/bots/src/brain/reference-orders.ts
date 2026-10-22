@@ -1,3 +1,4 @@
+import { referenceKnobs } from './reference-knobs';
 import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, stationThreat, stationsCentre } from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy, shellStock } from './engagement';
@@ -38,7 +39,6 @@ type Picture = {
 };
 
 /** Seconds the captain keeps its last order after signals reports the enemy lost: a contact drops for a few seconds when the relaying station is hit. */
-const CONTACT_LOST_HOLD_SECONDS = 15;
 /** Seconds between two weapons reports that the locked ship is still beyond the envelope. */
 const OUT_OF_ENVELOPE_REPEAT_SECONDS = 10;
 /** Seconds between two weapons check-fire calls while an ally stays at risk. */
@@ -49,14 +49,10 @@ const SHIP_RADIUS_METERS = 5;
 /** A contact this wide is a station a ship docks at. */
 const STATION_RADIUS_METERS = 200;
 /** The captain moves a standing focus to another station only once that station's nearest enemy is this much nearer than the focus station's. */
-const REFOCUS_MARGIN_METERS = 5000;
 /** Nor while an enemy is still this near the focus station: its attackers come first. */
-const STATION_HELD_METERS = 10_000;
 /** Seconds an enemy last seen near the focus station keeps the focus: far contacts drop off the radar for a decision or two. */
-const STATION_HELD_SECONDS = 30;
 
 /** Weapons calls the shells low below this share of the magazine, and restocked once they are back above `SHELLS_RESTOCKED`. */
-const SHELLS_LOW = 0.4;
 const SHELLS_RESTOCKED = 0.8;
 /** The captain docks to restock only with no enemy within this range, and casts off when one comes inside it. */
 const DOCK_CLEAR_METERS = 100_000;
@@ -74,12 +70,9 @@ export type Resupply = { byCapacity?: boolean; dockClearMeters?: number; lowShar
 const resupplyOf = (p: Picture) => (p.memory.get('resupply') as Resupply | undefined) ?? {};
 
 /** A guarding captain sends the ship to the stations' centre only while it is farther off it than this. */
-const GUARD_SLACK_METERS = 3_000;
 
 /** An enemy this near an allied station closes on it. */
-const ATTACK_METERS = 20_000;
 /** The captain moves its target to another enemy of the same station only once that one is this much nearer the station. */
-const RETARGET_MARGIN_METERS = 3_000;
 
 type ThreatPick = { station: Contact; enemy: Contact };
 
@@ -87,9 +80,9 @@ const apart = (a: Contact, b: Contact) =>
     a.position && b.position ? Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y) : Infinity;
 
 /**
- * Captain with `threatTarget`: the station the most enemies are within `ATTACK_METERS` of, and the enemy
+ * Captain with `threatTarget`: the station the most enemies are within `referenceKnobs.ATTACK_METERS` of, and the enemy
  * nearest it. The remembered station holds until another has strictly more enemies on it, or none is left
- * on it; the remembered enemy holds until another is `RETARGET_MARGIN_METERS` nearer the station. With no
+ * on it; the remembered enemy holds until another is `referenceKnobs.RETARGET_MARGIN_METERS` nearer the station. With no
  * enemy on any station, undefined. Picked once per decision.
  */
 function threatPick(p: Picture): ThreatPick | undefined {
@@ -103,7 +96,7 @@ function threatPick(p: Picture): ThreatPick | undefined {
             (c.radius ?? 0) >= STATION_RADIUS_METERS &&
             c.position,
     );
-    const on = (s: Contact) => enemies.filter((e) => apart(e, s) <= ATTACK_METERS);
+    const on = (s: Contact) => enemies.filter((e) => apart(e, s) <= referenceKnobs.ATTACK_METERS);
     const nearest = (s: Contact) => Math.min(...on(s).map((e) => apart(e, s)));
     const ranked = stations
         .filter((s) => on(s).length > 0)
@@ -117,7 +110,7 @@ function threatPick(p: Picture): ThreatPick | undefined {
         const held = before?.station.name === station.name && on(station).find((e) => e.name === before.enemy.name);
         pick = {
             station,
-            enemy: held && apart(held, station) - RETARGET_MARGIN_METERS <= apart(best, station) ? held : best,
+            enemy: held && apart(held, station) - referenceKnobs.RETARGET_MARGIN_METERS <= apart(best, station) ? held : best,
         };
     }
     p.memory.set('threatPick', pick);
@@ -224,11 +217,11 @@ function threatMoved(p: Picture) {
         .filter((c) => isEnemyShip(c, p.radar) && c.position)
         .map((c) => Math.hypot(c.position!.x - focus.position!.x, c.position!.y - focus.position!.y));
     const held = Math.min(...gaps);
-    if (held <= STATION_HELD_METERS) {
+    if (held <= referenceKnobs.STATION_HELD_METERS) {
         p.memory.set('focusHeldAt', p.now);
     }
     const heldAt = (p.memory.get('focusHeldAt') as number | undefined) ?? -Infinity;
-    return p.now - heldAt > STATION_HELD_SECONDS && held - threat.gap > REFOCUS_MARGIN_METERS;
+    return p.now - heldAt > referenceKnobs.STATION_HELD_SECONDS && held - threat.gap > referenceKnobs.REFOCUS_MARGIN_METERS;
 }
 
 /**
@@ -259,7 +252,7 @@ const enemyNear = (p: Picture) =>
 /** Captain: whether it keeps its last order because signals reported the enemy lost a moment ago. */
 function holdingOnLostContact(p: Picture) {
     if (wasHeard(p, 'signals.contact_lost')) {
-        p.memory.set('lostUntil', p.now + CONTACT_LOST_HOLD_SECONDS);
+        p.memory.set('lostUntil', p.now + referenceKnobs.CONTACT_LOST_HOLD_SECONDS);
     }
     return nearestEnemy(p.radar) === undefined && p.now < ((p.memory.get('lostUntil') as number | undefined) ?? -1);
 }
@@ -352,7 +345,7 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
         const share = shellShare(p);
         if (
             share === undefined ||
-            share >= (resupplyOf(p).lowShare ?? SHELLS_LOW) ||
+            share >= (resupplyOf(p).lowShare ?? referenceKnobs.SHELLS_LOW) ||
             p.memory.get('shellsLowSaid') === true
         )
             return false;
@@ -410,7 +403,7 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
         }
         const centre = stationsCentre(p.radar);
         const own = p.radar?.ownShip?.position;
-        return !!centre && !!own && Math.hypot(centre.x - own.x, centre.y - own.y) > GUARD_SLACK_METERS;
+        return !!centre && !!own && Math.hypot(centre.x - own.x, centre.y - own.y) > referenceKnobs.GUARD_SLACK_METERS;
     },
     /** Captain: no enemy in sight, and none reported lost a moment ago. */
     hold_here: (p) => !holdingOnLostContact(p) && nearestEnemy(p.radar) === undefined,

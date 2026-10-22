@@ -5,6 +5,7 @@ export { ENGINEER_POLICIES, makeEngineerPolicy } from './brain/engineer-policies
 export { HELMS_POLICIES, type HelmsPolicyName, makeHelmsPolicy } from './brain/helms-policies';
 export { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './brain/missile-envelope';
 export { makeReferencePolicy } from './brain/reference-policy';
+export { REFERENCE_KNOB_DEFAULTS, type ReferenceKnobs, setReferenceKnobs } from './brain/reference-knobs';
 export { type BrainRequest, buildRequest } from './brain/request';
 export { type BrainSpec, brainSpecSchema, loadBrainSpec } from './brain/spec';
 export { offNose, verbalReader } from './brain/verbal';

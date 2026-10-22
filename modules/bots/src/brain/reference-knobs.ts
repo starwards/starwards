@@ -1,0 +1,64 @@
+/**
+ * The reference crew's numeric thresholds, gathered so a parameter search (modules/ai `search`) can
+ * set them per run. Production plays {@link REFERENCE_KNOB_DEFAULTS}; nothing outside a search
+ * harness calls {@link setReferenceKnobs}.
+ */
+export const REFERENCE_KNOB_DEFAULTS = {
+    /** Weapons fires the gun while the target is within this many degrees of the nose. */
+    FIRE_ARC_DEGREES: 2,
+    /** Weapons launches at most one missile per this many seconds. */
+    LAUNCH_INTERVAL_SECONDS: 10,
+    /** Helms parks this far from an enemy. */
+    STANDOFF_METERS: 500,
+    /** Helms parks this far from an enemy while a missile can be launched at it. */
+    ARMED_STANDOFF_METERS: 4000,
+    /** Amplitude of helms' combat weave. */
+    WEAVE_METERS: 400,
+    /** Frequency of helms' combat weave. */
+    WEAVE_HZ: 0.08,
+    /** Helms flies at speed beyond this much past its standoff, else parks. */
+    PURSUIT_METERS: 1500,
+    /** Clearance helms and weapons keep the gun line off an allied station's hull. */
+    LINE_CLEARANCE_METERS: 600,
+    /** Weapons holds fire while a chain gun is hotter than this. */
+    GUN_HOLD_HEAT: 85,
+    /** Proportional gain of helms' parking. */
+    PARKING_GAIN: 0.3,
+    /** Captain refocuses on a nearer station threat only after the held one is this much farther. */
+    REFOCUS_MARGIN_METERS: 5000,
+    /** Captain keeps a focus while an enemy is within this of the held station. */
+    STATION_HELD_METERS: 10_000,
+    /** Captain keeps a focus at least this long after an enemy was near the held station. */
+    STATION_HELD_SECONDS: 30,
+    /** Captain sends the ship to restock below this share of shells. */
+    SHELLS_LOW: 0.4,
+    /** Captain orders the guard move when the ship is farther than this from the stations' centre. */
+    GUARD_SLACK_METERS: 3000,
+    /** Captain counts an enemy within this of a station as attacking it. */
+    ATTACK_METERS: 20_000,
+    /** Captain switches target only to an enemy this much nearer the station. */
+    RETARGET_MARGIN_METERS: 3000,
+    /** Captain keeps its order this long after a contact is reported lost. */
+    CONTACT_LOST_HOLD_SECONDS: 15,
+    /** Engineer lowers a chain gun's power at this heat. */
+    GUN_BACKOFF_HEAT: 60,
+    /** Engineer restores a chain gun's power below this heat. */
+    GUN_RELEASE_HEAT: 40,
+    /** Engineer queues repairs while the energy store is above this share. */
+    REPAIR_STORE: 0.3,
+    /** Helms closes to missile range minus this margin. */
+    CLOSE_MARGIN_METERS: 2000,
+};
+
+export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;
+
+/** The knobs the reference crew reads right now. */
+export const referenceKnobs: ReferenceKnobs = { ...REFERENCE_KNOB_DEFAULTS };
+
+/** Sets the knobs for the next runs: the defaults, overridden by `overrides`. */
+export function setReferenceKnobs(overrides: Partial<ReferenceKnobs> = {}) {
+    for (const key of Object.keys(overrides)) {
+        if (!(key in REFERENCE_KNOB_DEFAULTS)) throw new Error(`unknown reference knob ${key}`);
+    }
+    Object.assign(referenceKnobs, REFERENCE_KNOB_DEFAULTS, overrides);
+}

@@ -1,3 +1,4 @@
+import { referenceKnobs } from './reference-knobs';
 import { RepairProtocolStats, repairProtocols } from '@starwards/core/internal';
 
 /** The panels of a station's display, as the reference reads them. */
@@ -43,14 +44,11 @@ const JUMP_START_STORE = 0.1;
 /** The refusal a repair shows after the reactor ran short of energy and cancelled it: it can be queued again. */
 const CANCELLED_FOR_ENERGY = /was cancelled: insufficient reactor energy/;
 /** The repairing engineer queues a repair only while the store holds more than this share. */
-const REPAIR_STORE = 0.3;
 /**
  * The chain gun drops to low power at this heat and returns to normal once below the release heat,
  * as the NPC automation backs off its guns: low power halves the rate of fire and quarters the heat
  * per second, so a gun held at the heat limit fires more shells at low power than at normal.
  */
-const GUN_BACKOFF_HEAT = 60;
-const GUN_RELEASE_HEAT = 40;
 const SHUTDOWN = 0;
 const LOW = 0.25;
 const NORMAL = 0.5;
@@ -84,7 +82,7 @@ export function engineerChoice(command: string, key: string, display: Panels, st
                 ? 'raise'
                 : 'none';
         }
-        return style.repair !== 'none' && store > REPAIR_STORE && repairToQueue(display, slots, style.repair) === key
+        return style.repair !== 'none' && store > referenceKnobs.REPAIR_STORE && repairToQueue(display, slots, style.repair) === key
             ? 'raise'
             : 'none';
     }
@@ -154,7 +152,7 @@ function powerGoal(pointer: string, system: SystemStatus, store: number, reactor
         return store < LOW_STORE && system.heat < REACTOR_BURST_HEAT ? MAX : NORMAL;
     }
     if (pointer.startsWith('/chainGuns/')) {
-        return system.heat >= GUN_BACKOFF_HEAT ? LOW : system.heat < GUN_RELEASE_HEAT ? NORMAL : undefined;
+        return system.heat >= referenceKnobs.GUN_BACKOFF_HEAT ? LOW : system.heat < referenceKnobs.GUN_RELEASE_HEAT ? NORMAL : undefined;
     }
     if (pointer.startsWith('/thrusters/')) {
         if (reactorDamaged && store < THRUSTER_SHUTDOWN_STORE) return SHUTDOWN;

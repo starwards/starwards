@@ -1,3 +1,4 @@
+import { referenceKnobs } from './reference-knobs';
 import { Answer, Policy } from './brain';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
 import { Resupply, SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
@@ -40,7 +41,6 @@ const VELOCITY = 1;
 const TARGET = 2;
 
 /** Gun-on-target tolerance and the range the chain gun's fuse can reach (gravitas: 8000 m). */
-const FIRE_ARC_DEGREES = 2;
 const FIRE_RANGE_METERS = 8000;
 /**
  * A homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
@@ -48,35 +48,28 @@ const FIRE_RANGE_METERS = 8000;
  */
 const TUBE_ARC_DEGREES = 100;
 /** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
-const LAUNCH_INTERVAL_SECONDS = 10;
 /**
  * Where the pilot parks: this far straight behind the target's motion. Space caps a shell's speed at
  * its muzzle speed, so a shell chasing a receding target detonates short by ~a quarter of the range,
  * and a blast keeps only a third of its shell's speed, so one fired at an oncoming target is swept
  * off it at once; close behind, the shortfall stays inside the blast.
  */
-const STANDOFF_METERS = 500;
 /**
  * Where the pilot parks once the target has shot armor off the GVTS: beyond the reach of a fighter's
  * slow shells' lead -- they fly half as fast as ours -- yet inside our gun's 8 km. Close in, the
  * fighter strips the armor and breaks the reactor faster than our gun kills it.
  */
-const ARMED_STANDOFF_METERS = 4000;
 /**
  * A lateral weave across the parking spot, as the NPC attack weave flies it: a parked ship is a
  * still target for a gun whose shells take seconds to arrive.
  */
-const WEAVE_METERS = 400;
-const WEAVE_HZ = 0.08;
 /** How fast (per second) the pilot closes the gap to its parking spot, and the cap on that speed. */
-const PARKING_GAIN = 0.3;
 const MAX_PARKING_SPEED = 200;
 /** Below this the target counts as still, and the pilot parks on the current line of sight instead. */
 const STILL_SPEED = 50;
 /** The ship's top speed (gravitas): the maneuvering command is a fraction of it. */
 const MAX_SPEED = 450;
 /** Beyond this past the standoff the pilot burns afterburner: blasts fling a dead target at our top speed. */
-const PURSUIT_METERS = 1500;
 /** The captain's close order leads the ship away from the nearest enemy only to a spot this far off: near, they fight it out together. */
 const LEAVE_NEAREST_METERS = 10_000;
 /** A target this fast was flung by our blasts and runs away at our top speed. */
@@ -86,7 +79,6 @@ const FLUNG_SPEED = 0.9 * MAX_SPEED;
  * Helms with `clearLine`: an allied station whose hull comes this near the gun line from the parking
  * spot through the target fouls it (weapons calls check fire), so the pilot parks across the target from it.
  */
-const LINE_CLEARANCE_METERS = 600;
 /** How fast helms with `clearLine` steps across a fouled gun line. */
 const SIDESTEP_SPEED = MAX_PARKING_SPEED;
 /** A contact this wide is a station, not a ship. */
@@ -107,9 +99,15 @@ export type HelmsStyle = {
 };
 
 export const REFERENCE_HELMS: HelmsStyle = {
-    standoff: STANDOFF_METERS,
-    armedStandoff: ARMED_STANDOFF_METERS,
-    weaveMeters: WEAVE_METERS,
+    get standoff() {
+        return referenceKnobs.STANDOFF_METERS;
+    },
+    get armedStandoff() {
+        return referenceKnobs.ARMED_STANDOFF_METERS;
+    },
+    get weaveMeters() {
+        return referenceKnobs.WEAVE_METERS;
+    },
 };
 
 /**
@@ -117,7 +115,7 @@ export const REFERENCE_HELMS: HelmsStyle = {
  * is the positive control of the harness: it shows a kill is reachable through the button
  * interface, so a brain that fails is failing at judgement, not at the interface. Signals rests.
  * Weapons also launches a missile from a loaded tube that bears on its lock, one every
- * {@link LAUNCH_INTERVAL_SECONDS}. Each seat gets its own instance: helms remembers the last radar fix to tell the target's
+ * {@link referenceKnobs.LAUNCH_INTERVAL_SECONDS}. Each seat gets its own instance: helms remembers the last radar fix to tell the target's
  * velocity, and whether the target has fired back.
  */
 export function makeReferencePolicy(
@@ -160,7 +158,7 @@ export function makeReferencePolicy(
                 salvo !== undefined &&
                 stillFlying(salvo.arrivals, seconds) >= orders.salvo;
             const launchTube =
-                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS && !salvoFull && !checkFire(display)
+                seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS && !salvoFull && !checkFire(display)
                     ? tubeToLaunch(display, previous, decisionSeconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
@@ -289,7 +287,7 @@ function referenceChoice(
             return target &&
                 !gunTooHot(display) &&
                 !checkFire(display) &&
-                Math.abs(delta(target.bearing, heading)) <= FIRE_ARC_DEGREES &&
+                Math.abs(delta(target.bearing, heading)) <= referenceKnobs.FIRE_ARC_DEGREES &&
                 target.distance <= fireRangeMeters
                 ? 'fire'
                 : 'hold_fire';
@@ -337,10 +335,10 @@ function referenceChoice(
         case 'afterBurner': {
             // a target flung at our top speed is never closed on without the afterburner, nor one the captain orders us after
             return (aligned &&
-                (ship.distance > standoff + PURSUIT_METERS ||
+                (ship.distance > standoff + referenceKnobs.PURSUIT_METERS ||
                     (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))) ||
                 (order?.kind === 'close' &&
-                    length(sub(order.spot, own)) > PURSUIT_METERS &&
+                    length(sub(order.spot, own)) > referenceKnobs.PURSUIT_METERS &&
                     Math.abs(delta(bearingTo(display, order.spot), heading)) < 15)
                 ? 'engage'
                 : 'release';
@@ -405,11 +403,11 @@ function parkingCommand(
     const straight = speed > STILL_SPEED ? scale(targetVelocity, -1 / speed) : scale(fromTarget, 1 / ship.distance);
     const behind = clearLine ? clearOfStations(display, ship, straight, standoff, fromTarget) : straight;
     const across = { x: -behind.y, y: behind.x };
-    const phase = 2 * Math.PI * WEAVE_HZ * seconds;
+    const phase = 2 * Math.PI * referenceKnobs.WEAVE_HZ * seconds;
     const spot = add(scale(behind, standoff), scale(across, weaveMeters * Math.sin(phase)));
     const gap = sub(spot, fromTarget);
-    const weave = scale(across, weaveMeters * 2 * Math.PI * WEAVE_HZ * Math.cos(phase));
-    const parking = add(scale(gap, PARKING_GAIN), weave);
+    const weave = scale(across, weaveMeters * 2 * Math.PI * referenceKnobs.WEAVE_HZ * Math.cos(phase));
+    const parking = add(scale(gap, referenceKnobs.PARKING_GAIN), weave);
     const step = clearLine ? sidestep(display, ship) : undefined;
     // a fouled line: keep only the range-keeping part of the parking, and step across the line
     const closing = step ? add(scale(step.fire, dot(parking, step.fire)), step.across) : parking;
@@ -429,7 +427,7 @@ function clearOfStations(display: Display, ship: Contact, behind: XY, standoff: 
         const rel = sub(station.position, ship.position);
         const along = rel.x * fire.x + rel.y * fire.y;
         const across = Math.abs(rel.x * fire.y - rel.y * fire.x);
-        if (along < -standoff || along > FIRE_RANGE_METERS || across > (station.radius ?? 0) + LINE_CLEARANCE_METERS) {
+        if (along < -standoff || along > FIRE_RANGE_METERS || across > (station.radius ?? 0) + referenceKnobs.LINE_CLEARANCE_METERS) {
             continue;
         }
         const gap = Math.max(length(rel), 1);
@@ -455,7 +453,7 @@ function sidestep(display: Display, ship: Contact) {
         const rel = sub(station.position, own);
         const along = rel.x * fire.x + rel.y * fire.y;
         const side = fire.x * rel.y - fire.y * rel.x;
-        const clearance = (station.radius ?? 0) + LINE_CLEARANCE_METERS;
+        const clearance = (station.radius ?? 0) + referenceKnobs.LINE_CLEARANCE_METERS;
         if (along <= 0 || along > FIRE_RANGE_METERS + clearance || Math.abs(side) > clearance) continue;
         const toward = side >= 0 ? { x: -fire.y, y: fire.x } : { x: fire.y, y: -fire.x };
         return { fire, across: scale(toward, along > length(line) ? SIDESTEP_SPEED : -SIDESTEP_SPEED) };
@@ -480,7 +478,7 @@ const ORDERED_SPEED = 0.9 * MAX_SPEED;
 /** The maneuvering command that flies the ship to the world point `spot`, slowing as it nears it. */
 function flyTo(display: Display, spot: XY, heading: number) {
     const gap = sub(spot, display.radar?.ownShip?.position ?? { x: 0, y: 0 });
-    const closing = scale(gap, PARKING_GAIN);
+    const closing = scale(gap, referenceKnobs.PARKING_GAIN);
     return shipFrame(scale(closing, Math.min(1, ORDERED_SPEED / Math.max(length(closing), 1))), heading);
 }
 
@@ -502,7 +500,6 @@ function closeIn(helms: Helms) {
  * Above this heat the gun's next burst overheats it, and every overheat breaks some of its rate of
  * fire. Holding pays only while coolant flows to the gun: uncooled, it never cools down.
  */
-const GUN_HOLD_HEAT = 85;
 
 type TubeStatus = { index: number; loadedProjectile: string; loading: number; bearing: number };
 
@@ -542,7 +539,7 @@ function checkFire(display: Display) {
 /** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */
 function gunTooHot(display: Display) {
     const systems = (display.panels['systems-status'] ?? []) as unknown as SystemStatus[];
-    return systems.some((s) => s.pointer.startsWith('/chainGuns/') && s.heat > GUN_HOLD_HEAT && s.coolantFactor > 0);
+    return systems.some((s) => s.pointer.startsWith('/chainGuns/') && s.heat > referenceKnobs.GUN_HOLD_HEAT && s.coolantFactor > 0);
 }
 
 /** A blip this wide or wider is a hull; shells and blasts show as specks. */

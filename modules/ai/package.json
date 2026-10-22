@@ -16,6 +16,7 @@
         "suite": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev -r ts-node/register/transpile-only ./src/cli/suite.ts",
         "agree": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/agree.ts",
         "waves": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/waves.ts",
+        "search": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/search.ts",
         "compare": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/compare.ts",
         "score:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/dataset.ts",
         "score": "node -r ts-node/register/transpile-only ./src/scoring/cli.ts",

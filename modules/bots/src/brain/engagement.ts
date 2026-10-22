@@ -1,3 +1,4 @@
+import { referenceKnobs } from './reference-knobs';
 import { Contact, Radar, offNose } from './verbal';
 import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './missile-envelope';
 
@@ -7,7 +8,6 @@ import { Display } from './controls';
 const REFERENCE_MISSILE = 'HiExpMissile';
 
 /** How far inside the launch range the captain orders the ship: the target may drift outward while the missiles fly. */
-const CLOSE_MARGIN_METERS = 2000;
 
 /**
  * How fast `contact` flies along the line of sight toward the own ship and across it, from where the
@@ -57,7 +57,7 @@ export const GUN_CLOSE_METERS = 2000;
 export function closeRange(distance: number, range: number) {
     return inLaunchEnvelope(distance, range)
         ? GUN_CLOSE_METERS
-        : Math.max(MISSILE_MIN_LAUNCH_METERS, range - CLOSE_MARGIN_METERS);
+        : Math.max(MISSILE_MIN_LAUNCH_METERS, range - referenceKnobs.CLOSE_MARGIN_METERS);
 }
 
 /**

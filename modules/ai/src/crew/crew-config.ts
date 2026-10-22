@@ -14,6 +14,7 @@ import {
     makeHelmsPolicy,
     makeScriptedSeatPolicy,
     referenceSeat,
+    setReferenceKnobs,
 } from '@starwards/bots';
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
@@ -26,6 +27,8 @@ const crewConfigSchema = z
         name: z.string(),
         /** The crew's doctrine fills every board slot no captain order holds (`crewDoctrine` in `@starwards/bots`). */
         doctrine: z.boolean().optional(),
+        /** Overrides of the reference seats' numeric knobs (`REFERENCE_KNOB_DEFAULTS` in `@starwards/bots`), set by `search`. */
+        knobs: z.record(z.string(), z.number()).optional(),
         seats: z.array(
             z
                 .object({
@@ -56,6 +59,7 @@ export function readCrewFile(filePath: string) {
     return {
         name: config.name,
         doctrine: config.doctrine === true,
+        knobs: config.knobs ?? {},
         seats: config.seats.map(({ station, policy, brain }) => ({
             station,
             policy,
@@ -76,6 +80,8 @@ type CrewPlan = { name: string; doctrine: boolean; seats: SeatPlan[]; usesJev: b
  */
 export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewPlan {
     const config = readCrewFile(filePath);
+    // the reference seats read the knobs as they are built and as they play: every run sets them anew
+    setReferenceKnobs(config.knobs);
     const usesJev = config.seats.some((s) => s.policy === 'jev');
     const client = usesJev
         ? meteredJevClient(jevClient({ requestsPerMinute: jevRequestsPerMinute }), answerCacheFromEnv())
