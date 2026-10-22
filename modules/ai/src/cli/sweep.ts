@@ -243,7 +243,15 @@ async function main() {
         for (const t of times) {
             for (const c of candidates(log, t, k)) {
                 for (let j = 0; j < rollouts; j++) {
-                    jobs.push({ kind: 'branch', run: runOf(seed), recording: full, level: c.level, t, fork: t + j * jitter, alternative: c.alternative });
+                    jobs.push({
+                        kind: 'branch',
+                        run: runOf(seed),
+                        recording: full,
+                        level: c.level,
+                        t,
+                        fork: t + j * jitter,
+                        alternative: c.alternative,
+                    });
                 }
             }
         }
@@ -262,7 +270,11 @@ async function main() {
     const todo = jobs.filter((j) => j.kind !== 'branch' || !have.has(key({ seed: j.run.seed, ...j })));
     process.stderr.write(`${jobs.length} branches, ${todo.length} to play\n`);
     const played = (
-        (await pool(process.argv.includes('--summary-only') ? [] : todo, workers, (r) => r && fs.appendFileSync(jsonl, JSON.stringify(r) + '\n'))) as (Row | null)[]
+        (await pool(
+            process.argv.includes('--summary-only') ? [] : todo,
+            workers,
+            (r) => r && fs.appendFileSync(jsonl, JSON.stringify(r) + '\n'),
+        )) as (Row | null)[]
     ).filter((r): r is Row => r !== null);
     const rows = [...done, ...played];
     const states = summarize(rows, defaults, timeoutSeconds);
