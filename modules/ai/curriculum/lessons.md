@@ -687,6 +687,27 @@ Elec missile, P(hit):
   $0) to test "engage the raider nearest a station" before writing it as a reference rule; a wave run is
   15 min at 8 workers, so budget the corpus by seed shards.
 
+### L5d — captain-reference-guard-park, helms parks on the engaged enemy (2026-10-22)
+
+- **Change:** helms.v22 (`parkOnEngaged`): the reference helms parks on the enemy the captain's focus or
+  engage order names, not on the nearest enemy; otherwise `captain-reference-guard`.
+- **Level:** W-waves seeds 1-64: 46/64 passed (`captain-reference-guard` 46/64; discordant 8/8, exact
+  McNemar p 1.00); holdSeconds −13.9 s [−45.7, +17.9], stationArmorLost −0.01 [−0.20, +0.18], raiders
+  killed −0.08 [−0.27, +0.11]: within noise. Archive `2026-10-22/mac1/fight-park64`.
+- **Regression suite:** not run (no gain on L5d).
+- **Decision:** rejected; recorded failure.
+- **Lesson:** in the 13 W-waves seeds the guard crew reached the wave-3 station in time and still lost,
+  the GVTS killed 0-1 of 5-7 raiders and dealt at most 2 k damage while the station took 30-63 k; the
+  reference crew's passes on the same seeds kill no more (two passed firing no shell at all). Helms
+  parking on the nearest raider while weapons holds the focus target (lock and nearest differ in 54-96%
+  of the fight) pulls the gun off arc and out of range, and a raider holding 1 km off the ship drags it
+  up to 50 km from the station. Parking on the engaged enemy cut that mismatch (seed 2: 76% to 33%,
+  gun clear to fire 45% to 75%) but kills did not follow, and passes churned 8 each way: a wave-3 pass
+  is a race between the station's hull and the wave-4 clock, not the GVTS's fight. By wave 3 the
+  magazine is dry or nearly (HiExp shells out before or during the fight in 11 of 13).
+- **Reuse:** a wave-3 lever must change raider damage on the station (kills before arrival, drawing
+  aggro, a restocked magazine), not gun uptime alone.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
