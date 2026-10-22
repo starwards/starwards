@@ -34,6 +34,7 @@ export const stationWidgets = [
     'gun-status',
     'target-info',
     'signals-jobs',
+    'target-intel',
     'waypoint-groups',
     'waypoint-edit',
 ] as const;

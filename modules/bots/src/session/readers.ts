@@ -10,6 +10,7 @@ import {
     helmsRadarReach,
     magazineStocks,
     orderRepairQueue,
+    targetIntel,
 } from '@starwards/core/internal';
 
 import { StationSession } from './session';
@@ -265,6 +266,19 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
                 };
             }),
         };
+    },
+
+    /**
+     * The Target Details screen as data: the design and armor of the contact marked on Signals
+     * (`signalsTargetId`), gated by scan level in core (`targetIntel`) — live at FULL, frozen at
+     * SNAPSHOT, nothing at BASIC or UFO. A marked contact the radar cannot see now still reads at
+     * SNAPSHOT: that is what a snapshot is for.
+     */
+    'target-intel': (s) => {
+        const targetId = s.shipDriver.state.signalsTargetId;
+        const target = targetId ? s.spaceDriver.state.get(targetId) : undefined;
+        const noSource = { live: () => undefined, snapshot: () => undefined };
+        return { targetId: targetId || null, ...targetIntel(target, s.viewFaction, s.shipIntel ?? noSource) };
     },
 
     'waypoint-groups': (s) => {

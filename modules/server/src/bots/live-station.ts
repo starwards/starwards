@@ -1,4 +1,4 @@
-import { Driver, ShipDriver, SpaceDriver, StationsManifest } from '@starwards/core/internal';
+import { Driver, LiveShipIntel, ShipDriver, SpaceDriver, StationsManifest } from '@starwards/core/internal';
 import {
     RadarView,
     StationSession,
@@ -41,6 +41,7 @@ type LiveShipContext = {
     shipDriver: ShipDriver;
     spaceDriver: SpaceDriver;
     radar: RadarView;
+    shipIntel: LiveShipIntel;
     wait: (seconds: number, signal: AbortSignal) => Promise<void>;
 };
 
@@ -49,11 +50,13 @@ export async function liveShipContext(driver: Driver, baseUrl: URL, shipId: stri
     const manifest = withMultiplexedStations(await fetchStationsManifest(baseUrl, shipId));
     await driver.waitForShip(shipId);
     const spaceDriver = await driver.getSpaceDriver();
+    const shipDriver = await driver.getShipDriver(shipId);
     return {
         manifest,
-        shipDriver: await driver.getShipDriver(shipId),
+        shipDriver,
         spaceDriver,
         radar: RadarView.fromDriver(spaceDriver),
+        shipIntel: new LiveShipIntel((id) => driver.getShipDriver(id), shipDriver),
         wait: gameTimeWait(await driver.getAdminDriver()),
     };
 }
@@ -66,7 +69,7 @@ export function liveStation(ctx: LiveShipContext, station: string): StationSessi
     if (!ctx.manifest.stations[station]?.enabled) {
         throw new Error(`station "${station}" is not open on ${ctx.shipDriver.id}`);
     }
-    const options = { radar: ctx.radar, wait: ctx.wait };
+    const options = { radar: ctx.radar, wait: ctx.wait, shipIntel: ctx.shipIntel };
     return openStation(
         ctx.manifest,
         station,

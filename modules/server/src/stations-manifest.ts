@@ -80,7 +80,7 @@ const defaultStationsManifest: StationsManifest = {
         },
         signals: {
             enabled: true,
-            widgets: ['long-range-radar', 'target-info', 'systems-status', 'signals-jobs'],
+            widgets: ['long-range-radar', 'target-info', 'systems-status', 'signals-jobs', 'target-intel'],
             commands: ['beamDirection', 'beamArc', 'pauseJobs', 'prioritizeJob', 'cancelJob'],
             prompt:
                 'You work the scan beam. You identify contacts the rest of the crew can only see as blips, and ' +
@@ -94,6 +94,7 @@ const defaultStationsManifest: StationsManifest = {
         },
         'target-details': {
             enabled: true,
+            widgets: ['target-intel'],
             prompt:
                 'You read the contact marked on your Signals station: its armor, systems and tubes once fully ' +
                 'scanned. You call its weak points to the crew out loud.',

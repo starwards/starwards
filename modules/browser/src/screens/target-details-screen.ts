@@ -8,7 +8,9 @@ import {
     SpaceObject,
     Spaceship,
     decodeShipSnapshot,
+    designIntelSource,
     playerScanLevel,
+    shipDesignIntel,
     snapshotShipDriver,
 } from '@starwards/core';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
@@ -63,14 +65,17 @@ export async function initTargetDetailsScreen(
         void source.then((subjectDriver) => {
             if (panelsKey !== key) return; // source changed (or screen torn down) while awaiting
             const armorSlot = grid.center({ fill: true });
+            const designSlot = grid.left();
             const tubesSlot = grid.left({ scroll: true });
             const systemsSlot = grid.right({ scroll: true });
             const armorApp = drawArmorStatus(armorSlot, subjectDriver, 300);
+            const stopDesign = drawDesign(designSlot, subjectDriver);
             drawTargetTubes(tubesSlot, subjectDriver);
             drawFullSystemsStatus(systemsSlot, subjectDriver, subjectDriver.systems, true);
             teardownPanels = () => {
                 void armorApp.then((app) => app.destroy({ removeView: true }, true));
-                for (const slot of [armorSlot, tubesSlot, systemsSlot]) slot.getElement().remove();
+                stopDesign();
+                for (const slot of [armorSlot, designSlot, tubesSlot, systemsSlot]) slot.getElement().remove();
             };
         });
     }
@@ -81,8 +86,9 @@ export async function initTargetDetailsScreen(
         const subject = spaceDriver.state.get(shipDriver.state.signalsTargetId);
         const scanLevel = subject ? playerScanLevel(subject, faction) : undefined;
         const ship = subject && Spaceship.isInstance(subject) ? subject : undefined;
-        const live = ship && scanLevel !== undefined && scanLevel >= ScanLevel.FULL;
-        const frozen = ship && scanLevel === ScanLevel.SNAPSHOT ? ship : undefined;
+        const source = ship && scanLevel !== undefined ? designIntelSource(scanLevel) : undefined;
+        const live = ship && source === 'live';
+        const frozen = source === 'snapshot' ? ship : undefined;
         snapshots.update(frozen?.id, frozen?.scanSnapshotCapturedAt[Number(faction)] ?? 0);
         const snapshot = frozen && snapshots.snapshot;
 
@@ -149,6 +155,34 @@ function drawSubjectHeader(container: WidgetContainer, spaceDriver: SpaceDriver)
             intelBlade.element.dataset.tone = intel === 'LIVE' ? '' : 'caution';
         },
     };
+}
+
+/** The target's design as its scan reveals it (`shipDesignIntel`): model, armament and armor plates. */
+function drawDesign(container: WidgetContainer, subject: ShipDriver) {
+    const { pane, cleanup } = createWidgetPane(container, 'Design');
+    const props = {
+        model: propertyStub('—'),
+        armament: propertyStub('—'),
+        armor: propertyStub('—'),
+        plates: propertyStub('—'),
+    };
+    addTextBlade(pane, props.model, { label: 'Hull' }, cleanup.add);
+    addTextBlade(pane, props.armament, { label: 'Armament' }, cleanup.add);
+    addTextBlade(pane, props.armor, { label: 'Armor' }, cleanup.add);
+    addTextBlade(pane, props.plates, { label: 'Plates' }, cleanup.add);
+    const update = () => {
+        const design = shipDesignIntel(subject.state);
+        props.model.setValue(design.model || '—');
+        props.armament.setValue(`${design.tubes} tubes · ${design.chainGuns} guns`);
+        props.armor.setValue(design.armor.layers.map((l) => l.model).join(' / ') || '—');
+        props.plates.setValue(`${design.armor.healthyPlates}/${design.armor.numberOfPlates} holding`);
+    };
+    update();
+    const loop = new EmitterLoop(500);
+    loop.onLoop(update);
+    loop.start();
+    cleanup.add(() => loop.stop());
+    return cleanup.destroy;
 }
 
 function drawNoData(container: WidgetContainer) {

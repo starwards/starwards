@@ -2,6 +2,7 @@ import { CommandBinding, ValueKind, commandBindings } from './command-map';
 import {
     Radar,
     ShipDriver,
+    ShipIntelSource,
     SpaceDriver,
     StationCommand,
     StationEntry,
@@ -37,6 +38,8 @@ type StationSessionOptions = {
     radar?: RadarView;
     /** Waits while a trigger is held, resolving early once `signal` aborts. Defaults to a wall-clock wait. */
     wait?: (seconds: number, signal: AbortSignal) => Promise<void>;
+    /** Where target ship internals come from for `target-intel`. Without one, that panel reads PENDING. */
+    shipIntel?: ShipIntelSource;
 };
 
 function wallClockWait(seconds: number, signal: AbortSignal): Promise<void> {
@@ -60,6 +63,7 @@ function wallClockWait(seconds: number, signal: AbortSignal): Promise<void> {
  */
 export class StationSession {
     readonly radar: RadarView;
+    readonly shipIntel: ShipIntelSource | undefined;
     private readonly wait: (seconds: number, signal: AbortSignal) => Promise<void>;
     /** Aborted by {@link release}: ends every hold in progress and refuses new ones. */
     private readonly releasing = new AbortController();
@@ -76,6 +80,7 @@ export class StationSession {
         // only a live driver reaches this default: an in-process caller has no room events and passes its own radar
         this.radar = options.radar ?? RadarView.fromDriver(spaceDriver as SpaceDriver);
         this.wait = options.wait ?? wallClockWait;
+        this.shipIntel = options.shipIntel;
     }
 
     get isGameMaster(): boolean {

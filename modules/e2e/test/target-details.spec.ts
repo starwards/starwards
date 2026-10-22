@@ -162,6 +162,7 @@ test.describe('Target Details screen', () => {
         await expect(page.locator('[data-id="Armor"]')).toHaveCount(0);
         await expect(page.locator('[data-id="Target Tubes"]')).toHaveCount(0);
         await expect(page.locator('[data-id="Systems"]')).toHaveCount(0);
+        await expect(page.locator('[data-id="Design"]')).toHaveCount(0);
     });
 
     test('at snapshot level without a capture (GM-set), shows no data', async ({ page }) => {
@@ -199,12 +200,18 @@ test.describe('Target Details screen', () => {
         await expect(async () => expect(await inputValues(tubesPanel)).toContain('HiExpMissile')).toPass({
             timeout: 5000,
         });
+        const plates = target.state.armor.numberOfPlates;
+        await expect
+            .poll(() => getPropertyValue(page, 'Plates', 'Design'), { timeout: 5000 })
+            .toBe(`${plates}/${plates} holding`);
 
         // frozen: a change on the target after capture does not show
         target.state.tubes[0].loadedProjectile = 'None';
+        for (const layer of target.state.armor.armorPlates[0].layers) layer.health = 0;
         await page.waitForTimeout(1500);
         expect(await inputValues(tubesPanel)).toContain('HiExpMissile');
         expect(await inputValues(tubesPanel)).not.toContain('None');
+        expect(await getPropertyValue(page, 'Plates', 'Design')).toBe(`${plates}/${plates} holding`);
     });
 
     test('at full scan, draws the target live armor, systems and tubes', async ({ page }) => {
@@ -217,6 +224,10 @@ test.describe('Target Details screen', () => {
         await expect(page.locator('[data-id="Armor"]')).toBeVisible({ timeout: 10000 });
         await expect(page.locator('[data-id="Systems"]')).toBeVisible();
         await expect(page.locator('[data-id="No Data"]')).toBeHidden();
+        const target = gameDriver.getShip(targetShipId).state;
+        await expect
+            .poll(() => getPropertyValue(page, 'Hull', 'Design'), { timeout: 5000 })
+            .toBe(target.design.modelName);
         const tubesPanel = page.locator('[data-id="Target Tubes"]');
         await expect(tubesPanel).toBeVisible();
         await expect(async () => expect(await inputValues(tubesPanel)).toContain('HiExpMissile')).toPass({
@@ -225,7 +236,7 @@ test.describe('Target Details screen', () => {
 
         // fixed grid: header, armor, tubes and systems never overlap
         const boxes = await Promise.all(
-            ['Target', 'Armor', 'Target Tubes', 'Systems'].map(async (id) => ({
+            ['Target', 'Design', 'Armor', 'Target Tubes', 'Systems'].map(async (id) => ({
                 id,
                 box: (await page.locator(`[data-id="${id}"]`).first().boundingBox())!,
             })),
@@ -243,11 +254,17 @@ test.describe('Target Details screen', () => {
         await expect(async () => expect(await inputValues(tubesPanel)).toContain('None')).toPass({
             timeout: 5000,
         });
+        const plates = target.armor.numberOfPlates;
+        for (const layer of target.armor.armorPlates[0].layers) layer.health = 0;
+        await expect
+            .poll(() => getPropertyValue(page, 'Plates', 'Design'), { timeout: 5000 })
+            .toBe(`${plates - 1}/${plates} holding`);
 
         // dropping below FULL removes the internals
         setTargetScanLevel(ScanLevel.BASIC);
         await expect(page.locator('[data-id="Armor"]')).toHaveCount(0, { timeout: 5000 });
         await expect(page.locator('[data-id="Target Tubes"]')).toHaveCount(0);
+        await expect(page.locator('[data-id="Design"]')).toHaveCount(0);
         await expect(page.locator('[data-id="No Data"]')).toHaveText(/no data/i);
     });
 
