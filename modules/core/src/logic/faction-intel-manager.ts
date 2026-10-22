@@ -148,11 +148,16 @@ export class FactionIntelManager {
      * Returns ScanLevel.UFO (0) if not set, or at least BASIC for same-faction targets
      */
     public getScanLevel(targetId: string, faction: Faction): ScanLevel {
-        const slot = this.getScanSlot(targetId, faction);
-        if (!slot) {
+        const target = this.state.get(targetId);
+        return target ? this.getScanLevelOf(target, faction) : ScanLevel.UFO;
+    }
+
+    /** {@link getScanLevel} of an object already in hand, without looking it up by id. */
+    public getScanLevelOf(target: SpaceObject, faction: Faction): ScanLevel {
+        const factionIndex = Number(faction);
+        if (target.destroyed || factionIndex < 0 || factionIndex >= Number(Faction.FACTION_COUNT)) {
             return ScanLevel.UFO;
         }
-        const [target, factionIndex] = slot;
         const storedLevel = target.scanLevels[factionIndex] || ScanLevel.UFO;
         // Objects from same faction have at least BASIC scan level
         if (target.faction === faction) {

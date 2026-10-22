@@ -2,12 +2,12 @@ import { IterationData, Updateable } from '../updateable';
 import { JobStatus, SignalsJob } from './signals-job';
 
 import { Projectile, isMissile, isShellAmmo } from '../space/projectile';
+import { SpaceObject, Spaceship } from '../space';
 
 import { Radar } from './radar';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
-import { Spaceship } from '../space';
 import { XY } from '../logic/xy';
 import { findLastIndex } from '../utils';
 import { isSensorInvisible } from '../space/sensor-visibility';
@@ -133,7 +133,10 @@ export class SignalsJobManager implements Updateable {
      * it is all there is to learn.
      */
     private scanCeiling(targetId: string): ScanLevel {
-        const target = this.spaceManager.state.get(targetId);
+        return this.scanCeilingOf(this.spaceManager.state.get(targetId));
+    }
+
+    private scanCeilingOf(target: SpaceObject | undefined): ScanLevel {
         return Spaceship.isInstance(target) || isMissile(target) ? ScanLevel.FULL : ScanLevel.BASIC;
     }
 
@@ -327,8 +330,9 @@ export class SignalsJobManager implements Updateable {
         for (const job of jobs) {
             queued.add(job.targetId);
         }
+        const maxJobs = this.state.signals.currentMaxJobs;
         for (const target of this.spaceManager.state) {
-            if (jobs.length >= this.state.signals.currentMaxJobs) {
+            if (jobs.length >= maxJobs) {
                 break;
             }
             if (target.id === this.state.id || target.destroyed || isSensorInvisible(target)) {
@@ -338,8 +342,7 @@ export class SignalsJobManager implements Updateable {
                 continue;
             }
             if (
-                this.spaceManager.factionIntel.getScanLevel(target.id, this.state.faction) >=
-                this.scanCeiling(target.id)
+                this.spaceManager.factionIntel.getScanLevelOf(target, this.state.faction) >= this.scanCeilingOf(target)
             ) {
                 continue;
             }
