@@ -60,6 +60,10 @@ export const REFERENCE_KNOB_DEFAULTS = {
     FINISH_LOCK_SECONDS: 0,
     /** The gun prefers Frag, then HE, then AP shells until this many seconds; 0 never prefers Frag. */
     FRAG_FIRST_SECONDS: 0,
+    /** Weapons launches no missile that would leave fewer than this many of its type before `MISSILE_RESERVE_SECONDS`; 0 never holds. */
+    MISSILE_RESERVE: 0,
+    /** Seconds the missile reserve holds. */
+    MISSILE_RESERVE_SECONDS: 690,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;

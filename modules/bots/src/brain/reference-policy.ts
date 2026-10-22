@@ -161,7 +161,7 @@ export function makeReferencePolicy(
                 stillFlying(salvo.arrivals, seconds) >= orders.salvo;
             const launchTube =
                 seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS && !salvoFull && !checkFire(display)
-                    ? tubeToLaunch(display, previous, decisionSeconds)
+                    ? tubeToLaunch(display, previous, decisionSeconds, seconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
             const lockId = display.panels['targeting-status']?.targetId as string | undefined;
@@ -529,7 +529,7 @@ type TubeStatus = { index: number; loadedProjectile: string; loading: number; be
  * The first loaded tube that bears on the locked ship, while that ship is inside its missile's launch
  * envelope for how the ship moves since the `previous` decision `seconds` ago; none without a lock.
  */
-function tubeToLaunch(display: Display, previous: Display | undefined, seconds: number) {
+function tubeToLaunch(display: Display, previous: Display | undefined, seconds: number, now: number) {
     const targetId = display.panels['targeting-status']?.targetId;
     const target = display.radar?.contacts?.find((c) => c.id === targetId);
     if (!target || !isShip(target)) {
@@ -548,8 +548,17 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
         (t) =>
             t.loading >= 1 &&
             Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES &&
-            inEnvelope(t.loadedProjectile),
+            inEnvelope(t.loadedProjectile) &&
+            !reserved(display, t.loadedProjectile, now),
     )?.index;
+}
+
+/** Whether launching `missile` now would dig into the missile reserve (`MISSILE_RESERVE`). */
+function reserved(display: Display, missile: string, now: number) {
+    if (referenceKnobs.MISSILE_RESERVE <= 0 || now >= referenceKnobs.MISSILE_RESERVE_SECONDS) return false;
+    const ammo = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    // the loaded round is already out of the magazine: launching it leaves the magazine's count
+    return (ammo?.[missile]?.count ?? Infinity) < referenceKnobs.MISSILE_RESERVE;
 }
 
 /** The shell order while the gun spends Frag first, saving HE and AP. */
