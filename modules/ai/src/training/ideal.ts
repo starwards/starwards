@@ -14,8 +14,9 @@ import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
  * - `eff`: the GVTS starts with half again as many rounds of each type, and holds that many.
  * - `gvts`: the GVTS is invulnerable: armor, capsule and every system defect restored.
  * - `dmg2`: every enemy loses twice the armor and capsule it lost since the previous tick.
+ * - `frag`: the GVTS holds no HE or AP shells, and its Frag shells never run dry.
  */
-export const IDEALS = ['ammo', 'stock', 'cap', 'nohit', 'eff', 'gvts', 'dmg2'] as const;
+export const IDEALS = ['ammo', 'stock', 'cap', 'nohit', 'eff', 'gvts', 'dmg2', 'frag'] as const;
 export type Ideal = (typeof IDEALS)[number];
 
 export function parseIdeals(spec: string): Ideal[] {
@@ -104,6 +105,11 @@ export function idealScript(ideals: Ideal[]): ((game: HeadlessGame) => void) | n
         }
         if (ideals.includes('ammo') || ideals.includes('stock')) refill(player);
         if (ideals.includes('gvts')) heal(player);
+        if (ideals.includes('frag')) {
+            setStock(player.magazine, 'HiExpShell', 0);
+            setStock(player.magazine, 'ArmPenShell', 0);
+            setStock(player.magazine, 'FragShell', player.magazine.getMax('FragShell'));
+        }
         if (ideals.includes('dmg2')) {
             for (const [id, manager] of game.shipManagers) {
                 const s = manager.state;

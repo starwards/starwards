@@ -40,8 +40,9 @@ type Helms = {
 const VELOCITY = 1;
 const TARGET = 2;
 
-/** Gun-on-target tolerance and the range the chain gun's fuse can reach (gravitas: 8000 m). */
-const FIRE_RANGE_METERS = 8000;
+/** The range the chain gun's fuse can reach (gravitas: 8000 m). */
+const GUN_REACH_METERS = 8000;
+
 /**
  * A homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
  * line: a side tube still fires at a target on the nose.
@@ -124,7 +125,7 @@ export function makeReferencePolicy(
     name = 'reference',
     helms: HelmsStyle = REFERENCE_HELMS,
     shellPreference?: readonly string[],
-    fireRangeMeters = FIRE_RANGE_METERS,
+    fireRangeMeters = Infinity,
     resupply?: Resupply,
     threatTarget = false,
     guardCentre = false,
@@ -138,6 +139,7 @@ export function makeReferencePolicy(
     const talk = calloutMemory(resupply, threatTarget, guardCentre);
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
+    const spend: Spend = { lockId: undefined, firedOn: 0, firstShells: undefined };
     return {
         name,
         answer(request, controls, shown, heard) {
@@ -162,6 +164,10 @@ export function makeReferencePolicy(
                     ? tubeToLaunch(display, previous, decisionSeconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
+            const lockId = display.panels['targeting-status']?.targetId as string | undefined;
+            if (lockId !== spend.lockId) spend.firedOn = 0;
+            spend.lockId = lockId;
+            spend.firstShells ??= shellsLeft(display);
             let launched: SalvoTally | undefined;
             for (const control of controls) {
                 const choice =
@@ -177,8 +183,10 @@ export function makeReferencePolicy(
                         orders,
                         shellPreference,
                         fireRangeMeters,
+                        spend,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
+                if (control.command === 'fireChainGun' && choice === 'fire') spend.firedOn += decisionSeconds;
                 if (control.command === 'fireTube' && choice === 'fire') {
                     lastLaunch = seconds;
                     salvo = countLaunch(salvo, display, previous, decisionSeconds, seconds);
@@ -248,6 +256,7 @@ function referenceChoice(
     orders: ReturnType<typeof captainOrdersFromBoard>,
     shellPreference: readonly string[] | undefined,
     fireRangeMeters: number,
+    spend: Spend,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
@@ -271,11 +280,16 @@ function referenceChoice(
         case 'target': {
             // an unscanned blip may be a shell, an identified ally is no target, and the captain names the enemy to engage
             const locked = display.radar?.contacts?.find((c) => c.id === targeting?.targetId);
+            const finishing =
+                referenceKnobs.FINISH_LOCK_SECONDS > 0 &&
+                spend.firedOn >= referenceKnobs.FINISH_LOCK_SECONDS &&
+                locked !== undefined &&
+                locked.distance <= Math.min(fireRangeMeters, referenceKnobs.FIRE_RANGE_METERS);
             return !targeting?.targetId ||
                 (locked &&
                     (!isShip(locked) ||
                         isAlly(locked, display) ||
-                        (orders.engage !== undefined && locked.name !== orders.engage)))
+                        (orders.engage !== undefined && locked.name !== orders.engage && !finishing)))
                 ? 'next'
                 : 'none';
         }
@@ -288,7 +302,9 @@ function referenceChoice(
                 !gunTooHot(display) &&
                 !checkFire(display) &&
                 Math.abs(delta(target.bearing, heading)) <= referenceKnobs.FIRE_ARC_DEGREES &&
-                target.distance <= fireRangeMeters
+                target.distance <= Math.min(fireRangeMeters, GUN_REACH_METERS) &&
+                (nearStation(display, target) ||
+                    (target.distance <= referenceKnobs.FIRE_RANGE_METERS && withinBudget(display, seconds, spend)))
                 ? 'fire'
                 : 'hold_fire';
         }
@@ -352,7 +368,9 @@ function referenceChoice(
             const gun = guns.find((g) => g.index === Number(control.id.split(':')[1] ?? 0));
             if (!gun || !stock) return 'wait';
             const left = (type: string) => stock[type]?.count ?? 0;
-            const wanted = shellPreference?.find((t) => left(t) > 0);
+            const preference =
+                shellPreference ?? (seconds < referenceKnobs.FRAG_FIRST_SECONDS ? FRAG_FIRST : undefined);
+            const wanted = preference?.find((t) => left(t) > 0);
             if (wanted) return gun.projectile === wanted ? 'wait' : 'press';
             const others = Object.keys(stock).some((t) => t.endsWith('Shell') && t !== gun.projectile && left(t) > 0);
             return left(gun.projectile) < 1 && others ? 'press' : 'wait';
@@ -427,7 +445,11 @@ function clearOfStations(display: Display, ship: Contact, behind: XY, standoff: 
         const rel = sub(station.position, ship.position);
         const along = rel.x * fire.x + rel.y * fire.y;
         const across = Math.abs(rel.x * fire.y - rel.y * fire.x);
-        if (along < -standoff || along > FIRE_RANGE_METERS || across > (station.radius ?? 0) + referenceKnobs.LINE_CLEARANCE_METERS) {
+        if (
+            along < -standoff ||
+            along > GUN_REACH_METERS ||
+            across > (station.radius ?? 0) + referenceKnobs.LINE_CLEARANCE_METERS
+        ) {
             continue;
         }
         const gap = Math.max(length(rel), 1);
@@ -454,7 +476,7 @@ function sidestep(display: Display, ship: Contact) {
         const along = rel.x * fire.x + rel.y * fire.y;
         const side = fire.x * rel.y - fire.y * rel.x;
         const clearance = (station.radius ?? 0) + referenceKnobs.LINE_CLEARANCE_METERS;
-        if (along <= 0 || along > FIRE_RANGE_METERS + clearance || Math.abs(side) > clearance) continue;
+        if (along <= 0 || along > GUN_REACH_METERS + clearance || Math.abs(side) > clearance) continue;
         const toward = side >= 0 ? { x: -fire.y, y: fire.x } : { x: fire.y, y: -fire.x };
         return { fire, across: scale(toward, along > length(line) ? SIDESTEP_SPEED : -SIDESTEP_SPEED) };
     }
@@ -530,6 +552,37 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
     )?.index;
 }
 
+/** The shell order while the gun spends Frag first, saving HE and AP. */
+const FRAG_FIRST = ['FragShell', 'HiExpShell', 'ArmPenShell'];
+
+/** Weapons' own shell accounting: the lock, seconds fired at it, and the HE and AP shells it first saw. */
+type Spend = { lockId: string | undefined; firedOn: number; firstShells: number | undefined };
+
+/** HE and AP shells the ammo panel shows, if it shows any. */
+function shellsLeft(display: Display) {
+    const ammo = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    return ammo && (ammo.HiExpShell?.count ?? 0) + (ammo.ArmPenShell?.count ?? 0);
+}
+
+/** Whether weapons spent no more than `WAVE_SHELL_BUDGET` of its first-seen shells, or the budget expired. */
+function withinBudget(display: Display, now: number, spend: Spend) {
+    if (now >= referenceKnobs.SHELL_BUDGET_SECONDS || spend.firstShells === undefined) return true;
+    return spend.firstShells - (shellsLeft(display) ?? 0) <= referenceKnobs.WAVE_SHELL_BUDGET * spend.firstShells;
+}
+
+/** Whether `target` is within `STATION_GUARD_METERS` of an allied station. */
+function nearStation(display: Display, target: Contact) {
+    const guard = referenceKnobs.STATION_GUARD_METERS;
+    if (guard <= 0 || !target.position) return false;
+    return (display.radar?.contacts ?? []).some(
+        (c) =>
+            isAlly(c, display) &&
+            (c.radius ?? 0) >= STATION_RADIUS_METERS &&
+            c.position !== undefined &&
+            length(sub(c.position, target.position)) <= guard,
+    );
+}
+
 /** Whether the targeting panel calls check fire: an ally in the line of fire or inside the blast at the lock. */
 function checkFire(display: Display) {
     const shown = display.panels['targeting-status'] as { allyInLine?: unknown; allyNearTarget?: unknown } | undefined;
@@ -539,7 +592,9 @@ function checkFire(display: Display) {
 /** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */
 function gunTooHot(display: Display) {
     const systems = (display.panels['systems-status'] ?? []) as unknown as SystemStatus[];
-    return systems.some((s) => s.pointer.startsWith('/chainGuns/') && s.heat > referenceKnobs.GUN_HOLD_HEAT && s.coolantFactor > 0);
+    return systems.some(
+        (s) => s.pointer.startsWith('/chainGuns/') && s.heat > referenceKnobs.GUN_HOLD_HEAT && s.coolantFactor > 0,
+    );
 }
 
 /** A blip this wide or wider is a hull; shells and blasts show as specks. */

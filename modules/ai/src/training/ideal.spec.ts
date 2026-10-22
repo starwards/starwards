@@ -58,6 +58,15 @@ describe('ammo idealizations', () => {
     });
 });
 
+test('frag: only Frag shells, never running dry', () => {
+    const { game, magazine, script } = setUp(['frag']);
+    magazine.setCount('FragShell', 0);
+    script(game);
+    expect(magazine.getCount('HiExpShell')).toBe(0);
+    expect(magazine.getCount('ArmPenShell')).toBe(0);
+    expect(magazine.getCount('FragShell')).toBe(magazine.getMax('FragShell'));
+});
+
 describe('ammo telemetry', () => {
     test('counts rounds drawn from the magazine, not rounds lost to hits, and when a type ran dry', () => {
         const { game, magazine, hits } = setUp([]);

@@ -51,8 +51,18 @@ const RANGES: Record<Knob, [number, number]> = {
     GUN_RELEASE_HEAT: [15, 80],
     REPAIR_STORE: [0.05, 0.7],
     CLOSE_MARGIN_METERS: [0, 5000],
+    FIRE_RANGE_METERS: [1500, 8000],
+    STATION_GUARD_METERS: [0, 6000],
+    WAVE_SHELL_BUDGET: [0.2, 1],
+    SHELL_BUDGET_SECONDS: [300, 900],
+    FINISH_LOCK_SECONDS: [0, 20],
+    FRAG_FIRST_SECONDS: [0, 900],
 };
-const KNOBS = Object.keys(RANGES) as Knob[];
+const ALL_KNOBS = Object.keys(RANGES) as Knob[];
+/** Knobs held at their defaults: `--freeze A,B`. */
+const FROZEN = new Set(arg('freeze', '').split(',').filter(Boolean));
+for (const k of FROZEN) if (!(k in RANGES)) throw new Error(`unknown knob ${k}`);
+const KNOBS = ALL_KNOBS.filter((k) => !FROZEN.has(k));
 const N = KNOBS.length;
 
 function arg(name: string, fallback: string) {
@@ -76,15 +86,19 @@ function knobsOf(x: number[]): Partial<ReferenceKnobs> {
     return knobs;
 }
 
-const defaults = KNOBS.map((k) => {
-    const [lo, hi] = RANGES[k];
-    return (REFERENCE_KNOB_DEFAULTS[k] - lo) / (hi - lo);
-});
+/** Position in [0, 1] of a knob value in its range. */
+const unit = (k: Knob, v: number) => (v - RANGES[k][0]) / (RANGES[k][1] - RANGES[k][0]);
+
+const defaults = KNOBS.map((k) => unit(k, REFERENCE_KNOB_DEFAULTS[k]));
 
 type State = {
     generation: number;
+    /** The searched knobs, in the order of `mean`, `path` and `scales`. */
+    knobs?: Knob[];
     mean: number[];
     sigma: number;
+    /** Per-knob step multipliers on `sigma`: a knob added on a warm restart gets its own fresh step. */
+    scales?: number[];
     path: number[];
     rngState: number;
     history: {
@@ -98,6 +112,8 @@ type State = {
         bestFitness: number;
         bestPasses: number;
         bestKnobs: Partial<ReferenceKnobs>;
+        /** Mean HE and AP shells drawn in wave 2 per W-waves run, by crew (diagnostic only). */
+        wave2Shells?: Record<string, number>;
     }[];
 };
 
@@ -149,15 +165,28 @@ function playGeneration(
                 'run',
                 'waves',
                 '--',
-                '--scenario', scenario,
+                '--scenario',
+                scenario,
                 ...crews.flatMap((c) => ['--crew', c]),
-                '--seeds', String(seeds),
-                '--first-seed', String(firstSeed),
-                '--timeout', String(timeout),
-                '--workers', String(workers),
-                '--out', dir,
+                '--seeds',
+                String(seeds),
+                '--first-seed',
+                String(firstSeed),
+                '--timeout',
+                String(timeout),
+                '--workers',
+                String(workers),
+                '--out',
+                dir,
             ],
-            { cwd: path.join(__dirname, '../..'), stdio: ['ignore', fs.openSync(path.join(dir, 'waves.log'), 'w'), fs.openSync(path.join(dir, 'waves.err'), 'w')] },
+            {
+                cwd: path.join(__dirname, '../..'),
+                stdio: [
+                    'ignore',
+                    fs.openSync(path.join(dir, 'waves.log'), 'w'),
+                    fs.openSync(path.join(dir, 'waves.err'), 'w'),
+                ],
+            },
         );
         child.once('exit', (code) =>
             code === 0
@@ -174,9 +203,48 @@ function sweep(dir: string) {
     }
 }
 
+/**
+ * A fresh state: at the defaults, or warm from another search's state (its knobs keep their mean and
+ * step; knobs it did not search start at the default with step `newSigma`), with `seedKnobs` (a knob
+ * preset file) overriding the mean.
+ */
+function startState(warmPath: string, seedKnobsPath: string, newSigma: number): State {
+    const mean = [...defaults];
+    let sigma = newSigma;
+    let scales = Array<number>(N).fill(1);
+    let generation = 0;
+    let rngState = 20261022;
+    const history: State['history'] = [];
+    if (warmPath) {
+        const warm = JSON.parse(fs.readFileSync(warmPath, 'utf8')) as State;
+        // a state without names searched the first knobs of RANGES, in order
+        const names = warm.knobs ?? ALL_KNOBS.slice(0, warm.mean.length);
+        sigma = warm.sigma;
+        scales = KNOBS.map((k, i) => {
+            const j = names.indexOf(k);
+            if (j < 0) return newSigma / sigma;
+            mean[i] = warm.mean[j];
+            return warm.scales?.[j] ?? 1;
+        });
+        generation = warm.generation;
+        rngState = warm.rngState;
+        history.push(...warm.history);
+    }
+    if (seedKnobsPath) {
+        const seed = JSON.parse(fs.readFileSync(seedKnobsPath, 'utf8')) as Partial<ReferenceKnobs>;
+        for (const [k, v] of Object.entries(seed)) {
+            const i = KNOBS.indexOf(k as Knob);
+            if (i >= 0) mean[i] = unit(k as Knob, v);
+        }
+    }
+    return { generation, knobs: KNOBS, mean, sigma, scales, path: Array<number>(N).fill(0), rngState, history };
+}
+
 async function main() {
     const outDir = path.resolve(arg('out', 'search-out'));
-    const base = JSON.parse(fs.readFileSync(path.resolve(arg('base', 'crews/captain-reference-guard.json')), 'utf8')) as {
+    const base = JSON.parse(
+        fs.readFileSync(path.resolve(arg('base', 'crews/captain-reference-guard.json')), 'utf8'),
+    ) as {
         name: string;
         seats: { brain?: string }[];
     };
@@ -186,7 +254,9 @@ async function main() {
     // tuning bank only: the held-out bank (HELD_OUT_SEEDS) is never played here
     const poolLo = TUNING_SEEDS.first;
     const poolHi = TUNING_SEEDS.first + TUNING_SEEDS.count - 1;
-    const weights = JSON.parse(fs.readFileSync(path.join(__dirname, '../scoring/models/composite-weights.json'), 'utf8')) as CompositeWeights;
+    const weights = JSON.parse(
+        fs.readFileSync(path.join(__dirname, '../scoring/models/composite-weights.json'), 'utf8'),
+    ) as CompositeWeights;
     const timeout = Number(arg('timeout', '1500'));
     const maxWorkers = Number(arg('max-workers', '12'));
     const generations = Number(arg('generations', '1000'));
@@ -204,7 +274,11 @@ async function main() {
     const statePath = path.join(outDir, 'state.json');
     const state: State = fs.existsSync(statePath)
         ? (JSON.parse(fs.readFileSync(statePath, 'utf8')) as State)
-        : { generation: 0, mean: [...defaults], sigma: 0.15, path: Array<number>(N).fill(0), rngState: 20261022, history: [] };
+        : startState(arg('warm', ''), arg('seed-knobs', ''), Number(arg('new-sigma', '0.15')));
+    if (state.knobs && state.knobs.join() !== KNOBS.join()) {
+        throw new Error(`state searches ${state.knobs.join()}, not ${KNOBS.join()}`);
+    }
+    const scales = state.scales ?? Array<number>(N).fill(1);
 
     const writeCrew = (dir: string, name: string, knobs: Partial<ReferenceKnobs>) => {
         const file = path.join(dir, `${name}.json`);
@@ -220,7 +294,7 @@ async function main() {
         const dir = path.join(outDir, `gen${String(g).padStart(4, '0')}`);
         fs.mkdirSync(dir, { recursive: true });
         const zs = Array.from({ length: lambda }, () => Array.from({ length: N }, () => gaussian(state)));
-        const xs = zs.map((z) => z.map((zi, i) => state.mean[i] + state.sigma * zi));
+        const xs = zs.map((z) => z.map((zi, i) => state.mean[i] + state.sigma * scales[i] * zi));
         const crews = [
             writeCrew(dir, 'default', {}),
             writeCrew(dir, 'mean', knobsOf(state.mean)),
@@ -236,7 +310,15 @@ async function main() {
         const runs: Record<string, WaveRun[]> = {};
         for (const [scenario, scenarioTimeout] of SCENARIOS) {
             const scenarioDir = path.join(dir, scenario);
-            runs[scenario] = await playGeneration(scenarioDir, scenario, crews, firstSeed, seeds, scenario === 'W-waves' ? timeout : scenarioTimeout, workers);
+            runs[scenario] = await playGeneration(
+                scenarioDir,
+                scenario,
+                crews,
+                firstSeed,
+                seeds,
+                scenario === 'W-waves' ? timeout : scenarioTimeout,
+                workers,
+            );
             sweep(scenarioDir);
         }
         const isPass = (r: WaveRun) => r.stationsLost === 0 && (r.survived ?? 0) >= 3;
@@ -250,11 +332,22 @@ async function main() {
             return { fitness: composite - (lost > Math.floor((2 * seeds) / 64) ? 1 : 0), passes: passesOf(crew) };
         };
         const ranked = xs.map((x, i) => ({ x, z: zs[i], ...score(`c${i}`) })).sort((a, b) => b.fitness - a.fitness);
-        const zMean = Array.from({ length: N }, (_, i) => ranked.slice(0, mu).reduce((a, r, k) => a + w[k] * r.z[i], 0));
-        state.mean = state.mean.map((m, i) => reflect(m + state.sigma * zMean[i]));
+        const zMean = Array.from({ length: N }, (_, i) =>
+            ranked.slice(0, mu).reduce((a, r, k) => a + w[k] * r.z[i], 0),
+        );
+        state.mean = state.mean.map((m, i) => reflect(m + state.sigma * scales[i] * zMean[i]));
         state.path = state.path.map((p, i) => (1 - cs) * p + Math.sqrt(cs * (2 - cs) * muEff) * zMean[i]);
         const pathNorm = Math.sqrt(state.path.reduce((a, p) => a + p * p, 0));
         state.sigma = Math.min(0.5, Math.max(0.01, state.sigma * Math.exp((cs / ds) * (pathNorm / chiN - 1))));
+        const wave2Shells = Object.fromEntries(
+            ['default', 'mean', ...xs.map((_, i) => `c${i}`)].map((crew) => {
+                const rows = runs['W-waves'].filter((r) => r.crew === crew);
+                const shells = rows.map(
+                    (r) => (r.ammo?.fired[2]?.HiExpShell ?? 0) + (r.ammo?.fired[2]?.ArmPenShell ?? 0),
+                );
+                return [crew, +(shells.reduce((a, b) => a + b, 0) / Math.max(1, rows.length)).toFixed(1)];
+            }),
+        );
         const d = score('default');
         const m = score('mean');
         state.history.push({
@@ -268,6 +361,7 @@ async function main() {
             bestFitness: ranked[0].fitness,
             bestPasses: ranked[0].passes,
             bestKnobs: knobsOf(ranked[0].x),
+            wave2Shells,
         });
         state.generation = g + 1;
         fs.writeFileSync(statePath + '.tmp', JSON.stringify(state, null, 1));
@@ -276,7 +370,8 @@ async function main() {
         process.stdout.write(
             `gen ${g} seeds ${firstSeed}+${seeds} workers ${workers} wall ${((Date.now() - started) / 1000).toFixed(0)} s: ` +
                 `default ${d.fitness.toFixed(3)} (${d.passes}) mean ${m.fitness.toFixed(3)} (${m.passes}) ` +
-                `best ${ranked[0].fitness.toFixed(3)} (${ranked[0].passes}) sigma ${state.sigma.toFixed(3)}\n`,
+                `best ${ranked[0].fitness.toFixed(3)} (${ranked[0].passes}) sigma ${state.sigma.toFixed(3)} ` +
+                `wave-2 HE+AP default ${wave2Shells.default} mean ${wave2Shells.mean}\n`,
         );
     }
 }

@@ -48,6 +48,18 @@ export const REFERENCE_KNOB_DEFAULTS = {
     REPAIR_STORE: 0.3,
     /** Helms closes to missile range minus this margin. */
     CLOSE_MARGIN_METERS: 2000,
+    /** Weapons fires the gun only at a target this near (gravitas' fuse reaches 8000 m), or one near a station. */
+    FIRE_RANGE_METERS: 8000,
+    /** Weapons fires past its range or its shell budget at a target this near an allied station. */
+    STATION_GUARD_METERS: 0,
+    /** Share of the first-seen HE and AP shells weapons may spend before `SHELL_BUDGET_SECONDS`. */
+    WAVE_SHELL_BUDGET: 1,
+    /** Seconds the shell budget holds. */
+    SHELL_BUDGET_SECONDS: 690,
+    /** Weapons keeps its lock against an engage order once it fired this long at it; 0 follows every order. */
+    FINISH_LOCK_SECONDS: 0,
+    /** The gun prefers Frag, then HE, then AP shells until this many seconds; 0 never prefers Frag. */
+    FRAG_FIRST_SECONDS: 0,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;

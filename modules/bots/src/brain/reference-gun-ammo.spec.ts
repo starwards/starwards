@@ -2,6 +2,7 @@ import { Capabilities, Display, stationControls } from './controls';
 
 import { BrainRequest } from './request';
 import { makeReferencePolicy } from './reference-policy';
+import { setReferenceKnobs } from './reference-knobs';
 
 const capabilities: Capabilities = { commands: [{ command: 'changeGunAmmo', count: 1 }] };
 
@@ -55,6 +56,23 @@ describe('reference weapons gun ammo', () => {
             const onlyArmPen = { HiExpShell: 0, ArmPenShell: 40, FragShell: 0 };
             expect(await choice(display('ArmPenShell', onlyArmPen), ['HiExpShell'])).toBe('wait');
             expect(await choice(display('FragShell', onlyArmPen), ['HiExpShell'])).toBe('press');
+        });
+    });
+
+    describe('FRAG_FIRST_SECONDS', () => {
+        afterEach(() => setReferenceKnobs());
+        const stock = { HiExpShell: 40, ArmPenShell: 40, FragShell: 40 };
+
+        it('loads Frag before HE and AP until that many seconds', async () => {
+            setReferenceKnobs({ FRAG_FIRST_SECONDS: 10 });
+            expect(await choice(display('HiExpShell', stock))).toBe('press');
+            expect(await choice(display('FragShell', stock))).toBe('wait');
+            expect(await choice(display('FragShell', { ...stock, FragShell: 0 }))).toBe('press');
+        });
+
+        it('leaves the loaded type alone once the time passed', async () => {
+            setReferenceKnobs({ FRAG_FIRST_SECONDS: 0.5 });
+            expect(await choice(display('HiExpShell', stock))).toBe('wait');
         });
     });
 });

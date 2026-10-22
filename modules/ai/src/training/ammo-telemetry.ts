@@ -22,6 +22,10 @@ export type AmmoReport = {
     hitsOnRaiders: number;
     hitsOnStations: number;
     capacityAtWave3: number | null;
+    /** Magazine counts when wave 3 spawned. */
+    countsAtWave3: Stocks | null;
+    /** Damage every station took from anyone, per wave. */
+    stationDamageByWave: Record<number, number>;
     /** Wave-3 GVTS damage per raider (by model), and wave-3 damage every station took from anyone. */
     wave3DamageByTarget: Record<string, { model: string; amount: number }>;
     wave3StationDamage: Record<string, number>;
@@ -45,6 +49,8 @@ export function ammoTelemetry() {
         hitsOnRaiders: 0,
         hitsOnStations: 0,
         capacityAtWave3: null,
+        countsAtWave3: null,
+        stationDamageByWave: {},
         wave3DamageByTarget: {},
         wave3StationDamage: {},
         firstStationLostAt: null,
@@ -89,6 +95,7 @@ export function ammoTelemetry() {
         });
         const stationIds = new Set(STATIONS.map((s) => s.id));
         tapDamage(game, (id, damage) => {
+            if (stationIds.has(id)) r.stationDamageByWave[wave] = (r.stationDamageByWave[wave] ?? 0) + damage.amount;
             if (wave === 3 && stationIds.has(id))
                 r.wave3StationDamage[id] = (r.wave3StationDamage[id] ?? 0) + damage.amount;
             if (damage.shipId !== TRAINING_PLAYER_ID) return;
@@ -115,8 +122,10 @@ export function ammoTelemetry() {
             if (spawned) {
                 wave++;
                 r.waveSpawnAt.push(game.seconds);
-                if (wave === 3)
+                if (wave === 3) {
                     r.capacityAtWave3 = game.api.getShip(TRAINING_PLAYER_ID)?.state.magazine.capacity ?? null;
+                    r.countsAtWave3 = counts(game);
+                }
             }
             if (r.firstStationLostAt === null && STATIONS.some((s) => !game.api.getShip(s.id))) {
                 r.firstStationLostAt = game.seconds;
