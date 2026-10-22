@@ -225,7 +225,10 @@ async function main() {
 
     const jobs: Job[] = [];
     for (const seed of seeds) {
-        const recording = fs.readdirSync(recDir(seed)).find((f) => f.endsWith('.sgr'))!;
+        const recording = fs
+            .readdirSync(recDir(seed), { recursive: true, encoding: 'utf8' })
+            .find((f) => f.endsWith('.sgr'));
+        if (!recording) throw new Error(`no recording for seed ${seed} in ${recDir(seed)}`);
         const full = path.join(recDir(seed), recording);
         const log = readRunLog(full);
         for (const t of times) {
