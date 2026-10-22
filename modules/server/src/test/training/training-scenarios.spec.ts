@@ -20,8 +20,8 @@ import {
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET2_ID, TRAINING_TARGET_ID } from '../../scenarios/training';
 import { runTraining, trainingScenarios } from './training-scenarios';
-
 import fc from 'fast-check';
+import { readRecords } from '../../recording/recording-file';
 import { rmDirRetrying } from './analysis/__fixtures__/rm-retry';
 
 /** A rung's target two ticks into its seed-1 layout: the space manager takes the map's orders on the first, the ship on the second. */
@@ -235,8 +235,10 @@ describe('runTraining', () => {
             });
 
             expect(result.recording).toBe(path.join(dir, `T0_seed1${RECORDING_EXT}`));
-            const frameLines = fs.readFileSync(result.recording!, 'utf-8').trim().split('\n').slice(1);
-            expect(result.frames).toBe(frameLines.length);
+            let recordedFrames = 0;
+            for await (const record of readRecords(result.recording!))
+                recordedFrames += record.kind === 'frame' ? 1 : 0;
+            expect(result.frames).toBe(recordedFrames);
             const targetBlasts = new Set(
                 fs
                     .readFileSync(sidecarName(result.recording!), 'utf-8')
