@@ -68,3 +68,41 @@ describe('reference weapons missile reserve', () => {
         expect(await fireTube(display(3), policy)).toBe('fire');
     });
 });
+
+describe('reference weapons tube ammo fallback', () => {
+    const tubeCaps: Capabilities = { commands: [{ command: 'changeTubeAmmo', count: 1 }] };
+    const shown = (projectile: string, loading: number, stock: Record<string, number>): Display => ({
+        panels: {
+            'tubes-status': [{ index: 0, projectile, loadedProjectile: loading ? projectile : 'None', loading, bearing: 0 }],
+            'ammo-status': {
+                fitted: true,
+                ammo: Object.fromEntries(Object.entries(stock).map(([k, count]) => [k, { count, max: 20 }])),
+            },
+            'systems-status': [],
+        },
+        radar: { ownShip: { heading: 0, position: { x: 0, y: 0 } }, contacts: [] },
+    });
+    const change = async (d: Display) => {
+        const controls = stationControls({ display: d, capabilities: tubeCaps, burstSeconds: 1 });
+        const result = await makeReferencePolicy(1).answer({} as BrainRequest, controls, d);
+        return result.answers['changeTubeAmmo:0'].choice;
+    };
+
+    it('is off by default', async () => {
+        expect(REFERENCE_KNOB_DEFAULTS.TUBE_AMMO_FALLBACK).toBe(0);
+        expect(await change(shown('HiExpMissile', 0, { HiExpMissile: 0, ArmPenMissile: 5 }))).not.toBe('press');
+    });
+
+    it('switches an empty, unloaded tube to the next stocked missile type, and keeps a loaded or stocked one', async () => {
+        setReferenceKnobs({ TUBE_AMMO_FALLBACK: 1 });
+        expect(await change(shown('HiExpMissile', 0, { HiExpMissile: 0, ArmPenMissile: 5 }))).toBe('press');
+        expect(await change(shown('ElecMissile', 0, { HiExpMissile: 0, ArmPenMissile: 5, ElecMissile: 0 }))).toBe(
+            'press',
+        );
+        expect(await change(shown('ArmPenMissile', 0, { HiExpMissile: 0, ArmPenMissile: 5 }))).toBe('wait');
+        expect(await change(shown('HiExpMissile', 1, { HiExpMissile: 0, ArmPenMissile: 5 }))).toBe('wait');
+        expect(await change(shown('HiExpMissile', 0, { HiExpMissile: 0, ArmPenMissile: 0, FragMissile: 0 }))).toBe(
+            'wait',
+        );
+    });
+});

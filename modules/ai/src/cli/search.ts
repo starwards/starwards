@@ -67,6 +67,7 @@ const RANGES: Record<Knob, [number, number]> = {
     FRAG_FIRST_SECONDS: [0, 900],
     MISSILE_RESERVE: [0, 12],
     MISSILE_RESERVE_SECONDS: [300, 1000],
+    TUBE_AMMO_FALLBACK: [0, 1],
 };
 const ALL_KNOBS = Object.keys(RANGES) as Knob[];
 /** Knobs held at their defaults: `--freeze A,B`. */

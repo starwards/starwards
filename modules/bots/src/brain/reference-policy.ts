@@ -375,6 +375,19 @@ function referenceChoice(
             const others = Object.keys(stock).some((t) => t.endsWith('Shell') && t !== gun.projectile && left(t) > 0);
             return left(gun.projectile) < 1 && others ? 'press' : 'wait';
         }
+        case 'changeTubeAmmo': {
+            if (referenceKnobs.TUBE_AMMO_FALLBACK <= 0.5) return undefined;
+            // cycle an empty, unloaded tube on to the first missile type in TUBE_AMMO_ORDER with stock
+            const tubes = (display.panels['tubes-status'] ?? []) as unknown as (TubeStatus & { projectile: string })[];
+            const stock = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)
+                ?.ammo;
+            const tube = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
+            if (!tube || !stock || tube.loading > 0) return 'wait';
+            const left = (type: string) => stock[type]?.count ?? 0;
+            if (left(tube.projectile) >= 1) return 'wait';
+            const wanted = TUBE_AMMO_ORDER.find((t) => left(t) >= 1);
+            return wanted && tube.projectile !== wanted ? 'press' : 'wait';
+        }
         case 'beamDirection':
             return beamChoice(display);
         case 'systemPower':
@@ -560,6 +573,9 @@ function reserved(display: Display, missile: string, now: number) {
     // the loaded round is already out of the magazine: launching it leaves the magazine's count
     return (ammo?.[missile]?.count ?? Infinity) < referenceKnobs.MISSILE_RESERVE;
 }
+
+/** Missile types an empty tube falls back to, best first (`TUBE_AMMO_FALLBACK`). */
+const TUBE_AMMO_ORDER = ['HiExpMissile', 'ArmPenMissile', 'FragMissile'];
 
 /** The shell order while the gun spends Frag first, saving HE and AP. */
 const FRAG_FIRST = ['FragShell', 'HiExpShell', 'ArmPenShell'];
