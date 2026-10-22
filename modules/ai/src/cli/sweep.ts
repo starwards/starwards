@@ -8,6 +8,9 @@
  *   npm run sweep -- --crew <crew.json> --scenario W-waves --seeds 66,70 --times 600,630 [--k 8]
  *       [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
  *
+ * Rollouts stream to `sweep.jsonl`; a rerun into the same `--out` plays only the missing ones, and
+ * `--summary-only` summarizes what is there without playing more.
+ *
  * The harness is deterministic, so rollout spread comes from the jitter alone: it measures how much an
  * action's outcome depends on exactly when it is taken.
  */
@@ -103,7 +106,7 @@ async function play(job: Job): Promise<unknown> {
     return row;
 }
 
-async function pool(jobs: readonly Job[], workers: number) {
+async function pool(jobs: readonly Job[], workers: number, onResult?: (r: unknown) => void) {
     const queue = [...jobs];
     const results: unknown[] = [];
     await Promise.all(
@@ -119,6 +122,7 @@ async function pool(jobs: readonly Job[], workers: number) {
                     };
                     child.on('message', (r) => {
                         results.push(r);
+                        onResult?.(r);
                         next();
                     });
                     child.once('error', reject);
@@ -216,12 +220,17 @@ async function main() {
 
     const runOf = (seed: number): RunSpec => ({ crew, scenario, seed, timeoutSeconds });
     const recDir = (seed: number) => path.join(out, 'runs', `seed${seed}`);
-    const recorded = (await pool(
-        seeds.map((seed) => ({ kind: 'record' as const, run: runOf(seed), dir: recDir(seed) })),
-        workers,
-    )) as { seed: number; pass: boolean; firstStationLostAt: number | null }[];
+    const defaultsFile = path.join(out, 'defaults.json');
+    const recorded = (
+        fs.existsSync(defaultsFile)
+            ? JSON.parse(fs.readFileSync(defaultsFile, 'utf8'))
+            : await pool(
+                  seeds.map((seed) => ({ kind: 'record' as const, run: runOf(seed), dir: recDir(seed) })),
+                  workers,
+              )
+    ) as { seed: number; pass: boolean; firstStationLostAt: number | null }[];
     const defaults = new Map(recorded.map((r) => [r.seed, r]));
-    fs.writeFileSync(path.join(out, 'defaults.json'), JSON.stringify(recorded, null, 1));
+    fs.writeFileSync(defaultsFile, JSON.stringify(recorded, null, 1));
 
     const jobs: Job[] = [];
     for (const seed of seeds) {
@@ -239,9 +248,23 @@ async function main() {
             }
         }
     }
-    process.stderr.write(`${jobs.length} branches\n`);
-    const rows = ((await pool(jobs, workers)) as (Row | null)[]).filter((r): r is Row => r !== null);
-    fs.writeFileSync(path.join(out, 'sweep.jsonl'), rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
+    // rows stream to sweep.jsonl as they finish; a rerun into the same --out skips the rollouts already there
+    const jsonl = path.join(out, 'sweep.jsonl');
+    const key = (r: { seed: number; fork: number; alternative: string }) => `${r.seed}@${r.fork}@${r.alternative}`;
+    const done: Row[] = fs.existsSync(jsonl)
+        ? fs
+              .readFileSync(jsonl, 'utf8')
+              .split('\n')
+              .filter(Boolean)
+              .map((l) => JSON.parse(l) as Row)
+        : [];
+    const have = new Set(done.map(key));
+    const todo = jobs.filter((j) => j.kind !== 'branch' || !have.has(key({ seed: j.run.seed, ...j })));
+    process.stderr.write(`${jobs.length} branches, ${todo.length} to play\n`);
+    const played = (
+        (await pool(process.argv.includes('--summary-only') ? [] : todo, workers, (r) => r && fs.appendFileSync(jsonl, JSON.stringify(r) + '\n'))) as (Row | null)[]
+    ).filter((r): r is Row => r !== null);
+    const rows = [...done, ...played];
     const states = summarize(rows, defaults, timeoutSeconds);
     fs.writeFileSync(path.join(out, 'sweep.json'), JSON.stringify(states, null, 1));
     const f = (x: number) => x.toFixed(2);
