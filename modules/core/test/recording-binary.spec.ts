@@ -69,5 +69,6 @@ describe('binary recording records', () => {
             header: { ...header, version: 1 },
         });
         expect(await lineToRecord('{"t":')).toBeNull();
+        expect(await lineToRecord('{"t":1,"seg":"Y29ycnVwdA=="}')).toBeNull();
     });
 });

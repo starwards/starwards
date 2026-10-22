@@ -175,10 +175,18 @@ export class RecordParser {
 }
 
 /**
- * Reads one line of a text (gzip+base64) recording as a record; `null` for a malformed or truncated line.
+ * Reads one line of a text (gzip+base64) recording as a record; `null` for a malformed, truncated or corrupt line.
  * `payloads: false` skips inflating frame, base and segment bytes, which come back empty.
  */
 export async function lineToRecord(line: string, payloads = true): Promise<RecordingRecord | null> {
+    try {
+        return await parseLine(line, payloads);
+    } catch {
+        return null; // a payload that does not inflate: the line is as good as truncated
+    }
+}
+
+async function parseLine(line: string, payloads: boolean): Promise<RecordingRecord | null> {
     const inflate = async (text: string) => (payloads ? await decodeRecordedBytes(text) : new Uint8Array(0));
     const frame = parseFrameLine(line);
     if (frame) return { kind: 'frame', t: frame.t, bytes: await inflate(frame.frame) };
