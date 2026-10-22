@@ -1,4 +1,4 @@
-import { ShipState, getSystems, magazineStocks } from '@starwards/core';
+import { ShipState, getSystems, magazineStocks } from '@starwards/core/internal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
