@@ -138,11 +138,13 @@ function hostPressured() {
 function playGeneration(dir: string, crews: string[], firstSeed: number, seeds: number, timeout: number, workers: number) {
     fs.mkdirSync(dir, { recursive: true });
     return new Promise<WaveRun[]>((resolve, reject) => {
+        // through npm, so other lanes counting `npm run waves` processes see this generation's workers
         const child = spawn(
-            process.execPath,
+            'npm',
             [
-                ...process.execArgv,
-                path.join(__dirname, 'waves.ts'),
+                'run',
+                'waves',
+                '--',
                 '--scenario', 'W-waves',
                 ...crews.flatMap((c) => ['--crew', c]),
                 '--seeds', String(seeds),
@@ -151,7 +153,7 @@ function playGeneration(dir: string, crews: string[], firstSeed: number, seeds: 
                 '--workers', String(workers),
                 '--out', dir,
             ],
-            { stdio: ['ignore', fs.openSync(path.join(dir, 'waves.log'), 'w'), fs.openSync(path.join(dir, 'waves.err'), 'w')] },
+            { cwd: path.join(__dirname, '../..'), stdio: ['ignore', fs.openSync(path.join(dir, 'waves.log'), 'w'), fs.openSync(path.join(dir, 'waves.err'), 'w')] },
         );
         child.once('exit', (code) =>
             code === 0
