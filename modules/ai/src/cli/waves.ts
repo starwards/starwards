@@ -18,6 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { playCrewTraining } from '../training/train-crew';
 import { waveFitness } from '../scoring/wave-fitness';
+import { idealScript, parseIdeals } from '../training/ideal';
 
 type Job = {
     crews: string[];
@@ -40,9 +41,13 @@ function args(name: string) {
 async function runJob(job: Job) {
     const runs: WaveRun[] = [];
     for (const seed of job.seeds) {
-        for (const crewPath of job.crews) {
+        for (const crewSpec of job.crews) {
+            // `<crew.json>#<ideal>,<ideal>` plays the crew on an idealized GVTS (training/ideal.ts)
+            const [crewPath, ideals = ''] = crewSpec.split('#');
+            const script = idealScript(parseIdeals(ideals)) ?? undefined;
             const started = Date.now();
             const result = await playCrewTraining(crewPath, {
+                script,
                 scenario: job.scenario,
                 seed,
                 timeoutSeconds: job.timeoutSeconds,
@@ -52,11 +57,13 @@ async function runJob(job: Job) {
             });
             if (!result.waves) throw new Error(`${job.scenario} is not a wave rung`);
             runs.push({
-                crew: path.basename(crewPath, '.json'),
+                crew: path.basename(crewPath, '.json') + (ideals ? `#${ideals}` : ''),
                 seed,
                 wallSeconds: (Date.now() - started) / 1000,
                 fitness: waveFitness(result.waves),
                 passed: result.waves.passedAt !== null,
+                stationsLost: result.waves.stationsLost,
+                survived: result.waves.survived,
             });
         }
     }
@@ -73,7 +80,10 @@ if (process.send) {
 
 async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: string }> {
     const scenario = arg('scenario', 'W-cut-lof');
-    const crews = args('crew').map((c) => path.resolve(c));
+    const crews = args('crew').map((c) => {
+        const [file, ideals] = c.split('#');
+        return path.resolve(file) + (ideals ? `#${ideals}` : '');
+    });
     if (crews.length < 2) {
         throw new Error('usage: waves --scenario <rung> --crew <baseline.json> --crew <candidate.json> [...]');
     }

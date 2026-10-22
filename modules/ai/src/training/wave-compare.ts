@@ -3,7 +3,7 @@ import { isSignificant, pairedComparison } from './paired';
 
 /** One crew's run of one seed of a wave rung or cut, scored by its continuous fitness. */
 /** `passed`: the rung's pass bar (every station alive through its pass waves); absent from older results files. */
-export type WaveRun = { crew: string; seed: number; wallSeconds: number; fitness: WaveFitness; passed?: boolean };
+export type WaveRun = { crew: string; seed: number; wallSeconds: number; fitness: WaveFitness; passed?: boolean; stationsLost?: number; survived?: number };
 
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(3)}`;
 const interval = ([low, high]: readonly number[]) => `[${signed(low)}, ${signed(high)}]`;
