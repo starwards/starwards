@@ -2,16 +2,25 @@
  * Searches the reference crew's numeric knobs (`REFERENCE_KNOB_DEFAULTS` in `@starwards/bots`) for
  * a better wave defence: a (μ/μ_w, λ)-ES with cumulative step-size adaptation over the knobs scaled
  * to [0, 1] within their ranges. Each generation plays the defaults, the current mean and λ samples
- * on the same window of training seeds through `waves`, so every candidate is paired with the
+ * on the same window of the tuning seed bank through `waves` (W-waves and the intercept and lof cuts), scored by the composite fitness against the defaults, so every candidate is paired with the
  * defaults. State is checkpointed to `<out>/state.json` after each generation; rerunning with the
  * same `--out` resumes.
  *
  *   npm --prefix modules/ai run search -- --out <dir> [--base crews/captain-reference-guard.json] [--lambda 8]
- *       [--seeds 16] [--seed-pool 101-164] [--timeout 1500] [--max-workers 12] [--generations 1000]
+ *       [--seeds 16] [--timeout 1500] [--max-workers 12] [--generations 1000]
  */
 import { REFERENCE_KNOB_DEFAULTS, ReferenceKnobs } from '@starwards/bots';
 
+import { CompositeWeights, compositeCompare } from '../scoring/composite-fitness';
+import { TUNING_SEEDS } from '../training/seed-banks';
 import { WaveRun } from '../training/wave-compare';
+
+/** Scenarios each generation plays, with their timeouts; W-waves takes `--timeout`. */
+const SCENARIOS: [string, number][] = [
+    ['W-waves', 1500],
+    ['W-cut-intercept', 480],
+    ['W-cut-lof', 480],
+];
 import { execSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -72,19 +81,6 @@ const defaults = KNOBS.map((k) => {
     return (REFERENCE_KNOB_DEFAULTS[k] - lo) / (hi - lo);
 });
 
-/** One run's scalar fitness: the pass dominates; hold time, station damage and kills break ties. */
-function runFitness(r: WaveRun, timeoutSeconds: number) {
-    const passed = r.stationsLost === 0 && (r.survived ?? 0) >= 3 ? 1 : 0;
-    const f = r.fitness;
-    return (
-        passed +
-        (0.5 * Math.min(f.holdSeconds, timeoutSeconds)) / timeoutSeconds -
-        (0.25 * f.stationArmorLost) / 3 -
-        (0.25 * f.stationCapsuleLost) / 3 +
-        0.01 * f.raidersKilled
-    );
-}
-
 type State = {
     generation: number;
     mean: number[];
@@ -135,7 +131,15 @@ function hostPressured() {
     }
 }
 
-function playGeneration(dir: string, crews: string[], firstSeed: number, seeds: number, timeout: number, workers: number) {
+function playGeneration(
+    dir: string,
+    scenario: string,
+    crews: string[],
+    firstSeed: number,
+    seeds: number,
+    timeout: number,
+    workers: number,
+) {
     fs.mkdirSync(dir, { recursive: true });
     return new Promise<WaveRun[]>((resolve, reject) => {
         // through npm, so other lanes counting `npm run waves` processes see this generation's workers
@@ -145,7 +149,7 @@ function playGeneration(dir: string, crews: string[], firstSeed: number, seeds: 
                 'run',
                 'waves',
                 '--',
-                '--scenario', 'W-waves',
+                '--scenario', scenario,
                 ...crews.flatMap((c) => ['--crew', c]),
                 '--seeds', String(seeds),
                 '--first-seed', String(firstSeed),
@@ -157,7 +161,7 @@ function playGeneration(dir: string, crews: string[], firstSeed: number, seeds: 
         );
         child.once('exit', (code) =>
             code === 0
-                ? resolve(JSON.parse(fs.readFileSync(path.join(dir, 'W-waves-waves.json'), 'utf8')) as WaveRun[])
+                ? resolve(JSON.parse(fs.readFileSync(path.join(dir, `${scenario}-waves.json`), 'utf8')) as WaveRun[])
                 : reject(new Error(`waves exit ${code} in ${dir}`)),
         );
     });
@@ -179,7 +183,10 @@ async function main() {
     const baseDir = path.dirname(path.resolve(arg('base', 'crews/captain-reference-guard.json')));
     const lambda = Number(arg('lambda', '8'));
     const seeds = Number(arg('seeds', '16'));
-    const [poolLo, poolHi] = arg('seed-pool', '101-164').split('-').map(Number);
+    // tuning bank only: the held-out bank (HELD_OUT_SEEDS) is never played here
+    const poolLo = TUNING_SEEDS.first;
+    const poolHi = TUNING_SEEDS.first + TUNING_SEEDS.count - 1;
+    const weights = JSON.parse(fs.readFileSync(path.join(__dirname, '../scoring/models/composite-weights.json'), 'utf8')) as CompositeWeights;
     const timeout = Number(arg('timeout', '1500'));
     const maxWorkers = Number(arg('max-workers', '12'));
     const generations = Number(arg('generations', '1000'));
@@ -226,14 +233,21 @@ async function main() {
             workers = Math.min(seeds, maxWorkers - othersWorkers(outDir));
         }
         const started = Date.now();
-        const runs = await playGeneration(dir, crews, Math.min(firstSeed, poolHi - seeds + 1), seeds, timeout, workers);
-        sweep(dir);
+        const runs: Record<string, WaveRun[]> = {};
+        for (const [scenario, scenarioTimeout] of SCENARIOS) {
+            const scenarioDir = path.join(dir, scenario);
+            runs[scenario] = await playGeneration(scenarioDir, scenario, crews, firstSeed, seeds, scenario === 'W-waves' ? timeout : scenarioTimeout, workers);
+            sweep(scenarioDir);
+        }
+        const isPass = (r: WaveRun) => r.stationsLost === 0 && (r.survived ?? 0) >= 3;
+        const passesOf = (crew: string) => runs['W-waves'].filter((r) => r.crew === crew && isPass(r)).length;
+        /** Composite against the defaults in noise units, minus 1 when W-waves passes fall beyond non-inferiority. */
         const score = (crew: string) => {
-            const mine = runs.filter((r) => r.crew === crew);
-            return {
-                fitness: mine.reduce((a, r) => a + runFitness(r, timeout), 0) / mine.length,
-                passes: mine.filter((r) => r.stationsLost === 0 && (r.survived ?? 0) >= 3).length,
-            };
+            if (crew === 'default') return { fitness: 0, passes: passesOf(crew) };
+            const composite = compositeCompare(weights, runs, 'default', crew).composite.estimate;
+            const base = new Map(runs['W-waves'].filter((r) => r.crew === 'default').map((r) => [r.seed, isPass(r)]));
+            const lost = runs['W-waves'].filter((r) => r.crew === crew && base.get(r.seed) && !isPass(r)).length;
+            return { fitness: composite - (lost > Math.floor((2 * seeds) / 64) ? 1 : 0), passes: passesOf(crew) };
         };
         const ranked = xs.map((x, i) => ({ x, z: zs[i], ...score(`c${i}`) })).sort((a, b) => b.fitness - a.fitness);
         const zMean = Array.from({ length: N }, (_, i) => ranked.slice(0, mu).reduce((a, r, k) => a + w[k] * r.z[i], 0));
