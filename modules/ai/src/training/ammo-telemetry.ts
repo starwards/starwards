@@ -163,7 +163,10 @@ export function ammoTelemetry() {
                 lastHitAt.set(id, game.seconds);
                 const me = game.spaceManager.state.getShip(TRAINING_PLAYER_ID);
                 const it = game.spaceManager.state.getShip(id);
-                if (me && it) rr.hitRanges.push(Math.round(Math.hypot(me.position.x - it.position.x, me.position.y - it.position.y)));
+                if (me && it)
+                    rr.hitRanges.push(
+                        Math.round(Math.hypot(me.position.x - it.position.x, me.position.y - it.position.y)),
+                    );
             }
             r.hitsOnRaiders++;
             if (wave === 3) {
@@ -223,7 +226,8 @@ export function ammoTelemetry() {
         },
         report(game: HeadlessGame): AmmoReport {
             r.countsAtEnd = counts(game);
-            for (const [id, rr] of Object.entries(r.raiders)) if (rr.killedAt === null) rr.platesAtEnd = platesShare(game, id);
+            for (const [id, rr] of Object.entries(r.raiders))
+                if (rr.killedAt === null) rr.platesAtEnd = platesShare(game, id);
             return r;
         },
     };

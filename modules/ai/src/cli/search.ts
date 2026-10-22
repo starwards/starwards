@@ -280,7 +280,8 @@ async function main() {
     const generations = Number(arg('generations', '1000'));
     const fitnessKind = arg('fitness', 'lexicographic');
     const promote = Number(arg('promote', '0'));
-    if (fitnessKind !== 'lexicographic' && fitnessKind !== 'composite') throw new Error(`unknown --fitness ${fitnessKind}`);
+    if (fitnessKind !== 'lexicographic' && fitnessKind !== 'composite')
+        throw new Error(`unknown --fitness ${fitnessKind}`);
 
     const mu = Math.floor(lambda / 2);
     const rawW = Array.from({ length: mu }, (_, i) => Math.log(mu + 0.5) - Math.log(i + 1));

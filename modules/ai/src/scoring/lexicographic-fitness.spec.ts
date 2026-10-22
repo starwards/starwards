@@ -14,7 +14,12 @@ const run = (crew: string, seed: number, pass: boolean, holdSeconds: number, wav
 describe('lexicographicFitness', () => {
     it('counts passes, averages capped hold over failed runs, averages wave-3 station damage', () => {
         const f = lexicographicFitness(
-            [run('a', 1, true, 1700, 10), run('a', 2, false, 900, 20), run('a', 3, false, 2000, 30), run('b', 1, false, 1)],
+            [
+                run('a', 1, true, 1700, 10),
+                run('a', 2, false, 900, 20),
+                run('a', 3, false, 2000, 30),
+                run('b', 1, false, 1),
+            ],
             'a',
         );
         expect(f).toEqual({ passes: 1, failHoldSeconds: (900 + 1500) / 2, wave3StationDamage: 20 });

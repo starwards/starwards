@@ -15,7 +15,16 @@ const capabilities: Capabilities = {
 function display(missiles: number): Display {
     return {
         panels: {
-            'tubes-status': [{ index: 0, safetyLocked: true, loadAmmo: true, loadedProjectile: 'HiExpMissile', loading: 1, bearing: 0 }],
+            'tubes-status': [
+                {
+                    index: 0,
+                    safetyLocked: true,
+                    loadAmmo: true,
+                    loadedProjectile: 'HiExpMissile',
+                    loading: 1,
+                    bearing: 0,
+                },
+            ],
             'targeting-status': { targetId: 'enemy' },
             'ammo-status': { fitted: true, ammo: { HiExpMissile: { count: missiles, max: 12 } } },
             'systems-status': [],
@@ -55,7 +64,7 @@ describe('reference weapons missile reserve', () => {
         expect(await fireTube(display(4))).toBe('fire');
         expect(await fireTube(display(3))).toBe('hold_fire');
         const policy = makeReferencePolicy(1);
-        for (let i = 0; i < 20; i++) await fireTube(display(3), policy);
+        for (let i = 1; i < 20; i++) expect(await fireTube(display(3), policy)).toBe('hold_fire');
         expect(await fireTube(display(3), policy)).toBe('fire');
     });
 });

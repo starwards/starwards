@@ -35,9 +35,5 @@ export function lexicographicFitness(runs: readonly WaveRun[], crew: string): Le
 
 /** Sort comparator, best first. */
 export function compareLexicographic(a: LexicographicFitness, b: LexicographicFitness) {
-    return (
-        b.passes - a.passes ||
-        b.failHoldSeconds - a.failHoldSeconds ||
-        a.wave3StationDamage - b.wave3StationDamage
-    );
+    return b.passes - a.passes || b.failHoldSeconds - a.failHoldSeconds || a.wave3StationDamage - b.wave3StationDamage;
 }

@@ -20,7 +20,19 @@ import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
  * - `duty`: the gun gets no shells during the second half of every 20 s (fire 10 s, pause 10 s);
  *   apply after a refilling ideal, which restores them.
  */
-export const IDEALS = ['ammo', 'stock', 'cap', 'nohit', 'eff', 'gvts', 'dmg2', 'frag', 'shells', 'missiles', 'duty'] as const;
+export const IDEALS = [
+    'ammo',
+    'stock',
+    'cap',
+    'nohit',
+    'eff',
+    'gvts',
+    'dmg2',
+    'frag',
+    'shells',
+    'missiles',
+    'duty',
+] as const;
 export type Ideal = (typeof IDEALS)[number];
 
 export function parseIdeals(spec: string): Ideal[] {
