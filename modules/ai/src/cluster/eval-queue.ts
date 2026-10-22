@@ -19,7 +19,7 @@ import path from 'node:path';
 export const SHARD_SEEDS = 16;
 export const NAMESPACE = 'starwards-training';
 /** Built from branch waves-eval: run-job.sh with JOB=waves, waves rows with stationsLost/survived. */
-export const DEFAULT_IMAGE = 'ghcr.io/starwards/starwards/training:EVAL_IMAGE_TAG';
+export const DEFAULT_IMAGE = 'ghcr.io/starwards/starwards/training:ee970719';
 
 type CrewFile = { name: string; seats: { brain?: string }[] };
 
