@@ -323,6 +323,10 @@ export class SignalsJobManager implements Updateable {
                 jobs.splice(i, 1);
             }
         }
+        const queued = new Set<string>();
+        for (const job of jobs) {
+            queued.add(job.targetId);
+        }
         for (const target of this.spaceManager.state) {
             if (jobs.length >= this.state.signals.currentMaxJobs) {
                 break;
@@ -339,13 +343,14 @@ export class SignalsJobManager implements Updateable {
             ) {
                 continue;
             }
-            if (jobs.some((job) => job.targetId === target.id)) {
+            if (queued.has(target.id)) {
                 continue;
             }
             if (!this.spaceManager.isVisible(this.state.id, target.id)) {
                 continue;
             }
             this.pushJob(target.id);
+            queued.add(target.id);
         }
     }
 
