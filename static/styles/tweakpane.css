@@ -634,23 +634,13 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lbl
     width: 100%;
     min-width: 0;
 }
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child {
+    grid-column: 1 / -1;
+}
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child input {
     text-align: left;
     font-size: 11px;
     color: var(--sw-dim);
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child(2) {
-    width: 72px;
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority] input {
-    font-size: 12px;
-    color: var(--sw-dim);
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority]:not([data-priority='OFF']) input {
-    color: var(--sw-accent);
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority='RUNNING'] input {
-    color: var(--sw-caution);
 }
 
 /* systems tables: bars carry the value, the digits would only crowd the row */
