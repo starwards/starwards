@@ -708,6 +708,24 @@ Elec missile, P(hit):
 - **Reuse:** a wave-3 lever must change raider damage on the station (kills before arrival, drawing
   aggro, a restocked magazine), not gun uptime alone.
 
+### L5d — guard baseline, closed levers and screen power (2026-10-23)
+
+- **Change:** none accepted; `captain-reference-guard` frozen as baseline (23/32 on seeds 65-96).
+- **Level:** closed on 32-seed screens: intercept 2000 (160 cluster seeds, p 0.77), timed restock dock
+  600/640/660 (15/19/18; rescues 4-5 FAIL seeds, loses 8-12 PASS seeds), engineer.v13 (19/32),
+  HE_RESERVE, close-stop scalars, scan levers. Lever 3 (per-action branch labels, 4 rollouts) interim:
+  9% decisive states, learners 17-21 pts under always-hold LOSO, oracle gain ~ winner's curse.
+- **Decision:** rejected; lever 3 sweep killed.
+- **Lesson:** a 32-seed pass/fail screen has ~15% power for +3/32 (~150-260 paired seeds needed), and
+  32 rollouts resolve only per-state gains >= .35. The closed levers are unproven, not disproven; screen
+  with a control variate, a validated continuous surrogate and group-sequential looks
+  (`helios/noise-eval-2026-10-23/PLAN.md`). Any fork/rule claim needs 16-32+ rollouts on decisive states
+  before fitting. All 34/34 guard FAILs lose `station-small` in wave 3 (18 within 30 s of passing);
+  lost magazine capacity permanently deletes missiles; continuous refill reaches 62/64 while 1.5x start
+  stock adds +7: missile timing beats quantity (`helios/missile-tactics-2026-10-23/PLAN.md`).
+- **Reuse:** oracle tests T1 (+8 HE at 900 s), T2 (no capacity damage), T3 (true station-attacker
+  target), T6 (AP fallback) before a CMA-ES search over surviving tactic knobs; balance ceiling if they miss.
+
 Copy this block for every candidate run on a level.
 
 ```markdown
