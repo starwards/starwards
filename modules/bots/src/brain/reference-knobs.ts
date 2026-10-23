@@ -102,6 +102,19 @@ export const REFERENCE_KNOB_DEFAULTS = {
      */
     RESTOCK_BELOW_CAPACITY: 0,
     /**
+     * Losing → dock: from `DOCK_LOSING_AFTER_SECONDS` on, the captain docks once while the allied stations
+     * still on the dradis fall below this share of the most it has seen (no seat shows a station's hull,
+     * so a lost station is the crew's reading of station damage); 0 never.
+     */
+    DOCK_LOSING_STATION_HP: 0,
+    /**
+     * Losing → dock: from `DOCK_LOSING_AFTER_SECONDS` on, the captain docks once after an enemy was within
+     * `ATTACK_METERS` of an allied station for at least this many of the last 60 s; 0 never.
+     */
+    DOCK_LOSING_ATTACK_SECONDS: 0,
+    /** Seconds into the fight before the losing → dock rule may dock. */
+    DOCK_LOSING_AFTER_SECONDS: 450,
+    /**
      * `magazine-first` engineer: from this many seconds (wave 1 over) for `MAGAZINE_FIRST_WINDOW_SECONDS`,
      * and again from `MAGAZINE_FIRST_PRE_DOCK_SECONDS` before `RESTOCK_FROM_SECONDS` until it, a shown
      * magazine defect cancels any other repair so the feed-system overhaul runs first.

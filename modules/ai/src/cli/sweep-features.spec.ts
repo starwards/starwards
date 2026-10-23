@@ -38,6 +38,25 @@ describe('sweep features', () => {
         expect(features(log, 555).armor).toBeGreaterThanOrEqual(0);
     });
 
+    it('counts the seconds of the last minute an enemy sat within attack range of a station', () => {
+        expect(features(log, 60).attackSeconds60).toBe(0);
+        const f = features(log, 505);
+        expect(f.attackSeconds60).toBeGreaterThan(0);
+        expect(f.attackSeconds60).toBeLessThanOrEqual(60);
+    });
+
+    it('counts stations lost off the dradis, overall and in the last minute', () => {
+        const f = features(log, 555);
+        expect(f.stations).toBe(3);
+        expect(f.stationsLost).toBe(0);
+        expect(f.stationsLost60).toBe(0);
+    });
+
+    it('gives the time to the next wave from the published schedule', () => {
+        expect(features(log, 500).timeToWave).toBe(460);
+        expect(features(log, 300).timeToWave).toBe(180);
+    });
+
     it('drops the hull flag the game never sets', () => {
         expect(features(log, 300)).not.toHaveProperty('hullDamaged');
     });

@@ -3,6 +3,7 @@ import {
     CALLOUT_QUESTION,
     Heard,
     SILENCE,
+    alliedStations,
     checkFireOf,
     magazineCapacity,
     stationThreat,
@@ -304,6 +305,39 @@ const restockWindow = (p: Picture) =>
     p.now < referenceKnobs.RESTOCK_UNTIL_SECONDS;
 
 /**
+ * Captain, losing → dock (`DOCK_LOSING_STATION_HP`, `DOCK_LOSING_ATTACK_SECONDS`): once, after
+ * `DOCK_LOSING_AFTER_SECONDS`, while allied stations dropped off the dradis below the knob's share of the
+ * most seen, or an enemy sat within `ATTACK_METERS` of one for the knob's seconds of the last minute.
+ * Tracks at every call, so call it once per decision.
+ */
+function losingDock(p: Picture) {
+    const { DOCK_LOSING_STATION_HP: share, DOCK_LOSING_ATTACK_SECONDS: seconds } = referenceKnobs;
+    if (share <= 0 && seconds <= 0) return false;
+    const marks = (p.memory.get('dockAttacked') as number[] | undefined) ?? [];
+    if (p.memory.get('dockAttackedAt') !== p.now) {
+        const threat = stationThreat(p.radar);
+        if (threat && threat.gap <= referenceKnobs.ATTACK_METERS) marks.push(p.now);
+        while (marks.length && marks[0] < p.now - LOSING_WINDOW_SECONDS) marks.shift();
+        p.memory.set('dockAttacked', marks);
+        p.memory.set('dockAttackedAt', p.now);
+    }
+    const stations = alliedStations(p.radar).length;
+    const most = Math.max(stations, (p.memory.get('stationsSeen') as number | undefined) ?? 0);
+    p.memory.set('stationsSeen', most);
+    if (p.now < referenceKnobs.DOCK_LOSING_AFTER_SECONDS || p.memory.get('losingDocked') !== undefined) return false;
+    return (share > 0 && most > 0 && stations / most < share) || (seconds > 0 && marks.length * p.seconds >= seconds);
+}
+
+/** How long a losing → dock keeps the ship at the station: the run-A dock branch's travel plus its 60 s alongside. */
+const LOSING_DOCK_HOLD_SECONDS = 120;
+
+/** Captain: within `LOSING_DOCK_HOLD_SECONDS` of a losing → dock order, nothing casts off. */
+const losingDockHeld = (p: Picture) => {
+    const at = p.memory.get('losingDocked') as number | undefined;
+    return at !== undefined && p.now < at + LOSING_DOCK_HOLD_SECONDS;
+};
+
+/**
  * Captain, conditional restock (`RESTOCK_BELOW_CAPACITY`): the engineer last called the magazine's capacity
  * below the knob, or weapons called the shells low. Remembers the latest capacity heard.
  */
@@ -463,11 +497,16 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
             p.memory.set('restockDocked', true);
             return true;
         }
+        if (!p.dockOrdered && p.memory.get('losingDockNow') === p.now) {
+            p.memory.set('losingDocked', p.now);
+            return true;
+        }
         return shellsLow(p) && !p.dockOrdered && !enemyNear(p) && near;
     },
-    /** Captain: docked and the shells are restocked, or an enemy comes near: cast off. */
+    /** Captain: docked and the shells are restocked, or an enemy comes near: cast off; never inside a losing → dock's hold. */
     undock: (p) =>
         p.dockOrdered &&
+        !losingDockHeld(p) &&
         (p.memory.get('restockDocked') === true && !p.memory.get('restockUndocked')
             ? (restockBlocked(p) || p.now >= referenceKnobs.RESTOCK_UNTIL_SECONDS) &&
               (p.memory.set('restockUndocked', true), true)
@@ -579,6 +618,7 @@ export function referenceCallout(
     }
     if (options.includes('dock_for_repair')) {
         shellsLow(picture);
+        if (losingDock(picture)) picture.memory.set('losingDockNow', picture.now);
     }
     const choice = options.find((o) => calloutRules[o](picture)) ?? SILENCE;
     const picked = threatTargeting(picture) ? threatPick(picture) : undefined;

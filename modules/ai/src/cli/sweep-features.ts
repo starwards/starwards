@@ -27,6 +27,10 @@ const STATION_RADIUS = 200;
 const BODY_RADIUS = 2000;
 /** Any enemy distance is capped here; with no enemy on the dradis it is the value, flagged by `hasEnemy` = 0. */
 export const NO_ENEMY = 20_000;
+/** W-waves sends a wave every this many seconds from the start: the crew knows the schedule. */
+export const WAVE_INTERVAL_SECONDS = 480;
+/** An enemy this near an allied station is attacking it (the reference captain's `ATTACK_METERS`). */
+const ATTACK_METERS = 20_000;
 const cap = (d: number) => (Number.isFinite(d) ? Math.min(d, NO_ENEMY) : NO_ENEMY);
 const dist = (a?: XY, b?: XY) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : NaN);
 
@@ -62,6 +66,19 @@ export function features(log: ReturnType<typeof readRunLog>, t: number) {
         const p = pictureOf(r);
         return p.enemies.some((e) => p.stations.some((s) => dist(e.position, s.position) <= NO_ENEMY));
     }).length;
+    // an enemy within ATTACK_METERS of a station, for the time to the next captain decision in the window
+    const attackSeconds60 = window.reduce((sum, r, i) => {
+        const p = pictureOf(r);
+        const on = p.enemies.some((e) => p.stations.some((s) => dist(e.position, s.position) <= ATTACK_METERS));
+        return on ? sum + Math.min(window[i + 1]?.t ?? t, t) - r.t : sum;
+    }, 0);
+    // no seat shows a station's hull: a station gone off the dradis is the crew's reading of station damage
+    const stationsSeen = Math.max(
+        stations.length,
+        ...log.requests
+            .filter((r) => r.station === 'captain' && r.t <= t + 1e-9)
+            .map((r) => pictureOf(r).stations.length),
+    );
     const engineer = requestAt(log, 'engineer', t)?.display;
     const eng = engineer?.panels['engineering-status'] as { energy?: number; maxEnergy?: number } | undefined;
     const perStation = Object.fromEntries(
@@ -82,6 +99,10 @@ export function features(log: ReturnType<typeof readRunLog>, t: number) {
         closestThreatToStation: enemies.length && stations.length ? cap(Math.min(...enemies.map(toStation))) : NO_ENEMY,
         ownToStation: stations.length ? Math.min(...stations.map((s) => dist(own, s.position))) : NO_ENEMY,
         stations: stations.length,
+        stationsLost: stationsSeen - stations.length,
+        stationsLost60: window.length ? pictureOf(window[0]).stations.length - stations.length : 0,
+        attackSeconds60,
+        timeToWave: WAVE_INTERVAL_SECONDS - (t % WAVE_INTERVAL_SECONDS),
         ...perStation,
         armor: armor?.numberOfPlates ? (armor.healthyPlates ?? 0) / armor.numberOfPlates : 1,
         heMissiles: ammo?.HiExpMissile?.count ?? 0,

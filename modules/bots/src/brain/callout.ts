@@ -378,7 +378,7 @@ const suppliedTarget = (r: Radar | undefined, supplied: FillValues | undefined) 
     supplied?.target === undefined ? undefined : r?.contacts?.find((c) => c.name === supplied.target);
 
 /** Allied stations on the radar: own-faction ships big enough to dock at. */
-function alliedStations(r: Radar | undefined) {
+export function alliedStations(r: Radar | undefined) {
     const own = r?.ownShip?.faction;
     return (r?.contacts ?? []).filter(
         (c) => c.type === 'Spaceship' && own !== undefined && c.faction === own && (c.radius ?? 0) >= DOCK_HOST_RADIUS,
