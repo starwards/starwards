@@ -80,6 +80,9 @@ const scenes = [
     'repair-queue-running',
     'repair-queue-mixed',
     'repair-queue-refused',
+    // Signals Jobs: a deep scan stalled off the beam (#2339); each row names the level its job reaches (#2459)
+    'signals-jobs-needs-beam',
+    'signals-jobs-target-levels',
     // Station Roster
     'station-roster-empty',
     'station-roster-bots-running',

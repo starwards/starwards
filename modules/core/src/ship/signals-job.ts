@@ -36,6 +36,13 @@ export class SignalsJob extends Schema {
     @gameField('boolean')
     prioritized = false;
 
+    /**
+     * The job is dormant only because the scan beam isn't aimed and ranged on its target: it is in
+     * sight and has more to reveal, so aiming the beam at it resumes it (issue #2339).
+     */
+    @gameField('boolean')
+    needsBeam = false;
+
     @range([0, 1])
     @gameField('float32')
     progress = 0;
