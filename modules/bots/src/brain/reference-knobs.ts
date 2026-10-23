@@ -119,6 +119,27 @@ export const REFERENCE_KNOB_DEFAULTS = {
      * and again from `MAGAZINE_FIRST_PRE_DOCK_SECONDS` before `RESTOCK_FROM_SECONDS` until it, a shown
      * magazine defect cancels any other repair so the feed-system overhaul runs first.
      */
+    /**
+     * Lull → dock (HE restock): between `LULL_DOCK_FROM_SECONDS` and `LULL_DOCK_UNTIL_SECONDS` (waves 2 to 3),
+     * the captain docks once while weapons last called at most this many missiles left and no enemy is within
+     * `LULL_DOCK_CLEAR_METERS` of an allied station; 0 never.
+     */
+    LULL_DOCK_MISSILES: 0,
+    /** An enemy this near an allied station keeps the captain from a lull dock and sends it off one. */
+    LULL_DOCK_CLEAR_METERS: 5000,
+    /** Seconds from which a lull dock may happen (wave 2 spawns at 480 s on W-waves). */
+    LULL_DOCK_FROM_SECONDS: 480,
+    /** Seconds until which a lull dock may happen (wave 3 spawns at 960 s on W-waves). */
+    LULL_DOCK_UNTIL_SECONDS: 960,
+    /** How long a lull dock keeps the ship at the station (travel plus the 150 s full restock), unless the lull breaks. */
+    LULL_DOCK_HOLD_SECONDS: 210,
+    /**
+     * Missile target selection: 0 launches at any lock; 1 (kill) only at a lock a salvo likely kills (a hull
+     * no wider than `MISSILE_KILL_RADIUS_METERS`); 2 (threat) only at the enemy nearest an allied station.
+     */
+    MISSILE_TARGET_MODE: 0,
+    /** Mode-1 kill estimate: a hull this wide or narrower dies to a salvo (dragonflies 11.2 m, predator 22.4 m). */
+    MISSILE_KILL_RADIUS_METERS: 15,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,

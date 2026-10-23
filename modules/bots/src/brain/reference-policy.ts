@@ -6,7 +6,7 @@ import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
 import { flightSeconds, stillFlying } from './salvo';
 
-import { CALLOUT_QUESTION } from './callout';
+import { CALLOUT_QUESTION, stationThreat } from './callout';
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
 
@@ -557,6 +557,7 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
     }
     const gate = referenceKnobs.MISSILE_STATION_METERS;
     if (gate > 0 && !withinOfStation(display, target, gate)) return undefined;
+    if (!missileTargetChosen(display, target)) return undefined;
     const shown = target as unknown as ShownContact;
     const radar = display.radar as ShownRadar | undefined;
     const inEnvelope = (ammo: string) =>
@@ -573,6 +574,14 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
             inEnvelope(t.loadedProjectile) &&
             !reserved(display, t.loadedProjectile, now),
     )?.index;
+}
+
+/** Missile target selection (`MISSILE_TARGET_MODE`): whether the locked `target` is worth a missile. */
+function missileTargetChosen(display: Display, target: Contact) {
+    const mode = referenceKnobs.MISSILE_TARGET_MODE;
+    if (mode === 1) return (target.radius ?? Infinity) <= referenceKnobs.MISSILE_KILL_RADIUS_METERS;
+    if (mode === 2) return stationThreat(display.radar as ShownRadar | undefined)?.enemy.id === target.id;
+    return true;
 }
 
 /** Whether launching `missile` now would dig into the missile reserve (`MISSILE_RESERVE`). */

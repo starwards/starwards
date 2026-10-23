@@ -338,6 +338,38 @@ const losingDockHeld = (p: Picture) => {
 };
 
 /**
+ * Captain, lull → dock (`LULL_DOCK_MISSILES`): inside the lull window, weapons last called at most the knob's
+ * missiles left, and no enemy is within `LULL_DOCK_CLEAR_METERS` of an allied station. Remembers the latest
+ * magazine count heard, so call it once per decision.
+ */
+function lullDock(p: Picture) {
+    const k = referenceKnobs.LULL_DOCK_MISSILES;
+    if (k <= 0) return false;
+    const call = p.heard
+        .filter((h) => h.speaker === 'weapons' && h.callout === 'salvo_away' && h.values?.magazine !== undefined)
+        .sort((a, b) => a.secondsAgo - b.secondsAgo)[0];
+    if (call) p.memory.set('missilesHeard', Number(call.values!.magazine));
+    const left = p.memory.get('missilesHeard') as number | undefined;
+    return (
+        p.memory.get('lullDocked') === undefined &&
+        p.now >= referenceKnobs.LULL_DOCK_FROM_SECONDS &&
+        p.now < referenceKnobs.LULL_DOCK_UNTIL_SECONDS &&
+        left !== undefined &&
+        left <= k &&
+        !lullBroken(p)
+    );
+}
+
+/** Captain: an enemy within `LULL_DOCK_CLEAR_METERS` of an allied station. */
+const lullBroken = (p: Picture) => (stationThreat(p.radar)?.gap ?? Infinity) < referenceKnobs.LULL_DOCK_CLEAR_METERS;
+
+/** Captain: within `LULL_DOCK_HOLD_SECONDS` of a lull dock order, while the lull holds. */
+const lullDockHeld = (p: Picture) => {
+    const at = p.memory.get('lullDocked') as number | undefined;
+    return at !== undefined && p.now < at + referenceKnobs.LULL_DOCK_HOLD_SECONDS && !lullBroken(p);
+};
+
+/**
  * Captain, conditional restock (`RESTOCK_BELOW_CAPACITY`): the engineer last called the magazine's capacity
  * below the knob, or weapons called the shells low. Remembers the latest capacity heard.
  */
@@ -497,6 +529,10 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
             p.memory.set('restockDocked', true);
             return true;
         }
+        if (!p.dockOrdered && p.memory.get('lullDockNow') === p.now) {
+            p.memory.set('lullDocked', p.now);
+            return true;
+        }
         if (!p.dockOrdered && p.memory.get('losingDockNow') === p.now) {
             p.memory.set('losingDocked', p.now);
             return true;
@@ -507,6 +543,7 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     undock: (p) =>
         p.dockOrdered &&
         !losingDockHeld(p) &&
+        !lullDockHeld(p) &&
         (p.memory.get('restockDocked') === true && !p.memory.get('restockUndocked')
             ? (restockBlocked(p) || p.now >= referenceKnobs.RESTOCK_UNTIL_SECONDS) &&
               (p.memory.set('restockUndocked', true), true)
@@ -619,6 +656,7 @@ export function referenceCallout(
     if (options.includes('dock_for_repair')) {
         shellsLow(picture);
         if (losingDock(picture)) picture.memory.set('losingDockNow', picture.now);
+        if (lullDock(picture)) picture.memory.set('lullDockNow', picture.now);
     }
     const choice = options.find((o) => calloutRules[o](picture)) ?? SILENCE;
     const picked = threatTargeting(picture) ? threatPick(picture) : undefined;

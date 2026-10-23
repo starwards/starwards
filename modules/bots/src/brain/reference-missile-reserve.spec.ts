@@ -208,3 +208,52 @@ describe('reference weapons missile finish skip', () => {
         expect(tubes.slice(6)).not.toContain('fire');
     });
 });
+
+describe('reference weapons missile target selection', () => {
+    /** The lock `radius` wide, with an allied station and a second enemy `other` metres from that station (the lock is 3 km from it). */
+    const shown = (radius: number, other?: number): Display => {
+        const d = display(5);
+        const radar = d.radar as { ownShip: { faction?: number }; contacts: Record<string, unknown>[] };
+        radar.ownShip.faction = 1;
+        Object.assign(radar.contacts[0], { radius, faction: 2 });
+        radar.contacts.push({
+            id: 'station',
+            type: 'Spaceship',
+            faction: 1,
+            radius: 1200,
+            position: { x: 6000, y: 0 },
+            bearing: 0,
+            distance: 6000,
+        });
+        if (other !== undefined) {
+            radar.contacts.push({
+                id: 'other',
+                type: 'Spaceship',
+                faction: 2,
+                radius: 11.2,
+                position: { x: 6000, y: other },
+                bearing: 90,
+                distance: 9000,
+            });
+        }
+        return d;
+    };
+
+    it('is off by default', async () => {
+        expect(REFERENCE_KNOB_DEFAULTS.MISSILE_TARGET_MODE).toBe(0);
+        expect(await fireTube(shown(22.4, 1000))).toBe('fire');
+    });
+
+    it('kill mode launches only at a hull a salvo likely kills', async () => {
+        setReferenceKnobs({ MISSILE_TARGET_MODE: 1 });
+        expect(await fireTube(shown(11.2))).toBe('fire');
+        expect(await fireTube(shown(22.4))).toBe('hold_fire');
+    });
+
+    it('threat mode launches only at the enemy nearest an allied station', async () => {
+        setReferenceKnobs({ MISSILE_TARGET_MODE: 2 });
+        expect(await fireTube(shown(22.4))).toBe('fire');
+        expect(await fireTube(shown(22.4, 5000))).toBe('fire');
+        expect(await fireTube(shown(22.4, 1000))).toBe('hold_fire');
+    });
+});
