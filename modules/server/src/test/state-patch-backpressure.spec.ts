@@ -4,9 +4,9 @@ import { matchMaker } from '@colyseus/core';
 import supertest from 'supertest';
 
 /**
- * Colyseus encodes every patch into one per-room buffer and hands a view of it to `ws`. When a
- * client's socket is backed up, node queues that view instead of copying it, so the next tick's
- * encode overwrites the queued bytes and the client decodes garbage ("refId" not found).
+ * Colyseus encodes every patch into one per-room buffer. A client whose socket is backed up queues
+ * the patch it was sent; if that patch were a view of the shared buffer, the next tick's encode
+ * would overwrite the queued bytes and the client would decode garbage ("refId" not found).
  * Corking the server side of the socket reproduces that backpressure deterministically.
  */
 describe('state patches under socket backpressure', () => {

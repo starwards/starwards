@@ -21,7 +21,7 @@
         "missile-range": "node -r ts-node/register/transpile-only ./src/test/training/run-missile-range.ts"
     },
     "dependencies": {
-        "@colyseus/core": "^0.18.19",
+        "@colyseus/core": "^0.18.20",
         "@colyseus/monitor": "^0.18.6",
         "@colyseus/schema": "^5.0.40",
         "@colyseus/ws-transport": "^0.18.4",

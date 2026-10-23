@@ -15,7 +15,7 @@ last_verified: 2026-07-04
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| @colyseus/core | ^0.18.19 | Server framework (0.18.x line) |
+| @colyseus/core | ^0.18.20 | Server framework (0.18.x line) |
 | @colyseus/schema | ^5.0.40 | Declared in every module that touches schema, so one copy is installed |
 | @colyseus/sdk | ^0.18.5 | Client SDK (the 0.18 successor of `colyseus.js`); must match server version |
 | @colyseus/ws-transport | ^0.18.4 | Stable WebSocket |
@@ -67,11 +67,6 @@ incompatible type identities. When `@modelcontextprotocol/sdk` and `modules/mcp`
 own, `tsc` did not report a mismatch — it exhausted a 4 GB heap trying to compare them, on a build
 that had been fine moments earlier. Any module that adds zod must land on the same copy; check with
 `npm ls zod --all` and confirm no `modules/*/node_modules/zod` exists.
-
-**State-buffer workaround (#2402)** — `modules/server/src/serialization/detach-state-buffers.ts`
-copies each encoded patch before sending. Keep it until upstream colyseus/colyseus#987 ("detach
-encoded state and patch buffers") ships in a release we use; as of 0.18.19 it is unmerged
-(`state-patch-backpressure.spec.ts` guards it).
 
 Note that npm will keep reinstalling a nested copy while `package-lock.json` still has an entry for
 it, even after the override is added — delete the `modules/*/node_modules/zod` entry from the lockfile
