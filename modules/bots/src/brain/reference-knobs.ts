@@ -93,6 +93,11 @@ export const REFERENCE_KNOB_DEFAULTS = {
     /** An enemy this near keeps the captain from a restock-window dock and sends it off one. */
     RESTOCK_CLEAR_METERS: 30_000,
     /**
+     * Conditional restock: above 0, the restock-window dock goes ahead only while the magazine capacity
+     * the engineer last called is below this, or weapons called the shells low; 0 docks regardless.
+     */
+    RESTOCK_BELOW_CAPACITY: 0,
+    /**
      * `magazine-first` engineer: from this many seconds (wave 1 over) for `MAGAZINE_FIRST_WINDOW_SECONDS`,
      * and again from `MAGAZINE_FIRST_PRE_DOCK_SECONDS` before `RESTOCK_FROM_SECONDS` until it, a shown
      * magazine defect cancels any other repair so the feed-system overhaul runs first.

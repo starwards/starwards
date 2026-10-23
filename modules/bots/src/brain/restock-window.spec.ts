@@ -1,6 +1,6 @@
 import { calloutMemory, referenceCallout } from './reference-orders';
 import { BrainRequest } from './request';
-import { CALLOUT_QUESTION } from './callout';
+import { CALLOUT_QUESTION, magazineCapacity } from './callout';
 import { Display } from './controls';
 import { setReferenceKnobs } from './reference-knobs';
 
@@ -55,4 +55,46 @@ describe('restock window (RESTOCK_FROM_SECONDS)', () => {
             );
         }
     });
+
+    it('with RESTOCK_BELOW_CAPACITY, docks only after the engineer called the magazine below it', () => {
+        setReferenceKnobs({ RESTOCK_FROM_SECONDS: 5, RESTOCK_UNTIL_SECONDS: 60, RESTOCK_BELOW_CAPACITY: 0.5 });
+        const state = calloutMemory();
+        const heard = (capacity: string) => [
+            { speaker: 'engineer', callout: 'magazine_state', phrase: '', secondsAgo: 1, values: { capacity } },
+        ];
+        const say = (h: object[]) =>
+            referenceCallout(request, dradis(), undefined, 5, undefined, { state, heard: h as never })?.choice;
+        expect(say([])).not.toBe('dock_for_repair');
+        expect(say(heard('0.80'))).not.toBe('dock_for_repair');
+        expect(say([])).not.toBe('dock_for_repair');
+        expect(say(heard('0.14'))).toBe('dock_for_repair');
+    });
 });
+
+describe('magazineState fill', () => {
+    it('reads the capacity off the damage report, 1 without a defect', () => {
+        expect(magazineCapacity({ 'damage-report': [{ system: '/magazine', field: 'capacity', value: 0.14 }] })).toBe(
+            0.14,
+        );
+        expect(magazineCapacity({ 'damage-report': [] })).toBe(1);
+    });
+
+    it('the engineer calls the magazine state when it changes by a tenth, and every 30 s', () => {
+        const engineer = {
+            state: {},
+            questions: { [CALLOUT_QUESTION]: { type: 'choice', instructions: '', criteria: { magazine_state: '' } } },
+        } as unknown as BrainRequest;
+        const state = calloutMemory();
+        const report = (value: number) => ({
+            panels: { 'damage-report': [{ system: '/magazine', field: 'capacity', value }] },
+        });
+        const say = (value: number) =>
+            referenceCallout(engineer, report(value) as Display, undefined, 5, undefined, { state })?.choice;
+        expect(say(0.9)).toBe('magazine_state');
+        expect(say(0.85)).toBe('silence');
+        expect(say(0.7)).toBe('magazine_state');
+        for (let i = 0; i < 5; i++) say(0.7);
+        expect(say(0.7)).toBe('magazine_state');
+    });
+});
+

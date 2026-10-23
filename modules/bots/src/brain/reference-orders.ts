@@ -1,5 +1,5 @@
 import { referenceKnobs } from './reference-knobs';
-import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, stationThreat, stationsCentre } from './callout';
+import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, magazineCapacity, stationThreat, stationsCentre } from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy, shellStock } from './engagement';
 
@@ -290,10 +290,38 @@ const restockWindow = (p: Picture) =>
     p.now >= referenceKnobs.RESTOCK_FROM_SECONDS &&
     p.now < referenceKnobs.RESTOCK_UNTIL_SECONDS;
 
+/**
+ * Captain, conditional restock (`RESTOCK_BELOW_CAPACITY`): the engineer last called the magazine's capacity
+ * below the knob, or weapons called the shells low. Remembers the latest capacity heard.
+ */
+function restockNeeded(p: Picture) {
+    const below = referenceKnobs.RESTOCK_BELOW_CAPACITY;
+    if (below <= 0) return true;
+    const call = p.heard
+        .filter((h) => h.speaker === 'engineer' && h.callout === 'magazine_state' && h.values?.capacity !== undefined)
+        .sort((a, b) => a.secondsAgo - b.secondsAgo)[0];
+    if (call) p.memory.set('magazineCapacity', Number(call.values!.capacity));
+    const capacity = p.memory.get('magazineCapacity') as number | undefined;
+    return (capacity !== undefined && capacity < below) || shellsLow(p);
+}
+
+/** How often the engineer repeats an unchanged magazine state. */
+const MAGAZINE_STATE_REPEAT_SECONDS = 30;
+
 /** Captain: an enemy within `RESTOCK_CLEAR_METERS` keeps or sends the ship off a restock-window dock. */
 const restockBlocked = (p: Picture) => (nearestEnemy(p.radar)?.distance ?? Infinity) < referenceKnobs.RESTOCK_CLEAR_METERS;
 
 const calloutRules: Record<string, (picture: Picture) => boolean> = {
+    /** Engineer: the magazine's capacity changed by a tenth since last said, or a while passed. */
+    magazine_state: ({ display, memory, now }) => {
+        const capacity = magazineCapacity(display.panels);
+        const last = memory.get('magazineSaid') as { capacity: number; at: number } | undefined;
+        if (last && Math.abs(last.capacity - capacity) < 0.1 && now - last.at < MAGAZINE_STATE_REPEAT_SECONDS) {
+            return false;
+        }
+        memory.set('magazineSaid', { capacity, at: now });
+        return true;
+    },
     /** Signals: the enemy ship shown at the previous decision is gone from the radar. */
     contact_lost: ({ radar, previous }) => {
         const before = nearestEnemy(previous);
@@ -410,7 +438,14 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
                 (c.radius ?? 0) >= STATION_RADIUS_METERS,
         );
         const near = station.some((c) => c.distance < DOCK_NEAR_METERS);
-        if (restockWindow(p) && !p.dockOrdered && !p.memory.get('restockDocked') && !restockBlocked(p) && near) {
+        if (
+            restockWindow(p) &&
+            restockNeeded(p) &&
+            !p.dockOrdered &&
+            !p.memory.get('restockDocked') &&
+            !restockBlocked(p) &&
+            near
+        ) {
             p.memory.set('restockDocked', true);
             return true;
         }

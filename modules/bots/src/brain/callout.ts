@@ -92,6 +92,8 @@ const calloutFills: Record<
         const locked = targetId ? r?.contacts?.find((c) => c.id === targetId) : undefined;
         return locked && r?.ownShip ? degreesAndSide(offNose(locked.bearing, r.ownShip.heading)) : undefined;
     },
+    /** Engineer: the magazine's capacity share, from the damage report (1 when it shows no capacity defect). */
+    magazineState: ({ panels }) => ({ capacity: magazineCapacity(panels).toFixed(2) }),
     /** Engineer: how far damage has bent a chain gun off the nose, from the damage report. */
     gunSkew: ({ panels }) => {
         const report = panels['damage-report'];
@@ -497,4 +499,15 @@ export function checkFireOf(panels: Display['panels']) {
     if (t?.allyInLine) return { ally: t.allyInLine, where: 'in the line of fire' };
     if (t?.allyNearTarget) return { ally: t.allyNearTarget, where: 'by the target' };
     return undefined;
+}
+
+/** The magazine's capacity share the engineer's damage report shows: 1 when it lists no capacity defect. */
+export function magazineCapacity(panels: Display['panels']) {
+    const report = panels['damage-report'];
+    const defect = Array.isArray(report)
+        ? (report as { system: string; field: string; value: number }[]).find(
+              (d) => d.system === '/magazine' && d.field === 'capacity',
+          )
+        : undefined;
+    return defect?.value ?? 1;
 }
