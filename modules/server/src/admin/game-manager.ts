@@ -361,12 +361,18 @@ export class GameManager {
         }
     }
 
-    /** Tail of the start/stop/load operations so far; a new one begins only when the previous one settled. */
-    private lifecycle: Promise<unknown> = Promise.resolve();
+    private lifecycleTail: Promise<void> = Promise.resolve();
+    private lifecycleInFlight = 0;
 
+    /** Runs start/stop/load one at a time; an operation begins synchronously only when none is queued or running. */
     private serialized<T>(operation: () => Promise<T>): Promise<T> {
-        const result = this.lifecycle.then(operation);
-        this.lifecycle = result.catch(() => undefined);
+        const result = this.lifecycleInFlight === 0 ? operation() : this.lifecycleTail.then(operation);
+        this.lifecycleInFlight++;
+        this.lifecycleTail = result.then(
+            () => undefined,
+            () => undefined,
+        );
+        void this.lifecycleTail.then(() => this.lifecycleInFlight--);
         return result;
     }
 
