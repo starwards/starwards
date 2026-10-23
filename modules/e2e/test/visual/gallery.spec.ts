@@ -91,6 +91,7 @@ const scenes = [
     'tactical-radar-with-explosion',
     'tactical-radar-with-breach-hit',
     'tactical-radar-shell-vs-missile-blast',
+    'tactical-radar-missile-target-lines',
     'tactical-radar-firing-arcs',
     'tactical-radar-firing-arcs-limits',
     // Long Range Radar

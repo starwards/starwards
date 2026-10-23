@@ -116,6 +116,15 @@ describe('missileTargetLines', () => {
         expect(missileTargetLines([m], lookup, Faction.Gravitas)).toEqual([[m.position, target.position]]);
     });
 
+    test('draws to the target even when the player cannot see or scan it: a FULL scan reads the missile guidance', () => {
+        const hidden = new Spaceship();
+        hidden.id = 'hidden';
+        hidden.faction = Faction.Raiders;
+        hidden.position = new Vec2(900, 900);
+        const m = Object.assign(missile('m', 'hidden', ScanLevel.FULL), { model: 'HiExpMissile' as const });
+        expect(missileTargetLines([m], () => hidden, Faction.Gravitas)).toEqual([[m.position, hidden.position]]);
+    });
+
     test('skips missiles below FULL, without a live target, and non-missile projectiles', () => {
         const snapshot = Object.assign(missile('a', 't', ScanLevel.SNAPSHOT), { model: 'HiExpMissile' as const });
         const noTarget = Object.assign(missile('b', null, ScanLevel.FULL), { model: 'HiExpMissile' as const });

@@ -2,6 +2,7 @@ import { Assets, Container, Graphics, Texture, UPDATE_PRIORITY } from 'pixi.js';
 import {
     ChainGun,
     Faction,
+    ScanLevel,
     ShipState,
     SpaceDriver,
     SpaceObject,
@@ -9,7 +10,9 @@ import {
     degToRad,
     getShellExplosionLocation,
     getTargetLocationAtShellExplosion,
+    isMissile,
     missileTargetLines,
+    playerScanLevel,
 } from '@starwards/core';
 
 import { radar, selectionColor } from '../colors';
@@ -162,11 +165,18 @@ export function missileTargetLinesLayer(
     isShown: (o: SpaceObject) => boolean,
 ) {
     const graphics = new Graphics();
+    // lazy: the cheap missile and scan-level checks run before the radar's own range test
+    function* shownMissiles() {
+        for (const o of spaceDriver.state.getAll('Projectile')) {
+            if (isMissile(o) && playerScanLevel(o, playerFaction) >= ScanLevel.FULL && isShown(o)) {
+                yield o;
+            }
+        }
+    }
     root.ticker.add(
         () => {
             graphics.clear();
-            const missiles = [...spaceDriver.state.getAll('Projectile')].filter(isShown);
-            const lines = missileTargetLines(missiles, (id) => spaceDriver.state.get(id), playerFaction);
+            const lines = missileTargetLines(shownMissiles(), (id) => spaceDriver.state.get(id), playerFaction);
             for (const [from, to] of lines) {
                 const fromScreen = root.worldToScreen(from);
                 const toScreen = root.worldToScreen(to);

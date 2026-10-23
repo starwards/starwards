@@ -164,6 +164,22 @@ describe('FactionIntelManager scan demotion', () => {
         expect(intel.getScanLevel('missile', Faction.Raiders)).to.equal(ScanLevel.FULL);
     });
 
+    it('keeps FULL for the firing faction after the firing ship is destroyed', () => {
+        const missile = new Projectile();
+        missile.id = 'missile';
+        missile.model = 'HiExpMissile';
+        missile.shipId = 'shooter';
+        const { state, intel } = setup(missile, makeShip('shooter', Faction.Raiders));
+        intel.setScanLevel('missile', Faction.Raiders, ScanLevel.FULL);
+        intel.update(1, 1, visibility());
+
+        state.delete(state.get('shooter') as SpaceObject);
+        intel.update(2, 1, visibility());
+        intel.update(3, 1, visibility());
+
+        expect(intel.getScanLevel('missile', Faction.Raiders)).to.equal(ScanLevel.FULL);
+    });
+
     it('holds FULL through a beam gap of up to 0.5 s', () => {
         const target = makeShip('target', Faction.Raiders);
         const { intel } = setup(target);
