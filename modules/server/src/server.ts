@@ -4,10 +4,10 @@ import * as http from 'http';
 import * as maps from './maps';
 import * as path from 'path';
 
+import { EVENTS_ZST_EXT, SavedGame, createLogger } from '@starwards/core/internal';
 import { GameRecorder, RecordingConflictError, isRecordingFileName } from './recording/game-recorder';
 import { NextFunction, Request, Response } from 'express';
 import { SEA_MONITOR_PREFIX, SEA_STATIC_PREFIX, isSingleExecutable, writableDefault } from './app-paths';
-import { SavedGame, createLogger } from '@starwards/core/internal';
 import { Server, matchMaker } from '@colyseus/core';
 import { schemaToString, stringToSchema } from './serialization/game-state-serialization';
 
@@ -184,7 +184,7 @@ export async function server(
             res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             return;
         }
-        res.type('text/plain');
+        res.type(name.endsWith(EVENTS_ZST_EXT) ? 'application/zstd' : 'text/plain');
         // `root`, not a joined path: express refuses any path with a hidden segment, and the default
         // recordings directory is `.recordings`
         res.sendFile(name, { root: recordingsDir }, (err) => {

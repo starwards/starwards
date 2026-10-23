@@ -360,6 +360,9 @@ describe('GameRecorder', () => {
 
         it('isRecordingFileName accepts plain recording and sidecar names only', () => {
             expect(isRecordingFileName('a_1.events.jsonl')).toBe(true);
+            expect(isRecordingFileName('a_1.events.jsonl.zst')).toBe(true);
+            expect(isRecordingFileName('.events.jsonl.zst')).toBe(false);
+            expect(isRecordingFileName('../a.events.jsonl.zst')).toBe(false);
             expect(isRecordingFileName('a_1.sgr')).toBe(true);
             expect(isRecordingFileName('../a.events.jsonl')).toBe(false);
             expect(isRecordingFileName('a.jsonl')).toBe(false);

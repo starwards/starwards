@@ -1,7 +1,9 @@
 import { execFileSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
+import { isSidecarName } from '@starwards/core/internal';
 import os from 'node:os';
 import path from 'node:path';
+import { readSidecar } from '@starwards/server/src/recording/sidecar-file';
 import { rmDirRetrying } from '@starwards/server/src/test/training/analysis/__fixtures__/rm-retry';
 
 const moduleDir = path.resolve(__dirname, '../..');
@@ -16,9 +18,9 @@ function outcome(dir: string) {
     const crewDir = path.join(dir, 'captain-reference');
     const events = fs
         .readdirSync(crewDir)
-        .filter((f) => f.endsWith('.events.jsonl'))
+        .filter(isSidecarName)
         .sort()
-        .map((f) => fs.readFileSync(path.join(crewDir, f), 'utf8'));
+        .map((f) => readSidecar(path.join(crewDir, f)));
     return { results, events };
 }
 

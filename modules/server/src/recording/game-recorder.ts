@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { BINARY_FILE_MAGIC, encodeRecordChunk, readRecords } from './recording-file';
 import {
     EVENTS_EXT,
+    EVENTS_ZST_EXT,
     RECORDING_EXT,
     RecordingEventLine,
     RecordingHeader,
@@ -16,6 +17,7 @@ import {
     isRecordingName,
     recordingSchemaHash,
     sidecarName,
+    zstSidecarName,
 } from '@starwards/core/internal';
 import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import { GameManager } from '../admin/game-manager';
@@ -34,9 +36,9 @@ interface RecordingSummary {
     events?: string;
 }
 
-/** True for a plain recording or sidecar file name — no directory part, a known extension. */
+/** True for a plain recording or (plain or zstd) sidecar file name — no directory part, a known extension. */
 export function isRecordingFileName(name: string): boolean {
-    const ext = [RECORDING_EXT, EVENTS_EXT].find((e) => name.endsWith(e));
+    const ext = [RECORDING_EXT, EVENTS_EXT, EVENTS_ZST_EXT].find((e) => name.endsWith(e));
     return !!ext && name.length > ext.length && !/[/\\]/.test(name) && path.basename(name) === name;
 }
 const isListedRecording = (name: string) => isRecordingName(name) && isRecordingFileName(name);
@@ -333,7 +335,11 @@ export class GameRecorder implements PatchTap {
         const pending = Promise.all([this.headerWritten, this.writes, this.eventWrites]);
         this.discarding = this.discarding
             .then(() => pending)
-            .then(() => Promise.all([fs.rm(filePath, { force: true }), fs.rm(sidecarName(filePath), { force: true })]))
+            .then(() =>
+                Promise.all(
+                    [filePath, sidecarName(filePath), zstSidecarName(filePath)].map((f) => fs.rm(f, { force: true })),
+                ),
+            )
             .then(() => undefined)
             .catch((e: unknown) => logError(`can't remove empty recording ${filePath}:`, e));
     }
@@ -528,12 +534,14 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
         durationSeconds: lastT,
         frameCount,
     };
-    const eventsPath = sidecarName(filePath);
-    try {
-        await fs.access(eventsPath);
-        summary.events = path.basename(eventsPath);
-    } catch {
-        // no decisions were recorded
+    for (const eventsPath of [zstSidecarName(filePath), sidecarName(filePath)]) {
+        try {
+            await fs.access(eventsPath);
+            summary.events = path.basename(eventsPath);
+            break;
+        } catch {
+            // no decisions were recorded in this form
+        }
     }
     return summary;
 }

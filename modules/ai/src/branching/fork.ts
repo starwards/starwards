@@ -1,7 +1,7 @@
-import { SavedGame, isRecordingName, sidecarName } from '@starwards/core/internal';
+import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 import { readEvents, streamFrames } from '../scoring/recording';
-
 import { Intervention } from './levels';
+import { SavedGame } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { WaveOutcome } from '@starwards/server/src/test/training/wave-rung';
 import crypto from 'node:crypto';
@@ -36,10 +36,11 @@ const PLAYED = new Set(['decision', 'callout', 'command', 'orders']);
 
 /** Fingerprints of a run's crew events before `t`, and of all of them. */
 export function fingerprint(recordingOrSidecar: string, t: number) {
-    const sidecar = isRecordingName(recordingOrSidecar) ? sidecarName(recordingOrSidecar) : recordingOrSidecar;
+    const sidecar = findSidecar(recordingOrSidecar);
+    if (!sidecar) throw new Error(`no events sidecar for ${recordingOrSidecar}`);
     const prefix = crypto.createHash('sha1');
     const whole = crypto.createHash('sha1');
-    for (const line of fs.readFileSync(sidecar, 'utf8').split('\n')) {
+    for (const line of readSidecarLines(sidecar)) {
         const m = /^\{"t":([^,]+),"kind":"([^"]+)"/.exec(line);
         if (!m || !PLAYED.has(m[2])) continue;
         whole.update(line);

@@ -1,8 +1,7 @@
 import { Display, Heard, ORDERS_PANEL, OrdersBoard, ordersSummary } from '@starwards/bots';
 import { RecordedDecision, RecordedRequest, readDecisionLog } from '../training/decision-log';
-import { RecordingEventLine, isRecordingName, parseEventLine, sidecarName } from '@starwards/core/internal';
-
-import fs from 'node:fs';
+import { RecordingEventLine, parseEventLine } from '@starwards/core/internal';
+import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -27,10 +26,9 @@ export type RunLog = {
 
 export function readRunLog(recordingPath: string): RunLog {
     const { requests, decisions } = readDecisionLog(recordingPath);
-    const sidecar = isRecordingName(recordingPath) ? sidecarName(recordingPath) : recordingPath;
-    const lines = fs
-        .readFileSync(sidecar, 'utf8')
-        .split('\n')
+    const sidecar = findSidecar(recordingPath);
+    if (!sidecar) throw new Error(`no events sidecar for ${recordingPath}`);
+    const lines = readSidecarLines(sidecar)
         .map(parseEventLine)
         .filter((l): l is RecordingEventLine => l !== null && (l.kind === 'callout' || l.kind === 'orders'));
     return {

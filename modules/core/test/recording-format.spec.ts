@@ -6,12 +6,14 @@ import {
     encodeHeader,
     encodeSegLine,
     encodeSegment,
+    isSidecarName,
     parseBaseLine,
     parseEventLine,
     parseFrameLine,
     parseHeader,
     parseSegLine,
     sidecarName,
+    zstSidecarName,
 } from '../src';
 
 describe('recording-format', () => {
@@ -52,6 +54,14 @@ describe('recording-format sidecar events', () => {
     it('names the sidecar beside a recording', () => {
         expect(sidecarName('map_1.sgr')).toBe('map_1.events.jsonl');
         expect(sidecarName('dir/map_1.sgr')).toBe('dir/map_1.events.jsonl');
+        expect(zstSidecarName('dir/map_1.sgr')).toBe('dir/map_1.events.jsonl.zst');
+    });
+
+    it('recognises plain and zstd sidecar names', () => {
+        expect(isSidecarName('a.events.jsonl')).toBe(true);
+        expect(isSidecarName('a.events.jsonl.zst')).toBe(true);
+        expect(isSidecarName('a.sgr')).toBe(false);
+        expect(isSidecarName('a.jsonl.zst')).toBe(false);
     });
 
     it('encodes and parses an event line round-trip, keeping arbitrary data', () => {
