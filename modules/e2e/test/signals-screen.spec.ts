@@ -146,6 +146,9 @@ test.describe('Signals Screen', () => {
         // classify what the player has not scanned
         await expect(panel.getByText(`SCAN · ${rock.id}`)).toBeVisible({ timeout: 10000 });
         await expect(panel.locator('.tp-lblv.sw-job input')).toHaveValue(/%$/);
+        // a UFO's next step is BASIC; the row says so
+        await expect(panel.getByText(`SCAN · ${rock.id} · →BASIC`)).toBeVisible();
+        await page.screenshot({ path: 'test-results/screenshots/signals-jobs-target-level.png' });
     });
 
     // --- Target cycle: which contacts the ] / [ keys reach ---
