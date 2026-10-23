@@ -1,7 +1,11 @@
 import { Encoder, MapSchema, Schema } from '@colyseus/schema';
-import { schemaToString, stringToSchema } from '../serialization/game-state-serialization';
-
-import { gameField } from '@starwards/core/internal';
+import { gameField, isBinarySavedGame } from '@starwards/core/internal';
+import {
+    savedGameToSchema,
+    schemaToSavedGame,
+    schemaToString,
+    stringToSchema,
+} from '../serialization/game-state-serialization';
 
 describe('game-state-serialization', () => {
     class TestMapSchema extends Schema {
@@ -33,5 +37,39 @@ describe('game-state-serialization', () => {
         } finally {
             warn.mockRestore();
         }
+    });
+});
+
+describe('saved game files', () => {
+    class TestMapSchema extends Schema {
+        @gameField({ map: 'number' })
+        value = new MapSchema<number>();
+    }
+    const source = () => {
+        const src = new TestMapSchema();
+        src.value.set('k1', 1);
+        src.value.set('k2', 2);
+        return src;
+    };
+
+    it('round-trips the binary form behind the magic prefix', async () => {
+        const file = await schemaToSavedGame(source());
+        expect(isBinarySavedGame(file)).toBe(true);
+        expect((await savedGameToSchema(TestMapSchema, file)).toJSON()).toEqual(source().toJSON());
+    });
+
+    it('still reads the older base64+gzip text form', async () => {
+        const file = Buffer.from(await schemaToString(source()), 'utf-8');
+        expect(isBinarySavedGame(file)).toBe(false);
+        expect((await savedGameToSchema(TestMapSchema, file)).toJSON()).toEqual(source().toJSON());
+    });
+
+    it('rejects a truncated binary file', async () => {
+        const file = await schemaToSavedGame(source());
+        await expect(savedGameToSchema(TestMapSchema, file.subarray(0, file.length - 4))).rejects.toThrow();
+    });
+
+    it('rejects a corrupt text file', async () => {
+        await expect(savedGameToSchema(TestMapSchema, Buffer.from('not a saved game'))).rejects.toThrow();
     });
 });

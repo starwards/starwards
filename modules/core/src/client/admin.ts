@@ -76,14 +76,20 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<unknown,
         stopGame: (): undefined => void fetch(endpoint + '/stop-game', { ...requestInfo, body: '{}' }),
         startGame: (mapName: string): undefined =>
             void fetch(endpoint + '/start-game', { ...requestInfo, body: JSON.stringify({ mapName }) }),
-        loadGame: (data: string): undefined =>
-            void fetch(endpoint + '/load-game', { ...requestInfo, body: JSON.stringify({ data }) }),
-        saveGame: async () => {
+        /** `file` is a saved game file as `saveGame` returned it, or an older text-format one. */
+        loadGame: (file: Uint8Array): undefined =>
+            void fetch(endpoint + '/load-game', {
+                ...requestInfo,
+                headers: { 'Content-Type': 'application/octet-stream' },
+                body: file as Uint8Array<ArrayBuffer>,
+            }),
+        /** The bytes of a saved game file. */
+        saveGame: async (): Promise<Uint8Array> => {
             const response = await fetch(endpoint + '/save-game', {
                 ...requestInfo,
                 body: '{}',
             });
-            return response.text();
+            return new Uint8Array(await response.arrayBuffer());
         },
         listRecordings: async (): Promise<RecordingInfo[]> => {
             const response = await fetch(endpoint + '/recordings');

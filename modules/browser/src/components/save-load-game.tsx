@@ -6,7 +6,7 @@ import { useCallback } from 'react';
 export function useSaveGameHandler(adminDriver: AdminDriver | null) {
     return useCallback(() => {
         if (adminDriver) {
-            void adminDriver.saveGame().then((content: string) => {
+            void adminDriver.saveGame().then((content) => {
                 const d = new Date();
                 fileDownload(
                     content,
