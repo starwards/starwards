@@ -167,7 +167,8 @@ export function makeReferencePolicy(
                 seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS &&
                 !salvoFull &&
                 !checkFire(display) &&
-                spend.firedOn >= referenceKnobs.MISSILE_ESCALATE_SECONDS
+                spend.firedOn >= referenceKnobs.MISSILE_ESCALATE_SECONDS &&
+                (referenceKnobs.MISSILE_FINISH_SECONDS <= 0 || spend.firedOn < referenceKnobs.MISSILE_FINISH_SECONDS)
                     ? tubeToLaunch(display, previous, decisionSeconds, seconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
@@ -554,6 +555,8 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
     if (!target || !isShip(target)) {
         return undefined;
     }
+    const gate = referenceKnobs.MISSILE_STATION_METERS;
+    if (gate > 0 && !withinOfStation(display, target, gate)) return undefined;
     const shown = target as unknown as ShownContact;
     const radar = display.radar as ShownRadar | undefined;
     const inEnvelope = (ammo: string) =>
@@ -607,13 +610,18 @@ function withinBudget(display: Display, now: number, spend: Spend) {
 /** Whether `target` is within `STATION_GUARD_METERS` of an allied station. */
 function nearStation(display: Display, target: Contact) {
     const guard = referenceKnobs.STATION_GUARD_METERS;
-    if (guard <= 0 || !target.position) return false;
+    return guard > 0 && withinOfStation(display, target, guard);
+}
+
+/** Whether `target` is within `meters` of an allied station. */
+function withinOfStation(display: Display, target: Contact, meters: number) {
+    if (!target.position) return false;
     return (display.radar?.contacts ?? []).some(
         (c) =>
             isAlly(c, display) &&
             (c.radius ?? 0) >= STATION_RADIUS_METERS &&
             c.position !== undefined &&
-            length(sub(c.position, target.position)) <= guard,
+            length(sub(c.position, target.position)) <= meters,
     );
 }
 

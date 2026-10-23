@@ -70,6 +70,10 @@ export const REFERENCE_KNOB_DEFAULTS = {
     MISSILE_ESCALATE_SECONDS: 0,
     /** Above 0.5 (with `TUBE_AMMO_FALLBACK`), tubes load AP missiles first, then HE, then Frag. */
     TUBE_AMMO_AP_FIRST: 0,
+    /** Weapons launches a missile only at a lock within this many meters of an allied station; 0 at any lock. */
+    MISSILE_STATION_METERS: 0,
+    /** Weapons launches no missile at a lock its gun already fired this many seconds at (left to the gun to finish); 0 never skips. */
+    MISSILE_FINISH_SECONDS: 0,
     /** Captain says no close order at an enemy nearer than this; 0 always may (branch sweep: closing in at gun range lost seeds). */
     CLOSE_STOP_METERS: 0,
     /**

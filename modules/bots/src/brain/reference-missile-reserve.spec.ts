@@ -152,3 +152,59 @@ describe('reference weapons tube ammo fallback', () => {
         expect(await change(shown('HiExpMissile', 1, { HiExpMissile: 5, ArmPenMissile: 5 }))).toBe('wait');
     });
 });
+
+describe('reference weapons missile station gate', () => {
+    const withStation = (x: number): Display => {
+        const shown = display(5);
+        const radar = shown.radar as { ownShip: { faction?: string }; contacts: unknown[] };
+        radar.ownShip.faction = 'GRAVITAS';
+        radar.contacts.push({
+            id: 'station',
+            type: 'Station',
+            faction: 'GRAVITAS',
+            radius: 400,
+            position: { x, y: 0 },
+            bearing: 0,
+            distance: x,
+        });
+        return shown;
+    };
+
+    it('is off by default: launches at a lock far from any station', async () => {
+        expect(REFERENCE_KNOB_DEFAULTS.MISSILE_STATION_METERS).toBe(0);
+        expect(await fireTube(withStation(50_000))).toBe('fire');
+    });
+
+    it('MISSILE_STATION_METERS launches only at a lock that near an allied station', async () => {
+        setReferenceKnobs({ MISSILE_STATION_METERS: 5000 });
+        expect(await fireTube(withStation(50_000))).toBe('hold_fire');
+        expect(await fireTube(withStation(6000))).toBe('fire');
+    });
+});
+
+describe('reference weapons missile finish skip', () => {
+    const gunCaps: Capabilities = { commands: [...capabilities.commands, { command: 'fireChainGun', count: 1 }] };
+    const play = async (decisions: number) => {
+        const policy = makeReferencePolicy(1);
+        const tubes: string[] = [];
+        for (let i = 0; i < decisions; i++) {
+            const shown = display(5);
+            const controls = stationControls({ display: shown, capabilities: gunCaps, burstSeconds: 1 });
+            const result = await policy.answer({} as BrainRequest, controls, shown);
+            tubes.push(result.answers['fireTube:0'].choice);
+        }
+        return tubes;
+    };
+
+    it('is off by default', async () => {
+        expect(REFERENCE_KNOB_DEFAULTS.MISSILE_FINISH_SECONDS).toBe(0);
+        expect((await play(30)).filter((c) => c === 'fire').length).toBeGreaterThan(1);
+    });
+
+    it('MISSILE_FINISH_SECONDS stops launches at a lock the gun fired at that long', async () => {
+        setReferenceKnobs({ MISSILE_FINISH_SECONDS: 5 });
+        const tubes = await play(30);
+        expect(tubes[0]).toBe('fire');
+        expect(tubes.slice(6)).not.toContain('fire');
+    });
+});

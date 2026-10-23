@@ -8,7 +8,7 @@
  *
  *   npm --prefix modules/ai run search -- --out <dir> [--base crews/captain-reference-guard.json] [--lambda 8]
  *       [--seeds 16] [--timeout 1500] [--max-workers 12] [--generations 1000] [--fitness lexicographic|composite]
- *       [--promote 3]
+ *       [--promote 3] [--freeze A,B | --only A,B] [--fixed-seeds]
  *
  * `--fitness lexicographic` (default) ranks by W-waves passes, then time to the first station loss on
  * failed runs, then wave-3 station damage (`lexicographic-fitness.ts`); `composite` by the paired
@@ -69,12 +69,19 @@ const RANGES = {
     MISSILE_RESERVE: [0, 12],
     MISSILE_RESERVE_SECONDS: [300, 1000],
     TUBE_AMMO_FALLBACK: [0, 1],
+    MISSILE_ESCALATE_SECONDS: [0, 20],
+    TUBE_AMMO_AP_FIRST: [0, 1],
+    MISSILE_STATION_METERS: [0, 30_000],
+    MISSILE_FINISH_SECONDS: [0, 30],
 } satisfies Partial<Record<keyof ReferenceKnobs, [number, number]>>;
 const ALL_KNOBS = Object.keys(RANGES) as Knob[];
 /** Knobs held at their defaults: `--freeze A,B`. */
 const FROZEN = new Set(arg('freeze', '').split(',').filter(Boolean));
 for (const k of FROZEN) if (!(k in RANGES)) throw new Error(`unknown knob ${k}`);
-const KNOBS = ALL_KNOBS.filter((k) => !FROZEN.has(k));
+/** Only these knobs vary: `--only A,B` (the rest play their defaults). */
+const ONLY = new Set(arg('only', '').split(',').filter(Boolean));
+for (const k of ONLY) if (!(k in RANGES)) throw new Error(`unknown knob ${k}`);
+const KNOBS = ALL_KNOBS.filter((k) => !FROZEN.has(k) && (ONLY.size === 0 || ONLY.has(k)));
 const N = KNOBS.length;
 
 function arg(name: string, fallback: string) {
@@ -314,7 +321,8 @@ async function main() {
     while (state.generation < generations) {
         const g = state.generation;
         const poolSize = poolHi - poolLo + 1;
-        const firstSeed = poolLo + ((g * seeds) % poolSize);
+        // `--fixed-seeds` plays the same first `--seeds` of the bank every generation
+        const firstSeed = process.argv.includes('--fixed-seeds') ? poolLo : poolLo + ((g * seeds) % poolSize);
         const dir = path.join(outDir, `gen${String(g).padStart(4, '0')}`);
         fs.mkdirSync(dir, { recursive: true });
         const zs = Array.from({ length: lambda }, () => Array.from({ length: N }, () => gaussian(state)));
