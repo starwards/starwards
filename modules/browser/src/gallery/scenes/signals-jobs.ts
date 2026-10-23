@@ -43,7 +43,7 @@ function signalsJobsScene(name: string, description: string, jobs: JobSetup[]): 
 export const signalsJobsScenes: Record<string, Scene> = {
     'signals-jobs-needs-beam': signalsJobsScene(
         'signals-jobs-needs-beam',
-        'A deep scan stalled off the scan beam is listed as NEEDS BEAM, apart from the dormant count',
+        'A deep scan stalled off the scan beam is listed as BEAM, apart from the dormant count',
         [
             { status: JobStatus.IN_PROGRESS, progress: 0.4 },
             { status: JobStatus.QUEUED },
