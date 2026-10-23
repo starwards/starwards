@@ -306,7 +306,7 @@ const panelTemplates = {
                       `${r.allied ? 'Ally' : 'Contact'} ${r.name}: ${
                           r.intel === 'PENDING'
                               ? 'hull status loading'
-                              : `hull ${r.hullPercent}%, capsule ${r.capsule}${r.intel === 'SNAPSHOT' ? ` (snapshot ${Math.round(r.ageSeconds ?? 0)} s old)` : ''}`
+                              : `hull ${r.hull}, capsule ${r.capsule}${r.intel === 'SNAPSHOT' ? ` (snapshot ${Math.round(r.ageSeconds ?? 0)} s old)` : ''}`
                       }.`,
               )
             : ['Hull status: no allies or scanned contacts.'],

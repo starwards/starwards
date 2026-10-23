@@ -1,5 +1,5 @@
+import { CommandBinding, ValueKind, commandBindings } from './command-map';
 import {
-    CapsuleTierTracker,
     Radar,
     ShipDriver,
     ShipIntelSource,
@@ -7,12 +7,12 @@ import {
     StationCommand,
     StationEntry,
     StationWidget,
+    StatusTierTracker,
     getJsonPointer,
     isRadarWidget,
     spaceCommands,
     tryGetRange,
 } from '@starwards/core/internal';
-import { CommandBinding, ValueKind, commandBindings } from './command-map';
 
 import { RadarView } from './radar-view';
 
@@ -70,7 +70,7 @@ export class StationSession {
     /** Seconds on the session's clock. */
     readonly now: () => number;
     /** Settles the capsule tiers the `hull-status` panel shows, with hysteresis. */
-    readonly hullTiers = new CapsuleTierTracker();
+    readonly hullTiers = new StatusTierTracker();
     private readonly wait: (seconds: number, signal: AbortSignal) => Promise<void>;
     /** Aborted by {@link release}: ends every hold in progress and refuses new ones. */
     private readonly releasing = new AbortController();

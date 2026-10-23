@@ -21,8 +21,8 @@ import { z } from 'zod';
  * missiles a salvo keeps in flight), `focusOrder` (captain: the enemy ships in sight in the order to
  * fight them, nearest the most threatened allied station first when one is in sight), `allyAtRisk`
  * (weapons: the ally the targeting panel's check-fire line shows, its range, and whether it is in the
- * line of fire or by the target), `hullStatusChange` (signals: the most urgent live capsule tier change
- * on its hull-status panel since the previous decision — allies first, then a contact attacking an
+ * line of fire or by the target), `hullStatusChange` (signals: the most urgent live hull or capsule tier change
+ * on its hull-status panel since the previous decision â€” allies first, then a contact attacking an
  * allied station, then other contacts).
  */
 export const calloutFills = [

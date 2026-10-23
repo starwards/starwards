@@ -1,42 +1,42 @@
 import { Asteroid, Faction, ScanLevel, ShipState, Spaceship, demoShip, makeShipState } from '@starwards/core';
 import {
-    CAPSULE_TIERS,
-    CapsuleTierTracker,
     HULL_STATUS_TUNING,
-    capsuleTier,
+    STATUS_TIERS,
+    StatusTierTracker,
     hullStatusList,
+    statusTier,
 } from '../src/client/hull-status';
 
 import { ShipIntelSource } from '../src/client/space-object-intel';
 
-describe('capsuleTier', () => {
+describe('statusTier', () => {
     test.each([
         [1, 'intact'],
-        [0.76, 'intact'],
-        [0.75, 'damaged'],
+        [0.91, 'intact'],
+        [0.9, 'damaged'],
         [0.41, 'damaged'],
         [0.4, 'critical'],
         [0.16, 'critical'],
         [0.15, 'failing'],
         [0, 'failing'],
     ])('integrity %p reads %p', (integrity, tier) => {
-        expect(capsuleTier(integrity)).toEqual(tier);
+        expect(statusTier(integrity)).toEqual(tier);
     });
 
     test('the tier table is ordered best first, one row per tier', () => {
-        expect(CAPSULE_TIERS.map((t) => t.tier)).toEqual(['intact', 'damaged', 'critical', 'failing']);
+        expect(STATUS_TIERS.map((t) => t.tier)).toEqual(['intact', 'damaged', 'critical', 'failing']);
     });
 });
 
-describe('CapsuleTierTracker', () => {
+describe('StatusTierTracker', () => {
     const { dwellSeconds, returnMargin } = HULL_STATUS_TUNING;
 
     test('settles on the first reading at once', () => {
-        expect(new CapsuleTierTracker().settle('a', 0.5, 0)).toEqual('damaged');
+        expect(new StatusTierTracker().settle('a', 0.5, 0)).toEqual('damaged');
     });
 
     test('a worse tier is taken only after it held for the dwell', () => {
-        const t = new CapsuleTierTracker();
+        const t = new StatusTierTracker();
         t.settle('a', 0.9, 0);
         expect(t.settle('a', 0.7, 1)).toEqual('intact');
         expect(t.settle('a', 0.7, 1 + dwellSeconds - 0.1)).toEqual('intact');
@@ -44,26 +44,26 @@ describe('CapsuleTierTracker', () => {
     });
 
     test('a value oscillating at a threshold never changes the settled tier', () => {
-        const t = new CapsuleTierTracker();
-        t.settle('a', 0.76, 0);
+        const t = new StatusTierTracker();
+        t.settle('a', 0.91, 0);
         let now = 0;
         for (let i = 0; i < 20; i++) {
             now += 0.5;
-            expect(t.settle('a', i % 2 ? 0.76 : 0.74, now)).toEqual('intact');
+            expect(t.settle('a', i % 2 ? 0.91 : 0.89, now)).toEqual('intact');
         }
     });
 
     test('a return to a better tier needs the margin past the threshold', () => {
-        const t = new CapsuleTierTracker();
+        const t = new StatusTierTracker();
         t.settle('a', 0.5, 0);
-        expect(t.settle('a', 0.75 + returnMargin / 2, 1)).toEqual('damaged');
-        expect(t.settle('a', 0.75 + returnMargin / 2, 1 + dwellSeconds)).toEqual('damaged');
-        t.settle('a', 0.75 + returnMargin + 0.01, 10);
-        expect(t.settle('a', 0.75 + returnMargin + 0.01, 10 + dwellSeconds)).toEqual('intact');
+        expect(t.settle('a', 0.9 + returnMargin / 2, 1)).toEqual('damaged');
+        expect(t.settle('a', 0.9 + returnMargin / 2, 1 + dwellSeconds)).toEqual('damaged');
+        t.settle('a', 0.9 + returnMargin + 0.01, 10);
+        expect(t.settle('a', 0.9 + returnMargin + 0.01, 10 + dwellSeconds)).toEqual('intact');
     });
 
     test('forgets subjects not seen in a pass', () => {
-        const t = new CapsuleTierTracker();
+        const t = new StatusTierTracker();
         t.settle('a', 0.9, 0);
         t.retain(new Set());
         expect(t.settle('a', 0.5, 1)).toEqual('damaged');
@@ -96,7 +96,7 @@ describe('hullStatusList', () => {
     };
 
     function list(objects: (Spaceship | Asteroid)[], faction: Faction | undefined = PLAYER) {
-        return hullStatusList(objects, faction, 'self', source, new CapsuleTierTracker(), 0);
+        return hullStatusList(objects, faction, 'self', source, new StatusTierTracker(), 0);
     }
 
     beforeEach(() => {
@@ -107,7 +107,7 @@ describe('hullStatusList', () => {
         states.ally = state(0.3);
         const [row] = list([ship('ally', PLAYER, ScanLevel.UFO)]);
         expect(row).toMatchObject({ id: 'ally', allied: true, intel: 'LIVE', capsule: 'critical' });
-        expect(row.hullPercent).toBeGreaterThanOrEqual(0);
+        expect(row.hull).toEqual('intact');
     });
 
     test('a FULL-scanned enemy reads live; a SNAPSHOT one reads frozen with its age', () => {
@@ -143,10 +143,15 @@ describe('hullStatusList', () => {
         expect(list([ship('e', ENEMY, ScanLevel.FULL), ship('a', PLAYER)]).map((r) => r.id)).toEqual(['a', 'e']);
     });
 
-    test('rows carry the tier, never the raw capsule integrity', () => {
+    test('hull reads as a tier of healthRatio', () => {
+        states.ally = { healthRatio: 0.3, capsule: { integrity: 1 } } as unknown as ShipState;
+        expect(list([ship('ally', PLAYER)])[0]).toMatchObject({ hull: 'critical', capsule: 'intact' });
+    });
+
+    test('rows carry tiers, never a number', () => {
         states.ally = state(0.5);
         expect(Object.keys(list([ship('ally', PLAYER)])[0]).sort()).toEqual(
-            ['allied', 'capsule', 'hullPercent', 'id', 'intel', 'name'].sort(),
+            ['allied', 'capsule', 'hull', 'id', 'intel', 'name'].sort(),
         );
     });
 });

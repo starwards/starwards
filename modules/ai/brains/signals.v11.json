@@ -35,9 +35,9 @@
     "view": "verbal",
     "callouts": {
         "hull_status": {
-            "say": "{who} {name} capsule {tier}, hull {hull}%",
+            "say": "{who} {name} {part} {tier}",
             "fill": "hullStatusChange",
-            "when": "tells the captain and the crew that the capsule of an ally, or of a fully scanned contact, just moved to another tier (intact, damaged, critical, failing), filled in from your hull-status panel: an ally first, then a contact attacking an allied station. Choose this when a capsule tier changed since you last looked, and you have not reported hull status in the last 5 seconds"
+            "when": "tells the captain and the crew that the hull or the capsule of an ally, or of a fully scanned contact, just moved to another tier (intact, damaged, critical, failing), filled in from your hull-status panel: an ally first, then a contact attacking an allied station. Choose this when a hull or capsule tier changed since you last looked, and you have not reported hull status in the last 5 seconds"
         },
         "far_contact": {
             "say": "contact {name} at {range} km, {bearing}",

@@ -6,12 +6,12 @@ import { BrainSpec } from './spec';
 import { Display } from './controls';
 import { HullStatus } from '@starwards/core/internal';
 
-type Row = Pick<HullStatus, 'id' | 'allied' | 'intel' | 'capsule'>;
+type Row = Pick<HullStatus, 'id' | 'allied' | 'intel' | 'capsule' | 'hull'>;
 
 /** A signals display: the own ship (faction 1) at the origin, its hull-status panel, and radar contacts. */
 function shown(rows: Row[], contacts: { id: string; faction: number; x: number; radius?: number }[] = []): Display {
     return {
-        panels: { 'hull-status': rows.map((r) => ({ name: r.id, hullPercent: 60, ...r })) },
+        panels: { 'hull-status': rows.map((r) => ({ name: r.id, ...r })) },
         radar: {
             ownShip: { id: 'own', heading: 0, faction: 1, position: { x: 0, y: 0 } },
             contacts: contacts.map((c) => ({
@@ -29,11 +29,17 @@ function shown(rows: Row[], contacts: { id: string; faction: number; x: number; 
     };
 }
 
-const live = (id: string, capsule: HullStatus['capsule'], allied = false): Row => ({
+const live = (
+    id: string,
+    capsule: HullStatus['capsule'],
+    allied = false,
+    hull: HullStatus['hull'] = 'intact',
+): Row => ({
     id,
     allied,
     intel: 'LIVE',
     capsule,
+    hull,
 });
 
 describe('hullStatusChange', () => {
@@ -45,7 +51,7 @@ describe('hullStatusChange', () => {
     it('an ally comes before an enemy', () => {
         const before = shown([live('e', 'intact'), live('a', 'intact', true)]);
         const now = shown([live('e', 'damaged'), live('a', 'critical', true)]);
-        expect(hullStatusChange(now, before)?.id).toBe('a');
+        expect(hullStatusChange(now, before)?.row.id).toBe('a');
     });
 
     it('a contact attacking an allied station comes before another contact', () => {
@@ -56,7 +62,19 @@ describe('hullStatusChange', () => {
         ];
         const before = shown([live('far', 'intact'), live('attacker', 'intact')], contacts);
         const now = shown([live('far', 'damaged'), live('attacker', 'damaged')], contacts);
-        expect(hullStatusChange(now, before)?.id).toBe('attacker');
+        expect(hullStatusChange(now, before)?.row.id).toBe('attacker');
+    });
+
+    it('a hull tier change is reported too, the capsule first for one subject', () => {
+        const before = shown([live('a', 'intact', true, 'intact')]);
+        expect(hullStatusChange(shown([live('a', 'intact', true, 'damaged')]), before)).toMatchObject({
+            part: 'hull',
+            tier: 'damaged',
+        });
+        expect(hullStatusChange(shown([live('a', 'critical', true, 'damaged')]), before)).toMatchObject({
+            part: 'capsule',
+            tier: 'critical',
+        });
     });
 
     it('a snapshot never triggers, nor does a row that turns live', () => {
@@ -71,7 +89,7 @@ describe('hull_status callout', () => {
         decisionSeconds: 1,
         controls: {},
         callouts: {
-            hull_status: { say: '{who} {name} capsule {tier}, hull {hull}%', when: '', fill: 'hullStatusChange' },
+            hull_status: { say: '{who} {name} {part} {tier}', when: '', fill: 'hullStatusChange' },
             enemy_position: { say: 'enemy', when: '' },
         },
     } as unknown as BrainSpec;
@@ -90,7 +108,7 @@ describe('hull_status callout', () => {
         const before = shown([live('station', 'damaged', true)]);
         const now = shown([live('station', 'critical', true)]);
         expect(calloutSaid(spec, 'hull_status', now, CALLOUT_QUESTION, before)?.phrase).toBe(
-            'ally station capsule critical, hull 60%',
+            'ally station capsule critical',
         );
     });
 

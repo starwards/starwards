@@ -1,10 +1,10 @@
 import {
-    CapsuleTierTracker,
     Driver,
     LiveShipIntel,
     Radar,
     ShipDriver,
     SpaceDriver,
+    StatusTierTracker,
     hullStatusList,
     radarReach,
     scanCycleTargets,
@@ -63,7 +63,7 @@ export async function initSignalsScreen(
     const jobsSlot = grid.left({ scroll: true });
     drawTargetInfo(grid.right(), spaceDriver, shipDriver, stationTarget);
     const shipIntel = new LiveShipIntel((id) => driver.getShipDriver(id), shipDriver);
-    const hullTiers = new CapsuleTierTracker();
+    const hullTiers = new StatusTierTracker();
     drawHullStatus(grid.right({ scroll: true }), () =>
         hullStatusList(
             spaceDriver.state,

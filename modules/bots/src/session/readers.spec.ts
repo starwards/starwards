@@ -1,10 +1,10 @@
 import {
-    CapsuleTierTracker,
     Faction,
     HullStatus,
     ScanLevel,
     ShipIntelSource,
     Spaceship,
+    StatusTierTracker,
     TargetIntel,
     Vec2,
     hullStatusList,
@@ -105,7 +105,7 @@ describe('hull-status panel', () => {
         viewFaction: Faction.Gravitas,
         shipIntel: source,
         now: () => 0,
-        hullTiers: new CapsuleTierTracker(),
+        hullTiers: new StatusTierTracker(),
         shipDriver: { id: 'self' },
         spaceDriver: { state: objects },
     } as unknown as StationSession;
@@ -113,7 +113,7 @@ describe('hull-status panel', () => {
     // the bot panel and the browser's Signals list are the same core predicate
     it('lists exactly what core hullStatusList lists for the same observer', () => {
         const panel = widgetReaders['hull-status']?.(session);
-        expect(panel).toEqual(hullStatusList(objects, Faction.Gravitas, 'self', source, new CapsuleTierTracker(), 0));
+        expect(panel).toEqual(hullStatusList(objects, Faction.Gravitas, 'self', source, new StatusTierTracker(), 0));
     });
 
     it('shows allies live, FULL live, SNAPSHOT frozen with age, nothing below', () => {
