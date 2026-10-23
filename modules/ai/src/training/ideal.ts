@@ -1,7 +1,9 @@
 import { ShipState, getSystems, magazineStocks, shellAmmoTypes } from '@starwards/core/internal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
+import { STATIONS } from '@starwards/server/src/scenarios/wave-defence';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
+import { tapDamage } from '@starwards/server/src/test/damage-tap';
 
 /**
  * Test-only idealizations of the GVTS for ceiling measurements: each tick, before the crew acts,
@@ -19,6 +21,10 @@ import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
  * - `missiles`: like `ammo`, but only missiles are refilled; shells run down as in play.
  * - `duty`: the gun gets no shells during the second half of every 20 s (fire 10 s, pause 10 s);
  *   apply after a refilling ideal, which restores them.
+ * - `he900`: at 900 s the magazine gains 8 HE missiles once, past its maximum (later hits still clamp).
+ * - `attacker`: the weapons target is forced, each tick after the crew acts, to the latest live
+ *   attacker of the station that has taken the most damage (ground truth, not scan).
+ * Magazine capacity never damaged is `cap`.
  */
 export const IDEALS = [
     'ammo',
@@ -32,6 +38,8 @@ export const IDEALS = [
     'shells',
     'missiles',
     'duty',
+    'he900',
+    'attacker',
 ] as const;
 export type Ideal = (typeof IDEALS)[number];
 
@@ -104,6 +112,64 @@ function enlarge(state: ShipState) {
     }
 }
 
+const HE_GRANT = 8;
+const HE_GRANT_SECONDS = 900;
+
+function grantHe(magazine: Magazine) {
+    const target = magazine.getCount('HiExpMissile') + HE_GRANT;
+    const design = magazine.design as unknown as Record<string, number>;
+    if (magazine.capacity > 0)
+        design.max_HiExpMissile = Math.max(design.max_HiExpMissile, Math.ceil(target / magazine.capacity));
+    magazine.setCount('HiExpMissile', target);
+}
+
+/**
+ * The attacker to target: the latest attacker still `alive` of the station with the most damage
+ * taken, else of the next most damaged station; null when no station has a live attacker.
+ */
+export function pickStationAttacker(
+    damage: ReadonlyMap<string, number>,
+    attackers: ReadonlyMap<string, readonly string[]>,
+    alive: (id: string) => boolean,
+): string | null {
+    const stations = [...damage.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+    for (const station of stations) {
+        const list = attackers.get(station) ?? [];
+        for (let i = list.length - 1; i >= 0; i--) if (alive(list[i])) return list[i];
+    }
+    return null;
+}
+
+type Targeter = { update: (id: unknown) => void; setTarget: (id: string | null) => void };
+
+function installAttackerTargeting(game: HeadlessGame, player: ShipState) {
+    const manager = game.shipManagers.get(TRAINING_PLAYER_ID) as unknown as Targeter | undefined;
+    if (!manager) return;
+    const stationIds = new Set(STATIONS.map((s) => s.id));
+    const damage = new Map<string, number>();
+    const attackers = new Map<string, string[]>();
+    tapDamage(game, (id, d) => {
+        if (!stationIds.has(id) || !d.shipId) return;
+        damage.set(id, (damage.get(id) ?? 0) + d.amount);
+        const list = attackers.get(id) ?? [];
+        const at = list.indexOf(d.shipId);
+        if (at >= 0) list.splice(at, 1);
+        list.push(d.shipId);
+        attackers.set(id, list);
+    });
+    const alive = (id: string) => {
+        const ship = game.spaceManager.state.getShip(id);
+        return !!ship && !ship.destroyed && ship.faction !== player.faction;
+    };
+    const update = manager.update.bind(manager);
+    // runs inside the game's tick, after the crew's commands, before the weapons fire
+    manager.update = (id) => {
+        const target = pickStationAttacker(damage, attackers, alive);
+        if (target) manager.setTarget(target);
+        update(id);
+    };
+}
+
 /** A `script` for `playCrewTraining` applying `ideals`; null when there are none. */
 export function idealScript(ideals: Ideal[]): ((game: HeadlessGame) => void) | null {
     if (!ideals.length) return null;
@@ -115,6 +181,7 @@ export function idealScript(ideals: Ideal[]): ((game: HeadlessGame) => void) | n
         return next;
     };
     let installed = false;
+    let heGranted = false;
     return (game) => {
         const player = game.api.getShip(TRAINING_PLAYER_ID)?.state;
         if (!player) return;
@@ -122,6 +189,11 @@ export function idealScript(ideals: Ideal[]): ((game: HeadlessGame) => void) | n
             installed = true;
             installHitRules(game, ideals);
             if (ideals.includes('eff')) enlarge(player);
+            if (ideals.includes('attacker')) installAttackerTargeting(game, player);
+        }
+        if (ideals.includes('he900') && !heGranted && game.seconds >= HE_GRANT_SECONDS) {
+            heGranted = true;
+            grantHe(player.magazine);
         }
         if (ideals.includes('ammo') || ideals.includes('stock')) refill(player);
         if (ideals.includes('shells')) refill(player, isShell);

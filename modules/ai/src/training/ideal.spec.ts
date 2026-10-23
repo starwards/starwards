@@ -1,4 +1,4 @@
-import { Ideal, idealScript } from './ideal';
+import { Ideal, idealScript, pickStationAttacker } from './ideal';
 import { TRAINING_PLAYER_ID, createTrainingT1Map } from '@starwards/server/src/scenarios/training';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
@@ -112,5 +112,35 @@ describe('ammo telemetry', () => {
         while (game.seconds < 21) game.tick(0.5);
         script(game);
         expect(magazine.getCount('HiExpShell')).toBe(magazine.getMax('HiExpShell'));
+    });
+});
+
+describe('oracle tests (missile tactics 23h)', () => {
+    test('he900: +8 HE missiles once at 900 s, past the magazine maximum', () => {
+        const { game, magazine, script } = setUp(['he900']);
+        magazine.setCount('HiExpMissile', magazine.getMax('HiExpMissile'));
+        const before = magazine.getCount('HiExpMissile');
+        script(game);
+        expect(magazine.getCount('HiExpMissile')).toBe(before);
+        (game as unknown as { totalSeconds: number }).totalSeconds = 900;
+        script(game);
+        expect(magazine.getCount('HiExpMissile')).toBe(before + 8);
+        script(game);
+        expect(magazine.getCount('HiExpMissile')).toBe(before + 8);
+    });
+
+    test('pickStationAttacker: the latest live attacker of the most damaged station', () => {
+        const damage = new Map([
+            ['s1', 10],
+            ['s2', 50],
+        ]);
+        const attackers = new Map([
+            ['s1', ['a']],
+            ['s2', ['b', 'c']],
+        ]);
+        expect(pickStationAttacker(damage, attackers, () => true)).toBe('c');
+        expect(pickStationAttacker(damage, attackers, (id) => id !== 'c')).toBe('b');
+        expect(pickStationAttacker(damage, attackers, (id) => id === 'a')).toBe('a');
+        expect(pickStationAttacker(damage, attackers, () => false)).toBeNull();
     });
 });
