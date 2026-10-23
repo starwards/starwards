@@ -1,5 +1,6 @@
-import { Destructors, ShipDriver, SpaceDriver, objectDisplayName, playerScanLevel } from '@starwards/core';
+import { Destructors, ScanLevel, ShipDriver, SpaceDriver, objectDisplayName, playerScanLevel } from '@starwards/core';
 import { JobView, findJobForTarget, visibleJobRows } from './signals-jobs-rows';
+import { PromotionWatch, scanStepLabel } from './signals-scan-steps';
 import {
     addAnnunciatorBlade,
     addBareBarBlade,
@@ -10,15 +11,25 @@ import {
 } from '../panel';
 import { propertyStub, readNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
+import { EmitterLoop } from '../loop';
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 
-function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: Pick<JobView, 'targetId'>) {
+function targetLevel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, targetId: string): ScanLevel | undefined {
+    const target = spaceDriver.state.get(targetId);
+    return target && playerScanLevel(target, shipDriver.state.faction);
+}
+
+function targetName(spaceDriver: SpaceDriver, shipDriver: ShipDriver, targetId: string) {
     // scan jobs target every kind of space object, not just ships
-    const target = spaceDriver.state.get(job.targetId);
-    const scanLevel = target && playerScanLevel(target, shipDriver.state.faction);
-    const targetName = objectDisplayName(target, job.targetId, scanLevel);
-    return `SCAN · ${targetName}`;
+    const target = spaceDriver.state.get(targetId);
+    return objectDisplayName(target, targetId, targetLevel(spaceDriver, shipDriver, targetId));
+}
+
+/** e.g. `SCAN · Asteroid 12 · →BASIC`: the step the job is working on, so 100% means a known level. */
+function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: Pick<JobView, 'targetId'>) {
+    const level = targetLevel(spaceDriver, shipDriver, job.targetId) ?? ScanLevel.UFO;
+    return `SCAN · ${targetName(spaceDriver, shipDriver, job.targetId)} · ${scanStepLabel(level)}`;
 }
 
 function staticTextModel(value: string) {
@@ -69,6 +80,10 @@ export function drawSignalsJobs(
     const priorityTarget = propertyStub(false);
     addAnnunciatorBlade(pane, priorityTarget, { label: 'Priority Tgt' }, panelCleanup.add);
     setAnnunciatorColumns(pane, 2);
+
+    // a finished job leaves the list (or goes dormant), so the promotion it earned is shown here
+    const lastScan = propertyStub('—');
+    addTextBlade(pane, lastScan, { label: 'Last scan' }, panelCleanup.add).element.classList.add('sw-mode');
 
     addButton(
         pane,
@@ -144,9 +159,14 @@ export function drawSignalsJobs(
         }
     }
 
+    // the target's level is part of the signature: a ship promoted UFO→BASIC keeps its job (and
+    // often the working slot) but its row must switch to →FULL
     const signature = () =>
         jobs()
-            .map((job) => `${job.id}:${job.status}:${job.prioritized}:${job.needsBeam}`)
+            .map(
+                (job) =>
+                    `${job.id}:${job.status}:${job.prioritized}:${job.needsBeam}:${targetLevel(spaceDriver, shipDriver, job.targetId)}`,
+            )
             .join(',');
     let lastSignature = '';
     const onJobsChange = () => {
@@ -160,6 +180,23 @@ export function drawSignalsJobs(
     // both subscriptions are needed: add/remove emits on the array's own pointer, while an
     // in-place status flip emits only on the item's field pointer (and '**' does not match
     // its own prefix)
+    // promotions are polled, not driven by job events: the target's level arrives on the space
+    // room while the job's removal arrives on the ship room, in no guaranteed order
+    const promotions = new PromotionWatch();
+    const loop = new EmitterLoop(200);
+    loop.onLoop(() => {
+        const levelOf = (id: string) => targetLevel(spaceDriver, shipDriver, id);
+        const promoted = promotions.observe(
+            jobs().map((job) => job.targetId),
+            levelOf,
+            Date.now(),
+        );
+        for (const { targetId, level } of promoted) {
+            lastScan.setValue(`${targetName(spaceDriver, shipDriver, targetId)} → ${ScanLevel[level]}`);
+        }
+    });
+    loop.start();
+    panelCleanup.add(() => loop.stop());
     shipDriver.events.on('/signals/jobs', onJobsChange);
     shipDriver.events.on('/signals/jobs/**', onJobsChange);
     panelCleanup.add(() => {
