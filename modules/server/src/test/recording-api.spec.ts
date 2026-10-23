@@ -56,7 +56,7 @@ describe('recording HTTP API (issue #2101)', () => {
     it('POST /start-game records the game from its start', async () => {
         gameDriver.pauseGameCommand();
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
-        const recordingName = await recordingOf('test_map_1');
+        const recordingName = await framedRecordingOf('test_map_1');
         expect(recordingName).toMatch(/^test_map_1_\d+\.sgr$/);
 
         const stopRes = await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
