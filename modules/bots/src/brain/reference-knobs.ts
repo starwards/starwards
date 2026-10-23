@@ -72,6 +72,16 @@ export const REFERENCE_KNOB_DEFAULTS = {
     TUBE_AMMO_AP_FIRST: 0,
     /** Captain says no close order at an enemy nearer than this; 0 always may (branch sweep: closing in at gun range lost seeds). */
     CLOSE_STOP_METERS: 0,
+    /**
+     * Losing → hold: from `LOSING_AFTER_SECONDS` on, the captain holds instead of closing while an enemy
+     * was within `ATTACK_METERS` of an allied station for at least this many of the last 60 s, or while
+     * at least `LOSING_ENEMIES` enemies are in sight; 0 never.
+     */
+    LOSING_ATTACK_SECONDS: 0,
+    /** Enemies in sight at which the losing → hold rule holds (with `LOSING_ATTACK_SECONDS` on); 0 never on count. */
+    LOSING_ENEMIES: 0,
+    /** Seconds into the fight before the losing → hold rule may hold. */
+    LOSING_AFTER_SECONDS: 450,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;

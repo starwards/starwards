@@ -258,6 +258,32 @@ function holdingOnLostContact(p: Picture) {
 }
 
 /** The reference's rule for each callout it knows: whether the callout should be said now. */
+/** The window the losing → hold rule counts station attack seconds over. */
+const LOSING_WINDOW_SECONDS = 60;
+
+/**
+ * Captain, losing → hold (`LOSING_ATTACK_SECONDS`): after `LOSING_AFTER_SECONDS`, an enemy sat within
+ * `ATTACK_METERS` of an allied station for `LOSING_ATTACK_SECONDS` of the last minute, or
+ * `LOSING_ENEMIES` enemies are in sight. Counts the attack at every call, so call it once per decision.
+ */
+function losing(p: Picture) {
+    if (referenceKnobs.LOSING_ATTACK_SECONDS <= 0) return false;
+    const marks = (p.memory.get('stationAttacked') as number[] | undefined) ?? [];
+    if (p.memory.get('stationAttackedAt') !== p.now) {
+        const threat = stationThreat(p.radar);
+        if (threat && threat.gap <= referenceKnobs.ATTACK_METERS) marks.push(p.now);
+        while (marks.length && marks[0] < p.now - LOSING_WINDOW_SECONDS) marks.shift();
+        p.memory.set('stationAttacked', marks);
+        p.memory.set('stationAttackedAt', p.now);
+    }
+    if (p.now < referenceKnobs.LOSING_AFTER_SECONDS) return false;
+    const attacked = marks.length * p.seconds >= referenceKnobs.LOSING_ATTACK_SECONDS;
+    const many =
+        referenceKnobs.LOSING_ENEMIES > 0 &&
+        (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= referenceKnobs.LOSING_ENEMIES;
+    return attacked || many;
+}
+
 const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Signals: the enemy ship shown at the previous decision is gone from the radar. */
     contact_lost: ({ radar, previous }) => {
@@ -335,6 +361,7 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     close_to: (picture) => {
         const target = closeTargetOf(picture);
         if (target && target.distance < referenceKnobs.CLOSE_STOP_METERS) return false;
+        if (losing(picture)) return false;
         const inside = enemyInside(picture, () => target);
         return inside === false || (inside === true && target?.name === picture.engaged);
     },
@@ -407,7 +434,7 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
         return !!centre && !!own && Math.hypot(centre.x - own.x, centre.y - own.y) > referenceKnobs.GUARD_SLACK_METERS;
     },
     /** Captain: no enemy in sight, and none reported lost a moment ago. */
-    hold_here: (p) => !holdingOnLostContact(p) && nearestEnemy(p.radar) === undefined,
+    hold_here: (p) => !holdingOnLostContact(p) && (nearestEnemy(p.radar) === undefined || losing(p)),
 };
 
 /** The captain's rules that must see a lost contact first, so the hold on it is noted before any other rule. */
