@@ -4,11 +4,13 @@ import {
     Tuple2,
     archIntersection,
     circlesIntersection,
+    circlesOverlapArc,
     equasionOfMotion,
     lerp,
     limitPercision,
     timeToReachDistanceByAcceleration,
     toDegreesDelta,
+    toPositiveDegreesDelta,
     whenWillItStop,
 } from '../src';
 import {
@@ -120,6 +122,27 @@ describe('formulas', () => {
             // a zero-width arc (both points identical) is treated as no hit by callers like
             // archIntersection, so an engulfing hit must still report two distinct points
             expect(p0, 'the two intersection points should not collapse onto each other').to.not.deep.equal(p1);
+        });
+    });
+    describe('circlesOverlapArc', () => {
+        const subject = { position: { x: 0, y: 0 }, radius: 50 };
+        it('covers the whole rim of the subject when the object circle engulfs it', () => {
+            const arc = circlesOverlapArc(subject, { position: { x: 10, y: 0 }, radius: 200 });
+            expect(arc).to.not.equal(undefined);
+            expect(toPositiveDegreesDelta(arc![1] - arc![0])).to.be.greaterThan(359);
+        });
+        it('covers the whole rim of the subject when the object circle lies wholly inside it', () => {
+            const arc = circlesOverlapArc(subject, { position: { x: 5, y: 0 }, radius: 10 });
+            expect(arc).to.not.equal(undefined);
+            expect(toPositiveDegreesDelta(arc![1] - arc![0])).to.be.greaterThan(359);
+        });
+        it('reports a partial arc for a partial overlap', () => {
+            const arc = circlesOverlapArc(subject, { position: { x: 100, y: 0 }, radius: 60 });
+            expect(arc).to.not.equal(undefined);
+            expect(toPositiveDegreesDelta(arc![1] - arc![0])).to.be.lessThan(90);
+        });
+        it('reports nothing when the circles are apart', () => {
+            expect(circlesOverlapArc(subject, { position: { x: 300, y: 0 }, radius: 60 })).to.equal(undefined);
         });
     });
     describe('lerp', () => {
