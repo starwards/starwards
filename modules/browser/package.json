@@ -9,7 +9,8 @@
         "prebuild": "npm run clean",
         "build": "webpack --config ./webpack.prod.js",
         "start": "webpack serve -c ./webpack.dev.js --hot",
-        "test": "echo \"no tests here\" && exit 0"
+        "test": "echo \"no tests here\" && exit 0",
+        "build:player": "webpack --config ./webpack.player.js"
     },
     "dependencies": {
         "@arwes/react": "1.0.0-next.25020502",

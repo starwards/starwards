@@ -13,17 +13,18 @@ import { SnapshotFetch } from './snapshot-fetch';
 export class LiveShipIntel implements ShipIntelSource {
     private readonly liveStates = new Map<string, ShipState>();
     private readonly joining = new Set<string>();
-    private readonly fetch: SnapshotFetch;
-    private decoded: { data: Uint8Array; state: ShipState } | undefined;
+    private readonly fetches = new Map<string, SnapshotFetch>();
+    private readonly decoded = new Map<string, { data: Uint8Array; state: ShipState }>();
     /** stops listening for snapshot replies */
     readonly dispose: () => void;
+    private readonly send: ShipDriver['needSnapshot'];
 
     constructor(
         private readonly getShipDriver: (shipId: string) => Promise<ShipDriver>,
         observer: Pick<ShipDriver, 'needSnapshot' | 'onSnapshot'>,
     ) {
-        this.fetch = new SnapshotFetch((msg) => observer.needSnapshot(msg));
-        this.dispose = observer.onSnapshot((msg) => this.fetch.receive(msg));
+        this.send = (msg) => observer.needSnapshot(msg);
+        this.dispose = observer.onSnapshot((msg) => this.fetches.get(msg.targetId)?.receive(msg));
     }
 
     live(ship: Spaceship): ShipState | undefined {
@@ -39,12 +40,19 @@ export class LiveShipIntel implements ShipIntelSource {
     }
 
     snapshot(ship: Spaceship, faction: Faction) {
-        this.fetch.update(ship.id, ship.scanSnapshotCapturedAt[Number(faction)] ?? 0);
-        const snapshot = this.fetch.snapshot;
-        if (!snapshot) return undefined;
-        if (this.decoded?.data !== snapshot.data) {
-            this.decoded = { data: snapshot.data, state: decodeShipSnapshot(snapshot.data) };
+        let fetch = this.fetches.get(ship.id);
+        if (!fetch) {
+            fetch = new SnapshotFetch(this.send);
+            this.fetches.set(ship.id, fetch);
         }
-        return { state: this.decoded.state, ageSeconds: snapshot.ageSeconds };
+        fetch.update(ship.id, ship.scanSnapshotCapturedAt[Number(faction)] ?? 0);
+        const snapshot = fetch.snapshot;
+        if (!snapshot) return undefined;
+        let decoded = this.decoded.get(ship.id);
+        if (decoded?.data !== snapshot.data) {
+            decoded = { data: snapshot.data, state: decodeShipSnapshot(snapshot.data) };
+            this.decoded.set(ship.id, decoded);
+        }
+        return { state: decoded.state, ageSeconds: snapshot.ageSeconds };
     }
 }
