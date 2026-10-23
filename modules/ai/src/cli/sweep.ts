@@ -6,7 +6,7 @@
  * with a bootstrap interval, and its mean time to the first station lost).
  *
  *   npm run sweep -- --crew <crew.json> --scenario W-waves --seeds 66,70 --times 600,630 [--k 8]
- *       [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
+ *       [--alts close_to,hold_here] [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
  *
  * Rollouts stream to `sweep.jsonl`; a rerun into the same `--out` plays only the missing ones, and
  * `--summary-only` summarizes what is there without playing more.
@@ -58,7 +58,7 @@ function pointAt(level: DecisionLevel, log: ReturnType<typeof readRunLog>, t: nu
 }
 
 /** The `k` alternatives a state is swept over, strategic and tactical, in `KIND_ORDER`. */
-export function candidates(log: ReturnType<typeof readRunLog>, t: number, k: number) {
+export function candidates(log: ReturnType<typeof readRunLog>, t: number, k: number, only?: readonly string[]) {
     const all: { level: DecisionLevel; alt: Alternative }[] = [];
     for (const level of [tacticalLevel(), strategicLevel]) {
         for (const alt of level.alternatives(pointAt(level, log, t), log)) all.push({ level, alt });
@@ -70,6 +70,7 @@ export function candidates(log: ReturnType<typeof readRunLog>, t: number, k: num
     const seen = new Set<string>();
     return all
         .sort((a, b) => rank(a.alt.kind) - rank(b.alt.kind))
+        .filter(({ alt }) => !only || only.includes(alt.id))
         .filter(({ alt }) => (seen.has(alt.kind) ? false : (seen.add(alt.kind), true)))
         .slice(0, k)
         .map(({ level, alt }) => ({ level: level.name, alternative: alt.id }));
@@ -211,6 +212,7 @@ async function main() {
     const seeds = arg('seeds')!.split(',').map(Number);
     const times = arg('times', '600,630,660,690')!.split(',').map(Number);
     const k = Number(arg('k', '8'));
+    const only = arg('alts')?.split(',');
     const rollouts = Number(arg('rollouts', '8'));
     const jitter = Number(arg('jitter', '2'));
     const timeoutSeconds = Number(arg('timeout', '1500'));
@@ -241,7 +243,7 @@ async function main() {
         const full = path.join(recDir(seed), recording);
         const log = readRunLog(full);
         for (const t of times) {
-            for (const c of candidates(log, t, k)) {
+            for (const c of candidates(log, t, k, only)) {
                 for (let j = 0; j < rollouts; j++) {
                     jobs.push({
                         kind: 'branch',
