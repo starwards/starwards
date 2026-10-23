@@ -82,10 +82,18 @@ export { getRange } from './range';
 export {
     EVENTS_EXT,
     RECORDING_EXT,
+    BINARY_MAGIC,
+    ChunkParser,
+    RecordParser,
+    encodeRecord,
+    frameChunk,
+    isBinaryRecording,
+    lineToRecord,
     SPACE_ROOM_KEY,
     ReplayRoom,
     SavedGame,
     decodeFrame,
+    decodeFrameBytes,
     decodeRecordedBytes,
     decodeSegment,
     encodeSegment,
@@ -104,6 +112,7 @@ export type {
     RecordingEventLine,
     RecordingFrameLine,
     RecordingHeader,
+    RecordingRecord,
     RecordingSegLine,
 } from './recording';
 

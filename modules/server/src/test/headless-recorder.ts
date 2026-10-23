@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { BINARY_FILE_MAGIC, encodeRecordChunkSync } from '../recording/recording-file';
 import {
     Explosion,
     Projectile,
@@ -11,13 +12,11 @@ import {
     Spaceship,
     currentEnergyModel,
     encodeEventLine,
-    encodeFrameLine,
-    encodeHeader,
     sidecarName,
 } from '@starwards/core/internal';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
-import { schemaToString } from '../serialization/game-state-serialization';
+import { schemaToBytes } from '../serialization/game-state-serialization';
 
 type Flying = { shipId: string; x: number; y: number; health: number };
 
@@ -67,17 +66,23 @@ export class HeadlessRecorder {
         fs.writeFileSync(this.eventsPath, '');
         fs.writeFileSync(
             this.filePath,
-            encodeHeader({
-                format: 'starwards-recording',
-                version: 1,
-                mapName: game.mapName,
-                startedAt: new Date().toISOString(),
-                intervalMs: intervalSimSeconds * 1000,
-                seed: game.seed,
-                params,
-                hz,
-                energyModel: currentEnergyModel(),
-            }),
+            Buffer.concat([
+                BINARY_FILE_MAGIC,
+                encodeRecordChunkSync({
+                    kind: 'header',
+                    header: {
+                        format: 'starwards-recording',
+                        version: 2,
+                        mapName: game.mapName,
+                        startedAt: new Date().toISOString(),
+                        intervalMs: intervalSimSeconds * 1000,
+                        seed: game.seed,
+                        params,
+                        hz,
+                        energyModel: currentEnergyModel(),
+                    },
+                }),
+            ]),
         );
     }
 
@@ -97,7 +102,7 @@ export class HeadlessRecorder {
      * Call after every tick: records `isFiring` edges for this tick, and writes a frame (flushing
      * pending events) when one is due. `force` writes a frame regardless (e.g. the final frame).
      */
-    async capture(force = false) {
+    capture(force = false) {
         this.observeFiring();
         this.observeBlastHits();
         this.observeProjectiles();
@@ -110,8 +115,8 @@ export class HeadlessRecorder {
             fs.appendFileSync(this.eventsPath, this.pendingEvents.map((e) => encodeEventLine(e)).join(''));
             this.pendingEvents = [];
         }
-        const frame = await schemaToString(this.game.saveGame());
-        fs.appendFileSync(this.filePath, encodeFrameLine({ t: this.game.seconds, frame }));
+        const bytes = schemaToBytes(this.game.saveGame());
+        fs.appendFileSync(this.filePath, encodeRecordChunkSync({ kind: 'frame', t: this.game.seconds, bytes }));
         this.frames++;
         this.nextFrameAt = this.game.seconds + this.intervalSimSeconds;
     }

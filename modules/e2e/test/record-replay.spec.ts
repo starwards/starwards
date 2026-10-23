@@ -36,19 +36,19 @@ test('a recording file dropped on the lobby plays in the recording player', asyn
     await gameDriver.gameManager.startGame(single_ship);
     const name = await recordStartedGame(page);
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
-    const content = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).text();
+    const content = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).body();
 
     await page.goto(`${gameDriver.baseURL}/`);
     await expect(page.locator('[data-id="title"]')).toBeVisible();
     await page.evaluate(
-        ({ fileName, text }) => {
+        ({ fileName, bytes }) => {
             const data = new DataTransfer();
-            data.items.add(new File([text], fileName));
+            data.items.add(new File([new Uint8Array(bytes)], fileName));
             for (const type of ['dragover', 'drop']) {
                 window.dispatchEvent(new DragEvent(type, { dataTransfer: data, bubbles: true, cancelable: true }));
             }
         },
-        { fileName: name, text: content },
+        { fileName: name, bytes: [...content] },
     );
 
     await expect(page).toHaveURL(/player\.html\?handoff/);
@@ -56,16 +56,16 @@ test('a recording file dropped on the lobby plays in the recording player', asyn
     await expect(page.locator('[data-id="recording title"]')).toContainText(name);
 });
 
-async function dropFile(page: Page, fileName: string, text: string) {
+async function dropFile(page: Page, fileName: string, content: string | Buffer) {
     await page.evaluate(
-        ({ fileName: name, text: content }) => {
+        ({ fileName: name, bytes }) => {
             const data = new DataTransfer();
-            data.items.add(new File([content], name));
+            data.items.add(new File([new Uint8Array(bytes)], name));
             for (const type of ['dragover', 'drop']) {
                 window.dispatchEvent(new DragEvent(type, { dataTransfer: data, bubbles: true, cancelable: true }));
             }
         },
-        { fileName, text },
+        { fileName, bytes: [...Buffer.from(content)] },
     );
 }
 
@@ -97,7 +97,7 @@ test('the GM screen loads a dropped saved game and plays a dropped recording', a
     await gameDriver.gameManager.startGame(single_ship);
     const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
     const name = await recordStartedGame(page);
-    const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).text();
+    const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).body();
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
 
     await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
@@ -120,7 +120,7 @@ test('the lobby Load button takes a saved game or a recording, like a drop', asy
     await gameDriver.gameManager.startGame(single_ship);
     const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
     const name = await recordStartedGame(page);
-    const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).text();
+    const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).body();
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
 
     await page.goto(`${gameDriver.baseURL}/?lobby`);
@@ -144,7 +144,7 @@ test('the lobby Load button takes a saved game or a recording, like a drop', asy
     await page.locator('[data-id="load file input"]').setInputFiles({
         name,
         mimeType: 'application/octet-stream',
-        buffer: Buffer.from(recording),
+        buffer: recording,
     });
     await expect(page).toHaveURL(/player\.html\?handoff/);
     await expect(page.locator('[data-id="time"]')).toContainText('/');

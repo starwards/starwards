@@ -47,7 +47,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string,
     return e;
 }
 
-function showEmptyState(root: HTMLElement, onFile: (name: string, text: string) => void, message?: string) {
+function showEmptyState(root: HTMLElement, onFile: (name: string, bytes: Uint8Array) => void, message?: string) {
     root.replaceChildren();
     const zone = el('div', { class: 'player-empty', 'data-id': 'drop zone' });
     zone.append(el('h1', {}, 'Recording player'));
@@ -56,7 +56,7 @@ function showEmptyState(root: HTMLElement, onFile: (name: string, text: string) 
     zone.append(input);
     if (message) zone.append(el('p', { class: 'player-error', 'data-id': 'load error' }, message));
     const load = async (file: File | undefined) => {
-        if (file) onFile(file.name, await file.text());
+        if (file) onFile(file.name, new Uint8Array(await file.arrayBuffer()));
     };
     input.addEventListener('change', () => void load(input.files?.[0]));
     zone.addEventListener('dragover', (e) => e.preventDefault());
@@ -275,8 +275,8 @@ class Player {
 }
 
 function startPlayer(root: HTMLElement) {
-    const open = (name: string, text: string) => {
-        RecordingSource.parse(name, text).then(
+    const open = (name: string, bytes: Uint8Array) => {
+        RecordingSource.parse(name, bytes).then(
             (source) =>
                 new Player(root, source).start().catch((e) => {
                     logError('player failed', e);
@@ -291,15 +291,15 @@ function startPlayer(root: HTMLElement) {
         takeRecording()
             .then((recording) => {
                 if (!recording) throw new Error('no recording was handed over');
-                open(recording.name, recording.text);
+                open(recording.name, recording.bytes);
             })
             .catch((e) => showEmptyState(root, open, `Failed to open the dropped recording: ${String(e)}`));
     }
     const src = params.get('src');
     if (src) {
         fetch(src)
-            .then((r) => r.text())
-            .then((text) => open(src.split('/').pop() ?? src, text))
+            .then((r) => r.arrayBuffer())
+            .then((buffer) => open(src.split('/').pop() ?? src, new Uint8Array(buffer)))
             .catch((e) => showEmptyState(root, open, `Failed to fetch ${src}: ${String(e)}`));
     }
 }

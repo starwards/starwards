@@ -1,10 +1,9 @@
 import { Decoder, Encoder, Reflection, Schema } from '@colyseus/schema';
-import { RecordingBaseLine, RecordingSegLine, SPACE_ROOM_KEY, decodeSegment } from './recording-format';
+import { SPACE_ROOM_KEY, decodeSegment } from './recording-format';
 import { ConstructingDecoder } from '../constructing-decoder';
 import { SavedGame } from './saved-game';
 import { ShipState } from '../ship';
 import { SpaceState } from '../space';
-import { decodeRecordedBytes } from './decode-frame';
 
 const SHIP_ROOM_PREFIX = 'ship:';
 
@@ -84,12 +83,12 @@ function snapshot(mapName: string, keyframe: SavedGame, space: SpaceState, ships
  * Ships present in the keyframe but without a recorded room keep their keyframe state. Throws on any
  * decode problem; the caller then shows the keyframe for the whole segment.
  */
-export async function reconstructSegment(
+export function reconstructSegment(
     keyframe: SavedGame,
-    base: RecordingBaseLine,
-    seg: RecordingSegLine,
-): Promise<ReconstructedState[]> {
-    const rooms = Object.keys(base.base);
+    base: Record<string, Uint8Array>,
+    seg: Uint8Array,
+): ReconstructedState[] {
+    const rooms = Object.keys(base);
     const decoders: Decoder[] = [];
     const ships = new Map<string, ShipState>();
     let space: SpaceState | null = null;
@@ -109,14 +108,14 @@ export async function reconstructSegment(
         }
         const decoder = new ConstructingDecoder(state);
         try {
-            strictDecode(decoder, await decodeRecordedBytes(base.base[key]));
+            strictDecode(decoder, base[key]);
         } catch (e) {
             throw new Error(`base ${key}: ${String(e)}`);
         }
         decoders.push(decoder);
     }
     if (!space) throw new Error('segment has no space room base');
-    const patches = decodeSegment(await decodeRecordedBytes(seg.seg));
+    const patches = decodeSegment(seg);
     const states: ReconstructedState[] = [];
     for (const patch of patches) {
         const decoder = decoders[patch.room];

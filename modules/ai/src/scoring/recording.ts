@@ -1,16 +1,9 @@
 import * as fs from 'node:fs';
-import * as readline from 'node:readline';
 
-import {
-    RecordingEventLine,
-    SavedGame,
-    parseEventLine,
-    parseFrameLine,
-    parseHeader,
-    sidecarName,
-} from '@starwards/core/internal';
+import { RecordingEventLine, SavedGame, parseEventLine, sidecarName } from '@starwards/core/internal';
 
-import { stringToSchema } from '@starwards/server/src/serialization/game-state-serialization';
+import { bytesToSchema } from '@starwards/server/src/serialization/game-state-serialization';
+import { readRecords } from '@starwards/server/src/recording/recording-file';
 
 /**
  * Yields a `.sgr` recording's frames one at a time as `SavedGame`s with their time. A truncated tail line is
@@ -18,17 +11,8 @@ import { stringToSchema } from '@starwards/server/src/serialization/game-state-s
  * {@link readFrames} when one pass is enough.
  */
 export async function* streamFrames(path: string): AsyncGenerator<{ t: number; saved: SavedGame }> {
-    const rl = readline.createInterface({ input: fs.createReadStream(path, { encoding: 'utf8' }) });
-    let sawHeader = false;
-    for await (const line of rl) {
-        if (!line.trim()) continue;
-        if (!sawHeader) {
-            parseHeader(line);
-            sawHeader = true;
-            continue;
-        }
-        const frame = parseFrameLine(line);
-        if (frame) yield { t: frame.t, saved: await stringToSchema(SavedGame, frame.frame) };
+    for await (const record of readRecords(path)) {
+        if (record.kind === 'frame') yield { t: record.t, saved: bytesToSchema(SavedGame, record.bytes) };
     }
 }
 

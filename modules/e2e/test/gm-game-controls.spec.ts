@@ -1,7 +1,8 @@
 import * as fs from 'node:fs';
+
 import { Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
-
+import { isBinaryRecording } from '@starwards/core';
 import { makeDriver } from './driver';
 import { maps } from '@starwards/server';
 
@@ -87,7 +88,7 @@ test.describe('GM game controls widget', () => {
         }).toPass({ timeout: 5000 });
         expect((await download).suggestedFilename()).toMatch(/\.sgr$/);
         const file = await (await download).path();
-        expect(fs.readFileSync(file, 'utf8')).toContain('starwards-recording');
+        expect(isBinaryRecording(fs.readFileSync(file))).toBe(true);
         // the saved-recording readout is a text blade, so its content lives in an input value
         const lastSaved = controls.locator('.tp-lblv', { hasText: 'last saved' }).locator('input');
         await expect(lastSaved).toHaveValue(/frames/, { timeout: 10000 });

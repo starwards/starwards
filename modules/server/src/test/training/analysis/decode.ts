@@ -1,10 +1,8 @@
-import * as fs from 'node:fs';
-import * as readline from 'node:readline';
-
 import { Metadata, Schema } from '@colyseus/schema';
-import { RecordingHeader, SavedGame, parseFrameLine, parseHeader } from '@starwards/core/internal';
+import { RecordingHeader, SavedGame } from '@starwards/core/internal';
 
-import { stringToSchema } from '../../../serialization/game-state-serialization';
+import { bytesToSchema } from '../../../serialization/game-state-serialization';
+import { readRecords } from '../../../recording/recording-file';
 
 /** One leaf value flattened out of a decoded frame. Exactly one of `num`/`str`/`bool` is set. */
 interface DecodedValue {
@@ -95,23 +93,12 @@ function flattenPrimitive(type: string, value: unknown, path: string, objectId: 
  * that happens on ingest into the store). A truncated final line is dropped, not thrown.
  */
 export async function* decodeRecording(filePath: string): AsyncGenerator<DecodedFrame, void, void> {
-    const rl = readline.createInterface({ input: fs.createReadStream(filePath, { encoding: 'utf8' }) });
     let frameNo = 0;
-    let sawHeader = false;
-    for await (const line of rl) {
-        if (!line.trim()) {
+    for await (const record of readRecords(filePath)) {
+        if (record.kind !== 'frame') {
             continue;
         }
-        if (!sawHeader) {
-            parseHeader(line); // throws on a malformed header; header itself is read via readRecordingHeader
-            sawHeader = true;
-            continue;
-        }
-        const frameLine = parseFrameLine(line);
-        if (!frameLine) {
-            continue; // truncated tail line
-        }
-        const saved = await stringToSchema(SavedGame, frameLine.frame);
+        const saved = bytesToSchema(SavedGame, record.bytes);
         const objects: DecodedObject[] = [];
         const values: DecodedValue[] = [];
         const spaceFields = Metadata.getFields(saved.fragment.space.constructor) as Record<string, unknown>;
@@ -136,17 +123,17 @@ export async function* decodeRecording(filePath: string): AsyncGenerator<Decoded
             // the design spec's event table, so it is computed here rather than proxied.
             values.push({ objectId: shipId, path: '/healthRatio', num: shipState.healthRatio });
         }
-        yield { frameNo, t: frameLine.t, objects, values };
+        yield { frameNo, t: record.t, objects, values };
         frameNo++;
     }
 }
 
-/** Reads just the header line, without decoding any frame. */
+/** Reads just the header, without decoding any frame. */
 export async function readRecordingHeader(filePath: string): Promise<RecordingHeader> {
-    const rl = readline.createInterface({ input: fs.createReadStream(filePath, { encoding: 'utf8' }) });
-    for await (const line of rl) {
-        rl.close();
-        return parseHeader(line);
+    for await (const record of readRecords(filePath, { payloads: false })) {
+        if (record.kind === 'header') {
+            return record.header;
+        }
     }
     throw new Error(`empty recording: ${filePath}`);
 }

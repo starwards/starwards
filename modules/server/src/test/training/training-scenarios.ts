@@ -391,11 +391,11 @@ export async function playTraining<P>(
     // Per-tick samples of what the bot believed (in range, in kill zone): neither is in the
     // recording, so `extract.ts` cannot compute them.
     const gunnery: GunnerySample[] = [];
-    await recorder.capture();
+    recorder.capture();
     while (game.seconds < timeoutSeconds) {
         await beforeTick?.(game, recorder);
         game.tick(dt);
-        await recorder.capture();
+        recorder.capture();
         if (tracked?.tracker.done(game)) {
             break;
         }
@@ -408,7 +408,7 @@ export async function playTraining<P>(
             gunnery.push(sampleGunnery(gvts.state, targetObject));
         }
     }
-    await recorder.capture(true);
+    recorder.capture(true);
 
     return { params, enemies, recorder, scratchDir, gunnery, waves: tracked?.tracker.outcome(game) };
 }

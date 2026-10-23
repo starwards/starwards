@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { AdminDriver, Driver, parseEventLine, sidecarName, waitFor } from '@starwards/core/internal';
+import { AdminDriver, Driver, isBinaryRecording, parseEventLine, sidecarName, waitFor } from '@starwards/core/internal';
 
 import { makeDriver } from './test/driver';
 import supertest from 'supertest';
@@ -40,7 +40,7 @@ describe('a game is recorded from its start', () => {
         await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
 
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
-        expect((await fs.readFile(recording, 'utf-8')).split('\n')[0]).toContain('starwards-recording');
+        expect(isBinaryRecording(await fs.readFile(recording))).toBe(true);
         expect((await readDecisions(sidecar)).length).toBeGreaterThan(0);
     });
 });

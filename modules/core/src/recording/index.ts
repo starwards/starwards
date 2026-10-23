@@ -4,3 +4,4 @@ export * from './recording-format';
 export * from './saved-game';
 export * from './replay-room';
 export * from './delta-segment';
+export * from './recording-binary';

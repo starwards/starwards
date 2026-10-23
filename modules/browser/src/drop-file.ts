@@ -16,8 +16,8 @@ export function handleFile(file: File, getAdminDriver: () => AdminDriver | null,
     ui.setNotice('');
     if (file.name.endsWith(RECORDING_EXT)) {
         void file
-            .text()
-            .then((text) => stashRecording({ name: file.name, text }))
+            .arrayBuffer()
+            .then((buffer) => stashRecording({ name: file.name, bytes: new Uint8Array(buffer) }))
             .then(() => window.location.assign('player.html?handoff'));
     } else if (file.name.endsWith(savedGameFileExtension)) {
         const adminDriver = getAdminDriver();
