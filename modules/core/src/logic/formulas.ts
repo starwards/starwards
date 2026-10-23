@@ -205,6 +205,32 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
     return [i0, i1];
 }
 
+/** Returned by {@link circlesOverlapArc} when the object circle covers the subject's whole rim. */
+export const WHOLE_RIM_ARC: Tuple2 = [0, 360 - EPSILON];
+
+/**
+ * The arc of the subject's rim (global degrees, around the subject's centre) that the object circle
+ * covers, or undefined when the circles are apart. When either circle wholly contains the other the
+ * rims never cross, yet the object still overlaps the subject, so the whole rim is covered.
+ */
+export function circlesOverlapArc(subject: Circle, object: Circle): Tuple2 | undefined {
+    const distance = XY.distance(subject.position, object.position);
+    if (distance > subject.radius + object.radius) {
+        return undefined;
+    }
+    if (distance + subject.radius <= object.radius || distance + object.radius <= subject.radius) {
+        return WHOLE_RIM_ARC;
+    }
+    const boundries = circlesIntersection(subject, object);
+    if (!boundries) {
+        return undefined;
+    }
+    return [
+        limitPercision(XY.angleOf(XY.difference(boundries[0], subject.position))),
+        limitPercision(XY.angleOf(XY.difference(boundries[1], subject.position))),
+    ];
+}
+
 export function addScale(orig: XY, deriv: XY, time: number) {
     return XY.add(orig, XY.scale(deriv, time));
 }
