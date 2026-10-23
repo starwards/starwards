@@ -6,7 +6,7 @@
  * with a bootstrap interval, and its mean time to the first station lost).
  *
  *   npm run sweep -- --crew <crew.json> --scenario W-waves --seeds 66,70 --times 600,630 [--k 8]
- *       [--alts close_to,hold_here] [--states 66@600,70@630] [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
+ *       [--oracle cap,cap+he] [--alts close_to,hold_here] [--states 66@600,70@630] [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
  *
  * Rollouts stream to `sweep.jsonl`; a rerun into the same `--out` plays only the missing ones, and
  * `--summary-only` summarizes what is there without playing more.
@@ -14,7 +14,16 @@
  * The harness is deterministic, so rollout spread comes from the jitter alone: it measures how much an
  * action's outcome depends on exactly when it is taken.
  */
-import { Alternative, BranchPoint, DecisionLevel, strategicLevel, tacticalLevel } from '../branching/levels';
+import {
+    Alternative,
+    BranchPoint,
+    DecisionLevel,
+    Intervention,
+    strategicLevel,
+    tacticalLevel,
+} from '../branching/levels';
+import { ShipState } from '@starwards/core/internal';
+import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { RunSpec, runBranch } from '../branching/fork';
 import { readRunLog, stateAt } from '../branching/run-log';
 
@@ -79,6 +88,33 @@ export function candidates(log: ReturnType<typeof readRunLog>, t: number, k: num
 const pass = (w: { stationsLost: number; survived: number } | undefined) =>
     !!w && w.stationsLost === 0 && w.survived >= 3;
 
+/**
+ * Test-only oracles a sweep can fork into (`--oracle`): at the fork, once, the GVTS's magazine
+ * capacity is restored (`cap`), and also its HE missiles restocked to the restored max (`cap+he`).
+ */
+const ORACLES: Record<string, (fork: number) => Intervention> = {
+    cap: (fork) => once(fork, (state) => void (state.magazine.capacity = 1)),
+    'cap+he': (fork) =>
+        once(fork, (state) => {
+            state.magazine.capacity = 1;
+            (state.magazine as unknown as Record<string, number>).count_HiExpMissile =
+                state.magazine.getMax('HiExpMissile');
+        }),
+};
+
+function once(fork: number, act: (state: ShipState) => void): Intervention {
+    let done = false;
+    return {
+        script: (game) => {
+            if (done || game.seconds + 1e-9 < fork) return;
+            const state = game.shipManagers.get(TRAINING_PLAYER_ID)?.state;
+            if (!state) return;
+            act(state);
+            done = true;
+        },
+    };
+}
+
 /** The run log of the last recording this worker read: one only, as each is ~10 MB. */
 let lastLog: { recording: string; log: ReturnType<typeof readRunLog> } | undefined;
 
@@ -87,6 +123,18 @@ async function play(job: Job): Promise<unknown> {
         fs.mkdirSync(job.dir, { recursive: true });
         const o = await runBranch(job.run, 0, undefined, job.dir);
         return { seed: job.run.seed, pass: pass(o.waves), firstStationLostAt: o.waves?.firstStationLostAt ?? null };
+    }
+    if (job.alternative.startsWith('oracle:')) {
+        const o = await runBranch(job.run, job.fork, ORACLES[job.alternative.slice(7)](job.fork));
+        return {
+            seed: job.run.seed,
+            t: job.t,
+            fork: job.fork,
+            alternative: job.alternative,
+            pass: pass(o.waves),
+            firstStationLostAt: o.waves?.firstStationLostAt ?? null,
+            seconds: o.seconds,
+        } satisfies Row;
     }
     if (lastLog?.recording !== job.recording) lastLog = { recording: job.recording, log: readRunLog(job.recording) };
     const log = lastLog.log;
@@ -246,7 +294,11 @@ async function main() {
         const log = readRunLog(full);
         for (const t of times) {
             if (pick && !pick.includes(`${seed}@${t}`)) continue;
-            for (const c of candidates(log, t, k, only)) {
+            const oracles = arg('oracle')?.split(',');
+            const chosen = oracles
+                ? oracles.map((o) => ({ level: 'oracle', alternative: `oracle:${o}` }))
+                : candidates(log, t, k, only);
+            for (const c of chosen) {
                 for (let j = 0; j < rollouts; j++) {
                     jobs.push({
                         kind: 'branch',

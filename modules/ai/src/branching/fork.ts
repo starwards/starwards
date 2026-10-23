@@ -89,6 +89,7 @@ export async function runBranch(
             outDir: dir,
             intervalSimSeconds: 1,
             branch: intervention,
+            script: intervention?.script,
         });
         const recording = recorder.filePath;
         const scorer = runScorer(
