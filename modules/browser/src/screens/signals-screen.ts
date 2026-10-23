@@ -1,4 +1,14 @@
-import { Driver, Radar, ShipDriver, SpaceDriver, radarReach, scanCycleTargets } from '@starwards/core';
+import {
+    CapsuleTierTracker,
+    Driver,
+    LiveShipIntel,
+    Radar,
+    ShipDriver,
+    SpaceDriver,
+    hullStatusList,
+    radarReach,
+    scanCycleTargets,
+} from '@starwards/core';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 
 import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
@@ -8,6 +18,7 @@ import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
 import { SelectionContainer } from '../radar/selection-container';
 import { SignalsJobsLayer } from '../radar/signals-jobs-layer';
+import { drawHullStatus } from '../widgets/hull-status';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawRadarHeader } from '../widgets/radar-header';
 import { drawScanBeam } from '../widgets/scan-beam';
@@ -51,6 +62,18 @@ export async function initSignalsScreen(
     const scanBeamSlot = grid.left();
     const jobsSlot = grid.left({ scroll: true });
     drawTargetInfo(grid.right(), spaceDriver, shipDriver, stationTarget);
+    const shipIntel = new LiveShipIntel((id) => driver.getShipDriver(id), shipDriver);
+    const hullTiers = new CapsuleTierTracker();
+    drawHullStatus(grid.right({ scroll: true }), () =>
+        hullStatusList(
+            spaceDriver.state,
+            shipDriver.state.faction,
+            shipId,
+            shipIntel,
+            hullTiers,
+            performance.now() / 1000,
+        ),
+    );
     drawSystemsStatus(grid.right({ scroll: true }), shipDriver, stationSystems, true);
     // the scan beam is the ship's steerable radar — the one whose arc has room to trade for reach
     const scanBeam = radarSystems.find(
@@ -64,6 +87,7 @@ export async function initSignalsScreen(
     return () => {
         teardownTargetSync();
         teardownInput();
+        shipIntel.dispose();
     };
 }
 
