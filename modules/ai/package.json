@@ -32,7 +32,8 @@
         "branch": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/branch.ts",
         "prebranch:js": "npm run build:cli",
         "branch:js": "node --env-file-if-exists=.env --max-old-space-size=8192 ./dist/cli/branch.js",
-        "sweep": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/sweep.ts"
+        "sweep": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/sweep.ts",
+        "sweep-features": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/sweep-features.ts"
     },
     "dependencies": {
         "@starwards/bots": "0.5.1",
