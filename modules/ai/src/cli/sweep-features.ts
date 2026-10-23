@@ -33,8 +33,27 @@ export function features(log: ReturnType<typeof readRunLog>, t: number) {
     const own = radar?.ownShip?.position;
     const armor = helms?.panels['armor-status'] as { numberOfPlates?: number; healthyPlates?: number } | undefined;
     const ammo = (weapons?.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    // trends over the last minute, from the captain's dradis at each of its decisions
+    const window = log.requests.filter((r) => r.station === 'captain' && r.t > t - 60 && r.t <= t + 1e-9);
+    const attacked = window.filter((r) => {
+        const rr = (r.display as { radar?: Radar }).radar;
+        const f = rr?.ownShip?.faction;
+        const cs = (rr?.contacts ?? []).filter((c) => c.type === 'Spaceship' && c.faction !== undefined);
+        const st = cs.filter((c) => c.faction === f && (c.radius ?? 0) >= STATION_RADIUS);
+        return cs.some((e) => e.faction !== f && st.some((s) => dist(e.position, s.position) <= 20_000));
+    }).length;
+    const enemiesAt = (r: (typeof window)[number] | undefined) => {
+        const rr = (r?.display as { radar?: Radar } | undefined)?.radar;
+        return (rr?.contacts ?? []).filter((c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== rr?.ownShip?.faction).length;
+    };
+    const engineer = requestAt(log, 'engineer', t)?.display as { panels: Record<string, unknown> } | undefined;
+    const eng = engineer?.panels['engineering-status'] as { energy?: number; maxEnergy?: number; hullDamaged?: number } | undefined;
     return {
         t,
+        attackShare60: window.length ? attacked / window.length : 0,
+        enemyTrend60: enemiesAt(window[window.length - 1]) - enemiesAt(window[0]),
+        energy: eng?.maxEnergy ? (eng.energy ?? 0) / eng.maxEnergy : 1,
+        hullDamaged: Number(eng?.hullDamaged ?? 0),
         enemies: enemies.length,
         nearestEnemy: nearest?.distance ?? 1e6,
         enemyToStation: nearest && stations.length ? toStation(nearest) : 1e6,
