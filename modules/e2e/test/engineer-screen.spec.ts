@@ -189,7 +189,7 @@ test.describe('Engineer Screen', () => {
         expect(await rowValue(runningRow, 'priority')).toBe('RUNNING');
     });
 
-    test('up-next list shows run order with priority, and the folder title carries the priority (#2434)', async ({
+    test('up-next list shows run order with priority, and the folder title carries key and priority (#2434, #2438)', async ({
         page,
     }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
@@ -209,9 +209,10 @@ test.describe('Engineer Screen', () => {
         await expect(upNext(3)).toBeHidden({ timeout: 2000 });
         await page.keyboard.press('Alt+2');
         await expect(upNext(3)).toHaveValue('Thrust-line purge · LOW', { timeout: 2000 });
-        await expect(
-            protocolRow(repairQueuePanel, 'Thrust-line purge').locator(':scope > .tp-fldv_b .tp-fldv_t'),
-        ).toHaveText('Thrust-line purge · LOW');
+        const titleBar = protocolRow(repairQueuePanel, 'Thrust-line purge').locator(':scope > .tp-fldv_b');
+        await expect(titleBar.locator('.tp-fldv_t')).toHaveText('Thrust-line purge');
+        await expect(titleBar.locator('.sw-repair-badge')).toHaveText('LOW');
+        await expect(titleBar).toHaveAttribute('data-key', '2');
     });
 
     test('crew station cannot raise a docked-tier protocol while undocked, even via its hotkey', async ({ page }) => {

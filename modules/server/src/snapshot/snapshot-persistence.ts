@@ -3,7 +3,7 @@ import * as maps from '../maps';
 import * as path from 'node:path';
 
 import { SavedGame, createLogger } from '@starwards/core/internal';
-import { schemaToString, stringToSchema } from '../serialization/game-state-serialization';
+import { savedGameToSchema, schemaToSavedGame } from '../serialization/game-state-serialization';
 
 import { GameManager } from '../admin/game-manager';
 import { writableDefault } from '../app-paths';
@@ -16,7 +16,7 @@ const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
 // modules/server/.state-snapshot/ (gitignored) — works from both src/ (ts-node) and cjs/ (compiled)
 const DEFAULT_SNAPSHOT_FILE = path.join(
     writableDefault(path.resolve(__dirname, '..', '..', '.state-snapshot')),
-    'game-snapshot.b64',
+    'game-snapshot.ssg',
 );
 
 type Env = Record<string, string | undefined>;
@@ -38,10 +38,10 @@ export async function writeGameSnapshot(manager: GameManager, filePath: string):
     if (!savedGame) {
         return false;
     }
-    const serialized = await schemaToString(savedGame);
+    const serialized = await schemaToSavedGame(savedGame);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     const tmpFile = `${filePath}.tmp`;
-    await fs.writeFile(tmpFile, serialized, 'utf-8');
+    await fs.writeFile(tmpFile, serialized);
     await fs.rename(tmpFile, filePath);
     return true;
 }
@@ -53,14 +53,14 @@ export async function writeGameSnapshot(manager: GameManager, filePath: string):
  * @returns true if a game was restored.
  */
 export async function restoreGameSnapshot(manager: GameManager, filePath: string): Promise<boolean> {
-    let serialized: string;
+    let serialized: Buffer;
     try {
-        serialized = await fs.readFile(filePath, 'utf-8');
+        serialized = await fs.readFile(filePath);
     } catch {
         return false; // no snapshot file — nothing to restore
     }
     try {
-        const savedGame = await stringToSchema(SavedGame, serialized);
+        const savedGame = await savedGameToSchema(SavedGame, serialized);
         const map = mapsMap.get(savedGame.mapName);
         if (!map) {
             logError(`can't restore snapshot: unknown map "${savedGame.mapName}"`);
