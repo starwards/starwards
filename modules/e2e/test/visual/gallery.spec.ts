@@ -15,6 +15,42 @@ const scenes = [
     'armor-heavy-damage',
     'armor-critical',
     'armor-sector-damage',
+    // Damage Report
+    'damage-report-clear',
+    'damage-report-faults',
+    // Docking
+    'docking-docked',
+    'docking-undocked',
+    // System status
+    'system-status-nominal',
+    'system-status-faults',
+    'full-system-status-engineer',
+    'full-system-status-wide',
+    // Gun status
+    'gun-status-firing',
+    'gun-status-loading',
+    // Scan beam
+    'scan-beam-jamming',
+    'scan-beam-steady',
+    // Signals jobs
+    'signals-jobs-empty',
+    'signals-jobs-queue',
+    // Target info
+    'target-info-no-target',
+    'target-info-scanned',
+    'target-info-unscanned',
+    // Target tubes
+    'target-tubes-loading',
+    // Station captions
+    'radar-header',
+    'map-caption',
+    // Waypoints
+    'waypoint-placement-settings',
+    'waypoint-groups',
+    'waypoint-edit-single',
+    'waypoint-edit-multiple',
+    // Observation mode
+    'observation-mode-recording',
     // Dradis Radar
     'dradis-radar-ships',
     'dradis-radar-dense-field',
@@ -30,6 +66,8 @@ const scenes = [
     'gm-radar-empty',
     'gm-radar-ships',
     'gm-radar-mixed',
+    'gm-radar-derelicts',
+    'gm-radar-explosion',
     // Helms
     'helms-dashboard-stationary',
     'helms-dashboard-moving',
@@ -53,6 +91,9 @@ const scenes = [
     'tactical-radar-single-ship',
     'tactical-radar-multiple-objects',
     'tactical-radar-with-shells',
+    'tactical-radar-with-explosion',
+    'tactical-radar-with-breach-hit',
+    'tactical-radar-shell-vs-missile-blast',
     'tactical-radar-firing-arcs',
     'tactical-radar-firing-arcs-limits',
     // Long Range Radar
@@ -167,6 +208,18 @@ test.describe('Visual Gallery', () => {
         await expect(error).toBeVisible();
         await expect(error).toContainText('ammo-empty');
         await expect(error).toContainText('warp-active');
+    });
+
+    test('every registered scene has a baseline test', async ({ page }) => {
+        await page.goto(`${gameDriver.baseURL}/gallery.html?scene=nonexistent-scene`);
+        const text = (await page.locator('#error').textContent()) ?? '';
+        const listed = text.slice(text.indexOf('Available scenes:') + 'Available scenes:'.length);
+        const registered = listed
+            .split(',')
+            .map((name) => name.trim())
+            .filter(Boolean)
+            .sort();
+        expect(registered).toEqual([...scenes].sort());
     });
 
     test('gallery auto-redirects to first scene when no scene specified', async ({ page }) => {
