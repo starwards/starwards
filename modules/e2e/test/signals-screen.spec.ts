@@ -1,4 +1,4 @@
-import { Faction, JobStatus, ScanLevel } from '@starwards/core';
+import { Faction, JobStatus, ScanLevel, playerScanLevel } from '@starwards/core';
 import { Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { getPropertyValue, makeDriver, waitForShipCondition } from './driver';
@@ -8,6 +8,11 @@ import { maps } from '@starwards/server';
 const { single_ship, two_ships } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
+
+/** A job row's label for `targetId`, whichever step the job is on. */
+function jobRow(targetId: string) {
+    return new RegExp(`^SCAN →(BASIC|FULL) · ${targetId}$`);
+}
 
 async function waitForRadarReady(page: Page) {
     await expect(page.locator('[data-id="Long Range Radar"]'), 'phase: long range radar visible').toBeVisible({
@@ -144,11 +149,21 @@ test.describe('Signals Screen', () => {
         const [rock] = gameDriver.gameManager.spaceManager.state.getAll('Asteroid');
         // bare id, not "Asteroid <id>": the contact is still UFO, and a job label must not
         // classify what the player has not scanned
-        await expect(panel.getByText(`SCAN · ${rock.id}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.getByText(jobRow(rock.id))).toBeVisible({ timeout: 10000 });
         await expect(panel.locator('.tp-lblv.sw-job input')).toHaveValue(/%$/);
         // a UFO's next step is BASIC; the row says so
-        await expect(panel.getByText(`SCAN · ${rock.id} · →BASIC`)).toBeVisible();
+        await expect(panel.getByText(`SCAN →BASIC · ${rock.id}`)).toBeVisible();
         await page.screenshot({ path: 'test-results/screenshots/signals-jobs-target-level.png' });
+
+        // a finished job, unlike a dropped one, is reported as the last completed scan
+        const lastScan = panel.locator('.tp-lblv', { hasText: 'Last scan' }).locator('input');
+        await expect(lastScan).toHaveValue('—');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => playerScanLevel(rock, ship.state.faction) !== ScanLevel.UFO,
+            60000,
+        );
+        await expect(lastScan).toHaveValue(/→ BASIC$/, { timeout: 10000 });
     });
 
     // --- Target cycle: which contacts the ] / [ keys reach ---
@@ -197,10 +212,10 @@ test.describe('Signals Screen', () => {
         expect(active).toBeTruthy();
         expect(queued).toHaveLength(2);
 
-        await expect(panel.getByText(`SCAN · ${active!.targetId}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.getByText(jobRow(active!.targetId))).toBeVisible({ timeout: 10000 });
         await expect(panel.locator('.tp-lblv.sw-job input').first()).toHaveValue(/%$/);
         for (const [i, job] of queued.entries()) {
-            const row = panel.getByText(`SCAN · ${job.targetId}`);
+            const row = panel.getByText(jobRow(job.targetId));
             await expect(row).toBeVisible({ timeout: 10000 });
             const value = row.locator('..').locator('input');
             await expect(value).toHaveValue('QUEUED');
@@ -229,7 +244,7 @@ test.describe('Signals Screen', () => {
         const active = jobsBefore.find((j) => j.status === JobStatus.IN_PROGRESS)!;
         const queuedJob = jobsBefore.find((j) => j.status === JobStatus.QUEUED)!;
 
-        await expect(panel.getByText(`SCAN · ${queuedJob.targetId}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.getByText(jobRow(queuedJob.targetId))).toBeVisible({ timeout: 10000 });
         // select the queued job's target with the cycle hotkey, then cancel it with the cancel hotkey
         await expect(async () => {
             await page.keyboard.press(']', { delay: 100 });

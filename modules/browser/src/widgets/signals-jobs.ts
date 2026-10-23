@@ -1,6 +1,6 @@
 import { Destructors, ScanLevel, ShipDriver, SpaceDriver, objectDisplayName, playerScanLevel } from '@starwards/core';
 import { JobView, findJobForTarget, visibleJobRows } from './signals-jobs-rows';
-import { PromotionWatch, scanStepLabel } from './signals-scan-steps';
+import { PromotionWatch, jobsSignature, scanStepLabel } from './signals-scan-steps';
 import {
     addAnnunciatorBlade,
     addBareBarBlade,
@@ -26,10 +26,11 @@ function targetName(spaceDriver: SpaceDriver, shipDriver: ShipDriver, targetId: 
     return objectDisplayName(target, targetId, targetLevel(spaceDriver, shipDriver, targetId));
 }
 
-/** e.g. `SCAN · Asteroid 12 · →BASIC`: the step the job is working on, so 100% means a known level. */
+/** e.g. `SCAN →BASIC · Asteroid 12`: the step the job is working on, so 100% means a known level.
+ * The step precedes the name so a long name, not the step, is what the label truncates. */
 function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: Pick<JobView, 'targetId'>) {
     const level = targetLevel(spaceDriver, shipDriver, job.targetId) ?? ScanLevel.UFO;
-    return `SCAN · ${targetName(spaceDriver, shipDriver, job.targetId)} · ${scanStepLabel(level)}`;
+    return `SCAN ${scanStepLabel(level)} · ${targetName(spaceDriver, shipDriver, job.targetId)}`;
 }
 
 function staticTextModel(value: string) {
@@ -159,15 +160,7 @@ export function drawSignalsJobs(
         }
     }
 
-    // the target's level is part of the signature: a ship promoted UFO→BASIC keeps its job (and
-    // often the working slot) but its row must switch to →FULL
-    const signature = () =>
-        jobs()
-            .map(
-                (job) =>
-                    `${job.id}:${job.status}:${job.prioritized}:${job.needsBeam}:${targetLevel(spaceDriver, shipDriver, job.targetId)}`,
-            )
-            .join(',');
+    const signature = () => jobsSignature(jobs(), (id) => targetLevel(spaceDriver, shipDriver, id));
     let lastSignature = '';
     const onJobsChange = () => {
         const current = signature();

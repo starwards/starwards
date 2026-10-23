@@ -1,16 +1,30 @@
-import { ScanLevel } from '@starwards/core';
+import { ScanLevel, SignalsJob } from '@starwards/core';
 
 /**
  * The level a scan job on a target at `level` is working towards. Identification takes a contact
  * from UFO to BASIC; a deep scan takes it from BASIC (or a decayed SNAPSHOT) straight to FULL.
  */
-export function scanStepTarget(level: ScanLevel): ScanLevel {
+function scanStepTarget(level: ScanLevel): ScanLevel {
     return level === ScanLevel.UFO ? ScanLevel.BASIC : ScanLevel.FULL;
 }
 
 /** Job-row suffix naming the step the job is working on, e.g. `→FULL`. */
 export function scanStepLabel(level: ScanLevel): string {
     return `→${ScanLevel[scanStepTarget(level)]}`;
+}
+
+/**
+ * What the Jobs pane renders from, as a string: a change re-renders the pane. It covers the
+ * BEAM row (`needsBeam`) and the target's level, since a ship promoted UFO→BASIC keeps its job
+ * (and often the working slot) but its row must switch to →FULL.
+ */
+export function jobsSignature(
+    jobs: Iterable<Pick<SignalsJob, 'id' | 'targetId' | 'status' | 'prioritized' | 'needsBeam'>>,
+    levelOf: (targetId: string) => ScanLevel | undefined,
+) {
+    return [...jobs]
+        .map((job) => `${job.id}:${job.status}:${job.prioritized}:${job.needsBeam}:${levelOf(job.targetId)}`)
+        .join(',');
 }
 
 /** How long a target stays watched after its job leaves the queue, so a completion whose level

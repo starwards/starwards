@@ -1,5 +1,5 @@
-import { PROMOTION_WATCH_MS, PromotionWatch, scanStepLabel } from '../src/widgets/signals-scan-steps';
-import { ScanLevel } from '@starwards/core';
+import { JobStatus, ScanLevel } from '@starwards/core';
+import { PROMOTION_WATCH_MS, PromotionWatch, jobsSignature, scanStepLabel } from '../src/widgets/signals-scan-steps';
 
 describe('scanStepLabel', () => {
     test('an unidentified contact is being identified', () => {
@@ -8,6 +8,20 @@ describe('scanStepLabel', () => {
     test('an identified or decayed contact is being deep-scanned to FULL', () => {
         expect(scanStepLabel(ScanLevel.BASIC)).toBe('→FULL');
         expect(scanStepLabel(ScanLevel.SNAPSHOT)).toBe('→FULL');
+    });
+});
+
+describe('jobsSignature', () => {
+    const job = { id: 'j', targetId: 't', status: JobStatus.DORMANT, prioritized: false, needsBeam: false };
+    test('changes when a job starts or stops needing the beam', () => {
+        const levelOf = () => ScanLevel.BASIC;
+        expect(jobsSignature([{ ...job, needsBeam: true }], levelOf)).not.toBe(jobsSignature([job], levelOf));
+    });
+    test("changes when a job's target is promoted", () => {
+        expect(jobsSignature([job], () => ScanLevel.BASIC)).not.toBe(jobsSignature([job], () => ScanLevel.UFO));
+    });
+    test('is stable when nothing rendered changed', () => {
+        expect(jobsSignature([job], () => ScanLevel.UFO)).toBe(jobsSignature([{ ...job }], () => ScanLevel.UFO));
     });
 });
 
