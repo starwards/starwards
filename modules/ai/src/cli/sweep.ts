@@ -6,7 +6,7 @@
  * with a bootstrap interval, and its mean time to the first station lost).
  *
  *   npm run sweep -- --crew <crew.json> --scenario W-waves --seeds 66,70 --times 600,630 [--k 8]
- *       [--alts close_to,hold_here] [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
+ *       [--alts close_to,hold_here] [--states 66@600,70@630] [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
  *
  * Rollouts stream to `sweep.jsonl`; a rerun into the same `--out` plays only the missing ones, and
  * `--summary-only` summarizes what is there without playing more.
@@ -213,6 +213,8 @@ async function main() {
     const times = arg('times', '600,630,660,690')!.split(',').map(Number);
     const k = Number(arg('k', '8'));
     const only = arg('alts')?.split(',');
+    // `--states seed@t,...` sweeps only those states, e.g. to add rollouts where the interval straddles
+    const pick = arg('states')?.split(',');
     const rollouts = Number(arg('rollouts', '8'));
     const jitter = Number(arg('jitter', '2'));
     const timeoutSeconds = Number(arg('timeout', '1500'));
@@ -243,6 +245,7 @@ async function main() {
         const full = path.join(recDir(seed), recording);
         const log = readRunLog(full);
         for (const t of times) {
+            if (pick && !pick.includes(`${seed}@${t}`)) continue;
             for (const c of candidates(log, t, k, only)) {
                 for (let j = 0; j < rollouts; j++) {
                     jobs.push({
