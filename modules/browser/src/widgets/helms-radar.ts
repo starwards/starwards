@@ -6,6 +6,7 @@ import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
+import { BlipTraceLayer } from '../radar/blips/blip-trace-layer';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { DashboardWidget } from './dashboard';
@@ -108,6 +109,10 @@ export async function drawHelmsRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     const shipTarget = trackTargetObject(spaceDriver, shipDriver);
 
     contentElements.addChild(speedLines(root, shipDriver.state, shipTarget));
+    contentElements.addChild(
+        new BlipTraceLayer(root, spaceDriver, 32, rangeFilter.isInRange, () => green, shipDriver.state.faction)
+            .renderRoot,
+    );
     const blipLayer = new ObjectsLayer(
         root,
         spaceDriver,
