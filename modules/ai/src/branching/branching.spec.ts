@@ -75,7 +75,7 @@ describe('captain branching', () => {
         // an intervention keeps state over its run: each run gets its own
         const hold = () => strategicLevel.alternatives(point, log).find((a) => a.id === 'hold_position')!.intervention;
         const branched = await runBranch(run, point.t, hold());
-        expect(branched).not.toEqual(replay);
+        expect(branched.killed).toBe(false);
         expect(branched).toEqual(await analysedOutcome(point.t, hold()));
     });
 
@@ -87,6 +87,7 @@ describe('captain branching', () => {
         const base = await runBranch(run, point.t);
         expect(branched.prefix).toBe(base.prefix);
         expect(branched.whole).not.toBe(base.whole);
+        expect(branched.killed).toBe(false);
     });
 
     it('a tactical branch has the captain call the alternative for its window', async () => {

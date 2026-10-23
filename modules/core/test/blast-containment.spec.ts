@@ -49,6 +49,30 @@ function detonate(blastRadius: number) {
     };
 }
 
+function queuedDamages(blastRadius: number, blastX: number) {
+    const config = shipConfigurations['dragonfly-MK1'];
+    const ship = new Spaceship();
+    ship.id = 'target';
+    ship.radius = config.radius;
+    ship.position = Vec2.make({ x: 0, y: 0 });
+    const spaceMgr = new SpaceManager();
+    new ShipManagerNpc(ship, makeShipState(ship.id, config), spaceMgr, new MockDie());
+    spaceMgr.insert(ship);
+    const blast = new Explosion();
+    blast.id = 'blast';
+    blast.position = Vec2.make({ x: blastX, y: 0 });
+    blast.radius = blastRadius;
+    blast.expansionSpeed = 0;
+    blast.secondsToLive = 1;
+    blast.velocityInheritance = 0;
+    spaceMgr.insert(blast);
+    spaceMgr.forceFlushEntities();
+    for (const id of makeIterationsData(0.02, 1)) {
+        spaceMgr.update(id);
+    }
+    return (spaceMgr as unknown as { objectDamage: Map<string, unknown[]> }).objectDamage.get(ship.id);
+}
+
 describe('blast overlapping a hull without their rims crossing (issue #2363)', () => {
     it('damages a hull wholly inside the blast and marks it hit', () => {
         const { ship, blast, lost, plates, total } = detonate(shipConfigurations['dragonfly-MK1'].radius * 4);
@@ -60,5 +84,10 @@ describe('blast overlapping a hull without their rims crossing (issue #2363)', (
         const { ship, blast, lost } = detonate(shipConfigurations['dragonfly-MK1'].radius / 4);
         expect(lost).to.be.greaterThan(0.01);
         expect(blast.hitObjectIds.has(ship.id)).to.equal(true);
+    });
+    it('delivers an engulfing or enclosed off-centre blast as a single weapon hit', () => {
+        const radius = shipConfigurations['dragonfly-MK1'].radius;
+        expect(queuedDamages(radius * 4, radius / 2)).to.have.length(1);
+        expect(queuedDamages(radius / 4, radius / 2)).to.have.length(1);
     });
 });

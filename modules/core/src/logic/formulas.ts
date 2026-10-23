@@ -205,8 +205,12 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
     return [i0, i1];
 }
 
-/** Returned by {@link circlesOverlapArc} when the object circle covers the subject's whole rim. */
-export const WHOLE_RIM_ARC: Tuple2 = [0, 360 - EPSILON];
+/**
+ * Returned by {@link circlesOverlapArc} when the object circle covers the subject's whole rim.
+ * Starts at the front/rear boundary of a ship so that its single-piece intersection with each
+ * of the two ship-area arcs is that whole area.
+ */
+export const WHOLE_RIM_ARC: Tuple2 = [-90, 270 - EPSILON];
 
 /**
  * The arc of the subject's rim (global degrees, around the subject's centre) that the object circle

@@ -26,7 +26,6 @@ import {
     toPositiveDegreesDelta,
 } from '.';
 import { Explosion, HazardCloud, Nebula, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { FRONT_ARC, REAR_ARC } from '../ship/ship-areas';
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
@@ -1140,31 +1139,27 @@ export class SpaceManager implements Updateable {
     ) {
         const arc = circlesOverlapArc(subject, this.damageFootprint(object));
         if (arc) {
-            // single-piece arc intersection can't cover a rim spanning both ship areas: one damage per area
-            const shipLocalDamageArcs: Tuple2[] =
-                arc === WHOLE_RIM_ARC
-                    ? [[...FRONT_ARC], [...REAR_ARC]]
-                    : [
-                          [
+            const damage: Damage = {
+                id: object.id,
+                amount: damageAmount,
+                damageSurfaceArc:
+                    arc === WHOLE_RIM_ARC
+                        ? arc
+                        : [
                               limitPercision(toPositiveDegreesDelta(arc[0] - subject.angle)),
                               limitPercision(toPositiveDegreesDelta(arc[1] - subject.angle)),
                           ],
-                      ];
-            const damages = shipLocalDamageArcs.map((damageSurfaceArc): Damage => ({
-                id: object.id,
-                amount: damageAmount,
-                damageSurfaceArc,
                 damageDurationSeconds: deltaSeconds,
                 damageType: object.damageType,
                 delivery: Explosion.isInstance(object) ? 'explosion' : 'impact',
                 shipId: Explosion.isInstance(object) ? object.shipId : '',
                 concentration: Explosion.isInstance(object) ? object.concentration : 1,
-            }));
+            };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {
-                this.objectDamage.set(subject.id, damages);
+                this.objectDamage.set(subject.id, [damage]);
             } else {
-                objectDamage.push(...damages);
+                objectDamage.push(damage);
             }
             if (Explosion.isInstance(object)) {
                 object.hitObjectIds.add(subject.id);
