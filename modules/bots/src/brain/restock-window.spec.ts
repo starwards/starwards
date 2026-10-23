@@ -7,7 +7,11 @@ import { setReferenceKnobs } from './reference-knobs';
 const request = {
     state: {},
     questions: {
-        [CALLOUT_QUESTION]: { type: 'choice', instructions: '', criteria: { undock: '', dock_for_repair: '', hold_here: '' } },
+        [CALLOUT_QUESTION]: {
+            type: 'choice',
+            instructions: '',
+            criteria: { undock: '', dock_for_repair: '', hold_here: '' },
+        },
     },
 } as unknown as BrainRequest;
 
@@ -97,4 +101,3 @@ describe('magazineState fill', () => {
         expect(say(0.7)).toBe('magazine_state');
     });
 });
-

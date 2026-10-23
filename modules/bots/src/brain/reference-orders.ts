@@ -1,5 +1,13 @@
 import { referenceKnobs } from './reference-knobs';
-import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, magazineCapacity, stationThreat, stationsCentre } from './callout';
+import {
+    CALLOUT_QUESTION,
+    Heard,
+    SILENCE,
+    checkFireOf,
+    magazineCapacity,
+    stationThreat,
+    stationsCentre,
+} from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy, shellStock } from './engagement';
 
@@ -110,7 +118,10 @@ function threatPick(p: Picture): ThreatPick | undefined {
         const held = before?.station.name === station.name && on(station).find((e) => e.name === before.enemy.name);
         pick = {
             station,
-            enemy: held && apart(held, station) - referenceKnobs.RETARGET_MARGIN_METERS <= apart(best, station) ? held : best,
+            enemy:
+                held && apart(held, station) - referenceKnobs.RETARGET_MARGIN_METERS <= apart(best, station)
+                    ? held
+                    : best,
         };
     }
     p.memory.set('threatPick', pick);
@@ -221,7 +232,9 @@ function threatMoved(p: Picture) {
         p.memory.set('focusHeldAt', p.now);
     }
     const heldAt = (p.memory.get('focusHeldAt') as number | undefined) ?? -Infinity;
-    return p.now - heldAt > referenceKnobs.STATION_HELD_SECONDS && held - threat.gap > referenceKnobs.REFOCUS_MARGIN_METERS;
+    return (
+        p.now - heldAt > referenceKnobs.STATION_HELD_SECONDS && held - threat.gap > referenceKnobs.REFOCUS_MARGIN_METERS
+    );
 }
 
 /**
@@ -309,7 +322,8 @@ function restockNeeded(p: Picture) {
 const MAGAZINE_STATE_REPEAT_SECONDS = 30;
 
 /** Captain: an enemy within `RESTOCK_CLEAR_METERS` keeps or sends the ship off a restock-window dock. */
-const restockBlocked = (p: Picture) => (nearestEnemy(p.radar)?.distance ?? Infinity) < referenceKnobs.RESTOCK_CLEAR_METERS;
+const restockBlocked = (p: Picture) =>
+    (nearestEnemy(p.radar)?.distance ?? Infinity) < referenceKnobs.RESTOCK_CLEAR_METERS;
 
 const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Engineer: the magazine's capacity changed by a tenth since last said, or a while passed. */
@@ -455,7 +469,8 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     undock: (p) =>
         p.dockOrdered &&
         (p.memory.get('restockDocked') === true && !p.memory.get('restockUndocked')
-            ? (restockBlocked(p) || p.now >= referenceKnobs.RESTOCK_UNTIL_SECONDS) && (p.memory.set('restockUndocked', true), true)
+            ? (restockBlocked(p) || p.now >= referenceKnobs.RESTOCK_UNTIL_SECONDS) &&
+              (p.memory.set('restockUndocked', true), true)
             : !shellsLow(p) || enemyNear(p)),
     /** Captain: weapons calls check fire, and the board holds no check fire yet. */
     call_check_fire: (p) => !p.checkFireOrdered && lineFouled(p) === true,
