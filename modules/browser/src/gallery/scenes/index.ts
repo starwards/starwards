@@ -1,4 +1,14 @@
 import { Application } from 'pixi.js';
+import { damageReportScenes } from './damage-report';
+import { dockingScenes } from './docking';
+import { gunScenes } from './gun';
+import { scanBeamScenes } from './scan-beam';
+import { signalsJobsScenes } from './signals-jobs';
+import { stationCaptionScenes } from './station-captions';
+import { systemsStatusScenes } from './systems-status';
+import { targetInfoScenes } from './target-info';
+import { targetTubesScenes } from './target-tubes';
+import { waypointScenes } from './waypoints';
 import { ammoScenes } from './ammo';
 import { armorScenes } from './armor';
 import { dradisRadarScenes } from './dradis-radar';
@@ -41,4 +51,14 @@ export const scenes: Record<string, Scene> = {
     ...targetingScenes,
     ...tubesStatusScenes,
     ...warpScenes,
+    ...damageReportScenes,
+    ...dockingScenes,
+    ...gunScenes,
+    ...scanBeamScenes,
+    ...signalsJobsScenes,
+    ...stationCaptionScenes,
+    ...systemsStatusScenes,
+    ...targetInfoScenes,
+    ...targetTubesScenes,
+    ...waypointScenes,
 };
