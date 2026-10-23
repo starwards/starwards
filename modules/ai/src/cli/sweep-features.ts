@@ -44,10 +44,13 @@ export function features(log: ReturnType<typeof readRunLog>, t: number) {
     }).length;
     const enemiesAt = (r: (typeof window)[number] | undefined) => {
         const rr = (r?.display as { radar?: Radar } | undefined)?.radar;
-        return (rr?.contacts ?? []).filter((c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== rr?.ownShip?.faction).length;
+        return (rr?.contacts ?? []).filter(
+            (c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== rr?.ownShip?.faction,
+        ).length;
     };
     const engineer = requestAt(log, 'engineer', t)?.display as { panels: Record<string, unknown> } | undefined;
-    const eng = engineer?.panels['engineering-status'] as { energy?: number; maxEnergy?: number; hullDamaged?: number } | undefined;
+    const eng = engineer?.panels['engineering-status'] as
+        { energy?: number; maxEnergy?: number; hullDamaged?: number } | undefined;
     return {
         t,
         attackShare60: window.length ? attacked / window.length : 0,
@@ -69,7 +72,10 @@ export function features(log: ReturnType<typeof readRunLog>, t: number) {
 function main() {
     const dirs = process.argv.slice(2).filter((a) => !a.startsWith('--'));
     const out: string[] = [];
-    let header = false;
+    const recs: { cols: (string | number)[]; feats: string[]; rates: Map<string, string> }[] = [];
+    const kinds = new Set<string>();
+    // an action's column is its kind, so `dock_for_repair@<station>` pools across stations
+    const kindOf = (alt: string) => alt.split('@')[0];
     for (const dir of dirs) {
         const defaults = new Map(
             (JSON.parse(fs.readFileSync(path.join(dir, 'defaults.json'), 'utf8')) as Row[]).map((d) => [d.seed, d]),
@@ -95,17 +101,22 @@ function main() {
                 const t = Number(key.split('@')[1]);
                 const f = features(log, t);
                 const list = states.get(key)!;
-                const rate = (alt: string) => {
-                    const rs = list.filter((r) => r.alternative === alt);
-                    return rs.length ? `${rs.filter((r) => r.pass).length}/${rs.length}` : '';
-                };
-                if (!header) {
-                    out.push(['dir', 'seed', ...Object.keys(f), 'defaultPass', 'close_to', 'hold_here'].join(','));
-                    header = true;
+                const rates = new Map<string, string>();
+                for (const kind of new Set(list.map((r) => kindOf(r.alternative)))) {
+                    kinds.add(kind);
+                    const rs = list.filter((r) => kindOf(r.alternative) === kind);
+                    rates.set(kind, `${rs.filter((r) => r.pass).length}/${rs.length}`);
                 }
-                out.push(
-                    [path.basename(dir), seed, ...Object.values(f).map((v) => Math.round(v * 1000) / 1000), defaults.get(seed)?.pass ? 1 : 0, rate('close_to'), rate('hold_here')].join(','),
-                );
+                recs.push({
+                    cols: [
+                        path.basename(dir),
+                        seed,
+                        ...Object.values(f).map((v) => Math.round(v * 1000) / 1000),
+                        defaults.get(seed)?.pass ? 1 : 0,
+                    ],
+                    feats: Object.keys(f),
+                    rates,
+                });
             }
         }
     }
