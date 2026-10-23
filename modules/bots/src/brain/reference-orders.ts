@@ -1,10 +1,11 @@
-import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf } from './callout';
+import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, hullStatusChange } from './callout';
 import { Contact, Radar } from './verbal';
 import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy } from './engagement';
 
 import { Answer } from './brain';
 import { BrainRequest } from './request';
 import { Display } from './controls';
+import { HULL_STATUS_TUNING } from '@starwards/core/internal';
 
 /** What the seat counts itself: the missiles it launched under the current engagement, and how many still fly. */
 export type SalvoTally = { n: number; inFlight: number };
@@ -126,6 +127,21 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     contact_lost: ({ radar, previous }) => {
         const before = nearestEnemy(previous);
         return before !== undefined && !(radar?.contacts ?? []).some((c) => c.id === before.id);
+    },
+    /**
+     * Signals: a live capsule tier changed since the previous decision, and no hull-status callout
+     * went out within the callout window; a change inside the window is dropped, not queued.
+     */
+    hull_status: (p) => {
+        if (!hullStatusChange(p.display, p.previousDisplay)) {
+            return false;
+        }
+        const said = p.memory.get('hullSaidAt') as number | undefined;
+        if (said !== undefined && p.now - said < HULL_STATUS_TUNING.calloutWindowSeconds) {
+            return false;
+        }
+        p.memory.set('hullSaidAt', p.now);
+        return true;
     },
     /** Signals: whenever an identified enemy ship is on the radar. */
     enemy_position: ({ radar }) => nearestEnemy(radar) !== undefined,

@@ -72,6 +72,9 @@ const scenes = [
     'helms-dashboard-stationary',
     'helms-dashboard-moving',
     'helms-dashboard-target-mode',
+    // Hull Status (Signals, SPEC-0010)
+    'hull-status-mixed',
+    'hull-status-empty',
     // Repair Queue (issue #2434): up-next order and priority in folder titles
     'repair-queue-empty',
     'repair-queue-running',

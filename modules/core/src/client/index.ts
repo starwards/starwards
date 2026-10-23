@@ -4,6 +4,7 @@ export * from './space';
 export * from './client-status';
 export * from './driver';
 export * from './space-object-intel';
+export * from './hull-status';
 export * from './spatial-index';
 export * from './station-registration';
 export * from './radar-reach';

@@ -4,8 +4,10 @@ import { green, radar as radarColors, radarFogOfWar, radarVisibleBg } from '../c
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
 import $ from 'jquery';
+import { BlipTraceLayer } from '../radar/blips/blip-trace-layer';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
+import { DEFAULT_TRACE_FADE_MS } from '../radar/blips/blip-traces';
 import { DashboardWidget } from './dashboard';
 import EventEmitter from 'eventemitter3';
 import { Container as GLContainer } from 'golden-layout';
@@ -33,7 +35,11 @@ const DEFAULT_RANGE = 50_000;
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
-type Props = { range: number };
+type Props = {
+    range: number;
+    /** Seconds a lost contact's trace takes to fade out. */
+    traceFadeSeconds?: number;
+};
 
 export function longRangeRadarWidget(
     spaceDriver: SpaceDriver,
@@ -49,7 +55,7 @@ export function longRangeRadarWidget(
                 void drawLongRangeRadar(spaceDriver, shipDriver, container, p, zoomEvents, stationTarget);
             }
         },
-        defaultProps: { range: DEFAULT_RANGE },
+        defaultProps: { range: DEFAULT_RANGE, traceFadeSeconds: DEFAULT_TRACE_FADE_MS / 1000 },
         makeHeaders(_container: GLContainer, _state: unknown): Array<JQuery<HTMLElement>> {
             const zoomIn = $('<i data-id="zoom_in" class="lm_controls tiny material-icons">zoom_in</i>');
             const zoomOut = $('<i data-id="zoom_out" class="lm_controls tiny material-icons">zoom_out</i>');
@@ -74,7 +80,7 @@ export async function drawLongRangeRadar(
     zoomEvents?: EventEmitter<ZoomEvent>,
     stationTarget?: SelectionContainer,
 ) {
-    const state = { range: p.range };
+    const state = { range: p.range, traceFadeSeconds: p.traceFadeSeconds ?? DEFAULT_TRACE_FADE_MS / 1000 };
     const camera = new Camera();
     const root = new CameraView(camera);
 
@@ -201,6 +207,18 @@ export async function drawLongRangeRadar(
 
     // Use stationTarget if provided, otherwise fall back to ship's weapons target
     const targetContainer = stationTarget ?? trackTargetObject(spaceDriver, shipDriver);
+
+    const traceLayer = new BlipTraceLayer(
+        root,
+        spaceDriver,
+        32,
+        rangeFilter.isInRange,
+        () => green,
+        shipDriver.state.faction,
+        state.traceFadeSeconds * 1000,
+    );
+    traceLayer.renderRoot.mask = circleMask;
+    root.addLayer(traceLayer.renderRoot);
 
     const blipLayer = new ObjectsLayer(
         root,

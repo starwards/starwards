@@ -1,6 +1,6 @@
 import { BrainSpec, CalloutFill } from './spec';
 import { Contact, Radar, offNose } from './verbal';
-import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
+import { HullStatus, SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 import {
     bearingWords,
     closeRange,
@@ -278,6 +278,18 @@ const calloutFills: Record<
             : { names, focus: names };
         return values;
     },
+    /** Signals: the most urgent hull or capsule tier change on its hull-status panel (`hullStatusChange`). */
+    hullStatusChange: (display, previous) => {
+        const change = hullStatusChange(display, previous);
+        return (
+            change && {
+                who: change.row.allied ? 'ally' : 'enemy',
+                name: change.row.name,
+                part: change.part,
+                tier: change.tier,
+            }
+        );
+    },
     /** Captain: a salvo of the default size. */
     salvoOrder: () => ({ count: String(SALVO_MISSILES) }),
     /** Captain: engage the nearest enemy, by the name the crew's radars show. */
@@ -286,6 +298,31 @@ const calloutFills: Record<
         return enemy && { name: enemy.name };
     },
 };
+
+/** The parts of a ship whose tier the hull-status panel shows, the capsule (life) first. */
+const STATUS_PARTS = ['capsule', 'hull'] as const;
+
+/**
+ * The most urgent hull or capsule tier change on the Signals hull-status panel since the previous
+ * decision: only rows live at both decisions count (a snapshot is frozen, so it never changes on its
+ * own); an ally first, then the contact nearest an allied station (the one attacking it), then any
+ * other; for one subject, the capsule before the hull.
+ */
+export function hullStatusChange(display: Display, previous: Display | undefined) {
+    const before = new Map(((previous?.panels['hull-status'] ?? []) as HullStatus[]).map((r) => [r.id, r] as const));
+    const attacker = stationThreat(display.radar as Radar | undefined)?.enemy.id;
+    const rank = (r: HullStatus) => (r.allied ? 0 : r.id === attacker ? 1 : 2);
+    const changes = ((display.panels['hull-status'] ?? []) as HullStatus[]).flatMap((row) => {
+        const b = before.get(row.id);
+        if (row.intel !== 'LIVE' || b?.intel !== 'LIVE') return [];
+        return STATUS_PARTS.filter((part) => row[part] && b[part] !== row[part]).map((part) => ({
+            row,
+            part,
+            tier: row[part]!,
+        }));
+    });
+    return changes.sort((x, y) => rank(x.row) - rank(y.row))[0];
+}
 
 /** Allied stations on the radar: own-faction ships big enough to dock at. */
 function alliedStations(r: Radar | undefined) {
