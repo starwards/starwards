@@ -39,6 +39,8 @@ const scenes = [
     'repair-queue-running',
     'repair-queue-mixed',
     'repair-queue-refused',
+    // Signals Jobs (issue #2339): a deep scan stalled off the beam
+    'signals-jobs-needs-beam',
     // Station Roster
     'station-roster-empty',
     'station-roster-bots-running',

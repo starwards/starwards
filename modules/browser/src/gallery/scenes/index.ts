@@ -9,6 +9,7 @@ import { longRangeRadarScenes } from './long-range-radar';
 import { missilePaintScenes } from './missile-paint';
 import { observationModeScenes } from './observation-mode';
 import { repairQueueScenes } from './repair-queue';
+import { signalsJobsScenes } from './signals-jobs';
 import { smartGunScenes } from './smart-gun';
 import { stationRosterScenes } from './station-roster';
 import { tacticalRadarScenes } from './tactical-radar';
@@ -35,6 +36,7 @@ export const scenes: Record<string, Scene> = {
     ...missilePaintScenes,
     ...observationModeScenes,
     ...repairQueueScenes,
+    ...signalsJobsScenes,
     ...smartGunScenes,
     ...stationRosterScenes,
     ...tacticalRadarScenes,
