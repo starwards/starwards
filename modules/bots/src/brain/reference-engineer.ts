@@ -9,9 +9,15 @@ type Panels = { panels: Record<string, Record<string, unknown> | undefined> };
  * known-worse play: `jumpStart` jump-starts a dry reactor, `repair` queues the repair protocol for a
  * defect the damage report shows: on the reactor only, on any system, or on any system with the
  * magazine's capacity first (shells are the ship's one lasting weapon, and a docked ship restocks only to its capacity);
- * `magazine-retry` also queues it again after the reactor ran short of energy and cancelled it part-way.
+ * `magazine-retry` also queues it again after the reactor ran short of energy and cancelled it part-way;
+ * `magazine-first` retries too, and in its windows ({@link magazineFirstWindow}) cancels another repair
+ * to run the magazine's first.
  */
-export type EngineerStyle = { jumpStart: boolean; repair: 'none' | 'reactor' | 'all' | 'magazine' | 'magazine-retry' };
+export type EngineerStyle = {
+    jumpStart: boolean;
+    repair: 'none' | 'reactor' | 'all' | 'magazine' | 'magazine-retry' | 'magazine-first';
+};
+type RepairScope = Exclude<EngineerStyle['repair'], 'none'>;
 
 export const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: 'reactor' };
 
@@ -64,7 +70,14 @@ const MAX = 1;
  * a field repair for a reactor defect the damage report shows (a repairing engineer, for any system's
  * defect).
  */
-export function engineerChoice(command: string, key: string, display: Panels, style: EngineerStyle, ordered: boolean) {
+export function engineerChoice(
+    command: string,
+    key: string,
+    display: Panels,
+    style: EngineerStyle,
+    ordered: boolean,
+    now = 0,
+) {
     const systems = (display.panels['full-systems-status'] ?? []) as unknown as SystemStatus[];
     const engineering = display.panels['engineering-status'] as Engineering | undefined;
     if (!engineering) {
@@ -82,7 +95,11 @@ export function engineerChoice(command: string, key: string, display: Panels, st
                 ? 'raise'
                 : 'none';
         }
-        return style.repair !== 'none' && store > referenceKnobs.REPAIR_STORE && repairToQueue(display, slots, style.repair) === key
+        if (style.repair === 'none') return 'none';
+        if (style.repair === 'magazine-first' && magazineFirstWindow(now) && repairToCancel(display, slots) === key) {
+            return 'lower';
+        }
+        return store > referenceKnobs.REPAIR_STORE && repairToQueue(display, slots, style.repair) === key
             ? 'raise'
             : 'none';
     }
@@ -102,21 +119,55 @@ export function engineerChoice(command: string, key: string, display: Panels, st
 
 /**
  * The first idle field repair, in catalogue order, that fixes a defect the damage report shows -- none
- * while another repair is queued or running. With the `magazine` scope, the one that fixes the magazine's
+ * while another repair is queued or running. With a `magazine*` scope, the one that fixes the magazine's
  * capacity comes first.
  */
-function repairToQueue(
-    display: Panels,
-    slots: readonly RepairSlot[],
-    scope: 'reactor' | 'all' | 'magazine' | 'magazine-retry',
-) {
+function repairToQueue(display: Panels, slots: readonly RepairSlot[], scope: RepairScope) {
     if (slots.some((s) => s.priority !== 'OFF')) {
         return undefined;
     }
+    const fixes = repairFixes(display, scope !== 'reactor' && scope !== 'all' && scope !== 'magazine');
+    if (scope !== 'reactor' && scope !== 'all') {
+        const first = slots.find((slot) => fixes(slot, 'magazine'));
+        if (first) return first.protocolId;
+    }
+    return slots.find((slot) => fixes(slot, scope === 'reactor' ? 'reactor' : undefined))?.protocolId;
+}
+
+/**
+ * `magazine-first`: from `MAGAZINE_FIRST_SECONDS` (wave 1 over) for `MAGAZINE_FIRST_WINDOW_SECONDS`, and
+ * from `MAGAZINE_FIRST_PRE_DOCK_SECONDS` before a restock-window dock (`RESTOCK_FROM_SECONDS`) until it.
+ */
+function magazineFirstWindow(now: number) {
+    const k = referenceKnobs;
+    const afterWave1 =
+        now >= k.MAGAZINE_FIRST_SECONDS && now < k.MAGAZINE_FIRST_SECONDS + k.MAGAZINE_FIRST_WINDOW_SECONDS;
+    const preDock =
+        k.RESTOCK_FROM_SECONDS > 0 &&
+        now >= k.RESTOCK_FROM_SECONDS - k.MAGAZINE_FIRST_PRE_DOCK_SECONDS &&
+        now < k.RESTOCK_FROM_SECONDS;
+    return afterWave1 || preDock;
+}
+
+/** The queued or running repair (not the magazine's, nor a jump-start) to cancel while an idle one fixes a shown magazine defect. */
+function repairToCancel(display: Panels, slots: readonly RepairSlot[]) {
+    const fixes = repairFixes(display, true);
+    if (!slots.some((slot) => fixes(slot, 'magazine'))) return undefined;
+    const catalogue: Record<string, RepairProtocolStats | undefined> = repairProtocols;
+    return slots.find(
+        (s) =>
+            s.priority !== 'OFF' &&
+            s.priority !== 'CANCELLING' &&
+            s.protocolId !== 'reactorJumpStart' &&
+            !catalogue[s.protocolId]?.targets.some((t) => t.system === 'magazine'),
+    )?.protocolId;
+}
+
+/** Whether an idle field repair fixes a defect the damage report shows (on `only`'s system, if given). */
+function repairFixes(display: Panels, retry: boolean) {
     const defects = (display.panels['damage-report'] ?? []) as unknown as Defect[];
     const catalogue: Record<string, RepairProtocolStats | undefined> = repairProtocols;
-    const retry = scope === 'magazine-retry';
-    const fixes = (slot: RepairSlot, only?: string) => {
+    return (slot: RepairSlot, only?: string) => {
         const protocol = catalogue[slot.protocolId];
         return (
             slot.priority === 'OFF' &&
@@ -129,11 +180,6 @@ function repairToQueue(
             )
         );
     };
-    if (scope === 'magazine' || retry) {
-        const first = slots.find((slot) => fixes(slot, 'magazine'));
-        if (first) return first.protocolId;
-    }
-    return slots.find((slot) => fixes(slot, scope === 'reactor' ? 'reactor' : undefined))?.protocolId;
 }
 
 /** `/chainGuns/0` -> `chainGuns`. */
@@ -152,7 +198,11 @@ function powerGoal(pointer: string, system: SystemStatus, store: number, reactor
         return store < LOW_STORE && system.heat < REACTOR_BURST_HEAT ? MAX : NORMAL;
     }
     if (pointer.startsWith('/chainGuns/')) {
-        return system.heat >= referenceKnobs.GUN_BACKOFF_HEAT ? LOW : system.heat < referenceKnobs.GUN_RELEASE_HEAT ? NORMAL : undefined;
+        return system.heat >= referenceKnobs.GUN_BACKOFF_HEAT
+            ? LOW
+            : system.heat < referenceKnobs.GUN_RELEASE_HEAT
+              ? NORMAL
+              : undefined;
     }
     if (pointer.startsWith('/thrusters/')) {
         if (reactorDamaged && store < THRUSTER_SHUTDOWN_STORE) return SHUTDOWN;

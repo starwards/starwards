@@ -115,8 +115,8 @@ export const brainSpecSchema = z
          * only once the loaded type ran dry.
          */
         shellPreference: z.array(z.string()).optional(),
-        /** Engineer: which defects the reference rules queue a field repair for, the reactor's only (absent), any system's, or any system's with the magazine's capacity first. */
-        repairs: z.enum(['reactor', 'all', 'magazine', 'magazine-retry']).optional(),
+        /** Engineer: which defects the reference rules queue a field repair for, the reactor's only (absent), any system's, or any system's with the magazine's capacity first (`magazine-first`: also cancelling other repairs for it after wave 1 and before the restock dock). */
+        repairs: z.enum(['reactor', 'all', 'magazine', 'magazine-retry', 'magazine-first']).optional(),
         /** Weapons: the reference rules fire the chain gun only at a locked target this close, metres; absent, the gun's own reach. */
         fireRangeMeters: z.number().positive().optional(),
         /**

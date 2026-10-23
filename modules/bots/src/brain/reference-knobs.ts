@@ -92,6 +92,14 @@ export const REFERENCE_KNOB_DEFAULTS = {
     RESTOCK_UNTIL_SECONDS: 0,
     /** An enemy this near keeps the captain from a restock-window dock and sends it off one. */
     RESTOCK_CLEAR_METERS: 30_000,
+    /**
+     * `magazine-first` engineer: from this many seconds (wave 1 over) for `MAGAZINE_FIRST_WINDOW_SECONDS`,
+     * and again from `MAGAZINE_FIRST_PRE_DOCK_SECONDS` before `RESTOCK_FROM_SECONDS` until it, a shown
+     * magazine defect cancels any other repair so the feed-system overhaul runs first.
+     */
+    MAGAZINE_FIRST_SECONDS: 300,
+    MAGAZINE_FIRST_WINDOW_SECONDS: 60,
+    MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;

@@ -404,6 +404,7 @@ function referenceChoice(
                 display,
                 engineer,
                 orders.helm?.kind === 'close' || orders.engage !== undefined,
+                seconds,
             );
         default:
             return undefined;
