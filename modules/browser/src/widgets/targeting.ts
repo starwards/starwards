@@ -18,8 +18,9 @@ export function targetingWidget(shipDriver: ShipDriver): DashboardWidget {
         defaultProps: {},
     };
 }
-export function drawTargetingStatus(container: WidgetContainer, shipDriver: ShipDriver) {
-    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Target');
+/** @param title pane title; Target Details passes its own, as its header pane is already 'Target' */
+export function drawTargetingStatus(container: WidgetContainer, shipDriver: ShipDriver, title = 'Target') {
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, title);
     const track = addTextBlade(
         pane,
         readProp<string | null>(shipDriver, '/weaponsTarget/targetId'),
