@@ -1,0 +1,33 @@
+{
+    "name": "captain-reference-restock600",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain.v17-restock.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference",
+            "brain": "../brains/engineer.v12.json"
+        }
+    ],
+    "knobs": {
+        "RESTOCK_FROM_SECONDS": 600,
+        "RESTOCK_UNTIL_SECONDS": 780
+    }
+}

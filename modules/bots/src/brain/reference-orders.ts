@@ -284,6 +284,15 @@ function losing(p: Picture) {
     return attacked || many;
 }
 
+/** Captain, restock window (`RESTOCK_FROM_SECONDS`): the time to dock once and restock before the next raid. */
+const restockWindow = (p: Picture) =>
+    referenceKnobs.RESTOCK_FROM_SECONDS > 0 &&
+    p.now >= referenceKnobs.RESTOCK_FROM_SECONDS &&
+    p.now < referenceKnobs.RESTOCK_UNTIL_SECONDS;
+
+/** Captain: an enemy within `RESTOCK_CLEAR_METERS` keeps or sends the ship off a restock-window dock. */
+const restockBlocked = (p: Picture) => (nearestEnemy(p.radar)?.distance ?? Infinity) < referenceKnobs.RESTOCK_CLEAR_METERS;
+
 const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Signals: the enemy ship shown at the previous decision is gone from the radar. */
     contact_lost: ({ radar, previous }) => {
@@ -400,10 +409,19 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
                 c.faction === p.radar?.ownShip?.faction &&
                 (c.radius ?? 0) >= STATION_RADIUS_METERS,
         );
-        return shellsLow(p) && !p.dockOrdered && !enemyNear(p) && station.some((c) => c.distance < DOCK_NEAR_METERS);
+        const near = station.some((c) => c.distance < DOCK_NEAR_METERS);
+        if (restockWindow(p) && !p.dockOrdered && !p.memory.get('restockDocked') && !restockBlocked(p) && near) {
+            p.memory.set('restockDocked', true);
+            return true;
+        }
+        return shellsLow(p) && !p.dockOrdered && !enemyNear(p) && near;
     },
     /** Captain: docked and the shells are restocked, or an enemy comes near: cast off. */
-    undock: (p) => p.dockOrdered && (!shellsLow(p) || enemyNear(p)),
+    undock: (p) =>
+        p.dockOrdered &&
+        (p.memory.get('restockDocked') === true && !p.memory.get('restockUndocked')
+            ? (restockBlocked(p) || p.now >= referenceKnobs.RESTOCK_UNTIL_SECONDS) && (p.memory.set('restockUndocked', true), true)
+            : !shellsLow(p) || enemyNear(p)),
     /** Captain: weapons calls check fire, and the board holds no check fire yet. */
     call_check_fire: (p) => !p.checkFireOrdered && lineFouled(p) === true,
     /** Captain: weapons calls the line clear, and the board still holds check fire. */

@@ -82,6 +82,16 @@ export const REFERENCE_KNOB_DEFAULTS = {
     LOSING_ENEMIES: 0,
     /** Seconds into the fight before the losing → hold rule may hold. */
     LOSING_AFTER_SECONDS: 450,
+    /**
+     * Restock window: from this many seconds the captain docks once to restock (no shells-low call
+     * needed) while no enemy is within `RESTOCK_CLEAR_METERS`, and casts off by `RESTOCK_UNTIL_SECONDS`;
+     * 0 never.
+     */
+    RESTOCK_FROM_SECONDS: 0,
+    /** The captain casts off a restock-window dock by this time, whatever the stock. */
+    RESTOCK_UNTIL_SECONDS: 0,
+    /** An enemy this near keeps the captain from a restock-window dock and sends it off one. */
+    RESTOCK_CLEAR_METERS: 30_000,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;
