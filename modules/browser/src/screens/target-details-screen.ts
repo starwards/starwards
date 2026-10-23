@@ -19,7 +19,14 @@ import { addTextBlade, createWidgetPane } from '../panel';
 import $ from 'jquery';
 import { EmitterLoop } from '../loop';
 import { WidgetContainer } from '../container';
+import { drawAmmoStatus } from '../widgets/ammo';
 import { drawArmorStatus } from '../widgets/armor';
+import { drawDamageReport } from '../widgets/damage-report';
+import { drawEngineeringStatus } from '../widgets/enginering-status';
+import { drawGunStatus } from '../widgets/gun';
+import { drawHelmsStats } from '../widgets/helms';
+import { drawTargetingStatus } from '../widgets/targeting';
+import { drawWarpStatus } from '../widgets/warp';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { drawRadarHeader } from '../widgets/radar-header';
 import { drawTargetTubes } from '../widgets/target-tubes';
@@ -68,14 +75,26 @@ export async function initTargetDetailsScreen(
             const designSlot = grid.left();
             const tubesSlot = grid.left({ scroll: true });
             const systemsSlot = grid.right({ scroll: true });
+            const damageSlot = grid.right();
             const armorApp = drawArmorStatus(armorSlot, subjectDriver, 300);
             const stopDesign = drawDesign(designSlot, subjectDriver);
+            // every widget below is display-only (no input bindings, no commands), so the station
+            // widgets draw the subject unchanged
             drawTargetTubes(tubesSlot, subjectDriver);
+            drawAmmoStatus(tubesSlot, subjectDriver);
+            if (subjectDriver.state.chainGuns.length) drawGunStatus(tubesSlot, subjectDriver);
+            drawTargetingStatus(tubesSlot, subjectDriver, 'Aim');
             drawFullSystemsStatus(systemsSlot, subjectDriver, subjectDriver.systems, true);
+            drawEngineeringStatus(systemsSlot, subjectDriver);
+            if (subjectDriver.state.warp) drawWarpStatus(systemsSlot, subjectDriver);
+            drawHelmsStats(tubesSlot, subjectDriver);
+            drawDamageReport(damageSlot, subjectDriver);
             teardownPanels = () => {
                 void armorApp.then((app) => app.destroy({ removeView: true }, true));
                 stopDesign();
-                for (const slot of [armorSlot, designSlot, tubesSlot, systemsSlot]) slot.getElement().remove();
+                for (const slot of [armorSlot, designSlot, tubesSlot, systemsSlot, damageSlot]) {
+                    slot.getElement().remove();
+                }
             };
         });
     }
