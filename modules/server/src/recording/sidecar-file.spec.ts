@@ -50,11 +50,29 @@ describe('sidecar-file', () => {
         expect(findSidecar(path.join(dir, 'r.sgr'))).toBeNull();
     });
 
-    it('appends to a zstd sidecar as concatenated frames that read back whole', () => {
+    const LINES = ['{"t":0,"kind":"a"}', `{"t":1,"kind":"b","data":"${'x'.repeat(200_000)}"}`, '{"t":2,"kind":"c"}'];
+
+    const streamAll = async (file: string) => {
+        const streamed: string[] = [];
+        for await (const line of streamSidecarLines(file)) streamed.push(line);
+        return streamed;
+    };
+
+    it('appends to a zstd sidecar as concatenated frames that read back whole', async () => {
         const file = path.join(dir, 'r.events.jsonl.zst');
-        appendSidecar(file, '{"t":0,"kind":"a"}\n');
-        appendSidecar(file, '{"t":1,"kind":"b"}\n');
-        expect(readSidecar(file)).toBe(TEXT);
+        for (const line of LINES) appendSidecar(file, line + '\n');
+        expect(readSidecar(file)).toBe(LINES.join('\n') + '\n');
+        expect(readSidecarLines(file)).toEqual(LINES);
+        expect(await streamAll(file)).toEqual(LINES);
+    });
+
+    it('reads the whole frames of a zstd sidecar whose last frame is truncated', async () => {
+        const file = path.join(dir, 'r.events.jsonl.zst');
+        for (const line of LINES) appendSidecar(file, line + '\n');
+        const data = fs.readFileSync(file);
+        fs.writeFileSync(file, data.subarray(0, data.length - 3));
+        expect(readSidecarLines(file)).toEqual(LINES.slice(0, 2));
+        expect(await streamAll(file)).toEqual(LINES.slice(0, 2));
     });
 
     it('appends to a plain sidecar as text', () => {
