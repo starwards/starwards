@@ -248,6 +248,8 @@ describe('reference weapons missile target selection', () => {
         setReferenceKnobs({ MISSILE_TARGET_MODE: 1 });
         expect(await fireTube(shown(11.2))).toBe('fire');
         expect(await fireTube(shown(22.4))).toBe('hold_fire');
+        setReferenceKnobs({ MISSILE_TARGET_MODE: 1, MISSILE_KILL_METERS: 2000 });
+        expect(await fireTube(shown(11.2))).toBe('hold_fire');
     });
 
     it('threat mode launches only at the enemy nearest an allied station', async () => {

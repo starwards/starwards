@@ -579,7 +579,12 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
 /** Missile target selection (`MISSILE_TARGET_MODE`): whether the locked `target` is worth a missile. */
 function missileTargetChosen(display: Display, target: Contact) {
     const mode = referenceKnobs.MISSILE_TARGET_MODE;
-    if (mode === 1) return (target.radius ?? Infinity) <= referenceKnobs.MISSILE_KILL_RADIUS_METERS;
+    if (mode === 1) {
+        return (
+            (target.radius ?? Infinity) <= referenceKnobs.MISSILE_KILL_RADIUS_METERS &&
+            target.distance <= referenceKnobs.MISSILE_KILL_METERS
+        );
+    }
     if (mode === 2) return stationThreat(display.radar as ShownRadar | undefined)?.enemy.id === target.id;
     return true;
 }

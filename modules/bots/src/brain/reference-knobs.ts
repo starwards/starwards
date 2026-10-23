@@ -135,11 +135,14 @@ export const REFERENCE_KNOB_DEFAULTS = {
     LULL_DOCK_HOLD_SECONDS: 210,
     /**
      * Missile target selection: 0 launches at any lock; 1 (kill) only at a lock a salvo likely kills (a hull
-     * no wider than `MISSILE_KILL_RADIUS_METERS`); 2 (threat) only at the enemy nearest an allied station.
+     * no wider than `MISSILE_KILL_RADIUS_METERS`, within `MISSILE_KILL_METERS`, too near
+     * to outrun the missile); 2 (threat) only at the enemy nearest an allied station.
      */
     MISSILE_TARGET_MODE: 0,
     /** Mode-1 kill estimate: a hull this wide or narrower dies to a salvo (dragonflies 11.2 m, predator 22.4 m). */
     MISSILE_KILL_RADIUS_METERS: 15,
+    /** Mode-1 kill estimate: the lock is at most this far (guard launches on W-waves: 8/40 beyond 3 km). */
+    MISSILE_KILL_METERS: 3000,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,
