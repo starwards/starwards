@@ -6,10 +6,15 @@
  *   npm --prefix modules/ai run waves -- --scenario W-cut-lof --crew crews/a.json --crew crews/b.json [--seeds 16] [--first-seed 1] [--timeout 480] [--workers 2] [--out <dir>]
  *   npm --prefix modules/ai run waves -- --results <out>/<scenario>-waves.json [--baseline <crew>]
  *   npm --prefix modules/ai run waves -- --sequential --crew <baseline.json> --crew <candidate.json> [--looks 32,64,128,192] [--first-seed 1] [--workers 4] [--out <dir>]
+ *   ... --baseline-results <a>/W-cut-lof-waves.json,<b>/W-cut-lof-waves.json
  *
  * `--sequential` plays seeds in batches up to each look of a group-sequential screen on pass
  * (`training/paired.ts` sequentialScreen) and stops once every candidate crossed a boundary (better,
  * worse or futile) against the first crew, instead of a fixed `--seeds`.
+ *
+ * `--baseline-results` (comma-separated or repeated) reuses the first crew's rows of earlier results
+ * files for the seeds they cover and plays only the candidates there; same scenario, timeout and
+ * latency assumed.
  *
  * Recordings land in `<out>/<crew>/<scenario>_seed<N>.sgr` (a frame every 5 s), the runs in
  * `<out>/<scenario>-waves.json`, the report in `<out>/<scenario>-waves.md`.
@@ -20,6 +25,7 @@ import { idealScript, parseIdeals } from '../training/ideal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { ammoTelemetry } from '../training/ammo-telemetry';
+import { baselineCache } from '../training/baseline-cache';
 import { missileTelemetry } from '../training/missile-telemetry';
 import { applyCacheFlags } from '../brain/jev-cache';
 import { fork } from 'node:child_process';
@@ -36,6 +42,8 @@ type Job = {
     timeoutSeconds: number;
     outDir: string;
     latencySeconds: number;
+    /** Seeds whose first-crew run is cached (`--baseline-results`): played by the other crews only. */
+    cachedSeeds?: number[];
 };
 
 function arg(name: string, fallback: string) {
@@ -51,6 +59,7 @@ async function runJob(job: Job) {
     const runs: WaveRun[] = [];
     for (const seed of job.seeds) {
         for (const crewSpec of job.crews) {
+            if (crewSpec === job.crews[0] && job.cachedSeeds?.includes(seed)) continue;
             // `<crew.json>#<ideal>,<ideal>` plays the crew on an idealized GVTS (training/ideal.ts)
             const [crewPath, ideals = ''] = crewSpec.split('#');
             const ideal = idealScript(parseIdeals(ideals));
@@ -105,10 +114,11 @@ async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: strin
         const [file, ideals] = c.split('#');
         return path.resolve(file) + (ideals ? `#${ideals}` : '');
     });
-    if (crews.length < 2) {
+    const sequential = process.argv.includes('--sequential');
+    // one crew plays alone to fill a baseline cache (`--baseline-results`)
+    if (crews.length < (sequential ? 2 : 1)) {
         throw new Error('usage: waves --scenario <rung> --crew <baseline.json> --crew <candidate.json> [...]');
     }
-    const sequential = process.argv.includes('--sequential');
     const looks = sequential ? arg('looks', SEQUENTIAL_LOOKS.join(',')).split(',').map(Number) : [];
     const seedCount = sequential ? looks[looks.length - 1] : Number(arg('seeds', '16'));
     const firstSeed = Number(arg('first-seed', '1'));
@@ -121,20 +131,31 @@ async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: strin
         outDir,
         latencySeconds: Number(arg('latency', '0.2')),
     };
-    const playSeeds = async (seeds: number[], jobCrews: string[]) => {
+    const cache = baselineCache(
+        args('baseline-results')
+            .flatMap((f) => f.split(','))
+            .map((f) => JSON.parse(fs.readFileSync(f, 'utf8')) as WaveRun[]),
+        crewName(crews[0]),
+    );
+    const playSeeds = async (seeds: number[], jobCrews: string[]) => [
+        ...seeds.flatMap((s) => (cache.has(s) ? [cache.get(s)!] : [])),
+        ...(await playFresh(seeds, jobCrews)),
+    ];
+    const cachedSeeds = [...cache.keys()];
+    const playFresh = async (seeds: number[], jobCrews: string[]) => {
         const shards: number[][] = Array.from({ length: Math.min(workers, seeds.length) }, () => []);
         seeds.forEach((seed, i) => shards[i % shards.length].push(seed));
         return (
             await Promise.all(
                 shards.map((s) =>
                     shards.length === 1
-                        ? runJob({ ...base, crews: jobCrews, seeds: s })
+                        ? runJob({ ...base, crews: jobCrews, seeds: s, cachedSeeds })
                         : new Promise<WaveRun[]>((resolve, reject) => {
                               const child = fork(__filename, [], { execArgv: process.execArgv });
                               child.once('message', (r) => resolve(r as WaveRun[]));
                               child.once('error', reject);
                               child.once('exit', (code) => code && reject(new Error(`worker exit ${code}`)));
-                              child.send({ ...base, crews: jobCrews, seeds: s } satisfies Job);
+                              child.send({ ...base, crews: jobCrews, seeds: s, cachedSeeds } satisfies Job);
                           }),
                 ),
             )
@@ -164,10 +185,10 @@ async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: strin
     return { runs, header, outFile };
 }
 
-const crewName = (spec: string) => {
+function crewName(spec: string) {
     const [file, ideals] = spec.split('#');
     return path.basename(file, '.json') + (ideals ? `#${ideals}` : '');
-};
+}
 
 /** The sequential screen on pass of `candidate` against `baseline` over the seeds both played, in seed order. */
 function sequentialFor(runs: readonly WaveRun[], baseline: string, candidate: string) {
