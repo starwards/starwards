@@ -95,6 +95,14 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
             throw new Error(`crew ${config.name}: brain ${spec.id} plays ${spec.station}, not ${seat.station}`);
         }
         if (seat.policy === 'reference') {
+            const docks = Object.entries(config.knobs).filter(
+                ([knob, value]) => /^(DOCK_LOSING_(STATION_HP|ATTACK_SECONDS)|RESTOCK_FROM_SECONDS)$/.test(knob) && value > 0,
+            );
+            if (spec.station === 'captain' && docks.length && !('dock_for_repair' in (spec.callouts ?? {}))) {
+                throw new Error(
+                    `crew ${config.name}: knob ${docks[0][0]} needs a captain brain that says dock_for_repair; ${spec.id} cannot`,
+                );
+            }
             return { ...referenceSeat(spec), phaseSeconds: seat.phaseSeconds };
         }
         const policy: Policy =
