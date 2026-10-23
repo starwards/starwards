@@ -55,6 +55,14 @@ describe('visibleJobRows', () => {
         expect(rows.moreCount).toBe(4);
     });
 
+    test('caps needs-beam rows at 8 and reports the remainder', () => {
+        const jobs = Array.from({ length: 10 }, (_, i) => job(`b${i}`, JobStatus.DORMANT, 0, true));
+        const rows = visibleJobRows(jobs);
+        expect(rows.needsBeam).toHaveLength(8);
+        expect(rows.moreBeamCount).toBe(2);
+        expect(rows.dormantCount).toBe(0);
+    });
+
     test('with no job being worked, active is null', () => {
         const jobs = [job('a', JobStatus.DORMANT), job('b', JobStatus.QUEUED)];
         const rows = visibleJobRows(jobs);

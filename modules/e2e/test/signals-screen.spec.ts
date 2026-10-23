@@ -366,7 +366,7 @@ test.describe('Signals Screen: scan beam off the target', () => {
         await cleanupPageState(page);
     });
 
-    test('a deep scan stalled off the scan beam is listed as NEEDS BEAM, and resumes once the beam covers it', async ({
+    test('a deep scan stalled off the scan beam is listed as BEAM, and resumes once the beam covers it', async ({
         page,
     }) => {
         const ownId = two_ships.testShipId;
@@ -388,10 +388,10 @@ test.describe('Signals Screen: scan beam off the target', () => {
             15000,
         );
         const jobValue = panel.locator('.tp-lblv.sw-job input');
-        await expect(jobValue).toHaveValue('NEEDS BEAM', { timeout: 10000 });
+        await expect(jobValue).toHaveValue('BEAM', { timeout: 10000 });
         await page.screenshot({ path: 'test-results/screenshots/signals-jobs-needs-beam.png' });
 
-        // aim the beam at the contact: the job resumes and the row's NEEDS BEAM state clears
+        // aim the beam at the contact: the job resumes and the row's BEAM state clears
         beam.bearing = 0;
         beam.bearingCommand = 0;
         await waitForShipCondition(
@@ -399,6 +399,6 @@ test.describe('Signals Screen: scan beam off the target', () => {
             (ship) => ship.state.signals.jobs.some((j) => j.targetId === targetId && !j.needsBeam),
             5000,
         );
-        await expect(jobValue).not.toHaveValue('NEEDS BEAM', { timeout: 10000 });
+        await expect(jobValue).not.toHaveValue('BEAM', { timeout: 10000 });
     });
 });

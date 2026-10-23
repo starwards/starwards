@@ -46,8 +46,8 @@ export function cancelJobForTarget(shipDriver: ShipDriver, jobs: Iterable<JobVie
 /**
  * The signals station's view of its job queue: the in-progress job first (with progress and a
  * cancel button), then every queued job as a row in queue order (a dormant job is listed only
- * when it is waiting on the scan beam, as NEEDS BEAM; other dormant jobs are only counted), plus a pause-all toggle and a button that prioritizes the radar-selected
- * target's job to the top of the queue.
+ * when it is waiting on the scan beam, as BEAM; other dormant jobs are only counted), plus a pause-all toggle and a button that
+ * prioritizes the radar-selected target's job to the top of the queue.
  */
 export function drawSignalsJobs(
     container: WidgetContainer,
@@ -95,16 +95,19 @@ export function drawSignalsJobs(
         job: JobView,
         format: (v: T) => string,
         index: number,
+        withProgress = true,
     ) {
         const row = addTextBlade(pane, value, { label: jobLabel(spaceDriver, shipDriver, job), format }, session.add);
         row.element.classList.add('sw-job');
-        addBareBarBlade(pane, readNumberProp(shipDriver, `/signals/jobs/${index}/progress`), session.add);
+        if (withProgress) {
+            addBareBarBlade(pane, readNumberProp(shipDriver, `/signals/jobs/${index}/progress`), session.add);
+        }
     }
 
     function render() {
         session.destroy();
         session = new Destructors();
-        const { active, queued, needsBeam, moreCount, dormantCount } = visibleJobRows(jobs());
+        const { active, queued, needsBeam, moreCount, moreBeamCount, dormantCount } = visibleJobRows(jobs());
 
         if (active) {
             const { index, job } = active;
@@ -125,8 +128,12 @@ export function drawSignalsJobs(
         }
 
         for (const { index, job } of needsBeam) {
-            addJobRow(staticTextModel('NEEDS BEAM'), job, (label: string) => label, index);
+            // short enough for the value column; a dormant job has no progress to bar
+            addJobRow(staticTextModel('BEAM'), job, (label: string) => label, index, false);
             addCancel(job);
+        }
+        if (moreBeamCount > 0) {
+            addTextBlade(pane, staticTextModel(`+${moreBeamCount} need beam`), { label: '' }, session.add);
         }
 
         if (moreCount > 0) {
