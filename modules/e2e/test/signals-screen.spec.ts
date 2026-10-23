@@ -1,11 +1,11 @@
+import { Faction, JobStatus, ScanLevel } from '@starwards/core';
 import { Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { getPropertyValue, makeDriver, waitForShipCondition } from './driver';
 
-import { JobStatus } from '@starwards/core';
 import { maps } from '@starwards/server';
 
-const { single_ship } = maps;
+const { single_ship, two_ships } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
@@ -352,5 +352,53 @@ test.describe('Signals Screen', () => {
         const progressAtPause = gameDriver.getShip(shipId).state.signals.jobs[0].progress;
         await page.waitForTimeout(1000);
         expect(gameDriver.getShip(shipId).state.signals.jobs[0].progress).toEqual(progressAtPause);
+    });
+});
+
+test.describe('Signals Screen: scan beam off the target', () => {
+    test.beforeEach(async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(two_ships);
+        await navigateToScreen(page, `/signals.html?ship=${two_ships.testShipId}`, { baseURL: gameDriver.baseURL });
+    });
+
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    test('a deep scan stalled off the scan beam is listed as NEEDS BEAM, and resumes once the beam covers it', async ({
+        page,
+    }) => {
+        const ownId = two_ships.testShipId;
+        const targetId = two_ships.testTargetShipId;
+        const panel = page.locator('[data-id="Jobs"]');
+        await expect(panel).toBeVisible({ timeout: 10000 });
+        await waitForRadarReady(page);
+
+        // identified already, so only the beam can take the scan deeper; the ship at bearing 0 is
+        // outside the beam once it is turned away
+        gameDriver.gameManager.spaceManager.factionIntel.setScanLevel(targetId, Faction.Gravitas, ScanLevel.BASIC);
+        const beam = gameDriver.getShip(ownId).state.radars[1];
+        beam.bearing = 180;
+        beam.bearingCommand = 180;
+
+        await waitForShipCondition(
+            () => gameDriver.getShip(ownId),
+            (ship) => ship.state.signals.jobs.some((j) => j.targetId === targetId && j.needsBeam),
+            15000,
+        );
+        const jobValue = panel.locator('.tp-lblv.sw-job input');
+        await expect(jobValue).toHaveValue('NEEDS BEAM', { timeout: 10000 });
+        await page.screenshot({ path: 'test-results/screenshots/signals-jobs-needs-beam.png' });
+
+        // aim the beam at the contact: the job resumes and the row's NEEDS BEAM state clears
+        beam.bearing = 0;
+        beam.bearingCommand = 0;
+        await waitForShipCondition(
+            () => gameDriver.getShip(ownId),
+            (ship) => ship.state.signals.jobs.some((j) => j.targetId === targetId && !j.needsBeam),
+            5000,
+        );
+        await expect(jobValue).not.toHaveValue('NEEDS BEAM', { timeout: 10000 });
     });
 });
