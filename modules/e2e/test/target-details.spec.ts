@@ -221,9 +221,7 @@ test.describe('Target Details screen', () => {
             .toBe(`${plates}/${plates} holding`);
 
         await expectRemainingPanels(page);
-        await expect
-            .poll(() => aimTrack(page), { timeout: 5000 })
-            .toBe(target.state.weaponsTarget.targetId || '—');
+        await expect.poll(() => aimTrack(page), { timeout: 5000 }).toBe(target.state.weaponsTarget.targetId || '—');
 
         // frozen: a change on the target after capture does not show
         target.state.weaponsTarget.targetId = 'changed-after-capture';
