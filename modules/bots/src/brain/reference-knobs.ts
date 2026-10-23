@@ -70,6 +70,8 @@ export const REFERENCE_KNOB_DEFAULTS = {
     MISSILE_ESCALATE_SECONDS: 0,
     /** Above 0.5 (with `TUBE_AMMO_FALLBACK`), tubes load AP missiles first, then HE, then Frag. */
     TUBE_AMMO_AP_FIRST: 0,
+    /** Captain says no close order at an enemy nearer than this; 0 always may (branch sweep: closing in at gun range lost seeds). */
+    CLOSE_STOP_METERS: 0,
 };
 
 export type ReferenceKnobs = typeof REFERENCE_KNOB_DEFAULTS;

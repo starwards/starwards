@@ -330,10 +330,11 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /**
      * Captain: an enemy outside the launch envelope (by its own reckoning, and weapons has not just
      * reported it inside); or inside it and already ordered engaged, to bring the ship to gun range
-     * while the missiles fly.
+     * while the missiles fly. Never at an enemy nearer than `CLOSE_STOP_METERS`.
      */
     close_to: (picture) => {
         const target = closeTargetOf(picture);
+        if (target && target.distance < referenceKnobs.CLOSE_STOP_METERS) return false;
         const inside = enemyInside(picture, () => target);
         return inside === false || (inside === true && target?.name === picture.engaged);
     },
