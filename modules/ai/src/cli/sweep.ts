@@ -8,6 +8,9 @@
  *   npm run sweep -- --crew <crew.json> --scenario W-waves --seeds 66,70 --times 600,630 [--k 8]
  *       [--oracle cap,cap+he] [--alts close_to,hold_here] [--states 66@600,70@630] [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
  *
+ * `--race` replaces the fixed `--rollouts` with racing (`training/paired.ts` raceRound): 8 → 16 → 32 → 64
+ * rollouts per state, an alternative dropping out once its paired bound against `hold_here` clears zero.
+ *
  * Rollouts stream to `sweep.jsonl`; a rerun into the same `--out` plays only the missing ones, and
  * `--summary-only` summarizes what is there without playing more.
  *
@@ -24,6 +27,7 @@ import {
 } from '../branching/levels';
 import { ShipState } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
+import { RACE_ROLLOUTS, raceRound } from '../training/paired';
 import { RunSpec, runBranch } from '../branching/fork';
 import { readRunLog, stateAt } from '../branching/run-log';
 
@@ -254,6 +258,31 @@ export function summarize(
     return out.sort((a, b) => a.seed - b.seed || a.t - b.t);
 }
 
+const isReference = (alternative: string) => alternative === 'hold_here' || alternative.startsWith('hold_here@');
+
+/** Whether a branch of a racing sweep is still racing after its state's round of `count` rollouts. */
+export function raceAlive(
+    rows: readonly Row[],
+    b: { seed: number; t: number; alternative: string },
+    count: number,
+    jitter: number,
+) {
+    const state = rows.filter((r) => r.seed === b.seed && r.t === b.t);
+    const outcomes = new Map<string, number[]>();
+    for (const r of state) {
+        const j = Math.round((r.fork - r.t) / jitter);
+        if (j >= count) continue;
+        const xs = outcomes.get(r.alternative) ?? [];
+        xs[j] = Number(r.pass);
+        outcomes.set(r.alternative, xs);
+    }
+    const reference = [...outcomes.keys()].find(isReference);
+    if (!reference) return true;
+    const round = raceRound(outcomes, reference);
+    // the reference races while anything races against it
+    return isReference(b.alternative) ? round.alive.length > 0 : round.alive.includes(b.alternative);
+}
+
 async function main() {
     const crew = path.resolve(arg('crew')!);
     const scenario = arg('scenario', 'W-waves')!;
@@ -284,7 +313,7 @@ async function main() {
     const defaults = new Map(recorded.map((r) => [r.seed, r]));
     fs.writeFileSync(defaultsFile, JSON.stringify(recorded, null, 1));
 
-    const jobs: Job[] = [];
+    const branches: { seed: number; t: number; recording: string; level: string; alternative: string }[] = [];
     for (const seed of seeds) {
         const recording = fs
             .readdirSync(recDir(seed), { recursive: true, encoding: 'utf8' })
@@ -298,42 +327,56 @@ async function main() {
             const chosen = oracles
                 ? oracles.map((o) => ({ level: 'oracle', alternative: `oracle:${o}` }))
                 : candidates(log, t, k, only);
-            for (const c of chosen) {
-                for (let j = 0; j < rollouts; j++) {
-                    jobs.push({
-                        kind: 'branch',
-                        run: runOf(seed),
-                        recording: full,
-                        level: c.level,
-                        t,
-                        fork: t + j * jitter,
-                        alternative: c.alternative,
-                    });
-                }
-            }
+            for (const c of chosen) branches.push({ seed, t, recording: full, ...c });
         }
     }
+    const jobsOf = (list: typeof branches, count: number): Job[] =>
+        list.flatMap((b) =>
+            Array.from({ length: count }, (_, j) => ({
+                kind: 'branch' as const,
+                run: runOf(b.seed),
+                recording: b.recording,
+                level: b.level,
+                t: b.t,
+                fork: b.t + j * jitter,
+                alternative: b.alternative,
+            })),
+        );
     // rows stream to sweep.jsonl as they finish; a rerun into the same --out skips the rollouts already there
     const jsonl = path.join(out, 'sweep.jsonl');
     const key = (r: { seed: number; fork: number; alternative: string }) => `${r.seed}@${r.fork}@${r.alternative}`;
-    const done: Row[] = fs.existsSync(jsonl)
+    const rows: Row[] = fs.existsSync(jsonl)
         ? fs
               .readFileSync(jsonl, 'utf8')
               .split('\n')
               .filter(Boolean)
               .map((l) => JSON.parse(l) as Row)
         : [];
-    const have = new Set(done.map(key));
-    const todo = jobs.filter((j) => j.kind !== 'branch' || !have.has(key({ seed: j.run.seed, ...j })));
-    process.stderr.write(`${jobs.length} branches, ${todo.length} to play\n`);
-    const played = (
-        (await pool(
-            process.argv.includes('--summary-only') ? [] : todo,
-            workers,
-            (r) => r && fs.appendFileSync(jsonl, JSON.stringify(r) + '\n'),
-        )) as (Row | null)[]
-    ).filter((r): r is Row => r !== null);
-    const rows = [...done, ...played];
+    const playJobs = async (jobs: Job[]) => {
+        const have = new Set(rows.map(key));
+        const todo = jobs.filter((j) => j.kind !== 'branch' || !have.has(key({ seed: j.run.seed, ...j })));
+        process.stderr.write(`${jobs.length} branches, ${todo.length} to play\n`);
+        const played = (
+            (await pool(
+                process.argv.includes('--summary-only') ? [] : todo,
+                workers,
+                (r) => r && fs.appendFileSync(jsonl, JSON.stringify(r) + '\n'),
+            )) as (Row | null)[]
+        ).filter((r): r is Row => r !== null);
+        rows.push(...played);
+    };
+    if (!process.argv.includes('--race')) {
+        await playJobs(jobsOf(branches, rollouts));
+    } else {
+        // racing: each round plays every live alternative of a state to the round's rollouts, then drops
+        // the ones whose paired bound against hold_here has cleared zero either way
+        let live = branches;
+        for (const count of RACE_ROLLOUTS) {
+            if (!live.length) break;
+            await playJobs(jobsOf(live, count));
+            live = live.filter((b) => raceAlive(rows, b, count, jitter));
+        }
+    }
     const states = summarize(rows, defaults, timeoutSeconds);
     fs.writeFileSync(path.join(out, 'sweep.json'), JSON.stringify(states, null, 1));
     const f = (x: number) => x.toFixed(2);
