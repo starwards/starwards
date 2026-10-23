@@ -1,5 +1,5 @@
 import { Asteroid, Derelict, Faction, Projectile, ScanLevel, SpaceObject, Spaceship, Vec2 } from '@starwards/core';
-import { objectDisplayName, scanCycleTargets } from '../src/client/space-object-intel';
+import { missileTargetLines, objectDisplayName, scanCycleTargets } from '../src/client/space-object-intel';
 
 describe('objectDisplayName', () => {
     function asteroid(id: string) {
@@ -91,5 +91,36 @@ describe('scanCycleTargets', () => {
     test('skips the ship the station is aboard', () => {
         const objects = [at(new Spaceship(), 'self', ScanLevel.FULL)];
         expect(ids(objects, 'self')).toEqual([]);
+    });
+});
+
+describe('missileTargetLines', () => {
+    function missile(id: string, targetId: string | null, level: ScanLevel) {
+        const o = new Projectile();
+        o.id = id;
+        o.model = 'HiExpShell';
+        (o as { faction: Faction }).faction = Faction.Raiders;
+        o.targetId = targetId;
+        o.position = new Vec2(1, 2);
+        o.scanLevels[Number(Faction.Gravitas)] = level;
+        return o;
+    }
+    const target = new Spaceship();
+    target.id = 't';
+    target.position = new Vec2(10, 20);
+    const lookup = (id: string) => (id === 't' ? target : undefined);
+
+    test('draws from a FULL-scanned missile to its current target', () => {
+        const m = missile('m', 't', ScanLevel.FULL);
+        m.model = 'HiExpMissile';
+        expect(missileTargetLines([m], lookup, Faction.Gravitas)).toEqual([[m.position, target.position]]);
+    });
+
+    test('skips missiles below FULL, without a live target, and non-missile projectiles', () => {
+        const snapshot = Object.assign(missile('a', 't', ScanLevel.SNAPSHOT), { model: 'HiExpMissile' as const });
+        const noTarget = Object.assign(missile('b', null, ScanLevel.FULL), { model: 'HiExpMissile' as const });
+        const goneTarget = Object.assign(missile('c', 'gone', ScanLevel.FULL), { model: 'HiExpMissile' as const });
+        const shell = missile('d', 't', ScanLevel.FULL);
+        expect(missileTargetLines([snapshot, noTarget, goneTarget, shell], lookup, Faction.Gravitas)).toEqual([]);
     });
 });

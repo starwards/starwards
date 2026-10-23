@@ -14,6 +14,7 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
+import { missileTargetLinesLayer } from '../radar/tactical-radar-layers';
 import { waitForShip } from '../ship-logic';
 
 WebFont.load({
@@ -123,6 +124,7 @@ export async function drawDradisRadar(
     blipLayer.layout = declutter.layout;
     // group and POI markers sit under the blips, so a named ship inside a cluster stays on top
     root.addLayer(declutter.renderRoot);
+    root.addLayer(missileTargetLinesLayer(root, spaceDriver, shipDriver.state.faction, rangeFilter.isInRange));
     root.addLayer(blipLayer.renderRoot);
     root.addLayer(insets.renderRoot);
     root.ticker.add(

@@ -1,6 +1,12 @@
 import { Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { Projectile, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { azimuthCircle, crosshairs, mountArc, speedLines } from '../radar/tactical-radar-layers';
+import {
+    azimuthCircle,
+    crosshairs,
+    missileTargetLinesLayer,
+    mountArc,
+    speedLines,
+} from '../radar/tactical-radar-layers';
 import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
@@ -131,6 +137,9 @@ export async function drawTacticalRadar(
         shipDriver.state.faction,
     );
 
+    const missileLines = missileTargetLinesLayer(root, spaceDriver, shipDriver.state.faction, includeInRadar);
+    missileLines.mask = circleMask;
+    root.addLayer(missileLines);
     blipLayer.renderRoot.mask = circleMask;
     root.addLayer(blipLayer.renderRoot);
 

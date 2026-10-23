@@ -36,6 +36,7 @@ export const radar = {
     collisionOutline: 0x4ce73c, // Green (danger indicator)
     azimuthTint: 0x52aebb, // Readout label colour - bearing ring labels
     shellTint: 0xff6600, // Orange (secondary)
+    missileTargetLine: 0xff6600, // Orange, like the missile blip - a FULL-scanned missile's line to its target
     deflectionTint: 0x00aaff, // Cyan-blue
     unknownTint: 0x666666, // Dim gray for UFO/unscanned objects
     mountArc: 0x888888, // Dim gray - static structural firing arc, not a live overlay

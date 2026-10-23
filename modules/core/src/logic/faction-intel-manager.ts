@@ -1,4 +1,4 @@
-import { Faction, ScanLevel, SpaceObject, SpaceState } from '../space';
+import { Faction, Projectile, ScanLevel, SpaceObject, SpaceState, isMissile } from '../space';
 import type { ShipSnapshot } from '../ship/ship-snapshot';
 import { drainCommands } from '../commands';
 
@@ -11,7 +11,7 @@ export const FULL_SCAN_GRACE_SECONDS = 0.5;
  * goes through here, so the faction bounds guard cannot be routed around.
  */
 export class FactionIntelManager {
-    /** seconds each (ship, faction) FULL has gone without scan-beam cover, keyed `${shipId}/${faction}` */
+    /** seconds each (target, faction) FULL has gone without scan-beam cover, keyed `${targetId}/${faction}` */
     private uncoveredSeconds = new Map<string, number>();
     /** captured SNAPSHOTs, keyed by target id then faction. Plain memory: never synced (SPEC-0008 §5). */
     private snapshots = new Map<string, Map<Faction, ShipSnapshot>>();
@@ -85,11 +85,11 @@ export class FactionIntelManager {
     }
 
     /**
-     * Per-faction FULL maintenance: a faction holds FULL on a ship only while one of its scan beams
-     * covers it. After `FULL_SCAN_GRACE_SECONDS` without cover the ship demotes to SNAPSHOT,
-     * capturing the moment of demotion. Promotion is driven by each ship's signals scan-job queue
-     * (SignalsJobManager). A projectile at FULL (its own faction's, or a Signals scan) keeps it for
-     * its short life; only ships demote.
+     * Per-faction FULL maintenance: a faction holds FULL on a ship or missile only while one of its
+     * scan beams covers it. After `FULL_SCAN_GRACE_SECONDS` without cover the target demotes to
+     * SNAPSHOT, capturing the moment of demotion. Promotion is driven by each ship's signals scan-job
+     * queue (SignalsJobManager). A faction always holds FULL on its own objects and missiles; shells
+     * keep their level for their short life.
      */
     private updateScanDemotion(
         totalSeconds: number,
@@ -97,10 +97,14 @@ export class FactionIntelManager {
         beamCoveredByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>,
     ) {
         const uncovered = new Map<string, number>();
-        for (const ship of this.state.getAll('Spaceship')) {
+        const missiles = [...this.state.getAll('Projectile')].filter(isMissile);
+        for (const ship of [...this.state.getAll('Spaceship'), ...missiles]) {
+            // a missile carries no faction of its own: its firing ship's faction always knows it
+            const firingFaction = Projectile.isInstance(ship) ? this.state.get(ship.shipId)?.faction : undefined;
             for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
                 if (
                     ship.faction === faction ||
+                    firingFaction === faction ||
                     beamCoveredByFaction[Number(faction)]?.has(ship) ||
                     this.getScanLevel(ship.id, faction) !== ScanLevel.FULL
                 ) {

@@ -1,11 +1,15 @@
 import { Assets, Container, Graphics, Texture, UPDATE_PRIORITY } from 'pixi.js';
 import {
     ChainGun,
+    Faction,
     ShipState,
+    SpaceDriver,
+    SpaceObject,
     XY,
     degToRad,
     getShellExplosionLocation,
     getTargetLocationAtShellExplosion,
+    missileTargetLines,
 } from '@starwards/core';
 
 import { radar, selectionColor } from '../colors';
@@ -148,4 +152,32 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
     stage.addChild(speedLineLayer.renderRoot);
     stage.addChild(targetSpeedLineLayer.renderRoot);
     return stage;
+}
+
+/** Lines from each missile the faction holds at FULL scan, and `isShown` admits, to its current target (M4.44). */
+export function missileTargetLinesLayer(
+    root: CameraView,
+    spaceDriver: SpaceDriver,
+    playerFaction: Faction | undefined,
+    isShown: (o: SpaceObject) => boolean,
+) {
+    const graphics = new Graphics();
+    root.ticker.add(
+        () => {
+            graphics.clear();
+            const missiles = [...spaceDriver.state.getAll('Projectile')].filter(isShown);
+            const lines = missileTargetLines(missiles, (id) => spaceDriver.state.get(id), playerFaction);
+            for (const [from, to] of lines) {
+                const fromScreen = root.worldToScreen(from);
+                const toScreen = root.worldToScreen(to);
+                graphics.moveTo(fromScreen.x, fromScreen.y).lineTo(toScreen.x, toScreen.y);
+            }
+            if (lines.length) {
+                graphics.stroke({ width: 1, color: radar.missileTargetLine, alpha: 0.6 });
+            }
+        },
+        null,
+        UPDATE_PRIORITY.LOW,
+    );
+    return graphics;
 }
