@@ -37,7 +37,7 @@ describe('StatusTierTracker', () => {
 
     test('a worse tier is taken only after it held for the dwell', () => {
         const t = new StatusTierTracker();
-        t.settle('a', 0.9, 0);
+        t.settle('a', 0.95, 0);
         expect(t.settle('a', 0.7, 1)).toEqual('intact');
         expect(t.settle('a', 0.7, 1 + dwellSeconds - 0.1)).toEqual('intact');
         expect(t.settle('a', 0.7, 1 + dwellSeconds)).toEqual('damaged');
