@@ -36,7 +36,7 @@ describe('missile telemetry', () => {
         expect(l.missile).toBe('HiExpMissile');
         expect(l.range).toBeGreaterThan(3500);
         expect(l.range).toBeLessThan(4500);
-        expect(l.envelopeFraction).toBeCloseTo(l.range / (600 * 78), 2);
+        expect(l.envelopeFraction).toBeCloseTo((l.range ?? NaN) / (600 * 78), 2);
         expect(l.underShellfire).toBe(false);
         expect(['hit', 'kill']).toContain(l.outcome);
     });

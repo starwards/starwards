@@ -90,7 +90,11 @@ describe('a magazine-first repairing engineer', () => {
             { system: '/magazine', field: 'capacity' },
         ];
         const shown = display(800, defects);
-        const slots = (shown.panels['repair-queue'] as { slots: { protocolId: string }[] }).slots;
+        const slots = (
+            shown.panels['repair-queue'] as {
+                slots: { protocolId: string; priority?: string; refusalReason?: string }[];
+            }
+        ).slots;
         slots.unshift({ protocolId: 'actuatorRecalibration', priority: 'OFF', refusalReason: '' });
         const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
         const answer = async (repair: 'all' | 'magazine') =>

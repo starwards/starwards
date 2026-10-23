@@ -226,7 +226,7 @@ export function summarize(
         const byAlt = new Map<string, Row[]>();
         for (const r of list) byAlt.set(r.alternative, [...(byAlt.get(r.alternative) ?? []), r]);
         const actions = [...byAlt].map(([alternative, rs]) => {
-            const passes = rs.map((r) => (r.pass ? 1 : 0));
+            const passes = rs.map((r): number => (r.pass ? 1 : 0));
             const losses = rs.map((r) => lost(r.firstStationLostAt));
             return {
                 alternative,

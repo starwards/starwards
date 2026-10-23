@@ -33,10 +33,11 @@ import { execSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-type Knob = keyof ReferenceKnobs;
+/** The knobs a search varies; the rest play their defaults. */
+type Knob = keyof typeof RANGES;
 
 /** Search range of each knob; the defaults lie inside. */
-const RANGES: Record<Knob, [number, number]> = {
+const RANGES = {
     FIRE_ARC_DEGREES: [0.5, 6],
     LAUNCH_INTERVAL_SECONDS: [2, 20],
     STANDOFF_METERS: [200, 2500],
@@ -68,7 +69,7 @@ const RANGES: Record<Knob, [number, number]> = {
     MISSILE_RESERVE: [0, 12],
     MISSILE_RESERVE_SECONDS: [300, 1000],
     TUBE_AMMO_FALLBACK: [0, 1],
-};
+} satisfies Partial<Record<keyof ReferenceKnobs, [number, number]>>;
 const ALL_KNOBS = Object.keys(RANGES) as Knob[];
 /** Knobs held at their defaults: `--freeze A,B`. */
 const FROZEN = new Set(arg('freeze', '').split(',').filter(Boolean));
