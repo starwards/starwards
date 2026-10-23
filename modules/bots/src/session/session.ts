@@ -1,5 +1,5 @@
-import { CommandBinding, ValueKind, commandBindings } from './command-map';
 import {
+    CapsuleTierTracker,
     Radar,
     ShipDriver,
     ShipIntelSource,
@@ -12,6 +12,7 @@ import {
     spaceCommands,
     tryGetRange,
 } from '@starwards/core/internal';
+import { CommandBinding, ValueKind, commandBindings } from './command-map';
 
 import { RadarView } from './radar-view';
 
@@ -40,6 +41,8 @@ type StationSessionOptions = {
     wait?: (seconds: number, signal: AbortSignal) => Promise<void>;
     /** Where target ship internals come from for `target-intel`. Without one, that panel reads PENDING. */
     shipIntel?: ShipIntelSource;
+    /** Seconds on the session's clock, for hull-status hysteresis. Defaults to wall time; a headless run passes simulated time. */
+    now?: () => number;
 };
 
 function wallClockWait(seconds: number, signal: AbortSignal): Promise<void> {
@@ -64,6 +67,10 @@ function wallClockWait(seconds: number, signal: AbortSignal): Promise<void> {
 export class StationSession {
     readonly radar: RadarView;
     readonly shipIntel: ShipIntelSource | undefined;
+    /** Seconds on the session's clock. */
+    readonly now: () => number;
+    /** Settles the capsule tiers the `hull-status` panel shows, with hysteresis. */
+    readonly hullTiers = new CapsuleTierTracker();
     private readonly wait: (seconds: number, signal: AbortSignal) => Promise<void>;
     /** Aborted by {@link release}: ends every hold in progress and refuses new ones. */
     private readonly releasing = new AbortController();
@@ -81,6 +88,7 @@ export class StationSession {
         this.radar = options.radar ?? RadarView.fromDriver(spaceDriver as SpaceDriver);
         this.wait = options.wait ?? wallClockWait;
         this.shipIntel = options.shipIntel;
+        this.now = options.now ?? (() => Date.now() / 1000);
     }
 
     get isGameMaster(): boolean {
