@@ -309,8 +309,7 @@ test.describe('Lobby entry routing', () => {
         await gameDriver.gameManager.stopGame();
     });
 
-    // quarantined: flaky, the lobby sometimes redirects to the seat after stopGame — #2410
-    test.fixme('the lobby loads normally while no game is running', async ({ page }) => {
+    test('the lobby loads normally while no game is running', async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.stopGame();
 
