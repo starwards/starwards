@@ -70,7 +70,7 @@ export function candidates(log: ReturnType<typeof readRunLog>, t: number, k: num
     const seen = new Set<string>();
     return all
         .sort((a, b) => rank(a.alt.kind) - rank(b.alt.kind))
-        .filter(({ alt }) => !only || only.includes(alt.id))
+        .filter(({ alt }) => !only || only.some((o) => alt.id === o || alt.id.startsWith(`${o}@`)))
         .filter(({ alt }) => (seen.has(alt.kind) ? false : (seen.add(alt.kind), true)))
         .slice(0, k)
         .map(({ level, alt }) => ({ level: level.name, alternative: alt.id }));
