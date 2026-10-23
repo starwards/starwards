@@ -548,10 +548,7 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     padding-right: 2px;
 }
 
-/* repair queue on a display station: the active repair on top, then per slot a line of number, name and run time, and a dim line of details and priority; the bar joins only while a repair runs */
-[data-id='Repair Queue'] > .tp-rotv_c {
-    counter-reset: sw-slot;
-}
+/* repair queue on a display station: the active repair on top, then per slot a line of hotkey, name, priority badge and run time, and a dim line of details and priority; the bar joins only while a repair runs */
 [data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv-nol {
     margin-bottom: var(--sw-pad);
 }
@@ -559,17 +556,16 @@ body[data-input='none'] [data-id='Repair Queue'] {
     --tp-container-unit-size: 18px;
     --tp-container-vertical-padding: 1px;
 }
-body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
-    counter-increment: sw-slot;
-}
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b {
     min-height: 18px;
     gap: var(--sw-pad);
     border-bottom-color: transparent;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::before {
-    content: counter(sw-slot, decimal-leading-zero);
+    content: attr(data-key);
     flex: none;
+    width: 1ch;
+    text-align: center;
     font-family: var(--sw-font-value);
     font-weight: 400;
     letter-spacing: 0;
@@ -586,6 +582,32 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::after {
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
     border-bottom: 1px solid #0f262b;
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-badge {
+    flex: none;
+    font-family: var(--sw-font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--sw-accent);
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-badge[data-priority='RUNNING'] {
+    color: var(--sw-caution);
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-notice {
+    grid-column: 1 / -1;
+    font-family: var(--sw-font-label);
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    color: var(--sw-caution);
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-notice[hidden] {
+    display: none;
+}
+[data-id='Repair Queue'] .sw-up-next > .tp-lblv_v input {
+    text-align: left;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c {
     display: grid;

@@ -71,7 +71,7 @@ async function dropFile(page: Page, fileName: string, content: string | Buffer) 
 
 test('a saved game file dropped on the lobby is loaded', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
-    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
+    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).body();
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
 
     await page.goto(`${gameDriver.baseURL}/?lobby`);
@@ -84,7 +84,7 @@ test('a saved game file dropped on the lobby is loaded', async ({ page }) => {
 
 test('a saved game dropped on the lobby while a game is running is refused', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
-    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
+    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).body();
 
     await page.goto(`${gameDriver.baseURL}/?lobby`);
     await expect(page.locator('[data-id="stop game"]').first()).toBeVisible();
@@ -95,7 +95,7 @@ test('a saved game dropped on the lobby while a game is running is refused', asy
 
 test('the GM screen loads a dropped saved game and plays a dropped recording', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
-    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
+    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).body();
     const name = await recordStartedGame(page);
     const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).body();
     await page.request.post(`${gameDriver.baseURL}/stop-game`);
@@ -118,7 +118,7 @@ test('the GM screen loads a dropped saved game and plays a dropped recording', a
 
 test('the lobby Load button takes a saved game or a recording, like a drop', async ({ page }) => {
     await gameDriver.gameManager.startGame(single_ship);
-    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).text();
+    const saved = await (await page.request.post(`${gameDriver.baseURL}/save-game`, { data: {} })).body();
     const name = await recordStartedGame(page);
     const recording = await (await page.request.get(`${gameDriver.baseURL}/recordings/${name}`)).body();
     await page.request.post(`${gameDriver.baseURL}/stop-game`);

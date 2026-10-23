@@ -1,5 +1,6 @@
 import {
     getRepairProtocolHotkey,
+    getRepairProtocolKeyLabel,
     getRepairProtocolLowerHotkey,
     getRepairProtocolModeHotkey,
 } from '../src/widgets/repair-queue-logic';
@@ -37,5 +38,11 @@ describe('repair-queue hotkeys (issue #2255: mode toggle gesture)', () => {
             }
         }
         expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    test('the slot key label is the raise hotkey without its modifier (#2438: the one number a slot shows)', () => {
+        expect(getRepairProtocolKeyLabel('actuatorRecalibration')).toBe('1');
+        expect(getRepairProtocolKeyLabel('armorPlateRenewal')).toBe('Q');
+        expect(getRepairProtocolKeyLabel('not-a-real-protocol')).toBe('');
     });
 });
