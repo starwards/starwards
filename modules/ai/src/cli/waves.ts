@@ -5,10 +5,16 @@
  *
  *   npm --prefix modules/ai run waves -- --scenario W-cut-lof --crew crews/a.json --crew crews/b.json [--seeds 16] [--first-seed 1] [--timeout 480] [--workers 2] [--out <dir>]
  *   npm --prefix modules/ai run waves -- --results <out>/<scenario>-waves.json [--baseline <crew>]
+ *   npm --prefix modules/ai run waves -- --sequential --crew <baseline.json> --crew <candidate.json> [--looks 32,64,128,192] [--first-seed 1] [--workers 4] [--out <dir>]
+ *
+ * `--sequential` plays seeds in batches up to each look of a group-sequential screen on pass
+ * (`training/paired.ts` sequentialScreen) and stops once every candidate crossed a boundary (better,
+ * worse or futile) against the first crew, instead of a fixed `--seeds`.
  *
  * Recordings land in `<out>/<crew>/<scenario>_seed<N>.sgr` (a frame every 5 s), the runs in
  * `<out>/<scenario>-waves.json`, the report in `<out>/<scenario>-waves.md`.
  */
+import { SEQUENTIAL_LOOKS, sequentialScreen, sequentialText } from '../training/paired';
 import { WaveRun, waveCompareSection } from '../training/wave-compare';
 import { idealScript, parseIdeals } from '../training/ideal';
 
@@ -102,9 +108,11 @@ async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: strin
     if (crews.length < 2) {
         throw new Error('usage: waves --scenario <rung> --crew <baseline.json> --crew <candidate.json> [...]');
     }
-    const seedCount = Number(arg('seeds', '16'));
+    const sequential = process.argv.includes('--sequential');
+    const looks = sequential ? arg('looks', SEQUENTIAL_LOOKS.join(',')).split(',').map(Number) : [];
+    const seedCount = sequential ? looks[looks.length - 1] : Number(arg('seeds', '16'));
     const firstSeed = Number(arg('first-seed', '1'));
-    const workers = Math.max(1, Math.min(Number(arg('workers', '1')), seedCount));
+    const workers = Math.max(1, Number(arg('workers', '1')));
     const outDir = path.resolve(arg('out', path.join(os.tmpdir(), 'starwards-waves')));
     const base = {
         crews,
@@ -113,29 +121,65 @@ async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: strin
         outDir,
         latencySeconds: Number(arg('latency', '0.2')),
     };
-    const shards: number[][] = Array.from({ length: workers }, () => []);
-    for (let i = 0; i < seedCount; i++) shards[i % workers].push(firstSeed + i);
+    const playSeeds = async (seeds: number[], jobCrews: string[]) => {
+        const shards: number[][] = Array.from({ length: Math.min(workers, seeds.length) }, () => []);
+        seeds.forEach((seed, i) => shards[i % shards.length].push(seed));
+        return (
+            await Promise.all(
+                shards.map((s) =>
+                    shards.length === 1
+                        ? runJob({ ...base, crews: jobCrews, seeds: s })
+                        : new Promise<WaveRun[]>((resolve, reject) => {
+                              const child = fork(__filename, [], { execArgv: process.execArgv });
+                              child.once('message', (r) => resolve(r as WaveRun[]));
+                              child.once('error', reject);
+                              child.once('exit', (code) => code && reject(new Error(`worker exit ${code}`)));
+                              child.send({ ...base, crews: jobCrews, seeds: s } satisfies Job);
+                          }),
+                ),
+            )
+        ).flat();
+    };
     const started = Date.now();
-    const runs = (
-        await Promise.all(
-            shards.map((seeds) =>
-                workers === 1
-                    ? runJob({ ...base, seeds })
-                    : new Promise<WaveRun[]>((resolve, reject) => {
-                          const child = fork(__filename, [], { execArgv: process.execArgv });
-                          child.once('message', (r) => resolve(r as WaveRun[]));
-                          child.once('error', reject);
-                          child.once('exit', (code) => code && reject(new Error(`worker exit ${code}`)));
-                          child.send({ ...base, seeds } satisfies Job);
-                      }),
-            ),
-        )
-    ).flat();
+    const seedsFrom = (from: number, to: number) => Array.from({ length: to - from }, (_, i) => firstSeed + from + i);
+    let runs: WaveRun[] = [];
+    let played = seedCount;
+    if (!sequential) {
+        runs = await playSeeds(seedsFrom(0, seedCount), crews);
+    } else {
+        // candidates leave the batch once their screen stops; the baseline plays every seed any of them needs
+        let open = crews.slice(1);
+        let from = 0;
+        for (const look of looks) {
+            if (!open.length) break;
+            runs.push(...(await playSeeds(seedsFrom(from, look), [crews[0], ...open])));
+            from = played = look;
+            open = open.filter((c) => sequentialFor(runs, crewName(crews[0]), crewName(c)).decision === 'continue');
+        }
+    }
     fs.mkdirSync(outDir, { recursive: true });
     const outFile = path.join(outDir, `${scenario}-waves.json`);
     fs.writeFileSync(outFile, JSON.stringify(runs, null, 2));
-    const header = `${scenario}, seeds ${firstSeed}–${firstSeed + seedCount - 1}, timeout ${base.timeoutSeconds} s, ${workers} worker(s), total wall ${((Date.now() - started) / 1000).toFixed(0)} s`;
+    const header = `${scenario}, seeds ${firstSeed}–${firstSeed + played - 1}${sequential ? ` (sequential, looks ${looks.join('/')})` : ''}, timeout ${base.timeoutSeconds} s, ${workers} worker(s), total wall ${((Date.now() - started) / 1000).toFixed(0)} s`;
     return { runs, header, outFile };
+}
+
+const crewName = (spec: string) => {
+    const [file, ideals] = spec.split('#');
+    return path.basename(file, '.json') + (ideals ? `#${ideals}` : '');
+};
+
+/** The sequential screen on pass of `candidate` against `baseline` over the seeds both played, in seed order. */
+function sequentialFor(runs: readonly WaveRun[], baseline: string, candidate: string) {
+    const passOf = (crew: string) =>
+        new Map(runs.filter((r) => r.crew === crew).map((r) => [r.seed, Number(r.passed)]));
+    const b = passOf(baseline);
+    const c = passOf(candidate);
+    const seeds = [...c.keys()].filter((s) => b.has(s)).sort((x, y) => x - y);
+    return sequentialScreen(
+        seeds.map((s) => b.get(s)!),
+        seeds.map((s) => c.get(s)!),
+    );
 }
 
 async function main() {
@@ -145,7 +189,19 @@ async function main() {
         ? { runs: JSON.parse(fs.readFileSync(results, 'utf8')) as WaveRun[], header: results, outFile: results }
         : await play();
     const [baseline = runs[0].crew] = args('baseline');
-    const text = [`# Wave fitness: ${header}`, '', ...waveCompareSection(runs, baseline)].join('\n') + '\n';
+    const screens = [...new Set(runs.map((r) => r.crew))]
+        .filter((c) => c !== baseline)
+        .map((c) => `- ${c}: ${sequentialText(sequentialFor(runs, baseline, c))}`);
+    const text =
+        [
+            `# Wave fitness: ${header}`,
+            '',
+            '## Sequential screen on pass (vs baseline)',
+            '',
+            ...screens,
+            '',
+            ...waveCompareSection(runs, baseline),
+        ].join('\n') + '\n';
     fs.writeFileSync(outFile.replace(/\.json$/, '.md'), text);
     process.stdout.write(text);
 }
