@@ -24,7 +24,7 @@ describe('snapshot-persistence', () => {
 
     beforeEach(async () => {
         tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'starwards-snapshot-'));
-        snapshotFile = path.join(tmpDir, 'game-snapshot.b64');
+        snapshotFile = path.join(tmpDir, 'game-snapshot.ssg');
     });
 
     afterEach(async () => {
@@ -44,7 +44,7 @@ describe('snapshot-persistence', () => {
         gameDriver.gameManager.update(0);
         gameDriver.gameManager.update(0);
         expect(await writeGameSnapshot(gameDriver.gameManager, snapshotFile)).toBe(true);
-        const content = await fs.readFile(snapshotFile, 'utf-8');
+        const content = await fs.readFile(snapshotFile);
         expect(content.length).toBeGreaterThan(100);
         await gameDriver.assertSameState(content);
     });
@@ -61,8 +61,7 @@ describe('snapshot-persistence', () => {
         expect(await restoreGameSnapshot(gameDriver.gameManager, snapshotFile)).toBe(true);
 
         expect(gameDriver.gameManager.state.isGameRunning).toBe(true);
-        const content = await fs.readFile(snapshotFile, 'utf-8');
-        await gameDriver.assertSameState(content);
+        await gameDriver.assertSameState(await fs.readFile(snapshotFile));
     });
 
     it('loadGame resumes straight from saveGame, without a serialize round-trip', async () => {
@@ -93,6 +92,15 @@ describe('snapshot-persistence', () => {
         expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
     });
 
+    it('restoreGameSnapshot reads a snapshot in the older text format', async () => {
+        gameDriver.pauseGameCommand();
+        await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        await fs.writeFile(snapshotFile, await schemaToString(gameDriver.gameManager.saveGame()!), 'utf-8');
+        await gameDriver.gameManager.stopGame();
+        expect(await restoreGameSnapshot(gameDriver.gameManager, snapshotFile)).toBe(true);
+        expect(gameDriver.gameManager.state.isGameRunning).toBe(true);
+    });
+
     it('restoreGameSnapshot returns false for an unknown map name', async () => {
         const savedGame = new SavedGame();
         savedGame.mapName = 'no_such_map';
@@ -117,7 +125,7 @@ describe('snapshot-persistence', () => {
                 2000,
                 20,
             );
-            await gameDriver.assertSameState(await fs.readFile(snapshotFile, 'utf-8'));
+            await gameDriver.assertSameState(await fs.readFile(snapshotFile));
         } finally {
             await stop();
         }
