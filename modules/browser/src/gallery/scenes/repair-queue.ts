@@ -33,6 +33,8 @@ function repairQueueScene(name: string, description: string, slots: Record<strin
             }
             const mockContainer = createMockContainer(container, 320, 520);
             drawRepairQueue(mockContainer, createMockShipDriver(ship) as never, false);
+            // the panel's own height, so the snapshot holds no empty space below it
+            container.style.height = 'auto';
         },
         teardown() {
             delete document.body.dataset.input;
