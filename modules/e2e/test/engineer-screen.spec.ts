@@ -91,7 +91,7 @@ test.describe('Engineer Screen', () => {
         await expect(row.locator('button')).toHaveCount(1);
         expect(await rowValue(row, 'priority')).toBe('OFF');
         // idle rows start collapsed (plan card M3.11)
-        await expect(row.getByText('priority', { exact: true })).toBeHidden();
+        await expect(row.getByText('details', { exact: true })).toBeHidden();
         const details = await rowValue(row, 'details');
         expect(details).toContain('ALT+4');
         expect(details).toContain('field');
@@ -119,7 +119,7 @@ test.describe('Engineer Screen', () => {
 
         await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
         // the active protocol's folder expands; it collapses again once the run ends (plan card M3.11)
-        await expect(row.getByText('priority', { exact: true })).toBeVisible();
+        await expect(row.getByText('details', { exact: true })).toBeVisible();
         const firstProgress = await waitForRowValue(row, 'progress', (v) => parseFloat(v) > 0, 5000);
         // a real progression over time, not a restatement of the wait predicate above
         await page.waitForTimeout(500);
@@ -131,7 +131,7 @@ test.describe('Engineer Screen', () => {
         await waitForRowValue(row, 'priority', (v) => v === 'CANCELLING', 2000);
         await waitForRowValue(row, 'priority', (v) => v === 'OFF', 5000);
         expect(await rowValue(row, 'progress')).toBe('0%');
-        await expect(row.getByText('priority', { exact: true })).toBeHidden();
+        await expect(row.getByText('details', { exact: true })).toBeHidden();
     });
 
     test('radar traverse servo alignment (#2109) drives visible progress via hotkey and, in Dark mode, takes the radar dark (issue #2255)', async ({

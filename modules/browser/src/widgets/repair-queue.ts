@@ -213,12 +213,6 @@ function drawSlot(
     }
     const priority = readProp<RepairPriority>(shipDriver, `/repairQueue/slots/${index}/priority`);
     const priorityBlade = addTextBlade(row, priority, { label: 'priority', format: formatPriority }, cleanup);
-    const applyPriority = () => {
-        const value = priority.getValue();
-        priorityBlade.element.dataset.priority = value === undefined ? '' : formatPriority(value);
-    };
-    cleanup(priority.onChange(applyPriority));
-    applyPriority();
     if (interactive) {
         const applyTitle = () => {
             row.title = repairSlotTitle(protocolName(protocolId), priority.getValue());
@@ -226,6 +220,8 @@ function drawSlot(
         cleanup(priority.onChange(applyTitle));
         applyTitle();
     } else {
+        // the title bar's badge already shows the priority; a second copy here would read "RUNNING" twice
+        priorityBlade.element.classList.add('sw-visually-hidden');
         showKeyAndPriority(row, getRepairProtocolKeyLabel(protocolId), priority, cleanup);
     }
     // a docked/shipyard-tier slot's `mode` field exists on the schema but is meaningless (see
