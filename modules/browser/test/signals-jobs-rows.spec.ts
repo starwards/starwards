@@ -1,8 +1,8 @@
 import { JobStatus } from '@starwards/core';
 import { visibleJobRows } from '../src/widgets/signals-jobs-rows';
 
-function job(id: string, status: JobStatus, progress = 0) {
-    return { id, targetId: id, status, progress };
+function job(id: string, status: JobStatus, progress = 0, needsBeam = false) {
+    return { id, targetId: id, status, progress, needsBeam };
 }
 
 describe('visibleJobRows', () => {
@@ -30,6 +30,17 @@ describe('visibleJobRows', () => {
         ];
         const rows = visibleJobRows(jobs);
         expect(rows.queued).toEqual([{ index: 2, job: jobs[2], position: 1 }]);
+        expect(rows.dormantCount).toBe(1);
+    });
+
+    test('dormant jobs waiting only on the scan beam are listed as needs-beam rows, not counted as dormant (#2339)', () => {
+        const jobs = [
+            job('working', JobStatus.IN_PROGRESS),
+            job('out of sight', JobStatus.DORMANT),
+            job('off beam', JobStatus.DORMANT, 0, true),
+        ];
+        const rows = visibleJobRows(jobs);
+        expect(rows.needsBeam).toEqual([{ index: 2, job: jobs[2] }]);
         expect(rows.dormantCount).toBe(1);
     });
 

@@ -45,8 +45,8 @@ export function cancelJobForTarget(shipDriver: ShipDriver, jobs: Iterable<JobVie
 
 /**
  * The signals station's view of its job queue: the in-progress job first (with progress and a
- * cancel button), then every queued job as a row in queue order (dormant jobs are never listed,
- * only counted), plus a pause-all toggle and a button that prioritizes the radar-selected
+ * cancel button), then every queued job as a row in queue order (a dormant job is listed only
+ * when it is waiting on the scan beam, as NEEDS BEAM; other dormant jobs are only counted), plus a pause-all toggle and a button that prioritizes the radar-selected
  * target's job to the top of the queue.
  */
 export function drawSignalsJobs(
@@ -104,7 +104,7 @@ export function drawSignalsJobs(
     function render() {
         session.destroy();
         session = new Destructors();
-        const { active, queued, moreCount, dormantCount } = visibleJobRows(jobs());
+        const { active, queued, needsBeam, moreCount, dormantCount } = visibleJobRows(jobs());
 
         if (active) {
             const { index, job } = active;
@@ -124,6 +124,11 @@ export function drawSignalsJobs(
             addCancel(job);
         }
 
+        for (const { index, job } of needsBeam) {
+            addJobRow(staticTextModel('NEEDS BEAM'), job, (label: string) => label, index);
+            addCancel(job);
+        }
+
         if (moreCount > 0) {
             addTextBlade(pane, staticTextModel(`+${moreCount} more`), { label: '' }, session.add);
         }
@@ -134,7 +139,7 @@ export function drawSignalsJobs(
 
     const signature = () =>
         jobs()
-            .map((job) => `${job.id}:${job.status}:${job.prioritized}`)
+            .map((job) => `${job.id}:${job.status}:${job.prioritized}:${job.needsBeam}`)
             .join(',');
     let lastSignature = '';
     const onJobsChange = () => {
