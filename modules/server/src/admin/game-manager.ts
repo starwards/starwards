@@ -361,7 +361,21 @@ export class GameManager {
         }
     }
 
-    public async stopGame() {
+    /** Tail of the start/stop/load operations so far; a new one begins only when the previous one settled. */
+    private lifecycle: Promise<unknown> = Promise.resolve();
+
+    private serialized<T>(operation: () => Promise<T>): Promise<T> {
+        const result = this.lifecycle.then(operation);
+        this.lifecycle = result.catch(() => undefined);
+        return result;
+    }
+
+    /** Stops the game; when a start or stop is in flight, waits for it first so the stop is never a silent no-op. */
+    public stopGame() {
+        return this.serialized(() => this.doStopGame());
+    }
+
+    private async doStopGame() {
         this.map = null;
         if (this.state.gameStatus === GameStatus.RUNNING) {
             this.state.gameStatus = GameStatus.STOPPING;
@@ -387,7 +401,11 @@ export class GameManager {
         }
     }
 
-    public async startGame(map: GameMap) {
+    public startGame(map: GameMap) {
+        return this.serialized(() => this.doStartGame(map));
+    }
+
+    private async doStartGame(map: GameMap) {
         if (this.state.gameStatus === GameStatus.STOPPED) {
             this.state.gameStatus = GameStatus.STARTING;
             this.map = map;
@@ -431,12 +449,16 @@ export class GameManager {
         return snapshot;
     }
 
-    public async loadGame(source: SavedGame, map: GameMap) {
+    public loadGame(source: SavedGame, map: GameMap) {
+        return this.serialized(() => this.doLoadGame(source, map));
+    }
+
+    private async doLoadGame(source: SavedGame, map: GameMap) {
         const { fragment } = decodedCopy(SavedGame, source);
         await waitFor(
             async () => {
                 if (this.state.gameStatus !== GameStatus.STOPPED) {
-                    await this.stopGame();
+                    await this.doStopGame();
                     throw new Error('Waiting for game to stop');
                 }
             },
