@@ -1,5 +1,5 @@
 import { demoShip, makeShipState, snapshotShipDriver } from '@starwards/core';
-import { makeDamagedShip, settle } from '../mocks/fixtures';
+import { makeDamagedShip, settle, settleUntil } from '../mocks/fixtures';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -22,7 +22,7 @@ export const damageReportScenes: Record<string, Scene> = {
         description: 'Damage report listing an offline system and active defects',
         async setup(container: HTMLElement) {
             drawDamageReport(createMockContainer(container, 260, 300), snapshotShipDriver(makeDamagedShip()));
-            await settle(100);
+            await settleUntil(container, '.sw-damage__entry--caution');
         },
     },
 };
