@@ -1,10 +1,10 @@
 import { demoShip, makeShipState, snapshotShipDriver } from '@starwards/core';
-import { isHelmsSystem } from '../../screens/station-system-filters';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
 import { drawFullSystemsStatus } from '../../widgets/full-system-status';
 import { drawSystemsStatus } from '../../widgets/system-status';
+import { isHelmsSystem } from '../../screens/station-system-filters';
 import { makeDamagedShip } from '../mocks/fixtures';
 
 function withStation(station: string, scene: Scene): Scene {

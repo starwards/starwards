@@ -1,8 +1,8 @@
-import { Waypoint } from '@starwards/core';
 import { createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
 
 import { Scene } from './index';
 import { SelectionContainer } from '../../radar/selection-container';
+import { Waypoint } from '@starwards/core';
 import { createMockContainer } from '../mocks/container';
 import { drawPlacementSettings } from '../../widgets/waypoint-placement-settings';
 import { drawWaypointEdit } from '../../widgets/waypoint-edit';
