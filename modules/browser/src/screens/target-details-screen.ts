@@ -76,7 +76,7 @@ export async function initTargetDetailsScreen(
             const tubesSlot = grid.left({ scroll: true });
             const systemsSlot = grid.right({ scroll: true });
             const reactorSlot = grid.right();
-            const damageSlot = grid.right();
+            const damageSlot = grid.right({ scroll: true });
             // weapons and flight panels sit in a row under the armor view
             const stripSlot = grid.center({ fill: true, bottom: true });
             stripSlot.getElement().css({ flexDirection: 'row', alignItems: 'flex-start' });
