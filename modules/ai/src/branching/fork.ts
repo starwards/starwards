@@ -31,6 +31,29 @@ export type Outcome = {
     whole: string;
 };
 
+/** Which of a run's random streams a reseeded fork branches: the ships' die, the map's waves, both or none. */
+export const RESEED_MODES = ['none', 'all', 'die', 'waves'] as const;
+export type ReseedMode = (typeof RESEED_MODES)[number];
+
+/**
+ * `intervention` with the game's randomness branched by `key` once, at the first tick at or after
+ * `fork` (`HeadlessGame.reseed`): rollouts of one fork under different keys play different futures.
+ */
+export function withReseed(intervention: Intervention | undefined, fork: number, key: number, mode: ReseedMode) {
+    if (mode === 'none') return intervention;
+    const inner = intervention?.script;
+    let done = false;
+    return {
+        ...intervention,
+        script: (game) => {
+            inner?.(game);
+            if (done || game.seconds + 1e-9 < fork) return;
+            game.reseed(key, { die: mode !== 'waves', map: mode !== 'die' });
+            done = true;
+        },
+    } satisfies Intervention;
+}
+
 /** Crew event kinds that make up how a run was played. */
 const PLAYED = new Set(['decision', 'callout', 'command', 'orders']);
 

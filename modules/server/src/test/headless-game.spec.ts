@@ -9,9 +9,9 @@ import {
     mulberry32,
     uniqueId,
 } from '@starwards/core/internal';
+import { DEFAULT_WAVE_TUNING, createWaveDefenceMap } from '../scenarios/wave-defence';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET_ID, training_t1 } from '../scenarios/training';
-import { createWaveDefenceMap } from '../scenarios/wave-defence';
 
 describe('HeadlessGame.start', () => {
     it('replays a seed identically after another run in the same process', () => {
@@ -28,6 +28,34 @@ describe('HeadlessGame.start', () => {
         const first = run();
         expect(first).not.toBe('');
         expect(run()).toBe(first);
+    });
+});
+
+describe('HeadlessGame.reseed', () => {
+    /** Raiders' ids, hulls and positions in a wave-defence run reseeded at 1 s (or not), its waves 2 s apart. */
+    const raiders = (key?: number) => {
+        const game = HeadlessGame.start(
+            createWaveDefenceMap(mulberry32(1), { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds: 2 }),
+            1,
+        );
+        const now = () =>
+            [...game.spaceManager.state.getAll('Spaceship')]
+                .filter((s) => s.id !== 'GVTS' && !s.id.startsWith('station-'))
+                .map((s) => `${s.id}:${s.model}@${s.position.x.toFixed(1)},${s.position.y.toFixed(1)}`)
+                .join(' ');
+        while (game.seconds < 1) game.tick(1 / SERVER_TICK_HZ);
+        const before = now();
+        if (key !== undefined) game.reseed(key);
+        while (game.seconds < 5) game.tick(1 / SERVER_TICK_HZ);
+        return { before, after: now() };
+    };
+
+    it('replays identically for the same key, and changes the waves after it for another key', () => {
+        const a = raiders(7);
+        expect(raiders(7)).toEqual(a);
+        expect(raiders(8).before).toBe(a.before);
+        expect(raiders(8).after).not.toBe(a.after);
+        expect(raiders().after).not.toBe(a.after);
     });
 });
 

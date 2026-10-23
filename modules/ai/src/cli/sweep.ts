@@ -6,7 +6,8 @@
  * with a bootstrap interval, and its mean time to the first station lost).
  *
  *   npm run sweep -- --crew <crew.json> --scenario W-waves --seeds 66,70 --times 600,630 [--k 8]
- *       [--oracle cap,cap+he] [--alts close_to,hold_here] [--states 66@600,70@630] [--rollouts 8] [--jitter 2] [--timeout 1500] [--workers 4] --out <dir>
+ *       [--oracle cap,cap+he] [--alts close_to,hold_here] [--states 66@600,70@630] [--levels strategic] [--rollouts 8] [--jitter 2]
+ *       [--reseed all|die|waves|none] [--reseed-base 0] [--min-distinct 0.9] [--timeout 1500] [--workers 4] --out <dir>
  *
  * `--race` replaces the fixed `--rollouts` with racing (`training/paired.ts` raceRound): 8 → 16 → 32 → 64
  * rollouts per state, an alternative dropping out once its paired bound against `hold_here` clears zero.
@@ -14,8 +15,12 @@
  * Rollouts stream to `sweep.jsonl`; a rerun into the same `--out` plays only the missing ones, and
  * `--summary-only` summarizes what is there without playing more.
  *
- * The harness is deterministic, so rollout spread comes from the jitter alone: it measures how much an
- * action's outcome depends on exactly when it is taken.
+ * The harness is deterministic, so without `--reseed` rollout spread comes from the jitter alone: it
+ * measures how much an action's outcome depends on exactly when it is taken. `--reseed all|die|waves`
+ * instead branches the run's randomness at the fork (`HeadlessGame.reseed`) under a key per rollout, the
+ * same keys for every alternative of a state (`--reseed-base` draws another set); `--jitter` then defaults
+ * to 0. `sweep.md` gives each state's distinct futures per rollout (fewest over its alternatives), marked
+ * `LOWDIV` below `--min-distinct` (0.9).
  */
 import {
     Alternative,
@@ -25,10 +30,10 @@ import {
     strategicLevel,
     tacticalLevel,
 } from '../branching/levels';
-import { ShipState } from '@starwards/core/internal';
+import { ShipState, mix } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { RACE_ROLLOUTS, raceRound } from '../training/paired';
-import { RunSpec, runBranch } from '../branching/fork';
+import { RESEED_MODES, ReseedMode, RunSpec, runBranch, withReseed } from '../branching/fork';
 import { readRunLog, stateAt } from '../branching/run-log';
 
 import { fork as forkProcess } from 'node:child_process';
@@ -54,7 +59,18 @@ const KIND_ORDER = [
 
 type Job =
     | { kind: 'record'; run: RunSpec; dir: string }
-    | { kind: 'branch'; run: RunSpec; recording: string; level: string; t: number; fork: number; alternative: string };
+    | {
+          kind: 'branch';
+          run: RunSpec;
+          recording: string;
+          level: string;
+          t: number;
+          fork: number;
+          alternative: string;
+          rollout: number;
+          reseed: ReseedMode;
+          reseedBase: number;
+      };
 
 type Row = {
     seed: number;
@@ -64,16 +80,31 @@ type Row = {
     pass: boolean;
     firstStationLostAt: number | null;
     seconds: number;
+    /** The rollout's index in its state, kept when reseeding (its fork time does not tell it). */
+    rollout?: number;
+    /** `Outcome.whole`: equal for two rollouts that played identically. */
+    whole?: string;
 };
+
+/** A reseeded rollout's key: per seed, fork time, rollout and base, and not per alternative (common random numbers). */
+export function reseedKey(seed: number, t: number, rollout: number, base: number) {
+    return mix(mix(mix(base, seed), t), rollout);
+}
 
 function pointAt(level: DecisionLevel, log: ReturnType<typeof readRunLog>, t: number): BranchPoint {
     return { level: level.name as BranchPoint['level'], t, reasons: ['sweep'], taken: 'keep', state: stateAt(log, t) };
 }
 
-/** The `k` alternatives a state is swept over, strategic and tactical, in `KIND_ORDER`. */
-export function candidates(log: ReturnType<typeof readRunLog>, t: number, k: number, only?: readonly string[]) {
+/** The `k` alternatives a state is swept over, of the `levels` asked (strategic and tactical), in `KIND_ORDER`. */
+export function candidates(
+    log: ReturnType<typeof readRunLog>,
+    t: number,
+    k: number,
+    only?: readonly string[],
+    levels: readonly string[] = ['tactical', 'strategic'],
+) {
     const all: { level: DecisionLevel; alt: Alternative }[] = [];
-    for (const level of [tacticalLevel(), strategicLevel]) {
+    for (const level of [tacticalLevel(), strategicLevel].filter((l) => levels.includes(l.name))) {
         for (const alt of level.alternatives(pointAt(level, log, t), log)) all.push({ level, alt });
     }
     const rank = (kind: string) => {
@@ -128,8 +159,11 @@ async function play(job: Job): Promise<unknown> {
         const o = await runBranch(job.run, 0, undefined, job.dir);
         return { seed: job.run.seed, pass: pass(o.waves), firstStationLostAt: o.waves?.firstStationLostAt ?? null };
     }
+    const reseeded = (intervention: Intervention | undefined) =>
+        withReseed(intervention, job.fork, reseedKey(job.run.seed, job.t, job.rollout, job.reseedBase), job.reseed);
+    const tagged = job.reseed === 'none' ? {} : { rollout: job.rollout };
     if (job.alternative.startsWith('oracle:')) {
-        const o = await runBranch(job.run, job.fork, ORACLES[job.alternative.slice(7)](job.fork));
+        const o = await runBranch(job.run, job.fork, reseeded(ORACLES[job.alternative.slice(7)](job.fork)));
         return {
             seed: job.run.seed,
             t: job.t,
@@ -138,6 +172,8 @@ async function play(job: Job): Promise<unknown> {
             pass: pass(o.waves),
             firstStationLostAt: o.waves?.firstStationLostAt ?? null,
             seconds: o.seconds,
+            ...tagged,
+            whole: o.whole,
         } satisfies Row;
     }
     if (lastLog?.recording !== job.recording) lastLog = { recording: job.recording, log: readRunLog(job.recording) };
@@ -145,7 +181,7 @@ async function play(job: Job): Promise<unknown> {
     const level = job.level === 'strategic' ? strategicLevel : tacticalLevel();
     const alt = level.alternatives(pointAt(level, log, job.fork), log).find((a) => a.id === job.alternative);
     if (!alt) return null;
-    const o = await runBranch(job.run, job.fork, alt.intervention);
+    const o = await runBranch(job.run, job.fork, reseeded(alt.intervention));
     const row: Row = {
         seed: job.run.seed,
         t: job.t,
@@ -154,6 +190,8 @@ async function play(job: Job): Promise<unknown> {
         pass: pass(o.waves),
         firstStationLostAt: o.waves?.firstStationLostAt ?? null,
         seconds: o.seconds,
+        ...tagged,
+        whole: o.whole,
     };
     process.stderr.write(`seed ${row.seed} t=${job.fork} ${job.alternative}: ${row.pass ? 'pass' : 'fail'}\n`);
     return row;
@@ -235,6 +273,7 @@ export function summarize(
             return {
                 alternative,
                 n: rs.length,
+                distinct: rs.every((r) => r.whole) ? new Set(rs.map((r) => r.whole)).size : NaN,
                 passRate: passes.reduce((a, b) => a + b, 0) / rs.length,
                 passCi: bootstrap(passes),
                 meanLost: losses.reduce((a, b) => a + b, 0) / rs.length,
@@ -243,9 +282,12 @@ export function summarize(
         });
         const best = [...actions].sort((a, b) => b.passRate - a.passRate || b.meanLost - a.meanLost)[0];
         const bestLost = [...actions].sort((a, b) => b.meanLost - a.meanLost)[0];
+        const fewest = [...actions].sort((a, b) => a.distinct / a.n - b.distinct / b.n)[0];
         out.push({
             seed,
             t,
+            distinct: fewest.distinct,
+            n: fewest.n,
             defaultPass: d.pass,
             defaultLost: lost(d.firstStationLostAt),
             actions,
@@ -270,7 +312,7 @@ export function raceAlive(
     const state = rows.filter((r) => r.seed === b.seed && r.t === b.t);
     const outcomes = new Map<string, number[]>();
     for (const r of state) {
-        const j = Math.round((r.fork - r.t) / jitter);
+        const j = r.rollout ?? Math.round((r.fork - r.t) / jitter);
         if (j >= count) continue;
         const xs = outcomes.get(r.alternative) ?? [];
         xs[j] = Number(r.pass);
@@ -290,10 +332,15 @@ async function main() {
     const times = arg('times', '600,630,660,690')!.split(',').map(Number);
     const k = Number(arg('k', '8'));
     const only = arg('alts')?.split(',');
+    const levels = arg('levels', 'tactical,strategic')!.split(',');
     // `--states seed@t,...` sweeps only those states, e.g. to add rollouts where the interval straddles
     const pick = arg('states')?.split(',');
     const rollouts = Number(arg('rollouts', '8'));
-    const jitter = Number(arg('jitter', '2'));
+    const reseed = arg('reseed', 'none') as ReseedMode;
+    if (!RESEED_MODES.includes(reseed)) throw new Error(`--reseed: one of ${RESEED_MODES.join(', ')}`);
+    const reseedBase = Number(arg('reseed-base', '0'));
+    const minDistinct = Number(arg('min-distinct', '0.9'));
+    const jitter = Number(arg('jitter', reseed === 'none' ? '2' : '0'));
     const timeoutSeconds = Number(arg('timeout', '1500'));
     const workers = Number(arg('workers', '4'));
     const out = path.resolve(arg('out')!);
@@ -326,7 +373,7 @@ async function main() {
             const oracles = arg('oracle')?.split(',');
             const chosen = oracles
                 ? oracles.map((o) => ({ level: 'oracle', alternative: `oracle:${o}` }))
-                : candidates(log, t, k, only);
+                : candidates(log, t, k, only, levels);
             for (const c of chosen) branches.push({ seed, t, recording: full, ...c });
         }
     }
@@ -340,11 +387,15 @@ async function main() {
                 t: b.t,
                 fork: b.t + j * jitter,
                 alternative: b.alternative,
+                rollout: j,
+                reseed,
+                reseedBase,
             })),
         );
     // rows stream to sweep.jsonl as they finish; a rerun into the same --out skips the rollouts already there
     const jsonl = path.join(out, 'sweep.jsonl');
-    const key = (r: { seed: number; fork: number; alternative: string }) => `${r.seed}@${r.fork}@${r.alternative}`;
+    const key = (r: { seed: number; fork: number; alternative: string; rollout?: number }) =>
+        `${r.seed}@${r.fork}@${r.alternative}${r.rollout === undefined ? '' : `#${r.rollout}`}`;
     const rows: Row[] = fs.existsSync(jsonl)
         ? fs
               .readFileSync(jsonl, 'utf8')
@@ -354,7 +405,11 @@ async function main() {
         : [];
     const playJobs = async (jobs: Job[]) => {
         const have = new Set(rows.map(key));
-        const todo = jobs.filter((j) => j.kind !== 'branch' || !have.has(key({ seed: j.run.seed, ...j })));
+        const todo = jobs.filter(
+            (j) =>
+                j.kind !== 'branch' ||
+                !have.has(key({ seed: j.run.seed, ...j, rollout: j.reseed === 'none' ? undefined : j.rollout })),
+        );
         process.stderr.write(`${jobs.length} branches, ${todo.length} to play\n`);
         const played = (
             (await pool(
@@ -381,16 +436,19 @@ async function main() {
     fs.writeFileSync(path.join(out, 'sweep.json'), JSON.stringify(states, null, 1));
     const f = (x: number) => x.toFixed(2);
     const lines = [
-        `# Branch sweep: ${path.basename(crew)}, seeds ${seeds.join(',')}, times ${times.join(',')}, ${rollouts} rollouts, jitter ${jitter} s`,
+        `# Branch sweep: ${path.basename(crew)}, seeds ${seeds.join(',')}, times ${times.join(',')}, ${rollouts} rollouts, jitter ${jitter} s, reseed ${reseed} (base ${reseedBase})`,
         '',
         `decisive on pass: ${states.filter((s) => s.decisivePass).length}/${states.length}; decisive on first station lost: ${states.filter((s) => s.decisiveLost).length}/${states.length}`,
         '',
-        '| seed | t | default pass | default lost (s) | best | pass [CI] | best on lost | mean lost [CI] |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| seed | t | distinct/n | default pass | default lost (s) | best | pass [CI] | best on lost | mean lost [CI] |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...states.map((s) => {
             const b = s.actions.find((a) => a.alternative === s.best)!;
             const l = s.actions.find((a) => a.alternative === s.bestLost)!;
-            return `| ${s.seed} | ${s.t} | ${s.defaultPass} | ${s.defaultLost.toFixed(0)} | ${s.best} | ${f(b.passRate)} [${f(b.passCi[0])}, ${f(b.passCi[1])}]${s.decisivePass ? ' *' : ''} | ${s.bestLost} | ${l.meanLost.toFixed(0)} [${l.lostCi[0].toFixed(0)}, ${l.lostCi[1].toFixed(0)}]${s.decisiveLost ? ' *' : ''} |`;
+            const div = Number.isNaN(s.distinct)
+                ? '-'
+                : `${s.distinct}/${s.n}${s.distinct / s.n < minDistinct ? ' LOWDIV' : ''}`;
+            return `| ${s.seed} | ${s.t} | ${div} | ${s.defaultPass} | ${s.defaultLost.toFixed(0)} | ${s.best} | ${f(b.passRate)} [${f(b.passCi[0])}, ${f(b.passCi[1])}]${s.decisivePass ? ' *' : ''} | ${s.bestLost} | ${l.meanLost.toFixed(0)} [${l.lostCi[0].toFixed(0)}, ${l.lostCi[1].toFixed(0)}]${s.decisiveLost ? ' *' : ''} |`;
         }),
         '',
     ];

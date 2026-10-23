@@ -8,7 +8,6 @@ import {
     Policy,
     REFERENCE_BRAINS_DIR,
     SCRIPTED_SEAT_POLICIES,
-    SeatPlan,
     loadBrainSpec,
     makeEngineerPolicy,
     makeHelmsPolicy,
@@ -19,6 +18,7 @@ import {
 import { JevUsage, answerCacheFromEnv, meteredJevClient } from '../brain/jev-cache';
 import { idlePolicy, jevPolicy } from '../brain/policies';
 
+import { CrewSeatPlan } from './crew';
 import { jevClient } from '../brain/jev-client';
 import { z } from 'zod';
 
@@ -47,6 +47,8 @@ const crewConfigSchema = z
                     ]),
                     /** Brain file, relative to the crew file; defaults to the station's reference brain, `<station>.v1.json` in `@starwards/bots`. */
                     brain: z.string().optional(),
+                    /** Seconds the seat's first decision waits, shifting its cadence (`CrewSeatPlan`). */
+                    phaseSeconds: z.number().min(0).optional(),
                 })
                 .strict(),
         ),
@@ -60,9 +62,10 @@ export function readCrewFile(filePath: string) {
         name: config.name,
         doctrine: config.doctrine === true,
         knobs: config.knobs ?? {},
-        seats: config.seats.map(({ station, policy, brain }) => ({
+        seats: config.seats.map(({ station, policy, brain, phaseSeconds }) => ({
             station,
             policy,
+            phaseSeconds,
             brainPath: brain
                 ? path.resolve(path.dirname(filePath), brain)
                 : path.join(REFERENCE_BRAINS_DIR, `${station}.v1.json`),
@@ -71,7 +74,7 @@ export function readCrewFile(filePath: string) {
 }
 
 /** `jevUsage` counts what the crew's Jev seats ask from now on; absent for a crew without one. */
-type CrewPlan = { name: string; doctrine: boolean; seats: SeatPlan[]; usesJev: boolean; jevUsage?: JevUsage };
+type CrewPlan = { name: string; doctrine: boolean; seats: CrewSeatPlan[]; usesJev: boolean; jevUsage?: JevUsage };
 
 /**
  * Reads a crew file and builds its seats. A Jev seat needs `TYPESAFE_API_KEY`; the client is shared
@@ -92,7 +95,7 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
             throw new Error(`crew ${config.name}: brain ${spec.id} plays ${spec.station}, not ${seat.station}`);
         }
         if (seat.policy === 'reference') {
-            return referenceSeat(spec);
+            return { ...referenceSeat(spec), phaseSeconds: seat.phaseSeconds };
         }
         const policy: Policy =
             seat.policy === 'jev'
@@ -107,7 +110,7 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
                             spec.decisionSeconds,
                         )
                       : makeEngineerPolicy(seat.policy as (typeof ENGINEER_POLICIES)[number], spec.decisionSeconds);
-        return { station: seat.station, spec, policy };
+        return { station: seat.station, spec, policy, phaseSeconds: seat.phaseSeconds };
     });
     return { name: config.name, doctrine: config.doctrine, seats, usesJev, jevUsage: client?.usage };
 }

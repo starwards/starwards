@@ -1,4 +1,6 @@
-import { bootstrap, raceAlive, summarize } from './sweep';
+import { bootstrap, raceAlive, reseedKey, summarize } from './sweep';
+import { HeadlessGame } from '@starwards/server/src/test/headless-game';
+import { withReseed } from '../branching/fork';
 
 describe('branch sweep summary', () => {
     it('bootstraps a constant to itself and a mixed sample to an interval around its mean', () => {
@@ -57,5 +59,54 @@ describe('racing sweep', () => {
         expect(alive('retreat')).toBe(false);
         expect(alive('close_to')).toBe(true);
         expect(alive('hold_here')).toBe(true);
+    });
+});
+
+describe('reseeded rollouts', () => {
+    it('keys each rollout of a state apart, the same for every alternative, and apart again per base', () => {
+        const keys = Array.from({ length: 8 }, (_, j) => reseedKey(7, 900, j, 0));
+        expect(new Set(keys).size).toBe(8);
+        expect(reseedKey(7, 900, 3, 0)).toBe(keys[3]);
+        expect(reseedKey(7, 900, 3, 1)).not.toBe(keys[3]);
+        expect(reseedKey(8, 900, 3, 0)).not.toBe(keys[3]);
+    });
+
+    it('reseeds the game once, at the first tick at or after the fork, after the intervention script', () => {
+        const calls: string[] = [];
+        const game = (seconds: number) =>
+            ({
+                seconds,
+                reseed: (key: number, which: object) => calls.push(`${seconds} reseed ${key} ${JSON.stringify(which)}`),
+            }) as unknown as HeadlessGame;
+        const { script } = withReseed({ script: (g) => void calls.push(`${g.seconds} script`) }, 10, 42, 'waves')!;
+        for (const t of [9.5, 10.01, 10.5]) script!(game(t));
+        expect(calls).toEqual([
+            '9.5 script',
+            '10.01 script',
+            '10.01 reseed 42 {"die":false,"map":true}',
+            '10.5 script',
+        ]);
+    });
+
+    it('counts distinct futures per state, and indexes a race by rollout when the fork does not move', () => {
+        const row = (alternative: string, j: number, whole: string, pass: boolean) => ({
+            seed: 1,
+            t: 600,
+            fork: 600,
+            rollout: j,
+            alternative,
+            pass,
+            firstStationLostAt: null,
+            seconds: 1,
+            whole,
+        });
+        const rows = [
+            ...[0, 1, 2, 3].map((j) => row('hold_here', j, `h${j % 2}`, j % 2 === 0)),
+            ...[0, 1, 2, 3].map((j) => row('retreat', j, `r${j}`, false)),
+        ];
+        const [state] = summarize(rows, new Map([[1, { pass: false, firstStationLostAt: null }]]), 1500);
+        expect(state.distinct).toBe(2);
+        expect(state.n).toBe(4);
+        expect(raceAlive(rows, { seed: 1, t: 600, alternative: 'hold_here' }, 4, 0)).toBe(true);
     });
 });

@@ -57,4 +57,6 @@ export interface GameMap {
      * time or advancement of scenario state on `deltaseconds > 0`.
      */
     update?: (deltaseconds: number) => void;
+    /** Branches the map's own random stream at the current moment: what it draws from now on depends on `key`. */
+    reseed?: (key: number) => void;
 }
