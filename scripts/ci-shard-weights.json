@@ -209,7 +209,6 @@
         "modules/server/src/test/clean-local-presence.spec.ts": 1,
         "modules/server/src/test/training/gunnery-metrics.spec.ts": 1,
         "modules/core/test/over-steer.spec.ts": 1,
-        "modules/server/src/test/detach-state-buffers.spec.ts": 1,
         "modules/server/src/test/game-state-serialization.spec.ts": 1,
         "modules/bots/src/brain/reference-tubes-power.spec.ts": 1,
         "modules/core/test/stations-registry.spec.ts": 1,
