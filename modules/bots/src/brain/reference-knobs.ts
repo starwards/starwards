@@ -143,6 +143,14 @@ export const REFERENCE_KNOB_DEFAULTS = {
     MISSILE_KILL_RADIUS_METERS: 15,
     /** Mode-1 kill estimate: the lock is at most this far (guard launches on W-waves: 8/40 beyond 3 km). */
     MISSILE_KILL_METERS: 3000,
+    /**
+     * Late stance: from `LATE_STANCE_SECONDS` on, the captain sets a fighting stance once: 1 offensive (guns at
+     * full power, the fight ranked first), 2 all out (guns, tubes and thrusters at full power, afterburner onto
+     * the enemy); 0 never. Needs a captain brain with the `offensive`/`all_out` callouts.
+     */
+    LATE_STANCE_MODE: 0,
+    /** Seconds from which the late stance is set (wave 3 spawns at 960 s on W-waves; runs time out at 1500 s). */
+    LATE_STANCE_SECONDS: 1200,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,

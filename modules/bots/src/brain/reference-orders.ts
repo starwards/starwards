@@ -391,7 +391,21 @@ const MAGAZINE_STATE_REPEAT_SECONDS = 30;
 const restockBlocked = (p: Picture) =>
     (nearestEnemy(p.radar)?.distance ?? Infinity) < referenceKnobs.RESTOCK_CLEAR_METERS;
 
+/** Captain, late stance (`LATE_STANCE_MODE`): the knob's stance, once, from `LATE_STANCE_SECONDS` on. */
+const lateStance = (stance: 'offensive' | 'all_out', mode: number) => (p: Picture) => {
+    if (
+        referenceKnobs.LATE_STANCE_MODE !== mode ||
+        p.now < referenceKnobs.LATE_STANCE_SECONDS ||
+        p.memory.get('lateStanceSet') !== undefined
+    )
+        return false;
+    p.memory.set('lateStanceSet', stance);
+    return true;
+};
+
 const calloutRules: Record<string, (picture: Picture) => boolean> = {
+    offensive: lateStance('offensive', 1),
+    all_out: lateStance('all_out', 2),
     /** Engineer: the magazine's capacity changed by a tenth since last said, or a while passed. */
     magazine_state: ({ display, memory, now }) => {
         const capacity = magazineCapacity(display.panels);
