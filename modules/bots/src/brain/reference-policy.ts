@@ -139,7 +139,7 @@ export function makeReferencePolicy(
     const talk = calloutMemory(resupply, threatTarget, guardCentre);
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
-    const spend: Spend = { lockId: undefined, firedOn: 0, firstShells: undefined };
+    const spend: Spend = { lockId: undefined, firedOn: 0, firstShells: undefined, apShells: 0, apMissiles: 0 };
     return {
         name,
         answer(request, controls, shown, heard) {
@@ -160,7 +160,14 @@ export function makeReferencePolicy(
                 salvo !== undefined &&
                 stillFlying(salvo.arrivals, seconds) >= orders.salvo;
             const lockId = display.panels['targeting-status']?.targetId as string | undefined;
-            if (lockId !== spend.lockId) spend.firedOn = 0;
+            if (lockId !== spend.lockId) {
+                spend.firedOn = 0;
+                spend.apShells = 0;
+                spend.apMissiles = 0;
+            } else {
+                spend.apShells += Math.max(0, apShellCount(previous) - apShellCount(display));
+            }
+            const wasIntact = platesIntact(spend);
             spend.lockId = lockId;
             spend.firstShells ??= shellsLeft(display);
             const launchTube =
@@ -192,6 +199,9 @@ export function makeReferencePolicy(
                 answers[control.id] = { choice, source: 'rule' };
                 if (control.command === 'fireChainGun' && choice === 'fire') spend.firedOn += decisionSeconds;
                 if (control.command === 'fireTube' && choice === 'fire') {
+                    const tubes = (display.panels['tubes-status'] ?? []) as unknown as TubeStatus[];
+                    const fired = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
+                    if (fired?.loadedProjectile === 'ArmPenMissile') spend.apMissiles += 1;
                     lastLaunch = seconds;
                     salvo = countLaunch(salvo, display, previous, decisionSeconds, seconds);
                     launched = salvo && tally(salvo, seconds);
@@ -207,6 +217,11 @@ export function makeReferencePolicy(
                 checkFireOrdered: orders.checkFire === true,
                 dockOrdered: orders.dock === true,
             });
+            if (referenceKnobs.AMMO_OPEN_AP > 0.5 && wasIntact && !platesIntact(spend) && apOpenLog()) {
+                console.log(
+                    `[apopen] t=${seconds.toFixed(0)} lock=${spend.lockId} judged broken: AP shells=${spend.apShells} missiles=${spend.apMissiles} -> HE`,
+                );
+            }
             previous = display;
             if (callout) {
                 answers[CALLOUT_QUESTION] = callout;
@@ -373,25 +388,28 @@ function referenceChoice(
             if (!gun || !stock) return 'wait';
             const left = (type: string) => stock[type]?.count ?? 0;
             const preference =
-                shellPreference ?? (seconds < referenceKnobs.FRAG_FIRST_SECONDS ? FRAG_FIRST : undefined);
+                apOpenOrder(spend, AP_OPEN_SHELLS, HE_FINISH_SHELLS, 0.5) ??
+                shellPreference ??
+                (seconds < referenceKnobs.FRAG_FIRST_SECONDS ? FRAG_FIRST : undefined);
             const wanted = preference?.find((t) => left(t) > 0);
             if (wanted) return gun.projectile === wanted ? 'wait' : 'press';
             const others = Object.keys(stock).some((t) => t.endsWith('Shell') && t !== gun.projectile && left(t) > 0);
             return left(gun.projectile) < 1 && others ? 'press' : 'wait';
         }
         case 'changeTubeAmmo': {
-            if (referenceKnobs.TUBE_AMMO_FALLBACK <= 0.5) return undefined;
+            const apOpen = apOpenOrder(spend, TUBE_AMMO_ORDER_AP_FIRST, TUBE_AMMO_ORDER, 1.5);
+            if (referenceKnobs.TUBE_AMMO_FALLBACK <= 0.5 && !apOpen) return undefined;
             // cycle an empty, unloaded tube on to the first missile type in TUBE_AMMO_ORDER with stock
             const tubes = (display.panels['tubes-status'] ?? []) as unknown as (TubeStatus & { projectile: string })[];
             const stock = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)
                 ?.ammo;
             const tube = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
-            const apFirst = referenceKnobs.TUBE_AMMO_AP_FIRST > 0.5;
+            const apFirst = apOpen !== undefined || referenceKnobs.TUBE_AMMO_AP_FIRST > 0.5;
             // AP first: re-type any tube without a round in it, even one already reloading
             if (!tube || !stock || (apFirst ? tube.loadedProjectile !== 'None' : tube.loading > 0)) return 'wait';
             const left = (type: string) => stock[type]?.count ?? 0;
             if (!apFirst && left(tube.projectile) >= 1) return 'wait';
-            const wanted = (apFirst ? TUBE_AMMO_ORDER_AP_FIRST : TUBE_AMMO_ORDER).find((t) => left(t) >= 1);
+            const wanted = (apOpen ?? (apFirst ? TUBE_AMMO_ORDER_AP_FIRST : TUBE_AMMO_ORDER)).find((t) => left(t) >= 1);
             return wanted && tube.projectile !== wanted ? 'press' : 'wait';
         }
         case 'beamDirection':
@@ -606,8 +624,45 @@ const TUBE_AMMO_ORDER_AP_FIRST = ['ArmPenMissile', 'HiExpMissile', 'FragMissile'
 /** The shell order while the gun spends Frag first, saving HE and AP. */
 const FRAG_FIRST = ['FragShell', 'HiExpShell', 'ArmPenShell'];
 
-/** Weapons' own shell accounting: the lock, seconds fired at it, and the HE and AP shells it first saw. */
-type Spend = { lockId: string | undefined; firedOn: number; firstShells: number | undefined };
+/**
+ * Weapons' own shell accounting: the lock, seconds fired at it, the HE and AP shells it first saw,
+ * and the AP shells and missiles it spent on the lock.
+ */
+type Spend = {
+    lockId: string | undefined;
+    firedOn: number;
+    firstShells: number | undefined;
+    apShells: number;
+    apMissiles: number;
+};
+
+/** The gun's order while `AMMO_OPEN_AP` judges the lock's plates intact. */
+const AP_OPEN_SHELLS = ['ArmPenShell', 'HiExpShell', 'FragShell'];
+
+/** The gun's order once `AMMO_OPEN_AP` judges the lock's plates broken. */
+const HE_FINISH_SHELLS = ['HiExpShell', 'ArmPenShell', 'FragShell'];
+
+/** AP shells in the magazine, 0 without an ammo panel. */
+function apShellCount(display: Display | undefined) {
+    const ammo = (display?.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    return ammo?.ArmPenShell?.count ?? 0;
+}
+
+/** Whether weapons' own tally still judges the lock's plates intact (`AMMO_OPEN_AP`): it sees no plates. */
+function platesIntact(spend: Spend) {
+    return spend.apShells < referenceKnobs.AMMO_OPEN_AP_SHELLS && spend.apMissiles < 1;
+}
+
+/** With `AMMO_OPEN_AP` above `level` and a lock: the AP order while plates are judged intact, else the HE order. */
+function apOpenOrder<T>(spend: Spend, open: T, finish: T, level: number) {
+    if (referenceKnobs.AMMO_OPEN_AP <= level || !spend.lockId) return undefined;
+    return platesIntact(spend) ? open : finish;
+}
+
+/** Whether to log `AMMO_OPEN_AP` switches (env `APOPEN_LOG`), for smoke runs. */
+function apOpenLog() {
+    return typeof process !== 'undefined' && !!process.env.APOPEN_LOG;
+}
 
 /** HE and AP shells the ammo panel shows, if it shows any. */
 function shellsLeft(display: Display) {

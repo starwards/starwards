@@ -70,6 +70,15 @@ export const REFERENCE_KNOB_DEFAULTS = {
     MISSILE_ESCALATE_SECONDS: 0,
     /** Above 0.5 (with `TUBE_AMMO_FALLBACK`), tubes load AP missiles first, then HE, then Frag. */
     TUBE_AMMO_AP_FIRST: 0,
+    /**
+     * AP opens, HE finishes: above 0.5 the gun loads AP shells while the lock's plates are judged
+     * intact and HE once judged broken; above 1.5 the tubes re-type unloaded tubes the same way.
+     * Weapons cannot see target plates, so "broken" is its own tally: `AMMO_OPEN_AP_SHELLS` AP shells
+     * or one AP missile spent on the current lock.
+     */
+    AMMO_OPEN_AP: 0,
+    /** AP shells weapons spends on a lock before judging its plates broken (`AMMO_OPEN_AP`). */
+    AMMO_OPEN_AP_SHELLS: 8,
     /** Weapons launches a missile only at a lock within this many meters of an allied station; 0 at any lock. */
     MISSILE_STATION_METERS: 0,
     /** Weapons launches no missile at a lock its gun already fired this many seconds at (left to the gun to finish); 0 never skips. */
