@@ -1,7 +1,6 @@
 /**
  * ERRAND-PLAN step 1 extractor: per-frame station capsule/hull, raiders near each station, and the
- * GVTS's HE stock, one JSON line per recording. Aggregation (calibration, TTD error, deficit AUC)
- * lives in errand-check-stats.mjs.
+ * GVTS's HE stock, one JSON line per recording.
  *
  *   npm run errand-check -- <x.sgr> [<y.sgr>...] > rows.jsonl
  */
