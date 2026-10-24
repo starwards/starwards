@@ -67,4 +67,19 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             drawEngineeringStatus(mockContainer, mockShipDriver as never);
         },
     },
+
+    'engineering-status-npc-target': {
+        name: 'engineering-status-npc-target',
+        description: 'Reactor panel for an NPC target (Target Details): energy and cells hidden, fuel and hull kept',
+        setup(container: HTMLElement) {
+            const ship = makeShipState('npc', demoShip);
+            ship.isPlayerShip = false;
+            ship.maneuvering.afterBurnerFuel = 60;
+
+            const mockContainer = createMockContainer(container, 300, 200);
+            const mockShipDriver = createMockShipDriver(ship);
+
+            drawEngineeringStatus(mockContainer, mockShipDriver as never, { energy: false });
+        },
+    },
 };
