@@ -25,6 +25,7 @@ const scenes = [
     'system-status-nominal',
     'system-status-faults',
     'full-system-status-engineer',
+    'full-system-status-npc-target',
     'full-system-status-wide',
     // Gun status
     'gun-status-firing',
@@ -62,6 +63,7 @@ const scenes = [
     'engineering-status-full-energy',
     'engineering-status-hull-ok',
     'engineering-status-hull-damaged',
+    'engineering-status-npc-target',
     // Game message overlay (M4.57)
     'game-message-banner',
     // GM Radar

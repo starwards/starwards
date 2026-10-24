@@ -49,6 +49,16 @@ export const systemsStatusScenes: Record<string, Scene> = {
             drawFullSystemsStatus(createMockContainer(container, 560, 900), driver, driver.systems, true);
         },
     }),
+    'full-system-status-npc-target': withStation('signals', {
+        name: 'full-system-status-npc-target',
+        description: "Target Details' Systems table for an NPC target: the EPM (energy draw) column is hidden",
+        setup(container: HTMLElement) {
+            const driver = snapshotShipDriver(makeDamagedShip());
+            drawFullSystemsStatus(createMockContainer(container, 560, 900), driver, driver.systems, true, {
+                energy: false,
+            });
+        },
+    }),
     'full-system-status-wide': {
         name: 'full-system-status-wide',
         description: 'Wide Full Systems Status table (GM / ship dashboard) with labelled defect bars',
