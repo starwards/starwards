@@ -218,6 +218,7 @@ export function makeReferencePolicy(
                 dockOrdered: orders.dock === true,
             });
             if (referenceKnobs.AMMO_OPEN_AP > 0.5 && wasIntact && !platesIntact(spend) && apOpenLog()) {
+                // eslint-disable-next-line no-console -- smoke-run evidence, gated on APOPEN_LOG
                 console.log(
                     `[apopen] t=${seconds.toFixed(0)} lock=${spend.lockId} judged broken: AP shells=${spend.apShells} missiles=${spend.apMissiles} -> HE`,
                 );
