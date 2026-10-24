@@ -2,6 +2,7 @@ import {
     Asteroid,
     Faction,
     FactionIntelManager,
+    Projectile,
     ScanLevel,
     ShipState,
     SpaceObject,
@@ -131,6 +132,52 @@ describe('FactionIntelManager scan demotion', () => {
         intel.update(42, 1, visibility());
 
         expect(intel.getScanLevel('rock', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+    });
+
+    it('demotes a missile from FULL to SNAPSHOT without beam cover, like a ship', () => {
+        const missile = new Projectile();
+        missile.id = 'missile';
+        missile.model = 'HiExpMissile';
+        const { intel } = setup(missile);
+        intel.setScanLevel('missile', Faction.Gravitas, ScanLevel.FULL);
+
+        intel.update(1, 0.3, visibility());
+        expect(intel.getScanLevel('missile', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+        intel.update(1.3, 0.3, visibility());
+
+        expect(intel.getScanLevel('missile', Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
+        expect(intel.getScanSnapshotCapturedAt('missile', Faction.Gravitas)).to.equal(1.3);
+    });
+
+    it('keeps a missile at FULL under a friendly scan beam, and always for its firing faction', () => {
+        const missile = new Projectile();
+        missile.id = 'missile';
+        missile.model = 'HiExpMissile';
+        missile.shipId = 'shooter';
+        const { intel } = setup(missile, makeShip('shooter', Faction.Raiders));
+        intel.setScanLevel('missile', Faction.Gravitas, ScanLevel.FULL);
+        intel.setScanLevel('missile', Faction.Raiders, ScanLevel.FULL);
+
+        intel.update(42, 1, visibility({ [Faction.Gravitas]: [missile] }));
+
+        expect(intel.getScanLevel('missile', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+        expect(intel.getScanLevel('missile', Faction.Raiders)).to.equal(ScanLevel.FULL);
+    });
+
+    it('keeps FULL for the firing faction after the firing ship is destroyed', () => {
+        const missile = new Projectile();
+        missile.id = 'missile';
+        missile.model = 'HiExpMissile';
+        missile.shipId = 'shooter';
+        const { state, intel } = setup(missile, makeShip('shooter', Faction.Raiders));
+        intel.setScanLevel('missile', Faction.Raiders, ScanLevel.FULL);
+        intel.update(1, 1, visibility());
+
+        state.delete(state.get('shooter') as SpaceObject);
+        intel.update(2, 1, visibility());
+        intel.update(3, 1, visibility());
+
+        expect(intel.getScanLevel('missile', Faction.Raiders)).to.equal(ScanLevel.FULL);
     });
 
     it('holds FULL through a beam gap of up to 0.5 s', () => {
