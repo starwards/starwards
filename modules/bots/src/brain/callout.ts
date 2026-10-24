@@ -4,7 +4,6 @@ import { HullStatus, SALVO_MISSILES, radarReach } from '@starwards/core/internal
 import {
     bearingWords,
     closeRange,
-    isEnemyShip,
     launchRange,
     lockedContact,
     missilesInMagazine,
@@ -14,6 +13,7 @@ import {
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
+import { isEnemyShip } from './enemy';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';

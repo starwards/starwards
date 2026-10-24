@@ -1,11 +1,12 @@
 import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, hullStatusChange } from './callout';
 import { Contact, Radar } from './verbal';
-import { inLaunchEnvelope, isEnemyShip, launchRange, lockedContact, nearestEnemy } from './engagement';
+import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy } from './engagement';
 
 import { Answer } from './brain';
 import { BrainRequest } from './request';
 import { Display } from './controls';
 import { HULL_STATUS_TUNING } from '@starwards/core/internal';
+import { isEnemyShip } from './enemy';
 
 /** What the seat counts itself: the missiles it launched under the current engagement, and how many still fly. */
 export type SalvoTally = { n: number; inFlight: number };

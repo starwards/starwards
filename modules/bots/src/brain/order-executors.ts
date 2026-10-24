@@ -5,7 +5,7 @@ import { flightSeconds, stillFlying } from './salvo';
 
 import { Control } from './controls';
 import { checkFireOf } from './callout';
-import { isEnemyShip } from './engagement';
+import { isEnemyShip } from './enemy';
 
 type XY = { x: number; y: number };
 type Contact = {

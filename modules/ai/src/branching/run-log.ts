@@ -1,4 +1,4 @@
-import { Display, Heard, ORDERS_PANEL, OrdersBoard, ordersSummary } from '@starwards/bots';
+import { Display, Heard, ORDERS_PANEL, OrdersBoard, isEnemyShip, ordersSummary } from '@starwards/bots';
 import { RecordedDecision, RecordedRequest, readDecisionLog } from '../training/decision-log';
 import { RecordingEventLine, parseEventLine } from '@starwards/core/internal';
 import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
@@ -85,7 +85,7 @@ function picture(radar: Radar | undefined) {
     const faction = radar?.ownShip?.faction;
     const contacts = radar?.contacts ?? [];
     const ships = contacts.filter((c) => c.type === 'Spaceship' && c.faction !== undefined);
-    const enemies = ships.filter((c) => c.faction !== faction).sort((a, b) => a.distance - b.distance);
+    const enemies = ships.filter((c) => isEnemyShip(c, faction)).sort((a, b) => a.distance - b.distance);
     const stations = ships
         .filter((c) => c.faction === faction && (c.radius ?? 0) >= STATION_RADIUS)
         .sort((a, b) => a.distance - b.distance);

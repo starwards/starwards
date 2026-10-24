@@ -2,7 +2,7 @@ import { Contact, Radar, offNose } from './verbal';
 import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './missile-envelope';
 
 import { Display } from './controls';
-import { Faction } from '@starwards/core/internal';
+import { isEnemyShip } from './enemy';
 
 /** The missile the reference loads: its envelope sets where the reference captain sends the ship. */
 const REFERENCE_MISSILE = 'HiExpMissile';
@@ -59,15 +59,6 @@ export function closeRange(distance: number, range: number) {
     return inLaunchEnvelope(distance, range)
         ? GUN_CLOSE_METERS
         : Math.max(MISSILE_MIN_LAUNCH_METERS, range - CLOSE_MARGIN_METERS);
-}
-
-/**
- * Whether a contact is an enemy ship of `own`: a ship whose faction is shown (only a contact scanned
- * to BASIC or better shows it) and is neither `own` nor the neutral Faction.NONE.
- */
-export function isEnemyShip(c: Pick<Contact, 'type' | 'faction'>, own: number | undefined): boolean {
-    const neutral: number = Faction.NONE;
-    return c.type === 'Spaceship' && c.faction !== undefined && c.faction !== neutral && c.faction !== own;
 }
 
 /** The nearest enemy ship the radar shows; an unidentified blip or a neutral is never called an enemy. */

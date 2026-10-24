@@ -3,6 +3,8 @@ import { BrainSpec } from './spec';
 import { Display } from './controls';
 import { Faction } from '@starwards/core/internal';
 import { calloutSaid } from './callout';
+import { focusTarget } from '../crew/orders';
+import { isEnemyShip } from './enemy';
 import { nearestEnemy } from './engagement';
 
 const ship = (id: string, faction: number | undefined, distance: number): Contact => ({
@@ -47,5 +49,19 @@ describe('an identified neutral (Faction.NONE) is no enemy', () => {
     it('lostContact does not report a vanished neutral', () => {
         const gone = seen();
         expect(calloutSaid(spec('lostContact'), 'c', gone, 'callout', neutralOnly)).toBeUndefined();
+    });
+
+    it('isEnemyShip rejects neutral, own, unidentified and non-ship contacts', () => {
+        expect(isEnemyShip({ type: 'Spaceship', faction: Faction.Raiders }, Faction.Gravitas)).toBe(true);
+        expect(isEnemyShip({ type: 'Spaceship', faction: Faction.NONE }, Faction.Gravitas)).toBe(false);
+        expect(isEnemyShip({ type: 'Spaceship', faction: Faction.Gravitas }, Faction.Gravitas)).toBe(false);
+        expect(isEnemyShip({ type: 'Spaceship' }, Faction.Gravitas)).toBe(false);
+        expect(isEnemyShip({ type: 'Asteroid', faction: Faction.Raiders }, Faction.Gravitas)).toBe(false);
+    });
+
+    it('focusTarget never focuses a neutral', () => {
+        expect(focusTarget({ targets: [{ name: 'hulk' }] }, display)).toBeUndefined();
+        expect(focusTarget({ pick: 'fastest_closing' }, display)?.name).toBe('raider');
+        expect(focusTarget({ pick: 'fastest_closing' }, neutralOnly)).toBeUndefined();
     });
 });
