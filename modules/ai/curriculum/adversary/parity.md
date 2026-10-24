@@ -27,7 +27,7 @@ nothing ordered for 180 s. 3 of 146 readouts differ.
 
 ### gun-burst
 
-every chain gun fires from 5 s to 35 s with the magazine kept full; 120 s in all. 4 of 146 readouts differ.
+every chain gun is set to fire from 5 s to 35 s with the magazine kept full; 120 s in all. NPC automation owns `isFiring` and clears it with no target, so the NPC does not fire: its gun readouts show an unfired gun, not a different rule. 4 of 146 readouts differ.
 
 | readout class | differing | examples (PC / NPC) |
 |---|---|---|
