@@ -149,8 +149,11 @@ export const REFERENCE_KNOB_DEFAULTS = {
      * the enemy); 0 never. Needs a captain brain with the `offensive`/`all_out` callouts.
      */
     LATE_STANCE_MODE: 0,
-    /** Seconds from which the late stance is set (wave 3 spawns at 960 s on W-waves; runs time out at 1500 s). */
-    LATE_STANCE_SECONDS: 1200,
+    /**
+     * Seconds from which the late stance is set. W-waves guard 2257-2512 (10th-90th pct): wave 3 spawns at
+     * 619-796 s, lost runs end at 1024-1211 s.
+     */
+    LATE_STANCE_SECONDS: 1020,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,

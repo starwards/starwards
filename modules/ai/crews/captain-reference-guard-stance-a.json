@@ -27,6 +27,6 @@
     ],
     "knobs": {
         "LATE_STANCE_MODE": 2,
-        "LATE_STANCE_SECONDS": 1200
+        "LATE_STANCE_SECONDS": 900
     }
 }
