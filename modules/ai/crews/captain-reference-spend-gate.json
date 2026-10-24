@@ -1,0 +1,34 @@
+{
+    "name": "captain-reference-spend-gate",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain.v17.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ],
+    "knobs": {
+        "FIRE_RANGE_METERS": 5000,
+        "STATION_GUARD_METERS": 2000,
+        "WAVE_SHELL_BUDGET": 0.7,
+        "SHELL_BUDGET_SECONDS": 690
+    }
+}

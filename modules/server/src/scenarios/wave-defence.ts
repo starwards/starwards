@@ -83,6 +83,8 @@ export interface WaveDefenceTuning {
     readonly hullScores: Readonly<Record<RaiderHull, number>>;
     /** Replaces {@link WAVE_INTERVAL_SECONDS}: the next wave spawns this long after the latest, whatever its state. */
     readonly waveIntervalSeconds: number;
+    /** The first wave spawned is this wave (default 1): a scenario cut starts the fight at a later wave's strength. */
+    readonly firstWave?: number;
 }
 
 /** Production balance. */
@@ -400,9 +402,12 @@ export function createWaveDefenceMap(
     { onWaveSpawned, onRaiderWrittenOff }: WaveDefenceHooks = {},
 ): GameMap {
     let game: GameApi;
-    let waveNumber = 0;
+    let waveNumber = (tuning.firstWave ?? 1) - 1;
     /** Per game, so each game's aggro noise differs; drawn once at init. */
     let noiseSeed = 0;
+    /** The wave stream: `rng` until a `reseed` branches it. */
+    let stream = rng;
+    const draw = () => stream();
     /** Every wave still holding at least one not-yet-gone raider; older waves are dropped once fully gone. */
     let liveWaves: { shipIds: string[] }[] = [];
     /** The most recently spawned wave's raider ids -- its clear-state alone drives `waveClearTimer` (waves may overlap; an older wave clearing late triggers nothing). */
@@ -496,12 +501,12 @@ export function createWaveDefenceMap(
         const alive = aliveStationIds();
         const playerPosition = game.getObject(PLAYER_SHIP_ID)?.position ?? XY.zero;
         const targetId = pickWaveTargetStationId(waveNumber, alive, stationPositionsById, playerPosition);
-        const spawnCenter = sampleWaveSpawnCenter(stationPositionsById[targetId], allStationPositions, rng);
+        const spawnCenter = sampleWaveSpawnCenter(stationPositionsById[targetId], allStationPositions, draw);
 
         let heavyId: string | undefined;
-        const shipIds = generateWaveSpecs(waveNumber, rng, tuning).map((spec, index) => {
+        const shipIds = generateWaveSpecs(waveNumber, draw, tuning).map((spec, index) => {
             const id = makeId();
-            const jitter = XY.byLengthAndDirection(rng() * SPAWN_JITTER_METERS, rng() * 360);
+            const jitter = XY.byLengthAndDirection(draw() * SPAWN_JITTER_METERS, draw() * 360);
             const ship = new Spaceship().init(id, Vec2.make(XY.add(spawnCenter, jitter)), spec.model, Faction.Raiders);
             const shipApi = game.addNpcSpaceship(ship);
             shipApi.state.flightDoctrine = spec.flightDoctrine;
@@ -539,7 +544,7 @@ export function createWaveDefenceMap(
         name: 'wave_defence',
         init: (g) => {
             game = g;
-            noiseSeed = Math.floor(rng() * 2 ** 32);
+            noiseSeed = Math.floor(draw() * 2 ** 32);
             game.addPlayerSpaceship(new Spaceship().init(PLAYER_SHIP_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas));
             for (const station of STATIONS) {
                 const stationApi = game.addNpcSpaceship(
@@ -563,6 +568,10 @@ export function createWaveDefenceMap(
                 game.addObject(new HazardCloud().init(cloud.id, Vec2.make(cloud.position), cloud.radius));
             }
             spawnWave();
+        },
+        reseed: (key) => {
+            stream = mulberry32(key);
+            noiseSeed = Math.floor(draw() * 2 ** 32);
         },
         update: (deltaSeconds) => {
             if (defeated || deltaSeconds <= 0) {

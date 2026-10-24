@@ -41,7 +41,7 @@ The entry point [`run-job.sh`](../../docker/training/run-job.sh) reads the job f
 
 | Variable                                       | Meaning                                                                                                                     |
 | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `JOB`                                          | `train`, `branch` (train this shard's seeds, then `branch corpus` over them), `suite`, `merge`                              |
+| `JOB`                                          | `train`, `branch` (train this shard's seeds, then `branch corpus` over them), `suite`, `waves`, `merge`                     |
 | `SCENARIO`, `CREWS`                            | rung; comma-separated crew files relative to `modules/ai` (`branch` and `suite` take the first)                             |
 | `FIRST_SEED`, `SEEDS_PER_SHARD`, `SHARDS`      | shard _i_ (`JOB_COMPLETION_INDEX`) plays seeds `FIRST_SEED + i·SEEDS_PER_SHARD` onwards; `SHARDS` = the Job's `completions` |
 | `WORKERS`                                      | worker processes in the pod (`--workers`)                                                                                   |
@@ -49,6 +49,7 @@ The entry point [`run-job.sh`](../../docker/training/run-job.sh) reads the job f
 | `TIMEOUT`, `BASELINE`, `HEAP_MB`, `EXTRA_ARGS` | run timeout; suite baseline; V8 heap cap per process (4096); extra CLI flags                                                |
 | `RUN_NAME`, `RUN_DATE`                         | run folder and archive day; default the Job's name and, for a CronJob, its scheduled day                                    |
 | `KEEP_SHARDS`                                  | `1` keeps `_shards/<day>/<run>/` after the merge                                                                            |
+| `SCENARIOS`, `KEEP_RECORDINGS`                 | `waves` (the paired eval queue below): comma-separated wave rungs/cuts; `1` keeps the shard's `.sgr` recordings             |
 
 Local run, archive in `./archive`:
 
@@ -66,6 +67,7 @@ docker run --rm -v "$PWD/archive:/training-archive" -e JOB=branch -e SCENARIO=T3
 | `train`              | `<day>/headless/<run>/`: `<crew>/<scenario>_seed<N>.sgr` + `.events.jsonl.zst`, `<scenario>-crews.md/json` over every seed     |
 | `branch`             | `<day>/branching/<run>-runs/` as above, `<day>/branching/<run>-corpus/`: `branches.jsonl`, `corpus.md`, `mine.md`              |
 | `suite`              | `<day>/suite/<crew>-<HHMMSS>/` (`suite.md/json`, per-level runs)                                                               |
+| `waves`              | `<day>/eval/<run>/shard-<i>/<scenario>-waves.json`, `runtime.json`, `done`; no merge, no manifest rebuild                      |
 | every run folder     | `runtime.json`: Node version and code commit; a merge refuses shards whose stamps differ                                       |
 | every job            | `<day>/manifest.jsonl` rebuilt by the image's `build_manifest.py`; every entry carries `node` from the `runtime.json` above it |
 | Jev answers          | `jev-cache/` (the CLIs' default cache path resolves there)                                                                     |
@@ -146,6 +148,35 @@ kubectl -n starwards-training run fetch --rm -i --image=busybox:1.37 --overrides
 A failed shard (after `backoffLimitPerIndex` retries) fails the Job and no merge happens; the other shards stay
 in `_shards/<day>/<run>/`. Re-run that seed range by hand into the same shard folder, then run `jobs/collect`
 with the run's name, day, scenario and kind.
+
+## Paired eval queue
+
+[`modules/ai/src/cluster/eval-queue.ts`](../../modules/ai/src/cluster/eval-queue.ts) runs "crew files ×
+seed range × wave scenarios" as one Indexed Job of 16-seed shards (`JOB=waves`): every shard plays every
+crew on the same seeds through `cli/waves.ts`, so rows pair by seed. Crews and the brains they name ship
+in a ConfigMap owned by the Job (mounted at `modules/ai/eval/`), so candidate crews need no image build.
+Pods follow the training rules (priority class, one per node), so shards queue behind the CronJobs.
+
+```bash
+npm --prefix modules/ai run eval-queue -- submit --crew crews/a.json --crew gen3/c17.json \
+  --scenarios W-waves,W-cut-intercept,W-cut-lof --bank held-out      # prints the Job name
+npm --prefix modules/ai run eval-queue -- status <job>
+npm --prefix modules/ai run eval-queue -- collect <job>... --out <dir> --wait
+npm --prefix modules/ai run composite -- score --results <dir> --baseline a
+```
+
+From code (a search runner): `submit({ crews, scenarios, firstSeed, seeds })` → `{ job }`;
+`collect(jobs, { wait: true })` → `{ runs, pending, failed }`, `runs[scenario]` being `WaveRun[]`.
+`EVAL_IMAGE` overrides the image. Timeout defaults to 1500 s with W-waves in the list, else 480 s.
+
+Seed banks ([`training/seed-banks.ts`](../../modules/ai/src/training/seed-banks.ts)): tuning 1–64,
+held-out 1001–1128 (promotion only; tuning never reads it).
+
+Selection metric ([`scoring/composite-fitness.ts`](../../modules/ai/src/scoring/composite-fitness.ts)):
+W-waves hold median and p10, intercept- and lof-cut capsule lost, each over its per-seed noise and weighted
+by its signal-to-noise against `idle` (`scoring/models/composite-weights.json`, `composite calibrate`), with
+paired bootstrap intervals; W-waves pass is a guard: at most 2 per 64 seeds the baseline passed and the
+candidate failed.
 
 ## Cost and the Jev cap
 

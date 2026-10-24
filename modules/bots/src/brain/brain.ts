@@ -34,6 +34,8 @@ export type Policy = {
         /** What the seat heard on the crew channel; a model reads it in the request instead. */
         heard?: readonly Heard[],
     ): Promise<Answers>;
+    /** The answers actually pressed at the last decision, when a wrapper changed some: its own tallies follow them. */
+    pressed?(answers: Readonly<Record<string, Answer>>): void;
 };
 
 /** One control's outcome at one decision, as recorded beside the game; `seat` is the member seat a fused brain decided it for. */

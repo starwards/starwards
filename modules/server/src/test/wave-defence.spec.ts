@@ -792,6 +792,18 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         expect(npcWaveIds().length).toBeGreaterThan(wave1Ids.length);
     });
 
+    it('firstWave: the first spawn is that wave, with its own composition', async () => {
+        const spawned: [number, number][] = [];
+        const map = createWaveDefenceMap(
+            () => 0,
+            { ...DEFAULT_WAVE_TUNING, firstWave: 4 },
+            { onWaveSpawned: (wave, shipIds) => spawned.push([wave, shipIds.length]) },
+        );
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        expect(spawned).toEqual([[4, generateWaveSpecs(4, () => 0).length]]);
+    });
+
     it('onWaveSpawned reports each wave number, its ship ids and the station it targets', async () => {
         const spawned: [number, readonly string[], string][] = [];
         const map = createWaveDefenceMap(() => 0, undefined, {
