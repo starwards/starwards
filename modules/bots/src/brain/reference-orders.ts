@@ -1,6 +1,6 @@
 import { CALLOUT_QUESTION, Heard, SILENCE, checkFireOf, hullStatusChange } from './callout';
 import { Contact, Radar } from './verbal';
-import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy } from './engagement';
+import { inLaunchEnvelope, isEnemyShip, launchRange, lockedContact, nearestEnemy } from './engagement';
 
 import { Answer } from './brain';
 import { BrainRequest } from './request';
@@ -56,20 +56,20 @@ function enemyInside(p: Picture) {
     return own === undefined ? undefined : own || wasHeard(p, 'weapons.in_envelope');
 }
 
-const isEnemyShip = (c: Contact | undefined, radar: Radar | undefined) =>
-    c !== undefined && c.type === 'Spaceship' && c.faction !== undefined && c.faction !== radar?.ownShip?.faction;
+const isEnemyOf = (c: Contact | undefined, radar: Radar | undefined) =>
+    c !== undefined && isEnemyShip(c, radar?.ownShip?.faction);
 
 /** Weapons: the enemy ship the lock holds now, if any. */
 function lockedEnemy(p: Picture) {
     const locked = lockedContact(p.display);
-    return isEnemyShip(locked, p.radar) ? locked : undefined;
+    return isEnemyOf(locked, p.radar) ? locked : undefined;
 }
 
 /** Weapons: whether the locked enemy is inside the envelope now (undefined without a lock). */
 function lockInEnvelope(display: Display | undefined, previous: Radar | undefined, seconds: number) {
     const locked = display && lockedContact(display);
     const radar = display?.radar as Radar | undefined;
-    return locked && isEnemyShip(locked, radar)
+    return locked && isEnemyOf(locked, radar)
         ? inLaunchEnvelope(locked.distance, launchRange(locked, radar, previous, seconds))
         : undefined;
 }
@@ -77,7 +77,7 @@ function lockInEnvelope(display: Display | undefined, previous: Radar | undefine
 /** Weapons: the enemy ship the lock held at the previous decision, when it holds no ship now and that ship is gone or unlocked. */
 function lostEnemy(p: Picture) {
     const before = p.previousDisplay && lockedContact(p.previousDisplay);
-    if (!before || !isEnemyShip(before, p.previous) || lockedContact(p.display)?.id === before.id) {
+    if (!before || !isEnemyOf(before, p.previous) || lockedContact(p.display)?.id === before.id) {
         return undefined;
     }
     // a lock moved on to another ship is a new lock, not a lost one
@@ -223,7 +223,7 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     /** Captain: weapons calls the line clear, and the board still holds check fire. */
     clear_to_fire: (p) => p.checkFireOrdered && lineFouled(p) === false,
     /** Captain: two or more enemy ships in sight, and the board holds no focus yet. */
-    focus: (p) => !p.focusOrdered && (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= 2,
+    focus: (p) => !p.focusOrdered && (p.radar?.contacts ?? []).filter((c) => isEnemyOf(c, p.radar)).length >= 2,
     /** Captain: fire discipline once it ordered an enemy engaged and the board holds no salvo yet. */
     salvo: (p) => p.engaged !== undefined && !p.salvoOrdered && nearestEnemy(p.radar) !== undefined,
     /**
