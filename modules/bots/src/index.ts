@@ -9,6 +9,14 @@ export { REFERENCE_KNOB_DEFAULTS, type ReferenceKnobs, setReferenceKnobs } from 
 export { type BrainRequest, buildRequest } from './brain/request';
 export { type BrainSpec, brainSpecSchema, loadBrainSpec } from './brain/spec';
 export { offNose, verbalReader } from './brain/verbal';
+export {
+    REFERENCE_HEADS,
+    RESIDUAL_HEADS,
+    type ResidualDecider,
+    type ResidualHeads,
+    makeResidualWeaponsPolicy,
+    setResidualWeaponsDecider,
+} from './brain/residual-weapons';
 export { SCRIPTED_SEAT_POLICIES, makeScriptedSeatPolicy } from './brain/weapons-policies';
 export { crewChannel } from './crew/channel';
 export * from './crew/orders';

@@ -11,6 +11,7 @@ import {
     loadBrainSpec,
     makeEngineerPolicy,
     makeHelmsPolicy,
+    makeResidualWeaponsPolicy,
     makeScriptedSeatPolicy,
     referenceSeat,
     setReferenceKnobs,
@@ -40,6 +41,7 @@ const crewConfigSchema = z
                     policy: z.enum([
                         'jev',
                         'reference',
+                        'residual-weapons',
                         'idle',
                         ...ENGINEER_POLICIES,
                         ...HELMS_POLICIES,
@@ -96,7 +98,8 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
         }
         if (seat.policy === 'reference') {
             const docks = Object.entries(config.knobs).filter(
-                ([knob, value]) => /^(DOCK_LOSING_(STATION_HP|ATTACK_SECONDS)|RESTOCK_FROM_SECONDS)$/.test(knob) && value > 0,
+                ([knob, value]) =>
+                    /^(DOCK_LOSING_(STATION_HP|ATTACK_SECONDS)|RESTOCK_FROM_SECONDS)$/.test(knob) && value > 0,
             );
             if (spec.station === 'captain' && docks.length && !('dock_for_repair' in (spec.callouts ?? {}))) {
                 throw new Error(
@@ -104,6 +107,17 @@ export function loadCrew(filePath: string, jevRequestsPerMinute?: number): CrewP
                 );
             }
             return { ...referenceSeat(spec), phaseSeconds: seat.phaseSeconds };
+        }
+        if (seat.policy === 'residual-weapons') {
+            if (spec.station !== 'weapons') {
+                throw new Error(`crew ${config.name}: residual-weapons plays weapons, not ${spec.station}`);
+            }
+            const reference = referenceSeat(spec);
+            return {
+                ...reference,
+                policy: makeResidualWeaponsPolicy(reference.policy),
+                phaseSeconds: seat.phaseSeconds,
+            };
         }
         const policy: Policy =
             seat.policy === 'jev'
