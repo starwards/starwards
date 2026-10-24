@@ -6,6 +6,7 @@ import {
     OUT_OF_PLAY_DISTANCE_METERS,
     OUT_OF_PLAY_SECONDS,
     STATIONS,
+    STATION_ATTACK_ANNOUNCE_COOLDOWN_SECONDS,
     WAVE_INTERVAL_SECONDS,
     WaveDefenceTuning,
     WaveShipSpec,
@@ -626,6 +627,81 @@ describe('wave_defence map (integration)', () => {
             gameDriver.gameManager.update(0);
         }
         expect(npcWaveIds()).toHaveLength(0); // still no wave 2, no matter how many paused ticks pass
+    });
+});
+
+describe('station banners (M4.59)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    async function waitForShipManagersGone(ids: readonly string[]) {
+        for (let i = 0; i < 200 && ids.some((id) => gameDriver.shipManagers.has(id)); i++) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+    }
+
+    function history() {
+        return gameDriver.gameManager.state.messageHistory.map((m) => m.text);
+    }
+
+    function hitStation(id: string) {
+        const layer = gameDriver.getShip(id).state.armor.armorPlates[0].layers[0];
+        layer.health = Math.max(0, layer.health - 1);
+    }
+
+    it('announces every station lost when several die in the same tick', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+        gameDriver.gameManager.update(1 / 20);
+        expect(history().filter((t) => t.startsWith('Station'))).toEqual([]);
+
+        gameDriver.spaceManager.destroyObject('station-large');
+        gameDriver.spaceManager.destroyObject('station-small');
+        gameDriver.gameManager.update(1 / 20); // drains destroy commands
+        await waitForShipManagersGone(['station-large', 'station-small']);
+        gameDriver.gameManager.update(1 / 20);
+
+        const lost = history().filter((t) => t.startsWith('Station lost'));
+        expect(lost).toHaveLength(2);
+        expect(lost).toEqual(expect.arrayContaining(['Station lost: station-large', 'Station lost: station-small']));
+    });
+
+    it('announces all three losses, queued rather than replaced, before the defeat message', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+        gameDriver.gameManager.update(1 / 20);
+        for (const station of STATIONS) {
+            gameDriver.spaceManager.destroyObject(station.id);
+        }
+        gameDriver.gameManager.update(1 / 20);
+        await waitForShipManagersGone(STATIONS.map((s) => s.id));
+        gameDriver.gameManager.update(1 / 20);
+
+        const lost = history().filter((t) => t.startsWith('Station lost'));
+        expect(lost).toHaveLength(STATIONS.length);
+        expect(history().some((t) => t.startsWith('Defeat'))).toBe(true);
+        expect(gameDriver.gameManager.state.speed).toEqual(0);
+    });
+
+    it('announces a station under attack once per cooldown window, per station', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+        gameDriver.gameManager.update(1 / 20); // baseline armor health recorded
+        const attacks = () => history().filter((t) => t.startsWith('Station under attack'));
+        expect(attacks()).toEqual([]);
+
+        hitStation('station-large');
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks()).toEqual(['Station under attack: station-large']);
+
+        hitStation('station-large'); // inside the cooldown
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks()).toHaveLength(1);
+
+        hitStation('station-small'); // other station is independent
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks()).toHaveLength(2);
+
+        gameDriver.gameManager.update(STATION_ATTACK_ANNOUNCE_COOLDOWN_SECONDS);
+        hitStation('station-large');
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks().filter((t) => t.endsWith('station-large'))).toHaveLength(2);
     });
 });
 

@@ -9,6 +9,7 @@ import {
     Nebula,
     PowerLevel,
     ShipModel,
+    ShipState,
     Spaceship,
     Vec2,
     XY,
@@ -383,6 +384,20 @@ const stationPositionsById: Readonly<Record<string, XY>> = Object.fromEntries(
 const allStationPositions = STATIONS.map((station) => station.position);
 
 /** Why the scenario wrote a raider off (issue #2233). */
+/** Minimum game-seconds between "station under attack" announcements for the same station (M4.59). */
+export const STATION_ATTACK_ANNOUNCE_COOLDOWN_SECONDS = 60;
+
+/** Sum of every armor layer's health: drops when the ship takes a hit that the armor absorbs. */
+function totalArmorHealth(ship: ShipState): number {
+    let total = 0;
+    for (const plate of ship.armor.armorPlates) {
+        for (const layer of plate.layers) {
+            total += layer.health;
+        }
+    }
+    return total;
+}
+
 export type WriteOffReason = 'cant-fight' | 'out-of-play';
 
 /** Observation hooks for headless harnesses; they never change play. */
@@ -429,6 +444,42 @@ export function createWaveDefenceMap(
      * orderTargetId=null) (issue #2241).
      */
     const pendingInitialOrderTicks = new Map<string, number>();
+
+    /** Stations seen alive on a previous tick; null until the first tick. Used to announce losses (M4.59). */
+    let knownAliveStationIds: Set<string> | null = null;
+    const lastStationArmorHealth = new Map<string, number>();
+    /** Seconds remaining before a station may be announced as under attack again. */
+    const stationAttackCooldown = new Map<string, number>();
+
+    /** Announces stations lost since the last tick, and stations whose armor took damage (rate-limited per station). */
+    function announceStationEvents(alive: readonly string[], deltaSeconds: number) {
+        if (knownAliveStationIds) {
+            for (const id of knownAliveStationIds) {
+                if (!alive.includes(id)) {
+                    game.pushMessage(`Station lost: ${id}`);
+                    lastStationArmorHealth.delete(id);
+                    stationAttackCooldown.delete(id);
+                }
+            }
+        }
+        knownAliveStationIds = new Set(alive);
+        for (const id of alive) {
+            const ship = game.getShip(id);
+            if (!ship) {
+                continue;
+            }
+            const cooldown = Math.max(0, (stationAttackCooldown.get(id) ?? 0) - deltaSeconds);
+            const health = totalArmorHealth(ship.state);
+            const previous = lastStationArmorHealth.get(id);
+            lastStationArmorHealth.set(id, health);
+            if (previous !== undefined && health < previous && cooldown === 0) {
+                game.pushMessage(`Station under attack: ${id}`);
+                stationAttackCooldown.set(id, STATION_ATTACK_ANNOUNCE_COOLDOWN_SECONDS);
+            } else {
+                stationAttackCooldown.set(id, cooldown);
+            }
+        }
+    }
 
     function aliveStationIds(): string[] {
         return STATIONS.filter((station) => !!game.getShip(station.id)).map((station) => station.id);
@@ -579,6 +630,7 @@ export function createWaveDefenceMap(
             }
 
             const alive = aliveStationIds();
+            announceStationEvents(alive, deltaSeconds);
             if (!alive.length) {
                 game.setMessage(`Defeat: every station was lost during wave ${waveNumber}.`);
                 game.setSpeed(0);
