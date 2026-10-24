@@ -6,10 +6,11 @@ Crew `captain-reference` fixed; only the raider varies. Seeds 1-3, timeout 1500 
 
 | profile | runs | passes | pass rate | 95% CI | median s | mean run value | mean waves survived |
 |---|---|---|---|---|---|---|---|
-| today | 3 | 2 | 67% | 21%-94% | 1344 | 0.014 | 2.67 |
-| intercept | 3 | 0 | 0% | 0%-56% | 1500 | -0.099 | 2.00 |
-| shadow | 3 | 3 | 100% | 44%-100% | 1271 | 0.103 | 3.00 |
-| noweave | 3 | 3 | 100% | 44%-100% | 1235 | 0.224 | 3.00 |
+| today | 3 | 1 | 33% | 6%-79% | 1500 | -0.115 | 2.33 |
+| intercept | 3 | 2 | 67% | 21%-94% | 1344 | 0.025 | 2.67 |
+| standoff | 3 | 2 | 67% | 21%-94% | 1344 | 0.025 | 2.67 |
+| shadow | 3 | 1 | 33% | 6%-79% | 1500 | 0.015 | 2.33 |
+| noweave | 3 | 1 | 33% | 6%-79% | 1500 | 0.064 | 2.33 |
 
 ## Raider fingerprints (pooled over runs)
 
@@ -17,16 +18,18 @@ Range is to the engaged target, in km; the table shows the share of raider-time 
 
 | profile | raiders | raider-s | 0-0.5 | 0.5-1 | 1-2 | 2-3 | 3-5 | 5-8 | 8-15 | 15-50 | 50+ | mean speed m/s | fire duty | switches/min | hits | on broken plates |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| today | 44 | 18423 | 0% | 1% | 7% | 6% | 23% | 1% | 3% | 18% | 41% | 392 | 27% | 0.09 | 12239 | 99% |
-| intercept | 58 | 25672 | 0% | 6% | 14% | 4% | 21% | 2% | 4% | 17% | 32% | 396 | 24% | 0.12 | 13236 | 89% |
-| shadow | 37 | 16168 | 0% | 0% | 9% | 23% | 2% | 2% | 3% | 17% | 44% | 396 | 30% | 0.09 | 15166 | 99% |
-| noweave | 37 | 15588 | 0% | 1% | 2% | 6% | 24% | 3% | 3% | 17% | 45% | 357 | 30% | 0.12 | 12682 | 99% |
+| today | 51 | 24505 | 0% | 1% | 7% | 16% | 22% | 3% | 5% | 15% | 32% | 384 | 28% | 0.13 | 16131 | 99% |
+| intercept | 44 | 18973 | 0% | 1% | 6% | 5% | 25% | 2% | 4% | 17% | 39% | 395 | 29% | 0.13 | 13831 | 98% |
+| standoff | 44 | 18973 | 0% | 1% | 6% | 5% | 25% | 2% | 4% | 17% | 39% | 395 | 29% | 0.13 | 13831 | 98% |
+| shadow | 51 | 22529 | 0% | 1% | 17% | 20% | 4% | 2% | 4% | 15% | 36% | 411 | 24% | 0.11 | 13182 | 99% |
+| noweave | 51 | 23886 | 0% | 0% | 6% | 16% | 21% | 3% | 6% | 15% | 32% | 376 | 26% | 0.16 | 12792 | 99% |
 
 ## Range separation (total variation, 0 identical to 1 disjoint; below 0.1 the profiles are not told apart by range)
 
-| | today | intercept | shadow | noweave |
-|---|---|---|---|---|
-| today | . | 0.14 | 0.23 | 0.06 |
-| intercept | 0.14 | . | 0.31 | 0.18 |
-| shadow | 0.23 | 0.31 | . | 0.24 |
-| noweave | 0.06 | 0.18 | 0.24 | . |
+| | today | intercept | standoff | shadow | noweave |
+|---|---|---|---|---|---|
+| today | . | 0.13 | 0.13 | 0.19 | 0.02 |
+| intercept | 0.13 | . | 0.00 | 0.26 | 0.14 |
+| standoff | 0.13 | 0.00 | . | 0.26 | 0.14 |
+| shadow | 0.19 | 0.26 | 0.26 | . | 0.20 |
+| noweave | 0.02 | 0.14 | 0.14 | 0.20 | . |
