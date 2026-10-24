@@ -62,6 +62,9 @@ const scenes = [
     'engineering-status-full-energy',
     'engineering-status-hull-ok',
     'engineering-status-hull-damaged',
+    // GM Broadcast
+    'gm-broadcast-empty',
+    'gm-broadcast-history',
     // GM Radar
     'gm-radar-empty',
     'gm-radar-ships',

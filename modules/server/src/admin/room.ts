@@ -4,6 +4,7 @@ import {
     RegisterStationArg,
     assignBot,
     assignStation,
+    broadcastMessage,
     cmdReceiver,
     createLogger,
     handleJsonPointerCommand,
@@ -89,6 +90,7 @@ export class AdminRoom extends Room<{ state: AdminState }> {
         );
         this.onMessage(assignStation.cmdName, cmdReceiver(manager, assignStation));
         this.onMessage(assignBot.cmdName, cmdReceiver(manager, assignBot));
+        this.onMessage(broadcastMessage.cmdName, cmdReceiver(manager, broadcastMessage));
         this.onMessage(resetAssignments.cmdName, cmdReceiver(manager, resetAssignments));
     }
 
