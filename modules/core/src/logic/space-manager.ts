@@ -14,8 +14,9 @@ import {
     EPSILON,
     FieldOfView,
     Tuple2,
+    WHOLE_RIM_ARC,
     addScale,
-    circlesIntersection,
+    circlesOverlapArc,
     limitPercision,
     moveToTarget,
     predictInterceptPoint,
@@ -989,6 +990,9 @@ export class SpaceManager implements Updateable {
                             this.handleShipCollisionDamage(deltaSeconds, res.damageAmount, subject, object, response);
                         } else if (Asteroid.isInstance(subject)) {
                             subject.health -= res.damageAmount;
+                            if (Explosion.isInstance(object)) {
+                                object.hitObjectIds.add(subject.id);
+                            }
                         }
                     }
                 }
@@ -1091,10 +1095,8 @@ export class SpaceManager implements Updateable {
             // integral made the outcome a function of shell speed and target diameter instead of
             // the warhead (issue #2236). The impulse below is unrelated physical pushback and
             // keeps accruing every tick of physical overlap, same as before.
+            // the target is only marked as hit once the damage has actually been applied
             const alreadyDetonatedOnTarget = object.hitObjectIds.has(subject.id);
-            if (!alreadyDetonatedOnTarget) {
-                object.hitObjectIds.add(subject.id);
-            }
             return {
                 damageAmount: alreadyDetonatedOnTarget ? 0 : object.damageFactor,
                 positionChange: null,
@@ -1135,20 +1137,18 @@ export class SpaceManager implements Updateable {
         object: SpaceObject,
         response: SWResponse,
     ) {
-        const damageBoundries = circlesIntersection(subject, this.damageFootprint(object));
-        if (damageBoundries) {
-            const shipLocalDamageBoundries: [XY, XY] = [
-                subject.globalToLocal(XY.difference(damageBoundries[0], subject.position)),
-                subject.globalToLocal(XY.difference(damageBoundries[1], subject.position)),
-            ];
-            const shipLocalDamageAngles: Tuple2 = [
-                limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
-                limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
-            ];
+        const arc = circlesOverlapArc(subject, this.damageFootprint(object));
+        if (arc) {
             const damage: Damage = {
                 id: object.id,
                 amount: damageAmount,
-                damageSurfaceArc: shipLocalDamageAngles,
+                damageSurfaceArc:
+                    arc === WHOLE_RIM_ARC
+                        ? arc
+                        : [
+                              limitPercision(toPositiveDegreesDelta(arc[0] - subject.angle)),
+                              limitPercision(toPositiveDegreesDelta(arc[1] - subject.angle)),
+                          ],
                 damageDurationSeconds: deltaSeconds,
                 damageType: object.damageType,
                 delivery: Explosion.isInstance(object) ? 'explosion' : 'impact',
@@ -1160,6 +1160,9 @@ export class SpaceManager implements Updateable {
                 this.objectDamage.set(subject.id, [damage]);
             } else {
                 objectDamage.push(damage);
+            }
+            if (Explosion.isInstance(object)) {
+                object.hitObjectIds.add(subject.id);
             }
         } else {
             logError(

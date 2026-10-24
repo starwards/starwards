@@ -1,11 +1,18 @@
 import { Assets, Container, Graphics, Texture, UPDATE_PRIORITY } from 'pixi.js';
 import {
     ChainGun,
+    Faction,
+    ScanLevel,
     ShipState,
+    SpaceDriver,
+    SpaceObject,
     XY,
     degToRad,
     getShellExplosionLocation,
     getTargetLocationAtShellExplosion,
+    isMissile,
+    missileTargetLines,
+    playerScanLevel,
 } from '@starwards/core';
 
 import { radar, selectionColor } from '../colors';
@@ -148,4 +155,39 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
     stage.addChild(speedLineLayer.renderRoot);
     stage.addChild(targetSpeedLineLayer.renderRoot);
     return stage;
+}
+
+/** Lines from each missile the faction holds at FULL scan, and `isShown` admits, to its current target (M4.44). */
+export function missileTargetLinesLayer(
+    root: CameraView,
+    spaceDriver: SpaceDriver,
+    playerFaction: Faction | undefined,
+    isShown: (o: SpaceObject) => boolean,
+) {
+    const graphics = new Graphics();
+    // lazy: the cheap missile and scan-level checks run before the radar's own range test
+    function* shownMissiles() {
+        for (const o of spaceDriver.state.getAll('Projectile')) {
+            if (isMissile(o) && playerScanLevel(o, playerFaction) >= ScanLevel.FULL && isShown(o)) {
+                yield o;
+            }
+        }
+    }
+    root.ticker.add(
+        () => {
+            graphics.clear();
+            const lines = missileTargetLines(shownMissiles(), (id) => spaceDriver.state.get(id), playerFaction);
+            for (const [from, to] of lines) {
+                const fromScreen = root.worldToScreen(from);
+                const toScreen = root.worldToScreen(to);
+                graphics.moveTo(fromScreen.x, fromScreen.y).lineTo(toScreen.x, toScreen.y);
+            }
+            if (lines.length) {
+                graphics.stroke({ width: 1, color: radar.missileTargetLine, alpha: 0.6 });
+            }
+        },
+        null,
+        UPDATE_PRIORITY.LOW,
+    );
+    return graphics;
 }

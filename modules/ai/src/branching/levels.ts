@@ -10,6 +10,7 @@ import {
     Policy,
     SILENCE,
     SeatPlan,
+    isEnemyShip,
     missileLaunchRange,
     orderCommand,
     orderFromCallout,
@@ -427,9 +428,7 @@ function onlyEnemy(display: Display, name: string): Display {
         ...display,
         radar: {
             ...radar,
-            contacts: radar.contacts.filter(
-                (c) => !(c.type === 'Spaceship' && c.faction !== undefined && c.faction !== faction && c.name !== name),
-            ),
+            contacts: radar.contacts.filter((c) => !(isEnemyShip(c, faction) && c.name !== name)),
         },
     };
 }

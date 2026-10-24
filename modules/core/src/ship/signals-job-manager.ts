@@ -183,7 +183,10 @@ export class SignalsJobManager implements Updateable {
         const jobs = this.state.signals.jobs;
         let active: SignalsJob | undefined;
         for (const job of jobs) {
-            const progressable = this.isJobWorkable(job) && (this.canProgress(job) || this.beamOffSeconds.has(job.id));
+            const workable = this.isJobWorkable(job);
+            const beamCovered = this.canProgress(job) || this.beamOffSeconds.has(job.id);
+            const progressable = workable && beamCovered;
+            job.needsBeam = workable && !beamCovered;
             if (progressable && !active) {
                 active = job;
                 job.status = JobStatus.IN_PROGRESS;

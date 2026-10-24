@@ -182,6 +182,13 @@ the rendered widget a few pixels and asserts the snapshot assertion fails. Addin
 `scenes` list adds both tests; nothing else is needed. That guard is skipped under
 `--update-snapshots=all|changed`, which would otherwise rewrite the baseline from the perturbed render.
 
+**Every station widget needs a gallery scene.** `modules/browser/test/gallery-coverage.spec.ts` fails when a widget
+imported by a `screens/` module is not imported by any `gallery/scenes/` file, unless it is listed in that file's
+`exempt` map with a reason (today: GM golden-layout dashboard widgets and non-widget helpers). A new widget therefore
+ships with a scene registered in `gallery/scenes/index.ts`, its name added to the `scenes` list in `gallery.spec.ts`
+(a test there fails if the registered scenes and that list differ), and baselines for both projects. A widget driven by a
+timer loop needs `await settle()` (`gallery/mocks/fixtures.ts`) at the end of its scene setup, or the screenshot races the loop.
+
 After an intentional widget change, regenerate both projects:
 
 ```bash

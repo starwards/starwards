@@ -1,4 +1,4 @@
-import { Projectile, cataphract, demoShip, makeShipState } from '@starwards/core';
+import { Faction, Projectile, ScanLevel, SpaceObject, cataphract, demoShip, makeShipState } from '@starwards/core';
 import {
     createMockAsteroid,
     createMockExplosion,
@@ -30,6 +30,22 @@ function createShipWithState(id: string, x = 0, y = 0, angle = 0, radarRange = R
         radar.power = 1;
     }
     return state;
+}
+
+function missileAt(id: string, position: { x: number; y: number }, targetId: string, level: ScanLevel) {
+    const m = new Projectile('HiExpMissile');
+    m.id = id;
+    m.position.x = position.x;
+    m.position.y = position.y;
+    m.radius = 10;
+    m.targetId = targetId;
+    m.scanLevels[Number(Faction.Gravitas)] = level;
+    return m;
+}
+
+function withScan<T extends SpaceObject>(o: T, level: ScanLevel) {
+    o.scanLevels[Number(Faction.Gravitas)] = level;
+    return o;
 }
 
 export const tacticalRadarScenes: Record<string, Scene> = {
@@ -143,6 +159,36 @@ export const tacticalRadarScenes: Record<string, Scene> = {
 
             const mockContainer = createMockContainer(container);
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, enemyShip, shell1, shell2, shell3]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: RANGE,
+            });
+        },
+    },
+
+    'tactical-radar-missile-target-lines': {
+        name: 'tactical-radar-missile-target-lines',
+        description:
+            'Missile target lines: a FULL missile draws a line to its target (here the player ship); a ' +
+            'SNAPSHOT missile draws none; a FULL missile aimed at a ship beyond radar reach still draws ' +
+            "its line to the target's true position - a FULL scan reads the guidance (intended)",
+        async setup(container: HTMLElement) {
+            const playerShip = createShipWithState('player', 0, 0, 0);
+            const farEnemy = withScan(
+                createMockShip({ id: 'far-enemy', position: { x: 9000, y: 3500 }, faction: 1 }),
+                ScanLevel.BASIC,
+            );
+            const objects = [
+                playerShip.spaceship,
+                farEnemy,
+                missileAt('full-on-player', { x: -2000, y: 1500 }, 'player', ScanLevel.FULL),
+                missileAt('snapshot-on-player', { x: -2000, y: -1500 }, 'player', ScanLevel.SNAPSHOT),
+                missileAt('full-on-unseen', { x: 1500, y: 1200 }, 'far-enemy', ScanLevel.FULL),
+            ];
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver(objects);
             const mockShipDriver = createMockShipDriver(playerShip);
 
             return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {

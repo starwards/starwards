@@ -1,12 +1,13 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { isBinaryRecording, sidecarName, waitFor } from '@starwards/core/internal';
+import { isBinaryRecording, sidecarName, waitFor, zstSidecarName } from '@starwards/core/internal';
 import { test_map_1, two_vs_one } from '../maps';
 
 import { HTTP_CONFLICT_STATUS } from '../server';
 import { makeDriver } from './driver';
 import supertest from 'supertest';
+import { zstdCompressSync } from 'node:zlib';
 
 const HTTP_BAD_REQUEST_STATUS = 400;
 const HTTP_NOT_FOUND_STATUS = 404;
@@ -55,7 +56,7 @@ describe('recording HTTP API (issue #2101)', () => {
     it('POST /start-game records the game from its start', async () => {
         gameDriver.pauseGameCommand();
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
-        const recordingName = await recordingOf('test_map_1');
+        const recordingName = await framedRecordingOf('test_map_1');
         expect(recordingName).toMatch(/^test_map_1_\d+\.sgr$/);
 
         const stopRes = await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
@@ -194,5 +195,22 @@ describe('recording HTTP API (issue #2101)', () => {
         for (const bad of ['a.jsonl', '.events.jsonl', '..%2Fa.events.jsonl']) {
             await supertest(gameDriver.httpServer).get(`/recordings/${bad}`).expect(HTTP_BAD_REQUEST_STATUS);
         }
+
+        await fs.rm(path.join(gameDriver.recordingsDir, events));
+        const zst = zstSidecarName(name);
+        const compressed = zstdCompressSync(line);
+        await fs.writeFile(path.join(gameDriver.recordingsDir, zst), compressed);
+        expect(await list()).toMatchObject({ name, events: zst });
+        const zstRes = await supertest(gameDriver.httpServer)
+            .get(`/recordings/${zst}`)
+            .buffer(true)
+            .parse((r, cb) => {
+                const chunks: Buffer[] = [];
+                r.on('data', (c: Buffer) => chunks.push(c));
+                r.on('end', () => cb(null, Buffer.concat(chunks)));
+            })
+            .expect(200);
+        expect(zstRes.headers['content-type']).toMatch(/application\/zstd/);
+        expect(Buffer.compare(zstRes.body as Buffer, compressed)).toBe(0);
     });
 });

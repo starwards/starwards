@@ -1,15 +1,13 @@
-import './serialization/detach-state-buffers';
-
 import * as http from 'http';
 import * as maps from './maps';
 import * as path from 'path';
 
+import { EVENTS_ZST_EXT, SavedGame, createLogger } from '@starwards/core/internal';
 import { GameRecorder, RecordingConflictError, isRecordingFileName } from './recording/game-recorder';
 import { NextFunction, Request, Response } from 'express';
 import { SEA_MONITOR_PREFIX, SEA_STATIC_PREFIX, isSingleExecutable, writableDefault } from './app-paths';
-import { SavedGame, createLogger } from '@starwards/core/internal';
 import { Server, matchMaker } from '@colyseus/core';
-import { schemaToString, stringToSchema } from './serialization/game-state-serialization';
+import { savedGameToSchema, schemaToSavedGame, stringToSchema } from './serialization/game-state-serialization';
 
 import { AddressInfo } from 'node:net';
 import { AdminRoom } from './admin/room';
@@ -61,6 +59,8 @@ export function recordingIntervalMs(env: Record<string, string | undefined> = pr
 export const HTTP_CONFLICT_STATUS = 409;
 const HTTP_BAD_REQUEST_STATUS = 400;
 const HTTP_NOT_FOUND_STATUS = 404;
+/** Largest saved game file `/load-game` accepts. */
+const SAVED_GAME_LIMIT = '256mb';
 const HTTP_INTERNAL_SERVER_ERROR_STATUS = 500;
 export async function server(
     port: number,
@@ -184,7 +184,7 @@ export async function server(
             res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             return;
         }
-        res.type('text/plain');
+        res.type(name.endsWith(EVENTS_ZST_EXT) ? 'application/zstd' : 'text/plain');
         // `root`, not a joined path: express refuses any path with a hidden segment, and the default
         // recordings directory is `.recordings`
         res.sendFile(name, { root: recordingsDir }, (err) => {
@@ -213,7 +213,7 @@ export async function server(
         asyncHandler(async (_, res) => {
             const gameState = manager.saveGame();
             if (gameState) {
-                res.send(await schemaToString(gameState));
+                res.type('application/octet-stream').send(await schemaToSavedGame(gameState));
             } else {
                 logError(`can't save game when no game is running`);
                 res.sendStatus(HTTP_CONFLICT_STATUS);
@@ -223,11 +223,23 @@ export async function server(
 
     app.post(
         '/load-game',
+        express.raw({ type: 'application/octet-stream', limit: SAVED_GAME_LIMIT }) as express.RequestHandler,
         asyncHandler(async (req, res) => {
+            // a saved game file as is (either format), or the older JSON `{ data }` of its text form
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { data } = req.body;
-            if (typeof data === 'string') {
-                const savedGameData = await stringToSchema(SavedGame, data);
+            const file: Uint8Array | undefined = Buffer.isBuffer(req.body) ? req.body : undefined;
+            if (file || typeof data === 'string') {
+                const savedGameData = await (
+                    file ? savedGameToSchema(SavedGame, file) : stringToSchema(SavedGame, data as string)
+                ).catch((e: unknown) => {
+                    logError(`can't read saved game:`, e);
+                    return null;
+                });
+                if (!savedGameData) {
+                    res.sendStatus(HTTP_BAD_REQUEST_STATUS);
+                    return;
+                }
                 const map = mapsMap.get(savedGameData.mapName);
                 if (map) {
                     await manager.loadGame(savedGameData, map);

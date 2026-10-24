@@ -548,10 +548,7 @@ body:not([data-input='none']) .tp-ckbv_i[data-checked='false'] + .tp-ckbv_w::aft
     padding-right: 2px;
 }
 
-/* repair queue on a display station: the active repair on top, then per slot a line of number, name and run time, and a dim line of details and priority; the bar joins only while a repair runs */
-[data-id='Repair Queue'] > .tp-rotv_c {
-    counter-reset: sw-slot;
-}
+/* repair queue on a display station: the active repair on top, then per slot a line of hotkey, name, priority badge and run time, and a dim line of details and priority; the bar joins only while a repair runs */
 [data-id='Repair Queue'] > .tp-rotv_c > .tp-lblv-nol {
     margin-bottom: var(--sw-pad);
 }
@@ -559,17 +556,16 @@ body[data-input='none'] [data-id='Repair Queue'] {
     --tp-container-unit-size: 18px;
     --tp-container-vertical-padding: 1px;
 }
-body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
-    counter-increment: sw-slot;
-}
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b {
     min-height: 18px;
     gap: var(--sw-pad);
     border-bottom-color: transparent;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::before {
-    content: counter(sw-slot, decimal-leading-zero);
+    content: attr(data-key);
     flex: none;
+    width: 1ch;
+    text-align: center;
     font-family: var(--sw-font-value);
     font-weight: 400;
     letter-spacing: 0;
@@ -586,6 +582,32 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_b::after {
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv {
     border-bottom: 1px solid #0f262b;
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-badge {
+    flex: none;
+    font-family: var(--sw-font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--sw-accent);
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-badge[data-priority='RUNNING'] {
+    color: var(--sw-caution);
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-notice {
+    grid-column: 1 / -1;
+    font-family: var(--sw-font-label);
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    color: var(--sw-caution);
+}
+body[data-input='none'] [data-id='Repair Queue'] .sw-repair-notice[hidden] {
+    display: none;
+}
+[data-id='Repair Queue'] .sw-up-next > .tp-lblv_v input {
+    text-align: left;
 }
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c {
     display: grid;
@@ -612,23 +634,13 @@ body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv > .tp-lbl
     width: 100%;
     min-width: 0;
 }
+body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child {
+    grid-column: 1 / -1;
+}
 body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:first-child input {
     text-align: left;
     font-size: 11px;
     color: var(--sw-dim);
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-fldv_c > .tp-lblv:nth-child(2) {
-    width: 72px;
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority] input {
-    font-size: 12px;
-    color: var(--sw-dim);
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority]:not([data-priority='OFF']) input {
-    color: var(--sw-accent);
-}
-body[data-input='none'] [data-id='Repair Queue'] .tp-lblv[data-priority='RUNNING'] input {
-    color: var(--sw-caution);
 }
 
 /* systems tables: bars carry the value, the digits would only crowd the row */
@@ -938,6 +950,22 @@ body[data-input='none']
 :root [data-inline][data-status='WARN'] .tp-sldv_k::before {
     background: var(--sw-caution);
     box-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
+}
+
+:root [data-inline][data-status='ERROR'] {
+    background: transparent;
+    --tp-label-foreground-color: var(--sw-label);
+}
+:root [data-inline][data-status='ERROR'] .tp-lblv_l {
+    color: var(--sw-label);
+}
+:root [data-inline][data-status='ERROR'] input {
+    color: var(--sw-warning);
+}
+
+/* ammo rows carry a "LOW n/max" count, wider than the plain count the other inline rows show */
+:root .tp-lblv[data-inline].sw-ammo-row {
+    grid-template-columns: minmax(0, 1fr) 56px 88px;
 }
 
 /* radar header: what the radar shows, and whose it is */

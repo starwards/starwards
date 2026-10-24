@@ -265,3 +265,29 @@ Two on-disk formats, told apart by the first bytes; every reader accepts both th
 - Node readers: `readRecords` (`modules/server/src/recording/recording-file.ts`), streaming; `payloads: false` skips inflating text frames when only counting.
 - Browser reader: `parseRecords` (`modules/browser/src/replay/read-records.ts`, zstd via `fzstd`).
 - Convert old files (recursive, idempotent, verified round-trip before replacing, `--out` to keep originals, `--dry-run` for the size saving): `npm --prefix modules/server run migrate-recordings -- <file|dir> [--out <dir>] [--dry-run]`.
+
+### Event sidecars
+
+Events beside a recording `x.sgr` live in a sidecar; both extensions occur, because `HeadlessRecorder` writes the
+compressed one and the live `GameRecorder` still appends the plain one.
+
+| File | Layout | Written by |
+| --- | --- | --- |
+| `x.events.jsonl` | one `RecordingEventLine` JSON per line | `GameRecorder` (live server) |
+| `x.events.jsonl.zst` | the same lines, as a plain run of zstd frames (one per append, ~1 MB of text each); `zstd -dc` reads it. No length prefix, unlike the `.sgr` binary chunks | `HeadlessRecorder` (training runs) |
+
+- Node readers: `findSidecar` (prefers `.zst`), `readSidecar` / `readSidecarLines` / `streamSidecarLines` (`modules/server/src/recording/sidecar-file.ts`). They split the file into frames themselves and decompress each on its own, since Node's zstd decoder may stop after the first frame; a truncated last frame is dropped.
+
+## Saved Game File Formats (`.ssg`)
+
+`POST /save-game` returns, and `POST /load-game` accepts, a saved game file; the dev-server snapshot (`STARWARDS_RESTORE`) uses the same files. Two formats, told apart by the first bytes; every reader accepts both.
+
+|                   | Text (older)                                             | Binary (written today)                                                                |
+| ----------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Starts with       | a base64 character                                       | magic `SGS\x01` (`SAVED_GAME_MAGIC`)                                                  |
+| Layout            | base64 of a gzipped Colyseus snapshot (`schemaToString`) | magic, snapshot length (u32 LE), zstd frame of the raw snapshot (`schemaToSavedGame`) |
+| Truncated/corrupt | gzip error                                               | length mismatch or zstd error                                                         |
+
+- Node readers: `savedGameToSchema` / `savedGameToBytes` (`modules/server/src/serialization/game-state-serialization.ts`). `/load-game` takes the file as an `application/octet-stream` body (or, for the text form, JSON `{ data }`) and answers 400 for an unreadable file.
+- Browser: `AdminDriver.saveGame()` returns the file's bytes and `loadGame(bytes)` posts them as is; the server does the decompression.
+- Convert old files (recursive, idempotent, verified identical snapshot before replacing, `--out` to keep originals, `--dry-run` for the size saving): `npm --prefix modules/server run migrate-saved-games -- <file|dir> [--out <dir>] [--dry-run]`.

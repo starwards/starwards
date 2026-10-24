@@ -12,6 +12,7 @@ import glob
 import gzip
 import json
 import os
+import subprocess
 import sys
 
 day, commit = sys.argv[1], sys.argv[2]
@@ -71,19 +72,27 @@ def node_of(sgr):
         folder = os.path.dirname(folder)
 
 
+def sidecar_lines(sidecar):
+    """A sidecar's lines: zstd through the `zstd` CLI (stdlib-only Python has no zstd before 3.14), gzip, or plain."""
+    if sidecar.endswith('.zst'):
+        out = subprocess.run(['zstd', '-dcq', sidecar], check=True, stdout=subprocess.PIPE).stdout
+        return out.decode('utf-8').splitlines()
+    if sidecar.endswith('.gz'):
+        return gzip.open(sidecar, 'rt', encoding='utf-8')
+    return open(sidecar, encoding='utf-8')
+
+
 count = with_outcome = 0
 with open('manifest.jsonl', 'w', encoding='utf-8', newline='\n') as out:
     for sgr in sorted(glob.glob('**/*.sgr', recursive=True)):
         with open(sgr, encoding='utf-8') as f:
             header = json.loads(f.readline())
             frames = sum(1 for _ in f)
-        sidecar = sgr[:-4] + '.events.jsonl'
-        if not os.path.exists(sidecar) and os.path.exists(sidecar + '.gz'):
-            sidecar += '.gz'
+        plain = sgr[:-4] + '.events.jsonl'
+        sidecar = next((s for s in (plain + '.zst', plain, plain + '.gz') if os.path.exists(s)), None)
         stations, kinds = {}, {}
-        if os.path.exists(sidecar):
-            lines = gzip.open(sidecar, 'rt', encoding='utf-8') if sidecar.endswith('.gz') else open(sidecar, encoding='utf-8')
-            for line in lines:
+        if sidecar:
+            for line in sidecar_lines(sidecar):
                 try:
                     event = json.loads(line)
                 except Exception:
@@ -110,7 +119,7 @@ with open('manifest.jsonl', 'w', encoding='utf-8', newline='\n') as out:
             'frames': frames,
             'frameIntervalMs': header.get('intervalMs'),
             'live': header.get('seed') is None,
-            'sidecar': os.path.exists(sidecar),
+            'sidecar': sidecar is not None,
             'eventCounts': kinds,
             'stations': stations,
             'outcome': outcome,

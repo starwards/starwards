@@ -36,4 +36,13 @@ test.describe('Game message overlay', () => {
         gameDriver.gameManager.scriptApi.setMessage('');
         await expect(messageEl).toBeHidden({ timeout: 10000 });
     });
+
+    test('queued messages show one after another on the station screen', async ({ page }) => {
+        const messageEl = page.locator('[data-id="Game Message"]');
+        gameDriver.gameManager.scriptApi.pushMessage('Station A lost', 1);
+        gameDriver.gameManager.scriptApi.pushMessage('Station B lost', 1);
+        await expect(messageEl).toHaveText('Station A lost', { timeout: 10000 });
+        await expect(messageEl).toHaveText('Station B lost', { timeout: 10000 });
+        await expect(messageEl).toBeHidden({ timeout: 10000 });
+    });
 });

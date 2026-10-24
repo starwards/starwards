@@ -42,8 +42,8 @@ ENV NODE_ENV=production \
     NODE_PATH=/opt/tools/node_modules \
     GIT_COMMIT=${GIT_COMMIT} \
     ARCHIVE=/training-archive
-# python3 runs build_manifest.py
-RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*
+# python3 runs build_manifest.py; zstd decompresses the `.events.jsonl.zst` sidecars it counts
+RUN apt-get update && apt-get install -y --no-install-recommends python3 zstd && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=tools /opt/tools/node_modules /opt/tools/node_modules
 COPY --from=deps /app/node_modules node_modules

@@ -10,8 +10,8 @@ import { SavedGame } from '@starwards/core/internal';
 import { Server } from 'http';
 import { matchMaker } from '@colyseus/core';
 import path from 'path';
+import { savedGameToSchema } from '../serialization/game-state-serialization';
 import { server } from '../server';
-import { stringToSchema } from '../serialization/game-state-serialization';
 
 /**
  * Deep comparison with approximate equality for numbers to handle float32 precision loss.
@@ -137,8 +137,8 @@ export function makeDriver({
             // @ts-ignore : access private field
             return gameManager.map;
         },
-        async assertSameState(savedGame: string) {
-            const data = await stringToSchema(SavedGame, savedGame);
+        async assertSameState(savedGame: Uint8Array) {
+            const data = await savedGameToSchema(SavedGame, savedGame);
 
             expect(data.mapName).toEqual(this.map?.name);
 

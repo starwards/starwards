@@ -45,7 +45,18 @@ export interface GameApi {
     getObjects(): Iterable<DeepReadonly<SpaceObject>>;
     /** Sets the global time-scale multiplier (`AdminState.speed`), clamped to `[0, 3]`. `0` pauses the simulation. */
     setSpeed(speed: number): void;
-    /** Sets the free-text scenario/GM announcement broadcast to every screen (`AdminState.message`). */
+    /**
+     * Queues `message` for every screen (`AdminState.message`) and records it in
+     * `AdminState.messageHistory`; it shows after earlier queued messages, for `seconds` (default
+     * `MESSAGE_DISPLAY_SECONDS`, wall-clock; `Infinity` = until cleared or another message waits). Blank text is ignored.
+     */
+    pushMessage(message: string, seconds?: number): void;
+    /** Clears the current announcement; the next queued one shows. `AdminState.messageHistory` is kept. */
+    clearMessage(): void;
+    /**
+     * Non-blank: shows `message` now, replacing the current one (queued ones still follow), recorded in
+     * history and held until cleared or a queued message waits; blank: {@link clearMessage}.
+     */
     setMessage(message: string): void;
 }
 export interface GameMap {

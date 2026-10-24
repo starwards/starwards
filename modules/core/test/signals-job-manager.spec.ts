@@ -379,6 +379,21 @@ describe('SignalsJobManager', () => {
             expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
         });
 
+        it('flags a job stalled only by the beam as needing the beam, and clears it once covered (issue #2339)', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.BASIC, Vec2.make({ x: 0, y: 1000 }));
+            // past the beam-off grace so the job settles as dormant
+            const t = runTicks(spaceMgr, 3, 20, 0.05, shipMgr);
+            const job = scanJobs(shipMgr).find((j) => j.targetId === 'target1');
+            expect(job?.status).to.equal(JobStatus.DORMANT);
+            expect(job?.needsBeam).to.equal(true);
+
+            shipMgr.state.radars[1].bearing = 90;
+            shipMgr.state.radars[1].bearingCommand = 90;
+            runTicks(spaceMgr, 0.2, 20, t, shipMgr);
+            expect(job?.status).to.equal(JobStatus.IN_PROGRESS);
+            expect(job?.needsBeam).to.equal(false);
+        });
+
         it('scanning at a narrower beam arc is proportionally faster than at the default arc', () => {
             const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.BASIC);
             tick(spaceMgr, 0.05, 0.1, shipMgr);

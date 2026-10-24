@@ -23,7 +23,9 @@ import { z } from 'zod';
  * (weapons: the ally the targeting panel's check-fire line shows, its range, and whether it is in the
  * line of fire or by the target), `guardOrder` (captain: the centre of the allied stations in sight, its
  * distance and world bearing), `magazineState` (engineer: the magazine's capacity share, from the
- * damage report; 1 when it shows no capacity defect).
+ * damage report; 1 when it shows no capacity defect), `hullStatusChange` (signals: the most urgent live hull or
+ * capsule tier change on its hull-status panel since the previous decision — allies first, then a contact
+ * attacking an allied station, then other contacts).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -45,6 +47,7 @@ export const calloutFills = [
     'allyAtRisk',
     'guardOrder',
     'magazineState',
+    'hullStatusChange',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 

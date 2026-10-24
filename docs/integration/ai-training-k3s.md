@@ -64,7 +64,7 @@ docker run --rm -v "$PWD/archive:/training-archive" -e JOB=branch -e SCENARIO=T3
 | Job                  | Lands in (under the archive root)                                                                                              |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | shard _i_ of any job | `_shards/<day>/<run>/shard-<i>/runs` (and `/corpus`), `done` marker                                                            |
-| `train`              | `<day>/headless/<run>/`: `<crew>/<scenario>_seed<N>.sgr` + `.events.jsonl`, `<scenario>-crews.md/json` over every seed         |
+| `train`              | `<day>/headless/<run>/`: `<crew>/<scenario>_seed<N>.sgr` + `.events.jsonl.zst`, `<scenario>-crews.md/json` over every seed     |
 | `branch`             | `<day>/branching/<run>-runs/` as above, `<day>/branching/<run>-corpus/`: `branches.jsonl`, `corpus.md`, `mine.md`              |
 | `suite`              | `<day>/suite/<crew>-<HHMMSS>/` (`suite.md/json`, per-level runs)                                                               |
 | `waves`              | `<day>/eval/<run>/shard-<i>/<scenario>-waves.json`, `runtime.json`, `done`; no merge, no manifest rebuild                      |

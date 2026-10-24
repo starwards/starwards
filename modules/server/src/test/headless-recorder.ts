@@ -11,11 +11,15 @@ import {
     ShipManagerPc,
     currentEnergyModel,
     encodeEventLine,
-    sidecarName,
+    zstSidecarName,
 } from '@starwards/core/internal';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
+import { appendSidecar } from '../recording/sidecar-file';
 import { schemaToBytes } from '../serialization/game-state-serialization';
+
+/** Encoded event characters buffered before they are compressed into the sidecar as one zstd frame. */
+const SIDECAR_CHUNK = 1 << 20;
 
 type Flying = { shipId: string; x: number; y: number; health: number };
 
@@ -28,7 +32,7 @@ type Flying = { shipId: string; x: number; y: number; health: number };
  * Frames are sampled, so a burst shorter than the interval leaves no trace in them. Chain gun
  * `isFiring` edges (`fire_start`/`fire_stop`, data `{ mount }`) and first blast-on-ship overlaps
  * (`blast_hit`, data `{ explosionId, damageType }`) are therefore observed every tick and written as
- * {@link RecordingEventLine}s to a sidecar `<name>.events.jsonl`, leaving the `.sgr` untouched so
+ * {@link RecordingEventLine}s to a zstd-compressed sidecar `<name>.events.jsonl.zst`, leaving the `.sgr` untouched so
  * replay keeps working. So is every system defect (`defect`, data `{ system, cause }`, cause
  * `hit`/`overheat`/`warp`), and with each frame each player ship's previous-tick energy flow
  * (`energy`, data `{ demand, granted }`). Every projectile is written once as it appears (`shot`, objectId the
@@ -50,6 +54,8 @@ export class HeadlessRecorder {
     private readonly blasts = new Set<string>();
     private impactsThisTick = new Set<string>();
     private pendingEvents: RecordingEventLine[] = [];
+    /** Encoded events not yet compressed into the sidecar: one zstd frame per chunk compresses far better than one per frame. */
+    private unwritten = '';
 
     constructor(
         private readonly game: HeadlessGame,
@@ -61,7 +67,7 @@ export class HeadlessRecorder {
     ) {
         fs.mkdirSync(dir, { recursive: true });
         this.filePath = path.join(dir, `${name}${RECORDING_EXT}`);
-        this.eventsPath = sidecarName(this.filePath);
+        this.eventsPath = zstSidecarName(this.filePath);
         fs.writeFileSync(this.eventsPath, '');
         fs.writeFileSync(
             this.filePath,
@@ -99,7 +105,8 @@ export class HeadlessRecorder {
 
     /**
      * Call after every tick: records `isFiring` edges for this tick, and writes a frame (flushing
-     * pending events) when one is due. `force` writes a frame regardless (e.g. the final frame).
+     * pending events) when one is due. `force` writes a frame regardless (e.g. the final frame) and writes every
+     * buffered event to the sidecar; otherwise events reach it in chunks of {@link SIDECAR_CHUNK} characters.
      */
     capture(force = false) {
         this.observeFiring();
@@ -110,9 +117,11 @@ export class HeadlessRecorder {
             return;
         }
         this.recordEnergyFlow();
-        if (this.pendingEvents.length) {
-            fs.appendFileSync(this.eventsPath, this.pendingEvents.map((e) => encodeEventLine(e)).join(''));
-            this.pendingEvents = [];
+        this.unwritten += this.pendingEvents.map((e) => encodeEventLine(e)).join('');
+        this.pendingEvents = [];
+        if (this.unwritten && (force || this.unwritten.length >= SIDECAR_CHUNK)) {
+            appendSidecar(this.eventsPath, this.unwritten);
+            this.unwritten = '';
         }
         const bytes = schemaToBytes(this.game.saveGame());
         fs.appendFileSync(this.filePath, encodeRecordChunkSync({ kind: 'frame', t: this.game.seconds, bytes }));

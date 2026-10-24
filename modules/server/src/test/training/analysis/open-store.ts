@@ -1,10 +1,10 @@
 import * as fs from 'node:fs';
 
 import { Store, ingest, storePathFor } from './store';
-import { isRecordingName, sidecarName } from '@starwards/core/internal';
-
 import { computeChecks } from './checks';
 import { computeEvents } from './events';
+import { findSidecar } from '../../../recording/sidecar-file';
+import { isRecordingName } from '@starwards/core/internal';
 
 /** Roles to tag on ingest, as `ingest` takes them. */
 export interface RecordingRoles {
@@ -32,13 +32,13 @@ export async function openRecordingStore(
     return Store.open(dbPath);
 }
 
-/** Whether the store at `dbPath` is missing or older than `recordingPath` or its `.events.jsonl` sidecar. */
+/** Whether the store at `dbPath` is missing or older than `recordingPath` or its sidecar (plain or `.zst`). */
 export function isStoreStale(dbPath: string, recordingPath: string): boolean {
     if (!fs.existsSync(dbPath)) {
         return true;
     }
     const storeTime = fs.statSync(dbPath).mtimeMs;
-    const sidecar = isRecordingName(recordingPath) ? sidecarName(recordingPath) : null;
-    const sources = [recordingPath, ...(sidecar && fs.existsSync(sidecar) ? [sidecar] : [])];
+    const sidecar = isRecordingName(recordingPath) ? findSidecar(recordingPath) : null;
+    const sources = [recordingPath, ...(sidecar ? [sidecar] : [])];
     return sources.some((source) => storeTime < fs.statSync(source).mtimeMs);
 }

@@ -3,6 +3,7 @@ import { Contact, Radar, offNose } from './verbal';
 import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './missile-envelope';
 
 import { Display } from './controls';
+import { isEnemyShip } from './enemy';
 
 /** The missile the reference loads: its envelope sets where the reference captain sends the ship. */
 const REFERENCE_MISSILE = 'HiExpMissile';
@@ -60,15 +61,10 @@ export function closeRange(distance: number, range: number) {
         : Math.max(MISSILE_MIN_LAUNCH_METERS, range - referenceKnobs.CLOSE_MARGIN_METERS);
 }
 
-/**
- * The nearest ship the radar shows as another faction's. Only a contact scanned to BASIC or better
- * shows its faction, so an unidentified blip is never called an enemy.
- */
+/** The nearest enemy ship the radar shows; an unidentified blip or a neutral is never called an enemy. */
 export function nearestEnemy(radar: Radar | undefined): Contact | undefined {
     const own = radar?.ownShip?.faction;
-    return (radar?.contacts ?? [])
-        .filter((c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== own)
-        .sort((a, b) => a.distance - b.distance)[0];
+    return (radar?.contacts ?? []).filter((c) => isEnemyShip(c, own)).sort((a, b) => a.distance - b.distance)[0];
 }
 
 /** The contact the weapons lock holds, as the seat's radar shows it; undefined without a lock or while the radar does not show it. */

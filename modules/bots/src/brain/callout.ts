@@ -1,5 +1,6 @@
 import { BrainSpec, CalloutFill } from './spec';
 import { Contact, Radar, offNose } from './verbal';
+import { HullStatus, SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 import {
     GUN_CLOSE_METERS,
     bearingWords,
@@ -10,10 +11,10 @@ import {
     nearestEnemy,
     offNoseWords,
 } from './engagement';
-import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
+import { isEnemyShip } from './enemy';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';
@@ -276,9 +277,7 @@ const calloutFills: Record<
     focusOrder: ({ radar }, _previous, _seconds, supplied) => {
         const r = radar as Radar | undefined;
         const own = r?.ownShip?.faction;
-        const enemies = (r?.contacts ?? []).filter(
-            (c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== own,
-        );
+        const enemies = (r?.contacts ?? []).filter((c) => isEnemyShip(c, own));
         if (!enemies.length) {
             return undefined;
         }
@@ -300,6 +299,18 @@ const calloutFills: Record<
               }
             : { names, focus: names };
         return values;
+    },
+    /** Signals: the most urgent hull or capsule tier change on its hull-status panel (`hullStatusChange`). */
+    hullStatusChange: (display, previous) => {
+        const change = hullStatusChange(display, previous);
+        return (
+            change && {
+                who: change.row.allied ? 'ally' : 'enemy',
+                name: change.row.name,
+                part: change.part,
+                tier: change.tier,
+            }
+        );
     },
     /** Captain: a salvo of the default size. */
     salvoOrder: () => ({ count: String(SALVO_MISSILES) }),
@@ -377,6 +388,31 @@ export function stationsCentre(r: Radar | undefined) {
 const suppliedTarget = (r: Radar | undefined, supplied: FillValues | undefined) =>
     supplied?.target === undefined ? undefined : r?.contacts?.find((c) => c.name === supplied.target);
 
+/** The parts of a ship whose tier the hull-status panel shows, the capsule (life) first. */
+const STATUS_PARTS = ['capsule', 'hull'] as const;
+
+/**
+ * The most urgent hull or capsule tier change on the Signals hull-status panel since the previous
+ * decision: only rows live at both decisions count (a snapshot is frozen, so it never changes on its
+ * own); an ally first, then the contact nearest an allied station (the one attacking it), then any
+ * other; for one subject, the capsule before the hull.
+ */
+export function hullStatusChange(display: Display, previous: Display | undefined) {
+    const before = new Map(((previous?.panels['hull-status'] ?? []) as HullStatus[]).map((r) => [r.id, r] as const));
+    const attacker = stationThreat(display.radar as Radar | undefined)?.enemy.id;
+    const rank = (r: HullStatus) => (r.allied ? 0 : r.id === attacker ? 1 : 2);
+    const changes = ((display.panels['hull-status'] ?? []) as HullStatus[]).flatMap((row) => {
+        const b = before.get(row.id);
+        if (row.intel !== 'LIVE' || b?.intel !== 'LIVE') return [];
+        return STATUS_PARTS.filter((part) => row[part] && b[part] !== row[part]).map((part) => ({
+            row,
+            part,
+            tier: row[part]!,
+        }));
+    });
+    return changes.sort((x, y) => rank(x.row) - rank(y.row))[0];
+}
+
 /** Allied stations on the radar: own-faction ships big enough to dock at. */
 export function alliedStations(r: Radar | undefined) {
     const own = r?.ownShip?.faction;
@@ -391,7 +427,7 @@ export function stationThreat(r: Radar | undefined) {
     const stations = alliedStations(r).filter((s) => s.position);
     let best: { enemy: Contact; station: Contact; gap: number } | undefined;
     for (const enemy of r?.contacts ?? []) {
-        if (enemy.type !== 'Spaceship' || enemy.faction === undefined || enemy.faction === own || !enemy.position) {
+        if (!isEnemyShip(enemy, own) || !enemy.position) {
             continue;
         }
         for (const station of stations) {

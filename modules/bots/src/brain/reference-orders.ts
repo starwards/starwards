@@ -5,6 +5,7 @@ import {
     SILENCE,
     alliedStations,
     checkFireOf,
+    hullStatusChange,
     magazineCapacity,
     stationThreat,
     stationsCentre,
@@ -15,6 +16,8 @@ import { inLaunchEnvelope, launchRange, lockedContact, nearestEnemy, shellStock 
 import { Answer } from './brain';
 import { BrainRequest } from './request';
 import { Display } from './controls';
+import { HULL_STATUS_TUNING } from '@starwards/core/internal';
+import { isEnemyShip } from './enemy';
 
 /** What the seat counts itself: the missiles it launched under the current engagement, and how many still fly. */
 export type SalvoTally = { n: number; inFlight: number };
@@ -97,7 +100,7 @@ const apart = (a: Contact, b: Contact) =>
 function threatPick(p: Picture): ThreatPick | undefined {
     if (p.memory.get('threatPickAt') === p.now) return p.memory.get('threatPick') as ThreatPick | undefined;
     const contacts = p.radar?.contacts ?? [];
-    const enemies = contacts.filter((c) => isEnemyShip(c, p.radar) && c.position);
+    const enemies = contacts.filter((c) => isEnemyOf(c, p.radar) && c.position);
     const stations = contacts.filter(
         (c) =>
             c.type === 'Spaceship' &&
@@ -150,20 +153,20 @@ function enemyInside(p: Picture, pick = nearestEnemy) {
     return own === undefined ? undefined : own || wasHeard(p, 'weapons.in_envelope');
 }
 
-const isEnemyShip = (c: Contact | undefined, radar: Radar | undefined) =>
-    c !== undefined && c.type === 'Spaceship' && c.faction !== undefined && c.faction !== radar?.ownShip?.faction;
+const isEnemyOf = (c: Contact | undefined, radar: Radar | undefined) =>
+    c !== undefined && isEnemyShip(c, radar?.ownShip?.faction);
 
 /** Weapons: the enemy ship the lock holds now, if any. */
 function lockedEnemy(p: Picture) {
     const locked = lockedContact(p.display);
-    return isEnemyShip(locked, p.radar) ? locked : undefined;
+    return isEnemyOf(locked, p.radar) ? locked : undefined;
 }
 
 /** Weapons: whether the locked enemy is inside the envelope now (undefined without a lock). */
 function lockInEnvelope(display: Display | undefined, previous: Radar | undefined, seconds: number) {
     const locked = display && lockedContact(display);
     const radar = display?.radar as Radar | undefined;
-    return locked && isEnemyShip(locked, radar)
+    return locked && isEnemyOf(locked, radar)
         ? inLaunchEnvelope(locked.distance, launchRange(locked, radar, previous, seconds))
         : undefined;
 }
@@ -171,7 +174,7 @@ function lockInEnvelope(display: Display | undefined, previous: Radar | undefine
 /** Weapons: the enemy ship the lock held at the previous decision, when it holds no ship now and that ship is gone or unlocked. */
 function lostEnemy(p: Picture) {
     const before = p.previousDisplay && lockedContact(p.previousDisplay);
-    if (!before || !isEnemyShip(before, p.previous) || lockedContact(p.display)?.id === before.id) {
+    if (!before || !isEnemyOf(before, p.previous) || lockedContact(p.display)?.id === before.id) {
         return undefined;
     }
     // a lock moved on to another ship is a new lock, not a lost one
@@ -226,7 +229,7 @@ function threatMoved(p: Picture) {
         return false;
     }
     const gaps = (p.radar?.contacts ?? [])
-        .filter((c) => isEnemyShip(c, p.radar) && c.position)
+        .filter((c) => isEnemyOf(c, p.radar) && c.position)
         .map((c) => Math.hypot(c.position!.x - focus.position!.x, c.position!.y - focus.position!.y));
     const held = Math.min(...gaps);
     if (held <= referenceKnobs.STATION_HELD_METERS) {
@@ -294,7 +297,7 @@ function losing(p: Picture) {
     const attacked = marks.length * p.seconds >= referenceKnobs.LOSING_ATTACK_SECONDS;
     const many =
         referenceKnobs.LOSING_ENEMIES > 0 &&
-        (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= referenceKnobs.LOSING_ENEMIES;
+        (p.radar?.contacts ?? []).filter((c) => isEnemyOf(c, p.radar)).length >= referenceKnobs.LOSING_ENEMIES;
     return attacked || many;
 }
 
@@ -420,6 +423,21 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
     contact_lost: ({ radar, previous }) => {
         const before = nearestEnemy(previous);
         return before !== undefined && !(radar?.contacts ?? []).some((c) => c.id === before.id);
+    },
+    /**
+     * Signals: a live capsule tier changed since the previous decision, and no hull-status callout
+     * went out within the callout window; a change inside the window is dropped, not queued.
+     */
+    hull_status: (p) => {
+        if (!hullStatusChange(p.display, p.previousDisplay)) {
+            return false;
+        }
+        const said = p.memory.get('hullSaidAt') as number | undefined;
+        if (said !== undefined && p.now - said < HULL_STATUS_TUNING.calloutWindowSeconds) {
+            return false;
+        }
+        p.memory.set('hullSaidAt', p.now);
+        return true;
     },
     /** Signals: whenever an identified enemy ship is on the radar. */
     enemy_position: ({ radar }) => nearestEnemy(radar) !== undefined,
@@ -571,7 +589,7 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
      * focus picks by a station the enemies no longer threaten most.
      */
     focus: (p) =>
-        p.focusOrdered ? threatMoved(p) : (p.radar?.contacts ?? []).filter((c) => isEnemyShip(c, p.radar)).length >= 2,
+        p.focusOrdered ? threatMoved(p) : (p.radar?.contacts ?? []).filter((c) => isEnemyOf(c, p.radar)).length >= 2,
     /** Captain: fire discipline once it ordered an enemy engaged and the board holds no salvo yet. */
     salvo: (p) => p.engaged !== undefined && !p.salvoOrdered && nearestEnemy(p.radar) !== undefined,
     /**

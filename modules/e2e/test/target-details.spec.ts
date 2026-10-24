@@ -24,6 +24,20 @@ async function openTargetDetails(page: Page) {
     await expect(page.locator('[data-id="Target"]')).toBeVisible({ timeout: 10000 });
 }
 
+// every Target Details panel beyond armor/systems/tubes (SPEC-0008 PR 3)
+const remainingPanels = ['Magazine', 'Chain Gun', 'Aim', 'Reactor', 'Warp', 'Flight', 'Modes', 'Damage'];
+
+// the Aim pane's Track (the header pane has a Track too, so read it by pane, not by label)
+function aimTrack(page: Page) {
+    return page.locator('[data-id="Aim"] input').first().inputValue();
+}
+
+async function expectRemainingPanels(page: Page) {
+    for (const id of remainingPanels) {
+        await expect(page.locator(`[data-id="${id}"]`).first(), id).toBeVisible({ timeout: 10000 });
+    }
+}
+
 function inputValues(panel: Locator) {
     return panel.locator('input').evaluateAll((inputs) => inputs.map((i) => (i as HTMLInputElement).value));
 }
@@ -163,6 +177,7 @@ test.describe('Target Details screen', () => {
         await expect(page.locator('[data-id="Target Tubes"]')).toHaveCount(0);
         await expect(page.locator('[data-id="Systems"]')).toHaveCount(0);
         await expect(page.locator('[data-id="Design"]')).toHaveCount(0);
+        for (const id of remainingPanels) await expect(page.locator(`[data-id="${id}"]`), id).toHaveCount(0);
     });
 
     test('at snapshot level without a capture (GM-set), shows no data', async ({ page }) => {
@@ -205,13 +220,18 @@ test.describe('Target Details screen', () => {
             .poll(() => getPropertyValue(page, 'Plates', 'Design'), { timeout: 5000 })
             .toBe(`${plates}/${plates} holding`);
 
+        await expectRemainingPanels(page);
+        await expect.poll(() => aimTrack(page), { timeout: 5000 }).toBe(target.state.weaponsTarget.targetId || '—');
+
         // frozen: a change on the target after capture does not show
+        target.state.weaponsTarget.targetId = 'changed-after-capture';
         target.state.tubes[0].loadedProjectile = 'None';
         for (const layer of target.state.armor.armorPlates[0].layers) layer.health = 0;
         await page.waitForTimeout(1500);
         expect(await inputValues(tubesPanel)).toContain('HiExpMissile');
         expect(await inputValues(tubesPanel)).not.toContain('None');
         expect(await getPropertyValue(page, 'Plates', 'Design')).toBe(`${plates}/${plates} holding`);
+        expect(await aimTrack(page)).not.toBe('changed-after-capture');
     });
 
     test('at full scan, draws the target live armor, systems and tubes', async ({ page }) => {
@@ -249,7 +269,11 @@ test.describe('Target Details screen', () => {
             }
         }
 
+        await expectRemainingPanels(page);
+
         // live: a change on the target shows without re-selecting it
+        target.weaponsTarget.targetId = shipId;
+        await expect.poll(() => aimTrack(page), { timeout: 5000 }).toBe(shipId);
         gameDriver.getShip(targetShipId).state.tubes[0].loadedProjectile = 'None';
         await expect(async () => expect(await inputValues(tubesPanel)).toContain('None')).toPass({
             timeout: 5000,
@@ -265,6 +289,7 @@ test.describe('Target Details screen', () => {
         await expect(page.locator('[data-id="Armor"]')).toHaveCount(0, { timeout: 5000 });
         await expect(page.locator('[data-id="Target Tubes"]')).toHaveCount(0);
         await expect(page.locator('[data-id="Design"]')).toHaveCount(0);
+        for (const id of remainingPanels) await expect(page.locator(`[data-id="${id}"]`), id).toHaveCount(0);
         await expect(page.locator('[data-id="No Data"]')).toHaveText(/no data/i);
     });
 

@@ -81,6 +81,8 @@ export { getRange } from './range';
 // --- recording ---
 export {
     EVENTS_EXT,
+    EVENTS_ZST_EXT,
+    isSidecarName,
     RECORDING_EXT,
     BINARY_MAGIC,
     ChunkParser,
@@ -98,6 +100,7 @@ export {
     decodeSegment,
     encodeSegment,
     sidecarName,
+    zstSidecarName,
     deepAssignSchema,
     parseBaseLine,
     parseEventLine,
@@ -142,6 +145,7 @@ export {
     isRestockingAmmo,
     isRestockingEnergyCells,
     crewOrderCommands,
+    gmShipCommands,
     makeShipState,
     repairCommands,
 } from './ship';

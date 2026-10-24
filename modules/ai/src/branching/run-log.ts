@@ -1,8 +1,7 @@
-import { Display, Heard, ORDERS_PANEL, OrdersBoard, ordersSummary } from '@starwards/bots';
+import { Display, Heard, ORDERS_PANEL, OrdersBoard, isEnemyShip, ordersSummary } from '@starwards/bots';
 import { RecordedDecision, RecordedRequest, readDecisionLog } from '../training/decision-log';
-import { RecordingEventLine, isRecordingName, parseEventLine, sidecarName } from '@starwards/core/internal';
-
-import fs from 'node:fs';
+import { RecordingEventLine, parseEventLine } from '@starwards/core/internal';
+import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -27,10 +26,9 @@ export type RunLog = {
 
 export function readRunLog(recordingPath: string): RunLog {
     const { requests, decisions } = readDecisionLog(recordingPath);
-    const sidecar = isRecordingName(recordingPath) ? sidecarName(recordingPath) : recordingPath;
-    const lines = fs
-        .readFileSync(sidecar, 'utf8')
-        .split('\n')
+    const sidecar = findSidecar(recordingPath);
+    if (!sidecar) throw new Error(`no events sidecar for ${recordingPath}`);
+    const lines = readSidecarLines(sidecar)
         .map(parseEventLine)
         .filter((l): l is RecordingEventLine => l !== null && (l.kind === 'callout' || l.kind === 'orders'));
     return {
@@ -87,7 +85,7 @@ function picture(radar: Radar | undefined) {
     const faction = radar?.ownShip?.faction;
     const contacts = radar?.contacts ?? [];
     const ships = contacts.filter((c) => c.type === 'Spaceship' && c.faction !== undefined);
-    const enemies = ships.filter((c) => c.faction !== faction).sort((a, b) => a.distance - b.distance);
+    const enemies = ships.filter((c) => isEnemyShip(c, faction)).sort((a, b) => a.distance - b.distance);
     const stations = ships
         .filter((c) => c.faction === faction && (c.radius ?? 0) >= STATION_RADIUS)
         .sort((a, b) => a.distance - b.distance);

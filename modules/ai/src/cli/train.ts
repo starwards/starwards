@@ -4,7 +4,7 @@
  *
  *   npm --prefix modules/ai run train -- --scenario T0 --seeds 8 --crew crews/reference.json --crew crews/jev.json
  *
- * Recordings land in `<out>/<crew>/<scenario>_seed<N>.sgr` with the decisions in the `.events.jsonl`
+ * Recordings land in `<out>/<crew>/<scenario>_seed<N>.sgr` with the decisions in the `.events.jsonl.zst`
  * beside them; the report in `<out>/<scenario>-crews.md`. Seeds are shared round-robin between
  * `--workers` processes; a Jev crew's request budget is split between them. Jev answers come from
  * the answer cache when it holds them (`--no-cache` asks afresh, `--cache-dir <dir>` names another).

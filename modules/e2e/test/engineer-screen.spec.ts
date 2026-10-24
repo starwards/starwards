@@ -91,7 +91,7 @@ test.describe('Engineer Screen', () => {
         await expect(row.locator('button')).toHaveCount(1);
         expect(await rowValue(row, 'priority')).toBe('OFF');
         // idle rows start collapsed (plan card M3.11)
-        await expect(row.getByText('priority', { exact: true })).toBeHidden();
+        await expect(row.getByText('details', { exact: true })).toBeHidden();
         const details = await rowValue(row, 'details');
         expect(details).toContain('ALT+4');
         expect(details).toContain('field');
@@ -119,7 +119,7 @@ test.describe('Engineer Screen', () => {
 
         await waitForRowValue(row, 'priority', (v) => v === 'RUNNING', 5000);
         // the active protocol's folder expands; it collapses again once the run ends (plan card M3.11)
-        await expect(row.getByText('priority', { exact: true })).toBeVisible();
+        await expect(row.getByText('details', { exact: true })).toBeVisible();
         const firstProgress = await waitForRowValue(row, 'progress', (v) => parseFloat(v) > 0, 5000);
         // a real progression over time, not a restatement of the wait predicate above
         await page.waitForTimeout(500);
@@ -131,7 +131,7 @@ test.describe('Engineer Screen', () => {
         await waitForRowValue(row, 'priority', (v) => v === 'CANCELLING', 2000);
         await waitForRowValue(row, 'priority', (v) => v === 'OFF', 5000);
         expect(await rowValue(row, 'progress')).toBe('0%');
-        await expect(row.getByText('priority', { exact: true })).toBeHidden();
+        await expect(row.getByText('details', { exact: true })).toBeHidden();
     });
 
     test('radar traverse servo alignment (#2109) drives visible progress via hotkey and, in Dark mode, takes the radar dark (issue #2255)', async ({
@@ -189,7 +189,7 @@ test.describe('Engineer Screen', () => {
         expect(await rowValue(runningRow, 'priority')).toBe('RUNNING');
     });
 
-    test('up-next list shows run order with priority, and the folder title carries the priority (#2434)', async ({
+    test('up-next list shows run order with priority, and the folder title carries key and priority (#2434, #2438)', async ({
         page,
     }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
@@ -209,9 +209,10 @@ test.describe('Engineer Screen', () => {
         await expect(upNext(3)).toBeHidden({ timeout: 2000 });
         await page.keyboard.press('Alt+2');
         await expect(upNext(3)).toHaveValue('Thrust-line purge · LOW', { timeout: 2000 });
-        await expect(
-            protocolRow(repairQueuePanel, 'Thrust-line purge').locator(':scope > .tp-fldv_b .tp-fldv_t'),
-        ).toHaveText('Thrust-line purge · LOW');
+        const titleBar = protocolRow(repairQueuePanel, 'Thrust-line purge').locator(':scope > .tp-fldv_b');
+        await expect(titleBar.locator('.tp-fldv_t')).toHaveText('Thrust-line purge');
+        await expect(titleBar.locator('.sw-repair-badge')).toHaveText('LOW');
+        await expect(titleBar).toHaveAttribute('data-key', '2');
     });
 
     test('crew station cannot raise a docked-tier protocol while undocked, even via its hotkey', async ({ page }) => {

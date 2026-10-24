@@ -1,6 +1,7 @@
 export { type Answer, type ButtonBrain, type Policy, buttonBrain } from './brain/brain';
 export { CALLOUT_QUESTION, type Heard, SILENCE, calloutSaid } from './brain/callout';
 export { type Capabilities, type Control, type Display, stationControls } from './brain/controls';
+export { isEnemyShip } from './brain/enemy';
 export { ENGINEER_POLICIES, makeEngineerPolicy } from './brain/engineer-policies';
 export { HELMS_POLICIES, type HelmsPolicyName, makeHelmsPolicy } from './brain/helms-policies';
 export { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './brain/missile-envelope';

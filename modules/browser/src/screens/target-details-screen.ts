@@ -19,10 +19,17 @@ import { addTextBlade, createWidgetPane } from '../panel';
 import $ from 'jquery';
 import { EmitterLoop } from '../loop';
 import { WidgetContainer } from '../container';
+import { drawAmmoStatus } from '../widgets/ammo';
 import { drawArmorStatus } from '../widgets/armor';
+import { drawDamageReport } from '../widgets/damage-report';
+import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
+import { drawGunStatus } from '../widgets/gun';
+import { drawHelmsStats } from '../widgets/helms';
 import { drawRadarHeader } from '../widgets/radar-header';
 import { drawTargetTubes } from '../widgets/target-tubes';
+import { drawTargetingStatus } from '../widgets/targeting';
+import { drawWarpStatus } from '../widgets/warp';
 import { hsl } from '../colors';
 import { propertyStub } from '../property-wrappers';
 import { stationGrid } from '../container';
@@ -64,18 +71,42 @@ export async function initTargetDetailsScreen(
         panelsKey = key;
         void source.then((subjectDriver) => {
             if (panelsKey !== key) return; // source changed (or screen torn down) while awaiting
-            const armorSlot = grid.center({ fill: true });
+            const armorSlot = grid.center({ width: 640 });
             const designSlot = grid.left();
             const tubesSlot = grid.left({ scroll: true });
             const systemsSlot = grid.right({ scroll: true });
+            const reactorSlot = grid.right();
+            const damageSlot = grid.right({ scroll: true });
+            // weapons and flight panels sit in a row under the armor view
+            const stripSlot = grid.center({ fill: true, bottom: true });
+            stripSlot.getElement().css({ flexDirection: 'row', alignItems: 'flex-start' });
             const armorApp = drawArmorStatus(armorSlot, subjectDriver, 300);
             const stopDesign = drawDesign(designSlot, subjectDriver);
+            // every widget below is display-only (no input bindings, no commands), so the station
+            // widgets draw the subject unchanged
             drawTargetTubes(tubesSlot, subjectDriver);
+            drawAmmoStatus(stripSlot, subjectDriver);
+            if (subjectDriver.state.chainGuns.length) drawGunStatus(stripSlot, subjectDriver);
+            drawTargetingStatus(stripSlot, subjectDriver, 'Aim');
+            drawHelmsStats(tubesSlot, subjectDriver);
             drawFullSystemsStatus(systemsSlot, subjectDriver, subjectDriver.systems, true);
+            drawEngineeringStatus(reactorSlot, subjectDriver);
+            if (subjectDriver.state.warp) drawWarpStatus(reactorSlot, subjectDriver);
+            drawDamageReport(damageSlot, subjectDriver);
             teardownPanels = () => {
                 void armorApp.then((app) => app.destroy({ removeView: true }, true));
                 stopDesign();
-                for (const slot of [armorSlot, designSlot, tubesSlot, systemsSlot]) slot.getElement().remove();
+                for (const slot of [
+                    armorSlot,
+                    designSlot,
+                    tubesSlot,
+                    stripSlot,
+                    systemsSlot,
+                    reactorSlot,
+                    damageSlot,
+                ]) {
+                    slot.getElement().remove();
+                }
             };
         });
     }

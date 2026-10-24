@@ -21,6 +21,7 @@ import {
 
 import { Display } from '../brain/controls';
 import { SessionShipDriver } from '../session/session';
+import { isEnemyShip } from '../brain/enemy';
 
 type XY = { x: number; y: number };
 
@@ -126,9 +127,7 @@ export function whereIs(display: Display, ref: OrderRef | undefined, mode: 'froz
 export function focusTarget(params: OrderParams, display: Display, previous?: Display): Contact | undefined {
     const radar = display.radar as Radar | undefined;
     const faction = radar?.ownShip?.faction;
-    const enemies = (radar?.contacts ?? []).filter(
-        (c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== faction,
-    );
+    const enemies = (radar?.contacts ?? []).filter((c) => isEnemyShip(c, faction));
     if (!params.pick) {
         return (params.targets ?? []).flatMap((t) => enemies.filter((e) => e.name === t.name))[0];
     }

@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-
 import {
     Faction,
     IdleStrategy,
@@ -15,10 +14,10 @@ import {
     parseEventLine,
     playerScanLevel,
     shipConfigurations,
-    sidecarName,
 } from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { TRAINING_PLAYER_ID, TRAINING_TARGET2_ID, TRAINING_TARGET_ID } from '../../scenarios/training';
+import { findSidecar, readSidecar } from '../../recording/sidecar-file';
 import { runTraining, trainingScenarios } from './training-scenarios';
 import fc from 'fast-check';
 import { readRecords } from '../../recording/recording-file';
@@ -244,8 +243,7 @@ describe('runTraining', () => {
                 recordedFrames += record.kind === 'frame' ? 1 : 0;
             expect(result.frames).toBe(recordedFrames);
             const targetBlasts = new Set(
-                fs
-                    .readFileSync(sidecarName(result.recording!), 'utf-8')
+                readSidecar(findSidecar(result.recording!)!)
                     .split('\n')
                     .filter((line) => line)
                     .map((line) => parseEventLine(line)!)
