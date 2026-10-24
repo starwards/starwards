@@ -5,6 +5,7 @@ import { flightSeconds, stillFlying } from './salvo';
 
 import { Control } from './controls';
 import { checkFireOf } from './callout';
+import { isEnemyShip } from './enemy';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -94,9 +95,7 @@ const lockOf = (d: Display) => {
 /** The nearest ship the radar shows as another faction's. */
 const nearestEnemy = (d: Display) => {
     const faction = d.radar?.ownShip?.faction;
-    return (d.radar?.contacts ?? [])
-        .filter((c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== faction)
-        .sort((a, b) => a.distance - b.distance)[0];
+    return (d.radar?.contacts ?? []).filter((c) => isEnemyShip(c, faction)).sort((a, b) => a.distance - b.distance)[0];
 };
 /** Holds the named fire controls while the locked target is beyond `meters`. */
 function holdFireBeyond(

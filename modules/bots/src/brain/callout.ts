@@ -13,6 +13,7 @@ import {
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
+import { isEnemyShip } from './enemy';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';
@@ -255,9 +256,7 @@ const calloutFills: Record<
     focusOrder: ({ radar }) => {
         const r = radar as Radar | undefined;
         const own = r?.ownShip?.faction;
-        const enemies = (r?.contacts ?? []).filter(
-            (c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== own,
-        );
+        const enemies = (r?.contacts ?? []).filter((c) => isEnemyShip(c, own));
         if (!enemies.length) {
             return undefined;
         }
@@ -338,7 +337,7 @@ function stationThreat(r: Radar | undefined) {
     const stations = alliedStations(r).filter((s) => s.position);
     let best: { enemy: Contact; station: Contact; gap: number } | undefined;
     for (const enemy of r?.contacts ?? []) {
-        if (enemy.type !== 'Spaceship' || enemy.faction === undefined || enemy.faction === own || !enemy.position) {
+        if (!isEnemyShip(enemy, own) || !enemy.position) {
             continue;
         }
         for (const station of stations) {
