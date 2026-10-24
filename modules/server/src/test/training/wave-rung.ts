@@ -156,7 +156,7 @@ export function waveRung({
 }
 
 /** Damage the stations took, summed over them; a lost station counts 1 in each. */
-function stationDamage(game: HeadlessGame) {
+export function stationDamage(game: HeadlessGame) {
     let stationCapsuleLost = 0;
     let stationArmorLost = 0;
     for (const { id } of STATIONS) {
