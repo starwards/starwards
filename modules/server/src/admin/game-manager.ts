@@ -109,10 +109,10 @@ export class GameManager {
         },
         setMessage: (message: string) => {
             if (message.trim().length === 0) this.state.clearMessage();
-            else this.state.pushMessage(message);
+            else this.state.showMessageNow(message);
         },
-        pushMessage: (message: string) => {
-            this.state.pushMessage(message);
+        pushMessage: (message: string, seconds?: number) => {
+            this.state.pushMessage(message, seconds);
         },
         clearMessage: () => {
             this.state.clearMessage();
@@ -135,6 +135,7 @@ export class GameManager {
 
     update(currDeltaSeconds: number) {
         this.drainStationCommands();
+        this.state.tickMessages(currDeltaSeconds);
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
         this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;

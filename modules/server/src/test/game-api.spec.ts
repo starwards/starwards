@@ -1,4 +1,11 @@
-import { Faction, GameApi, GameMap, MESSAGE_HISTORY_LIMIT, Order } from '@starwards/core/internal';
+import {
+    Faction,
+    GameApi,
+    GameMap,
+    MESSAGE_DISPLAY_SECONDS,
+    MESSAGE_HISTORY_LIMIT,
+    Order,
+} from '@starwards/core/internal';
 
 import { makeDriver } from './driver';
 import { newShip } from '../admin/map-helper';
@@ -70,22 +77,35 @@ describe('GameApi (issue #2060)', () => {
         expect(gameDriver.gameManager.state.message).toEqual('');
     });
 
-    it('pushMessage queues history, latest is current; clearMessage keeps history; history is capped; stopGame resets', async () => {
+    it('pushMessage records history and queues: each shows for its seconds, then the next; clearMessage advances; history capped; stopGame resets', async () => {
         await gameDriver.gameManager.startGame(makeMap(() => undefined));
         const { scriptApi, state } = gameDriver.gameManager;
+        const tick = (seconds: number) => gameDriver.gameManager.update(seconds);
 
         scriptApi.pushMessage('first');
-        scriptApi.pushMessage('second');
+        scriptApi.pushMessage('second', 2);
         scriptApi.pushMessage('   ');
-        expect(state.message).toEqual('second');
+        expect(state.message).toEqual('first'); // a lone message shows at once
+        expect(state.queuedMessages).toEqual(['second']);
         expect(state.messageHistory.map((m) => [m.seq, m.text])).toEqual([
             [1, 'first'],
             [2, 'second'],
         ]);
 
+        tick(MESSAGE_DISPLAY_SECONDS - 1);
+        expect(state.message).toEqual('first');
+        tick(1);
+        expect(state.message).toEqual('second');
+        tick(2);
+        expect(state.message).toEqual('');
+
+        scriptApi.pushMessage('third');
+        scriptApi.pushMessage('fourth');
         scriptApi.clearMessage();
         expect(state.message).toEqual('');
-        expect(state.messageHistory).toHaveLength(2);
+        tick(0);
+        expect(state.message).toEqual('fourth');
+        expect(state.messageHistory).toHaveLength(4);
 
         for (let i = 0; i < MESSAGE_HISTORY_LIMIT + 5; i++) scriptApi.pushMessage(`m${i}`);
         expect(state.messageHistory).toHaveLength(MESSAGE_HISTORY_LIMIT);
@@ -94,6 +114,49 @@ describe('GameApi (issue #2060)', () => {
         await gameDriver.gameManager.stopGame();
         expect(state.message).toEqual('');
         expect(state.messageHistory).toHaveLength(0);
+        expect(state.queuedMessages).toEqual([]);
+    });
+
+    it('concurrent messages are all shown in turn, none lost (e.g. several station-lost banners)', async () => {
+        await gameDriver.gameManager.startGame(makeMap(() => undefined));
+        const { scriptApi, state } = gameDriver.gameManager;
+        const seen: string[] = [];
+        for (const s of ['A', 'B', 'C']) scriptApi.pushMessage(`station ${s} lost`);
+        for (let t = 0; t < 4 * MESSAGE_DISPLAY_SECONDS * 20; t++) {
+            if (state.message && seen[seen.length - 1] !== state.message) seen.push(state.message);
+            gameDriver.gameManager.update(1 / 20);
+        }
+        expect(seen).toEqual(['station A lost', 'station B lost', 'station C lost']);
+        expect(state.message).toEqual('');
+    });
+
+    it('setMessage replaces the current message now and holds it; a queued message takes over after the display time', async () => {
+        await gameDriver.gameManager.startGame(makeMap(() => undefined));
+        const { scriptApi, state } = gameDriver.gameManager;
+        scriptApi.pushMessage('queued first');
+        scriptApi.setMessage('Defeat');
+        expect(state.message).toEqual('Defeat');
+        gameDriver.gameManager.update(1000);
+        expect(state.message).toEqual('Defeat'); // held while nothing waits
+        scriptApi.pushMessage('later');
+        gameDriver.gameManager.update(MESSAGE_DISPLAY_SECONDS);
+        expect(state.message).toEqual('later');
+        expect(state.messageHistory.map((m) => m.text)).toEqual(['queued first', 'Defeat', 'later']);
+    });
+
+    it('a GM tweak edit of message goes through history and shows at once; a blank edit clears it', async () => {
+        await gameDriver.gameManager.startGame(makeMap(() => undefined));
+        const { state } = gameDriver.gameManager;
+        state.message = 'GM: dock now'; // what the tweak's JSON-pointer write does
+        gameDriver.gameManager.update(1 / 20);
+        expect(state.message).toEqual('GM: dock now');
+        expect(state.messageHistory.map((m) => m.text)).toEqual(['GM: dock now']);
+        gameDriver.gameManager.update(1000);
+        expect(state.message).toEqual('GM: dock now');
+        state.message = '';
+        gameDriver.gameManager.update(1 / 20);
+        expect(state.message).toEqual('');
+        expect(state.messageHistory).toHaveLength(1);
     });
 
     it('convertToDerelict replaces an NPC ship with a Derelict at the same position; no-op on player ships', async () => {

@@ -28,6 +28,12 @@ export class GameMessage extends Schema {
 /** Max entries kept in {@link AdminState.messageHistory}; oldest are dropped first. */
 export const MESSAGE_HISTORY_LIMIT = 50;
 
+/** Default seconds a queued message shows (wall-clock). Pending Amir's ruling. */
+export const MESSAGE_DISPLAY_SECONDS = 8;
+
+/** Seconds a GM-typed message (tweak edit) holds the screen: until cleared, yielding to queued ones. Pending Amir's ruling. */
+export const GM_MESSAGE_SECONDS = Infinity;
+
 export class AdminState extends Schema implements StationRegistrable, BotAssignable {
     @gameField('int8')
     gameStatus = GameStatus.STOPPED;
@@ -81,23 +87,103 @@ export class AdminState extends Schema implements StationRegistrable, BotAssigna
     speed = 1;
 
     /**
-     * Current (latest pushed) scenario/GM announcement, broadcast to every screen. Empty string =
-     * no current message. Stations render this. Prefer {@link pushMessage}, which also records
-     * history; setting this directly (GM tweak) changes only the current text.
+     * The announcement on screen now, broadcast to every station. Empty string = none. Advanced by
+     * {@link tickMessages} from the server-side queue fed by {@link pushMessage}. A direct write (GM
+     * tweak) is picked up on the next tick as a GM message: recorded in history and shown at once.
      */
     @tweakable('string')
     @gameField('string')
     message = '';
 
-    /** Every message pushed this game, oldest first, capped at {@link MESSAGE_HISTORY_LIMIT}. Cleared on game stop. */
+    /** Every message announced this game, oldest first, capped at {@link MESSAGE_HISTORY_LIMIT}. Cleared on game stop. */
     @gameField([GameMessage])
     messageHistory = new ArraySchema<GameMessage>();
 
     private messageSeq = 0;
+    /** Messages waiting for the screen, oldest first (server only). */
+    private messageQueue: { text: string; seconds: number }[] = [];
+    /** Seconds the current {@link message} still shows; `Infinity` holds it until cleared or queue pressure. */
+    private messageSecondsLeft = 0;
+    /** What {@link tickMessages} last put on screen; a different {@link message} means an outside (GM) write. */
+    private shownMessage = '';
 
-    /** Appends `text` to {@link messageHistory} and makes it the current {@link message}. Blank text is ignored. */
-    pushMessage(text: string) {
+    /**
+     * Queues `text` for every screen and records it in {@link messageHistory}. It shows after the
+     * messages queued before it, for `seconds` (default {@link MESSAGE_DISPLAY_SECONDS}; `Infinity` =
+     * until cleared, or until a later message waits {@link MESSAGE_DISPLAY_SECONDS}). Blank text is ignored.
+     */
+    pushMessage(text: string, seconds = MESSAGE_DISPLAY_SECONDS) {
         if (text.trim().length === 0) return;
+        this.recordMessage(text);
+        if (!this.messageQueue.length && !this.message && !this.shownMessage) {
+            // nothing on screen or waiting: show at once, so a lone message needs no tick
+            this.messageSecondsLeft = seconds;
+            this.show(text);
+        } else {
+            this.messageQueue.push({ text, seconds });
+        }
+    }
+
+    /**
+     * Shows `text` now, replacing the current message (queued ones still follow), and records it in
+     * {@link messageHistory}. Held until cleared, or until a queued message waits {@link MESSAGE_DISPLAY_SECONDS}.
+     */
+    showMessageNow(text: string, seconds = GM_MESSAGE_SECONDS) {
+        if (text.trim().length === 0) return;
+        this.recordMessage(text);
+        this.messageSecondsLeft = seconds;
+        this.show(text);
+    }
+
+    /** Clears the current {@link message}; the next queued one shows on the next tick. History is kept. */
+    clearMessage() {
+        this.messageSecondsLeft = 0;
+        this.show('');
+    }
+
+    /** Clears current message, queue and history (game stop). */
+    resetMessages() {
+        this.messageQueue = [];
+        this.messageSecondsLeft = 0;
+        this.show('');
+        this.messageHistory.splice(0);
+        this.messageSeq = 0;
+    }
+
+    /** Pending messages not yet shown. */
+    get queuedMessages(): readonly string[] {
+        return this.messageQueue.map((m) => m.text);
+    }
+
+    /**
+     * Advances the message queue by `deltaSeconds` (wall-clock, so it runs while the game is paused).
+     * A GM write to {@link message} since the last tick becomes a GM message: recorded, held on screen.
+     */
+    tickMessages(deltaSeconds: number) {
+        if (this.message !== this.shownMessage) {
+            if (this.message.trim().length === 0) {
+                this.clearMessage();
+            } else {
+                this.showMessageNow(this.message);
+            }
+        }
+        // a held message yields once another one has waited the default display time
+        const left = this.messageQueue.length
+            ? Math.min(this.messageSecondsLeft, MESSAGE_DISPLAY_SECONDS)
+            : this.messageSecondsLeft;
+        this.messageSecondsLeft = left - deltaSeconds;
+        if (this.messageSecondsLeft > 0) return;
+        const next = this.messageQueue.shift();
+        this.messageSecondsLeft = next?.seconds ?? 0;
+        this.show(next?.text ?? '');
+    }
+
+    private show(text: string) {
+        this.shownMessage = text;
+        this.message = text;
+    }
+
+    private recordMessage(text: string) {
         const entry = new GameMessage();
         entry.text = text;
         entry.seq = ++this.messageSeq;
@@ -105,19 +191,6 @@ export class AdminState extends Schema implements StationRegistrable, BotAssigna
         if (this.messageHistory.length > MESSAGE_HISTORY_LIMIT) {
             this.messageHistory.splice(0, this.messageHistory.length - MESSAGE_HISTORY_LIMIT);
         }
-        this.message = text;
-    }
-
-    /** Clears the current {@link message}; history is kept. */
-    clearMessage() {
-        this.message = '';
-    }
-
-    /** Clears current message and history (game stop). */
-    resetMessages() {
-        this.message = '';
-        this.messageHistory.splice(0);
-        this.messageSeq = 0;
     }
 
     get isGameRunning() {
