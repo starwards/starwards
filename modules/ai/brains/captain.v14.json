@@ -1,0 +1,75 @@
+{
+    "id": "captain",
+    "version": 14,
+    "station": "captain",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 5,
+    "role": "captain of the warship GVTS: you read the whole picture the fleet sees on the dradis and give the crew their orders by radio; you press no keys",
+    "mission": "bring the ship to missile range of the nearest enemy ship and have weapons engage it; hold the ship still while no enemy is in sight",
+    "view": "verbal",
+    "controls": {
+        "callout": {
+            "instructions": "You are the captain. The console lists every contact the fleet sees, with range and bearing; an enemy ship is one identified as another faction's. Which order do you give on the radio now? Give an order again when the situation changed; stay silent when the crew already has the right order. Weapons reports its lock, check fire when an ally is in its line of fire and line clear once it is not, whether the locked ship is inside missile range, each missile it launches and a lost or destroyed target; signals reports an enemy it lost. Do not change an order because you see no result yet, and keep your last order while a contact is reported lost. With two or more enemies in sight, give a focus order so the crew fights them in your order.",
+            "hears": [
+                "signals.enemy_position",
+                "signals.contact_lost",
+                "weapons.target_locked",
+                "weapons.in_envelope",
+                "weapons.out_of_envelope",
+                "weapons.salvo_away",
+                "weapons.target_destroyed",
+                "weapons.lost_lock",
+                "weapons.check_fire",
+                "weapons.line_clear",
+                "weapons.shells_low",
+                "weapons.shells_restocked"
+            ]
+        }
+    },
+    "callouts": {
+        "call_check_fire": {
+            "say": "check fire",
+            "when": "orders weapons to hold gun and tubes whenever its line of fire shows an ally, and fire again once the line is clear. Choose this when weapons just called check fire and no check fire order stands"
+        },
+        "clear_to_fire": {
+            "say": "clear to fire",
+            "when": "revokes the check fire order. Choose this when weapons reports the line clear and a check fire order stands"
+        },
+        "undock": {
+            "say": "cast off",
+            "when": "orders helms to undock. Choose this when the ship is docked to restock and weapons reported the shells restocked, or an enemy ship comes within 30 km"
+        },
+        "dock_for_repair": {
+            "say": "dock at {name} to restock, {distance} km at bearing {bearing}",
+            "fill": "dockOrder",
+            "when": "orders helms to fly to the nearest allied station and dock, and the engineer to run the docked repairs; the magazine restocks while docked. Choose this when weapons reported the shells low, no enemy ship is within 30 km and an allied station is within 45 km"
+        },
+        "salvo": {
+            "say": "salvo {count}, then hold the tubes",
+            "fill": "salvoOrder",
+            "when": "orders weapons to keep only that many missiles in flight at the target and hold the tubes until one arrives without a kill: the first missiles carry the kill, and the magazine holds 12 with a long restock. Choose this right after ordering an enemy engaged, when no salvo order stands"
+        },
+        "focus": {
+            "say": "focus {focus}",
+            "fill": "focusOrder",
+            "when": "orders weapons to lock, and helms to keep the nose on, the enemy ships in sight one after the other in this order, moving on as each is destroyed: with an allied station in sight, the enemy nearest the station they threaten first. Choose this when two or more enemy ships are in sight and no focus order stands, or when the enemies now threaten another station than the standing focus names and no enemy has been near that station for the last half minute"
+        },
+        "close_to": {
+            "say": "close to {range} km of {name}, now {distance} km at bearing {bearing}",
+            "fill": "gunCloseOrder",
+            "when": "orders helms to fly to gun range of the enemy ship nearest an allied station in sight, else of the nearest enemy ship; the range, the enemy's distance and its world bearing are filled in from the dradis. Choose this when the nearest enemy ship is farther than missile range, or weapons reports it beyond missile range"
+        },
+        "engage": {
+            "say": "engage {name}",
+            "fill": "engageOrder",
+            "when": "orders weapons to lock the nearest enemy ship and launch missiles at it. Choose this when that enemy is inside missile range, or weapons reports it in missile range, and you have not ordered it engaged"
+        },
+        "hold_here": {
+            "say": "hold here",
+            "when": "orders helms to stop the ship where it is. Choose this when the dradis shows no enemy ship and signals has not just reported one lost"
+        }
+    },
+    "resupply": {
+        "dockClearMeters": 30000
+    }
+}

@@ -62,6 +62,8 @@ const scenes = [
     'engineering-status-full-energy',
     'engineering-status-hull-ok',
     'engineering-status-hull-damaged',
+    // Game message overlay (M4.57)
+    'game-message-banner',
     // GM Radar
     'gm-radar-empty',
     'gm-radar-ships',

@@ -54,6 +54,17 @@ export class FactionIntelManager {
         }
     }
 
+    /**
+     * Gives the faction SNAPSHOT intel on the target as of `atSeconds`: the level, the capture
+     * time, and the ship's data as it is now. What a FULL→SNAPSHOT demotion does; also how a map
+     * starts a faction already knowing a target.
+     */
+    public grantSnapshot(targetId: string, faction: Faction, atSeconds: number) {
+        this.setScanLevel(targetId, faction, ScanLevel.SNAPSHOT);
+        this.setScanSnapshotCapturedAt(targetId, faction, atSeconds);
+        this.captureSnapshot(targetId, faction, atSeconds);
+    }
+
     private captureSnapshot(targetId: string, faction: Faction, atSeconds: number) {
         const data = this.encodeShip(targetId);
         if (!data) return;
@@ -113,9 +124,7 @@ export class FactionIntelManager {
                 const key = `${target.id}/${faction}`;
                 const seconds = (this.uncoveredSeconds.get(key) ?? 0) + deltaSeconds;
                 if (seconds > FULL_SCAN_GRACE_SECONDS) {
-                    this.setScanLevel(target.id, faction, ScanLevel.SNAPSHOT);
-                    this.setScanSnapshotCapturedAt(target.id, faction, totalSeconds);
-                    this.captureSnapshot(target.id, faction, totalSeconds);
+                    this.grantSnapshot(target.id, faction, totalSeconds);
                 } else {
                     uncovered.set(key, seconds);
                 }
@@ -168,11 +177,16 @@ export class FactionIntelManager {
      * Returns ScanLevel.UFO (0) if not set, or at least BASIC for same-faction targets
      */
     public getScanLevel(targetId: string, faction: Faction): ScanLevel {
-        const slot = this.getScanSlot(targetId, faction);
-        if (!slot) {
+        const target = this.state.get(targetId);
+        return target ? this.getScanLevelOf(target, faction) : ScanLevel.UFO;
+    }
+
+    /** {@link getScanLevel} of an object already in hand, without looking it up by id. */
+    public getScanLevelOf(target: SpaceObject, faction: Faction): ScanLevel {
+        const factionIndex = Number(faction);
+        if (target.destroyed || factionIndex < 0 || factionIndex >= Number(Faction.FACTION_COUNT)) {
             return ScanLevel.UFO;
         }
-        const [target, factionIndex] = slot;
         const storedLevel = target.scanLevels[factionIndex] || ScanLevel.UFO;
         // Objects from same faction have at least BASIC scan level
         if (target.faction === faction) {

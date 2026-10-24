@@ -9,7 +9,6 @@ import {
     RecordingEventLine,
     ShipManager,
     ShipManagerPc,
-    Spaceship,
     currentEnergyModel,
     encodeEventLine,
     zstSidecarName,
@@ -132,8 +131,8 @@ export class HeadlessRecorder {
 
     private observeBlastHits() {
         const state = this.game.spaceManager.state;
-        const ships = [...state].filter((o): o is Spaceship => Spaceship.isInstance(o) && !o.destroyed);
-        for (const [explosion, ship] of this.blastHits.next(state, ships)) {
+        const ships = [...state.getAll('Spaceship')];
+        for (const [explosion, ship] of this.blastHits.next(state.getAll('Explosion'), ships)) {
             this.record('blast_hit', ship.id, { explosionId: explosion.id, damageType: explosion.damageType });
         }
     }

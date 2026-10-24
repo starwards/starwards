@@ -14,7 +14,9 @@ import {
     SpaceManager,
     Spaceship,
     XY,
+    encodeShipSnapshot,
     makeShipState,
+    mix,
     reserveIds,
     resetIds,
     shipConfigurations,
@@ -72,6 +74,10 @@ export class HeadlessGame {
             this.spaceManager.state.botOrderCommands.push({ ids: [shipId], order: { type: 'none' } });
         },
         convertToDerelict: (shipId) => this.spaceManager.convertToDerelict(shipId),
+        grantSnapshot: (targetId, faction) => {
+            this.spaceManager.forceFlushEntities(); // the target may still be queued for insertion
+            this.spaceManager.factionIntel.grantSnapshot(targetId, faction, this.totalSeconds);
+        },
         getObject: (id) => this.spaceManager.state.get(id),
         getObjects: () => this.spaceManager.state,
         setSpeed: (speed) => {
@@ -88,6 +94,10 @@ export class HeadlessGame {
         private totalSeconds: number,
         private readonly crewedPlayer: boolean,
     ) {
+        this.spaceManager.factionIntel.encodeShip = (shipId) => {
+            const shipState = this.shipManagers.get(shipId)?.state;
+            return shipState && encodeShipSnapshot(shipState);
+        };
         this.die = new ShipDie(seed);
         this.die.update({ deltaSeconds: totalSeconds, deltaSecondsAvg: totalSeconds, totalSeconds });
     }
@@ -136,6 +146,15 @@ export class HeadlessGame {
             }
         }
         return game;
+    }
+
+    /**
+     * Branches the run's randomness here: the ships' die (`die`) and the map's own stream (`map`, e.g.
+     * wave-defence's waves and raider aggro noise) draw from `key` on. Same key, same future.
+     */
+    reseed(key: number, { die = true, map = true }: { die?: boolean; map?: boolean } = {}) {
+        if (die) this.die.reseed(mix(key, 1));
+        if (map) this.map.reseed?.(mix(key, 2));
     }
 
     /** The map paused the game (`setSpeed(0)` or `stopGame`), e.g. wave-defence on defeat: ticks no longer advance it. */

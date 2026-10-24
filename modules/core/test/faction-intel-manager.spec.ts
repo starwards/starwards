@@ -65,6 +65,18 @@ describe('FactionIntelManager scan levels', () => {
         expect(intel.getScanLevel('target', Faction.NONE)).to.equal(ScanLevel.UFO);
         expect([...target.scanLevels]).to.deep.equal(Array(Number(Faction.FACTION_COUNT)).fill(Number(ScanLevel.UFO)));
     });
+
+    it('reads the same level from an object in hand as by its id', () => {
+        const target = makeShip('target', Faction.Raiders);
+        const { intel } = setup(target);
+        intel.setScanLevel('target', Faction.Gravitas, ScanLevel.SNAPSHOT);
+        for (const faction of [Faction.Gravitas, Faction.Raiders, Faction.NONE]) {
+            expect(intel.getScanLevelOf(target, faction)).to.equal(intel.getScanLevel('target', faction));
+        }
+        target.destroyed = true;
+        expect(intel.getScanLevelOf(target, Faction.Gravitas)).to.equal(ScanLevel.UFO);
+        expect(intel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+    });
 });
 
 describe('FactionIntelManager setScanLevel commands', () => {
@@ -87,6 +99,20 @@ describe('FactionIntelManager setScanLevel commands', () => {
         intel.update(1, 1, visibility());
 
         expect([...target.scanLevels]).to.deep.equal(Array(Number(Faction.FACTION_COUNT)).fill(Number(ScanLevel.UFO)));
+    });
+});
+
+describe('FactionIntelManager grantSnapshot', () => {
+    it('grants SNAPSHOT at the given time with the data captured, like a demotion', () => {
+        const target = makeShip('target', Faction.Gravitas);
+        const { intel } = setup(target);
+        intel.encodeShip = () => new Uint8Array([1, 2, 3]);
+
+        intel.grantSnapshot('target', Faction.Raiders, 7);
+
+        expect(intel.getScanLevel('target', Faction.Raiders)).to.equal(ScanLevel.SNAPSHOT);
+        expect(intel.getScanSnapshotCapturedAt('target', Faction.Raiders)).to.equal(7);
+        expect(intel.getSnapshot('target', Faction.Raiders)?.data).to.deep.equal(new Uint8Array([1, 2, 3]));
     });
 });
 

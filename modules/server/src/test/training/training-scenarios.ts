@@ -31,6 +31,7 @@ import {
 import { ingest, storePathFor } from './analysis/store';
 
 import { HeadlessRecorder } from '../headless-recorder';
+import { WAVE_CUTS } from './wave-cuts';
 import { computeChecks } from './analysis/checks';
 import { computeEvents } from './analysis/events';
 import { extractMetrics } from './analysis/extract';
@@ -357,6 +358,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
         passWaves: Infinity,
     }) as TrainingScenario<never>,
     ...adversaryRungs,
+    ...WAVE_CUTS,
 };
 
 /**

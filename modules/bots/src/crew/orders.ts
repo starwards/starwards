@@ -379,7 +379,8 @@ export function ordersSummary(board: OrdersBoard): string {
 }
 
 /** The board's maneuver order to helms, in the shape the reference policy flies it. */
-type HelmOrder = { kind: 'close'; spot: XY } | { kind: 'hold' };
+/** `target`: the ship a close-to order names, if it names one. */
+type HelmOrder = { kind: 'close'; spot: XY; target?: string } | { kind: 'hold' };
 
 /**
  * The board's maneuver order (`helm`), the ship it says to engage (`engage`) and the missiles a salvo
@@ -397,6 +398,10 @@ export function captainOrdersFromBoard(
     checkFire?: boolean;
     /** The board holds a focus order: `engage` names the ship it points at now. */
     focus?: boolean;
+    /** The station a standing `nearest_to` focus picks by. */
+    focusStation?: string;
+    /** The board holds a dock order that is under way or done: the ship is docking, docked or on its way. */
+    dock?: boolean;
 } {
     const board = readOrders(display);
     const m = board.orders.find((o) => o.slot === 'maneuver' && o.status === 'active');
@@ -417,6 +422,7 @@ export function captainOrdersFromBoard(
                     ? {
                           kind: 'close',
                           spot: { x: t.x + ((at.x - t.x) * range) / d, y: t.y + ((at.y - t.y) * range) / d },
+                          ...(m.params.target.name !== undefined ? { target: m.params.target.name } : {}),
                       }
                     : { kind: 'hold' };
         }
@@ -425,13 +431,16 @@ export function captainOrdersFromBoard(
     const salvo = board.orders.find((o) => o.kind === 'salvo' && o.status === 'active');
     const focus = board.orders.find((o) => o.kind === 'focus' && o.status === 'active');
     const checkFire = board.orders.some((o) => o.kind === 'check_fire' && o.status === 'active');
+    const dock = board.orders.some((o) => o.kind === 'dock_for_repair' && o.status !== 'aborted');
     return {
         helm,
         engage:
             engage?.params.target?.name ??
             (focus && display ? focusTarget(focus.params, display, previous)?.name : undefined),
         ...(focus ? { focus: true } : {}),
+        ...(focus?.params.station?.name !== undefined ? { focusStation: focus.params.station.name } : {}),
         ...(checkFire ? { checkFire: true } : {}),
+        ...(dock ? { dock: true } : {}),
         ...(salvo ? { salvo: salvo.params.count ?? SALVO_MISSILES } : {}),
     };
 }
@@ -462,6 +471,10 @@ const calloutRef = (v: Values, origin: XY | undefined): OrderRef => {
 const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => GivenOrder> = {
     close_to: (v, o) => ({ kind: 'close_to', params: { target: calloutRef(v, o), range: Number(v.range) * 1000 } }),
     hold_here: () => ({ kind: 'hold_here' }),
+    guard_station: (v, o) => ({
+        kind: 'close_to',
+        params: { target: calloutRef(v, o), range: Number(v.range) * 1000 },
+    }),
     engage: (v) => ({ kind: 'engage', params: { target: { name: v.name } } }),
     hold_fire: () => ({ kind: 'hold_fire' }),
     chase_target: (v, o) => ({ kind: 'chase_target', params: { target: calloutRef(v, o) } }),

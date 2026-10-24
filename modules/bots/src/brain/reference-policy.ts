@@ -1,13 +1,14 @@
 import { Answer, Policy } from './brain';
+import { CALLOUT_QUESTION, stationThreat } from './callout';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
-import { SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
+import { Resupply, SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
 import { flightSeconds, stillFlying } from './salvo';
 
-import { CALLOUT_QUESTION } from './callout';
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
+import { referenceKnobs } from './reference-knobs';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -39,58 +40,75 @@ type Helms = {
 const VELOCITY = 1;
 const TARGET = 2;
 
-/** Gun-on-target tolerance and the range the chain gun's fuse can reach (gravitas: 8000 m). */
-const FIRE_ARC_DEGREES = 2;
-const FIRE_RANGE_METERS = 8000;
+/** The range the chain gun's fuse can reach (gravitas: 8000 m). */
+const GUN_REACH_METERS = 8000;
+
 /**
  * A homing missile turns hard after launch, so a tube fires at anything up to a little past its beam
  * line: a side tube still fires at a target on the nose.
  */
 const TUBE_ARC_DEGREES = 100;
 /** One missile at a time, this far apart: a salvo spends the magazine on a target the first hits already fling. */
-const LAUNCH_INTERVAL_SECONDS = 10;
 /**
  * Where the pilot parks: this far straight behind the target's motion. Space caps a shell's speed at
  * its muzzle speed, so a shell chasing a receding target detonates short by ~a quarter of the range,
  * and a blast keeps only a third of its shell's speed, so one fired at an oncoming target is swept
  * off it at once; close behind, the shortfall stays inside the blast.
  */
-const STANDOFF_METERS = 500;
 /**
  * Where the pilot parks once the target has shot armor off the GVTS: beyond the reach of a fighter's
  * slow shells' lead -- they fly half as fast as ours -- yet inside our gun's 8 km. Close in, the
  * fighter strips the armor and breaks the reactor faster than our gun kills it.
  */
-const ARMED_STANDOFF_METERS = 4000;
 /**
  * A lateral weave across the parking spot, as the NPC attack weave flies it: a parked ship is a
  * still target for a gun whose shells take seconds to arrive.
  */
-const WEAVE_METERS = 400;
-const WEAVE_HZ = 0.08;
 /** How fast (per second) the pilot closes the gap to its parking spot, and the cap on that speed. */
-const PARKING_GAIN = 0.3;
 const MAX_PARKING_SPEED = 200;
 /** Below this the target counts as still, and the pilot parks on the current line of sight instead. */
 const STILL_SPEED = 50;
 /** The ship's top speed (gravitas): the maneuvering command is a fraction of it. */
 const MAX_SPEED = 450;
 /** Beyond this past the standoff the pilot burns afterburner: blasts fling a dead target at our top speed. */
-const PURSUIT_METERS = 1500;
+/** The captain's close order leads the ship away from the nearest enemy only to a spot this far off: near, they fight it out together. */
+const LEAVE_NEAREST_METERS = 10_000;
 /** A target this fast was flung by our blasts and runs away at our top speed. */
 const FLUNG_SPEED = 0.9 * MAX_SPEED;
+
+/**
+ * Helms with `clearLine`: an allied station whose hull comes this near the gun line from the parking
+ * spot through the target fouls it (weapons calls check fire), so the pilot parks across the target from it.
+ */
+/** How fast helms with `clearLine` steps across a fouled gun line. */
+const SIDESTEP_SPEED = MAX_PARKING_SPEED;
+/** A contact this wide is a station, not a ship. */
+const STATION_RADIUS_METERS = 200;
 
 /**
  * How the reference helms varies, for validating a helms score against known-better and known-worse
  * play: where it parks (`standoff` before the target has fired, `armedStandoff` after), and the
  * lateral weave it flies across the parking spot once it has been fired on.
  */
-export type HelmsStyle = { standoff: number; armedStandoff: number; weaveMeters: number };
+export type HelmsStyle = {
+    standoff: number;
+    armedStandoff: number;
+    weaveMeters: number;
+    clearLine?: boolean;
+    /** Park on the enemy the captain's engage or focus order names while it is in sight, not on the nearest. */
+    parkOnEngaged?: boolean;
+};
 
-const REFERENCE_HELMS: HelmsStyle = {
-    standoff: STANDOFF_METERS,
-    armedStandoff: ARMED_STANDOFF_METERS,
-    weaveMeters: WEAVE_METERS,
+export const REFERENCE_HELMS: HelmsStyle = {
+    get standoff() {
+        return referenceKnobs.STANDOFF_METERS;
+    },
+    get armedStandoff() {
+        return referenceKnobs.ARMED_STANDOFF_METERS;
+    },
+    get weaveMeters() {
+        return referenceKnobs.WEAVE_METERS;
+    },
 };
 
 /**
@@ -98,7 +116,7 @@ const REFERENCE_HELMS: HelmsStyle = {
  * is the positive control of the harness: it shows a kill is reachable through the button
  * interface, so a brain that fails is failing at judgement, not at the interface. Signals rests.
  * Weapons also launches a missile from a loaded tube that bears on its lock, one every
- * {@link LAUNCH_INTERVAL_SECONDS}. Each seat gets its own instance: helms remembers the last radar fix to tell the target's
+ * {@link referenceKnobs.LAUNCH_INTERVAL_SECONDS}. Each seat gets its own instance: helms remembers the last radar fix to tell the target's
  * velocity, and whether the target has fired back.
  */
 export function makeReferencePolicy(
@@ -106,6 +124,11 @@ export function makeReferencePolicy(
     engineer: EngineerStyle = REFERENCE_ENGINEER,
     name = 'reference',
     helms: HelmsStyle = REFERENCE_HELMS,
+    shellPreference?: readonly string[],
+    fireRangeMeters = Infinity,
+    resupply?: Resupply,
+    threatTarget = false,
+    guardCentre = false,
 ): Policy {
     let lastFix: { id: string; position: XY } | undefined;
     let targetVelocity: XY = { x: 0, y: 0 };
@@ -113,20 +136,23 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
-    const talk = calloutMemory();
+    const talk = calloutMemory(resupply, threatTarget, guardCentre);
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
+    const spend: Spend = { lockId: undefined, firedOn: 0, firstShells: undefined, apShells: 0, apMissiles: 0 };
+    let retally: ((pressed: Readonly<Record<string, Answer>>) => void) | undefined;
     return {
         name,
+        pressed: (answers) => retally?.(answers),
         answer(request, controls, shown, heard) {
             const display = shown as Display;
-            const ship = nearestShip(display);
+            const orders = captainOrdersFromBoard(display, previous);
+            const ship = (helms.parkOnEngaged && engagedShip(display, orders.engage)) || nearestShip(display);
             if (ship && lastFix?.id === ship.id) {
                 targetVelocity = scale(sub(ship.position, lastFix.position), 1 / decisionSeconds);
             }
             lastFix = ship && { id: ship.id, position: ship.position };
             seconds += decisionSeconds;
-            const orders = captainOrdersFromBoard(display, previous);
             armed ||= underFire(display);
             const standoff = armed ? helms.armedStandoff : helms.standoff;
             const weaveMeters = armed ? helms.weaveMeters : 0;
@@ -135,12 +161,47 @@ export function makeReferencePolicy(
                 orders.salvo !== undefined &&
                 salvo !== undefined &&
                 stillFlying(salvo.arrivals, seconds) >= orders.salvo;
+            const lockId = display.panels['targeting-status']?.targetId as string | undefined;
+            const wasIntact = platesIntact(spend);
+            if (lockId !== spend.lockId) {
+                spend.firedOn = 0;
+                spend.apShells = 0;
+                spend.apMissiles = 0;
+            } else {
+                spend.apShells += Math.max(0, apShellCount(previous) - apShellCount(display));
+            }
+            spend.lockId = lockId;
+            spend.firstShells ??= shellsLeft(display);
             const launchTube =
-                seconds - lastLaunch >= LAUNCH_INTERVAL_SECONDS && !salvoFull && !checkFire(display)
-                    ? tubeToLaunch(display, previous, decisionSeconds)
+                seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS &&
+                !salvoFull &&
+                !checkFire(display) &&
+                spend.firedOn >= referenceKnobs.MISSILE_ESCALATE_SECONDS &&
+                (referenceKnobs.MISSILE_FINISH_SECONDS <= 0 || spend.firedOn < referenceKnobs.MISSILE_FINISH_SECONDS)
+                    ? tubeToLaunch(display, previous, decisionSeconds, seconds)
                     : undefined;
             const answers: Record<string, Answer> = {};
             let launched: SalvoTally | undefined;
+            const before = { firedOn: spend.firedOn, apMissiles: spend.apMissiles, lastLaunch, salvo };
+            const tallyPress = (control: Control, choice: string, last: Display | undefined) => {
+                if (control.command === 'fireChainGun' && choice === 'fire') spend.firedOn += decisionSeconds;
+                if (control.command === 'fireTube' && choice === 'fire') {
+                    const tubes = (display.panels['tubes-status'] ?? []) as unknown as TubeStatus[];
+                    const fired = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
+                    if (fired?.loadedProjectile === 'ArmPenMissile') spend.apMissiles += 1;
+                    lastLaunch = seconds;
+                    salvo = countLaunch(salvo, display, last, decisionSeconds, seconds);
+                    launched = salvo && tally(salvo, seconds);
+                }
+            };
+            const last = previous;
+            retally = (pressed) => {
+                ({ firedOn: spend.firedOn, apMissiles: spend.apMissiles, lastLaunch, salvo } = before);
+                for (const control of controls) {
+                    const choice = pressed[control.id]?.choice;
+                    if (choice !== undefined) tallyPress(control, choice, last);
+                }
+            };
             for (const control of controls) {
                 const choice =
                     referenceChoice(
@@ -149,17 +210,16 @@ export function makeReferencePolicy(
                         ship,
                         targetVelocity,
                         seconds,
-                        { standoff, weaveMeters },
+                        { standoff, weaveMeters, clearLine: helms.clearLine === true },
                         engineer,
                         launchTube,
                         orders,
+                        shellPreference,
+                        fireRangeMeters,
+                        spend,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
-                if (control.command === 'fireTube' && choice === 'fire') {
-                    lastLaunch = seconds;
-                    salvo = countLaunch(salvo, display, previous, decisionSeconds, seconds);
-                    launched = salvo && tally(salvo, seconds);
-                }
+                tallyPress(control, choice, previous);
             }
             const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage, {
                 heard,
@@ -167,8 +227,16 @@ export function makeReferencePolicy(
                 salvo: launched,
                 salvoOrdered: orders.salvo !== undefined,
                 focusOrdered: orders.focus === true,
+                focusStation: orders.focusStation,
                 checkFireOrdered: orders.checkFire === true,
+                dockOrdered: orders.dock === true,
             });
+            if (referenceKnobs.AMMO_OPEN_AP > 0.5 && wasIntact && !platesIntact(spend) && apOpenLog()) {
+                // eslint-disable-next-line no-console -- smoke-run evidence, gated on APOPEN_LOG
+                console.log(
+                    `[apopen] t=${seconds.toFixed(0)} lock=${spend.lockId} judged broken: AP shells=${spend.apShells} missiles=${spend.apMissiles} -> HE`,
+                );
+            }
             previous = display;
             if (callout) {
                 answers[CALLOUT_QUESTION] = callout;
@@ -207,24 +275,37 @@ function tally(salvo: { arrivals: number[] }, now: number): SalvoTally {
     return { n: salvo.arrivals.length, inFlight: stillFlying(salvo.arrivals, now) };
 }
 
-/** Where the helms parks now, and how wide it weaves across the spot. */
-type Parking = { standoff: number; weaveMeters: number };
+/** Where the helms parks now, how wide it weaves across the spot, and whether it keeps allied stations off the gun line. */
+type Parking = { standoff: number; weaveMeters: number; clearLine?: boolean };
 
 function referenceChoice(
     control: Control,
     display: Display,
-    ship: Contact | undefined,
+    nearest: Contact | undefined,
     targetVelocity: XY,
     seconds: number,
     parking: Parking,
     engineer: EngineerStyle,
     launchTube: number | undefined,
     orders: ReturnType<typeof captainOrdersFromBoard>,
+    shellPreference: readonly string[] | undefined,
+    fireRangeMeters: number,
+    spend: Spend,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
     const helms = display.panels['helms-stats'] as Helms | undefined;
     const targeting = display.panels['targeting-status'];
+    // the captain ordering the ship to close on another, distant enemy than the nearest (one attacking
+    // a station, not a straggler alongside) flies the ship there instead of parking on the nearest
+    const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
+    const ship =
+        orders.helm?.kind === 'close' &&
+        orders.helm.target !== undefined &&
+        nearest?.name !== orders.helm.target &&
+        length(sub(orders.helm.spot, own)) > LEAVE_NEAREST_METERS
+            ? undefined
+            : nearest;
     const aligned = ship && Math.abs(delta(ship.bearing, heading)) < 15;
     // with no enemy on the helms radar, the captain's last order flies the ship
     const order = ship ? undefined : orders.helm;
@@ -233,11 +314,16 @@ function referenceChoice(
         case 'target': {
             // an unscanned blip may be a shell, an identified ally is no target, and the captain names the enemy to engage
             const locked = display.radar?.contacts?.find((c) => c.id === targeting?.targetId);
+            const finishing =
+                referenceKnobs.FINISH_LOCK_SECONDS > 0 &&
+                spend.firedOn >= referenceKnobs.FINISH_LOCK_SECONDS &&
+                locked !== undefined &&
+                locked.distance <= Math.min(fireRangeMeters, referenceKnobs.FIRE_RANGE_METERS);
             return !targeting?.targetId ||
                 (locked &&
                     (!isShip(locked) ||
                         isAlly(locked, display) ||
-                        (orders.engage !== undefined && locked.name !== orders.engage)))
+                        (orders.engage !== undefined && locked.name !== orders.engage && !finishing)))
                 ? 'next'
                 : 'none';
         }
@@ -249,8 +335,10 @@ function referenceChoice(
             return target &&
                 !gunTooHot(display) &&
                 !checkFire(display) &&
-                Math.abs(delta(target.bearing, heading)) <= FIRE_ARC_DEGREES &&
-                target.distance <= FIRE_RANGE_METERS
+                Math.abs(delta(target.bearing, heading)) <= referenceKnobs.FIRE_ARC_DEGREES &&
+                target.distance <= Math.min(fireRangeMeters, GUN_REACH_METERS) &&
+                (nearStation(display, target) ||
+                    (target.distance <= referenceKnobs.FIRE_RANGE_METERS && withinBudget(display, seconds, spend)))
                 ? 'fire'
                 : 'hold_fire';
         }
@@ -296,15 +384,48 @@ function referenceChoice(
         }
         case 'afterBurner': {
             // a target flung at our top speed is never closed on without the afterburner, nor one the captain orders us after
-            const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
             return (aligned &&
-                (ship.distance > standoff + PURSUIT_METERS ||
+                (ship.distance > standoff + referenceKnobs.PURSUIT_METERS ||
                     (ship.distance > standoff && length(targetVelocity) > FLUNG_SPEED))) ||
                 (order?.kind === 'close' &&
-                    length(sub(order.spot, own)) > PURSUIT_METERS &&
+                    length(sub(order.spot, own)) > referenceKnobs.PURSUIT_METERS &&
                     Math.abs(delta(bearingTo(display, order.spot), heading)) < 15)
                 ? 'engage'
                 : 'release';
+        }
+        case 'changeGunAmmo': {
+            // cycle on until the gun takes the first preferred shell type with stock; without a preference
+            // (or none of them stocked), once the loaded type ran dry while another has stock
+            const guns = (display.panels['gun-status'] ?? []) as unknown as { index: number; projectile: string }[];
+            const stock = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)
+                ?.ammo;
+            const gun = guns.find((g) => g.index === Number(control.id.split(':')[1] ?? 0));
+            if (!gun || !stock) return 'wait';
+            const left = (type: string) => stock[type]?.count ?? 0;
+            const preference =
+                apOpenOrder(spend, AP_OPEN_SHELLS, HE_FINISH_SHELLS, 0.5) ??
+                shellPreference ??
+                (seconds < referenceKnobs.FRAG_FIRST_SECONDS ? FRAG_FIRST : undefined);
+            const wanted = preference?.find((t) => left(t) > 0);
+            if (wanted) return gun.projectile === wanted ? 'wait' : 'press';
+            const others = Object.keys(stock).some((t) => t.endsWith('Shell') && t !== gun.projectile && left(t) > 0);
+            return left(gun.projectile) < 1 && others ? 'press' : 'wait';
+        }
+        case 'changeTubeAmmo': {
+            const apOpen = apOpenOrder(spend, TUBE_AMMO_ORDER_AP_FIRST, TUBE_AMMO_ORDER, 1.5);
+            if (referenceKnobs.TUBE_AMMO_FALLBACK <= 0.5 && !apOpen) return undefined;
+            // cycle an empty, unloaded tube on to the first missile type in TUBE_AMMO_ORDER with stock
+            const tubes = (display.panels['tubes-status'] ?? []) as unknown as (TubeStatus & { projectile: string })[];
+            const stock = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)
+                ?.ammo;
+            const tube = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
+            const apFirst = apOpen !== undefined || referenceKnobs.TUBE_AMMO_AP_FIRST > 0.5;
+            // AP first: re-type any tube without a round in it, even one already reloading
+            if (!tube || !stock || (apFirst ? tube.loadedProjectile !== 'None' : tube.loading > 0)) return 'wait';
+            const left = (type: string) => stock[type]?.count ?? 0;
+            if (!apFirst && left(tube.projectile) >= 1) return 'wait';
+            const wanted = (apOpen ?? (apFirst ? TUBE_AMMO_ORDER_AP_FIRST : TUBE_AMMO_ORDER)).find((t) => left(t) >= 1);
+            return wanted && tube.projectile !== wanted ? 'press' : 'wait';
         }
         case 'beamDirection':
             return beamChoice(display);
@@ -317,6 +438,7 @@ function referenceChoice(
                 display,
                 engineer,
                 orders.helm?.kind === 'close' || orders.engage !== undefined,
+                seconds,
             );
         default:
             return undefined;
@@ -344,21 +466,77 @@ function parkingCommand(
     targetVelocity: XY,
     heading: number,
     seconds: number,
-    { standoff, weaveMeters }: Parking,
+    { standoff, weaveMeters, clearLine }: Parking,
 ) {
     const own = display.radar?.ownShip?.position ?? { x: 0, y: 0 };
     const fromTarget = sub(own, ship.position);
     const speed = length(targetVelocity);
-    const behind = speed > STILL_SPEED ? scale(targetVelocity, -1 / speed) : scale(fromTarget, 1 / ship.distance);
+    const straight = speed > STILL_SPEED ? scale(targetVelocity, -1 / speed) : scale(fromTarget, 1 / ship.distance);
+    const behind = clearLine ? clearOfStations(display, ship, straight, standoff, fromTarget) : straight;
     const across = { x: -behind.y, y: behind.x };
-    const phase = 2 * Math.PI * WEAVE_HZ * seconds;
+    const phase = 2 * Math.PI * referenceKnobs.WEAVE_HZ * seconds;
     const spot = add(scale(behind, standoff), scale(across, weaveMeters * Math.sin(phase)));
     const gap = sub(spot, fromTarget);
-    const weave = scale(across, weaveMeters * 2 * Math.PI * WEAVE_HZ * Math.cos(phase));
-    const closing = add(scale(gap, PARKING_GAIN), weave);
+    const weave = scale(across, weaveMeters * 2 * Math.PI * referenceKnobs.WEAVE_HZ * Math.cos(phase));
+    const parking = add(scale(gap, referenceKnobs.PARKING_GAIN), weave);
+    const step = clearLine ? sidestep(display, ship) : undefined;
+    // a fouled line: keep only the range-keeping part of the parking, and step across the line
+    const closing = step ? add(scale(step.fire, dot(parking, step.fire)), step.across) : parking;
     const capped = scale(closing, Math.min(1, MAX_PARKING_SPEED / Math.max(length(closing), 1)));
     return shipFrame(helms.maneuveringMode === VELOCITY ? add(capped, targetVelocity) : capped, heading);
 }
+
+/**
+ * The side of `ship` to park on so the gun line from there through it misses every allied station:
+ * `behind` when it already does, else square to the first station that fouls it, on the side nearer
+ * the own ship.
+ */
+function clearOfStations(display: Display, ship: Contact, behind: XY, standoff: number, fromTarget: XY) {
+    const fire = scale(behind, -1);
+    for (const station of display.radar?.contacts ?? []) {
+        if (!isAlly(station, display) || (station.radius ?? 0) < STATION_RADIUS_METERS) continue;
+        const rel = sub(station.position, ship.position);
+        const along = rel.x * fire.x + rel.y * fire.y;
+        const across = Math.abs(rel.x * fire.y - rel.y * fire.x);
+        if (
+            along < -standoff ||
+            along > GUN_REACH_METERS ||
+            across > (station.radius ?? 0) + referenceKnobs.LINE_CLEARANCE_METERS
+        ) {
+            continue;
+        }
+        const gap = Math.max(length(rel), 1);
+        const square = { x: -rel.y / gap, y: rel.x / gap };
+        return square.x * fromTarget.x + square.y * fromTarget.y >= 0 ? square : scale(square, -1);
+    }
+    return behind;
+}
+
+const XY_ZERO = { x: 0, y: 0 };
+
+/**
+ * The velocity that swings the gun line from where the ship is now off the first allied station it fouls:
+ * square to the line, toward the station's side when it lies past the target (the line beyond pivots
+ * away from it) and away from it when it lies between.
+ */
+function sidestep(display: Display, ship: Contact) {
+    const own = display.radar?.ownShip?.position ?? XY_ZERO;
+    const line = sub(ship.position, own);
+    const fire = scale(line, 1 / Math.max(length(line), 1));
+    for (const station of display.radar?.contacts ?? []) {
+        if (!isAlly(station, display) || (station.radius ?? 0) < STATION_RADIUS_METERS) continue;
+        const rel = sub(station.position, own);
+        const along = rel.x * fire.x + rel.y * fire.y;
+        const side = fire.x * rel.y - fire.y * rel.x;
+        const clearance = (station.radius ?? 0) + referenceKnobs.LINE_CLEARANCE_METERS;
+        if (along <= 0 || along > GUN_REACH_METERS + clearance || Math.abs(side) > clearance) continue;
+        const toward = side >= 0 ? { x: -fire.y, y: fire.x } : { x: fire.y, y: -fire.x };
+        return { fire, across: scale(toward, along > length(line) ? SIDESTEP_SPEED : -SIDESTEP_SPEED) };
+    }
+    return undefined;
+}
+
+const dot = (a: XY, b: XY) => a.x * b.x + a.y * b.y;
 
 /** A world velocity as a maneuvering command: ship frame, fractions of top speed. */
 function shipFrame(world: XY, heading: number) {
@@ -375,7 +553,7 @@ const ORDERED_SPEED = 0.9 * MAX_SPEED;
 /** The maneuvering command that flies the ship to the world point `spot`, slowing as it nears it. */
 function flyTo(display: Display, spot: XY, heading: number) {
     const gap = sub(spot, display.radar?.ownShip?.position ?? { x: 0, y: 0 });
-    const closing = scale(gap, PARKING_GAIN);
+    const closing = scale(gap, referenceKnobs.PARKING_GAIN);
     return shipFrame(scale(closing, Math.min(1, ORDERED_SPEED / Math.max(length(closing), 1))), heading);
 }
 
@@ -397,7 +575,6 @@ function closeIn(helms: Helms) {
  * Above this heat the gun's next burst overheats it, and every overheat breaks some of its rate of
  * fire. Holding pays only while coolant flows to the gun: uncooled, it never cools down.
  */
-const GUN_HOLD_HEAT = 85;
 
 type TubeStatus = { index: number; loadedProjectile: string; loading: number; bearing: number };
 
@@ -405,12 +582,15 @@ type TubeStatus = { index: number; loadedProjectile: string; loading: number; be
  * The first loaded tube that bears on the locked ship, while that ship is inside its missile's launch
  * envelope for how the ship moves since the `previous` decision `seconds` ago; none without a lock.
  */
-function tubeToLaunch(display: Display, previous: Display | undefined, seconds: number) {
+function tubeToLaunch(display: Display, previous: Display | undefined, seconds: number, now: number) {
     const targetId = display.panels['targeting-status']?.targetId;
     const target = display.radar?.contacts?.find((c) => c.id === targetId);
     if (!target || !isShip(target)) {
         return undefined;
     }
+    const gate = referenceKnobs.MISSILE_STATION_METERS;
+    if (gate > 0 && !withinOfStation(display, target, gate)) return undefined;
+    if (!missileTargetChosen(display, target)) return undefined;
     const shown = target as unknown as ShownContact;
     const radar = display.radar as ShownRadar | undefined;
     const inEnvelope = (ammo: string) =>
@@ -424,8 +604,110 @@ function tubeToLaunch(display: Display, previous: Display | undefined, seconds: 
         (t) =>
             t.loading >= 1 &&
             Math.abs(delta(relative, t.bearing)) <= TUBE_ARC_DEGREES &&
-            inEnvelope(t.loadedProjectile),
+            inEnvelope(t.loadedProjectile) &&
+            !reserved(display, t.loadedProjectile, now),
     )?.index;
+}
+
+/** Missile target selection (`MISSILE_TARGET_MODE`): whether the locked `target` is worth a missile. */
+function missileTargetChosen(display: Display, target: Contact) {
+    const mode = referenceKnobs.MISSILE_TARGET_MODE;
+    if (mode === 1) {
+        return (
+            (target.radius ?? Infinity) <= referenceKnobs.MISSILE_KILL_RADIUS_METERS &&
+            target.distance <= referenceKnobs.MISSILE_KILL_METERS
+        );
+    }
+    if (mode === 2) return stationThreat(display.radar as ShownRadar | undefined)?.enemy.id === target.id;
+    return true;
+}
+
+/** Whether launching `missile` now would dig into the missile reserve (`MISSILE_RESERVE`). */
+function reserved(display: Display, missile: string, now: number) {
+    if (referenceKnobs.MISSILE_RESERVE <= 0 || now >= referenceKnobs.MISSILE_RESERVE_SECONDS) return false;
+    const ammo = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    // the loaded round is already out of the magazine: launching it leaves the magazine's count
+    return (ammo?.[missile]?.count ?? Infinity) < referenceKnobs.MISSILE_RESERVE;
+}
+
+/** Missile types an empty tube falls back to, best first (`TUBE_AMMO_FALLBACK`). */
+const TUBE_AMMO_ORDER = ['HiExpMissile', 'ArmPenMissile', 'FragMissile'];
+
+/** The tube order with `TUBE_AMMO_AP_FIRST`: AP missiles before HE. */
+const TUBE_AMMO_ORDER_AP_FIRST = ['ArmPenMissile', 'HiExpMissile', 'FragMissile'];
+
+/** The shell order while the gun spends Frag first, saving HE and AP. */
+const FRAG_FIRST = ['FragShell', 'HiExpShell', 'ArmPenShell'];
+
+/**
+ * Weapons' own shell accounting: the lock, seconds fired at it, the HE and AP shells it first saw,
+ * and the AP shells and missiles it spent on the lock.
+ */
+type Spend = {
+    lockId: string | undefined;
+    firedOn: number;
+    firstShells: number | undefined;
+    apShells: number;
+    apMissiles: number;
+};
+
+/** The gun's order while `AMMO_OPEN_AP` judges the lock's plates intact. */
+const AP_OPEN_SHELLS = ['ArmPenShell', 'HiExpShell', 'FragShell'];
+
+/** The gun's order once `AMMO_OPEN_AP` judges the lock's plates broken. */
+const HE_FINISH_SHELLS = ['HiExpShell', 'ArmPenShell', 'FragShell'];
+
+/** AP shells in the magazine, 0 without an ammo panel. */
+function apShellCount(display: Display | undefined) {
+    const ammo = (display?.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    return ammo?.ArmPenShell?.count ?? 0;
+}
+
+/** Whether weapons' own tally still judges the lock's plates intact (`AMMO_OPEN_AP`): it sees no plates. */
+function platesIntact(spend: Spend) {
+    return spend.apShells < referenceKnobs.AMMO_OPEN_AP_SHELLS && spend.apMissiles < 1;
+}
+
+/** With `AMMO_OPEN_AP` above `level` and a lock: the AP order while plates are judged intact, else the HE order. */
+function apOpenOrder<T>(spend: Spend, open: T, finish: T, level: number) {
+    const locked = spend.lockId !== undefined && spend.lockId !== null && spend.lockId !== '';
+    if (referenceKnobs.AMMO_OPEN_AP <= level || !locked) return undefined;
+    return platesIntact(spend) ? open : finish;
+}
+
+/** Whether to log `AMMO_OPEN_AP` switches (env `APOPEN_LOG`), for smoke runs. */
+function apOpenLog() {
+    return typeof process !== 'undefined' && !!process.env.APOPEN_LOG;
+}
+
+/** HE and AP shells the ammo panel shows, if it shows any. */
+function shellsLeft(display: Display) {
+    const ammo = (display.panels['ammo-status'] as { ammo?: Record<string, { count?: number }> } | undefined)?.ammo;
+    return ammo && (ammo.HiExpShell?.count ?? 0) + (ammo.ArmPenShell?.count ?? 0);
+}
+
+/** Whether weapons spent no more than `WAVE_SHELL_BUDGET` of its first-seen shells, or the budget expired. */
+function withinBudget(display: Display, now: number, spend: Spend) {
+    if (now >= referenceKnobs.SHELL_BUDGET_SECONDS || spend.firstShells === undefined) return true;
+    return spend.firstShells - (shellsLeft(display) ?? 0) <= referenceKnobs.WAVE_SHELL_BUDGET * spend.firstShells;
+}
+
+/** Whether `target` is within `STATION_GUARD_METERS` of an allied station. */
+function nearStation(display: Display, target: Contact) {
+    const guard = referenceKnobs.STATION_GUARD_METERS;
+    return guard > 0 && withinOfStation(display, target, guard);
+}
+
+/** Whether `target` is within `meters` of an allied station. */
+function withinOfStation(display: Display, target: Contact, meters: number) {
+    if (!target.position) return false;
+    return (display.radar?.contacts ?? []).some(
+        (c) =>
+            isAlly(c, display) &&
+            (c.radius ?? 0) >= STATION_RADIUS_METERS &&
+            c.position !== undefined &&
+            length(sub(c.position, target.position)) <= meters,
+    );
 }
 
 /** Whether the targeting panel calls check fire: an ally in the line of fire or inside the blast at the lock. */
@@ -437,7 +719,9 @@ function checkFire(display: Display) {
 /** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */
 function gunTooHot(display: Display) {
     const systems = (display.panels['systems-status'] ?? []) as unknown as SystemStatus[];
-    return systems.some((s) => s.pointer.startsWith('/chainGuns/') && s.heat > GUN_HOLD_HEAT && s.coolantFactor > 0);
+    return systems.some(
+        (s) => s.pointer.startsWith('/chainGuns/') && s.heat > referenceKnobs.GUN_HOLD_HEAT && s.coolantFactor > 0,
+    );
 }
 
 /** A blip this wide or wider is a hull; shells and blasts show as specks. */
@@ -478,6 +762,13 @@ function nearestShip(display: Display) {
     return (display.radar?.contacts ?? [])
         .filter((c) => isShip(c) && !isAlly(c, display))
         .sort((a, b) => a.distance - b.distance)[0];
+}
+
+/** The enemy ship named `name` (the captain's engage or focus pick), if it is in sight. */
+function engagedShip(display: Display, name: string | undefined) {
+    return name === undefined
+        ? undefined
+        : (display.radar?.contacts ?? []).find((c) => c.name === name && isShip(c) && !isAlly(c, display));
 }
 
 /** Signed difference between two bearings, in (-180, 180]. */

@@ -2,6 +2,7 @@ import { Display } from './controls';
 import { ORDERS_PANEL } from '../crew/orders';
 import { buttonBrain } from './brain';
 import { referenceSeatPlan } from '../reference-crew';
+import { setReferenceKnobs } from './reference-knobs';
 import { testBoard } from '../crew/orders.fixtures';
 
 /**
@@ -77,6 +78,41 @@ describe('reference captain', () => {
 
     it('orders the ship back out from an enemy too close to arm a missile', async () => {
         expect(await order(dradis(500))).toMatchObject({ callout: 'close_to' });
+    });
+
+    it('with CLOSE_STOP_METERS, says no close order at an enemy nearer than it', async () => {
+        setReferenceKnobs({ CLOSE_STOP_METERS: 3000 });
+        try {
+            expect((await order(dradis(500)))?.callout).not.toBe('close_to');
+            expect(await order(dradis(52_340))).toMatchObject({ callout: 'close_to' });
+        } finally {
+            setReferenceKnobs();
+        }
+    });
+
+    it('with LOSING_ATTACK_SECONDS, holds instead of closing once an enemy sat by a station that long', async () => {
+        const besieged = dradis(52_340);
+        const radar = besieged.radar as { contacts: object[] };
+        // an allied station right beside the raider
+        radar.contacts.push({
+            id: 'station',
+            name: 'station',
+            type: 'Spaceship',
+            faction: 1,
+            radius: 1000,
+            distance: 52_000,
+            bearing: 45,
+            position: onBearing45(52_000),
+        });
+        setReferenceKnobs({ LOSING_ATTACK_SECONDS: 20, LOSING_AFTER_SECONDS: 0 });
+        try {
+            expect((await order(besieged))?.callout).toBe('close_to');
+            const long = Array.from({ length: 30 }, () => besieged);
+            expect((await order(...long))?.callout).toBe('hold_here');
+            expect((await order(...Array.from({ length: 30 }, () => dradis(52_340))))?.callout).toBe('close_to');
+        } finally {
+            setReferenceKnobs();
+        }
     });
 
     it('orders the ship to hold with no enemy in sight', async () => {

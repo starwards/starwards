@@ -6,6 +6,7 @@ import {
     BotEntry,
     BotStatus,
     BridgeSeat,
+    Faction,
     GameApi,
     GameMap,
     GameStatus,
@@ -101,6 +102,10 @@ export class GameManager {
         },
         convertToDerelict: (shipId: string) => {
             this.spaceManager.convertToDerelict(shipId);
+        },
+        grantSnapshot: (targetId: string, faction: Faction) => {
+            this.spaceManager.forceFlushEntities(); // the target may still be queued for insertion
+            this.spaceManager.factionIntel.grantSnapshot(targetId, faction, this._totalSeconds);
         },
         getObject: (id: string) => this.spaceManager.state.get(id),
         getObjects: () => this.spaceManager.state,
