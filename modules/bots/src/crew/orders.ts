@@ -22,6 +22,7 @@ import {
 import { Display } from '../brain/controls';
 import { SessionShipDriver } from '../session/session';
 import { isEnemyShip } from '../brain/enemy';
+import { referenceKnobs } from '../brain/reference-knobs';
 
 type XY = { x: number; y: number };
 
@@ -151,6 +152,17 @@ const ORDER_PROGRESS: Record<string, OrderProgress> = {
             station === 'weapons' && !seenAs(display, order.params.target)
                 ? { status: 'aborted', note: 'target lost' }
                 : undefined,
+    },
+    bait: {
+        progress(order, { station, display }) {
+            const armor = station === 'helms' ? armorShare(display) : undefined;
+            if (armor !== undefined && armor < referenceKnobs.BAIT_ABORT_ARMOR) {
+                return { status: 'aborted', note: 'hull too low to bait' };
+            }
+            return station === 'weapons' && !seenAs(display, order.params.target)
+                ? { status: 'aborted', note: 'target lost' }
+                : undefined;
+        },
     },
     focus: {
         progress: (order, { station, display }) =>
@@ -471,6 +483,7 @@ const calloutRef = (v: Values, origin: XY | undefined): OrderRef => {
 const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => GivenOrder> = {
     close_to: (v, o) => ({ kind: 'close_to', params: { target: calloutRef(v, o), range: Number(v.range) * 1000 } }),
     hold_here: () => ({ kind: 'hold_here' }),
+    bait: (v, o) => ({ kind: 'bait', params: { target: calloutRef(v, o), range: Number(v.range) * 1000 } }),
     guard_station: (v, o) => ({
         kind: 'close_to',
         params: { target: calloutRef(v, o), range: Number(v.range) * 1000 },

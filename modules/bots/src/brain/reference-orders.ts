@@ -3,6 +3,7 @@ import {
     Heard,
     SILENCE,
     alliedStations,
+    baitTarget,
     checkFireOf,
     hullStatusChange,
     magazineCapacity,
@@ -16,6 +17,7 @@ import { Answer } from './brain';
 import { BrainRequest } from './request';
 import { Display } from './controls';
 import { HULL_STATUS_TUNING } from '@starwards/core/internal';
+import { armorShare } from '../crew/orders';
 import { isEnemyShip } from './enemy';
 import { referenceKnobs } from './reference-knobs';
 
@@ -598,6 +600,16 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
      */
     chase_target: (p) => !p.focusOrdered && nearestEnemy(p.radar) !== undefined,
     /**
+     * Captain with `BAIT_MODE`: from `BAIT_AFTER_SECONDS` on, a swarm-class raider is within `ATTACK_METERS` of an
+     * allied station, the ship is not docking and its armor is above `BAIT_ABORT_ARMOR`: pull that raider off the station.
+     */
+    bait: (p) => {
+        if (referenceKnobs.BAIT_MODE <= 0 || p.now < referenceKnobs.BAIT_AFTER_SECONDS || p.dockOrdered) return false;
+        const armor = armorShare(p.display);
+        if (armor !== undefined && armor < referenceKnobs.BAIT_ABORT_ARMOR) return false;
+        return baitTarget(p.radar) !== undefined;
+    },
+    /**
      * Captain with `guardCentre`: no enemy in sight, none reported lost a moment ago, no dock order, and the
      * ship is off the centre of the allied stations in sight: the next raid may come at any of them.
      */
@@ -701,6 +713,7 @@ export function referenceCallout(
         ...(picked && (choice === 'close_to' || choice === 'chase_target')
             ? { values: { target: picked.enemy.name ?? '' } }
             : {}),
+        ...(choice === 'bait' ? { values: { target: baitTarget(picture.radar)?.name ?? '' } } : {}),
         ...(picked && choice === 'focus' ? { values: { station: picked.station.name ?? '' } } : {}),
     };
 }
