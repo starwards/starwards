@@ -35,6 +35,14 @@ import { propertyStub } from '../property-wrappers';
 import { stationGrid } from '../container';
 
 /**
+ * NPC ships have no EnergyManager or RepairManager, so their energy readouts are placeholders (NPC
+ * drawEnergy is a constant 1). Flip to false when card M4.67 gives NPCs real managers.
+ */
+const HIDE_NPC_ENERGY_READOUTS = true;
+
+const hidesEnergyReadouts = (subject: ShipDriver) => HIDE_NPC_ENERGY_READOUTS && !subject.state.isPlayerShip;
+
+/**
  * Target Details (SPEC-0008): read-only view of the contact marked on this ship's Signals station
  * (`ShipState.signalsTargetId`). At FULL scan it draws the target ship's internals live from the
  * target's own room; at SNAPSHOT it draws the faction's frozen snapshot, fetched from this ship's
@@ -80,6 +88,7 @@ export async function initTargetDetailsScreen(
             // weapons and flight panels sit in a row under the armor view
             const stripSlot = grid.center({ fill: true, bottom: true });
             stripSlot.getElement().css({ flexDirection: 'row', alignItems: 'flex-start' });
+            const energy = !hidesEnergyReadouts(subjectDriver);
             const armorApp = drawArmorStatus(armorSlot, subjectDriver, 300);
             const stopDesign = drawDesign(designSlot, subjectDriver);
             // every widget below is display-only (no input bindings, no commands), so the station
@@ -89,8 +98,8 @@ export async function initTargetDetailsScreen(
             if (subjectDriver.state.chainGuns.length) drawGunStatus(stripSlot, subjectDriver);
             drawTargetingStatus(stripSlot, subjectDriver, 'Aim');
             drawHelmsStats(tubesSlot, subjectDriver);
-            drawFullSystemsStatus(systemsSlot, subjectDriver, subjectDriver.systems, true);
-            drawEngineeringStatus(reactorSlot, subjectDriver);
+            drawFullSystemsStatus(systemsSlot, subjectDriver, subjectDriver.systems, true, { energy });
+            drawEngineeringStatus(reactorSlot, subjectDriver, { energy });
             if (subjectDriver.state.warp) drawWarpStatus(reactorSlot, subjectDriver);
             drawDamageReport(damageSlot, subjectDriver);
             teardownPanels = () => {

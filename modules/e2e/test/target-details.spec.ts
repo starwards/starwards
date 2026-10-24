@@ -234,6 +234,30 @@ test.describe('Target Details screen', () => {
         expect(await aimTrack(page)).not.toBe('changed-after-capture');
     });
 
+    test('hides energy readouts for an NPC target and shows them for a player ship (M4.66)', async ({ page }) => {
+        markSignalsTarget(targetShipId);
+        setTargetScanLevel(ScanLevel.FULL);
+        await openTargetDetails(page);
+        const reactor = page.locator('[data-id="Reactor"]');
+        const energyLabel = reactor.getByText('energy', { exact: true });
+        const epmHeader = page.locator('[data-id="Systems"]').getByText('EPM', { exact: true });
+        await expect(reactor).toBeVisible({ timeout: 10000 });
+        await expect(energyLabel).toBeVisible();
+        await expect(epmHeader).toBeVisible();
+
+        gameDriver.getShip(targetShipId).state.isPlayerShip = false;
+        // the panels are rebuilt when the subject changes: drop the mark and re-mark it
+        markSignalsTarget('');
+        await expect(page.locator('[data-id="Reactor"]')).toHaveCount(0, { timeout: 5000 });
+        markSignalsTarget(targetShipId);
+        await expect(reactor).toBeVisible({ timeout: 10000 });
+        await expect(reactor.getByText('afterburner fuel')).toBeVisible();
+        await expect(energyLabel).toHaveCount(0);
+        await expect(reactor.getByText('cells')).toHaveCount(0);
+        await expect(epmHeader).toHaveCount(0);
+        await expect(page.locator('[data-id="Systems"]')).toBeVisible();
+    });
+
     test('at full scan, draws the target live armor, systems and tubes', async ({ page }) => {
         gameDriver.getShip(targetShipId).state.tubes[0].loadedProjectile = 'HiExpMissile';
         markSignalsTarget(targetShipId);
