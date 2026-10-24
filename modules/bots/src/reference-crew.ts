@@ -1,10 +1,11 @@
 import { BrainSpec, brainSpecSchema } from './brain/spec';
 
+import { REFERENCE_HELMS, makeReferencePolicy } from './brain/reference-policy';
 import { Policy } from './brain/brain';
+import { REFERENCE_ENGINEER } from './brain/reference-engineer';
 import captain from './brains/captain.v1.json';
 import engineer from './brains/engineer.v1.json';
 import helms from './brains/helms.v1.json';
-import { makeReferencePolicy } from './brain/reference-policy';
 import signals from './brains/signals.v1.json';
 import tactical from './brains/tactical.v1.json';
 import weapons from './brains/weapons.v1.json';
@@ -35,7 +36,26 @@ export function referenceSeat(spec: BrainSpec): SeatPlan {
     return {
         station: spec.station,
         spec,
-        policy: withOrderBoard(makeReferencePolicy(spec.decisionSeconds), spec.station),
+        policy: withOrderBoard(
+            makeReferencePolicy(
+                spec.decisionSeconds,
+                spec.repairs && { ...REFERENCE_ENGINEER, repair: spec.repairs },
+                'reference',
+                spec.clearLine || spec.parkOnEngaged
+                    ? {
+                          ...REFERENCE_HELMS,
+                          ...(spec.clearLine ? { clearLine: true } : {}),
+                          ...(spec.parkOnEngaged ? { parkOnEngaged: true } : {}),
+                      }
+                    : undefined,
+                spec.shellPreference,
+                spec.fireRangeMeters,
+                spec.resupply,
+                spec.threatTarget === true,
+                spec.guardCentre === true,
+            ),
+            spec.station,
+        ),
     };
 }
 

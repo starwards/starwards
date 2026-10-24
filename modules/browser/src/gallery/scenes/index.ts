@@ -6,6 +6,7 @@ import { dockingScenes } from './docking';
 import { dradisRadarScenes } from './dradis-radar';
 import { engineeringStatusScenes } from './engineering-status';
 import { gmBroadcastScenes } from './gm-broadcast';
+import { gameMessageScenes } from './game-message';
 import { gmRadarScenes } from './gm-radar';
 import { gunScenes } from './gun';
 import { helmsScenes } from './helms';
@@ -42,6 +43,7 @@ export const scenes: Record<string, Scene> = {
     ...dradisRadarScenes,
     ...engineeringStatusScenes,
     ...gmBroadcastScenes,
+    ...gameMessageScenes,
     ...gmRadarScenes,
     ...helmsScenes,
     ...hullStatusScenes,

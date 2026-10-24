@@ -65,6 +65,8 @@ const scenes = [
     // GM Broadcast
     'gm-broadcast-empty',
     'gm-broadcast-history',
+    // Game message overlay (M4.57)
+    'game-message-banner',
     // GM Radar
     'gm-radar-empty',
     'gm-radar-ships',

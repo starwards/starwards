@@ -49,6 +49,19 @@ async function answers(shown: Display) {
     return Object.fromEntries(Object.entries(result.answers).map(([id, a]) => [id, a.choice]));
 }
 
+describe('reference weapons fire range', () => {
+    it('holds fire at a target beyond the fire range of the brain and fires inside it', async () => {
+        const shown = display({});
+        const policy = makeReferencePolicy(1, undefined, 'reference', undefined, undefined, 2000);
+        const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
+        expect((await policy.answer({} as BrainRequest, controls, shown)).answers['fireChainGun:0'].choice).toBe(
+            'hold_fire',
+        );
+        const near = makeReferencePolicy(1, undefined, 'reference', undefined, undefined, 3500);
+        expect((await near.answer({} as BrainRequest, controls, shown)).answers['fireChainGun:0'].choice).toBe('fire');
+    });
+});
+
 describe('reference weapons check fire', () => {
     it('fires gun and tube when the line of fire is clear', async () => {
         expect(await answers(display({}))).toMatchObject({ 'fireChainGun:0': 'fire', 'fireTube:0': 'fire' });

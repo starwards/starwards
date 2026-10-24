@@ -14,11 +14,11 @@ export class BlastOverlaps {
                 continue;
             }
             for (const target of onto) {
+                if (XY.distance(explosion.position, target.position) >= explosion.radius + target.radius) {
+                    continue;
+                }
                 const key = `${explosion.id}/${target.id}`;
-                if (
-                    !this.seen.has(key) &&
-                    XY.distance(explosion.position, target.position) < explosion.radius + target.radius
-                ) {
+                if (!this.seen.has(key)) {
                     this.seen.add(key);
                     yield [explosion, target];
                 }

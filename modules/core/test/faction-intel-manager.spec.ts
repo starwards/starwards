@@ -65,6 +65,18 @@ describe('FactionIntelManager scan levels', () => {
         expect(intel.getScanLevel('target', Faction.NONE)).to.equal(ScanLevel.UFO);
         expect([...target.scanLevels]).to.deep.equal(Array(Number(Faction.FACTION_COUNT)).fill(Number(ScanLevel.UFO)));
     });
+
+    it('reads the same level from an object in hand as by its id', () => {
+        const target = makeShip('target', Faction.Raiders);
+        const { intel } = setup(target);
+        intel.setScanLevel('target', Faction.Gravitas, ScanLevel.SNAPSHOT);
+        for (const faction of [Faction.Gravitas, Faction.Raiders, Faction.NONE]) {
+            expect(intel.getScanLevelOf(target, faction)).to.equal(intel.getScanLevel('target', faction));
+        }
+        target.destroyed = true;
+        expect(intel.getScanLevelOf(target, Faction.Gravitas)).to.equal(ScanLevel.UFO);
+        expect(intel.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+    });
 });
 
 describe('FactionIntelManager setScanLevel commands', () => {

@@ -72,6 +72,17 @@ describe('reference crew under captain orders', () => {
         });
     });
 
+    it('helms flies to the ordered enemy past a nearer straggler, but parks on the ordered one itself', async () => {
+        const straggler = helmsDisplay([{ id: 'straggler', distance: 3000, bearing: 270, faction: 2 }]);
+        expect(await choices(straggler, helmsCapabilities, [closeTo])).toEqual(
+            await choices(helmsDisplay(), helmsCapabilities, [closeTo]),
+        );
+        const ordered = helmsDisplay([{ id: 'raider', distance: 3000, bearing: 270, faction: 2 }]);
+        expect(await choices(ordered, helmsCapabilities, [closeTo])).not.toEqual(
+            await choices(helmsDisplay(), helmsCapabilities, [closeTo]),
+        );
+    });
+
     it('helms holds, never backs off, on an order to close to a range beyond the current distance', async () => {
         const beyond = orderFromCallout(
             'close_to',

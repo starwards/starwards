@@ -65,6 +65,14 @@ export class ShipDie implements Updateable {
         }
     }
 
+    /**
+     * Branches the event stream: every roll from now on depends on `key` as well, so one fork point
+     * replayed under different keys plays different futures. The window clock is untouched.
+     */
+    public reseed(key: number) {
+        this.eventSalt = scramble(mix(this.eventSalt, key));
+    }
+
     public getRoll(id: string): number {
         return hashToUnit(mix(this.eventSalt, fnv1a(id)));
     }

@@ -39,7 +39,7 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T2-constrained, T3-directed, T3-incoming, T2-dock, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi, W-outranged, W-waves and W-waves-endless', () => {
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T2-constrained, T3-directed, T3-incoming, T2-dock, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi, W-outranged, W-waves, W-waves-endless and the W-cut scenario cuts', () => {
         expect(Object.keys(trainingScenarios)).toEqual([
             'T0',
             'T0-wide',
@@ -60,6 +60,10 @@ describe('training ladder', () => {
             'W-outranged',
             'W-waves',
             'W-waves-endless',
+            'W-cut-intercept',
+            'W-cut-undock',
+            'W-cut-lof',
+            'W-cut-magazine',
         ]);
     });
 
