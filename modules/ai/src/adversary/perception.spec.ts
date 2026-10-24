@@ -15,7 +15,8 @@ describe('wave-spawn perception', () => {
             expect(raider.contact).toBeNull();
         }
         const [hull] = summariseHulls([run]);
-        expect(hull.locks).toBe(0);
-        expect(hull.neverLocked).toBe(hull.raiders);
+        expect(hull.locks).toBe(hull.raiders);
+        expect(hull.inheritedAtSpawn).toBe(hull.raiders);
+        expect(hull.neverLocked).toBe(0);
     }, 120_000);
 });
