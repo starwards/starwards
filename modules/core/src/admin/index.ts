@@ -208,3 +208,14 @@ export const resetAssignments: StateCommand<unknown, AdminState, void> = {
         state.resetAssignmentsRequested = true;
     },
 };
+
+/**
+ * `broadcastMessage` command: the GM sends `value` to every station. It joins the message queue
+ * ({@link AdminState.pushMessage}) and the history like any other announcement.
+ */
+export const broadcastMessage: StateCommand<string, AdminState, void> = {
+    cmdName: 'broadcastMessage',
+    setValue: (state, value) => {
+        if (typeof value === 'string') state.pushMessage(value);
+    },
+};
