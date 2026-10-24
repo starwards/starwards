@@ -168,3 +168,11 @@ export class Armor extends Schema {
         }
     }
 }
+
+export function fixArmor(armor: Armor) {
+    for (const plate of armor.armorPlates) {
+        for (const layer of plate.layers) {
+            layer.health = layer.maxHealth;
+        }
+    }
+}
