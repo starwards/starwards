@@ -201,6 +201,26 @@ export const REFERENCE_KNOB_DEFAULTS = {
     DOCK_EXIT_HOLDOFF_SECONDS: 0,
     /** Above 0.5, a doctrine repair dock is cast off with `launch`, else with `undock`. */
     DOCK_EXIT_LAUNCH: 0,
+    /**
+     * Bait/kite: above 0 (with a captain brain that has the `bait` callout), while a swarm-class raider
+     * (a hull no wider than `MISSILE_KILL_RADIUS_METERS`) is within `ATTACK_METERS` of an allied station, the
+     * captain orders the ship to pull it off the station: close to `BAIT_RANGE_METERS`, shoot it for
+     * `BAIT_PULL_SECONDS` so its aggro lands on the ship, then kite `BAIT_KITE_METERS` off the station for
+     * `BAIT_KITE_SECONDS` before the next hit; 0 never.
+     */
+    BAIT_MODE: 0,
+    /** Bait: helms closes to this range of the raider. */
+    BAIT_RANGE_METERS: 2000,
+    /** Bait: from this many seconds into the fight (the wave gate; 0 from the start). */
+    BAIT_AFTER_SECONDS: 0,
+    /** Bait: the kite point lies this far from the nearest allied station, on the line from it through the ship. */
+    BAIT_KITE_METERS: 10_000,
+    /** Bait: seconds the ship holds range firing at the raider (about four HiExp blasts flip a swarm hull). */
+    BAIT_PULL_SECONDS: 6,
+    /** Bait: seconds of kiting before the ship turns back for the next hit (a grudge fades 20 s after the last). */
+    BAIT_KITE_SECONDS: 10,
+    /** Bait: the order ends and the captain stops giving it while the share of healthy armor plates is below this. */
+    BAIT_ABORT_ARMOR: 0.5,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,
