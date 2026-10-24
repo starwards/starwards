@@ -108,7 +108,14 @@ export class GameManager {
             this.state.speed = Math.max(0, Math.min(3, speed));
         },
         setMessage: (message: string) => {
-            this.state.message = message;
+            if (message.trim().length === 0) this.state.clearMessage();
+            else this.state.showMessageNow(message);
+        },
+        pushMessage: (message: string, seconds?: number) => {
+            this.state.pushMessage(message, seconds);
+        },
+        clearMessage: () => {
+            this.state.clearMessage();
         },
     };
 
@@ -128,6 +135,7 @@ export class GameManager {
 
     update(currDeltaSeconds: number) {
         this.drainStationCommands();
+        this.state.tickMessages(currDeltaSeconds);
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
         this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;
@@ -399,7 +407,7 @@ export class GameManager {
             this.die = new ShipDie();
             this.state.playerShipIds.splice(0);
             this.state.shipIds.splice(0);
-            this.state.message = '';
+            this.state.resetMessages();
             this.shipCleanups.clear();
             this.shipManagers.clear();
             this.convertingShips.clear();
