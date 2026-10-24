@@ -62,6 +62,27 @@ test.describe('Weapons Screen', () => {
         await expect(ammoPanel.getByText('Missiles', { exact: true })).toBeVisible();
     });
 
+    test('a depleted magazine row reads LOW, then EMPTY, in its value and colour', async ({ page }) => {
+        const ammoPanel = page.locator('[data-id="Magazine"]');
+        await expect(ammoPanel).toBeVisible({ timeout: 10000 });
+        const ship = gameDriver.getShip(shipId);
+        const designMax = ship.state.magazine.design.max_HiExpMissile;
+        expect(designMax).toBeGreaterThan(0);
+        const row = ammoPanel.locator('.sw-ammo-row');
+        const values = () => row.locator('input').evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));
+
+        ship.state.magazine.setCount('HiExpMissile', Math.max(1, Math.floor(designMax / 4)));
+        await expect
+            .poll(values, { timeout: 5000 })
+            .toContain(`LOW ${Math.max(1, Math.floor(designMax / 4))}/${designMax}`);
+        await expect(ammoPanel.locator('.sw-ammo-row[data-status="WARN"]')).toHaveCount(1);
+
+        ship.state.magazine.setCount('HiExpMissile', 0);
+        await expect.poll(values, { timeout: 5000 }).toContain('EMPTY');
+        await expect(ammoPanel.locator('.sw-ammo-row[data-status="ERROR"]')).toHaveCount(1);
+        await expect(ammoPanel.locator('.sw-ammo-row[data-status="WARN"]')).toHaveCount(0);
+    });
+
     test('the magazine panel shows a restocking line only while docked with room to fill, and hides it on undock', async ({
         page,
     }) => {
