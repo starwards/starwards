@@ -1,5 +1,5 @@
-import { ShipTestHarness } from './ship-test-harness';
 import { cmdReceivers, getSystems, gmShipCommands, magazineStocks } from '../src';
+import { ShipTestHarness } from './ship-test-harness';
 import { expect } from 'chai';
 import { isFieldLocked } from '../src/lock-registry';
 
@@ -26,6 +26,7 @@ function damaged() {
         }
     }
     shipState.reactor.effeciencyFactor = 0.2;
+    shipState.capsule.integrity = 0.3;
     return harness;
 }
 
@@ -50,6 +51,7 @@ describe('GM ship quick actions', () => {
             gmResupply.setValue(shipState);
             expect(shipState.reactor.effeciencyFactor).to.be.closeTo(0.2, 1e-6);
             expect(shipState.armor.armorPlates[0].layers[0].health).to.equal(0);
+            expect(shipState.capsule.integrity).to.be.closeTo(0.3, 1e-6);
         });
 
         it('writes through a GM-locked field', () => {
@@ -65,7 +67,7 @@ describe('GM ship quick actions', () => {
     });
 
     describe('repair', () => {
-        it('restores every armor layer and every defectible system factor', () => {
+        it('restores every armor layer, the capsule and every defectible system factor', () => {
             const { shipState } = damaged();
             expect(getSystems(shipState).some((s) => s.getStatus() === 'DAMAGED')).to.equal(true);
             gmRepair.setValue(shipState);
@@ -80,6 +82,7 @@ describe('GM ship quick actions', () => {
                 }
                 expect(system.state.broken).to.equal(false);
             }
+            expect(shipState.capsule.integrity).to.equal(1);
         });
 
         it('leaves ammo, energy and fuel alone', () => {

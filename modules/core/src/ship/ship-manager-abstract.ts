@@ -29,7 +29,6 @@ import { Turret, updateTurret } from './turret';
 import { applyLockCommands, rehydrateLockRegistry } from '../lock-commands';
 
 import { AmmoManager } from './ammo-manager';
-import { fixArmor } from './armor';
 import { AutomationManager } from './automation-manager';
 import { BeamJamManager } from './beam-jam-manager';
 import { Capsule } from './capsule';
@@ -48,6 +47,7 @@ import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
 import { createLogger } from '../logger';
+import { fixArmor } from './armor';
 import { revertRepairSlot } from './repair-manager';
 
 const { error: logError } = createLogger('ship-manager');

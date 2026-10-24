@@ -24,10 +24,14 @@ function resupplyShip(state: ShipState) {
     });
 }
 
-/** Restores every armor layer to full health and every defectible system factor to its normal value. */
+/**
+ * Restores every armor layer and the hull capsule's integrity to full, and every defectible system
+ * factor to its normal value. The crew's repair queue is left as is.
+ */
 function repairShip(state: ShipState) {
     withLockBypass(() => {
         fixArmor(state.armor);
+        state.capsule.integrity = 1;
         for (const system of getSystems(state)) {
             for (const defectible of system.defectibles) {
                 (system.state as unknown as Record<string, number>)[defectible.field] = defectible.normal;
