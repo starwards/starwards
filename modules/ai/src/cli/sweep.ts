@@ -30,11 +30,11 @@ import {
     strategicLevel,
     tacticalLevel,
 } from '../branching/levels';
-import { ShipState, mix } from '@starwards/core/internal';
-import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { RACE_ROLLOUTS, raceRound } from '../training/paired';
 import { RESEED_MODES, ReseedMode, RunSpec, runBranch, withReseed } from '../branching/fork';
+import { ShipState, mix } from '@starwards/core/internal';
 import { readRunLog, stateAt } from '../branching/run-log';
+import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 
 import { fork as forkProcess } from 'node:child_process';
 import fs from 'node:fs';
@@ -92,7 +92,7 @@ export function reseedKey(seed: number, t: number, rollout: number, base: number
 }
 
 function pointAt(level: DecisionLevel, log: ReturnType<typeof readRunLog>, t: number): BranchPoint {
-    return { level: level.name as BranchPoint['level'], t, reasons: ['sweep'], taken: 'keep', state: stateAt(log, t) };
+    return { level: level.name, t, reasons: ['sweep'], taken: 'keep', state: stateAt(log, t) };
 }
 
 /** The `k` alternatives a state is swept over, of the `levels` asked (strategic and tactical), in `KIND_ORDER`. */

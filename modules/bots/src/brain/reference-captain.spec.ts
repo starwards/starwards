@@ -1,8 +1,8 @@
-import { setReferenceKnobs } from './reference-knobs';
 import { Display } from './controls';
 import { ORDERS_PANEL } from '../crew/orders';
 import { buttonBrain } from './brain';
 import { referenceSeatPlan } from '../reference-crew';
+import { setReferenceKnobs } from './reference-knobs';
 import { testBoard } from '../crew/orders.fixtures';
 
 /**

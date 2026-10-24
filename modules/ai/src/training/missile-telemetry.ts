@@ -34,7 +34,10 @@ const EXPIRED_SECONDS = 0.5;
 /** Logs every missile the GVTS launches; `tick` once per game tick. */
 export function missileTelemetry() {
     const launches: MissileLaunch[] = [];
-    const flying = new Map<string, { log: MissileLaunch; last: Projectile; lastTarget: { x: number; y: number } | null }>();
+    const flying = new Map<
+        string,
+        { log: MissileLaunch; last: Projectile; lastTarget: { x: number; y: number } | null }
+    >();
     const shellfire = new Map<string, { last: number; total: number }>();
     const diedAt = new Map<string, number>();
     let lastSeconds = 0;
@@ -61,8 +64,7 @@ export function missileTelemetry() {
             }
             // a dead ship turns derelict: destroyed, or replaced by a new object
             const alive = new Set<string>();
-            for (const ship of game.spaceManager.state.getAll('Spaceship'))
-                if (!ship.destroyed) alive.add(ship.id);
+            for (const ship of game.spaceManager.state.getAll('Spaceship')) if (!ship.destroyed) alive.add(ship.id);
             for (const id of wasAlive) if (!alive.has(id) && !diedAt.has(id)) diedAt.set(id, now);
             wasAlive = alive;
             const seen = new Set<string>();
@@ -72,7 +74,10 @@ export function missileTelemetry() {
                 const target = liveShip(game, p.targetId);
                 let entry = flying.get(p.id);
                 if (!entry) {
-                    const range = target && me ? Math.hypot(target.position.x - me.position.x, target.position.y - me.position.y) : null;
+                    const range =
+                        target && me
+                            ? Math.hypot(target.position.x - me.position.x, target.position.y - me.position.y)
+                            : null;
                     const homing = ammoDesigns[p.model].homing;
                     const fire = p.targetId ? shellfire.get(p.targetId) : undefined;
                     const log: MissileLaunch = {
@@ -82,7 +87,9 @@ export function missileTelemetry() {
                         targetModel: target?.model ?? null,
                         range: range === null ? null : Math.round(range),
                         envelopeFraction:
-                            range === null || !homing ? null : +(range / (homing.maxSpeed * homing.secondsToLive)).toFixed(4),
+                            range === null || !homing
+                                ? null
+                                : +(range / (homing.maxSpeed * homing.secondsToLive)).toFixed(4),
                         underShellfire: fire !== undefined && now - fire.last <= SHELLFIRE_WINDOW_SECONDS,
                         shellfireSeconds: +(fire?.total ?? 0).toFixed(1),
                         outcome: target ? 'flying' : 'target-dead',
@@ -101,7 +108,8 @@ export function missileTelemetry() {
                 const { log, last, lastTarget } = entry;
                 log.endedAt = now;
                 if (log.outcome === 'target-dead') continue;
-                const targetDied = log.targetId !== null && diedAt.has(log.targetId) && diedAt.get(log.targetId)! < now - 1;
+                const targetDied =
+                    log.targetId !== null && diedAt.has(log.targetId) && diedAt.get(log.targetId)! < now - 1;
                 if (targetDied) log.outcome = 'target-dead';
                 else if (last.secondsToLive <= EXPIRED_SECONDS) log.outcome = 'expired';
                 else if (
@@ -115,7 +123,12 @@ export function missileTelemetry() {
         report(): MissileLaunch[] {
             for (const log of launches) {
                 const died = log.targetId === null ? undefined : diedAt.get(log.targetId);
-                if (log.outcome === 'hit' && died !== undefined && log.endedAt !== null && died - log.endedAt <= KILL_SECONDS)
+                if (
+                    log.outcome === 'hit' &&
+                    died !== undefined &&
+                    log.endedAt !== null &&
+                    died - log.endedAt <= KILL_SECONDS
+                )
                     log.outcome = 'kill';
             }
             return launches;

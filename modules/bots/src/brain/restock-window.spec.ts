@@ -1,6 +1,6 @@
+import { CALLOUT_QUESTION, magazineCapacity } from './callout';
 import { calloutMemory, referenceCallout } from './reference-orders';
 import { BrainRequest } from './request';
-import { CALLOUT_QUESTION, magazineCapacity } from './callout';
 import { Display } from './controls';
 import { setReferenceKnobs } from './reference-knobs';
 
@@ -93,7 +93,7 @@ describe('magazineState fill', () => {
             panels: { 'damage-report': [{ system: '/magazine', field: 'capacity', value }] },
         });
         const say = (value: number) =>
-            referenceCallout(engineer, report(value) as Display, undefined, 5, undefined, { state })?.choice;
+            referenceCallout(engineer, report(value), undefined, 5, undefined, { state })?.choice;
         expect(say(0.9)).toBe('magazine_state');
         expect(say(0.85)).toBe('silence');
         expect(say(0.7)).toBe('magazine_state');

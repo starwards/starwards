@@ -1,6 +1,6 @@
+import { CALLOUT_QUESTION, Heard } from './callout';
 import { calloutMemory, referenceCallout } from './reference-orders';
 import { BrainRequest } from './request';
-import { CALLOUT_QUESTION, Heard } from './callout';
 import { Display } from './controls';
 import { setReferenceKnobs } from './reference-knobs';
 

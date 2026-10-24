@@ -143,7 +143,7 @@ describe('reference weapons tube ammo fallback', () => {
         setReferenceKnobs({ TUBE_AMMO_FALLBACK: 1, TUBE_AMMO_AP_FIRST: 1 });
         const reloading = (projectile: string, stock: Record<string, number>) => {
             const d = shown(projectile, 0, stock);
-            (d.panels['tubes-status'] as unknown as { loading: number }[])[0].loading = 0.4;
+            (d.panels['tubes-status'] as { loading: number }[])[0].loading = 0.4;
             return d;
         };
         expect(await change(reloading('HiExpMissile', { HiExpMissile: 5, ArmPenMissile: 5 }))).toBe('press');

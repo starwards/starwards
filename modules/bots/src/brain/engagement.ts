@@ -1,9 +1,9 @@
-import { referenceKnobs } from './reference-knobs';
 import { Contact, Radar, offNose } from './verbal';
 import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './missile-envelope';
-
 import { Display } from './controls';
+
 import { isEnemyShip } from './enemy';
+import { referenceKnobs } from './reference-knobs';
 
 /** The missile the reference loads: its envelope sets where the reference captain sends the ship. */
 const REFERENCE_MISSILE = 'HiExpMissile';

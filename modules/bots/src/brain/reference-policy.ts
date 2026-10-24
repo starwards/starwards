@@ -1,14 +1,14 @@
-import { referenceKnobs } from './reference-knobs';
 import { Answer, Policy } from './brain';
+import { CALLOUT_QUESTION, stationThreat } from './callout';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
 import { Resupply, SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
 import { flightSeconds, stillFlying } from './salvo';
 
-import { CALLOUT_QUESTION, stationThreat } from './callout';
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
+import { referenceKnobs } from './reference-knobs';
 
 type XY = { x: number; y: number };
 type Contact = {

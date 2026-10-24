@@ -4,8 +4,8 @@
  *
  *   npm run magazine-timeline -- <x.sgr> [<y.sgr>...]
  */
-import { streamFrames } from '../scoring/recording';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
+import { streamFrames } from '../scoring/recording';
 
 async function main() {
     for (const file of process.argv.slice(2)) {

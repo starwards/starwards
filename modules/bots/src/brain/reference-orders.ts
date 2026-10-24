@@ -1,4 +1,3 @@
-import { referenceKnobs } from './reference-knobs';
 import {
     CALLOUT_QUESTION,
     Heard,
@@ -18,6 +17,7 @@ import { BrainRequest } from './request';
 import { Display } from './controls';
 import { HULL_STATUS_TUNING } from '@starwards/core/internal';
 import { isEnemyShip } from './enemy';
+import { referenceKnobs } from './reference-knobs';
 
 /** What the seat counts itself: the missiles it launched under the current engagement, and how many still fly. */
 export type SalvoTally = { n: number; inFlight: number };

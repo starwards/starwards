@@ -25,11 +25,11 @@ import { idealScript, parseIdeals } from '../training/ideal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { ammoTelemetry } from '../training/ammo-telemetry';
-import { baselineCache } from '../training/baseline-cache';
-import { missileTelemetry } from '../training/missile-telemetry';
 import { applyCacheFlags } from '../brain/jev-cache';
+import { baselineCache } from '../training/baseline-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
+import { missileTelemetry } from '../training/missile-telemetry';
 import os from 'node:os';
 import path from 'node:path';
 import { playCrewTraining } from '../training/train-crew';

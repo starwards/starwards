@@ -5,11 +5,11 @@
  *
  *   npm run errand-check -- <x.sgr> [<y.sgr>...] > rows.jsonl
  */
-import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { createInterface } from 'node:readline';
-import { streamFrames } from '../scoring/recording';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
+import { createInterface } from 'node:readline';
+import { existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { streamFrames } from '../scoring/recording';
 
 const STATIONS = ['station-large', 'station-platform', 'station-small'];
 const RANGES = [5000, 8000];
@@ -78,7 +78,9 @@ async function main() {
                 enemies: enemies.map((e) => [`g${e.chainGuns.length}t${e.tubes.length}`, +e.healthRatio.toFixed(2)]),
             });
         }
-        process.stdout.write(JSON.stringify({ file: file.split('/').pop(), frames, hits: await stationHits(file) }) + '\n');
+        process.stdout.write(
+            JSON.stringify({ file: file.split('/').pop(), frames, hits: await stationHits(file) }) + '\n',
+        );
     }
 }
 

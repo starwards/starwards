@@ -16,12 +16,12 @@
  * candidates on the whole tuning bank and keeps the best by lexicographic fitness as `champion` in
  * the state (and `champion-knobs.json`); the defaults' tuning-bank fitness is played once and kept.
  */
-import { REFERENCE_KNOB_DEFAULTS, ReferenceKnobs } from '@starwards/bots';
-
 import { CompositeWeights, compositeCompare } from '../scoring/composite-fitness';
+
 import { LexicographicFitness, compareLexicographic, lexicographicFitness } from '../scoring/lexicographic-fitness';
+import { REFERENCE_KNOB_DEFAULTS, ReferenceKnobs } from '@starwards/bots';
+import { execSync, spawn } from 'node:child_process';
 import { TUNING_SEEDS } from '../training/seed-banks';
-import { WaveRun } from '../training/wave-compare';
 
 /** Scenarios each generation plays, with their timeouts; W-waves takes `--timeout`. */
 const SCENARIOS: [string, number][] = [
@@ -29,7 +29,7 @@ const SCENARIOS: [string, number][] = [
     ['W-cut-intercept', 480],
     ['W-cut-lof', 480],
 ];
-import { execSync, spawn } from 'node:child_process';
+import { WaveRun } from '../training/wave-compare';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -362,8 +362,10 @@ async function main() {
             if (fitnessKind === 'lexicographic') return { fitness: passesOf(crew), passes: passesOf(crew) };
             if (crew === 'default') return { fitness: 0, passes: passesOf(crew) };
             const composite = compositeCompare(weights, runs, 'default', crew).composite.estimate;
-            const base = new Map(runs['W-waves'].filter((r) => r.crew === 'default').map((r) => [r.seed, isPass(r)]));
-            const lost = runs['W-waves'].filter((r) => r.crew === crew && base.get(r.seed) && !isPass(r)).length;
+            const defaultPass = new Map(
+                runs['W-waves'].filter((r) => r.crew === 'default').map((r) => [r.seed, isPass(r)]),
+            );
+            const lost = runs['W-waves'].filter((r) => r.crew === crew && defaultPass.get(r.seed) && !isPass(r)).length;
             return { fitness: composite - (lost > Math.floor((2 * seeds) / 64) ? 1 : 0), passes: passesOf(crew) };
         };
         const ranked = xs

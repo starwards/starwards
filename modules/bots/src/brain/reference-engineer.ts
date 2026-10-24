@@ -1,5 +1,5 @@
-import { referenceKnobs } from './reference-knobs';
 import { RepairProtocolStats, repairProtocols } from '@starwards/core/internal';
+import { referenceKnobs } from './reference-knobs';
 
 /** The panels of a station's display, as the reference reads them. */
 type Panels = { panels: Record<string, Record<string, unknown> | undefined> };

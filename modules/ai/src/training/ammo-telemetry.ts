@@ -1,9 +1,9 @@
 import { Faction, MagazineStock, magazineStock, magazineStocks } from '@starwards/core/internal';
 
+import { tapDamage, tapDerelicts } from '@starwards/server/src/test/damage-tap';
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { STATIONS } from '@starwards/server/src/scenarios/wave-defence';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
-import { tapDamage, tapDerelicts } from '@starwards/server/src/test/damage-tap';
 import { wrapMagazineHit } from './ideal';
 
 type Stocks = Partial<Record<MagazineStock, number>>;
