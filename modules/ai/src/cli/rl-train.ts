@@ -3,7 +3,7 @@
  *
  *   npx ts-node --transpile-only src/cli/rl-train.ts --banks <guard waves out>[,<dir>...] --out <dir>
  *       [--steps 2000000] [--workers 12] [--batch 16384] [--fork-share 0.7] [--heldout 512]
- *       [--ref-coef 0.5] [--ref-steps 300000] [--lr 3e-4] [--max-hours 0] [--eval] [--eval-only <policy.json>]
+ *       [--ref-coef 0.5] [--ref-steps 300000] [--ref-floor 0.5] [--explore 0.08] [--entropy 0.01] [--lr 3e-4] [--max-hours 0] [--eval] [--eval-only <policy.json>]
  *
  * Each worker process plays one episode at a time (the residual decider is process-wide). Writes
  * `curve.jsonl` (one row per update), `episodes.jsonl`, `ckpt-<steps>.json`, `policy.json`, and with
@@ -52,6 +52,7 @@ type Job = {
     /** Policy params, or none for all-reference. */
     policy?: { sizes: number[]; params: number[] };
     greedy: boolean;
+    explore: number;
     sampleSeed: number;
 };
 type Result = {
@@ -64,6 +65,7 @@ type Result = {
     actions: number[][];
     masks: number[][];
     logps: number[];
+    logpsPolicy: number[];
     rewards: number[];
     phi0: number;
     trip: { missilesFired: number; kills: number; heEmptySeconds: number; firstLossAt: number | null };
@@ -82,16 +84,18 @@ async function play(job: Job): Promise<Result> {
     const actions: number[][] = [];
     const masks: number[][] = [];
     const logps: number[] = [];
+    const logpsPolicy: number[] = [];
     const nonRef = HEADS.map(() => 0);
     const hold = { held: 0, since: -Infinity };
     const { outcome, steps, trip } = await runForkEpisode(job.run, { t: job.start.t, key: job.key }, (o, seconds) => {
         if (!nets) return REFERENCE_HEADS;
-        const { action, probs } = act(nets, o, u, job.greedy);
+        const { action, probs, behaviour } = act(nets, o, u, job.greedy, job.explore);
         const { applied, mask } = holdTarget(hold, action, seconds);
         obs.push(o);
         actions.push(applied);
         masks.push(mask);
-        logps.push(logProb(probs, applied, mask));
+        logps.push(logProb(behaviour, applied, mask));
+        logpsPolicy.push(logProb(probs, applied, mask));
         applied.forEach((a, h) => (nonRef[h] += a ? 1 : 0));
         return toHeads(applied);
     });
@@ -105,6 +109,7 @@ async function play(job: Job): Promise<Result> {
         actions,
         masks,
         logps,
+        logpsPolicy,
         rewards: rewards(steps, outcome.killed, GAMMA),
         phi0: steps[0]?.phi ?? 0,
         trip,
@@ -158,6 +163,9 @@ async function train(o: {
     const refSteps = Number(arg('ref-steps', '300000'));
     const maxHours = Number(arg('max-hours', '0'));
     const lr = Number(arg('lr', String(PPO_DEFAULTS.lr)));
+    const refFloor = Number(arg('ref-floor', String(PPO_DEFAULTS.refFloor)));
+    const explore = Number(arg('explore', String(PPO_DEFAULTS.explore)));
+    const entropy = Number(arg('entropy', String(PPO_DEFAULTS.entropy)));
     const nets = createNets(FEATURE_NAMES.length, 1);
     const opt = createOptimizers(nets);
     const u = rng(2);
@@ -183,6 +191,7 @@ async function train(o: {
                     action: r.actions[i],
                     mask: r.masks[i],
                     logp: r.logps[i],
+                    logpPolicy: r.logpsPolicy[i],
                     adv: adv[i],
                     ret: returns[i],
                 }),
@@ -190,7 +199,7 @@ async function train(o: {
         }
         const refCoef = refCoef0 * Math.max(0, 1 - total / refSteps);
         const t0 = Date.now();
-        const stats = ppoUpdate(nets, opt, samples, { ...PPO_DEFAULTS, lr, refCoef }, u);
+        const stats = ppoUpdate(nets, opt, samples, { ...PPO_DEFAULTS, lr, refCoef, refFloor, explore, entropy }, u);
         const hours = (Date.now() - began) / 3_600_000;
         const n = recent.length || 1;
         const recentSteps = recent.reduce((a, r) => a + r.obs.length, 0) || 1;
@@ -219,7 +228,13 @@ async function train(o: {
             },
             refCoef: +refCoef.toFixed(3),
             updateSeconds: (Date.now() - t0) / 1000,
-            ...Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, +v.toFixed(4)])),
+            kl: +stats.kl.toFixed(4),
+            clipFrac: +stats.clipFrac.toFixed(4),
+            entropy: +stats.entropy.toFixed(4),
+            refProb: +stats.refProb.toFixed(4),
+            valueLoss: +stats.valueLoss.toFixed(4),
+            headEntropy: Object.fromEntries(HEADS.map((h, i) => [h, +stats.headEntropy[i].toFixed(4)])),
+            policyNonRef: Object.fromEntries(HEADS.map((h, i) => [h, +(1 - stats.headRefProb[i]).toFixed(4)])),
         });
         buffer = [];
         recent = [];
@@ -237,6 +252,7 @@ async function train(o: {
             key: Math.floor(u() * 2 ** 31),
             policy: { sizes: [...nets.policy.sizes], params: [...nets.policy.params] },
             greedy: false,
+            explore,
             sampleSeed: Math.floor(u() * 2 ** 31),
         };
     };
@@ -304,6 +320,7 @@ async function evaluate(o: {
                     key: mix(mix(f.seed, f.t), 0x5eed),
                     policy: arm === 'policy' ? o.policy : undefined,
                     greedy: true,
+                    explore: 0,
                     sampleSeed: mix(f.seed, f.t),
                 } satisfies Job,
             })),

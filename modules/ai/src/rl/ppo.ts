@@ -3,9 +3,13 @@ import { RESIDUAL_HEADS, ResidualHeads } from '@starwards/bots';
 
 /**
  * PPO for the residual weapons policy: a 2×64 tanh policy net whose output is one logit slice per head
- * (index 0 of every head is `ref`), a separate 2×64 value net, and a penalty pulling each head toward `ref`
- * (cross-entropy to the all-reference policy, KL(all-reference ‖ π)) weighted by a coefficient the trainer
- * anneals to 0.
+ * (index 0 of every head is `ref`), a separate 2×64 value net, and a pull toward `ref` (cross-entropy to the
+ * all-reference policy) that acts only on a head whose p(ref) has dropped below `refFloor` — a constraint on
+ * large deviation, not a prior that drags the policy back to all-reference.
+ *
+ * Episodes are played by a behaviour policy that mixes each head with `explore`·uniform, so every option keeps
+ * at least explore/n probability however peaked π gets. Updates weight each sample by π_old/μ (behaviour) and
+ * clip the ratio π/π_old.
  */
 
 export const HEADS = Object.keys(RESIDUAL_HEADS) as (keyof ResidualHeads)[];
@@ -38,16 +42,30 @@ export function headProbs(logits: ArrayLike<number>): number[][] {
     });
 }
 
-/** Samples every head (or takes its most likely option, `greedy`); `logp` sums the heads. */
-export function act(policy: Mlp, obs: ArrayLike<number>, u: () => number, greedy = false) {
+/** Each head of the behaviour policy: (1 − explore)·π + explore·uniform. */
+export const behaviourProbs = (probs: number[][], explore: number) =>
+    probs.map((p) => p.map((q) => (1 - explore) * q + explore / p.length));
+
+/**
+ * Samples every head from the behaviour policy (or takes π's most likely option, `greedy`). `probs` is π,
+ * `behaviour` what was sampled from.
+ */
+export function act(
+    policy: Mlp,
+    obs: ArrayLike<number>,
+    u: () => number,
+    greedy = false,
+    explore = PPO_DEFAULTS.explore,
+) {
     const probs = headProbs(forward(policy, obs).out);
-    const action = probs.map((p) => {
+    const behaviour = greedy ? probs : behaviourProbs(probs, explore);
+    const action = behaviour.map((p) => {
         if (greedy) return p.indexOf(Math.max(...p));
         let r = u();
         for (let k = 0; k < p.length; k++) if ((r -= p[k]) < 0) return k;
         return p.length - 1;
     });
-    return { action, probs };
+    return { action, probs, behaviour };
 }
 
 /** Log-probability of `action` under `probs`, over the heads `mask` keeps (1) — a forced head counts 0. */
@@ -73,15 +91,28 @@ export function gae(rewards: readonly number[], values: readonly number[], gamma
     return { adv, returns: adv.map((a, i) => a + values[i]) };
 }
 
-export type Sample = { obs: number[]; action: Action; mask: number[]; logp: number; adv: number; ret: number };
+/** `logp`: under the behaviour policy that played it; `logpPolicy`: under π_old (the worker's params). */
+export type Sample = {
+    obs: number[];
+    action: Action;
+    mask: number[];
+    logp: number;
+    logpPolicy: number;
+    adv: number;
+    ret: number;
+};
 export type PpoOptions = {
     epochs: number;
     minibatch: number;
     lr: number;
     clip: number;
     entropy: number;
-    /** Weight of the pull toward `ref` (cross-entropy to all-reference). */
+    /** Weight of the pull toward `ref` (cross-entropy to all-reference) on a head below `refFloor`. */
     refCoef: number;
+    /** The ref pull acts on a head only while its p(ref) is below this. */
+    refFloor: number;
+    /** Share of each head's behaviour policy that is uniform. */
+    explore: number;
     valueCoef: number;
 };
 export const PPO_DEFAULTS: PpoOptions = {
@@ -89,8 +120,10 @@ export const PPO_DEFAULTS: PpoOptions = {
     minibatch: 1024,
     lr: 3e-4,
     clip: 0.2,
-    entropy: 0.003,
+    entropy: 0.01,
     refCoef: 0,
+    refFloor: 0.5,
+    explore: 0.08,
     valueCoef: 0.5,
 };
 
@@ -105,6 +138,8 @@ export function ppoUpdate(nets: Nets, opt: Optimizers, samples: Sample[], o: Ppo
     const mean = samples.reduce((s, x) => s + x.adv, 0) / samples.length;
     const sd = Math.sqrt(samples.reduce((s, x) => s + (x.adv - mean) ** 2, 0) / samples.length) || 1;
     const stats = { kl: 0, clipFrac: 0, entropy: 0, refProb: 0, valueLoss: 0, n: 0 };
+    const headEntropy = HEADS.map(() => 0);
+    const headRefProb = HEADS.map(() => 0);
     const order = samples.map((_, i) => i);
     for (let epoch = 0; epoch < o.epochs; epoch++) {
         for (let i = order.length - 1; i > 0; i--) {
@@ -122,28 +157,32 @@ export function ppoUpdate(nets: Nets, opt: Optimizers, samples: Sample[], o: Ppo
                 const fp = forward(nets.policy, s.obs);
                 const probs = headProbs(fp.out);
                 const logp = logProb(probs, s.action, s.mask);
-                const ratio = Math.exp(logp - s.logp);
+                const ratio = Math.exp(logp - s.logpPolicy);
+                const rho = Math.exp(s.logpPolicy - s.logp);
                 const clipped = (adv > 0 && ratio > 1 + o.clip) || (adv < 0 && ratio < 1 - o.clip);
                 const dOut = new Float64Array(LOGITS);
                 probs.forEach((p, h) => {
                     const ent = -p.reduce((a, q) => a + (q > 0 ? q * Math.log(q) : 0), 0);
                     stats.entropy += ent;
                     stats.refProb += p[0];
+                    headEntropy[h] += ent;
+                    headRefProb[h] += p[0];
                     for (let k = 0; k < p.length; k++) {
                         const z = SLICES[h] + k;
                         // entropy bonus: d(-H)/dz_k = p_k (log p_k + H)
                         dOut[z] += w * o.entropy * p[k] * (Math.log(Math.max(p[k], 1e-12)) + ent);
                         // pull toward ref: d(-log p_ref)/dz_k = p_k - [k = ref]
-                        dOut[z] += w * o.refCoef * (p[k] - (k === 0 ? 1 : 0));
-                        // clipped surrogate: d(-ratio·A)/dz_k = -ratio·A (onehot - p)
-                        if (!clipped && s.mask[h]) dOut[z] += -w * ratio * adv * ((k === s.action[h] ? 1 : 0) - p[k]);
+                        if (p[0] < o.refFloor) dOut[z] += w * o.refCoef * (p[k] - (k === 0 ? 1 : 0));
+                        // clipped surrogate, importance-weighted to π_old: d(-rho·ratio·A)/dz_k = -rho·ratio·A (onehot - p)
+                        if (!clipped && s.mask[h])
+                            dOut[z] += -w * rho * ratio * adv * ((k === s.action[h] ? 1 : 0) - p[k]);
                     }
                 });
                 backward(nets.policy, fp, dOut, gp);
                 const fv = forward(nets.value, s.obs);
                 const err = fv.out[0] - s.ret;
                 backward(nets.value, fv, [w * o.valueCoef * 2 * err], gv);
-                stats.kl += s.logp - logp;
+                stats.kl += s.logpPolicy - logp;
                 stats.clipFrac += clipped ? 1 : 0;
                 stats.valueLoss += err * err;
                 stats.n++;
@@ -159,6 +198,8 @@ export function ppoUpdate(nets: Nets, opt: Optimizers, samples: Sample[], o: Ppo
         entropy: stats.entropy / heads,
         refProb: stats.refProb / heads,
         valueLoss: stats.valueLoss / stats.n,
+        headEntropy: headEntropy.map((x) => x / stats.n),
+        headRefProb: headRefProb.map((x) => x / stats.n),
     };
 }
 
