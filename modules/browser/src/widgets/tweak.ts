@@ -18,6 +18,7 @@ import {
     TypeFilter,
     createLogger,
     getTweakables,
+    gmShipCommands,
     lockCommands,
     spaceCommands,
 } from '@starwards/core';
@@ -272,6 +273,13 @@ const singleSelectionDetails = async (
             });
         });
 
+        // GM quick actions: one click refills (ammo, energy, fuel) or repairs (armor, systems) this ship
+        guiFolder.addButton({ title: 'Resupply (ammo, energy, fuel)' }).on('click', () => {
+            shipDriver.command(gmShipCommands.gmResupply, undefined);
+        });
+        guiFolder.addButton({ title: 'Repair (armor, systems)' }).on('click', () => {
+            shipDriver.command(gmShipCommands.gmRepair, undefined);
+        });
         const targetIdProp = readWriteProp<string | null>(shipDriver, `/weaponsTarget/targetId`);
         // Searchable target picker instead of free-text id entry: enumerate the other ships as
         // { id: id } options plus a "(none)" entry to clear the target. The plugin binds a plain

@@ -29,7 +29,7 @@ import { Turret, updateTurret } from './turret';
 import { applyLockCommands, rehydrateLockRegistry } from '../lock-commands';
 
 import { AmmoManager } from './ammo-manager';
-import { Armor } from './armor';
+import { fixArmor } from './armor';
 import { AutomationManager } from './automation-manager';
 import { BeamJamManager } from './beam-jam-manager';
 import { Capsule } from './capsule';
@@ -60,14 +60,6 @@ const { error: logError } = createLogger('ship-manager');
  * numbers, same caveat as `ENERGY_STARVATION_GRACE_SECONDS` in `repair-manager.ts`.
  */
 export const TARGET_OCCLUSION_GRACE_SECONDS = 1.5;
-
-function fixArmor(armor: Armor) {
-    for (const plate of armor.armorPlates) {
-        for (const layer of plate.layers) {
-            layer.health = layer.maxHealth;
-        }
-    }
-}
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
