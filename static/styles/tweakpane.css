@@ -952,6 +952,22 @@ body[data-input='none']
     box-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
 }
 
+:root [data-inline][data-status='ERROR'] {
+    background: transparent;
+    --tp-label-foreground-color: var(--sw-label);
+}
+:root [data-inline][data-status='ERROR'] .tp-lblv_l {
+    color: var(--sw-label);
+}
+:root [data-inline][data-status='ERROR'] input {
+    color: var(--sw-warning);
+}
+
+/* ammo rows carry a "LOW n/max" count, wider than the plain count the other inline rows show */
+:root .tp-lblv[data-inline].sw-ammo-row {
+    grid-template-columns: minmax(0, 1fr) 56px 88px;
+}
+
 /* radar header: what the radar shows, and whose it is */
 .sw-radar-header {
     display: flex;
