@@ -160,6 +160,7 @@ export function makeReferencePolicy(
                 salvo !== undefined &&
                 stillFlying(salvo.arrivals, seconds) >= orders.salvo;
             const lockId = display.panels['targeting-status']?.targetId as string | undefined;
+            const wasIntact = platesIntact(spend);
             if (lockId !== spend.lockId) {
                 spend.firedOn = 0;
                 spend.apShells = 0;
@@ -167,7 +168,6 @@ export function makeReferencePolicy(
             } else {
                 spend.apShells += Math.max(0, apShellCount(previous) - apShellCount(display));
             }
-            const wasIntact = platesIntact(spend);
             spend.lockId = lockId;
             spend.firstShells ??= shellsLeft(display);
             const launchTube =
@@ -656,7 +656,8 @@ function platesIntact(spend: Spend) {
 
 /** With `AMMO_OPEN_AP` above `level` and a lock: the AP order while plates are judged intact, else the HE order. */
 function apOpenOrder<T>(spend: Spend, open: T, finish: T, level: number) {
-    if (referenceKnobs.AMMO_OPEN_AP <= level || !spend.lockId) return undefined;
+    const locked = spend.lockId !== undefined && spend.lockId !== null && spend.lockId !== '';
+    if (referenceKnobs.AMMO_OPEN_AP <= level || !locked) return undefined;
     return platesIntact(spend) ? open : finish;
 }
 

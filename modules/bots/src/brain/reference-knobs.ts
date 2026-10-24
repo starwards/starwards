@@ -78,7 +78,7 @@ export const REFERENCE_KNOB_DEFAULTS = {
      */
     AMMO_OPEN_AP: 0,
     /** AP shells weapons spends on a lock before judging its plates broken (`AMMO_OPEN_AP`). */
-    AMMO_OPEN_AP_SHELLS: 8,
+    AMMO_OPEN_AP_SHELLS: 24,
     /** Weapons launches a missile only at a lock within this many meters of an allied station; 0 at any lock. */
     MISSILE_STATION_METERS: 0,
     /** Weapons launches no missile at a lock its gun already fired this many seconds at (left to the gun to finish); 0 never skips. */
