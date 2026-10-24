@@ -49,7 +49,7 @@ const MISSILE = { he: 'HiExpMissile', alt: 'ArmPenMissile' } as const;
 /**
  * The reference weapons seat with a decider that may override some heads. It keeps the inner policy's
  * name, and its answers stay `rule`; an overridden answer is `model`, so a recording tells them apart.
- * The inner reference keeps its own tallies as if its answers were pressed.
+ * The inner reference's tallies (launch interval, salvo, time fired on the lock) follow what was pressed.
  */
 export function makeResidualWeaponsPolicy(inner: Policy): Policy {
     return {
@@ -71,8 +71,11 @@ export function makeResidualWeaponsPolicy(inner: Policy): Policy {
                 heads.missile === 'launch' && lockId
                     ? tubes.find((t) => t.loadedProjectile !== 'None')?.index
                     : undefined;
+            let changed = false;
             const set = (id: string, choice: string | undefined) => {
-                if (choice !== undefined) result.answers[id] = { choice, source: 'model' } satisfies Answer;
+                if (choice === undefined) return;
+                changed ||= result.answers[id]?.choice !== choice;
+                result.answers[id] = { choice, source: 'model' } satisfies Answer;
             };
             for (const control of controls) {
                 const [command, key] = control.id.split(':');
@@ -121,6 +124,7 @@ export function makeResidualWeaponsPolicy(inner: Policy): Policy {
                     }
                 }
             }
+            if (changed) inner.pressed?.(result.answers);
             return result;
         },
     };

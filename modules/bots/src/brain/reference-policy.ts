@@ -140,8 +140,10 @@ export function makeReferencePolicy(
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
     const spend: Spend = { lockId: undefined, firedOn: 0, firstShells: undefined, apShells: 0, apMissiles: 0 };
+    let retally: ((pressed: Readonly<Record<string, Answer>>) => void) | undefined;
     return {
         name,
+        pressed: (answers) => retally?.(answers),
         answer(request, controls, shown, heard) {
             const display = shown as Display;
             const orders = captainOrdersFromBoard(display, previous);
@@ -180,6 +182,26 @@ export function makeReferencePolicy(
                     : undefined;
             const answers: Record<string, Answer> = {};
             let launched: SalvoTally | undefined;
+            const before = { firedOn: spend.firedOn, apMissiles: spend.apMissiles, lastLaunch, salvo };
+            const tallyPress = (control: Control, choice: string, last: Display | undefined) => {
+                if (control.command === 'fireChainGun' && choice === 'fire') spend.firedOn += decisionSeconds;
+                if (control.command === 'fireTube' && choice === 'fire') {
+                    const tubes = (display.panels['tubes-status'] ?? []) as unknown as TubeStatus[];
+                    const fired = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
+                    if (fired?.loadedProjectile === 'ArmPenMissile') spend.apMissiles += 1;
+                    lastLaunch = seconds;
+                    salvo = countLaunch(salvo, display, last, decisionSeconds, seconds);
+                    launched = salvo && tally(salvo, seconds);
+                }
+            };
+            const last = previous;
+            retally = (pressed) => {
+                ({ firedOn: spend.firedOn, apMissiles: spend.apMissiles, lastLaunch, salvo } = before);
+                for (const control of controls) {
+                    const choice = pressed[control.id]?.choice;
+                    if (choice !== undefined) tallyPress(control, choice, last);
+                }
+            };
             for (const control of controls) {
                 const choice =
                     referenceChoice(
@@ -197,15 +219,7 @@ export function makeReferencePolicy(
                         spend,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
-                if (control.command === 'fireChainGun' && choice === 'fire') spend.firedOn += decisionSeconds;
-                if (control.command === 'fireTube' && choice === 'fire') {
-                    const tubes = (display.panels['tubes-status'] ?? []) as unknown as TubeStatus[];
-                    const fired = tubes.find((t) => t.index === Number(control.id.split(':')[1] ?? 0));
-                    if (fired?.loadedProjectile === 'ArmPenMissile') spend.apMissiles += 1;
-                    lastLaunch = seconds;
-                    salvo = countLaunch(salvo, display, previous, decisionSeconds, seconds);
-                    launched = salvo && tally(salvo, seconds);
-                }
+                tallyPress(control, choice, previous);
             }
             const callout = referenceCallout(request, display, previous, decisionSeconds, orders.engage, {
                 heard,

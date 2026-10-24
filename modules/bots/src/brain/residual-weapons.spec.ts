@@ -105,6 +105,23 @@ describe('residual weapons', () => {
         expect(seen).toEqual([[shown, []]]);
     });
 
+    it('the reference tallies what was pressed: a held launch does not start its launch interval', async () => {
+        const fired = (a: Record<string, { choice: string }>) =>
+            Object.keys(a).some((id) => id.startsWith('fireTube:') && a[id].choice === 'fire');
+        const ready = () => {
+            const d = display();
+            (d.panels['tubes-status'] as { loading: number }[])[0].loading = 1;
+            return d;
+        };
+        expect(fired(await answers(makeReferencePolicy(0.5), ready()))).toBe(true);
+        let heads: Partial<typeof REFERENCE_HEADS> = { missile: 'hold' };
+        setResidualWeaponsDecider(() => heads);
+        const residual = makeResidualWeaponsPolicy(makeReferencePolicy(0.5));
+        expect(fired(await answers(residual, ready()))).toBe(false);
+        heads = {};
+        expect(fired(await answers(residual, ready()))).toBe(true);
+    });
+
     it('gun fire hold holds the trigger; missile hold locks every tube', async () => {
         setResidualWeaponsDecider(() => ({ gunFire: 'hold', missile: 'hold' }));
         const a = await answers(makeResidualWeaponsPolicy(makeReferencePolicy(0.5)), display());
