@@ -25,6 +25,9 @@
         "score:weapons": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-validate.ts",
         "heatmap:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/heatmap/dataset.ts",
         "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts",
+        "adversary": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/adversary.ts",
+        "parity": "node -r ts-node/register/transpile-only ./src/cli/parity.ts",
+        "perception": "node -r ts-node/register/transpile-only ./src/cli/perception.ts",
         "branch": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/branch.ts",
         "prebranch:js": "npm run build:cli",
         "branch:js": "node --env-file-if-exists=.env --max-old-space-size=8192 ./dist/cli/branch.js"

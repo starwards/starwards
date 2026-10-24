@@ -1,0 +1,809 @@
+[
+  {
+    "seed": 1,
+    "seconds": 1127.8833333326363,
+    "raiders": [
+      {
+        "id": "0",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 140034.0903,
+        "lifeSeconds": 888.6666666661866,
+        "died": true,
+        "contact": {
+          "after": 207.18333333339078,
+          "distance": 22146.2145
+        },
+        "lock": {
+          "after": 217.00000000006526,
+          "distance": 16511.7775
+        },
+        "full": {
+          "after": 226.81666666673974,
+          "distance": 10955.4152
+        }
+      },
+      {
+        "id": "1",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 140191.4453,
+        "lifeSeconds": 923.2833333328218,
+        "died": true,
+        "contact": {
+          "after": 208.733333333392,
+          "distance": 22270.8253
+        },
+        "lock": {
+          "after": 217.00000000006526,
+          "distance": 17511.4316
+        },
+        "full": {
+          "after": 226.81666666673974,
+          "distance": 11943.9944
+        }
+      },
+      {
+        "id": "209",
+        "model": "dragonfly-MK2",
+        "wave": 2,
+        "target": "GVTS",
+        "spawnDistance": 174207.675,
+        "lifeSeconds": 647.366666666078,
+        "died": false,
+        "contact": null,
+        "lock": null,
+        "full": null
+      },
+      {
+        "id": "210",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 139678.0708,
+        "lifeSeconds": 647.366666666078,
+        "died": false,
+        "contact": {
+          "after": 206.6666666664787,
+          "distance": 21995.6077
+        },
+        "lock": {
+          "after": 144.6666666665351,
+          "distance": 57429.8303
+        },
+        "full": {
+          "after": 154.99999999985903,
+          "distance": 51563.718
+        }
+      },
+      {
+        "id": "211",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 140051.1273,
+        "lifeSeconds": 647.366666666078,
+        "died": false,
+        "contact": {
+          "after": 210.28333333314208,
+          "distance": 21941.0169
+        },
+        "lock": {
+          "after": 144.6666666665351,
+          "distance": 59530.0977
+        },
+        "full": {
+          "after": 154.99999999985903,
+          "distance": 53579.7024
+        }
+      },
+      {
+        "id": "212",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 139928.2273,
+        "lifeSeconds": 647.366666666078,
+        "died": false,
+        "contact": {
+          "after": 208.7333333331435,
+          "distance": 21805.8412
+        },
+        "lock": {
+          "after": 144.6666666665351,
+          "distance": 58462.9216
+        },
+        "full": {
+          "after": 154.99999999985903,
+          "distance": 52576.294
+        }
+      },
+      {
+        "id": "499",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140103.2236,
+        "lifeSeconds": 167.3833333331812,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 73.36666666660005,
+          "distance": 100385.5218
+        },
+        "full": {
+          "after": 83.18333333325779,
+          "distance": 94898.7297
+        }
+      },
+      {
+        "id": "500",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140014.3132,
+        "lifeSeconds": 167.3833333331812,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 73.36666666660005,
+          "distance": 99596.2973
+        },
+        "full": {
+          "after": 83.18333333325779,
+          "distance": 93987.8836
+        }
+      },
+      {
+        "id": "501",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140022.5738,
+        "lifeSeconds": 167.3833333331812,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 73.36666666660005,
+          "distance": 101176.8394
+        },
+        "full": {
+          "after": 83.18333333325779,
+          "distance": 95727.46
+        }
+      },
+      {
+        "id": "502",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140003.4336,
+        "lifeSeconds": 167.3833333331812,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 73.36666666660005,
+          "distance": 113874.3662
+        },
+        "full": {
+          "after": 83.18333333325779,
+          "distance": 110346.4072
+        }
+      },
+      {
+        "id": "503",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140000.5829,
+        "lifeSeconds": 167.3833333331812,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 73.36666666660005,
+          "distance": 99499.5543
+        },
+        "full": {
+          "after": 83.18333333325779,
+          "distance": 93960.4317
+        }
+      },
+      {
+        "id": "504",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139985.6691,
+        "lifeSeconds": 167.3833333331812,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 73.36666666660005,
+          "distance": 98907.569
+        },
+        "full": {
+          "after": 83.18333333325779,
+          "distance": 93349.1064
+        }
+      },
+      {
+        "id": "505",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139913.7147,
+        "lifeSeconds": 167.3833333331812,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 73.36666666660005,
+          "distance": 98711.3067
+        },
+        "full": {
+          "after": 83.18333333325779,
+          "distance": 93144.1268
+        }
+      }
+    ]
+  },
+  {
+    "seed": 2,
+    "seconds": 931.3999999994816,
+    "raiders": [
+      {
+        "id": "0",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 139947.4698,
+        "lifeSeconds": 930.8666666661483,
+        "died": false,
+        "contact": {
+          "after": 208.21666666672493,
+          "distance": 22306.1513
+        },
+        "lock": {
+          "after": 216.48333333339818,
+          "distance": 17540.255
+        },
+        "full": {
+          "after": 226.30000000007266,
+          "distance": 11989.0014
+        }
+      },
+      {
+        "id": "1",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 139755.0027,
+        "lifeSeconds": 930.8666666661483,
+        "died": false,
+        "contact": {
+          "after": 206.6666666667237,
+          "distance": 22149.6145
+        },
+        "lock": {
+          "after": 216.48333333339818,
+          "distance": 16579.8529
+        },
+        "full": {
+          "after": 226.30000000007266,
+          "distance": 10959.8126
+        }
+      },
+      {
+        "id": "130",
+        "model": "dragonfly-MK2",
+        "wave": 2,
+        "target": "GVTS",
+        "spawnDistance": 174704.3372,
+        "lifeSeconds": 450.88333333292326,
+        "died": false,
+        "contact": null,
+        "lock": null,
+        "full": null
+      },
+      {
+        "id": "131",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 140017.2807,
+        "lifeSeconds": 450.88333333292326,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 115.73333333322807,
+          "distance": 75937.0968
+        },
+        "full": {
+          "after": 126.06666666655201,
+          "distance": 70029.663
+        }
+      },
+      {
+        "id": "132",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 139912.9102,
+        "lifeSeconds": 450.88333333292326,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 115.73333333322807,
+          "distance": 75074.5304
+        },
+        "full": {
+          "after": 126.06666666655201,
+          "distance": 69225.7035
+        }
+      },
+      {
+        "id": "133",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 139845.654,
+        "lifeSeconds": 450.88333333292326,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 115.73333333322807,
+          "distance": 74171.2894
+        },
+        "full": {
+          "after": 126.06666666655201,
+          "distance": 68305.1104
+        }
+      }
+    ]
+  },
+  {
+    "seed": 3,
+    "seconds": 1057.9833333326999,
+    "raiders": [
+      {
+        "id": "0",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 140084.1591,
+        "lifeSeconds": 1014.7333333327387,
+        "died": true,
+        "contact": {
+          "after": 208.21666666672493,
+          "distance": 22353.0642
+        },
+        "lock": {
+          "after": 216.48333333339818,
+          "distance": 17665.7386
+        },
+        "full": {
+          "after": 226.81666666673974,
+          "distance": 11741.647
+        }
+      },
+      {
+        "id": "1",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 139891.0117,
+        "lifeSeconds": 1011.6333333327415,
+        "died": true,
+        "contact": {
+          "after": 206.6666666667237,
+          "distance": 22256.4308
+        },
+        "lock": {
+          "after": 216.48333333339818,
+          "distance": 16632.1886
+        },
+        "full": {
+          "after": 226.81666666673974,
+          "distance": 10718.7581
+        }
+      },
+      {
+        "id": "168",
+        "model": "dragonfly-MK2",
+        "wave": 2,
+        "target": "GVTS",
+        "spawnDistance": 174583.2424,
+        "lifeSeconds": 577.4666666661416,
+        "died": false,
+        "contact": null,
+        "lock": null,
+        "full": null
+      },
+      {
+        "id": "169",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 139941.7936,
+        "lifeSeconds": 577.4666666661416,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 119.34999999989145,
+          "distance": 72213.6461
+        },
+        "full": {
+          "after": 119.86666666655765,
+          "distance": 71904.2415
+        }
+      },
+      {
+        "id": "170",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 139983.9736,
+        "lifeSeconds": 577.4666666661416,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 119.34999999989145,
+          "distance": 73251.0746
+        },
+        "full": {
+          "after": 119.86666666655765,
+          "distance": 72958.7126
+        }
+      },
+      {
+        "id": "171",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 140091.3494,
+        "lifeSeconds": 577.4666666661416,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 119.34999999989145,
+          "distance": 73250.338
+        },
+        "full": {
+          "after": 119.86666666655765,
+          "distance": 72962.9434
+        }
+      },
+      {
+        "id": "359",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139869.1691,
+        "lifeSeconds": 97.48333333324479,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 139869.1691
+        },
+        "full": {
+          "after": 0,
+          "distance": 139869.1691
+        }
+      },
+      {
+        "id": "360",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139840.6795,
+        "lifeSeconds": 97.48333333324479,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 139840.6795
+        },
+        "full": {
+          "after": 0,
+          "distance": 139840.6795
+        }
+      },
+      {
+        "id": "361",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140177.8894,
+        "lifeSeconds": 97.48333333324479,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 140177.8894
+        },
+        "full": {
+          "after": 0,
+          "distance": 140177.8894
+        }
+      },
+      {
+        "id": "362",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140091.0551,
+        "lifeSeconds": 97.48333333324479,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 140091.0551
+        },
+        "full": {
+          "after": 0,
+          "distance": 140091.0551
+        }
+      },
+      {
+        "id": "363",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139967.9331,
+        "lifeSeconds": 97.48333333324479,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 139967.9331
+        },
+        "full": {
+          "after": 0,
+          "distance": 139967.9331
+        }
+      },
+      {
+        "id": "364",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139843.6561,
+        "lifeSeconds": 97.48333333324479,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 139843.6561
+        },
+        "full": {
+          "after": 0,
+          "distance": 139843.6561
+        }
+      }
+    ]
+  },
+  {
+    "seed": 4,
+    "seconds": 969.2333333327805,
+    "raiders": [
+      {
+        "id": "0",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 140019.4332,
+        "lifeSeconds": 968.6999999994472,
+        "died": false,
+        "contact": {
+          "after": 208.733333333392,
+          "distance": 22226.5013
+        },
+        "lock": {
+          "after": 217.00000000006526,
+          "distance": 17466.1667
+        },
+        "full": {
+          "after": 226.81666666673974,
+          "distance": 11914.5534
+        }
+      },
+      {
+        "id": "1",
+        "model": "dragonfly-MK1",
+        "wave": 1,
+        "target": "station-large",
+        "spawnDistance": 139960.9084,
+        "lifeSeconds": 968.6999999994472,
+        "died": false,
+        "contact": {
+          "after": 206.6666666667237,
+          "distance": 22364.1116
+        },
+        "lock": {
+          "after": 217.00000000006526,
+          "distance": 16502.0951
+        },
+        "full": {
+          "after": 226.81666666673974,
+          "distance": 10886.8329
+        }
+      },
+      {
+        "id": "128",
+        "model": "dragonfly-MK2",
+        "wave": 2,
+        "target": "GVTS",
+        "spawnDistance": 171939.8318,
+        "lifeSeconds": 488.7166666662222,
+        "died": false,
+        "contact": null,
+        "lock": null,
+        "full": null
+      },
+      {
+        "id": "129",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 140186.6931,
+        "lifeSeconds": 488.7166666662222,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 130.71666666654778,
+          "distance": 67728.5574
+        },
+        "full": {
+          "after": 140.53333333320552,
+          "distance": 62146.8032
+        }
+      },
+      {
+        "id": "130",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 140056.9531,
+        "lifeSeconds": 488.7166666662222,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 130.71666666654778,
+          "distance": 66761.3111
+        },
+        "full": {
+          "after": 140.53333333320552,
+          "distance": 61101.9904
+        }
+      },
+      {
+        "id": "131",
+        "model": "dragonfly-MK1",
+        "wave": 2,
+        "target": "station-platform",
+        "spawnDistance": 139865.42,
+        "lifeSeconds": 488.7166666662222,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 130.71666666654778,
+          "distance": 65655.907
+        },
+        "full": {
+          "after": 140.53333333320552,
+          "distance": 60069.9002
+        }
+      },
+      {
+        "id": "348",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140042.2999,
+        "lifeSeconds": 8.73333333332539,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 140042.2999
+        },
+        "full": {
+          "after": 0,
+          "distance": 140042.2999
+        }
+      },
+      {
+        "id": "349",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140032.0524,
+        "lifeSeconds": 8.73333333332539,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 140032.0524
+        },
+        "full": {
+          "after": 0,
+          "distance": 140032.0524
+        }
+      },
+      {
+        "id": "350",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139945.535,
+        "lifeSeconds": 8.73333333332539,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 139945.535
+        },
+        "full": {
+          "after": 0,
+          "distance": 139945.535
+        }
+      },
+      {
+        "id": "351",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139883.2786,
+        "lifeSeconds": 8.73333333332539,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 139883.2786
+        },
+        "full": {
+          "after": 0,
+          "distance": 139883.2786
+        }
+      },
+      {
+        "id": "352",
+        "model": "dragonfly-MK2",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 140101.9987,
+        "lifeSeconds": 8.73333333332539,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 140101.9987
+        },
+        "full": {
+          "after": 0,
+          "distance": 140101.9987
+        }
+      },
+      {
+        "id": "353",
+        "model": "dragonfly-MK1",
+        "wave": 3,
+        "target": "station-small",
+        "spawnDistance": 139750.6454,
+        "lifeSeconds": 8.73333333332539,
+        "died": false,
+        "contact": null,
+        "lock": {
+          "after": 0,
+          "distance": 139750.6454
+        },
+        "full": {
+          "after": 0,
+          "distance": 139750.6454
+        }
+      }
+    ]
+  }
+]

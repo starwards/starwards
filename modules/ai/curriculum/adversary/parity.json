@@ -1,0 +1,257 @@
+{
+  "model": "dragonfly-MK1",
+  "scenarios": [
+    {
+      "name": "idle",
+      "description": "nothing ordered for 180 s",
+      "seconds": 180
+    },
+    {
+      "name": "gun-burst",
+      "description": "every chain gun fires from 5 s to 35 s with the magazine kept full; 120 s in all",
+      "seconds": 120
+    },
+    {
+      "name": "thrust",
+      "description": "full manoeuvring thrust with the afterburner held, reversing every 3 s, for 60 s",
+      "seconds": 60
+    },
+    {
+      "name": "defect-and-repair",
+      "description": "at 2 s the first chain gun drops to 30% rate of fire, a thruster loses all capacity, and the repair protocol for the gun is queued at HIGH priority; 300 s in all",
+      "seconds": 300
+    },
+    {
+      "name": "hacked",
+      "description": "at 2 s the radars are COMPROMISED and the first chain gun DISABLED; 30 s in all",
+      "seconds": 30
+    }
+  ],
+  "compared": {
+    "idle": 146,
+    "gun-burst": 146,
+    "thrust": 146,
+    "defect-and-repair": 146,
+    "hacked": 146
+  },
+  "differing": [
+    {
+      "scenario": "idle",
+      "readout": "repairQueue.slots",
+      "pc": 14,
+      "npc": 0
+    },
+    {
+      "scenario": "idle",
+      "readout": "/radars/0.energyPerMinute",
+      "pc": 3.0359999999999894,
+      "npc": 0
+    },
+    {
+      "scenario": "idle",
+      "readout": "/radars/1.energyPerMinute",
+      "pc": 44.39999999999977,
+      "npc": 0
+    },
+    {
+      "scenario": "gun-burst",
+      "readout": "repairQueue.slots",
+      "pc": 14,
+      "npc": 0
+    },
+    {
+      "scenario": "gun-burst",
+      "readout": "/chainGuns/0.heat",
+      "pc": 63.478571428593746,
+      "npc": 0
+    },
+    {
+      "scenario": "gun-burst",
+      "readout": "/radars/0.energyPerMinute",
+      "pc": 3.0359999999999894,
+      "npc": 0
+    },
+    {
+      "scenario": "gun-burst",
+      "readout": "/radars/1.energyPerMinute",
+      "pc": 44.39999999999977,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "reactor.energy",
+      "pc": 0.025,
+      "npc": 500
+    },
+    {
+      "scenario": "thrust",
+      "readout": "repairQueue.slots",
+      "pc": 14,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "flight.speed",
+      "pc": 517.1351440178282,
+      "npc": 435.0508040777994
+    },
+    {
+      "scenario": "thrust",
+      "readout": "flight.turnSpeed",
+      "pc": 22.902633879216165,
+      "npc": 1.7083333333333364
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/maneuvering.energyPerMinute",
+      "pc": 23.274923646791457,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/maneuvering.energyStarved",
+      "pc": 1,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/thrusters/0.energyPerMinute",
+      "pc": 29.75995245774904,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/thrusters/0.energyStarved",
+      "pc": 1,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/thrusters/1.energyPerMinute",
+      "pc": 0.8737921221766792,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/thrusters/2.energyPerMinute",
+      "pc": 29.759940144929537,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/thrusters/2.energyStarved",
+      "pc": 1,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/thrusters/3.energyPerMinute",
+      "pc": 0.8738055792670049,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/radars/0.energyStarved",
+      "pc": 1,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/radars/1.energyPerMinute",
+      "pc": 1.6738690769875535,
+      "npc": 0
+    },
+    {
+      "scenario": "thrust",
+      "readout": "/radars/1.energyStarved",
+      "pc": 1,
+      "npc": 0
+    },
+    {
+      "scenario": "defect-and-repair",
+      "readout": "repairQueue.slots",
+      "pc": 14,
+      "npc": 0
+    },
+    {
+      "scenario": "defect-and-repair",
+      "readout": "/chainGuns/0.rateOfFireFactor",
+      "pc": 1,
+      "npc": 0.3
+    },
+    {
+      "scenario": "defect-and-repair",
+      "readout": "/radars/0.energyPerMinute",
+      "pc": 3.0359999999999894,
+      "npc": 0
+    },
+    {
+      "scenario": "defect-and-repair",
+      "readout": "/radars/1.energyPerMinute",
+      "pc": 44.39999999999977,
+      "npc": 0
+    },
+    {
+      "scenario": "hacked",
+      "readout": "repairQueue.slots",
+      "pc": 14,
+      "npc": 0
+    },
+    {
+      "scenario": "hacked",
+      "readout": "/radars/0.energyPerMinute",
+      "pc": 1.2180000000007718,
+      "npc": 0
+    },
+    {
+      "scenario": "hacked",
+      "readout": "/radars/1.energyPerMinute",
+      "pc": 21.900000000008955,
+      "npc": 0
+    }
+  ],
+  "structural": [
+    {
+      "readout": "Reactor energy; each system energy per minute and energy-starved flag",
+      "pc": "`EnergyManager` meters every draw against the reactor store and scales draws when it runs short",
+      "npc": "`internalProxy.drawEnergy = () => 1`: every draw is free, the store never moves",
+      "evidence": "modules/core/src/ship/ship-manager.ts (`ShipManagerNpc` constructor), `energy-manager.ts`"
+    },
+    {
+      "readout": "Repair queue (slots, running protocol, progress), defect recovery, energy cells spent on repair",
+      "pc": "`RepairManager` owns one slot per protocol and works the queue",
+      "npc": "no `RepairManager`: the queue has no slots and damage is permanent; the repair commands are registered for PC ships only",
+      "evidence": "modules/core/src/ship/ship-manager.ts, modules/server/src/ship/room.ts"
+    },
+    {
+      "readout": "Crew order board (captain and doctrine orders, stance)",
+      "pc": "`CrewOrdersManager` drains `crewOrderCommands`",
+      "npc": "none; the board stays empty",
+      "evidence": "modules/core/src/ship/ship-manager.ts"
+    },
+    {
+      "readout": "Flight: thrust, speed cap, afterburner",
+      "pc": "`MovementManager`: capacity, afterburner and speed limits through `internalProxy`, which draws energy",
+      "npc": "`handleManeuvering` / `capMaxSpeed` apply the commanded vector directly",
+      "evidence": "modules/core/src/ship/ship-manager.ts, `movement-manager.ts`"
+    },
+    {
+      "readout": "Smart-pilot modes (manoeuvring and rotation mode)",
+      "pc": "`StatesToggle` cycles VELOCITY, TARGET, DIRECT on the crew's command",
+      "npc": "no toggle; automation writes `smartPilot` commands directly",
+      "evidence": "modules/core/src/ship/ship-manager.ts"
+    },
+    {
+      "readout": "Heat: coolant split and gun power",
+      "pc": "set by the engineer; `HeatManager` default split until then",
+      "npc": "`AutomationManager.manageHeat` reallocates coolant, backs gun power off and latches a ceasefire (a reflex, not a rule)",
+      "evidence": "modules/core/src/ship/automation-manager.ts (`manageHeat`)"
+    },
+    {
+      "readout": "Scan beams",
+      "pc": "swung by the Signals officer",
+      "npc": "`ScanBeamAutomation` sweeps and follows, for zero-`maxSpeed` hulls (stations, platforms) only",
+      "evidence": "modules/core/src/ship/scan-beam-automation.ts, `ship-manager.ts`"
+    }
+  ]
+}

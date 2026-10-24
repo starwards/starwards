@@ -1,3 +1,4 @@
+import { AdversaryProfile, applyAdversaryProfile } from '../../scenarios/adversary-profile';
 import { DEFAULT_WAVE_TUNING, STATIONS, createWaveDefenceMap } from '../../scenarios/wave-defence';
 import { GameMap, mulberry32 } from '@starwards/core/internal';
 
@@ -46,10 +47,13 @@ export function waveRung({
     name,
     waveIntervalSeconds,
     passWaves,
+    adversary,
 }: {
     name: string;
     waveIntervalSeconds: number;
     passWaves: number;
+    /** Varies every raider of every wave (adversary rungs); absent leaves the map's own raiders. */
+    adversary?: AdversaryProfile;
 }): TrainingScenario<WaveRungParams> {
     const track = ({ waveSeed }: WaveRungParams): { map: GameMap; tracker: RungTracker } => {
         let reached = 0;
@@ -61,6 +65,7 @@ export function waveRung({
         const writtenOff = new Set<string>();
         const killed = new Set<string>();
         const lost = new Set<string>();
+        const varied = new Set<string>();
         const map = createWaveDefenceMap(
             mulberry32(waveSeed),
             { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds },
@@ -78,6 +83,11 @@ export function waveRung({
         const tracker: RungTracker = {
             done(game) {
                 for (const id of raiders) {
+                    const raiderState = adversary && !varied.has(id) ? game.api.getShip(id)?.state : undefined;
+                    if (adversary && raiderState) {
+                        varied.add(id);
+                        applyAdversaryProfile(raiderState, adversary);
+                    }
                     const raider = game.api.getObject(id);
                     if (!killed.has(id) && !writtenOff.has(id) && (!raider || raider.destroyed)) {
                         killed.add(id);
