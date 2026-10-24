@@ -1,4 +1,4 @@
-import { Faction, GameApi, GameMap, Order } from '@starwards/core/internal';
+import { Faction, GameApi, GameMap, MESSAGE_HISTORY_LIMIT, Order } from '@starwards/core/internal';
 
 import { makeDriver } from './driver';
 import { newShip } from '../admin/map-helper';
@@ -68,6 +68,32 @@ describe('GameApi (issue #2060)', () => {
 
         await gameDriver.gameManager.stopGame();
         expect(gameDriver.gameManager.state.message).toEqual('');
+    });
+
+    it('pushMessage queues history, latest is current; clearMessage keeps history; history is capped; stopGame resets', async () => {
+        await gameDriver.gameManager.startGame(makeMap(() => undefined));
+        const { scriptApi, state } = gameDriver.gameManager;
+
+        scriptApi.pushMessage('first');
+        scriptApi.pushMessage('second');
+        scriptApi.pushMessage('   ');
+        expect(state.message).toEqual('second');
+        expect(state.messageHistory.map((m) => [m.seq, m.text])).toEqual([
+            [1, 'first'],
+            [2, 'second'],
+        ]);
+
+        scriptApi.clearMessage();
+        expect(state.message).toEqual('');
+        expect(state.messageHistory).toHaveLength(2);
+
+        for (let i = 0; i < MESSAGE_HISTORY_LIMIT + 5; i++) scriptApi.pushMessage(`m${i}`);
+        expect(state.messageHistory).toHaveLength(MESSAGE_HISTORY_LIMIT);
+        expect(state.messageHistory[0].text).toEqual('m5');
+
+        await gameDriver.gameManager.stopGame();
+        expect(state.message).toEqual('');
+        expect(state.messageHistory).toHaveLength(0);
     });
 
     it('convertToDerelict replaces an NPC ship with a Derelict at the same position; no-op on player ships', async () => {

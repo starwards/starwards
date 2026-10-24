@@ -108,7 +108,14 @@ export class GameManager {
             this.state.speed = Math.max(0, Math.min(3, speed));
         },
         setMessage: (message: string) => {
-            this.state.message = message;
+            if (message.trim().length === 0) this.state.clearMessage();
+            else this.state.pushMessage(message);
+        },
+        pushMessage: (message: string) => {
+            this.state.pushMessage(message);
+        },
+        clearMessage: () => {
+            this.state.clearMessage();
         },
     };
 
@@ -399,7 +406,7 @@ export class GameManager {
             this.die = new ShipDie();
             this.state.playerShipIds.splice(0);
             this.state.shipIds.splice(0);
-            this.state.message = '';
+            this.state.resetMessages();
             this.shipCleanups.clear();
             this.shipManagers.clear();
             this.convertingShips.clear();

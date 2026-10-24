@@ -78,6 +78,8 @@ export class HeadlessGame {
             this.speed = Math.max(0, Math.min(3, speed));
         },
         setMessage: () => undefined,
+        pushMessage: () => undefined,
+        clearMessage: () => undefined,
     };
 
     private constructor(

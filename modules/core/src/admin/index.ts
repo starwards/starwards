@@ -15,6 +15,19 @@ export enum GameStatus {
     RUNNING,
     STOPPING,
 }
+/** One entry of {@link AdminState.messageHistory}. */
+export class GameMessage extends Schema {
+    @gameField('string')
+    text = '';
+
+    /** Monotonic per-game sequence number, starting at 1. */
+    @gameField('uint32')
+    seq = 0;
+}
+
+/** Max entries kept in {@link AdminState.messageHistory}; oldest are dropped first. */
+export const MESSAGE_HISTORY_LIMIT = 50;
+
 export class AdminState extends Schema implements StationRegistrable, BotAssignable {
     @gameField('int8')
     gameStatus = GameStatus.STOPPED;
@@ -67,10 +80,45 @@ export class AdminState extends Schema implements StationRegistrable, BotAssigna
     @gameField('float32')
     speed = 1;
 
-    /** Free-text scenario/GM announcement, broadcast to every screen. Empty string = no message. */
+    /**
+     * Current (latest pushed) scenario/GM announcement, broadcast to every screen. Empty string =
+     * no current message. Stations render this. Prefer {@link pushMessage}, which also records
+     * history; setting this directly (GM tweak) changes only the current text.
+     */
     @tweakable('string')
     @gameField('string')
     message = '';
+
+    /** Every message pushed this game, oldest first, capped at {@link MESSAGE_HISTORY_LIMIT}. Cleared on game stop. */
+    @gameField([GameMessage])
+    messageHistory = new ArraySchema<GameMessage>();
+
+    private messageSeq = 0;
+
+    /** Appends `text` to {@link messageHistory} and makes it the current {@link message}. Blank text is ignored. */
+    pushMessage(text: string) {
+        if (text.trim().length === 0) return;
+        const entry = new GameMessage();
+        entry.text = text;
+        entry.seq = ++this.messageSeq;
+        this.messageHistory.push(entry);
+        if (this.messageHistory.length > MESSAGE_HISTORY_LIMIT) {
+            this.messageHistory.splice(0, this.messageHistory.length - MESSAGE_HISTORY_LIMIT);
+        }
+        this.message = text;
+    }
+
+    /** Clears the current {@link message}; history is kept. */
+    clearMessage() {
+        this.message = '';
+    }
+
+    /** Clears current message and history (game stop). */
+    resetMessages() {
+        this.message = '';
+        this.messageHistory.splice(0);
+        this.messageSeq = 0;
+    }
 
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;
