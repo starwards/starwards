@@ -1,0 +1,17 @@
+{
+    "id": "engineer",
+    "version": 13,
+    "station": "engineer",
+    "model": "jev-1.13.0",
+    "decisionSeconds": 2,
+    "role": "engineer of the warship GVTS: you set each system's power and coolant and order repairs with the controls of the engineering console",
+    "mission": "keep the ship's weapons, maneuvering and sensors working through a fight: no system starved of energy, overheated or left broken",
+    "repairs": "magazine-first",
+    "callouts": {
+        "magazine_state": {
+            "say": "magazine at {capacity} capacity",
+            "fill": "magazineState",
+            "when": "tells the captain how much of the magazine still holds, from your damage report: below half it holds too few rounds to be worth restocking until repaired. Choose this when the magazine capacity changed since you last said it"
+        }
+    }
+}

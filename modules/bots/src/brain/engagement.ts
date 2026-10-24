@@ -1,14 +1,14 @@
 import { Contact, Radar, offNose } from './verbal';
 import { MISSILE_MIN_LAUNCH_METERS, missileLaunchRange, rangeRate } from './missile-envelope';
-
 import { Display } from './controls';
+
 import { isEnemyShip } from './enemy';
+import { referenceKnobs } from './reference-knobs';
 
 /** The missile the reference loads: its envelope sets where the reference captain sends the ship. */
 const REFERENCE_MISSILE = 'HiExpMissile';
 
 /** How far inside the launch range the captain orders the ship: the target may drift outward while the missiles fly. */
-const CLOSE_MARGIN_METERS = 2000;
 
 /**
  * How fast `contact` flies along the line of sight toward the own ship and across it, from where the
@@ -49,7 +49,7 @@ export function inLaunchEnvelope(distance: number, range: number) {
  * Where the captain sends the ship once the enemy is inside the launch envelope: in to gun range, so
  * the ship arrives while the missiles fly (mined from the Jev captain on T3-directed, 2026-10-18).
  */
-const GUN_CLOSE_METERS = 2000;
+export const GUN_CLOSE_METERS = 2000;
 
 /**
  * The range the captain orders the ship to close to, `distance` from an enemy whose launch envelope
@@ -58,7 +58,7 @@ const GUN_CLOSE_METERS = 2000;
 export function closeRange(distance: number, range: number) {
     return inLaunchEnvelope(distance, range)
         ? GUN_CLOSE_METERS
-        : Math.max(MISSILE_MIN_LAUNCH_METERS, range - CLOSE_MARGIN_METERS);
+        : Math.max(MISSILE_MIN_LAUNCH_METERS, range - referenceKnobs.CLOSE_MARGIN_METERS);
 }
 
 /** The nearest enemy ship the radar shows; an unidentified blip or a neutral is never called an enemy. */
@@ -87,6 +87,20 @@ export function missilesInMagazine(display: Display): number | undefined {
         ? Object.entries(ammo)
               .filter(([kind]) => kind.endsWith('Missile') && (!loaded.size || loaded.has(kind)))
               .reduce((sum, [, stock]) => sum + (stock.count ?? 0), 0)
+        : undefined;
+}
+
+/** The chain-gun shells in the magazine and the capacity they fit, from the ammo panel; undefined without the panel. */
+export function shellStock(display: Display): { count: number; max: number } | undefined {
+    const ammo = (
+        display.panels['ammo-status'] as { ammo?: Record<string, { count?: number; max?: number }> } | undefined
+    )?.ammo;
+    const shells = Object.entries(ammo ?? {}).filter(([kind]) => kind.endsWith('Shell'));
+    return shells.length
+        ? {
+              count: shells.reduce((sum, [, stock]) => sum + (stock.count ?? 0), 0),
+              max: shells.reduce((sum, [, stock]) => sum + (stock.max ?? 0), 0),
+          }
         : undefined;
 }
 

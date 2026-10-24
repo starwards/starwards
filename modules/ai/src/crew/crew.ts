@@ -27,9 +27,12 @@ import { HeadlessRecorder } from '@starwards/server/src/test/headless-recorder';
 /** Radar contacts read per decision: enough that our own shells never crowd a ship off the list. */
 const RADAR_CONTACT_LIMIT = 200;
 
+/** `phaseSeconds` delays the seat's first decision, shifting its whole cadence: a placebo perturbation with no tactical content. */
+export type CrewSeatPlan = SeatPlan & { phaseSeconds?: number };
+
 export type CrewOptions = {
     shipId: string;
-    seats: readonly SeatPlan[];
+    seats: readonly CrewSeatPlan[];
     /** Simulated seconds between a decision and its buttons reaching the ship, as on a live network. */
     latencySeconds: number;
     /** Radar contacts shown per decision. */
@@ -53,7 +56,7 @@ export type ControlStats = {
     choices: Record<string, number>;
 };
 
-type Seat = { plan: SeatPlan; brain: ButtonBrain; session: StationSession; nextDecisionAt: number };
+type Seat = { plan: CrewSeatPlan; brain: ButtonBrain; session: StationSession; nextDecisionAt: number };
 /** What a seat was shown and heard when it was asked: recorded with the answer it led to. */
 type Asked = { seat: Seat; display: Display; capabilities: Capabilities; heard: Heard[] };
 type Pending = {
@@ -111,7 +114,7 @@ export function headlessCrew(options: CrewOptions) {
             plan,
             brain: buttonBrain(plan.spec, plan.policy),
             session: headlessStation(game, options.shipId, plan.station, clock),
-            nextDecisionAt: game.seconds,
+            nextDecisionAt: game.seconds + (plan.phaseSeconds ?? 0),
         }));
         // an order to preserve energy binds every seat whose console spends it
         energySeats = energyDrawingSeats(

@@ -1,0 +1,29 @@
+{
+    "name": "captain-reference-clearline",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain.v11.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference",
+            "brain": "../brains/helms.v21.json"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

@@ -1,5 +1,5 @@
 import { DEFAULT_WAVE_TUNING, STATIONS, createWaveDefenceMap } from '../../scenarios/wave-defence';
-import { GameMap, mulberry32 } from '@starwards/core/internal';
+import { GameApi, GameMap, mulberry32 } from '@starwards/core/internal';
 
 import { HeadlessGame } from '../headless-game';
 import { TRAINING_PLAYER_ID } from '../../scenarios/training';
@@ -23,7 +23,22 @@ export interface WaveOutcome {
     readonly gvtsHealth: number;
     /** Sim-second the run passed, or null. */
     readonly passedAt: number | null;
+    /** Sim-second the run ended. This and the station damage are absent from older results files. */
+    readonly endSeconds?: number;
+    /** Capsule integrity lost, summed over the stations (0..3): a lost station counts 1. */
+    readonly stationCapsuleLost?: number;
+    /** Armor health lost, summed over the stations (0..3): a lost station counts 1. */
+    readonly stationArmorLost?: number;
 }
+
+/** Wave 1 as the map spawned it: its target station and its raiders. */
+export interface FirstWave {
+    readonly targetId: string;
+    readonly raiderIds: readonly string[];
+}
+
+/** Arranges a rung's start after the map's own init (wave 1 already spawned), before the first tick. */
+export type WaveSetup = (game: GameApi, wave1: FirstWave) => void;
 
 /** Watches a wave-defence game and decides when its run ends. */
 export interface RungTracker {
@@ -46,10 +61,17 @@ export function waveRung({
     name,
     waveIntervalSeconds,
     passWaves,
+    firstWave = 1,
+    setup,
+    description,
 }: {
     name: string;
     waveIntervalSeconds: number;
     passWaves: number;
+    /** The map's first spawn is this wave, at its strength. */
+    firstWave?: number;
+    setup?: WaveSetup;
+    description?: string;
 }): TrainingScenario<WaveRungParams> {
     const track = ({ waveSeed }: WaveRungParams): { map: GameMap; tracker: RungTracker } => {
         let reached = 0;
@@ -61,13 +83,15 @@ export function waveRung({
         const writtenOff = new Set<string>();
         const killed = new Set<string>();
         const lost = new Set<string>();
-        const map = createWaveDefenceMap(
+        let wave1: FirstWave | undefined;
+        const waveMap = createWaveDefenceMap(
             mulberry32(waveSeed),
-            { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds },
+            { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds, firstWave },
             {
-                onWaveSpawned: (wave, shipIds) => {
-                    if (wave > 1 && !stationsLost) {
-                        survived = wave - 1;
+                onWaveSpawned: (wave, shipIds, targetId) => {
+                    wave1 ??= { targetId, raiderIds: shipIds };
+                    if (wave > firstWave && !stationsLost) {
+                        survived = wave - firstWave;
                     }
                     reached = wave;
                     shipIds.forEach((id) => raiders.add(id));
@@ -75,6 +99,15 @@ export function waveRung({
                 onRaiderWrittenOff: (id) => writtenOff.add(id),
             },
         );
+        const map: GameMap = setup
+            ? {
+                  ...waveMap,
+                  init: (game) => {
+                      waveMap.init(game);
+                      setup(game, wave1!);
+                  },
+              }
+            : waveMap;
         const tracker: RungTracker = {
             done(game) {
                 for (const id of raiders) {
@@ -105,15 +138,37 @@ export function waveRung({
                 raidersSpawned: raiders.size,
                 gvtsHealth: game.api.getShip(TRAINING_PLAYER_ID)?.state.healthRatio ?? 0,
                 passedAt,
+                endSeconds: game.seconds,
+                ...stationDamage(game),
             }),
         };
         return { map, tracker };
     };
     return {
         name,
-        description: `wave_defence: the GVTS defends three stations against raider waves, a wave every ${waveIntervalSeconds} s at most; ${Number.isFinite(passWaves) ? `passes after ${passWaves} waves with every station alive` : 'never passes: counts the waves survived (calibration only)'}`,
+        description:
+            description ??
+            `wave_defence: the GVTS defends three stations against raider waves, a wave every ${waveIntervalSeconds} s at most; ${Number.isFinite(passWaves) ? `passes after ${passWaves} waves with every station alive` : 'never passes: counts the waves survived (calibration only)'}`,
         params: fc.record({ waveSeed: fc.integer({ min: 0, max: 2 ** 31 - 1 }) }),
         createMap: (params: WaveRungParams) => track(params).map,
         track,
     };
+}
+
+/** Damage the stations took, summed over them; a lost station counts 1 in each. */
+export function stationDamage(game: HeadlessGame) {
+    let stationCapsuleLost = 0;
+    let stationArmorLost = 0;
+    for (const { id } of STATIONS) {
+        const station = game.api.getShip(id)?.state;
+        if (!station) {
+            stationCapsuleLost++;
+            stationArmorLost++;
+            continue;
+        }
+        stationCapsuleLost += 1 - station.capsule.integrity;
+        const plates = station.armor.armorPlates;
+        stationArmorLost += plates.length ? 1 - plates.reduce((a, p) => a + p.healthRatio, 0) / plates.length : 0;
+    }
+    return { stationCapsuleLost, stationArmorLost };
 }

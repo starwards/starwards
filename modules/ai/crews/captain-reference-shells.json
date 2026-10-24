@@ -1,0 +1,28 @@
+{
+    "name": "captain-reference-shells",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain.v11.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../brains/weapons.v22.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

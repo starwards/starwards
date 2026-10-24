@@ -63,7 +63,7 @@ answers into console commands.
 
 **A brain is one data file**, [`modules/ai/brains/<station>.v<N>.json`](../../modules/ai/brains) (the reference brains are `modules/bots/src/brains/<station>.v1.json`):
 model, decision interval, confidence floor, role, mission, per-control wording overrides, controls to
-skip and display parts to hide. Tuning a brain means writing its next version; the code is shared by
+skip and display parts to hide; the reference weapons rules also read `shellPreference`, the chain-gun shell types in the order they load them, `fireRangeMeters`, the range inside which they fire, and the reference engineer rules `repairs` (`all` queues a field repair for any system's defect, not the reactor's only). Tuning a brain means writing its next version; the code is shared by
 every brain and every host.
 
 Policies answer a brain's questions: `jev`, `reference` (hand-written rules for every seat — the
@@ -175,6 +175,7 @@ a display that does not show the value says nothing.
 | `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km                        | "contact UFO-12 at 7.4 km, 20° left of the nose"          |
 | `enemyContact`  | signals  | nearest identified enemy ship on its radar; range change since its previous decision | "enemy raider at 42.3 km, 30° right of the nose, closing" |
 | `closeOrder`    | captain  | nearest identified enemy ship on the dradis; its HiExp launch range less 2 km        | "close to 43 km of raider, now 52.3 km at bearing 045"    |
+| `gunCloseOrder` | captain  | the enemy ship nearest an allied station in sight, else the nearest; gun range, 2 km | "close to 2 km of raider, now 52.3 km at bearing 045"     |
 | `engageOrder`   | captain  | nearest identified enemy ship on the dradis                                          | "engage raider"                                           |
 
 The filled values travel with the phrase (`values` on what a listener hears), so a rule-based
