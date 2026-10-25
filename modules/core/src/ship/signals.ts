@@ -55,6 +55,24 @@ export class Signals extends SystemState {
     @commandable()
     public prioritizeJobId = '';
 
+    /**
+     * The target system the Signals officer is hacking on the marked target (`ShipState.signalsTargetId`):
+     * a key of `HACK_CANDIDATE_SYSTEMS`, '' for none. Set to start a hack and cleared to cancel;
+     * the manager also clears it when the hack completes or fails.
+     */
+    @commandable()
+    @gameField('string')
+    public hackSystem = '';
+
+    /** Progress of the hack in `hackSystem`, 0 when idle. */
+    @range([0, 1])
+    @gameField('float32')
+    public hackProgress = 0;
+
+    /** Why the last hack ended without completing ('' when it did not, or none yet). */
+    @gameField('string')
+    public hackRefusal = '';
+
     /** Halts progress on all jobs while set (resource management); the queue itself keeps updating. */
     @commandable()
     public jobsPaused = false;
@@ -66,4 +84,18 @@ export class Signals extends SystemState {
         }
         return Math.max(1, Math.ceil(this.design.maxJobs * this.jobSpeedFactor * this.jobSuccessFactor));
     }
+}
+
+/**
+ * Systems whose offline state changes an NPC's behaviour through the shared ship model, so a hack
+ * on them is felt (beam hacking stage 1). Anything else is rejected as not hackable.
+ */
+export const HACKABLE_SYSTEM_KEYS = ['thrusters', 'chainGuns'] as const;
+export type HackableSystemKey = (typeof HACKABLE_SYSTEM_KEYS)[number];
+
+/** Systems the Signals officer can pick from; those outside {@link HACKABLE_SYSTEM_KEYS} show as not hackable. */
+export const HACK_CANDIDATE_SYSTEMS = ['thrusters', 'chainGuns', 'smartPilot', 'armor'] as const;
+
+export function isHackableSystemKey(value: string): value is HackableSystemKey {
+    return (HACKABLE_SYSTEM_KEYS as readonly string[]).includes(value);
 }

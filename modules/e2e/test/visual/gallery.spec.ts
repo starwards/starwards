@@ -33,6 +33,10 @@ const scenes = [
     // Scan beam
     'scan-beam-jamming',
     'scan-beam-steady',
+    // Hack
+    'hack-idle',
+    'hack-in-progress',
+    'hack-lost-full',
     // Signals jobs
     'signals-jobs-empty',
     'signals-jobs-queue',

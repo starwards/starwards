@@ -1,5 +1,6 @@
 import {
     Driver,
+    HACKABLE_SYSTEM_KEYS,
     LiveShipIntel,
     Radar,
     ShipDriver,
@@ -9,6 +10,7 @@ import {
     radarReach,
     scanCycleTargets,
 } from '@starwards/core';
+import { HACK_HOTKEYS, drawHack, startHack } from '../widgets/hack';
 import { ScreenContainer, ScreenTeardown, setDisplayOnly } from './station-lifecycle';
 
 import { cancelJobForTarget, drawSignalsJobs, prioritizeJobForTarget } from '../widgets/signals-jobs';
@@ -82,6 +84,7 @@ export async function initSignalsScreen(
     if (scanBeam && Radar.isInstance(scanBeam.state)) {
         drawScanBeam(scanBeamSlot, shipDriver, scanBeam.state, scanBeam.pointer);
     }
+    drawHack(jobsSlot, shipDriver);
     drawSignalsJobs(jobsSlot, shipDriver, spaceDriver, stationTarget);
     const teardownInput = wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
     return () => {
@@ -156,6 +159,10 @@ function wireInput(
         'x',
         'Cancel Job',
     );
+    for (const system of HACKABLE_SYSTEM_KEYS) {
+        input.addClickAction(() => startHack(shipDriver, system), HACK_HOTKEYS[system], `Hack ${system}`);
+    }
+    input.addClickAction(() => startHack(shipDriver, ''), 'c', 'Cancel Hack');
     input.addToggleClickAction(readWriteProp<boolean>(shipDriver, '/signals/jobsPaused'), 'z', 'Pause All Jobs');
     if (beamPointer) {
         input.addRangeAction(
