@@ -65,8 +65,6 @@ export class AutomationManager {
      */
     private coolantCadenceAccumulator = 0;
     private coolantCadenceInitialized = false;
-    /** Mounts currently latched into a ceasefire hard-stop, keyed by hysteresis (see `NpcAiProfile.ceasefireReleaseHeat`). */
-    private readonly ceasefireLatched = new WeakSet<ChainGun>();
     /**
      * Mounts currently latched into power backoff (see `backOffPower`), mapped to the `power` level
      * each had the moment automation engaged. Membership is how automation knows which mounts'
@@ -120,11 +118,6 @@ export class AutomationManager {
     /** Test/ops-only toggle: lets a baseline run disable heat management for an A/B comparison. */
     public setHeatManagementEnabled(enabled: boolean) {
         this.heatManagementEnabled = enabled;
-    }
-
-    /** Whether `chainGun` is currently latched into the ceasefire hard-stop (see `applyCeasefireLatch`). */
-    public isCeasefireLatched(chainGun: ChainGun): boolean {
-        return this.ceasefireLatched.has(chainGun);
     }
 
     private cleanup() {
@@ -349,7 +342,7 @@ export class AutomationManager {
      * aimed at `solveShellIntercept`'s aim point, and each mount's own `isTargetInKillZone`
      * deciding whether *that* mount reports firing. No can't-bear handling here; `bearingCommand`'s
      * own clamp stops a mount swinging past the hull it's bolted to. Per-mount target selection is
-     * parked (card 5.5c); a per-mount ceasefire/heat latch (#2178) would gate the loop below.
+     * parked (card 5.5c); gun jam and forced cooldown are gun physics (`ChainGunManager`), not gated here.
      *
      * Skew is compensated from each mount's own *observed* belief, never the true `bearingSkew`.
      * @see docs/SUBSYSTEMS.md#believed-bearing-skew
@@ -411,7 +404,7 @@ export class AutomationManager {
      * `isFiring` or the ammo selection: the trigger and the ammo type stay the officer's. Mounts
      * that cannot bear on the target (out of cone, out of the shell envelope) return to rest at
      * bearing 0; with no visible target the mounts hold their last command (manual works). No heat management here: the
-     * ceasefire latch is NPC-only (`manageHeat`), the officer decides when to stop.
+     * officer decides when to stop; the gun's own jam and forced cooldown still apply.
      */
     private updatePlayerSmartGun(deltaSecondsAvg: number) {
         if (!this.state.smartGunnery || this.state.chainGuns.length === 0) {
@@ -568,8 +561,8 @@ export class AutomationManager {
     }
 
     /**
-     * NPC-only heat management (#2175): proportional coolant allocation, power backoff and a
-     * ceasefire backstop. Player ships are flown by their crew — never touched here.
+     * NPC-only heat management (#2175): proportional coolant allocation, power backoff. The hard
+     * stops (jam, forced cooldown) are gun physics shared with player ships (`ChainGunManager`). Player ships are flown by their crew — never touched here.
      */
     private manageHeat(id: IterationData) {
         if (this.state.isPlayerShip || id.deltaSeconds <= 0 || !this.heatManagementEnabled) {
@@ -578,7 +571,6 @@ export class AutomationManager {
         this.reallocateCoolant(id);
         for (const chainGun of this.state.chainGuns) {
             this.backOffPower(chainGun);
-            this.applyCeasefireLatch(chainGun);
         }
     }
 
@@ -618,11 +610,11 @@ export class AutomationManager {
 
     /**
      * Duty-cycle-style power throttle: the primary defense against overheat damage, preferred over
-     * the ceasefire hard-stop (see `applyCeasefireLatch`). `power` is a `PowerLevel` enum rendered
+     * the gun's own forced cooldown. `power` is a `PowerLevel` enum rendered
      * by name in the status UI (`system-status.ts`) — backoff must land on one of its discrete
      * values, never an arbitrary float, or the UI shows `undefined`. Caps at `LOW` (never
-     * `SHUTDOWN` — a backed-off gun can still land some shots; only the ceasefire latch fully
-     * silences one), hysteresis-latched between `NpcAiProfile.powerBackoffEngageHeat` and
+     * `SHUTDOWN` — a backed-off gun can still land some shots; only the gun's forced cooldown or a
+     * jam fully silences one), hysteresis-latched between `NpcAiProfile.powerBackoffEngageHeat` and
      * `NpcAiProfile.powerBackoffReleaseHeat` so it doesn't chatter at the threshold.
      *
      * Only ever writes `power` for a mount it currently latches — a mount automation hasn't backed
@@ -650,26 +642,6 @@ export class AutomationManager {
         ) {
             this.powerBackoffLatched.set(chainGun, chainGun.power);
             chainGun.power = PowerLevel.LOW;
-        }
-    }
-
-    /**
-     * Rare final backstop (per #2175's review ruling): a hysteresis-latched hard stop on `isFiring`,
-     * evaluated per mount so one overheating gun never silences the others on a multi-mount hull.
-     * Engages at `NpcAiProfile.ceasefireEngageHeat` — well above where power backoff already bottomed out — and
-     * stays latched until the mount cools back below `NpcAiProfile.ceasefireReleaseHeat`, so it doesn't chatter
-     * on/off around the engage threshold.
-     */
-    private applyCeasefireLatch(chainGun: ChainGun) {
-        if (this.ceasefireLatched.has(chainGun)) {
-            if (chainGun.heat <= this.ai.ceasefireReleaseHeat * MAX_SYSTEM_HEAT) {
-                this.ceasefireLatched.delete(chainGun);
-            } else {
-                chainGun.isFiring = false;
-            }
-        } else if (chainGun.heat >= this.ai.ceasefireEngageHeat * MAX_SYSTEM_HEAT) {
-            this.ceasefireLatched.add(chainGun);
-            chainGun.isFiring = false;
         }
     }
 

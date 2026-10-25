@@ -2,12 +2,12 @@
     "scenario": "T0",
     "seed": 1,
     "killed": true,
-    "seconds": 36.31666666666589,
+    "seconds": 24.96666666666653,
     "armorStrippedAt": 7.299999999999979,
     "targetHealth": 0,
-    "shellsFired": 401,
-    "secondsFiring": 31.33333333333257,
-    "meanDistance": 3047.31463175883,
-    "targetDrift": 11237.778469620267,
-    "gvtsSpeed": 375.3918399829149
+    "shellsFired": 271,
+    "secondsFiring": 19.983333333333206,
+    "meanDistance": 3138.619246825812,
+    "targetDrift": 6735.484629879537,
+    "gvtsSpeed": 449.9999577667834
 }

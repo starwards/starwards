@@ -1,15 +1,18 @@
+import { Destructors, ShipDriver, gunHeatBars } from '@starwards/core';
 import {
     PropertyPanel,
     addAnnunciatorBlade,
+    addInlineBarBlade,
     addSegmentedBarBlade,
     addSubheader,
+    addTextBlade,
     createWidgetPane,
     setAnnunciatorColumns,
 } from '../panel';
-import { readNumberProp, readProp } from '../property-wrappers';
+import { aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { ShipDriver } from '@starwards/core';
+import { FolderApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
 import { addMountAmmoRows } from './mount-readout';
 
@@ -33,7 +36,36 @@ export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver
             panelCleanup.add,
         );
         setAnnunciatorColumns(gunPane, 2);
+        addGunHeatRows(gunPane, shipDriver, `/chainGuns/${index}`, panelCleanup);
     }
+}
+
+/** What the heat model is doing to this gun: heat against its bars, whether it is jammed or cooling, and barrel wear. */
+function addGunHeatRows(folder: FolderApi, shipDriver: ShipDriver, pointer: `/${string}`, cleanup: Destructors) {
+    const heat = readNumberProp(shipDriver, `${pointer}/heat`);
+    const wear = readNumberProp(shipDriver, `${pointer}/barrelWear`);
+    const jammed = readNumberProp(shipDriver, `${pointer}/jammedSeconds`);
+    const cooling = readProp<boolean>(shipDriver, `${pointer}/cooling`);
+    addInlineBarBlade(folder, heat, { label: 'Heat', format: (v: number) => String(Math.round(v)) }, cleanup.add);
+    addTextBlade(
+        folder,
+        aggregate([wear], () => {
+            const bars = gunHeatBars(wear.getValue() ?? 0);
+            return `${Math.round(bars.spreadBar)} / ${Math.round(bars.jamBar)}`;
+        }),
+        { label: 'Spread / jam bar' },
+        cleanup.add,
+    );
+    const state = addTextBlade(
+        folder,
+        aggregate([jammed, cooling], () =>
+            (jammed.getValue() ?? 0) > 0 ? 'JAMMED' : cooling.getValue() ? 'COOLING' : 'READY',
+        ),
+        { label: 'Barrel' },
+        cleanup.add,
+    );
+    state.element.classList.add('sw-mode');
+    addInlineBarBlade(folder, wear, { label: 'Wear', format: (v: number) => `${Math.round(v * 100)}%` }, cleanup.add);
 }
 
 export function gunWidget(shipDriver: ShipDriver): DashboardWidget {

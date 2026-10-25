@@ -107,7 +107,7 @@ Independent of `order`, but not of hull heading (issue #2145).
 fuze maths on the officer's `weaponsTarget`, while `state.smartGunnery` (default on, commandable
 and tweakable) is set. The computer only writes `bearingCommand` and `shellRange`; `isFiring` and
 the ammo selection stay the officer's. Mounts that cannot bear on the target return to bearing 0;
-with no visible target the mounts hold. NPC heat management (power backoff, ceasefire latch) never
+with no visible target the mounts hold. NPC heat management (coolant split, power backoff) never
 applies to player ships.
 
 Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; whether
@@ -323,7 +323,19 @@ Every NPC tick (`AutomationManager.manageHeat`, gated on `!isPlayerShip` and `de
 
 - **Coolant:** every system's `coolantFactor` is set to `heat / MAX_SYSTEM_HEAT`, so hotter systems draw a larger share of `HeatManager`'s coolant budget. Runs on a 500ms game-time cadence (not every tick), phase-staggered per ship off the ship's own die so a fleet doesn't all reallocate — and sync their `coolantFactor` — on the same tick.
 - **Power backoff:** each chain gun's `power` is hysteresis-latched between `PowerLevel.NORMAL` and `PowerLevel.LOW` — steps down to `LOW` once `heat` reaches 60% of `MAX_SYSTEM_HEAT`, steps back up to `NORMAL` only once it cools below 40%. A duty-cycle throttle between two named `PowerLevel`s (never a raw float — `power`'s declared type is the enum the status UI renders by name), and only ever written for a mount automation has itself latched — a GM- or scenario-set level on a mount that never got hot enough to trigger backoff is left untouched.
-- **Ceasefire backstop:** a rare, hysteresis-latched hard stop on `isFiring`, evaluated per mount. Engages at 95% heat, releases only once the mount cools back below 70% — well above where power backoff already engages, so it rarely fires in practice.
+
+### Gun Heat (player and NPC alike)
+
+`ChainGunManager` applies one physical heat model to every chain gun (tubes are exempt; constants in `GUN_HEAT`, `chain-gun.ts`). Heat is 0-100; a worn barrel lowers both bars.
+
+| Heat (pristine barrel)  | Effect                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| below spread bar (50)   | normal fire                                                                                    |
+| spread bar - jam bar (50-80) | shot deviation grows with heat (up to 4x at 100)                                          |
+| jam bar - 100 (80-100)  | each shot may jam the gun (0 at the jam bar to 10% at 100); a jam stops it for 3 s (`jammedSeconds`) |
+| 100                     | forced cooldown (`cooling`): the gun cannot fire until heat falls to 70                        |
+
+`barrelWear` (0-1, a `@defectible` named "barrel wear") widens base spread (up to 3x) and lowers the bars linearly to 25 (spread) and 60 (jam) at full wear. Wear grows 0.01/s while heat is at or above the jam bar, with heat pushed past 100 (`HeatManager.addHeat` overflow, 0.005 per heat unit — this replaces the old `overheat` system damage for guns), and from weapon hits (`DamageManager.damageChainGun`). The `barrelReplacement` repair protocol resets it and takes the guns offline for the run. NPC AI keeps only its pre-emptive power backoff; the old ceasefire latch is gone.
 
 ### Real Energy and Repair (NPC, per-ship flag)
 

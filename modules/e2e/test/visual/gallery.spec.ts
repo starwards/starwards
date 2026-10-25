@@ -25,11 +25,15 @@ const scenes = [
     'system-status-nominal',
     'system-status-faults',
     'full-system-status-engineer',
+    'full-system-status-barrel-wear',
     'full-system-status-npc-target',
     'full-system-status-wide',
     // Gun status
     'gun-status-firing',
     'gun-status-loading',
+    'gun-status-hot',
+    'gun-status-jammed',
+    'gun-status-cooling',
     // Scan beam
     'scan-beam-jamming',
     'scan-beam-steady',

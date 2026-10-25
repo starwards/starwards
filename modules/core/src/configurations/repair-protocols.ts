@@ -1,7 +1,7 @@
 import { DEFECTIBLE_METADATA } from '../game-field';
 import { RepairProtocolMode } from '../ship/repair-queue';
 import { ShipState } from '../ship/ship-state';
-import { SystemState } from '../ship/system';
+import { DefectibleConfig, SystemState } from '../ship/system';
 import { allColyseusProperties } from '../traverse';
 
 /**
@@ -419,6 +419,27 @@ export const turnSpeedGovernorTuning: RepairProtocolStats = {
     tier: 'field',
 };
 
+/** Fits fresh barrels: the guns are offline for the whole job in either mode. */
+export const barrelReplacement: RepairProtocolStats = {
+    name: 'Barrel replacement',
+    targets: [{ system: 'chainGuns', field: 'barrelWear' }],
+    modes: {
+        [RepairProtocolMode.Responsive]: {
+            duration: 60,
+            energyDraw: 2,
+            heat: 10,
+            sideEffectSystems: ['chainGuns'],
+        },
+        [RepairProtocolMode.Dark]: {
+            duration: 20,
+            energyDraw: 2,
+            heat: 10,
+            sideEffectSystems: ['chainGuns'],
+        },
+    },
+    tier: 'field',
+};
+
 export const repairProtocols = {
     actuatorRecalibration,
     thrustLinePurge,
@@ -435,10 +456,11 @@ export const repairProtocols = {
     reactorJumpStart,
     // Appended, not interleaved: catalog position drives the engineer screen's hotkey assignment
     // (see `getRepairProtocolHotkey` in `widgets/repair-queue.ts`) — inserting these earlier would
-    // shift every hotkey after them. This fills the second-to-last slot of
-    // `REPAIR_PROTOCOL_HOTKEYS` (alt+r). Traverse loss has no protocol of its own: it follows
+    // shift every hotkey after them. These fill the last two slots of
+    // `REPAIR_PROTOCOL_HOTKEYS` (alt+r, alt+t). Traverse loss has no protocol of its own: it follows
     // from `bearingSkew`, so repairing skew restores both (M4.33).
     turnSpeedGovernorTuning,
+    barrelReplacement,
 } as const satisfies Record<string, RepairProtocolStats>;
 
 export type RepairProtocolName = keyof typeof repairProtocols;
@@ -536,7 +558,8 @@ export function findUncoveredDefectibleFields(
         if (!(instance instanceof SystemState) || typeof field !== 'string') {
             continue;
         }
-        if (Reflect.getMetadata(DEFECTIBLE_METADATA, instance, field) == null) {
+        const config = Reflect.getMetadata(DEFECTIBLE_METADATA, instance, field) as DefectibleConfig | undefined;
+        if (config == null || !(config.enabled?.(instance) ?? true)) {
             continue;
         }
         const topLevelKey = systemPointer.split('/')[1] ?? '';

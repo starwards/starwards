@@ -12,6 +12,7 @@ export * from './damage-manager';
 export * from './docking';
 export * from './flight-doctrine';
 export * from './flight-profile';
+export * from './gun-heat';
 export * from './make-ship-state';
 export * from './npc-ai-profile';
 export * from './radar';
