@@ -95,7 +95,7 @@ export async function initTargetDetailsScreen(
             // widgets draw the subject unchanged
             drawTargetTubes(tubesSlot, subjectDriver);
             drawAmmoStatus(stripSlot, subjectDriver);
-            if (subjectDriver.state.chainGuns.length) drawGunStatus(stripSlot, subjectDriver);
+            if (subjectDriver.state.chainGuns.length) drawGunStatus(stripSlot, subjectDriver, { heat: true });
             drawTargetingStatus(stripSlot, subjectDriver, 'Aim');
             drawHelmsStats(tubesSlot, subjectDriver);
             drawFullSystemsStatus(systemsSlot, subjectDriver, subjectDriver.systems, true, { energy });

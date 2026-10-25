@@ -1,6 +1,7 @@
 import {
     PropertyPanel,
     addAnnunciatorBlade,
+    addInlineBarBlade,
     addSegmentedBarBlade,
     addSubheader,
     createWidgetPane,
@@ -13,7 +14,11 @@ import { ShipDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
 import { addMountAmmoRows } from './mount-readout';
 
-export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver) {
+/**
+ * `heat` adds each gun's heat level, the value the Systems pane's HEAT column reads; Target Details
+ * turns it on so Signals can call a cooling window.
+ */
+export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver, opts: { heat?: boolean } = {}) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Chain Gun');
     const mounts = shipDriver.state.chainGuns;
     for (const index of mounts.keys()) {
@@ -33,6 +38,14 @@ export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver
             panelCleanup.add,
         );
         setAnnunciatorColumns(gunPane, 2);
+        if (opts.heat) {
+            addInlineBarBlade(
+                gunPane,
+                readNumberProp(shipDriver, `/chainGuns/${index}/heat`),
+                { label: 'Heat' },
+                panelCleanup.add,
+            );
+        }
     }
 }
 
