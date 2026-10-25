@@ -17,6 +17,7 @@ import { BrainRequest } from './request';
 import { Display } from './controls';
 import { HULL_STATUS_TUNING } from '@starwards/core/internal';
 import { isEnemyShip } from './enemy';
+import { plateIntelFill } from './plate-intel';
 import { referenceKnobs } from './reference-knobs';
 
 /** What the seat counts itself: the missiles it launched under the current engagement, and how many still fly. */
@@ -406,6 +407,9 @@ const lateStance = (stance: 'offensive' | 'all_out', mode: number) => (p: Pictur
     return true;
 };
 
+/** How often Signals repeats an unchanged plate call, well inside the time weapons trusts one. */
+const PLATE_INTEL_REPEAT_SECONDS = 10;
+
 const calloutRules: Record<string, (picture: Picture) => boolean> = {
     offensive: lateStance('offensive', 1),
     all_out: lateStance('all_out', 2),
@@ -417,6 +421,16 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
             return false;
         }
         memory.set('magazineSaid', { capacity, at: now });
+        return true;
+    },
+    /** Signals: the marked contact's armor reads differently from the last call about it, or the last call is stale. */
+    plate_intel: ({ display, memory, now }) => {
+        const fill = plateIntelFill(display);
+        if (!fill) return false;
+        const key = `${fill.id}/${fill.facing}/${fill.holding}`;
+        const last = memory.get('plateIntelSaid') as { key: string; at: number } | undefined;
+        if (last && last.key === key && now - last.at < PLATE_INTEL_REPEAT_SECONDS) return false;
+        memory.set('plateIntelSaid', { key, at: now });
         return true;
     },
     /** Signals: the enemy ship shown at the previous decision is gone from the radar. */

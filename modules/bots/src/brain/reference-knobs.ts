@@ -77,6 +77,17 @@ export const REFERENCE_KNOB_DEFAULTS = {
      * or one AP missile spent on the current lock.
      */
     AMMO_OPEN_AP: 0,
+    /**
+     * Informed arm: above 0.5 the gun loads AP shells while the lock's facing armor plates hold and HE once
+     * they are broken (AP against whipple), from the plate state Signals calls out of Target Details
+     * (`plate_intel`); AP without a call. Above 1.5 the tubes re-type unloaded tubes the same way.
+     * Replaces `AMMO_OPEN_AP`, the blind arm, whose tally stands in for plates weapons cannot see.
+     */
+    AMMO_INFORMED: 0,
+    /** Pure arm: above 0.5 the gun loads HE shells only (AP, Frag after them); above 1.5 the tubes load HE missiles first. */
+    AMMO_HE_ONLY: 0,
+    /** Pure arm: above 0.5 the gun loads AP shells only (HE, Frag after them); above 1.5 the tubes load AP missiles first. */
+    AMMO_AP_ONLY: 0,
     /** AP shells weapons spends on a lock before judging its plates broken (`AMMO_OPEN_AP`). */
     AMMO_OPEN_AP_SHELLS: 24,
     /** Weapons launches a missile only at a lock within this many meters of an allied station; 0 at any lock. */

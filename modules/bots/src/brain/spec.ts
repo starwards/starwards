@@ -25,7 +25,8 @@ import { z } from 'zod';
  * distance and world bearing), `magazineState` (engineer: the magazine's capacity share, from the
  * damage report; 1 when it shows no capacity defect), `hullStatusChange` (signals: the most urgent live hull or
  * capsule tier change on its hull-status panel since the previous decision — allies first, then a contact
- * attacking an allied station, then other contacts).
+ * attacking an allied station, then other contacts), `plateIntel` (signals: the armor of the contact marked on
+ * Target Details — plates holding, whether the plate facing our ship is down, the outer armor model).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -48,6 +49,7 @@ export const calloutFills = [
     'guardOrder',
     'magazineState',
     'hullStatusChange',
+    'plateIntel',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
