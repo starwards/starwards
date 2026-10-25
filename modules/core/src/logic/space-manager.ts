@@ -28,6 +28,7 @@ import {
 import { Explosion, HazardCloud, Nebula, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
+import { isRngPinned } from './rng-pin';
 
 import { DamageDelivery } from '../space/projectile';
 import { FactionIntelManager } from './faction-intel-manager';
@@ -871,7 +872,11 @@ export class SpaceManager implements Updateable {
     private explodeProjectile(projectile: Projectile) {
         projectile.destroyed = true;
         const explosion = projectile.makeExplosion();
-        explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
+        explosion.init(
+            isRngPinned('ids') ? `explosion:${projectile.id}` : uniqueId('explosion'),
+            projectile.position.clone(),
+            explosion.damageFactor,
+        );
         explosion.shipId = projectile.shipId;
         explosion.velocity = Vec2.make(XY.scale(projectile.velocity, explosion.velocityInheritance));
         this.clampToAbsoluteMaxSpeed(explosion);

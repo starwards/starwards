@@ -16,6 +16,7 @@ import {
     XY,
     aggroCharacters,
     ammoTypes,
+    isRngPinned,
     makeId,
     missionWeightForHits,
     mix,
@@ -550,6 +551,9 @@ export function createWaveDefenceMap(
 
     function spawnWave() {
         waveNumber += 1;
+        if (isRngPinned('spawn')) {
+            stream = mulberry32(mix(mix(noiseSeed, 0x5eed), waveNumber));
+        }
         const alive = aliveStationIds();
         const playerPosition = game.getObject(PLAYER_SHIP_ID)?.position ?? XY.zero;
         const targetId = pickWaveTargetStationId(waveNumber, alive, stationPositionsById, playerPosition);
@@ -557,7 +561,7 @@ export function createWaveDefenceMap(
 
         let heavyId: string | undefined;
         const shipIds = generateWaveSpecs(waveNumber, draw, tuning).map((spec, index) => {
-            const id = makeId();
+            const id = isRngPinned('ids') ? `raider-w${waveNumber}-${index}` : makeId();
             const jitter = XY.byLengthAndDirection(draw() * SPAWN_JITTER_METERS, draw() * 360);
             const ship = new Spaceship().init(id, Vec2.make(XY.add(spawnCenter, jitter)), spec.model, Faction.Raiders);
             const shipApi = game.addNpcSpaceship(ship);
@@ -568,7 +572,7 @@ export function createWaveDefenceMap(
                 shipApi.setAggroCharacter(
                     withSpawnNoise(
                         withMissionWeight(aggroCharacters[spec.aggro], missionWeightForHits(hitsToProvoke(spec.model))),
-                        mulberry32(mix(mix(noiseSeed, waveNumber), index)),
+                        isRngPinned('aggro') ? () => 0.5 : mulberry32(mix(mix(noiseSeed, waveNumber), index)),
                     ),
                 );
             }

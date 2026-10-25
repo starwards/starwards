@@ -19,6 +19,7 @@ import {
     mix,
     reserveIds,
     resetIds,
+    setRngPin,
     shipConfigurations,
 } from '@starwards/core/internal';
 
@@ -105,6 +106,7 @@ export class HeadlessGame {
     /** Starts a run from a fresh id sequence, so a seed replays the same run whatever ran before it in the process. */
     static start(map: GameMap, seed: number, { crewedPlayer = false }: { crewedPlayer?: boolean } = {}) {
         resetIds();
+        setRngPin(process.env.STARWARDS_RNG_PIN);
         const game = new HeadlessGame(map, seed, 0, crewedPlayer);
         map.init(game.api);
         game.spaceManager.forceFlushEntities();
@@ -123,6 +125,7 @@ export class HeadlessGame {
         { crewedPlayer = false }: { crewedPlayer?: boolean } = {},
     ) {
         const { fragment } = decodedCopy(SavedGame, saved);
+        setRngPin(process.env.STARWARDS_RNG_PIN);
         const game = new HeadlessGame(map, seed, seconds, crewedPlayer);
         game.spaceManager.insertBulk(fragment.space);
         game.spaceManager.forceFlushEntities();

@@ -24,6 +24,7 @@ import { SmartPilotMode } from './smart-pilot';
 import { Tube } from './tube';
 import { Vec2 } from '..';
 import { createLogger } from '../logger';
+import { isRngPinned } from '../logic/rng-pin';
 import { uniqueId } from '../id';
 
 const { error: logError } = createLogger('chain-gun');
@@ -304,7 +305,10 @@ export class ChainGunManager implements Updateable {
                     XY.byLengthAndDirection(isMissile ? 0 : projectile.radius * 2, projectile.angle), // some initial distance
                 ),
             );
-            projectile.init(uniqueId('shell'), shellPosition);
+            projectile.init(
+                isRngPinned('ids') ? `shell:${this.spaceObject.id}:${this.mountId}:${this.shotSeq}` : uniqueId('shell'),
+                shellPosition,
+            );
             projectile.shipId = this.spaceObject.id;
             // Your own projectiles are fully known to you: the weapons officer sees them with a distinct
             // blip colour instead of the UFO/unknown tint, and the firing faction can jam its own missile

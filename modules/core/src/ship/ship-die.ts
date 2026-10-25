@@ -2,6 +2,7 @@ import { IterationData, Updateable } from '../updateable';
 import { fnv1a, mix, scramble } from '../logic/hash';
 import { hashToUnit } from '../logic/prng';
 import { valueNoise1D } from '../logic/noise';
+import { isRngPinned } from '../logic/rng-pin';
 
 /**
  * Width of the event-salt window, in game-time seconds (see class doc).
@@ -73,8 +74,28 @@ export class ShipDie implements Updateable {
         this.eventSalt = scramble(mix(this.eventSalt, key));
     }
 
+    /** The salt an event roll for `id` uses: the window-rotated one, or the bare seed for a source pinned by `rng-pin.ts`. */
+    private saltFor(id: string): number {
+        if (isRngPinned('salt')) {
+            return this.seed;
+        }
+        if (isRngPinned('aim') && id.includes(':aim:')) {
+            return this.seed;
+        }
+        if (isRngPinned('damage') && id.startsWith('pickSystem:')) {
+            return this.seed;
+        }
+        if (isRngPinned('cadence') && id.startsWith('coolantPhase:')) {
+            return this.seed;
+        }
+        if (isRngPinned('defect') && /(^|:)(defect|damage[A-Z]|magazineLostAmmo|thruster|availableCapacity|chainGun)/.test(id)) {
+            return this.seed;
+        }
+        return this.eventSalt;
+    }
+
     public getRoll(id: string): number {
-        return hashToUnit(mix(this.eventSalt, fnv1a(id)));
+        return hashToUnit(mix(this.saltFor(id), fnv1a(id)));
     }
 
     public getRollInRange(id: string, min: number, max: number): number {
@@ -101,9 +122,10 @@ export class ShipDie implements Updateable {
      * to call with a sticky id without colliding with an unrelated `getRoll` on the same id.
      */
     public getGaussian(id: string, mean: number, stdev: number): number {
-        const r1 = hashToUnit(mix(this.eventSalt, fnv1a(`${id}:a`)));
-        const r2 = hashToUnit(mix(this.eventSalt, fnv1a(`${id}:b`)));
-        const r3 = hashToUnit(mix(this.eventSalt, fnv1a(`${id}:c`)));
+        const salt = this.saltFor(id);
+        const r1 = hashToUnit(mix(salt, fnv1a(`${id}:a`)));
+        const r2 = hashToUnit(mix(salt, fnv1a(`${id}:b`)));
+        const r3 = hashToUnit(mix(salt, fnv1a(`${id}:c`)));
         return mean + 2.0 * stdev * (r1 + r2 + r3 - 1.5);
     }
 }

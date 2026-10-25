@@ -6,6 +6,7 @@ export * from './hash';
 export * from './noise';
 export * from './obstacle-avoidance';
 export * from './prng';
+export * from './rng-pin';
 export * from './gunner-assist';
 export * from './helm-assist';
 export * from './iteration';
