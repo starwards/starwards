@@ -35,6 +35,7 @@ import { Capsule } from './capsule';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { DockingManager } from './docking-manager';
+import { HackManager } from './hack-manager';
 import { HeatManager } from './heat-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
@@ -49,6 +50,7 @@ import { Warp } from './warp';
 import { createLogger } from '../logger';
 import { fixArmor } from './armor';
 import { revertRepairSlot } from './repair-manager';
+import { tickHackWindows } from './hack-windows';
 
 const { error: logError } = createLogger('ship-manager');
 
@@ -177,6 +179,7 @@ export abstract class ShipManager implements Updateable {
     protected reactorCellManager: ReactorCellManager;
     public signalsJobManager: SignalsJobManager;
     protected beamJamManager: BeamJamManager;
+    protected hackManager: HackManager;
 
     /** Calls `listener` for every defect this ship's systems take, with its cause (e.g. headless recording). */
     listenToDefects(listener: DamageManager['onDefect']) {
@@ -206,6 +209,7 @@ export abstract class ShipManager implements Updateable {
         this.reactorCellManager = new ReactorCellManager(this.state);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
         this.beamJamManager = new BeamJamManager(this.state, this.spaceManager, this.internalProxy);
+        this.hackManager = new HackManager(this.state, this.spaceManager, (id) => this.ships?.get(id)?.state);
         for (const [index, chainGun] of this.state.chainGuns.entries()) {
             this.chainGunManagers.push(
                 new ChainGunManager(
@@ -357,6 +361,8 @@ export abstract class ShipManager implements Updateable {
 
         this.signalsJobManager.update(id);
         this.beamJamManager.update(id);
+        this.hackManager.update(id);
+        tickHackWindows(this.state, id.deltaSeconds);
         this.ammoManager.update(id);
         this.reactorCellManager.update(id);
         this.updateAmmo();

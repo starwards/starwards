@@ -49,6 +49,15 @@ export abstract class DesignState extends Schema {
      */
     @gameField('boolean') isElectronics = false;
 
+    /**
+     * Seconds of continuous FULL scan a Signals officer needs to hack this system. 0 means the
+     * system cannot be hacked. Per-model design choice (beam hacking, M4.76).
+     */
+    @gameField('float32') hackSeconds = 0;
+
+    /** Seconds a successful hack keeps this system offline before it recovers. */
+    @gameField('float32') hackOfflineSeconds = 5;
+
     keys() {
         // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
         /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
@@ -64,6 +73,12 @@ export abstract class DesignState extends Schema {
         return keys;
     }
 }
+
+/** Optional per-design hacking stats, set next to a system's other stats (see `DesignState.hackSeconds`). */
+export type HackDesign = {
+    hackSeconds?: number;
+    hackOfflineSeconds?: number;
+};
 
 export type DefectibleConfig = {
     normal: number;
@@ -152,6 +167,13 @@ export abstract class SystemState extends Schema {
     @gameField('float32')
     public hacked = HackLevel.OK;
 
+    /**
+     * Seconds left in the offline window a successful beam hack opened (`hacked` is DISABLED while
+     * this is above 0). Counted down by the ship manager; a firewall repair clears it.
+     */
+    @gameField('float32')
+    public hackedSecondsLeft = 0;
+
     public get effectiveness() {
         return this.broken ? 0 : this.power * this.hacked;
     }
@@ -195,7 +217,7 @@ function System(systemPointer: string, state: SystemState): System {
         state: state,
         defectibles,
         getStatus: () => {
-            if (state.broken) {
+            if (state.broken || state.hacked === HackLevel.DISABLED) {
                 return 'DISABLED';
             }
             const isDamaged = defectibles.some((d) => {

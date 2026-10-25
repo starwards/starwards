@@ -49,6 +49,12 @@ last_verified: 2026-09-03
 
 `RepairProtocolSlot.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for repair protocols specifically: true for every tick a RUNNING slot's declared energy draw isn't fully covered. A partial grant advances the run (progress and heat) at that share; a tick with nothing granted stalls it, and an outage sustained past `ENERGY_STARVATION_GRACE_SECONDS` force-stops it (see `RepairManager.tickRunning`). It's what lets the repair-queue widget show _why_ a progress bar is slow or stalled, before that slot's own `refusalReason` has anything to say.
 
+### Beam Hacking (stage 1, issue #2499)
+
+The Signals officer marks a target and sets `signals.hackSystem` (`thrusters` or `chainGuns`; `HACKABLE_SYSTEM_KEYS`). While the faction holds FULL scan on the target, `signals.hackProgress` fills over the system's design `hackSeconds` (thrusters 6, chain guns 8), scaled by Signals effectiveness. On completion every instance of that system on the target goes offline (`hacked = DISABLED`, effectiveness 0) for its design `hackOfflineSeconds` (default 5), tracked in `SystemState.hackedSecondsLeft`, then recovers. Losing FULL, a target firewall repair running, or an unhackable key (armor, smart pilot) cancels the order and sets `signals.hackRefusal`. Both values are per-design (`DesignState.hackSeconds`, `hackOfflineSeconds`) and a design may override them. NPCs run the same thruster and chain-gun model, so an offline system changes their behaviour. The hacked player ship's crew sees "System hacked: ..." through the message banner.
+
+Counterplay: the `firewallRepair` protocol (field tier, 30 s, 2 energy/s, 15 heat) blocks hack progress while it runs and ends every active offline window when it completes.
+
 ### Repair Protocols (issue #2247, modes and cancel speed in #2255)
 
 Each catalog protocol (`configurations/repair-protocols.ts`) has its own `RepairProtocolSlot` on `ShipState.repairQueue.slots` — one per protocol, in catalog order, created once and never resized. A slot's `priority` (`RepairPriority`: `OFF`/`LOW`/`MEDIUM`/`HIGH`/`RUNNING`/`CANCELLING`) is its whole scheduling state; a separate `mode` field (`RepairProtocolMode`: `Responsive`/`Dark`, see below) tracks a field-tier slot's chosen price. There is no separate queue list, so a protocol never needs to be in the backlog more than once.

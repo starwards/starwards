@@ -37,7 +37,7 @@ node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 
 
 # UI Gallery (no server needed, just browser dev server)
 # http://localhost:3000/gallery.html
-# Scenes: ammo, armor, damage-report, docking, dradis-radar, engineering-status, gm-broadcast, gm-radar, gun, helms, hull-status, long-range-radar, missile-paint, observation-mode, repair-queue, scan-beam, signals-jobs, smart-gun, station-captions, station-roster, systems-status, tactical-radar, target-info, targeting, target-tubes, tubes-status, warp, waypoints (every station widget needs one: modules/browser/test/gallery-coverage.spec.ts)
+# Scenes: ammo, armor, damage-report, docking, dradis-radar, engineering-status, gm-broadcast, gm-radar, gun, hack, helms, hull-status, long-range-radar, missile-paint, observation-mode, repair-queue, scan-beam, signals-jobs, smart-gun, station-captions, station-roster, systems-status, tactical-radar, target-info, targeting, target-tubes, tubes-status, warp, waypoints (every station widget needs one: modules/browser/test/gallery-coverage.spec.ts)
 # (scene list lives in modules/browser/src/gallery/scenes/index.ts)
 # Direct link: http://localhost:3000/gallery.html?scene=tactical-radar
 
