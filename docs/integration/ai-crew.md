@@ -775,7 +775,7 @@ list. A human screen may attach to a seat a bot holds; input is shared. Bot choi
 when the game stops, restarts or loads. Game time is wall time times the admin speed; a paused game
 makes no decisions. A seat whose brain throws records a `brain_error` event and keeps playing.
 
-While the server records, the recorder writes `<recording>.events.jsonl` beside the `.sgr` with the
+While the server records, the recorder writes `<recording>.events.jsonl.zst` (zstd) beside the `.sgr` with the
 same `brain_request` / `decision` / `command` / `callout` / `brain_error` events a training run
 records, on the recording's clock. A bot seated before recording starts begins writing when it
 starts; events after recording stops are dropped. The sidecar downloads beside the `.sgr` from the
