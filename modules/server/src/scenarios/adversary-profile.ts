@@ -1,4 +1,4 @@
-import { FlightDoctrine, ShipState } from '@starwards/core/internal';
+import { FlightDoctrine, NpcAiProfile, ShipState, TODAY_NPC_AI } from '@starwards/core/internal';
 
 /**
  * One way an NPC raider can be varied while the crew stays fixed (the adversary rungs, M4.65 / S0 of
@@ -8,35 +8,42 @@ import { FlightDoctrine, ShipState } from '@starwards/core/internal';
 export interface AdversaryProfile {
     readonly name: string;
     readonly description: string;
-    /** Overrides the raider's flight doctrine; absent keeps whatever the order or the map gave it. */
-    readonly flightDoctrine?: FlightDoctrine;
-    /** The raider attacks without its combat weave (`ShipState.labNoCombatWeave`). */
-    readonly noCombatWeave?: boolean;
+    /** The AI the raider flies; its `flightDoctrine`, when not `AUTO`, overrides whatever the order or the map gave it. */
+    readonly ai: NpcAiProfile;
     /** Single-raider rungs only: the raider holds its position and fires instead of attacking. */
     readonly standGround?: boolean;
 }
 
 export const adversaryProfiles: Readonly<Record<string, AdversaryProfile>> = {
-    today: { name: 'today', description: 'the raider exactly as the rung builds it (an ATTACK order flies STANDOFF)' },
+    today: {
+        name: 'today',
+        description: 'the raider exactly as the rung builds it (an ATTACK order flies STANDOFF)',
+        ai: TODAY_NPC_AI,
+    },
     intercept: {
         name: 'intercept',
         description: 'flight doctrine INTERCEPT: hull heading serves the guns',
-        flightDoctrine: FlightDoctrine.INTERCEPT,
+        ai: { ...TODAY_NPC_AI, flightDoctrine: FlightDoctrine.INTERCEPT },
     },
     standoff: {
         name: 'standoff',
         description: 'flight doctrine STANDOFF: holds the guns envelope, heading serves thrust',
-        flightDoctrine: FlightDoctrine.STANDOFF,
+        ai: { ...TODAY_NPC_AI, flightDoctrine: FlightDoctrine.STANDOFF },
     },
     shadow: {
         name: 'shadow',
         description: 'flight doctrine SHADOW: tracks at 1-3 km, ignores gunnery',
-        flightDoctrine: FlightDoctrine.SHADOW,
+        ai: { ...TODAY_NPC_AI, flightDoctrine: FlightDoctrine.SHADOW },
     },
-    noweave: { name: 'noweave', description: 'attacks without its combat weave', noCombatWeave: true },
+    noweave: {
+        name: 'noweave',
+        description: 'attacks without its combat weave',
+        ai: { ...TODAY_NPC_AI, noCombatWeave: true },
+    },
     standground: {
         name: 'standground',
         description: 'holds its position and fires (single-raider rungs only)',
+        ai: TODAY_NPC_AI,
         standGround: true,
     },
 };
@@ -46,10 +53,8 @@ export const waveAdversaryProfiles = Object.values(adversaryProfiles).filter((p)
 
 /** Applies the per-ship levers of `profile` to one raider's state. */
 export function applyAdversaryProfile(state: ShipState, profile: AdversaryProfile): void {
-    if (profile.flightDoctrine !== undefined) {
-        state.flightDoctrine = profile.flightDoctrine;
-    }
-    if (profile.noCombatWeave) {
-        state.labNoCombatWeave = true;
+    state.aiProfile = profile.ai;
+    if (profile.ai.flightDoctrine !== FlightDoctrine.AUTO) {
+        state.flightDoctrine = profile.ai.flightDoctrine;
     }
 }

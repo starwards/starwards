@@ -5,6 +5,7 @@ import {
     ShipManagerNpc,
     SpaceManager,
     Spaceship,
+    TODAY_NPC_AI,
     Vec2,
     XY,
     makeShipState,
@@ -25,7 +26,7 @@ describe('AI pilot combat: evasive weave (issue #2146)', () => {
      * bug previously erased the weave outright -- see ship-manager.ts's `capMaxSpeed` (formerly a
      * wholesale `smartPilot.maneuvering` overwrite).
      */
-    function crossTrackOnLongApproach(labNoCombatWeave: boolean) {
+    function crossTrackOnLongApproach(noCombatWeave: boolean) {
         const spaceMgr = new SpaceManager();
         const die = new MockDie();
         die.expectedRoll = 1;
@@ -33,7 +34,7 @@ describe('AI pilot combat: evasive weave (issue #2146)', () => {
         const attacker = new Spaceship().init('attacker', Vec2.make(XY.zero), 'dragonfly-MK1', Faction.Raiders);
         const attackerState = makeShipState(attacker.id, shipConfigurations['dragonfly-MK1']);
         attackerState.isPlayerShip = false;
-        attackerState.labNoCombatWeave = labNoCombatWeave;
+        attackerState.aiProfile = { ...TODAY_NPC_AI, noCombatWeave };
         const attackerMgr = new ShipManagerNpc(attacker, attackerState, spaceMgr, die);
 
         const target = new Spaceship();
@@ -72,7 +73,7 @@ describe('AI pilot combat: evasive weave (issue #2146)', () => {
         expect(Math.min(...crossTrackSamples)).to.be.lessThan(-20);
     });
 
-    it('flies the same approach on the line of sight when labNoCombatWeave is set', () => {
+    it('flies the same approach on the line of sight when noCombatWeave is set', () => {
         const crossTrackSamples = crossTrackOnLongApproach(true);
 
         expect(Math.max(...crossTrackSamples.map(Math.abs))).to.be.lessThan(5);

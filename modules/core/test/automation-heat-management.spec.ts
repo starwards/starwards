@@ -8,6 +8,7 @@ import {
     ShipManagerPc,
     SpaceManager,
     Spaceship,
+    TODAY_NPC_AI,
     Vec2,
     XY,
     makeShipState,
@@ -136,6 +137,17 @@ describe('AI heat-management automation', () => {
     });
 
     describe('power backoff', () => {
+        it("engages at the heat the ship's AI profile names, not a fixed constant", () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-backoff-profile');
+            shipMgr.state.aiProfile = { ...TODAY_NPC_AI, powerBackoffEngageHeat: 0.9 };
+            const gun = shipMgr.state.chainGuns[0];
+            gun.heat = 75;
+
+            singleTick(shipMgr, spaceMgr);
+
+            expect(gun.power).to.not.equal(PowerLevel.LOW);
+        });
+
         it('steps power down to a discrete PowerLevel on an overheating gun before it reaches ceasefire', () => {
             const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-backoff');
             const gun = shipMgr.state.chainGuns[0];

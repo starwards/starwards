@@ -7,6 +7,7 @@ import {
     ShipModel,
     ShipState,
     Spaceship,
+    TODAY_NPC_AI,
     Vec2,
     XY,
     magazineStocks,
@@ -113,7 +114,7 @@ export function createTrainingT1Map(
     targetModel: ShipModel = 'dragonfly-MK1',
     /**
      * Calibration only, not game configs: `noCombatWeave`, the target attacks without its combat weave
-     * (`ShipState.labNoCombatWeave`); `standGround`, the target holds its position and fires at the GVTS
+     * (`NpcAiProfile.noCombatWeave`); `standGround`, the target holds its position and fires at the GVTS
      * instead of attacking it (no order, `IdleStrategy.STAND_GROUND`), capped to the GVTS's top speed as on T0; `capsuleIntegrity`, the target's capsule starts this
      * damaged (1 intact), so fewer internal hits kill it. `playerEnergy` (share of the store),
      * `playerCells` and `reactorOutput` (factor on the GVTS reactor's energy per second) start the GVTS
@@ -157,7 +158,7 @@ export function createTrainingT1Map(
             const target = game.addNpcSpaceship(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
             );
-            target.state.labNoCombatWeave = noCombatWeave;
+            target.state.aiProfile = { ...TODAY_NPC_AI, noCombatWeave };
             if (flightDoctrine !== undefined) {
                 target.state.flightDoctrine = flightDoctrine;
             }

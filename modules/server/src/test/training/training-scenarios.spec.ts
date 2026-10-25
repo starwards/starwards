@@ -143,7 +143,7 @@ describe('training ladder', () => {
         expect(model).toBe(expectedModel);
         expect(state.order).toBe(Order.ATTACK);
         expect(state.orderTargetId).toBe(TRAINING_PLAYER_ID);
-        expect(state.labNoCombatWeave ?? false).toBe(noCombatWeave);
+        expect(state.aiProfile.noCombatWeave).toBe(noCombatWeave);
         expect(state.capsule.integrity).toBe(1);
     });
 
