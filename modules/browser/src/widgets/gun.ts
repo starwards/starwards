@@ -16,8 +16,16 @@ import { FolderApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
 import { addMountAmmoRows } from './mount-readout';
 
-/** `ownGun` adds the heat model rows: they belong to the gun's own crew, not to a screen showing someone else's gun. */
-export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver, ownGun = false) {
+/**
+ * `heat` adds each gun's heat level, the value the Systems pane's HEAT column reads; Target Details
+ * turns it on so Signals can call a cooling window. `ownGun` adds the full heat model rows (bars, jam,
+ * cooldown, wear): they belong to the gun's own crew, not to a screen showing someone else's gun.
+ */
+export function drawGunStatus(
+    container: WidgetContainer,
+    shipDriver: ShipDriver,
+    opts: { heat?: boolean; ownGun?: boolean } = {},
+) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Chain Gun');
     const mounts = shipDriver.state.chainGuns;
     for (const index of mounts.keys()) {
@@ -37,8 +45,15 @@ export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver
             panelCleanup.add,
         );
         setAnnunciatorColumns(gunPane, 2);
-        if (ownGun) {
+        if (opts.ownGun) {
             addGunHeatRows(gunPane, shipDriver, `/chainGuns/${index}`, panelCleanup);
+        } else if (opts.heat) {
+            addInlineBarBlade(
+                gunPane,
+                readNumberProp(shipDriver, `/chainGuns/${index}/heat`),
+                { label: 'Heat' },
+                panelCleanup.add,
+            );
         }
     }
 }

@@ -276,4 +276,17 @@ describe('system-broken announcements (issue #2488)', () => {
         gameDriver.gameManager.update(1 / 20);
         expect(history()).toHaveLength(broken.length);
     });
+
+    it('queues "System hacked" once when a beam hack opens an offline window on a player system', async () => {
+        const { playerId, history } = await start();
+        const gun = gameDriver.getShip(playerId).state.chainGuns.values().next().value!;
+        gameDriver.gameManager.update(1 / 20);
+        expect(history()).toEqual([]);
+
+        gun.hackedSecondsLeft = 5;
+        for (let i = 0; i < 5; i++) gameDriver.gameManager.update(1 / 20);
+        expect(history()).toHaveLength(1);
+        expect(history()[0]).toContain('System hacked');
+        expect(history()[0]).toContain(playerId);
+    });
 });

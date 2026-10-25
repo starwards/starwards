@@ -1,4 +1,4 @@
-import { ChainGun, demoShip, makeShipState, snapshotShipDriver } from '@starwards/core';
+import { ChainGun, MAX_SYSTEM_HEAT, demoShip, makeShipState, snapshotShipDriver } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -22,7 +22,7 @@ function gunScene(
             gun.isFiring = isFiring;
             gun.loadAmmo = loadAmmo;
             tweak(gun);
-            drawGunStatus(createMockContainer(container, 300, 380), snapshotShipDriver(ship), true);
+            drawGunStatus(createMockContainer(container, 300, 380), snapshotShipDriver(ship), { ownGun: true });
         },
     };
 }
@@ -35,6 +35,17 @@ export const gunScenes: Record<string, Scene> = {
         false,
         true,
     ),
+    'gun-status-heat': {
+        name: 'gun-status-heat',
+        description: 'Chain gun firing and hot, with the heat row Target Details adds',
+        setup(container: HTMLElement) {
+            const ship = makeShipState('player', demoShip);
+            const gun = ship.chainGuns[0];
+            gun.isFiring = true;
+            gun.heat = MAX_SYSTEM_HEAT * 0.7;
+            drawGunStatus(createMockContainer(container, 300, 250), snapshotShipDriver(ship), { heat: true });
+        },
+    },
     'gun-status-firing': gunScene('gun-status-firing', 'Chain gun firing with auto load off', 0, true, false),
     'gun-status-hot': gunScene(
         'gun-status-hot',

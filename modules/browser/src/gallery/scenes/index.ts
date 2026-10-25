@@ -9,6 +9,7 @@ import { gameMessageScenes } from './game-message';
 import { gmBroadcastScenes } from './gm-broadcast';
 import { gmRadarScenes } from './gm-radar';
 import { gunScenes } from './gun';
+import { hackScenes } from './hack';
 import { helmsScenes } from './helms';
 import { hullStatusScenes } from './hull-status';
 import { longRangeRadarScenes } from './long-range-radar';
@@ -61,6 +62,7 @@ export const scenes: Record<string, Scene> = {
     ...dockingScenes,
     ...gunScenes,
     ...scanBeamScenes,
+    ...hackScenes,
     ...signalsJobsScenes,
     ...stationCaptionScenes,
     ...systemsStatusScenes,

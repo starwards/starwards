@@ -1,10 +1,10 @@
 import { AmmoType, MagazineStock, ammoTypes, magazineStock } from '../space/projectile';
 import { GUN_HEAT, gunHeatBars } from './gun-heat';
+import { HackDesign, defectible } from './system';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
 import { commandable, gameField } from '../game-field';
 
 import { SmartPilotMode } from './smart-pilot';
-import { defectible } from './system';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -12,21 +12,22 @@ export type SelectedProjectileModel = 'None' | AmmoType;
 
 // some stats are mapped from MagazineStock, so adding one fails compilation;
 // use_ClusterMissile enables both cluster ammo types
-export type ChaingunDesign = TurretDesign & {
-    [T in MagazineStock as `use_${T}`]: boolean;
-} & {
-    modelName?: string;
-    isInternal: boolean;
-    isElectronics: boolean;
-    bulletsPerSecond: number;
-    bulletSpeed: number;
-    bulletDegreesDeviation: number;
-    maxShellRange: number;
-    minShellRange: number;
-    overrideSecondsToLive: number;
-    damage50: number;
-    energyCost: number;
-};
+export type ChaingunDesign = TurretDesign &
+    HackDesign & {
+        [T in MagazineStock as `use_${T}`]: boolean;
+    } & {
+        modelName?: string;
+        isInternal: boolean;
+        isElectronics: boolean;
+        bulletsPerSecond: number;
+        bulletSpeed: number;
+        bulletDegreesDeviation: number;
+        maxShellRange: number;
+        minShellRange: number;
+        overrideSecondsToLive: number;
+        damage50: number;
+        energyCost: number;
+    };
 
 export class ChaingunDesignState extends TurretDesignState implements ChaingunDesign {
     @gameField('float32') bulletsPerSecond = 0;
@@ -44,6 +45,11 @@ export class ChaingunDesignState extends TurretDesignState implements ChaingunDe
     @gameField('boolean') use_ArmPenMissile = false;
     @gameField('boolean') use_FragMissile = false;
     @gameField('boolean') use_ClusterMissile = false;
+
+    constructor() {
+        super();
+        this.hackSeconds = 8;
+    }
     @gameField('boolean') use_ElecMissile = false;
 
     isAmmoEnabled(m: AmmoType): boolean {

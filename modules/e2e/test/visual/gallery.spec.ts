@@ -30,6 +30,7 @@ const scenes = [
     'full-system-status-wide',
     // Gun status
     'gun-status-firing',
+    'gun-status-heat',
     'gun-status-loading',
     'gun-status-hot',
     'gun-status-jammed',
@@ -37,6 +38,10 @@ const scenes = [
     // Scan beam
     'scan-beam-jamming',
     'scan-beam-steady',
+    // Hack
+    'hack-idle',
+    'hack-in-progress',
+    'hack-lost-full',
     // Signals jobs
     'signals-jobs-empty',
     'signals-jobs-queue',
