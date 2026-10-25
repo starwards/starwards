@@ -325,6 +325,15 @@ Every NPC tick (`AutomationManager.manageHeat`, gated on `!isPlayerShip` and `de
 - **Power backoff:** each chain gun's `power` is hysteresis-latched between `PowerLevel.NORMAL` and `PowerLevel.LOW` — steps down to `LOW` once `heat` reaches 60% of `MAX_SYSTEM_HEAT`, steps back up to `NORMAL` only once it cools below 40%. A duty-cycle throttle between two named `PowerLevel`s (never a raw float — `power`'s declared type is the enum the status UI renders by name), and only ever written for a mount automation has itself latched — a GM- or scenario-set level on a mount that never got hot enough to trigger backoff is left untouched.
 - **Ceasefire backstop:** a rare, hysteresis-latched hard stop on `isFiring`, evaluated per mount. Engages at 95% heat, releases only once the mount cools back below 70% — well above where power backoff already engages, so it rarely fires in practice.
 
+### Real Energy and Repair (NPC, per-ship flag)
+
+By default an NPC's energy draws are free and it has no repair queue. `ShipManagerNpc.setRealEnergy(true)` (default `NPC_REAL_ENERGY_DEFAULT`, off) gives it the player ship's `EnergyManager` and `RepairManager`, meters its thrust and turning like `MovementManager` does, and runs an `EngineerGovernor` (`engineer-governor.ts`) as its crew, through the same state a crew writes:
+
+- **Power shedding:** as the reactor store falls below 50% / 30% / 15% of `maxEnergy` the governor caps radar, then tube and gun, then radar and tube at `SHUTDOWN`, and restores each system's original level 10 points above the threshold. Manoeuvring is never shed: it is the reserve.
+- **Reflex repair:** a protocol whose targeted defect has stood for `REPAIR_NOTICING_DELAY_SECONDS` is raised through `cyclePriorityCommands` (urgent systems — guns, thrusters, manoeuvring, reactor — to `HIGH`, the rest to `LOW`).
+
+Headless runs: `HeadlessGame.start(map, seed, { npcRealEnergy })`, `npm --prefix modules/ai run adversary -- --npc-real-energy`, `runParity(scenarios, { npcRealEnergy })`.
+
 ## System Interactions
 
 ### Power Distribution

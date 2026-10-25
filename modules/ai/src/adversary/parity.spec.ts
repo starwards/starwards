@@ -37,3 +37,37 @@ describe('NPC vs PC parity report', () => {
         expect(markdown).toContain('repairQueue.slots');
     });
 });
+
+/** Hard gate for NPC ships on the real energy and repair rules (M4.67): conservation must read as a player ship's. */
+describe('NPC vs PC parity with real energy and repair', () => {
+    let report: ParityReport;
+    beforeAll(() => {
+        report = runParity(undefined, { npcRealEnergy: true });
+    }, 240_000);
+    const row = (scenario: string, readout: string) =>
+        report.differing.find((r) => r.scenario === scenario && r.readout === readout);
+    const energyRows = (scenario: string) =>
+        report.differing.filter(
+            (r) => r.scenario === scenario && /(reactor\.energy|energyPerMinute|energyStarved)/.test(r.readout),
+        );
+
+    it('an idle ship and a hacked ship read out as a PC ship does, energy included', () => {
+        expect(report.differing.filter((r) => r.scenario === 'idle' || r.scenario === 'hacked')).toEqual([]);
+    });
+
+    it('conserves energy under thrust: the reactor drains and the thrusters meter like a PC ship', () => {
+        expect(row('thrust', 'reactor.energy')?.npc).toBeLessThan(100);
+        const perMinute = (readout: string) => row('thrust', readout);
+        expect(perMinute('/maneuvering.energyPerMinute')?.npc).toBeGreaterThan(10);
+        expect(perMinute('/thrusters/0.energyPerMinute')?.npc).toBeGreaterThan(10);
+    });
+
+    it('conserves energy under fire: no energy readout differs from the PC ship', () => {
+        expect(energyRows('gun-burst')).toEqual([]);
+    });
+
+    it('works the repair queue: it holds slots and restores the damaged gun like a PC ship', () => {
+        expect(row('defect-and-repair', 'repairQueue.slots')).toBeUndefined();
+        expect(row('defect-and-repair', '/chainGuns/0.rateOfFireFactor')).toBeUndefined();
+    });
+});
