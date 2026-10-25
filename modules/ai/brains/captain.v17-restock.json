@@ -25,6 +25,10 @@
         }
     },
     "callouts": {
+        "launch": {
+            "say": "cast off and launch at full speed",
+            "when": "orders helms to cast off and launch at full speed; choose it when docked, restock done and an enemy is near or a station is under attack"
+        },
         "undock": {
             "say": "cast off",
             "when": "orders helms to undock. Choose this when the ship is docked to restock and its restock is done, or an enemy ship comes near"

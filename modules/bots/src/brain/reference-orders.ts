@@ -585,6 +585,11 @@ const calloutRules: Record<string, (picture: Picture) => boolean> = {
         }
         return shellsLow(p) && !p.dockOrdered && !enemyNear(p) && near;
     },
+    /** Captain: the undock is due and an enemy is within `LAUNCH_ON_THREAT_METERS` of a station: launch rather than cast off gently. */
+    launch: (p) =>
+        referenceKnobs.LAUNCH_ON_THREAT_METERS > 0 &&
+        (stationThreat(p.radar)?.gap ?? Infinity) < referenceKnobs.LAUNCH_ON_THREAT_METERS &&
+        calloutRules.undock(p),
     /** Captain: docked and the shells are restocked, or an enemy comes near: cast off; never inside a losing → dock's hold. */
     undock: (p) =>
         p.dockOrdered &&
