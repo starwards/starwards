@@ -173,12 +173,9 @@ test.describe('Visual Gallery', () => {
     test.describe.configure({ mode: 'parallel' });
 
     for (const scene of scenes) {
-        test(`${scene} renders correctly`, async ({ page }, testInfo) => {
+        test(`${scene} renders correctly`, async ({ page }) => {
             const container = await openScene(page, scene);
             await expect(container).toBeVisible();
-            if (scene === 'system-broken-banner') {
-                console.log(`DIAG_PNG ${testInfo.project.name} ${(await container.screenshot({ animations: 'disabled' })).toString('base64')} END_DIAG`);
-            }
             await expect(container).toHaveScreenshot(`${scene}.png`, SNAPSHOT_OPTIONS);
         });
     }
