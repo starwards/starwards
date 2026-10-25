@@ -381,6 +381,8 @@ export interface TrainingRunOptions {
      * and, without a {@link beforeTick} driving it, the ship does nothing.
      */
     readonly crewedPlayer?: boolean;
+    /** Runs NPC ships on the real energy and repair rules; omitted, the game's default. */
+    readonly npcRealEnergy?: boolean;
     /**
      * Awaited before every `game.tick(dt)`, as the wave-defence harness drives its crew before the
      * tick, so whatever it sets takes effect on that tick. Cannot cross `run-training.ts`'s worker IPC.
@@ -394,11 +396,19 @@ export interface TrainingRunOptions {
  */
 export async function playTraining<P>(
     scenario: TrainingScenario<P>,
-    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording, crewedPlayer = false, beforeTick }: TrainingRunOptions,
+    {
+        seed,
+        timeoutSeconds,
+        hz = SERVER_TICK_HZ,
+        recording,
+        crewedPlayer = false,
+        npcRealEnergy,
+        beforeTick,
+    }: TrainingRunOptions,
 ) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
     const tracked = scenario.track?.(params);
-    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer });
+    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer, npcRealEnergy });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');

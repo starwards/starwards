@@ -19,6 +19,7 @@ export async function playAdversaryRun(options: {
     timeoutSeconds: number;
     intervalSimSeconds: number;
     outDir: string;
+    npcRealEnergy?: boolean;
 }): Promise<AdversaryRun> {
     const probe = new FingerprintProbe();
     const result = await runCrewTraining(options.crewPath, {
@@ -29,6 +30,7 @@ export async function playAdversaryRun(options: {
         intervalSimSeconds: options.intervalSimSeconds,
         outDir: options.outDir,
         script: probe.script,
+        npcRealEnergy: options.npcRealEnergy,
     });
     return {
         profile: options.profile,

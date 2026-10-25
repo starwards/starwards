@@ -24,6 +24,8 @@ type CrewRunOptions = {
     outDir: string;
     intervalSimSeconds: number;
     jevRequestsPerMinute?: number;
+    /** Runs NPC ships on the real energy and repair rules; omitted, the game's default. */
+    npcRealEnergy?: boolean;
     /** Acts on the game before the crew each tick: a scripted actor outside the station consoles. */
     script?: (game: HeadlessGame) => void;
     /** A branch: changes the crew's seats, its orders at the branch point, and what a seat is shown. */
@@ -78,6 +80,7 @@ function crewed<R>(
         seed: options.seed,
         timeoutSeconds: options.timeoutSeconds,
         crewedPlayer: true,
+        npcRealEnergy: options.npcRealEnergy,
         beforeTick: (game, recorder) => {
             options.script?.(game);
             return crew.beforeTick(game, recorder);

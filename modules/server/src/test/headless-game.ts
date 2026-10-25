@@ -2,6 +2,7 @@ import {
     GameApi,
     GameMap,
     IterationData,
+    NPC_REAL_ENERGY_DEFAULT,
     Order,
     SavedGame,
     ShipApi,
@@ -30,6 +31,12 @@ import { decodedCopy } from '../serialization/game-state-serialization';
  * first-contact overlap both scale with it), so headless runs default to this rate.
  */
 export const SERVER_TICK_HZ = 60;
+
+interface HeadlessGameOptions {
+    crewedPlayer?: boolean;
+    /** Runs every uncrewed ship on the real energy and repair rules; defaults to {@link NPC_REAL_ENERGY_DEFAULT}. */
+    npcRealEnergy?: boolean;
+}
 
 /**
  * A `GameMap` runner with no Colyseus, no rooms and no wall clock -- `GameManager.update`'s
@@ -93,6 +100,7 @@ export class HeadlessGame {
         readonly seed: number,
         private totalSeconds: number,
         private readonly crewedPlayer: boolean,
+        private readonly npcRealEnergy: boolean,
     ) {
         this.spaceManager.factionIntel.encodeShip = (shipId) => {
             const shipState = this.shipManagers.get(shipId)?.state;
@@ -103,9 +111,13 @@ export class HeadlessGame {
     }
 
     /** Starts a run from a fresh id sequence, so a seed replays the same run whatever ran before it in the process. */
-    static start(map: GameMap, seed: number, { crewedPlayer = false }: { crewedPlayer?: boolean } = {}) {
+    static start(
+        map: GameMap,
+        seed: number,
+        { crewedPlayer = false, npcRealEnergy = NPC_REAL_ENERGY_DEFAULT }: HeadlessGameOptions = {},
+    ) {
         resetIds();
-        const game = new HeadlessGame(map, seed, 0, crewedPlayer);
+        const game = new HeadlessGame(map, seed, 0, crewedPlayer, npcRealEnergy);
         map.init(game.api);
         game.spaceManager.forceFlushEntities();
         return game;
@@ -120,10 +132,10 @@ export class HeadlessGame {
         map: GameMap,
         seed: number,
         seconds: number,
-        { crewedPlayer = false }: { crewedPlayer?: boolean } = {},
+        { crewedPlayer = false, npcRealEnergy = NPC_REAL_ENERGY_DEFAULT }: HeadlessGameOptions = {},
     ) {
         const { fragment } = decodedCopy(SavedGame, saved);
-        const game = new HeadlessGame(map, seed, seconds, crewedPlayer);
+        const game = new HeadlessGame(map, seed, seconds, crewedPlayer, npcRealEnergy);
         game.spaceManager.insertBulk(fragment.space);
         game.spaceManager.forceFlushEntities();
         reserveIds([...game.spaceManager.state].map((object) => object.id));
@@ -225,8 +237,11 @@ export class HeadlessGame {
     }
 
     private makeManager(spaceObject: Spaceship, state: ShipState, playerShip: boolean) {
-        return playerShip && this.crewedPlayer
-            ? new ShipManagerPc(spaceObject, state, this.spaceManager, this.die, this.shipManagers)
-            : new ShipManagerNpc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
+        if (playerShip && this.crewedPlayer) {
+            return new ShipManagerPc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
+        }
+        const npc = new ShipManagerNpc(spaceObject, state, this.spaceManager, this.die, this.shipManagers);
+        npc.setRealEnergy(this.npcRealEnergy);
+        return npc;
     }
 }

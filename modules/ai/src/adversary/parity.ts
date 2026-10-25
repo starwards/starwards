@@ -143,7 +143,7 @@ function readouts(state: ShipState): Record<string, number> {
 }
 
 /** Plays `scenario` on one ship kind and returns its readouts at the end, and the largest each one moved. */
-function play(kind: ShipKind, scenario: ParityScenario) {
+function play(kind: ShipKind, scenario: ParityScenario, npcRealEnergy: boolean) {
     const map: GameMap = {
         name: `parity_${scenario.name}`,
         init: (game) => {
@@ -155,7 +155,7 @@ function play(kind: ShipKind, scenario: ParityScenario) {
             }
         },
     };
-    const game = HeadlessGame.start(map, 1, { crewedPlayer: kind === 'pc' });
+    const game = HeadlessGame.start(map, 1, { crewedPlayer: kind === 'pc', npcRealEnergy });
     const state = game.shipManagers.get(SHIP_ID)?.state;
     if (!state) {
         throw new Error('parity ship missing');
@@ -192,13 +192,14 @@ const structuralDifferences: readonly StructuralDifference[] = [
     {
         readout: 'Reactor energy; each system energy per minute and energy-starved flag',
         pc: '`EnergyManager` meters every draw against the reactor store and scales draws when it runs short',
-        npc: '`internalProxy.drawEnergy = () => 1`: every draw is free, the store never moves',
-        evidence: 'modules/core/src/ship/ship-manager.ts (`ShipManagerNpc` constructor), `energy-manager.ts`',
+        npc: 'free draws, the store never moves, unless the ship runs `ShipManagerNpc.setRealEnergy(true)` (then the same `EnergyManager`, with an `EngineerGovernor` shedding radar, tube and gun power first)',
+        evidence:
+            'modules/core/src/ship/ship-manager.ts (`ShipManagerNpc.setRealEnergy`), `energy-manager.ts`, `engineer-governor.ts`',
     },
     {
         readout: 'Repair queue (slots, running protocol, progress), defect recovery, energy cells spent on repair',
         pc: '`RepairManager` owns one slot per protocol and works the queue',
-        npc: 'no `RepairManager`: the queue has no slots and damage is permanent; the repair commands are registered for PC ships only',
+        npc: 'no `RepairManager` (no slots, damage is permanent) unless `setRealEnergy(true)`; then the `EngineerGovernor` queues repairs after a noticing delay. Repair commands are registered for PC ships only',
         evidence: 'modules/core/src/ship/ship-manager.ts, modules/server/src/ship/room.ts',
     },
     {
@@ -243,12 +244,15 @@ export interface ParityReport {
     readonly structural: readonly StructuralDifference[];
 }
 
-export function runParity(scenarios: readonly ParityScenario[] = parityScenarios): ParityReport {
+export function runParity(
+    scenarios: readonly ParityScenario[] = parityScenarios,
+    { npcRealEnergy = false }: { npcRealEnergy?: boolean } = {},
+): ParityReport {
     const compared: Record<string, number> = {};
     const differing: ParityRow[] = [];
     for (const scenario of scenarios) {
-        const pc = play('pc', scenario);
-        const npc = play('npc', scenario);
+        const pc = play('pc', scenario, npcRealEnergy);
+        const npc = play('npc', scenario, npcRealEnergy);
         const keys = [...new Set([...Object.keys(pc), ...Object.keys(npc)])];
         compared[scenario.name] = keys.length;
         for (const readout of keys) {

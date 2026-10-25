@@ -8,6 +8,7 @@
  * (repeatable) picks profiles; default is every profile the family has. Prints the markdown report and
  * writes `<out>/<family>.md` and `<out>/<family>.json`; `--baseline <path>` also writes the JSON there
  * to be committed. Recordings go to `<out>/runs` and are deleted unless `--keep-recordings` is given.
+ * `--npc-real-energy` runs the raiders on the real energy and repair rules (M4.67; default off).
  * `--interval <s>` is the recording frame interval (default 1, 5 for AW). Jobs (profile x seed) are shared round-robin between `--workers` processes.
  */
 import {
@@ -31,6 +32,7 @@ type Job = {
     timeoutSeconds: number;
     intervalSimSeconds: number;
     outDir: string;
+    npcRealEnergy: boolean;
     runs: [string, number][];
 };
 
@@ -43,11 +45,20 @@ function args(name: string) {
     return process.argv.flatMap((a, i) => (a === `--${name}` ? [process.argv[i + 1]] : []));
 }
 
-async function runJob({ family, crewPath, timeoutSeconds, intervalSimSeconds, outDir, runs }: Job) {
+async function runJob({ family, crewPath, timeoutSeconds, intervalSimSeconds, outDir, npcRealEnergy, runs }: Job) {
     const results: AdversaryRun[] = [];
     for (const [profile, seed] of runs) {
         results.push(
-            await playAdversaryRun({ crewPath, family, profile, seed, timeoutSeconds, intervalSimSeconds, outDir }),
+            await playAdversaryRun({
+                crewPath,
+                family,
+                profile,
+                seed,
+                timeoutSeconds,
+                intervalSimSeconds,
+                outDir,
+                npcRealEnergy,
+            }),
         );
     }
     return results;
@@ -86,7 +97,8 @@ async function main() {
     const workers = Math.max(1, Math.min(Number(arg('workers', '1')), jobs.length));
     const shards: [string, number][][] = Array.from({ length: workers }, () => []);
     jobs.forEach((job, i) => shards[i % workers].push(job));
-    const base = { family, crewPath, timeoutSeconds, intervalSimSeconds, outDir };
+    const npcRealEnergy = process.argv.includes('--npc-real-energy');
+    const base = { family, crewPath, timeoutSeconds, intervalSimSeconds, outDir, npcRealEnergy };
     const runs =
         workers === 1
             ? await runJob({ ...base, runs: shards[0] })
