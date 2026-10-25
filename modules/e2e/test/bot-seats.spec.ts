@@ -48,7 +48,7 @@ test.describe('GM bot seats', () => {
         await expect(r.seatBot('pilot')).toBeHidden();
         await expect(r.row('pilot')).toHaveAttribute('data-unassigned', 'false');
 
-        await page.locator('.lm_title', { hasText: 'controls' }).click();
+        await page.locator('.lm_title', { hasText: /^game$/ }).click();
         const controls = page.locator('[data-id="Game Controls"]');
         await expect(controls).toBeVisible({ timeout: 15000 });
         // every game records from its start

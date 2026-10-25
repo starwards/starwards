@@ -2,7 +2,6 @@ import { AdminDriver, RecordingInfo, createLogger, sidecarName } from '@starward
 import { addButton, addSliderBlade, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readProp, readWriteNumberProp } from '../property-wrappers';
 
-import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
 
 /** Rate presets, in `AdminState.speed` units. */
@@ -44,25 +43,7 @@ function downloadRecording(name: string) {
         .catch((e: unknown) => logError(`can't check for recording events:`, e));
 }
 
-/**
- * The GM's controls for a live game: rate and recording. Rate control is `AdminState.speed`,
- * which scales every subsystem's `deltaSeconds`.
- */
-export function gameControlsWidget(adminDriver: AdminDriver): DashboardWidget {
-    class GameControlsComponent {
-        constructor(container: WidgetContainer, _: unknown) {
-            drawGameControls(container, adminDriver);
-        }
-    }
-    return {
-        name: 'game controls',
-        type: 'component',
-        component: GameControlsComponent,
-        defaultProps: {},
-    };
-}
-
-function drawGameControls(container: WidgetContainer, adminDriver: AdminDriver) {
+export function drawGameControls(container: WidgetContainer, adminDriver: AdminDriver) {
     const { pane, cleanup } = createWidgetPane(container, 'Game Controls');
     const speed = readWriteNumberProp(adminDriver, '/speed');
     const isRecording = readProp<boolean>(adminDriver, '/isRecordingGame');
