@@ -83,6 +83,8 @@ export interface WaveDefenceTuning {
     readonly hullScores: Readonly<Record<RaiderHull, number>>;
     /** Replaces {@link WAVE_INTERVAL_SECONDS}: the next wave spawns this long after the latest, whatever its state. */
     readonly waveIntervalSeconds: number;
+    /** Waves already behind the game at the start: the first wave spawned is `skipWaves + 1` (budget, archetype and target policy included). */
+    readonly skipWaves?: number;
 }
 
 /** Production balance. */
@@ -400,7 +402,7 @@ export function createWaveDefenceMap(
     { onWaveSpawned, onRaiderWrittenOff }: WaveDefenceHooks = {},
 ): GameMap {
     let game: GameApi;
-    let waveNumber = 0;
+    let waveNumber = tuning.skipWaves ?? 0;
     /** Per game, so each game's aggro noise differs; drawn once at init. */
     let noiseSeed = 0;
     /** Every wave still holding at least one not-yet-gone raider; older waves are dropped once fully gone. */

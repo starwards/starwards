@@ -39,17 +39,20 @@ interface WaveRungParams {
 
 /**
  * A training rung on the `wave_defence` map: the GVTS defends the three stations against its raider
- * waves, under the map's own rules except `waveIntervalSeconds`. A run passes once `passWaves` waves
+ * waves, under the map's own rules except `waveIntervalSeconds` and `skipWaves`. A run passes once `passWaves` waves
  * are survived with every station alive, and ends there or at the timeout.
  */
 export function waveRung({
     name,
     waveIntervalSeconds,
     passWaves,
+    skipWaves = 0,
 }: {
     name: string;
     waveIntervalSeconds: number;
     passWaves: number;
+    /** Map waves already behind the run: its first wave is map wave `skipWaves + 1`. */
+    skipWaves?: number;
 }): TrainingScenario<WaveRungParams> {
     const track = ({ waveSeed }: WaveRungParams): { map: GameMap; tracker: RungTracker } => {
         let reached = 0;
@@ -63,13 +66,14 @@ export function waveRung({
         const lost = new Set<string>();
         const map = createWaveDefenceMap(
             mulberry32(waveSeed),
-            { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds },
+            { ...DEFAULT_WAVE_TUNING, waveIntervalSeconds, skipWaves },
             {
                 onWaveSpawned: (wave, shipIds) => {
-                    if (wave > 1 && !stationsLost) {
-                        survived = wave - 1;
+                    const rungWave = wave - skipWaves;
+                    if (rungWave > 1 && !stationsLost) {
+                        survived = rungWave - 1;
                     }
-                    reached = wave;
+                    reached = rungWave;
                     shipIds.forEach((id) => raiders.add(id));
                 },
                 onRaiderWrittenOff: (id) => writtenOff.add(id),

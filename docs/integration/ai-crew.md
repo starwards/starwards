@@ -556,6 +556,8 @@ simulated time.
 the latest is cleared, or 480 s after it spawned. A wave counts as survived once the next wave spawns
 with all three stations alive. A run passes after 3 waves survived, and ends then or at its timeout.
 Use a 1500 s timeout: the fourth wave spawns by 1440 s.
+`W-waves-late` is the same rung started at map wave 4 (its first wave is a predator escort, its second a
+cataphract and predator gunline), counting waves from there: it passes after 2 waves survived.
 `W-waves-endless` never passes, so its runs show how far a crew gets (calibration only). Results carry
 `waves`: waves survived and reached, stations lost, the time of the first loss, raiders killed and
 spawned, and GVTS health. The crew report adds a Waves table and pairs waves survived, stations lost and

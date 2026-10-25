@@ -292,6 +292,9 @@ const W_OUTRANGED: TrainingScenario<T0Params> = {
 /** The wave-defence rung (see {@link waveRung}). */
 const W_WAVES = { name: 'W-waves', waveIntervalSeconds: 480, passWaves: 3 };
 
+/** The wave-defence rung started at map wave 4 (three waves behind it), where predators and cataphracts arrive. */
+const W_WAVES_LATE = { ...W_WAVES, name: 'W-waves-late', passWaves: 2, skipWaves: 3 };
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     'T0-wide': T0_WIDE as TrainingScenario<never>,
@@ -321,6 +324,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'W-multi': W_MULTI as TrainingScenario<never>,
     'W-outranged': W_OUTRANGED as TrainingScenario<never>,
     'W-waves': waveRung(W_WAVES) as TrainingScenario<never>,
+    'W-waves-late': waveRung(W_WAVES_LATE) as TrainingScenario<never>,
     'W-waves-endless': waveRung({
         ...W_WAVES,
         name: 'W-waves-endless',
