@@ -183,6 +183,7 @@ test.describe('Visual Gallery', () => {
             await expect(container).toBeVisible();
             if (scene.startsWith('hack-')) {
                 await container.screenshot({ path: test.info().outputPath(`${scene}.png`) });
+                expect(test.info().project.name, 'TEMP: fail to upload artifacts').not.toBe('chromium-headed');
                 return;
             }
             await expect(container).toHaveScreenshot(`${scene}.png`, SNAPSHOT_OPTIONS);
