@@ -22,7 +22,7 @@ function gunScene(
             gun.isFiring = isFiring;
             gun.loadAmmo = loadAmmo;
             tweak(gun);
-            drawGunStatus(createMockContainer(container, 300, 380), snapshotShipDriver(ship));
+            drawGunStatus(createMockContainer(container, 300, 380), snapshotShipDriver(ship), true);
         },
     };
 }

@@ -16,7 +16,8 @@ import { FolderApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
 import { addMountAmmoRows } from './mount-readout';
 
-export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver) {
+/** `ownGun` adds the heat model rows: they belong to the gun's own crew, not to a screen showing someone else's gun. */
+export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver, ownGun = false) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Chain Gun');
     const mounts = shipDriver.state.chainGuns;
     for (const index of mounts.keys()) {
@@ -36,7 +37,9 @@ export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver
             panelCleanup.add,
         );
         setAnnunciatorColumns(gunPane, 2);
-        addGunHeatRows(gunPane, shipDriver, `/chainGuns/${index}`, panelCleanup);
+        if (ownGun) {
+            addGunHeatRows(gunPane, shipDriver, `/chainGuns/${index}`, panelCleanup);
+        }
     }
 }
 
