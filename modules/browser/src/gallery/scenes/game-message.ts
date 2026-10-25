@@ -21,4 +21,18 @@ export const gameMessageScenes: Record<string, Scene> = {
             attachGameMessageOverlay(mockContainer.getElement(), admin as unknown as AdminDriver);
         },
     },
+    'system-broken-banner': {
+        name: 'system-broken-banner',
+        description:
+            'Server-queued "System broken" announcement for a player-ship system, as a banner over a station panel',
+        setup(container: HTMLElement) {
+            const mockContainer = createMockContainer(container, 640, 300);
+            drawAmmoStatus(mockContainer, createMockShipDriver(makeShipState('player', demoShip)) as never);
+            const admin = {
+                state: { message: 'System broken: GVTS Chain gun' },
+                events: new EventEmitter(),
+            };
+            attachGameMessageOverlay(mockContainer.getElement(), admin as unknown as AdminDriver);
+        },
+    },
 };

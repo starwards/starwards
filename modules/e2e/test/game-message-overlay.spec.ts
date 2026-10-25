@@ -45,4 +45,20 @@ test.describe('Game message overlay', () => {
         await expect(messageEl).toHaveText('Station B lost', { timeout: 10000 });
         await expect(messageEl).toBeHidden({ timeout: 10000 });
     });
+
+    test('announces a broken player-ship system on the station screen', async ({ page }, testInfo) => {
+        const messageEl = page.locator('[data-id="Game Message"]');
+        await expect(messageEl).toBeHidden();
+
+        gameDriver.getShip(shipId).state.chainGuns.values().next().value!.rateOfFireFactor = 0;
+
+        await expect(messageEl).toBeVisible({ timeout: 10000 });
+        await expect(messageEl).toHaveText(
+            `System broken: ${shipId} ${gameDriver.getShip(shipId).state.chainGuns.values().next().value!.name}`,
+        );
+        await testInfo.attach('system-broken-banner', {
+            body: await page.screenshot(),
+            contentType: 'image/png',
+        });
+    });
 });

@@ -236,3 +236,44 @@ describe('GameApi (issue #2060)', () => {
         expect(gameDriver.getShip(attackerId).state.orderTargetId).toEqual(targetId);
     });
 });
+
+describe('system-broken announcements (issue #2488)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    async function start() {
+        let playerId = '';
+        let npcId = '';
+        await gameDriver.gameManager.startGame(
+            makeMap((game) => {
+                playerId = game.addPlayerSpaceship(newShip('PLR', Faction.Gravitas, 'demo-ship')).spaceObject.id;
+                npcId = game.addNpcSpaceship(newShip('NPC', Faction.Raiders, 'demo-ship')).spaceObject.id;
+            }),
+        );
+        gameDriver.gameManager.update(1 / 20);
+        return { playerId, npcId, history: () => gameDriver.gameManager.state.messageHistory.map((m) => m.text) };
+    }
+
+    it('queues one message when a player system breaks, none while it stays broken, none for NPCs', async () => {
+        const { playerId, npcId, history } = await start();
+        const gun = gameDriver.getShip(playerId).state.chainGuns.values().next().value!;
+        gameDriver.getShip(npcId).state.chainGuns.values().next().value!.rateOfFireFactor = 0;
+        gameDriver.gameManager.update(1 / 20);
+        expect(history()).toEqual([]);
+
+        gun.rateOfFireFactor = 0;
+        for (let i = 0; i < 5; i++) gameDriver.gameManager.update(1 / 20);
+        expect(history()).toHaveLength(1);
+        expect(history()[0]).toContain('System broken');
+        expect(history()[0]).toContain(playerId);
+    });
+
+    it('queues one message per system when several break at once', async () => {
+        const { playerId, history } = await start();
+        const state = gameDriver.getShip(playerId).state;
+        const guns = [...state.chainGuns.values()];
+        const broken = guns.length >= 2 ? guns.slice(0, 2) : guns;
+        for (const g of broken) g.rateOfFireFactor = 0;
+        gameDriver.gameManager.update(1 / 20);
+        expect(history()).toHaveLength(broken.length);
+    });
+});
