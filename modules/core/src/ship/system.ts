@@ -217,7 +217,7 @@ function System(systemPointer: string, state: SystemState): System {
         state: state,
         defectibles,
         getStatus: () => {
-            if (state.broken || state.hacked === HackLevel.DISABLED) {
+            if (state.broken) {
                 return 'DISABLED';
             }
             const isDamaged = defectibles.some((d) => {

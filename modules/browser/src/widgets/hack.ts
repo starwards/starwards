@@ -1,5 +1,5 @@
 import { HACKABLE_SYSTEM_KEYS, HACK_CANDIDATE_SYSTEMS, ShipDriver, isHackableSystemKey } from '@starwards/core';
-import { addAnnunciatorBlade, addBareBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
+import { addBareBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { propertyStub, readNumberProp, writeProp } from '../property-wrappers';
 
 import { WidgetContainer } from '../container';
@@ -31,8 +31,6 @@ export function drawHack(container: WidgetContainer, shipDriver: ShipDriver) {
     const status = propertyStub(hackStatus(shipDriver));
     addTextBlade(pane, status, { label: 'Hack' }, cleanup.add).element.classList.add('sw-mode');
     addBareBarBlade(pane, readNumberProp(shipDriver, '/signals/hackProgress'), cleanup.add);
-    const active = propertyStub(false);
-    addAnnunciatorBlade(pane, active, { label: 'Hacking' }, cleanup.add);
 
     for (const system of HACK_CANDIDATE_SYSTEMS) {
         if (isHackableSystemKey(system)) {
@@ -43,14 +41,13 @@ export function drawHack(container: WidgetContainer, shipDriver: ShipDriver) {
                 cleanup.add,
             );
         } else {
-            addTextBlade(pane, propertyStub('NOT HACKABLE'), { label: system }, cleanup.add);
+            addTextBlade(pane, propertyStub('N/A'), { label: system }, cleanup.add);
         }
     }
     addButton(pane, () => startHack(shipDriver, ''), { label: '', title: 'Cancel Hack [C]' }, cleanup.add);
 
     const refresh = () => {
         status.setValue(hackStatus(shipDriver));
-        active.setValue(!!shipDriver.state.signals.hackSystem);
     };
     const pointers = ['/signals/hackSystem', '/signals/hackRefusal'];
     for (const pointer of pointers) {
