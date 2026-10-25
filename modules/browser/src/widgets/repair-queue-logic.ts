@@ -56,6 +56,7 @@ const REPAIR_PROTOCOL_HOTKEYS = [
     'alt+e',
     'alt+r',
     'alt+t',
+    'alt+y',
 ];
 
 /** The raise hotkey assigned to `protocolId`, or `undefined` if the catalog has grown past `REPAIR_PROTOCOL_HOTKEYS`. */

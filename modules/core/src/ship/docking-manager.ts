@@ -23,6 +23,10 @@ export class DockingManager {
 
     update() {
         this.calcDockingMode();
+        if (this.state.docking.launchCommand) {
+            this.state.docking.launchCommand = false;
+            this.launch();
+        }
         if (this.state.docking.toggleCommand) {
             this.state.docking.toggleCommand = false;
             if (this.state.docking.mode === DockingMode.UNDOCKED) {
@@ -30,6 +34,22 @@ export class DockingManager {
             }
             this.state.docking.mode = toggleTransition[this.state.docking.mode];
         }
+    }
+
+    /** Casts off a ship that is docking, docked or undocking and sets it moving at full forward speed along its heading. */
+    private launch() {
+        const { docking } = this.state;
+        if (docking.mode === DockingMode.UNDOCKED) {
+            return;
+        }
+        docking.targetId = '';
+        docking.mode = DockingMode.UNDOCKED;
+        this.spaceManager.detach(this.state.id);
+        const velocity = XY.byLengthAndDirection(this.state.maxSpeed, this.state.angle);
+        this.spaceManager.setVelocity(this.state.id, velocity);
+        // the pilot holds the commanded velocity, so command full ahead or it brakes the launch away
+        this.state.smartPilot.maneuvering.x = 1;
+        this.state.smartPilot.maneuvering.y = 0;
     }
 
     public cancelTask() {

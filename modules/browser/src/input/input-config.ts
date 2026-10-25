@@ -67,6 +67,7 @@ export const shipInputConfig = {
     warpUp: 'r',
     warpDown: 'f',
     dock: 'z',
+    launch: 'shift+z',
     chainGunIsFiring: new GamepadButtonConfig(0, 4),
     target: new GamepadButtonConfig(0, 2),
     clearTarget: new GamepadButtonConfig(0, 0),

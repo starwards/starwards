@@ -221,6 +221,7 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
         holdsWhenComplete: true,
     },
     undock: { slot: 'navigation', binds: ['helms'], params: {}, describe: () => 'cast off' },
+    launch: { slot: 'navigation', binds: ['helms'], params: {}, describe: () => 'cast off and launch at full speed' },
     patrol: {
         slot: 'navigation',
         binds: ['helms'],

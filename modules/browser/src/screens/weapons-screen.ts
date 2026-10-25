@@ -35,7 +35,7 @@ export async function initWeaponsScreen(
     drawAmmoStatus(grid.left({ scroll: true }), shipDriver);
     drawTargetingStatus(grid.right(), shipDriver);
     drawSmartGunStatus(grid.right(), shipDriver);
-    drawGunStatus(grid.right(), shipDriver);
+    drawGunStatus(grid.right(), shipDriver, { ownGun: true });
     drawSystemsStatus(
         grid.right({ scroll: true }),
         shipDriver,

@@ -26,10 +26,6 @@ export interface NpcAiProfile {
     readonly powerBackoffEngageHeat: number;
     /** Gun heat the mount must cool below before power backoff releases. */
     readonly powerBackoffReleaseHeat: number;
-    /** Gun heat at which the ceasefire hard-stop engages. */
-    readonly ceasefireEngageHeat: number;
-    /** Gun heat the mount must cool below before the ceasefire latch releases. */
-    readonly ceasefireReleaseHeat: number;
     /** Reserved, not yet consumed: degrees of random aim error added to every shot. 0 is perfect aim. */
     readonly aimErrorDegrees: number;
     /** Reserved, not yet consumed: seconds before an NPC notices damage worth repairing. 0 is at once. */
@@ -52,8 +48,6 @@ export const TODAY_NPC_AI: NpcAiProfile = {
     coolantReallocationIntervalSeconds: 0.5,
     powerBackoffEngageHeat: 0.6,
     powerBackoffReleaseHeat: 0.4,
-    ceasefireEngageHeat: 0.95,
-    ceasefireReleaseHeat: 0.7,
     aimErrorDegrees: 0,
     repairNoticingDelaySeconds: 0,
     focusFireShare: 0,

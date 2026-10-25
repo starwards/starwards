@@ -1,4 +1,5 @@
 import { AmmoType, MagazineStock, ammoTypes, magazineStock } from '../space/projectile';
+import { GUN_HEAT, gunHeatBars } from './gun-heat';
 import { HackDesign, defectible } from './system';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
 import { commandable, gameField } from '../game-field';
@@ -109,6 +110,35 @@ export class ChainGun extends Turret {
     @defectible({ normal: 1, name: 'rate of fire' })
     @gameField('float32')
     rateOfFireFactor = 1;
+
+    /**
+     * How worn the barrel is, 0 (pristine) to 1 (fully worn). Wear widens the base spread and lowers
+     * the heat bars (see `GUN_HEAT`). Caused by overheating and by weapon hits; restored by the
+     * barrel replacement repair protocol. Declared on chain guns only — a tube has no barrel.
+     */
+    @defectible({ normal: 0, name: 'barrel wear', enabled: (t) => (t as ChainGun).type === 'ChainGun' })
+    @range([0, 1])
+    @gameField('float32')
+    barrelWear = 0;
+
+    /** Seconds left on a jam. While above 0 the gun cannot fire. */
+    @range([0, GUN_HEAT.jamSeconds])
+    @gameField('float32')
+    jammedSeconds = 0;
+
+    /** Forced cooldown: set when heat reaches 100, cleared once heat falls to `GUN_HEAT.cooldownRelease`. The gun cannot fire meanwhile. */
+    @gameField('boolean')
+    cooling = false;
+
+    /** Heat at which spread starts to grow, lowered by barrel wear. */
+    get spreadBar() {
+        return gunHeatBars(this.barrelWear).spreadBar;
+    }
+
+    /** Heat at which a shot may jam the gun, lowered by barrel wear. */
+    get jamBar() {
+        return gunHeatBars(this.barrelWear).jamBar;
+    }
 
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
