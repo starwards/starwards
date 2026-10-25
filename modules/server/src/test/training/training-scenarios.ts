@@ -294,6 +294,9 @@ const W_OUTRANGED: TrainingScenario<T0Params> = {
 /** The wave-defence rung (see {@link waveRung}). */
 const W_WAVES = { name: 'W-waves', waveIntervalSeconds: 480, passWaves: 3 };
 
+/** The wave-defence rung started at map wave 4, where predators and cataphracts arrive: passes after 2 waves. */
+const W_WAVES_LATE = { ...W_WAVES, name: 'W-waves-late', passWaves: 2, firstWave: 4 };
+
 /**
  * Adversary rung A1: T1 (one dragonfly-MK1 attacking the GVTS) with the raider varied by `profile`
  * while the crew stays fixed; `A1-today` plays exactly as T1.
@@ -352,6 +355,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'W-multi': W_MULTI as TrainingScenario<never>,
     'W-outranged': W_OUTRANGED as TrainingScenario<never>,
     'W-waves': waveRung(W_WAVES) as TrainingScenario<never>,
+    'W-waves-late': waveRung(W_WAVES_LATE) as TrainingScenario<never>,
     'W-waves-endless': waveRung({
         ...W_WAVES,
         name: 'W-waves-endless',
