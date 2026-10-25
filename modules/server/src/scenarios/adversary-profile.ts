@@ -1,4 +1,4 @@
-import { FlightDoctrine, NpcAiProfile, ShipState, TODAY_NPC_AI } from '@starwards/core/internal';
+import { FlightDoctrine, NpcAiProfile, ShipState, TODAY_NPC_AI, npcDifficultyPresets } from '@starwards/core/internal';
 
 /**
  * One way an NPC raider can be varied while the crew stays fixed (the adversary rungs, M4.65 / S0 of
@@ -40,6 +40,16 @@ export const adversaryProfiles: Readonly<Record<string, AdversaryProfile>> = {
         description: 'attacks without its combat weave',
         ai: { ...TODAY_NPC_AI, noCombatWeave: true },
     },
+    ...Object.fromEntries(
+        Object.entries(npcDifficultyPresets).map(([key, ai]) => [
+            key,
+            {
+                name: key,
+                description: `difficulty ${key}: faction-FOV and scan-level perception, AI decisions every ${ai.aiTickRatio} tick(s)`,
+                ai,
+            },
+        ]),
+    ),
     standground: {
         name: 'standground',
         description: 'holds its position and fires (single-raider rungs only)',

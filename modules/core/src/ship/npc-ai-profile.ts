@@ -6,6 +6,8 @@ import { FlightDoctrine } from './flight-doctrine';
  * constants. Server-side only, never synced: doctrine is hidden from player-facing state.
  * Heat thresholds are fractions of `MAX_SYSTEM_HEAT`.
  */
+export type NpcPerception = 'exact' | 'faction';
+
 export interface NpcAiProfile {
     readonly name: string;
     /** Overrides the ship's flight doctrine; `AUTO` keeps whatever the order or the map gave it. */
@@ -26,6 +28,17 @@ export interface NpcAiProfile {
     readonly powerBackoffEngageHeat: number;
     /** Gun heat the mount must cool below before power backoff releases. */
     readonly powerBackoffReleaseHeat: number;
+    /**
+     * What the NPC believes about other ships. `exact`: every live hostile, omniscient (the test
+     * profile specs and the harness reference rely on). `faction`: only hostiles its own faction
+     * holds in field of view and has scanned to at least `BASIC`.
+     */
+    readonly perception: NpcPerception;
+    /**
+     * The AI decision layer (perceiving and choosing targets) runs on every Nth tick; physics and
+     * execution run every tick. 1 is every tick (Hard); a higher ratio slows the AI's thinking.
+     */
+    readonly aiTickRatio: number;
     /** Reserved, not yet consumed: degrees of random aim error added to every shot. 0 is perfect aim. */
     readonly aimErrorDegrees: number;
     /** Reserved, not yet consumed: seconds before an NPC notices damage worth repairing. 0 is at once. */
@@ -36,7 +49,7 @@ export interface NpcAiProfile {
     readonly retreatHullFraction: number;
 }
 
-/** The AI every NPC has always had; the default profile. */
+/** The AI every NPC has always had; the default profile: exact perception, decisions every tick (Hard's ratio). */
 export const TODAY_NPC_AI: NpcAiProfile = {
     name: 'today',
     flightDoctrine: FlightDoctrine.AUTO,
@@ -48,8 +61,22 @@ export const TODAY_NPC_AI: NpcAiProfile = {
     coolantReallocationIntervalSeconds: 0.5,
     powerBackoffEngageHeat: 0.6,
     powerBackoffReleaseHeat: 0.4,
+    perception: 'exact',
+    aiTickRatio: 1,
     aimErrorDegrees: 0,
     repairNoticingDelaySeconds: 0,
     focusFireShare: 0,
     retreatHullFraction: 0,
 };
+
+/** Perceives through its faction's field of view and scan levels, decides every tick. */
+export const HARD_NPC_AI: NpcAiProfile = { ...TODAY_NPC_AI, name: 'hard', perception: 'faction', aiTickRatio: 1 };
+
+/** Placeholder ratios: calibrated against the wave rung's guard pass rate as a separate data job. */
+export const npcDifficultyPresets = {
+    hard: HARD_NPC_AI,
+    normal: { ...HARD_NPC_AI, name: 'normal', aiTickRatio: 4 },
+    easy: { ...HARD_NPC_AI, name: 'easy', aiTickRatio: 10 },
+} as const satisfies Record<string, NpcAiProfile>;
+
+export type NpcDifficultyName = keyof typeof npcDifficultyPresets;
