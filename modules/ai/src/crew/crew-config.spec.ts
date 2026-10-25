@@ -2,6 +2,7 @@ import {
     CALLOUT_QUESTION,
     buildRequest,
     loadBrainSpec,
+    guardSeatPlan,
     referenceSeatPlan,
     setReferenceKnobs,
     verbalReader,
@@ -20,6 +21,18 @@ describe('the curriculum reference crew', () => {
             const reference = referenceSeatPlan(seat.station);
             expect(seat.spec).toEqual(reference.spec);
             expect(seat.policy.name).toBe(reference.policy.name);
+        }
+    });
+});
+
+describe('the guard crew', () => {
+    it('seats exactly the seats the GM gets live from @starwards/bots', () => {
+        const crew = loadCrew(crewFile('captain-reference-guard'));
+        expect(crew.seats.map((s) => s.station).sort()).toEqual(['captain', 'engineer', 'helms', 'signals', 'weapons']);
+        for (const seat of crew.seats) {
+            const guard = guardSeatPlan(seat.station);
+            expect(seat.spec).toEqual(guard.spec);
+            expect(seat.policy.name).toBe(guard.policy.name);
         }
     });
 });
@@ -104,7 +117,7 @@ describe('the losing → dock crews', () => {
             file,
             JSON.stringify({
                 name: 'nodock',
-                seats: [{ station: 'captain', policy: 'reference', brain: crewFile('../brains/captain.v17') }],
+                seats: [{ station: 'captain', policy: 'reference', brain: crewFile('../../bots/src/brains/captain.v17') }],
                 knobs: { DOCK_LOSING_STATION_HP: 0.5 },
             }),
         );

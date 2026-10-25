@@ -12,6 +12,7 @@ import {
     crewChannel,
     crewDoctrine,
     energyDrawingSeats,
+    guardSeatPlan,
     observeStation,
     orderCommand,
     orderFromCallout,
@@ -52,10 +53,15 @@ type Seat = {
 const RADAR_CONTACT_LIMIT = 200;
 
 function seatPlan(seat: BridgeSeat, brain: BotBrain): SeatPlan {
-    if (brain !== 'reference') {
-        throw new Error(`no brain "${brain as string}"`);
+    const station = bridgeSeats[seat].bot;
+    switch (brain) {
+        case 'guard':
+            return guardSeatPlan(station);
+        case 'reference':
+            return referenceSeatPlan(station);
+        default:
+            throw new Error(`no brain "${brain as string}"`);
     }
-    return referenceSeatPlan(bridgeSeats[seat].bot);
 }
 
 /**

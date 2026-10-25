@@ -4,7 +4,8 @@ import { StateCommand } from '../commands';
 import { gameField } from '../game-field';
 
 /** Brains the GM can seat. Jev brains are added here; the roster lists whatever this holds. */
-export const botBrains = ['reference'] as const;
+/** `guard` is the harness's guard crew (the default); `reference` plays every seat's v1 brain. */
+export const botBrains = ['guard', 'reference'] as const;
 export type BotBrain = (typeof botBrains)[number];
 export const isBotBrain = (b: string): b is BotBrain => (botBrains as readonly string[]).includes(b);
 

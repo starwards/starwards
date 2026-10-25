@@ -66,6 +66,21 @@ describe('ship crew runner', () => {
         ]);
     });
 
+    it('plays the guard crew: every seat, captain and weapons included, on its guard brain', async () => {
+        const crew = await start();
+        crew.addSeat('captain', 'bot-captain-1', 'guard');
+        crew.addSeat('pilot', 'bot-pilot-2', 'guard');
+        crew.addSeat('weapons', 'bot-weapons-3', 'guard');
+        crew.addSeat('engineer', 'bot-engineer-4', 'guard');
+        crew.addSeat('signals', 'bot-signals-5', 'guard');
+        await until(() => statuses.length === 5, 10_000);
+        crew.setRecording(true);
+        await until(() => new Set(events.filter((e) => e.kind === 'decision').map(stationOf)).size === 5, 15_000);
+        await crew.stop();
+        expect(statuses.map((s) => s.status)).toEqual(Array(5).fill('running'));
+        expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
+    });
+
     it('plays the fused tactical station from the bot-only tactical seat', async () => {
         const crew = await start();
         crew.setRecording(true);

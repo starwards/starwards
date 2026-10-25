@@ -4,12 +4,12 @@
         {
             "station": "captain",
             "policy": "reference",
-            "brain": "../brains/captain.v17.json"
+            "brain": "../../bots/src/brains/captain.v17.json"
         },
         {
             "station": "signals",
             "policy": "reference",
-            "brain": "../brains/signals.v10.json"
+            "brain": "../../bots/src/brains/signals.v10.json"
         },
         {
             "station": "helms",
@@ -18,7 +18,7 @@
         {
             "station": "weapons",
             "policy": "residual-weapons",
-            "brain": "../brains/weapons.v20.json"
+            "brain": "../../bots/src/brains/weapons.v20.json"
         },
         {
             "station": "engineer",

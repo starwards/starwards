@@ -9,7 +9,7 @@
         {
             "station": "signals",
             "policy": "reference",
-            "brain": "../brains/signals.v10.json"
+            "brain": "../../bots/src/brains/signals.v10.json"
         },
         {
             "station": "helms",
