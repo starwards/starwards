@@ -18,6 +18,7 @@
         "eval-queue": "node -r ts-node/register/transpile-only ./src/cli/eval-queue.ts",
         "composite": "node -r ts-node/register/transpile-only ./src/cli/composite.ts",
         "waves": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/waves.ts",
+        "meter": "node -r ts-node/register/transpile-only ./src/cli/meter.ts",
         "search": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/search.ts",
         "compare": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/compare.ts",
         "score:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/dataset.ts",
