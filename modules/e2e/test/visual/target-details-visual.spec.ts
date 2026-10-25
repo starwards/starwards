@@ -52,18 +52,15 @@ test.describe('Target Details visual', () => {
         await cleanupPageState(page);
     });
 
-    test('snapshot target at 1920x1080 renders correctly', async ({ page }, testInfo) => {
+    test('snapshot target at 1920x1080 renders correctly', async ({ page }) => {
         await openFrozenTarget(page);
-        await page.screenshot({
-            path: testInfo.outputPath('target-details-snapshot-1080p-actual.png'),
-            animations: 'disabled',
-            caret: 'hide',
+        await expect(page).toHaveScreenshot('target-details-snapshot-1080p.png', {
+            ...SNAPSHOT_OPTIONS,
             mask: [ageReadout(page)],
         });
     });
 
     test('snapshot target at 1920x1080 detects a perturbed layout', async ({ page }) => {
-        test.skip(true, 'TEMP');
         test.skip(
             !['none', 'missing'].includes(test.info().config.updateSnapshots),
             'snapshot-update mode would rewrite the baseline from the perturbed render',
