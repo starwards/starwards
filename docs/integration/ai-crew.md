@@ -588,6 +588,35 @@ platform falls at 789 s with the GVTS 40-100 km away, after wave 2's harass MK2s
 `focus nearest_to <station>` points the crew at the enemy nearest an allied station instead. Jev
 captain v1 on seeds 1-8: 2/8, against `captain-reference` 5/8.
 
+### Adversary rungs: vary the raider, fix the crew
+
+The training rungs hold the raider fixed and vary the crew. The adversary rungs do the opposite (M4.65,
+stage S0 of the NPC AI design): the frozen reference crew plays, and only the raider's profile changes.
+A profile ([`adversary-profile.ts`](../../modules/server/src/scenarios/adversary-profile.ts)) sets levers the
+game already has (flight doctrine, combat weave, stand ground); the `today` profile changes nothing.
+
+| Rung             | Layout                                                    | Crew for the baseline |
+| ---------------- | --------------------------------------------------------- | --------------------- |
+| `A1-<profile>`   | T1: one dragonfly-MK1 attacking the GVTS                  | `reference`           |
+| `AW-<profile>`   | `W-waves` with every raider of every wave varied          | `captain-reference`   |
+
+`npm --prefix modules/ai run adversary -- --family A1 --seeds 16 --workers 4 --out <dir>` plays every
+profile on the same seeds. Each raider is fingerprinted by
+[`fingerprint.ts`](../../modules/ai/src/adversary/fingerprint.ts), a read-only probe that does not change the
+run: time in each range bin to the engaged target, engagement-target switches, fire duty, mean speed, and
+hits landed on a hull section holding an already-broken armor plate. Unpaired pass rates need 256 runs
+per arm to resolve 10 points, so the report gives the pass rate with its Wilson interval and tells
+profiles apart by their fingerprints (range separation, total variation). Limit: the target an
+unordered raider picks for itself is private to `AutomationManager`, so a raider on no order shows no
+attention switches.
+
+`npm --prefix modules/ai run parity` lists every Target Details readout where an NPC differs from a PC
+ship of the same hull ([`parity.ts`](../../modules/ai/src/adversary/parity.ts)).
+`npm --prefix modules/ai run perception` measures what faction-only perception would give wave raiders
+that spawn 140 km out ([`perception.ts`](../../modules/ai/src/adversary/perception.ts)). Committed
+results: [`curriculum/adversary/`](../../modules/ai/curriculum/adversary/) (reports) and
+[`curriculum/baselines/adversary/`](../../modules/ai/curriculum/baselines/adversary/) (baselines).
+
 ## Branching: what if the crew had decided otherwise
 
 Owner's idea: keep a corpus of recordings and decision logs, go back to key decision points and try

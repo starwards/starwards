@@ -14,6 +14,7 @@ import {
     SpaceManager,
     Spaceship,
     XY,
+    encodeShipSnapshot,
     makeShipState,
     mix,
     reserveIds,
@@ -73,6 +74,10 @@ export class HeadlessGame {
             this.spaceManager.state.botOrderCommands.push({ ids: [shipId], order: { type: 'none' } });
         },
         convertToDerelict: (shipId) => this.spaceManager.convertToDerelict(shipId),
+        grantSnapshot: (targetId, faction) => {
+            this.spaceManager.forceFlushEntities(); // the target may still be queued for insertion
+            this.spaceManager.factionIntel.grantSnapshot(targetId, faction, this.totalSeconds);
+        },
         getObject: (id) => this.spaceManager.state.get(id),
         getObjects: () => this.spaceManager.state,
         setSpeed: (speed) => {
@@ -89,6 +94,10 @@ export class HeadlessGame {
         private totalSeconds: number,
         private readonly crewedPlayer: boolean,
     ) {
+        this.spaceManager.factionIntel.encodeShip = (shipId) => {
+            const shipState = this.shipManagers.get(shipId)?.state;
+            return shipState && encodeShipSnapshot(shipState);
+        };
         this.die = new ShipDie(seed);
         this.die.update({ deltaSeconds: totalSeconds, deltaSecondsAvg: totalSeconds, totalSeconds });
     }

@@ -1,7 +1,7 @@
+import { Faction, SpaceObject } from './space';
 import { AggroCharacter } from './ship/threat-table';
 import { DeepReadonly } from 'ts-essentials';
 import { ShipState } from './ship/ship-state';
-import { SpaceObject } from './space';
 import { Spaceship } from './space/spaceship';
 import { XY } from './logic';
 
@@ -39,6 +39,11 @@ export interface GameApi {
      * death path). No-op if the ship is already destroyed, unknown, or not expendable (player ships).
      */
     convertToDerelict(shipId: string): void;
+    /**
+     * Gives `faction` SNAPSHOT intel on `targetId` as of now, with the ship's data captured as it is
+     * at this moment (see `FactionIntelManager.grantSnapshot`). The target ship must already be added.
+     */
+    grantSnapshot(targetId: string, faction: Faction): void;
     /** Read-only lookup of a single space object, by id. */
     getObject(id: string): DeepReadonly<SpaceObject> | undefined;
     /** Read-only view of every live space object. */

@@ -1,5 +1,6 @@
 import {
     Faction,
+    FlightDoctrine,
     GameMap,
     IdleStrategy,
     ScanLevel,
@@ -121,6 +122,7 @@ export function createTrainingT1Map(
     {
         noCombatWeave = false,
         standGround = false,
+        flightDoctrine,
         capsuleIntegrity = 1,
         playerEnergy,
         playerCells,
@@ -128,6 +130,8 @@ export function createTrainingT1Map(
     }: {
         noCombatWeave?: boolean;
         standGround?: boolean;
+        /** The target's flight doctrine override (adversary rungs); absent keeps the order's default. */
+        flightDoctrine?: FlightDoctrine;
         capsuleIntegrity?: number;
         playerEnergy?: number;
         playerCells?: number;
@@ -154,6 +158,9 @@ export function createTrainingT1Map(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
             );
             target.state.labNoCombatWeave = noCombatWeave;
+            if (flightDoctrine !== undefined) {
+                target.state.flightDoctrine = flightDoctrine;
+            }
             target.state.capsule.integrity = capsuleIntegrity;
             if (standGround) {
                 target.state.idleStrategy = IdleStrategy.STAND_GROUND;

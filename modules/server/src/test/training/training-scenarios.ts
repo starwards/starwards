@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
 import { GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
@@ -293,6 +294,35 @@ const W_OUTRANGED: TrainingScenario<T0Params> = {
 /** The wave-defence rung (see {@link waveRung}). */
 const W_WAVES = { name: 'W-waves', waveIntervalSeconds: 480, passWaves: 3 };
 
+/**
+ * Adversary rung A1: T1 (one dragonfly-MK1 attacking the GVTS) with the raider varied by `profile`
+ * while the crew stays fixed; `A1-today` plays exactly as T1.
+ */
+const adversaryT1 = (profile: AdversaryProfile): TrainingScenario<T0Params> => ({
+    ...T1_ATTACKING_DRAGONFLY,
+    name: `A1-${profile.name}`,
+    description: `T1 with the raider varied (adversary rung): ${profile.description}`,
+    createMap: (params) =>
+        createTrainingT1Map(params, 'dragonfly-MK1', {
+            noCombatWeave: profile.noCombatWeave,
+            standGround: profile.standGround,
+            flightDoctrine: profile.flightDoctrine,
+        }),
+});
+
+/** Adversary rung AW: the wave rung with every raider varied by `profile`. */
+const adversaryWaves = (profile: AdversaryProfile) =>
+    waveRung({ ...W_WAVES, name: `AW-${profile.name}`, adversary: profile });
+
+const adversaryRungs: Record<string, TrainingScenario<never>> = {
+    ...Object.fromEntries(
+        Object.values(adversaryProfiles).map((p) => [`A1-${p.name}`, adversaryT1(p) as TrainingScenario<never>]),
+    ),
+    ...Object.fromEntries(
+        waveAdversaryProfiles.map((p) => [`AW-${p.name}`, adversaryWaves(p) as TrainingScenario<never>]),
+    ),
+};
+
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
     'T0-wide': T0_WIDE as TrainingScenario<never>,
@@ -327,6 +357,7 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
         name: 'W-waves-endless',
         passWaves: Infinity,
     }) as TrainingScenario<never>,
+    ...adversaryRungs,
     ...WAVE_CUTS,
 };
 

@@ -102,6 +102,20 @@ describe('FactionIntelManager setScanLevel commands', () => {
     });
 });
 
+describe('FactionIntelManager grantSnapshot', () => {
+    it('grants SNAPSHOT at the given time with the data captured, like a demotion', () => {
+        const target = makeShip('target', Faction.Gravitas);
+        const { intel } = setup(target);
+        intel.encodeShip = () => new Uint8Array([1, 2, 3]);
+
+        intel.grantSnapshot('target', Faction.Raiders, 7);
+
+        expect(intel.getScanLevel('target', Faction.Raiders)).to.equal(ScanLevel.SNAPSHOT);
+        expect(intel.getScanSnapshotCapturedAt('target', Faction.Raiders)).to.equal(7);
+        expect(intel.getSnapshot('target', Faction.Raiders)?.data).to.deep.equal(new Uint8Array([1, 2, 3]));
+    });
+});
+
 describe('FactionIntelManager scan demotion', () => {
     it('demotes FULL to SNAPSHOT and captures the timestamp when no friendly scan beam covers the target', () => {
         const target = makeShip('target', Faction.Raiders);

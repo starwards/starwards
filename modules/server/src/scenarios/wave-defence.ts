@@ -12,6 +12,7 @@ import {
     ShipState,
     Spaceship,
     Vec2,
+    Waypoint,
     XY,
     aggroCharacters,
     ammoTypes,
@@ -591,6 +592,24 @@ export function createWaveDefenceMap(
         onWaveSpawned?.(waveNumber, shipIds, targetId);
     }
 
+    /** Raiders open the map knowing where the stations and the player ship are, as a snapshot and as waypoints (issue #2484). */
+    function giveRaidersIntel() {
+        for (const { id, position } of STATIONS) {
+            for (const faction of [Faction.Raiders, Faction.Gravitas]) {
+                const waypoint = new Waypoint().init(
+                    `waypoint-${id}-${Faction[faction].toLowerCase()}`,
+                    Vec2.make(position),
+                );
+                waypoint.faction = faction;
+                waypoint.title = id;
+                game.addObject(waypoint);
+            }
+        }
+        for (const id of [PLAYER_SHIP_ID, ...STATIONS.map((station) => station.id)]) {
+            game.grantSnapshot(id, Faction.Raiders);
+        }
+    }
+
     return {
         name: 'wave_defence',
         init: (g) => {
@@ -618,6 +637,7 @@ export function createWaveDefenceMap(
             for (const cloud of HAZARD_CLOUDS) {
                 game.addObject(new HazardCloud().init(cloud.id, Vec2.make(cloud.position), cloud.radius));
             }
+            giveRaidersIntel();
             spawnWave();
         },
         reseed: (key) => {

@@ -27,6 +27,7 @@ import {
     Order,
     PowerLevel,
     SHADOW_TRACK_RANGE,
+    ScanLevel,
     ShipManagerNpc,
     ShipModel,
     Spaceship,
@@ -1079,6 +1080,35 @@ describe('station radar power (issue #2084 design redirect)', () => {
 
         const player = gameDriver.getShip('GVTS');
         expect(player.state.radars.every((radar) => radar.power === PowerLevel.NORMAL)).toBe(true);
+    });
+});
+
+describe('wave_defence raider intel (issue #2484)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    it('starts Raiders holding SNAPSHOT, with data, on every station and the player ship', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+
+        const { factionIntel } = gameDriver.spaceManager;
+        for (const id of [...STATIONS.map((s) => s.id), 'GVTS']) {
+            expect(factionIntel.getScanLevel(id, Faction.Raiders)).toBe(ScanLevel.SNAPSHOT);
+            expect(factionIntel.getSnapshot(id, Faction.Raiders)).toBeDefined();
+        }
+    });
+
+    it('places a Raiders waypoint and a Gravitas waypoint on each station at its position', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+
+        const waypoints = [...gameDriver.spaceManager.state.getAll('Waypoint')];
+        expect(waypoints).toHaveLength(STATIONS.length * 2);
+        for (const station of STATIONS) {
+            for (const faction of [Faction.Raiders, Faction.Gravitas]) {
+                const found = waypoints.filter(
+                    (w) => w.faction === faction && XY.distance(w.position, station.position) < 1,
+                );
+                expect(found).toHaveLength(1);
+            }
+        }
     });
 });
 
