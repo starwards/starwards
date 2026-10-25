@@ -180,6 +180,10 @@ test.describe('Visual Gallery', () => {
         test(`${scene} renders correctly`, async ({ page }) => {
             const container = await openScene(page, scene);
             await expect(container).toBeVisible();
+            if (/^(hack|repair-queue)-/.test(scene)) {
+                const png = await container.screenshot({ animations: 'disabled', caret: 'hide' });
+                console.log(`TMPDIAG ${test.info().project.name} ${scene} ${png.toString('base64')}`);
+            }
             await expect(container).toHaveScreenshot(`${scene}.png`, SNAPSHOT_OPTIONS);
         });
     }
