@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
-import { GameMap, ShipModel } from '@starwards/core/internal';
+import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { RungTracker, WaveOutcome, waveRung } from './wave-rung';
@@ -304,9 +304,9 @@ const adversaryT1 = (profile: AdversaryProfile): TrainingScenario<T0Params> => (
     description: `T1 with the raider varied (adversary rung): ${profile.description}`,
     createMap: (params) =>
         createTrainingT1Map(params, 'dragonfly-MK1', {
-            noCombatWeave: profile.noCombatWeave,
+            noCombatWeave: profile.ai.noCombatWeave,
             standGround: profile.standGround,
-            flightDoctrine: profile.flightDoctrine,
+            flightDoctrine: profile.ai.flightDoctrine === FlightDoctrine.AUTO ? undefined : profile.ai.flightDoctrine,
         }),
 });
 

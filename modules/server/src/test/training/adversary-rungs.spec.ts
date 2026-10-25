@@ -49,8 +49,8 @@ describe('adversary rungs', () => {
         expect(a1Raider('intercept').flightDoctrine).toBe(FlightDoctrine.INTERCEPT);
         expect(a1Raider('standoff').flightDoctrine).toBe(FlightDoctrine.STANDOFF);
         expect(a1Raider('shadow').flightDoctrine).toBe(FlightDoctrine.SHADOW);
-        expect(a1Raider('noweave').labNoCombatWeave).toBe(true);
-        expect(a1Raider('today').labNoCombatWeave).toBe(false);
+        expect(a1Raider('noweave').aiProfile.noCombatWeave).toBe(true);
+        expect(a1Raider('today').aiProfile.noCombatWeave).toBe(false);
         expect(a1Raider('standground').idleStrategy).toBe(IdleStrategy.STAND_GROUND);
     });
 
