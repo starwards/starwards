@@ -504,6 +504,8 @@ npm run compare -- --results <out>/T0-crews.json [--results <other>/T0-crews.jso
 npm run agree -- --recording <x.sgr | folder> --station helms [--brain brains/helms.v12.json] [--reach 5000] [--md]
 ```
 
+- **Depth meter.** `npm run meter -- --question <text> --arm <name>=<pure|blind|informed|control>=<waves results.json>[#crew] ...` reads finished `waves` results (unpaired: seeds do not pair, a placebo flips about 30% of them) and prints per-arm pass rates with Wilson intervals, the runs per arm that detect a 5 pp gap, the success check (informed beats every pure arm; blind lands between; pass rate near the control) and the golden-rule check (each pure arm is the best response to some raider model). About 1000 runs per arm detect 5 pp at a 70% pass rate; 256 detect about 10 pp.
+
 - **Answer cache.** Every Jev answer is stored on disk under `training-archive/jev-cache`, keyed by
   model and request; a request already paid for is answered from disk for free, so a replayed seed
   makes the same decisions. Reports show paid and cached tokens apart. `--no-cache` asks afresh,
