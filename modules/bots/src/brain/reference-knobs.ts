@@ -151,6 +151,11 @@ export const REFERENCE_KNOB_DEFAULTS = {
     LULL_DOCK_FROM_SECONDS: 480,
     /** Seconds until which a lull dock may happen (wave 3 spawns at 960 s on W-waves). */
     LULL_DOCK_UNTIL_SECONDS: 960,
+    /**
+     * Docked with its restock done, the captain launches at full speed instead of a gentle undock once an enemy
+     * is within this of an allied station; 0 never launches.
+     */
+    LAUNCH_ON_THREAT_METERS: 0,
     /** How long a lull dock keeps the ship at the station (travel plus the 150 s full restock), unless the lull breaks. */
     LULL_DOCK_HOLD_SECONDS: 210,
     /**
