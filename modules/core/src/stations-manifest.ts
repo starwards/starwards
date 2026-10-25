@@ -74,6 +74,7 @@ export const stationCommands = [
     'warpUp',
     'warpDown',
     'dock',
+    'launch',
     // weapons
     'nextTarget',
     'prevTarget',

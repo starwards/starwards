@@ -28,10 +28,6 @@ export interface NpcAiProfile {
     readonly powerBackoffEngageHeat: number;
     /** Gun heat the mount must cool below before power backoff releases. */
     readonly powerBackoffReleaseHeat: number;
-    /** Gun heat at which the ceasefire hard-stop engages. */
-    readonly ceasefireEngageHeat: number;
-    /** Gun heat the mount must cool below before the ceasefire latch releases. */
-    readonly ceasefireReleaseHeat: number;
     /**
      * What the NPC believes about other ships. `exact`: every live hostile, omniscient (the test
      * profile specs and the harness reference rely on). `faction`: only hostiles its own faction
@@ -65,8 +61,6 @@ export const TODAY_NPC_AI: NpcAiProfile = {
     coolantReallocationIntervalSeconds: 0.5,
     powerBackoffEngageHeat: 0.6,
     powerBackoffReleaseHeat: 0.4,
-    ceasefireEngageHeat: 0.95,
-    ceasefireReleaseHeat: 0.7,
     perception: 'exact',
     aiTickRatio: 1,
     aimErrorDegrees: 0,

@@ -11,7 +11,7 @@ Hull `dragonfly-MK1`, same id and die seed, nobody crewing either ship. A readou
 | Crew order board (captain and doctrine orders, stance) | `CrewOrdersManager` drains `crewOrderCommands` | none; the board stays empty | modules/core/src/ship/ship-manager.ts |
 | Flight: thrust, speed cap, afterburner | `MovementManager`: capacity, afterburner and speed limits through `internalProxy`, which draws energy | `handleManeuvering` / `capMaxSpeed` apply the commanded vector directly | modules/core/src/ship/ship-manager.ts, `movement-manager.ts` |
 | Smart-pilot modes (manoeuvring and rotation mode) | `StatesToggle` cycles VELOCITY, TARGET, DIRECT on the crew's command | no toggle; automation writes `smartPilot` commands directly | modules/core/src/ship/ship-manager.ts |
-| Heat: coolant split and gun power | set by the engineer; `HeatManager` default split until then | `AutomationManager.manageHeat` reallocates coolant, backs gun power off and latches a ceasefire (a reflex, not a rule) | modules/core/src/ship/automation-manager.ts (`manageHeat`) |
+| Heat: coolant split and gun power | set by the engineer; `HeatManager` default split until then | `AutomationManager.manageHeat` reallocates coolant, and backs gun power off (a reflex, not a rule); gun jam and forced cooldown are physics both crews meet | modules/core/src/ship/automation-manager.ts (`manageHeat`) |
 | Scan beams | swung by the Signals officer | `ScanBeamAutomation` sweeps and follows, for zero-`maxSpeed` hulls (stations, platforms) only | modules/core/src/ship/scan-beam-automation.ts, `ship-manager.ts` |
 
 ## Measured differences

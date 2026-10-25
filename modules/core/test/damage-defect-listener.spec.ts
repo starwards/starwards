@@ -27,9 +27,9 @@ describe('DamageManager.onDefect', () => {
 
     it('reports an overheat defect as overheat', () => {
         const { state, heatManager, defects } = setUp();
-        heatManager.addHeat(1000, state.chainGuns[0]);
+        heatManager.addHeat(1000, state.thrusters[0]);
         expect(defects.length).to.be.greaterThan(0);
-        expect(defects.every((d) => d.cause === 'overheat' && d.system === state.chainGuns[0].name)).to.equal(true);
+        expect(defects.every((d) => d.cause === 'overheat' && d.system === state.thrusters[0].name)).to.equal(true);
     });
 
     it('reports warp penalty damage as warp', () => {

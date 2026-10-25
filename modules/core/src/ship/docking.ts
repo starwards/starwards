@@ -64,6 +64,10 @@ export class Docking extends SystemState {
     @commandable()
     public toggleCommand = false;
 
+    /** Server only, used for commands: cast off and boost to full forward speed along the heading. */
+    @commandable()
+    public launchCommand = false;
+
     get maxDockingDistance() {
         return this.design.maxDockingDistance * this.rangesFactor;
     }

@@ -57,6 +57,7 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     warpUp: { kind: 'fixed', pointer: '/warp/levelUpCommand', value: 'trigger' },
     warpDown: { kind: 'fixed', pointer: '/warp/levelDownCommand', value: 'trigger' },
     dock: { kind: 'fixed', pointer: '/docking/toggleCommand', value: 'trigger' },
+    launch: { kind: 'fixed', pointer: '/docking/launchCommand', value: 'trigger' },
 
     // --- weapons ---
     nextTarget: { kind: 'fixed', pointer: '/weaponsTarget/nextTargetCommand', value: 'trigger' },

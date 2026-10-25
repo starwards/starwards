@@ -1,6 +1,6 @@
 import { DockingMode, ShipDriver, SpaceDriver, getClosestDockingTarget, getSpatialIndex } from '@starwards/core';
-import { addListBlade, addTextBlade, createWidgetPane } from '../panel';
-import { propertyStub, readProp } from '../property-wrappers';
+import { addButton, addListBlade, addTextBlade, createWidgetPane } from '../panel';
+import { propertyStub, readProp, writeProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { EmitterLoop } from '../loop';
@@ -26,6 +26,10 @@ export function drawDockingStatus(container: WidgetContainer, spaceDriver: Space
         .filter<number>((k): k is number => typeof k === 'number')
         .map((value) => ({ value, text: String(DockingMode[value]) }));
     addListBlade(pane, readProp(shipDriver, '/docking/mode'), { label: 'Mode', options }, cleanup.add);
+    const toggleDock = writeProp<boolean>(shipDriver, '/docking/toggleCommand');
+    const launch = writeProp<boolean>(shipDriver, '/docking/launchCommand');
+    addButton(pane, () => toggleDock.setValue(true), { label: 'Dock', title: 'Undock' }, cleanup.add);
+    addButton(pane, () => launch.setValue(true), { label: 'Cast off at full speed', title: 'Launch' }, cleanup.add);
 
     const loop = new EmitterLoop(250);
     const spatial = getSpatialIndex(spaceDriver);

@@ -169,7 +169,7 @@ export abstract class ShipManager implements Updateable {
     protected chainGunManagers = new Array<ChainGunManager>();
     protected dockingManager: DockingManager;
     /**
-     * Public so tests can reach heat-management hooks (`setHeatManagementEnabled`, `isCeasefireLatched`)
+     * Public so tests can reach heat-management hooks (`setHeatManagementEnabled`)
      * — a test-only hatch, not a supported API. Non-test code should not depend on this being public.
      */
     public automationManager: AutomationManager;
