@@ -88,7 +88,10 @@ export class ShipDie implements Updateable {
         if (isRngPinned('cadence') && id.startsWith('coolantPhase:')) {
             return this.seed;
         }
-        if (isRngPinned('defect') && /(^|:)(defect|damage[A-Z]|magazineLostAmmo|thruster|availableCapacity|chainGun)/.test(id)) {
+        if (
+            isRngPinned('defect') &&
+            /(^|:)(defect|damage[A-Z]|magazineLostAmmo|thruster|availableCapacity|chainGun)/.test(id)
+        ) {
             return this.seed;
         }
         return this.eventSalt;
