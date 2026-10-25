@@ -33,6 +33,10 @@ export class SmartPilotDesignState extends DesignState implements SmartPilotDesi
     @gameField('float32') damage50 = 0;
     @gameField('float32') maxSpeed = 0;
     @gameField('float32') maxSpeedFromAfterBurner = 0;
+    constructor() {
+        super();
+        this.hackSeconds = 10;
+    }
 }
 
 export class SmartPilot extends SystemState {

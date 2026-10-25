@@ -187,4 +187,44 @@ describe('beam hacking stage 1 (M4.76)', () => {
         }
         expect(shellsFired()).to.equal(before);
     });
+
+    describe('stage 2 (M4.93): smart pilot', () => {
+        it('a player ship loses its smart pilot for the offline window and recovers', () => {
+            const { hacker, target, run } = hackerAndTarget();
+            const pilot = target.state.smartPilot;
+            expect(pilot.design.hackSeconds).to.be.greaterThan(0);
+            hacker.state.signals.hackSystem = 'smartPilot';
+            run(pilot.design.hackSeconds + 0.5);
+            expect(pilot.hacked).to.equal(HackLevel.DISABLED);
+            expect(pilot.effectiveness).to.equal(0);
+            run(pilot.design.hackOfflineSeconds + 0.5);
+            expect(pilot.hacked).to.equal(HackLevel.OK);
+            expect(pilot.effectiveness).to.be.greaterThan(0);
+        });
+
+        it('an NPC drifts without AI steering while its smart pilot is offline, and steers again after', () => {
+            const { hacker, target, targetObj, run } = hackerAndTarget('npc');
+            const npc = target as ShipManagerNpc;
+            const pilot = npc.state.smartPilot;
+            pilot.maneuvering.x = 0.1;
+            run(2);
+            expect(pilot.maneuvering.x).to.be.greaterThan(0);
+
+            hacker.state.signals.hackSystem = 'smartPilot';
+            run(pilot.design.hackSeconds + 0.5);
+            expect(pilot.hacked).to.equal(HackLevel.DISABLED);
+            const angle = targetObj.angle;
+            run(1);
+            expect(pilot.rotation).to.equal(0);
+            expect(pilot.maneuvering.x).to.equal(0);
+            expect(pilot.maneuvering.y).to.equal(0);
+            expect(targetObj.angle).to.be.closeTo(angle, 0.5);
+
+            run(pilot.design.hackOfflineSeconds + 1);
+            expect(pilot.hacked).to.equal(HackLevel.OK);
+            pilot.maneuvering.x = 0.1;
+            run(1);
+            expect(pilot.maneuvering.x).to.be.greaterThan(0);
+        });
+    });
 });
