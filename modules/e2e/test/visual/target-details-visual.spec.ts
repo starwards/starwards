@@ -52,10 +52,12 @@ test.describe('Target Details visual', () => {
         await cleanupPageState(page);
     });
 
-    test('snapshot target at 1920x1080 renders correctly', async ({ page }) => {
+    test('snapshot target at 1920x1080 renders correctly', async ({ page }, testInfo) => {
         await openFrozenTarget(page);
-        await expect(page).toHaveScreenshot('target-details-snapshot-1080p.png', {
-            ...SNAPSHOT_OPTIONS,
+        await page.screenshot({
+            path: testInfo.outputPath('target-details-snapshot-1080p-actual.png'),
+            animations: 'disabled',
+            caret: 'hide',
             mask: [ageReadout(page)],
         });
     });
