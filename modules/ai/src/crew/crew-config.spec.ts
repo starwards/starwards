@@ -1,8 +1,8 @@
 import {
     CALLOUT_QUESTION,
     buildRequest,
-    loadBrainSpec,
     guardSeatPlan,
+    loadBrainSpec,
     referenceSeatPlan,
     setReferenceKnobs,
     verbalReader,
@@ -117,7 +117,9 @@ describe('the losing → dock crews', () => {
             file,
             JSON.stringify({
                 name: 'nodock',
-                seats: [{ station: 'captain', policy: 'reference', brain: crewFile('../../bots/src/brains/captain.v17') }],
+                seats: [
+                    { station: 'captain', policy: 'reference', brain: crewFile('../../bots/src/brains/captain.v17') },
+                ],
                 knobs: { DOCK_LOSING_STATION_HP: 0.5 },
             }),
         );

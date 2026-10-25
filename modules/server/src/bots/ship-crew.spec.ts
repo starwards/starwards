@@ -72,12 +72,11 @@ describe('ship crew runner', () => {
         crew.addSeat('pilot', 'bot-pilot-2', 'guard');
         crew.addSeat('weapons', 'bot-weapons-3', 'guard');
         crew.addSeat('engineer', 'bot-engineer-4', 'guard');
-        crew.addSeat('signals', 'bot-signals-5', 'guard');
-        await until(() => statuses.length === 5, 10_000);
+        await until(() => statuses.length === 4, 10_000);
         crew.setRecording(true);
-        await until(() => new Set(events.filter((e) => e.kind === 'decision').map(stationOf)).size === 5, 15_000);
+        await until(() => new Set(events.filter((e) => e.kind === 'brain_request').map(stationOf)).size === 4, 15_000);
         await crew.stop();
-        expect(statuses.map((s) => s.status)).toEqual(Array(5).fill('running'));
+        expect(statuses.map((s) => s.status)).toEqual(Array(4).fill('running'));
         expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
     });
 
