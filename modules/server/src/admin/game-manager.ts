@@ -39,6 +39,7 @@ import {
     waitFor,
 } from '@starwards/core/internal';
 
+import { SystemBrokenAnnouncer } from './system-broken-announcer';
 import { decodedCopy } from '../serialization/game-state-serialization';
 import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
@@ -65,6 +66,7 @@ export class GameManager {
     private shipCleanups = new Map<string, () => unknown>();
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
+    private systemBroken = new SystemBrokenAnnouncer();
     private die = new ShipDie();
     public spaceManager = this.makeSpaceManager();
     /** Runs the bots seated in `state.bots`. */
@@ -158,6 +160,9 @@ export class GameManager {
             this.die.update(iterationData);
             for (const shipManager of this.shipManagers.values()) {
                 shipManager.update(iterationData);
+                for (const message of this.systemBroken.check(shipManager.spaceObject.id, shipManager.state)) {
+                    this.state.pushMessage(message);
+                }
             }
             this.spaceManager.update(iterationData);
             const space = this.spaceManager.state;
@@ -415,6 +420,7 @@ export class GameManager {
             this.state.resetMessages();
             this.shipCleanups.clear();
             this.shipManagers.clear();
+            this.systemBroken = new SystemBrokenAnnouncer();
             this.convertingShips.clear();
             this.state.gameStatus = GameStatus.STOPPED;
         }
@@ -574,6 +580,7 @@ export class GameManager {
                 this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
                 await matchMaker.remoteRoomCall(id, 'disconnect', []);
                 this.shipManagers.delete(id);
+                this.systemBroken.forget(id);
             }
         });
 
