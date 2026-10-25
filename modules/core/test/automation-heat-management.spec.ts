@@ -136,6 +136,16 @@ describe('AI heat-management automation', () => {
         });
     });
 
+    describe('ai profile', () => {
+        it('survives cloning the ship state', () => {
+            const { shipMgr } = createNpcShip('demo-ship', 'npc-clone');
+            const profile = { ...TODAY_NPC_AI, noCombatWeave: true };
+            shipMgr.state.aiProfile = profile;
+
+            expect(shipMgr.state.clone().aiProfile).to.equal(profile);
+        });
+    });
+
     describe('power backoff', () => {
         it("engages at the heat the ship's AI profile names, not a fixed constant", () => {
             const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-backoff-profile');

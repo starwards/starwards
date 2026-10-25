@@ -177,6 +177,13 @@ export class ShipState extends Schema implements Lockable {
      */
     aiProfile: NpcAiProfile = TODAY_NPC_AI;
 
+    /** Colyseus clones only the synced fields, so the server-only {@link aiProfile} is carried over by hand. */
+    override clone(): this {
+        const cloned = super.clone();
+        cloned.aiProfile = this.aiProfile;
+        return cloned;
+    }
+
     @gameField(Magazine)
     magazine!: Magazine;
 
