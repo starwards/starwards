@@ -36,6 +36,7 @@ import {
     ammoTypes,
     makeId,
     mulberry32,
+    npcDoctrines,
     waitFor,
 } from '@starwards/core/internal';
 
@@ -102,9 +103,8 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
     it('A1: wave 1 is always exactly two dragonfly-MK1, INTERCEPT, targeting the station, regardless of rng', () => {
         const wave1Spec = {
             model: 'dragonfly-MK1',
-            flightDoctrine: FlightDoctrine.INTERCEPT,
+            doctrine: 'rush',
             targetPolicy: { kind: 'station' },
-            aggro: 'Brawler',
         };
         for (const rng of [() => 0, () => 0.999, Math.random]) {
             expect(generateWaveSpecs(1, rng)).toEqual([wave1Spec, wave1Spec]);
@@ -118,18 +118,12 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
         const wave2 = generateWaveSpecs(2, rng);
         expect(
             wave2.some(
-                (s) =>
-                    s.model === 'dragonfly-MK2' &&
-                    s.flightDoctrine === FlightDoctrine.SHADOW &&
-                    s.targetPolicy.kind === 'player',
+                (s) => s.model === 'dragonfly-MK2' && s.doctrine === 'shadowPlayer' && s.targetPolicy.kind === 'player',
             ),
         ).toBe(true);
         expect(
             wave2.some(
-                (s) =>
-                    s.model === 'dragonfly-MK1' &&
-                    s.flightDoctrine === FlightDoctrine.INTERCEPT &&
-                    s.targetPolicy.kind === 'station',
+                (s) => s.model === 'dragonfly-MK1' && s.doctrine === 'rush' && s.targetPolicy.kind === 'station',
             ),
         ).toBe(true);
 
@@ -140,7 +134,7 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
             wave3.every(
                 (s) =>
                     (s.model === 'dragonfly-MK1' || s.model === 'dragonfly-MK2') &&
-                    s.flightDoctrine === FlightDoctrine.INTERCEPT &&
+                    s.doctrine === 'rush' &&
                     s.targetPolicy.kind === 'station',
             ),
         ).toBe(true);
@@ -149,28 +143,35 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
         const wave4 = generateWaveSpecs(4, rng);
         const heavies = wave4.filter((s) => s.model === 'predator' || s.model === 'glaive');
         expect(heavies).toHaveLength(1);
-        expect(heavies[0].flightDoctrine).toEqual(FlightDoctrine.STANDOFF);
+        expect(heavies[0].doctrine).toEqual('holdRange');
         expect(heavies[0].targetPolicy).toEqual({ kind: 'station' });
         const escorts = wave4.filter((s) => s.model === 'dragonfly-MK1');
         expect(escorts.length).toBeGreaterThan(0);
-        expect(
-            escorts.every((s) => s.flightDoctrine === FlightDoctrine.SHADOW && s.targetPolicy.kind === 'follow-heavy'),
-        ).toBe(true);
+        expect(escorts.every((s) => s.doctrine === 'shadowEscort' && s.targetPolicy.kind === 'follow-heavy')).toBe(
+            true,
+        );
 
         // wave 5: Gunline -- largest-affordable heavies first, remainder MK1, STANDOFF/station
         const wave5 = generateWaveSpecs(5, rng);
-        expect(
-            wave5.every((s) => s.flightDoctrine === FlightDoctrine.STANDOFF && s.targetPolicy.kind === 'station'),
-        ).toBe(true);
+        expect(wave5.every((s) => s.doctrine === 'holdRange' && s.targetPolicy.kind === 'station')).toBe(true);
         expect(wave5.some((s) => s.model === 'predator' || s.model === 'glaive' || s.model === 'cataphract')).toBe(
             true,
         );
     });
 
+    it('each archetype resolves to named doctrines: swarm rush, gunline holdRange, harass shadowPlayer+rush, escort holdRange+shadowEscort', () => {
+        const doctrinesOf = (wave: number) => [...new Set(generateWaveSpecs(wave, () => 0.42).map((s) => s.doctrine))];
+        expect(doctrinesOf(1)).toEqual(['rush']);
+        expect(doctrinesOf(2)).toEqual(['shadowPlayer', 'rush']); // harass
+        expect(doctrinesOf(3)).toEqual(['rush']); // swarm
+        expect(doctrinesOf(4)).toEqual(['holdRange', 'shadowEscort']); // escort
+        expect(doctrinesOf(5)).toEqual(['holdRange']); // gunline
+    });
+
     it('every raider in waves 1-10 carries an aggro character, the escort heavy included', () => {
         for (let wave = 1; wave <= 10; wave++) {
             for (const spec of generateWaveSpecs(wave, () => 0.5)) {
-                expect(spec.aggro).not.toBeNull();
+                expect(npcDoctrines[spec.doctrine].aggro).not.toBeNull();
             }
         }
     });
@@ -211,7 +212,8 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
 function waveSummary(specs: readonly WaveShipSpec[]): string[] {
     const counts = new Map<string, number>();
     for (const spec of specs) {
-        const key = `${spec.model} ${FlightDoctrine[spec.flightDoctrine]} ${spec.targetPolicy.kind} ${spec.aggro ?? '-'}`;
+        const { flightDoctrine, aggro } = npcDoctrines[spec.doctrine];
+        const key = `${spec.model} ${FlightDoctrine[flightDoctrine]} ${spec.targetPolicy.kind} ${aggro ?? '-'}`;
         counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return [...counts].map(([key, count]) => `${count}x ${key}`);
@@ -323,9 +325,8 @@ describe('wave tuning overrides', () => {
         expect(generateWaveSpecs(2, () => 0, tuning)).toEqual([
             {
                 model: 'cataphract',
-                flightDoctrine: FlightDoctrine.STANDOFF,
+                doctrine: 'holdRange',
                 targetPolicy: { kind: 'station' },
-                aggro: 'Brawler',
             },
         ]);
     });

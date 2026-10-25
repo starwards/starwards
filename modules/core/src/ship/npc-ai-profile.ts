@@ -1,3 +1,4 @@
+import { AggroCharacterName } from './threat-table';
 import { FlightDoctrine } from './flight-doctrine';
 
 /**
@@ -9,6 +10,8 @@ export interface NpcAiProfile {
     readonly name: string;
     /** Overrides the ship's flight doctrine; `AUTO` keeps whatever the order or the map gave it. */
     readonly flightDoctrine: FlightDoctrine;
+    /** The aggro character wave spawning gives the ship (re-weighted per hull); `null`: no aggro, the ship never leaves its order. */
+    readonly aggro: AggroCharacterName | null;
     /** Attack without the combat weave (calibration only; no real game sets it). */
     readonly noCombatWeave: boolean;
     /** Amplitude of the lateral weave overlaid on attack-order steering. */
@@ -41,6 +44,7 @@ export interface NpcAiProfile {
 export const TODAY_NPC_AI: NpcAiProfile = {
     name: 'today',
     flightDoctrine: FlightDoctrine.AUTO,
+    aggro: null,
     noCombatWeave: false,
     weaveAmplitudeMeters: 400,
     weaveFrequencyHz: 0.08,

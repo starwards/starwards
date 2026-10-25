@@ -1,12 +1,11 @@
 import {
-    AggroCharacterName,
     Faction,
-    FlightDoctrine,
     GameApi,
     GameMap,
     HazardCloud,
     IdleStrategy,
     Nebula,
+    NpcDoctrineName,
     PowerLevel,
     ShipModel,
     ShipState,
@@ -20,6 +19,7 @@ import {
     missionWeightForHits,
     mix,
     mulberry32,
+    npcDoctrines,
     withMissionWeight,
     withSpawnNoise,
 } from '@starwards/core/internal';
@@ -105,13 +105,12 @@ export function waveBudget(waveNumber: number, exponent = DEFAULT_WAVE_TUNING.bu
 export type WaveTargetPolicy =
     { readonly kind: 'station' } | { readonly kind: 'player' } | { readonly kind: 'follow-heavy' };
 
-/** One raider's hull, flight doctrine, order and aggro character, as authored by a wave archetype (issue #2241). */
+/** One raider's hull, order and named doctrine (flight style and aggro character), as authored by a wave archetype (issue #2241). */
 export interface WaveShipSpec {
     readonly model: ShipModel;
-    readonly flightDoctrine: FlightDoctrine;
+    /** Resolved through {@link npcDoctrines}. */
+    readonly doctrine: NpcDoctrineName;
     readonly targetPolicy: WaveTargetPolicy;
-    /** `null`: no aggro, the raider never leaves its order. */
-    readonly aggro: AggroCharacterName | null;
 }
 
 const MK1_MODEL = 'dragonfly-MK1';
@@ -144,9 +143,8 @@ function buildSwarm(budget: number, rng: () => number, hulls: HullTables): WaveS
         const [model, score] = affordable[Math.floor(rng() * affordable.length)];
         specs.push({
             model,
-            flightDoctrine: FlightDoctrine.INTERCEPT,
+            doctrine: 'rush',
             targetPolicy: { kind: 'station' },
-            aggro: 'Brawler',
         });
         remaining -= score;
     }
@@ -160,9 +158,8 @@ function buildGunline(budget: number, hulls: HullTables): WaveShipSpec[] {
         while (remaining >= score) {
             specs.push({
                 model,
-                flightDoctrine: FlightDoctrine.STANDOFF,
+                doctrine: 'holdRange',
                 targetPolicy: { kind: 'station' },
-                aggro: 'Brawler',
             });
             remaining -= score;
         }
@@ -170,9 +167,8 @@ function buildGunline(budget: number, hulls: HullTables): WaveShipSpec[] {
     while (remaining >= hulls.mk1) {
         specs.push({
             model: MK1_MODEL,
-            flightDoctrine: FlightDoctrine.STANDOFF,
+            doctrine: 'holdRange',
             targetPolicy: { kind: 'station' },
-            aggro: 'Brawler',
         });
         remaining -= hulls.mk1;
     }
@@ -187,9 +183,8 @@ function buildHarass(budget: number, hulls: HullTables): WaveShipSpec[] {
     while (remaining >= hulls.mk2) {
         specs.push({
             model: MK2_MODEL,
-            flightDoctrine: FlightDoctrine.SHADOW,
+            doctrine: 'shadowPlayer',
             targetPolicy: { kind: 'player' },
-            aggro: 'Hunter',
         });
         remaining -= hulls.mk2;
     }
@@ -197,9 +192,8 @@ function buildHarass(budget: number, hulls: HullTables): WaveShipSpec[] {
     while (stationBudget >= hulls.mk1) {
         specs.push({
             model: MK1_MODEL,
-            flightDoctrine: FlightDoctrine.INTERCEPT,
+            doctrine: 'rush',
             targetPolicy: { kind: 'station' },
-            aggro: 'Brawler',
         });
         stationBudget -= hulls.mk1;
     }
@@ -211,18 +205,16 @@ function buildEscort(budget: number, hulls: HullTables): WaveShipSpec[] {
     const specs: WaveShipSpec[] = [
         {
             model: 'predator',
-            flightDoctrine: FlightDoctrine.STANDOFF,
+            doctrine: 'holdRange',
             targetPolicy: { kind: 'station' },
-            aggro: 'Brawler',
         },
     ];
     let remaining = budget - hulls.predator;
     while (remaining >= hulls.mk1) {
         specs.push({
             model: MK1_MODEL,
-            flightDoctrine: FlightDoctrine.SHADOW,
+            doctrine: 'shadowEscort',
             targetPolicy: { kind: 'follow-heavy' },
-            aggro: 'Brawler',
         });
         remaining -= hulls.mk1;
     }
@@ -290,9 +282,8 @@ export function generateWaveSpecs(
     if (waveNumber === 1) {
         const wave1Spec: WaveShipSpec = {
             model: MK1_MODEL,
-            flightDoctrine: FlightDoctrine.INTERCEPT,
+            doctrine: 'rush',
             targetPolicy: { kind: 'station' },
-            aggro: 'Brawler',
         };
         return [wave1Spec, wave1Spec];
     }
@@ -561,13 +552,18 @@ export function createWaveDefenceMap(
             const jitter = XY.byLengthAndDirection(draw() * SPAWN_JITTER_METERS, draw() * 360);
             const ship = new Spaceship().init(id, Vec2.make(XY.add(spawnCenter, jitter)), spec.model, Faction.Raiders);
             const shipApi = game.addNpcSpaceship(ship);
-            shipApi.state.flightDoctrine = spec.flightDoctrine;
-            if (spec.aggro) {
+            const doctrine = npcDoctrines[spec.doctrine];
+            shipApi.state.aiProfile = doctrine;
+            shipApi.state.flightDoctrine = doctrine.flightDoctrine;
+            if (doctrine.aggro) {
                 // Own stream per ship, seeded from the game's noise seed, so the noise never shifts
                 // the wave rng's later draws.
                 shipApi.setAggroCharacter(
                     withSpawnNoise(
-                        withMissionWeight(aggroCharacters[spec.aggro], missionWeightForHits(hitsToProvoke(spec.model))),
+                        withMissionWeight(
+                            aggroCharacters[doctrine.aggro],
+                            missionWeightForHits(hitsToProvoke(spec.model)),
+                        ),
                         mulberry32(mix(mix(noiseSeed, waveNumber), index)),
                     ),
                 );
