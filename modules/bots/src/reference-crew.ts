@@ -5,6 +5,9 @@ import { Policy } from './brain/brain';
 import { REFERENCE_ENGINEER } from './brain/reference-engineer';
 import captain from './brains/captain.v1.json';
 import engineer from './brains/engineer.v1.json';
+import guardCaptain from './brains/captain.v17.json';
+import guardSignals from './brains/signals.v10.json';
+import guardWeapons from './brains/weapons.v20.json';
 import helms from './brains/helms.v1.json';
 import signals from './brains/signals.v1.json';
 import tactical from './brains/tactical.v1.json';
@@ -66,4 +69,16 @@ export function referenceSeatPlan(station: string): SeatPlan {
         throw new Error(`no reference brain for station "${station}"`);
     }
     return referenceSeat(brainSpecSchema.parse(raw));
+}
+
+/**
+ * The guard crew's brains, where they differ from the v1 reference: the crew the depth meter plays
+ * as its `guard` arm (`modules/ai/crews/captain-reference-guard.json`) and the GM seats live.
+ */
+const guardBrains: Record<string, unknown> = { captain: guardCaptain, signals: guardSignals, weapons: guardWeapons };
+
+/** The guard crew's seat for a station: its guard brain, else the station's v1 reference brain. */
+export function guardSeatPlan(station: string): SeatPlan {
+    const raw = guardBrains[station];
+    return raw ? referenceSeat(brainSpecSchema.parse(raw)) : referenceSeatPlan(station);
 }
