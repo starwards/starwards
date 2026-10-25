@@ -90,7 +90,7 @@ export class Signals extends SystemState {
  * Systems whose offline state changes an NPC's behaviour through the shared ship model, so a hack
  * on them is felt (beam hacking stage 1). Anything else is rejected as not hackable.
  */
-export const HACKABLE_SYSTEM_KEYS = ['thrusters', 'chainGuns'] as const;
+export const HACKABLE_SYSTEM_KEYS = ['thrusters', 'chainGuns', 'smartPilot'] as const;
 export type HackableSystemKey = (typeof HACKABLE_SYSTEM_KEYS)[number];
 
 /** Systems the Signals officer can pick from; those outside {@link HACKABLE_SYSTEM_KEYS} show as not hackable. */

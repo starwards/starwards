@@ -1,6 +1,7 @@
 import { Faction, ScanLevel } from '../space';
 import { FlightDoctrine, MAX_TRANSIT_HEADING_CONCESSION } from './flight-doctrine';
 import { FlightProfile, believedBearingCommandFor, believedCanBearAt, makeFlightProfile } from './flight-profile';
+import { HackLevel, PowerLevel } from './system';
 import { IdleStrategy, Order, ShipState } from './ship-state';
 import {
     ManeuveringCommand,
@@ -24,7 +25,6 @@ import { DockingMode } from './docking';
 import { IterationData } from '../updateable';
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { NpcAiProfile } from './npc-ai-profile';
-import { PowerLevel } from './system';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
@@ -564,9 +564,26 @@ export class AutomationManager {
         if (!this.idleGiveWayThisTick) {
             this.idleGiveWayEngaged = false;
         }
+        this.dropSteeringWhileSmartPilotHacked();
         this.manageHeat(id);
         this.tickCount++;
         return { heldEngagementEnded };
+    }
+
+    /**
+     * Synthetic effect of a beam hack on the smart pilot (M4.93). NPC steering is written straight
+     * into the DIRECT-mode commands and never passes through the smart pilot's effectiveness, so the
+     * hack would be invisible. While the pilot is offline the AI's steering and heading hold drop
+     * out: the hull coasts, as a crewed ship does when its autopilot dies.
+     */
+    private dropSteeringWhileSmartPilotHacked() {
+        const pilot = this.state.smartPilot;
+        if (this.state.isPlayerShip || pilot.hacked !== HackLevel.DISABLED) {
+            return;
+        }
+        pilot.rotation = 0;
+        pilot.maneuvering.x = 0;
+        pilot.maneuvering.y = 0;
     }
 
     /**

@@ -1,14 +1,21 @@
 import { HackLevel, SystemState } from './system';
+import { HackableSystemKey, isHackableSystemKey } from './signals';
 import { IterationData, Updateable } from '../updateable';
 import { FIREWALL_PROTOCOL_ID } from './hack-windows';
 import { RepairPriority } from './repair-queue';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
-import { isHackableSystemKey } from './signals';
 
-function hackableInstances(state: ShipState, key: 'thrusters' | 'chainGuns'): SystemState[] {
-    return key === 'thrusters' ? [...state.thrusters] : [...state.chainGuns];
+function hackableInstances(state: ShipState, key: HackableSystemKey): SystemState[] {
+    switch (key) {
+        case 'thrusters':
+            return [...state.thrusters];
+        case 'chainGuns':
+            return [...state.chainGuns];
+        case 'smartPilot':
+            return [state.smartPilot];
+    }
 }
 
 /**
@@ -36,7 +43,7 @@ export class HackManager implements Updateable {
             return;
         }
         const target = this.getShipState(this.state.signalsTargetId) as ShipState;
-        const key = signals.hackSystem as 'thrusters' | 'chainGuns';
+        const key = signals.hackSystem as HackableSystemKey;
         const instances = hackableInstances(target, key);
         const hackSeconds = Math.max(...instances.map((s) => s.design.hackSeconds));
         const effectiveness = signals.effectiveness * signals.jobSpeedFactor;

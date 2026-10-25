@@ -5,7 +5,11 @@ import { propertyStub, readNumberProp, writeProp } from '../property-wrappers';
 import { WidgetContainer } from '../container';
 
 /** Hotkey that starts a hack on each hackable system, in `HACKABLE_SYSTEM_KEYS` order. */
-export const HACK_HOTKEYS: Record<(typeof HACKABLE_SYSTEM_KEYS)[number], string> = { thrusters: 'h', chainGuns: 'g' };
+export const HACK_HOTKEYS: Record<(typeof HACKABLE_SYSTEM_KEYS)[number], string> = {
+    thrusters: 'h',
+    chainGuns: 'g',
+    smartPilot: 'j',
+};
 
 /** Starts a hack on the marked target's `system`; '' cancels the running hack. */
 export function startHack(shipDriver: ShipDriver, system: string) {
