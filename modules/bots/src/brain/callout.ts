@@ -15,6 +15,7 @@ import { HullStatus, SALVO_MISSILES, radarReach } from '@starwards/core/internal
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
 import { isEnemyShip } from './enemy';
+import { plateIntelFill } from './plate-intel';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';
@@ -300,6 +301,8 @@ const calloutFills: Record<
             : { names, focus: names };
         return values;
     },
+    /** Signals: the armor of the contact marked on Target Details (`plateIntel`). */
+    plateIntel: (display) => plateIntelFill(display),
     /** Signals: the most urgent hull or capsule tier change on its hull-status panel (`hullStatusChange`). */
     hullStatusChange: (display, previous) => {
         const change = hullStatusChange(display, previous);

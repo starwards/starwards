@@ -5,6 +5,7 @@ import { Resupply, SalvoTally, calloutMemory, referenceCallout } from './referen
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
 import { flightSeconds, stillFlying } from './salvo';
+import { heardPlateIntel, informedAmmoSide } from './plate-intel';
 
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
@@ -139,7 +140,14 @@ export function makeReferencePolicy(
     const talk = calloutMemory(resupply, threatTarget, guardCentre);
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
-    const spend: Spend = { lockId: undefined, firedOn: 0, firstShells: undefined, apShells: 0, apMissiles: 0 };
+    const spend: Spend = {
+        lockId: undefined,
+        firedOn: 0,
+        firstShells: undefined,
+        apShells: 0,
+        apMissiles: 0,
+        plateCall: undefined,
+    };
     let retally: ((pressed: Readonly<Record<string, Answer>>) => void) | undefined;
     return {
         name,
@@ -171,6 +179,8 @@ export function makeReferencePolicy(
                 spend.apShells += Math.max(0, apShellCount(previous) - apShellCount(display));
             }
             spend.lockId = lockId;
+            const intel = heardPlateIntel(heard, lockId);
+            spend.plateCall = intel && informedAmmoSide(intel);
             spend.firstShells ??= shellsLeft(display);
             const launchTube =
                 seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS &&
@@ -649,6 +659,8 @@ type Spend = {
     firstShells: number | undefined;
     apShells: number;
     apMissiles: number;
+    /** What Signals' latest fresh plate call on the lock says to load (`AMMO_INFORMED`). */
+    plateCall: 'ap' | 'he' | undefined;
 };
 
 /** The gun's order while `AMMO_OPEN_AP` judges the lock's plates intact. */
@@ -668,11 +680,25 @@ function platesIntact(spend: Spend) {
     return spend.apShells < referenceKnobs.AMMO_OPEN_AP_SHELLS && spend.apMissiles < 1;
 }
 
-/** With `AMMO_OPEN_AP` above `level` and a lock: the AP order while plates are judged intact, else the HE order. */
-function apOpenOrder<T>(spend: Spend, open: T, finish: T, level: number) {
+/**
+ * The ammo arm in play above `level` (1 shells, 2 shells and tubes): the pure arms need no lock, the
+ * informed arm follows Signals' plate call (AP without one), the blind arm its own tally. Undefined with
+ * every arm off or no lock for the lock-bound arms.
+ */
+function ammoSide(spend: Spend, level: number): 'ap' | 'he' | undefined {
+    if (referenceKnobs.AMMO_HE_ONLY > level) return 'he';
+    if (referenceKnobs.AMMO_AP_ONLY > level) return 'ap';
     const locked = spend.lockId !== undefined && spend.lockId !== null && spend.lockId !== '';
-    if (referenceKnobs.AMMO_OPEN_AP <= level || !locked) return undefined;
-    return platesIntact(spend) ? open : finish;
+    if (!locked) return undefined;
+    if (referenceKnobs.AMMO_INFORMED > level) return spend.plateCall ?? 'ap';
+    if (referenceKnobs.AMMO_OPEN_AP > level) return platesIntact(spend) ? 'ap' : 'he';
+    return undefined;
+}
+
+/** With an ammo arm above `level`: the `open` order for an AP side, the `finish` order for an HE side. */
+function apOpenOrder<T>(spend: Spend, open: T, finish: T, level: number) {
+    const side = ammoSide(spend, level);
+    return side && (side === 'ap' ? open : finish);
 }
 
 /** Whether to log `AMMO_OPEN_AP` switches (env `APOPEN_LOG`), for smoke runs. */
