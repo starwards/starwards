@@ -23,6 +23,21 @@ function runTicks(ammoManager: AmmoManager, durationSeconds: number, ticksPerSec
 }
 
 describe('AmmoManager', () => {
+    it('restocks 2 HiExpMissile per 10 s at the default rate, linear over time', () => {
+        const { state } = setUpShip();
+        state.magazine.design.max_HiExpMissile = 8;
+        state.magazine.setCount('HiExpMissile', 0);
+        state.docking.mode = DockingMode.DOCKED;
+        const ammoManager = new AmmoManager(state);
+
+        runTicks(ammoManager, 5, 20);
+        expect(state.magazine.getCount('HiExpMissile')).to.equal(1);
+        runTicks(ammoManager, 5, 20);
+        expect(state.magazine.getCount('HiExpMissile')).to.equal(2);
+        runTicks(ammoManager, 10, 20);
+        expect(state.magazine.getCount('HiExpMissile')).to.equal(4);
+    });
+
     it('does not accrue rounds while UNDOCKED or DOCKING (approach)', () => {
         const { state } = setUpShip();
         state.magazine.setCount('HiExpMissile', 0);

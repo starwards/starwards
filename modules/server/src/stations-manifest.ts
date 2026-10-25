@@ -26,6 +26,7 @@ const defaultStationsManifest: StationsManifest = {
                 'warpUp',
                 'warpDown',
                 'dock',
+                'launch',
             ],
             prompt: 'You fly the ship. You hold heading, speed and station-keeping, and you dock.',
         },

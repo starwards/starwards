@@ -186,6 +186,12 @@ const ORDER_PROGRESS: Record<string, OrderProgress> = {
                 ? { status: 'complete', note: 'clear of the dock' }
                 : undefined,
     },
+    launch: {
+        progress: (_order, { station, display }) =>
+            station === 'helms' && dockingMode(display) === DOCKING_MODE.UNDOCKED
+                ? { status: 'complete', note: 'launched' }
+                : undefined,
+    },
     retreat: {
         progress(order, { station, display }) {
             const at = own(display);
@@ -481,6 +487,7 @@ const CALLOUT_ORDERS: Record<string, (v: Values, origin: XY | undefined) => Give
     preserve_energy: () => ({ kind: 'preserve_energy' }),
     dock_for_repair: (v, o) => ({ kind: 'dock_for_repair', params: { station: calloutRef(v, o) } }),
     undock: () => ({ kind: 'undock' }),
+    launch: () => ({ kind: 'launch' }),
     dock_below_armor: (v, o) => ({ kind: 'dock_below_armor', params: { station: calloutRef(v, o) } }),
     retreat: (v, o) => ({ kind: 'retreat', params: { target: calloutRef(v, o) } }),
     hold_position: () => ({ kind: 'hold_position' }),
