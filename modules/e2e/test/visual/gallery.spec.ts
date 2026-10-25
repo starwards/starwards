@@ -185,17 +185,12 @@ test.describe('Visual Gallery', () => {
         test(`${scene} renders correctly`, async ({ page }) => {
             const container = await openScene(page, scene);
             await expect(container).toBeVisible();
-            if (scene.startsWith('station-roster') && test.info().project.name === 'chromium') {
-                await container.screenshot({ path: test.info().outputPath(`${scene}.png`) });
-                return;
-            }
             await expect(container).toHaveScreenshot(`${scene}.png`, SNAPSHOT_OPTIONS);
         });
     }
 
     for (const scene of scenes) {
         test(`${scene} snapshot detects a perturbed widget`, async ({ page }) => {
-            test.skip(scene.startsWith('station-roster') && test.info().project.name === 'chromium', 'tmp');
             test.skip(
                 !['none', 'missing'].includes(test.info().config.updateSnapshots),
                 'snapshot-update mode would rewrite the baseline from the perturbed render',
