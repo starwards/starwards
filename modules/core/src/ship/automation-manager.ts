@@ -1,3 +1,4 @@
+import { Faction, ScanLevel } from '../space';
 import { FlightDoctrine, MAX_TRANSIT_HEADING_CONCESSION } from './flight-doctrine';
 import { FlightProfile, believedBearingCommandFor, believedCanBearAt, makeFlightProfile } from './flight-profile';
 import { IdleStrategy, Order, ShipState } from './ship-state';
@@ -20,7 +21,6 @@ import {
 
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
-import { Faction } from '../space';
 import { IterationData } from '../updateable';
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { NpcAiProfile } from './npc-ai-profile';
@@ -29,6 +29,7 @@ import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
 import { assertUnreachable } from '../utils';
+import { playerScanLevel } from '../client/space-object-intel';
 import { switchToAvailableAmmo } from './chain-gun-manager';
 
 /**
@@ -106,6 +107,12 @@ export class AutomationManager {
      * @see docs/SUBSYSTEMS.md#believed-bearing-skew
      */
     private trackedBearingSkew = new Map<ChainGun, number>();
+
+    /** Ticks since this ship's first; paces the AI decision layer ({@link NpcAiProfile.aiTickRatio}). */
+    private tickCount = 0;
+    private thoughtAtTick = -1;
+    /** Hostile ids perceived at the last decision tick; held between decisions. */
+    private perceivedHostileIds: string[] = [];
 
     constructor(
         private state: ShipState,
@@ -519,6 +526,7 @@ export class AutomationManager {
     update(id: IterationData, heldId: string | null) {
         this.commandedHeadingThisTick = false;
         this.idleGiveWayThisTick = false;
+        this.thinkIfDue();
         if (this.getAndApplyOrder()) {
             this.shipManager.cancelAllTasks();
         }
@@ -564,6 +572,7 @@ export class AutomationManager {
             this.idleGiveWayEngaged = false;
         }
         this.manageHeat(id);
+        this.tickCount++;
         return { heldEngagementEnded };
     }
 
@@ -803,7 +812,7 @@ export class AutomationManager {
         const primaryId = heldId ?? (this.state.order === Order.ATTACK ? this.state.orderTargetId : null);
         if (primaryId) {
             const orderedTarget = this.spaceManager.state.get(primaryId) || null;
-            if (orderedTarget && !orderedTarget.destroyed) {
+            if (orderedTarget && !orderedTarget.destroyed && this.canPerceive(orderedTarget)) {
                 if (this.anyMountCanBearOn(orderedTarget)) {
                     this.gunneryTargetId = null;
                     return orderedTarget;
@@ -828,7 +837,12 @@ export class AutomationManager {
         let target = this.gunneryTargetId ? this.spaceManager.state.get(this.gunneryTargetId) || null : null;
         if (target) {
             const distance = XY.distance(target.position, this.state.position);
-            if (target.destroyed || target.id === excludeId || !profile.isReachable(distance)) {
+            if (
+                target.destroyed ||
+                target.id === excludeId ||
+                !profile.isReachable(distance) ||
+                !this.canPerceive(target)
+            ) {
                 target = null;
             }
         }
@@ -903,21 +917,57 @@ export class AutomationManager {
 
     /** Ids of live hostile-faction Spaceships inside the ship's range envelope, lazily. */
     *hostileIdsInReach(): Generator<string> {
+        this.thinkIfDue();
         for (const { candidate } of this.hostilesInReach()) {
             yield candidate.id;
         }
     }
 
-    /** Live hostile-faction Spaceships inside the ship's range envelope (`FlightProfile.isReachable`). */
-    private *hostilesInReach(): Generator<{ candidate: SpaceObject; distance: number }> {
-        const profile = this.getFlightProfile();
+    /** Runs the decision layer's perception once per tick, on every {@link NpcAiProfile.aiTickRatio}th tick. */
+    private thinkIfDue() {
+        if (this.thoughtAtTick === this.tickCount) {
+            return;
+        }
+        this.thoughtAtTick = this.tickCount;
+        if (this.tickCount % Math.max(1, Math.round(this.ai.aiTickRatio)) === 0) {
+            this.perceivedHostileIds = this.perceiveHostiles();
+        }
+    }
+
+    /** Whether this NPC's perception profile lets it believe in `candidate`. */
+    private canPerceive(candidate: SpaceObject): boolean {
+        if (this.ai.perception === 'exact' || candidate.faction === this.state.faction) {
+            return true;
+        }
+        return (
+            this.spaceManager.isVisibleToFaction(this.state.faction, candidate.id) &&
+            playerScanLevel(candidate, this.state.faction) >= ScanLevel.BASIC
+        );
+    }
+
+    /** Ids of the live hostile-faction Spaceships this NPC perceives; recomputed on decision ticks only. */
+    private perceiveHostiles(): string[] {
+        const ids: string[] = [];
         for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
             if (
-                candidate.id === this.state.id ||
-                candidate.destroyed ||
-                candidate.faction === Faction.NONE ||
-                candidate.faction === this.state.faction
+                candidate.id !== this.state.id &&
+                !candidate.destroyed &&
+                candidate.faction !== Faction.NONE &&
+                candidate.faction !== this.state.faction &&
+                this.canPerceive(candidate)
             ) {
+                ids.push(candidate.id);
+            }
+        }
+        return ids;
+    }
+
+    /** Perceived live hostile-faction Spaceships inside the ship's range envelope (`FlightProfile.isReachable`). */
+    private *hostilesInReach(): Generator<{ candidate: SpaceObject; distance: number }> {
+        const profile = this.getFlightProfile();
+        for (const id of this.perceivedHostileIds) {
+            const candidate = this.spaceManager.state.get(id);
+            if (!candidate || candidate.destroyed) {
                 continue;
             }
             const distance = XY.distance(candidate.position, this.state.position);

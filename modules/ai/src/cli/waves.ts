@@ -4,6 +4,7 @@
  * t and bootstrap 95% intervals, per metric.
  *
  *   npm --prefix modules/ai run waves -- --scenario W-cut-lof --crew crews/a.json --crew crews/b.json [--seeds 16] [--first-seed 1] [--timeout 480] [--workers 2] [--out <dir>]
+ *   npm --prefix modules/ai run waves -- --difficulty hard|normal|easy --crew crews/a.json   (plays `AW-<difficulty>`: faction perception, AI tick ratio of the preset)
  *   npm --prefix modules/ai run waves -- --results <out>/<scenario>-waves.json [--baseline <crew>]
  *   npm --prefix modules/ai run waves -- --sequential --crew <baseline.json> --crew <candidate.json> [--looks 32,64,128,192] [--first-seed 1] [--workers 4] [--out <dir>]
  *   ... --baseline-results <a>/W-cut-lof-waves.json,<b>/W-cut-lof-waves.json
@@ -30,6 +31,7 @@ import { baselineCache } from '../training/baseline-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
 import { missileTelemetry } from '../training/missile-telemetry';
+import { npcDifficultyPresets } from '@starwards/core/internal';
 import os from 'node:os';
 import path from 'node:path';
 import { playCrewTraining } from '../training/train-crew';
@@ -109,7 +111,11 @@ if (process.send) {
 }
 
 async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: string }> {
-    const scenario = arg('scenario', 'W-cut-lof');
+    const difficulty = arg('difficulty', '');
+    if (difficulty && !Object.keys(npcDifficultyPresets).includes(difficulty)) {
+        throw new Error(`--difficulty must be one of ${Object.keys(npcDifficultyPresets).join(', ')}`);
+    }
+    const scenario = difficulty ? `AW-${difficulty}` : arg('scenario', 'W-cut-lof');
     const crews = args('crew').map((c) => {
         const [file, ideals] = c.split('#');
         return path.resolve(file) + (ideals ? `#${ideals}` : '');

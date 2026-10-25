@@ -218,6 +218,8 @@ already inside sprint range, so it accelerates straight away.
 
 A doctrine is a named `NpcAiProfile` (`npcDoctrines` in `modules/core/src/ship/npc-doctrines.ts`): a flight doctrine plus an aggro character (`aggro`). Wave archetypes reference them by name (`WaveShipSpec.doctrine`): swarm `rush`, gunline `holdRange`, harass `shadowPlayer` + `rush`, escort `holdRange` + `shadowEscort`. Wave spawning sets `ShipState.aiProfile` from the doctrine. Server-side only, never a `@gameField`, so it appears in no scan or Target Details.
 
+**Perception and difficulty.** `NpcAiProfile.perception` is `exact` (default, `TODAY_NPC_AI`: every live hostile, the test profile) or `faction`: only hostiles the NPC's faction holds in field of view and has scanned to `BASIC` or better (`playerScanLevel`). `aiTickRatio` runs the decision layer (perceiving hostiles) every Nth tick; physics and execution run every tick. `npcDifficultyPresets` (`hard` 1:1, `normal` 1:4, `easy` 1:10; placeholder ratios) use `faction` perception. The default is `exact` perception at 1:1, so existing behaviour is unchanged. `npm --prefix modules/ai run waves -- --difficulty <preset>` plays the `AW-<preset>` wave rung.
+
 ### Flight doctrine
 
 `FlightDoctrine` (`modules/core/src/ship/flight-doctrine.ts`) is how a ship weighs gunnery aim
