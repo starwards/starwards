@@ -1,7 +1,7 @@
-import { generateWaveSpecs } from '../../scenarios/wave-defence';
-import { mulberry32 } from '@starwards/core/internal';
 import { runTraining, trainingScenarios } from './training-scenarios';
 
+import { generateWaveSpecs } from '../../scenarios/wave-defence';
+import { mulberry32 } from '@starwards/core/internal';
 import { waveRung } from './wave-rung';
 
 describe('wave rung', () => {
