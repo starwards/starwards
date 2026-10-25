@@ -17,6 +17,7 @@ const helmsCapabilities: Capabilities = {
         'maneuveringMode',
         'afterBurner',
         'dock',
+        'launch',
     ].map((command) => ({ command })),
 };
 
@@ -114,6 +115,19 @@ describe('reference seats under the order board', () => {
         expect(state.shown.orders[0]?.status).toBe('complete');
         expect((await choices(policy, helmsDisplay(state.shown, [], docked))).dock).toBe('wait');
         expect((await choices(policy, helmsDisplay(board([{ kind: 'undock' }]), [], docked))).dock).toBe('press');
+    });
+
+    it('launches only from the dock, on the order to launch', async () => {
+        const policy = withOrderBoard(idleTestPolicy, 'helms');
+        const docked = { dockingMode: DOCKING_MODE.DOCKED };
+        const launching = await choices(policy, helmsDisplay(board([{ kind: 'launch' }]), [], docked));
+        expect(launching.launch).toBe('press');
+        expect(launching.dock).toBe('wait');
+        const flying = await choices(
+            policy,
+            helmsDisplay(board([{ kind: 'launch' }]), [], { dockingMode: DOCKING_MODE.UNDOCKED }),
+        );
+        expect(flying.launch).toBe('wait');
     });
 
     it('chase target vs preserve energy: the stance`s ranking decides the afterburner, the chase still steers', async () => {

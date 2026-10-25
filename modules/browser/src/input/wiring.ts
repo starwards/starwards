@@ -116,6 +116,7 @@ export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
         'Warp Down',
     );
     input.addMomentaryClickAction(writeProp(shipDriver, '/docking/toggleCommand'), shipInputConfig.dock, 'Toggle Dock');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/docking/launchCommand'), shipInputConfig.launch, 'Launch');
     input.init();
     return input;
 }

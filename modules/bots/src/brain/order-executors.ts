@@ -195,6 +195,13 @@ const helmsExecutors: Record<string, OrderExecutor> = {
         constrains: ['dock'],
         propose: (_order, { display }) => ({ dock: docking(display) === DOCKING_MODE.DOCKED ? 'press' : 'wait' }),
     },
+    launch: {
+        constrains: ['dock', 'launch'],
+        propose: (_order, { display }) => ({
+            dock: 'wait',
+            launch: docking(display) === DOCKING_MODE.DOCKED ? 'press' : 'wait',
+        }),
+    },
     retreat: {
         constrains: HELM,
         propose(order, { display }) {

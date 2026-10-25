@@ -96,7 +96,7 @@ export class Magazine extends SystemState {
     @range([1, 3600])
     @tweakable('number')
     @gameField('float32')
-    restockDurationSeconds = 150;
+    restockDurationSeconds = 40;
 
     /** Compared the way clients read both `float32` fields (see `belowThreshold`). */
     get broken() {

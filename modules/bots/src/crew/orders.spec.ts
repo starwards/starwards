@@ -77,6 +77,13 @@ describe('crew order board as seats read it', () => {
         expect(slot(b, 'navigation')).toMatchObject({ kind: 'undock', status: 'complete' });
     });
 
+    it('completes a launch order once the ship is clear of the dock', () => {
+        const b = testBoard();
+        b.tick(0).give([orderFromCallout('launch', undefined, undefined)]);
+        b.tick(5).report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 3780) });
+        expect(slot(b, 'navigation')).toMatchObject({ kind: 'launch', status: 'complete' });
+    });
+
     it('fires a standing dock order once armor falls below its share, once, under its own issuer', () => {
         const b = testBoard().give(
             [{ kind: 'dock_below_armor', params: { station: { name: 'dock' }, threshold: 0.5 } }],
