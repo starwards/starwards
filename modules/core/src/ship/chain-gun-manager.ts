@@ -10,6 +10,7 @@ import {
     ammoTypes,
     isClusterAmmo,
 } from '../space';
+import { GUN_HEAT, gunHeatSpreadFactor } from './gun-heat';
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, isLineOfFireBlocked, lerp } from '../logic';
 
@@ -18,6 +19,7 @@ import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
 import { Iterator } from '../logic/iteration';
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
@@ -31,6 +33,9 @@ const { error: logError } = createLogger('chain-gun');
 export function resetChainGun(chainGun: ChainGun) {
     chainGun.bearingSkew = 0;
     chainGun.rateOfFireFactor = 1;
+    chainGun.barrelWear = 0;
+    chainGun.jammedSeconds = 0;
+    chainGun.cooling = false;
     chainGun.shellRangeMode = SmartPilotMode.DIRECT;
 }
 
@@ -108,8 +113,30 @@ export class ChainGunManager implements Updateable {
     update({ deltaSeconds }: IterationData) {
         this.calcShellSecondsToLive();
         this.updateLineOfFire();
+        this.updateHeatState(deltaSeconds);
         this.updateChainGun(deltaSeconds);
         this.fireChainGun();
+    }
+
+    /**
+     * The heat model shared by player and NPC guns: heat at 100 forces a cooldown until
+     * `GUN_HEAT.cooldownRelease`, a jam counts down, and time at or above the jam bar wears the barrel.
+     * Tubes have no barrel and are exempt.
+     */
+    private updateHeatState(deltaSeconds: number) {
+        const chainGun = this.chainGun;
+        if (chainGun.type !== 'ChainGun') {
+            return;
+        }
+        chainGun.jammedSeconds = Math.max(0, chainGun.jammedSeconds - deltaSeconds);
+        if (chainGun.heat >= MAX_SYSTEM_HEAT) {
+            chainGun.cooling = true;
+        } else if (chainGun.cooling && chainGun.heat <= GUN_HEAT.cooldownRelease) {
+            chainGun.cooling = false;
+        }
+        if (chainGun.heat >= chainGun.jamBar) {
+            chainGun.barrelWear = Math.min(1, chainGun.barrelWear + GUN_HEAT.wearPerSecondOverJamBar * deltaSeconds);
+        }
     }
 
     /** Runs after the mount swung and the fuze was set, so it tests the shot this tick actually fires. */
@@ -268,6 +295,8 @@ export class ChainGunManager implements Updateable {
             chainGun.effectiveness > 0 &&
             chainGun.isFiring &&
             !safetyLocked &&
+            !chainGun.cooling &&
+            chainGun.jammedSeconds <= 0 &&
             chainGun.loading >= 1 &&
             chainGun.loadedProjectile !== 'None'
         ) {
@@ -278,7 +307,9 @@ export class ChainGunManager implements Updateable {
             projectile.angle = this.die.getGaussian(
                 `${this.spaceObject.id}:${this.mountId}:aim:${this.shotSeq++}`,
                 chainGun.getGlobalBearing(this.state),
-                chainGun.design.bulletDegreesDeviation,
+                chainGun.design.bulletDegreesDeviation *
+                    (1 + GUN_HEAT.maxWearSpread * chainGun.barrelWear) *
+                    gunHeatSpreadFactor(chainGun.barrelWear, chainGun.heat),
             );
             // a missile is ejected unpowered and drifts clear of the hull before it arms (issue #2342)
             const isMissile = !!projectile.design.homing;
@@ -323,6 +354,20 @@ export class ChainGunManager implements Updateable {
             this.spaceManager.insert(projectile);
             const heatPerShot = ammoDesigns[firedProjectileType].heatPerShot;
             this.heatSink.addHeat(heatPerShot * chainGun.effectiveness, chainGun);
+            this.rollJam();
+        }
+    }
+
+    /** Each shot fired in the jam band may jam the gun; the chance grows from 0 at the jam bar to `GUN_HEAT.maxJamChance` at 100. */
+    private rollJam() {
+        const chainGun = this.chainGun;
+        if (chainGun.type !== 'ChainGun' || chainGun.heat < chainGun.jamBar) {
+            return;
+        }
+        const chance =
+            (GUN_HEAT.maxJamChance * (chainGun.heat - chainGun.jamBar)) / (MAX_SYSTEM_HEAT - chainGun.jamBar);
+        if (chance > 0 && this.die.getSuccess(`${this.spaceObject.id}:${this.mountId}:jam:${this.shotSeq}`, chance)) {
+            chainGun.jammedSeconds = GUN_HEAT.jamSeconds;
         }
     }
 }

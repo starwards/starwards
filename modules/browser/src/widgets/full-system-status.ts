@@ -56,6 +56,7 @@ const defectShortLabels: Record<string, string> = {
     'job success': 'JOB OK',
     'job speed': 'JOB SPD',
     'bearing skew': 'SKEW',
+    'barrel wear': 'WEAR',
     'rate of fire': 'ROF',
     'range fluctuation': 'RNG FLUX',
     'turn speed': 'TURN',

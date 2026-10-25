@@ -244,7 +244,7 @@
     {
       "readout": "Heat: coolant split and gun power",
       "pc": "set by the engineer; `HeatManager` default split until then",
-      "npc": "`AutomationManager.manageHeat` reallocates coolant, backs gun power off and latches a ceasefire (a reflex, not a rule)",
+      "npc": "`AutomationManager.manageHeat` reallocates coolant, and backs gun power off (a reflex, not a rule); gun jam and forced cooldown are physics both crews meet",
       "evidence": "modules/core/src/ship/automation-manager.ts (`manageHeat`)"
     },
     {

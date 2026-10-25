@@ -49,6 +49,17 @@ export const systemsStatusScenes: Record<string, Scene> = {
             drawFullSystemsStatus(createMockContainer(container, 560, 900), driver, driver.systems, true);
         },
     }),
+    'full-system-status-barrel-wear': withStation('engineer', {
+        name: 'full-system-status-barrel-wear',
+        description: "Engineer station's Systems table with a hot, worn chain gun barrel listed as a defect",
+        setup(container: HTMLElement) {
+            const ship = makeShipState('player', demoShip);
+            ship.chainGuns[0].barrelWear = 0.6;
+            ship.chainGuns[0].heat = 85;
+            const driver = snapshotShipDriver(ship);
+            drawFullSystemsStatus(createMockContainer(container, 560, 600), driver, driver.systems, true);
+        },
+    }),
     'full-system-status-npc-target': withStation('signals', {
         name: 'full-system-status-npc-target',
         description: "Target Details' Systems table for an NPC target: the EPM (energy draw) column is hidden",

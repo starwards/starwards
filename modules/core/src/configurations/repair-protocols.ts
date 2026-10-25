@@ -1,7 +1,7 @@
+import { DefectibleConfig, SystemState } from '../ship/system';
 import { DEFECTIBLE_METADATA } from '../game-field';
 import { RepairProtocolMode } from '../ship/repair-queue';
 import { ShipState } from '../ship/ship-state';
-import { SystemState } from '../ship/system';
 import { allColyseusProperties } from '../traverse';
 import { clearHacks } from '../ship/hack-windows';
 
@@ -420,6 +420,27 @@ export const turnSpeedGovernorTuning: RepairProtocolStats = {
     tier: 'field',
 };
 
+/** Fits fresh barrels: the guns are offline for the whole job in either mode. */
+export const barrelReplacement: RepairProtocolStats = {
+    name: 'Barrel replacement',
+    targets: [{ system: 'chainGuns', field: 'barrelWear' }],
+    modes: {
+        [RepairProtocolMode.Responsive]: {
+            duration: 60,
+            energyDraw: 2,
+            heat: 10,
+            sideEffectSystems: ['chainGuns'],
+        },
+        [RepairProtocolMode.Dark]: {
+            duration: 20,
+            energyDraw: 2,
+            heat: 10,
+            sideEffectSystems: ['chainGuns'],
+        },
+    },
+    tier: 'field',
+};
+
 /**
  * Counter to beam hacking (M4.76): the engineer runs a firewall repair. While it runs, no hack can
  * progress against this ship; on completion every active offline window a hack opened ends early.
@@ -457,6 +478,8 @@ export const repairProtocols = {
     turnSpeedGovernorTuning,
     // Fills the last slot of `REPAIR_PROTOCOL_HOTKEYS` (alt+t).
     firewallRepair,
+    // Fills the slot added after it (alt+y).
+    barrelReplacement,
 } as const satisfies Record<string, RepairProtocolStats>;
 
 export type RepairProtocolName = keyof typeof repairProtocols;
@@ -554,7 +577,8 @@ export function findUncoveredDefectibleFields(
         if (!(instance instanceof SystemState) || typeof field !== 'string') {
             continue;
         }
-        if (Reflect.getMetadata(DEFECTIBLE_METADATA, instance, field) == null) {
+        const config = Reflect.getMetadata(DEFECTIBLE_METADATA, instance, field) as DefectibleConfig | undefined;
+        if (config == null || !(config.enabled?.(instance) ?? true)) {
             continue;
         }
         const topLevelKey = systemPointer.split('/')[1] ?? '';
