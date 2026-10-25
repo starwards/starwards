@@ -3,13 +3,22 @@ import * as path from 'node:path';
 import * as v8 from 'node:v8';
 import * as vm from 'node:vm';
 
-import { AdminDriver, Driver, GameStatus, parseEventLine, sidecarName, sleep, waitFor } from '@starwards/core/internal';
+import {
+    AdminDriver,
+    Driver,
+    GameStatus,
+    parseEventLine,
+    sleep,
+    waitFor,
+    zstSidecarName,
+} from '@starwards/core/internal';
 
 import { BotSupervisor } from './supervisor';
 import { GameManager } from '../admin/game-manager';
 import { botWorkerSource } from './worker-source';
 import { makeDriver } from '../test/driver';
 import { matchMaker } from '@colyseus/core';
+import { readSidecarLines } from '../recording/sidecar-file';
 import { two_vs_one } from '../maps';
 
 const openConnections = async () => (await matchMaker.query({})).reduce((n, room) => n + room.clients, 0);
@@ -27,12 +36,8 @@ const settledHeap = async () => {
     return process.memoryUsage().heapUsed;
 };
 
-/** Complete lines only: a line still being appended (no trailing newline yet) is left for the next read. */
-const readEvents = async (file: string) => {
-    const lines = (await fs.readFile(file, 'utf-8')).split('\n');
-    lines.pop();
-    return lines.filter((l) => l.trim()).map((l) => parseEventLine(l));
-};
+/** Complete zstd frames only: a frame still being appended is left for the next read. */
+const readEvents = (file: string) => readSidecarLines(file).map((l) => parseEventLine(l));
 const fileExists = (file: string) =>
     fs.access(file).then(
         () => true,
@@ -161,10 +166,9 @@ describe('bot lifecycle', () => {
             admin.assignBot({ shipId: 'GVTS', seat: 'pilot', brain: 'reference' });
             await waitStatus(admin, 'GVTS', 'pilot', 'running');
             const name = await admin.startRecording();
-            const sidecar = path.join(gameDriver.recordingsDir, sidecarName(name));
+            const sidecar = path.join(gameDriver.recordingsDir, zstSidecarName(name));
             const decisions = async () =>
-                ((await fileExists(sidecar)) ? await readEvents(sidecar) : []).filter((e) => e?.kind === 'decision')
-                    .length;
+                ((await fileExists(sidecar)) ? readEvents(sidecar) : []).filter((e) => e?.kind === 'decision').length;
             const human1 = await human('HUMAN1', 'helms');
             try {
                 const atAttach = await decisions();
@@ -200,12 +204,12 @@ describe('bot lifecycle', () => {
         const name = await admin.startRecording();
         await sleep(5_000);
         const summary = await admin.stopRecording();
-        const sidecar = path.join(gameDriver.recordingsDir, sidecarName(name));
+        const sidecar = path.join(gameDriver.recordingsDir, zstSidecarName(name));
         const sizeAtStop = (await fs.stat(sidecar)).size;
         await sleep(3_000);
         expect((await fs.stat(sidecar)).size).toBe(sizeAtStop);
         expect(summary?.events).toBe(path.basename(sidecar));
-        const events = await readEvents(sidecar);
+        const events = readEvents(sidecar);
         expect(events.length).toBeGreaterThan(0);
         expect(events.every((e) => e !== null)).toBe(true);
         const kinds = new Set(events.map((e) => e?.kind));

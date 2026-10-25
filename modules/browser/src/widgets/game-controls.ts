@@ -1,4 +1,4 @@
-import { AdminDriver, RecordingInfo, createLogger, sidecarName } from '@starwards/core';
+import { AdminDriver, RecordingInfo, createLogger, zstSidecarName } from '@starwards/core';
 import { addButton, addSliderBlade, addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readProp, readWriteNumberProp } from '../property-wrappers';
 
@@ -35,7 +35,7 @@ function download(name: string, dataId: string) {
  */
 function downloadRecording(name: string) {
     download(name, 'recording download');
-    const events = sidecarName(name);
+    const events = zstSidecarName(name);
     fetch(`recordings/${encodeURIComponent(events)}`, { method: 'HEAD' })
         .then((res) => {
             if (res.ok) download(events, 'recording events download');
