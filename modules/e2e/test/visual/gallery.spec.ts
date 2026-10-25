@@ -66,6 +66,7 @@ const scenes = [
     'engineering-status-npc-target',
     // Game message overlay (M4.57)
     'game-message-banner',
+    'system-broken-banner',
     // GM Broadcast
     'gm-broadcast-empty',
     'gm-broadcast-history',
