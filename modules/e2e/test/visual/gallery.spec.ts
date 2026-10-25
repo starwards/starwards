@@ -29,6 +29,7 @@ const scenes = [
     'full-system-status-wide',
     // Gun status
     'gun-status-firing',
+    'gun-status-heat',
     'gun-status-loading',
     // Scan beam
     'scan-beam-jamming',

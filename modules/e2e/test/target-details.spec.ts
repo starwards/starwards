@@ -234,6 +234,32 @@ test.describe('Target Details screen', () => {
         expect(await aimTrack(page)).not.toBe('changed-after-capture');
     });
 
+    test('shows the target gun heat live at FULL and frozen as LAST KNOWN below it (M4.39)', async ({ page }) => {
+        const target = gameDriver.getShip(targetShipId).state;
+        gameDriver.gameManager.spaceManager.state.getShip(targetShipId)!.faction = Faction.Raiders; // own faction never demotes
+        gameDriver.gameManager.state.speed = 0; // no cooling while the readout is compared
+        target.chainGuns[0].heat = 20;
+        markSignalsTarget(targetShipId);
+        setTargetScanLevel(ScanLevel.FULL);
+        await openTargetDetails(page);
+        await expect.poll(() => getPropertyValue(page, 'Intel', 'Target'), { timeout: 5000 }).toBe('LIVE');
+        const gunHeat = () => getPropertyValue(page, 'Heat', 'Chain Gun');
+        await expect.poll(gunHeat, { timeout: 5000 }).toBe('20');
+
+        target.chainGuns[0].heat = 40;
+        await expect.poll(gunHeat, { timeout: 5000 }).toBe('40');
+
+        const { gameManager } = gameDriver;
+        gameManager.spaceManager.factionIntel.update(gameManager.totalSeconds, 1, []);
+        await expect
+            .poll(() => getPropertyValue(page, 'Intel', 'Target'), { timeout: 5000 })
+            .toMatch(/^LAST KNOWN · \d+s$/);
+        await expect.poll(gunHeat, { timeout: 5000 }).toBe('40');
+        target.chainGuns[0].heat = 80;
+        await page.waitForTimeout(1500);
+        expect(await gunHeat()).toBe('40');
+    });
+
     test('hides energy readouts for an NPC target and shows them for a player ship (M4.66)', async ({ page }) => {
         markSignalsTarget(targetShipId);
         setTargetScanLevel(ScanLevel.FULL);
