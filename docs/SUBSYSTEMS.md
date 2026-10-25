@@ -208,6 +208,10 @@ has no target of its own: each tick without a live target it locks onto the near
 within `jamLockRange` other than its launcher, then homes on it like any other missile. The lock is
 already inside sprint range, so it accelerates straight away.
 
+### NPC doctrines
+
+A doctrine is a named `NpcAiProfile` (`npcDoctrines` in `modules/core/src/ship/npc-doctrines.ts`): a flight doctrine plus an aggro character (`aggro`). Wave archetypes reference them by name (`WaveShipSpec.doctrine`): swarm `rush`, gunline `holdRange`, harass `shadowPlayer` + `rush`, escort `holdRange` + `shadowEscort`. Wave spawning sets `ShipState.aiProfile` from the doctrine. Server-side only, never a `@gameField`, so it appears in no scan or Target Details.
+
 ### Flight doctrine
 
 `FlightDoctrine` (`modules/core/src/ship/flight-doctrine.ts`) is how a ship weighs gunnery aim

@@ -14,6 +14,7 @@ export * from './flight-doctrine';
 export * from './flight-profile';
 export * from './make-ship-state';
 export * from './npc-ai-profile';
+export * from './npc-doctrines';
 export * from './radar';
 export * from './reactor';
 export * from './reactor-cell-manager';
