@@ -1,10 +1,10 @@
 import { AmmoType, MagazineStock, ammoTypes, magazineStock } from '../space/projectile';
+import { GUN_HEAT, gunHeatBars } from './gun-heat';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
 import { commandable, gameField } from '../game-field';
 
 import { SmartPilotMode } from './smart-pilot';
 import { defectible } from './system';
-import { GUN_HEAT, gunHeatBars } from './gun-heat';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 

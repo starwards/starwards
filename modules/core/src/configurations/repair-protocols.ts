@@ -1,7 +1,7 @@
+import { DefectibleConfig, SystemState } from '../ship/system';
 import { DEFECTIBLE_METADATA } from '../game-field';
 import { RepairProtocolMode } from '../ship/repair-queue';
 import { ShipState } from '../ship/ship-state';
-import { DefectibleConfig, SystemState } from '../ship/system';
 import { allColyseusProperties } from '../traverse';
 
 /**
