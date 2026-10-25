@@ -145,6 +145,7 @@ export {
     isRestockingAmmo,
     isRestockingEnergyCells,
     crewOrderCommands,
+    gmShipCommands,
     makeShipState,
     repairCommands,
 } from './ship';

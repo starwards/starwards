@@ -26,3 +26,8 @@ export function ammoGroups(capacities: AmmoCapacities): AmmoGroup[] {
         { title: 'Missiles', ammo: missiles },
     ].filter((group) => group.ammo.length > 0);
 }
+
+/** A quarter of the design's stock or less is low; none is empty. */
+export function ammoLevel(count: number, designMax: number): 'EMPTY' | 'LOW' | 'OK' {
+    return count <= 0 ? 'EMPTY' : count < Math.floor(designMax / 4) + 1 ? 'LOW' : 'OK';
+}

@@ -9,8 +9,8 @@ import { z } from 'zod';
  * (engineer: a chain gun's damage skew from the damage report), `farContact` (signals: the nearest
  * contact beyond the helms radar's reach, its name, range and side of the nose), `enemyContact`
  * (signals: the nearest identified enemy ship, its name, range, side of the nose and whether the range
- * closes), `closeOrder` and `engageOrder` (captain: the order to close to missile range of the
- * nearest enemy, and to engage it), `dockOrder` (captain: the nearest allied station to dock at, its
+ * closes), `closeOrder`, `gunCloseOrder` and `engageOrder` (captain: the order to close to missile range, or to gun range,
+ * of the nearest enemy, and to engage it), `dockOrder` (captain: the nearest allied station to dock at, its
  * distance, world bearing and radius), `patrolOrder` (captain: the nearest nebula to patrol behind, and
  * the nearest enemy it hides the ship from), `lockedTarget` (weapons: the locked ship's name),
  * `lockedEnvelope` (weapons: the locked ship's range, the launch envelope for how it moves, and the
@@ -21,7 +21,12 @@ import { z } from 'zod';
  * missiles a salvo keeps in flight), `focusOrder` (captain: the enemy ships in sight in the order to
  * fight them, nearest the most threatened allied station first when one is in sight), `allyAtRisk`
  * (weapons: the ally the targeting panel's check-fire line shows, its range, and whether it is in the
- * line of fire or by the target).
+ * line of fire or by the target), `guardOrder` (captain: the centre of the allied stations in sight, its
+ * distance and world bearing), `magazineState` (engineer: the magazine's capacity share, from the
+ * damage report; 1 when it shows no capacity defect), `hullStatusChange` (signals: the most urgent live hull or
+ * capsule tier change on its hull-status panel since the previous decision — allies first, then a contact
+ * attacking an allied station, then other contacts), `plateIntel` (signals: the armor of the contact marked on
+ * Target Details — plates holding, whether the plate facing our ship is down, the outer armor model).
  */
 export const calloutFills = [
     'lockedOffNose',
@@ -29,6 +34,7 @@ export const calloutFills = [
     'farContact',
     'enemyContact',
     'closeOrder',
+    'gunCloseOrder',
     'engageOrder',
     'dockOrder',
     'patrolOrder',
@@ -40,6 +46,10 @@ export const calloutFills = [
     'salvoOrder',
     'focusOrder',
     'allyAtRisk',
+    'guardOrder',
+    'magazineState',
+    'hullStatusChange',
+    'plateIntel',
 ] as const;
 export type CalloutFill = (typeof calloutFills)[number];
 
@@ -106,6 +116,37 @@ export const brainSpecSchema = z
          * round would cross or the blast at the lock would catch. Absent, the brain reads the panel without it.
          */
         checkFire: z.boolean().optional(),
+        /**
+         * Weapons: the chain-gun shell types in the order the reference rules prefer to load them (`HiExpShell`,
+         * `FragShell`, `ArmPenShell`): the gun is changed to the first one with stock. Absent, it changes
+         * only once the loaded type ran dry.
+         */
+        shellPreference: z.array(z.string()).optional(),
+        /** Engineer: which defects the reference rules queue a field repair for, the reactor's only (absent), any system's, or any system's with the magazine's capacity first (`magazine-first`: also cancelling other repairs for it after wave 1 and before the restock dock). */
+        repairs: z.enum(['reactor', 'all', 'magazine', 'magazine-retry', 'magazine-first']).optional(),
+        /** Weapons: the reference rules fire the chain gun only at a locked target this close, metres; absent, the gun's own reach. */
+        fireRangeMeters: z.number().positive().optional(),
+        /**
+         * Captain: the reference rules close on and focus by the station the most enemies close on, not the one
+         * an enemy is nearest to, and keep that station and its target until another clearly takes over (see `ThreatPick`).
+         */
+        threatTarget: z.boolean().optional(),
+        /** Captain: with no enemy in sight, the reference rules send the ship to the centre of the allied stations in sight instead of holding where it is. */
+        guardCentre: z.boolean().optional(),
+        /** Helms: the reference rules park off the gun line of an allied station behind or before the target, so weapons need not hold fire on it. */
+        clearLine: z.boolean().optional(),
+        /** Helms: the reference rules park on the enemy the captain's engage or focus order names while it is in sight, not on the nearest enemy. */
+        parkOnEngaged: z.boolean().optional(),
+        /** Captain and weapons: how the shell stock is judged and when an enemy keeps the ship from docking to restock (see `Resupply`). */
+        resupply: z
+            .object({
+                byCapacity: z.boolean().optional(),
+                dockClearMeters: z.number().positive().optional(),
+                lowShare: z.number().positive().max(1).optional(),
+                restockedShare: z.number().positive().max(1).optional(),
+            })
+            .strict()
+            .optional(),
         /** Display paths (`panels.<widget>` or `radar`) left out of the state the model reads. */
         hide: z.array(z.string()).default([]),
         /**

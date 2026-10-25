@@ -36,4 +36,29 @@ test.describe('Game message overlay', () => {
         gameDriver.gameManager.scriptApi.setMessage('');
         await expect(messageEl).toBeHidden({ timeout: 10000 });
     });
+
+    test('queued messages show one after another on the station screen', async ({ page }) => {
+        const messageEl = page.locator('[data-id="Game Message"]');
+        gameDriver.gameManager.scriptApi.pushMessage('Station A lost', 1);
+        gameDriver.gameManager.scriptApi.pushMessage('Station B lost', 1);
+        await expect(messageEl).toHaveText('Station A lost', { timeout: 10000 });
+        await expect(messageEl).toHaveText('Station B lost', { timeout: 10000 });
+        await expect(messageEl).toBeHidden({ timeout: 10000 });
+    });
+
+    test('announces a broken player-ship system on the station screen', async ({ page }, testInfo) => {
+        const messageEl = page.locator('[data-id="Game Message"]');
+        await expect(messageEl).toBeHidden();
+
+        gameDriver.getShip(shipId).state.chainGuns.values().next().value!.rateOfFireFactor = 0;
+
+        await expect(messageEl).toBeVisible({ timeout: 10000 });
+        await expect(messageEl).toHaveText(
+            `System broken: ${shipId} ${gameDriver.getShip(shipId).state.chainGuns.values().next().value!.name}`,
+        );
+        await testInfo.attach('system-broken-banner', {
+            body: await page.screenshot(),
+            contentType: 'image/png',
+        });
+    });
 });

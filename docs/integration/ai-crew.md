@@ -63,7 +63,7 @@ answers into console commands.
 
 **A brain is one data file**, [`modules/ai/brains/<station>.v<N>.json`](../../modules/ai/brains) (the reference brains are `modules/bots/src/brains/<station>.v1.json`):
 model, decision interval, confidence floor, role, mission, per-control wording overrides, controls to
-skip and display parts to hide. Tuning a brain means writing its next version; the code is shared by
+skip and display parts to hide; the reference weapons rules also read `shellPreference`, the chain-gun shell types in the order they load them, `fireRangeMeters`, the range inside which they fire, and the reference engineer rules `repairs` (`all` queues a field repair for any system's defect, not the reactor's only). Tuning a brain means writing its next version; the code is shared by
 every brain and every host.
 
 Policies answer a brain's questions: `jev`, `reference` (hand-written rules for every seat — the
@@ -175,6 +175,7 @@ a display that does not show the value says nothing.
 | `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km                        | "contact UFO-12 at 7.4 km, 20° left of the nose"          |
 | `enemyContact`  | signals  | nearest identified enemy ship on its radar; range change since its previous decision | "enemy raider at 42.3 km, 30° right of the nose, closing" |
 | `closeOrder`    | captain  | nearest identified enemy ship on the dradis; its HiExp launch range less 2 km        | "close to 43 km of raider, now 52.3 km at bearing 045"    |
+| `gunCloseOrder` | captain  | the enemy ship nearest an allied station in sight, else the nearest; gun range, 2 km | "close to 2 km of raider, now 52.3 km at bearing 045"     |
 | `engageOrder`   | captain  | nearest identified enemy ship on the dradis                                          | "engage raider"                                           |
 
 The filled values travel with the phrase (`values` on what a listener hears), so a rule-based
@@ -588,6 +589,35 @@ platform falls at 789 s with the GVTS 40-100 km away, after wave 2's harass MK2s
 
 `focus nearest_to <station>` points the crew at the enemy nearest an allied station instead. Jev
 captain v1 on seeds 1-8: 2/8, against `captain-reference` 5/8.
+
+### Adversary rungs: vary the raider, fix the crew
+
+The training rungs hold the raider fixed and vary the crew. The adversary rungs do the opposite (M4.65,
+stage S0 of the NPC AI design): the frozen reference crew plays, and only the raider's profile changes.
+A profile ([`adversary-profile.ts`](../../modules/server/src/scenarios/adversary-profile.ts)) sets levers the
+game already has (flight doctrine, combat weave, stand ground); the `today` profile changes nothing.
+
+| Rung             | Layout                                                    | Crew for the baseline |
+| ---------------- | --------------------------------------------------------- | --------------------- |
+| `A1-<profile>`   | T1: one dragonfly-MK1 attacking the GVTS                  | `reference`           |
+| `AW-<profile>`   | `W-waves` with every raider of every wave varied          | `captain-reference`   |
+
+`npm --prefix modules/ai run adversary -- --family A1 --seeds 16 --workers 4 --out <dir>` plays every
+profile on the same seeds. Each raider is fingerprinted by
+[`fingerprint.ts`](../../modules/ai/src/adversary/fingerprint.ts), a read-only probe that does not change the
+run: time in each range bin to the engaged target, engagement-target switches, fire duty, mean speed, and
+hits landed on a hull section holding an already-broken armor plate. Unpaired pass rates need 256 runs
+per arm to resolve 10 points, so the report gives the pass rate with its Wilson interval and tells
+profiles apart by their fingerprints (range separation, total variation). Limit: the target an
+unordered raider picks for itself is private to `AutomationManager`, so a raider on no order shows no
+attention switches.
+
+`npm --prefix modules/ai run parity` lists every Target Details readout where an NPC differs from a PC
+ship of the same hull ([`parity.ts`](../../modules/ai/src/adversary/parity.ts)).
+`npm --prefix modules/ai run perception` measures what faction-only perception would give wave raiders
+that spawn 140 km out ([`perception.ts`](../../modules/ai/src/adversary/perception.ts)). Committed
+results: [`curriculum/adversary/`](../../modules/ai/curriculum/adversary/) (reports) and
+[`curriculum/baselines/adversary/`](../../modules/ai/curriculum/baselines/adversary/) (baselines).
 
 ## Branching: what if the crew had decided otherwise
 

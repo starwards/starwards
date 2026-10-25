@@ -19,6 +19,7 @@ import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
 import { gameControlsWidget } from '../widgets/game-controls';
 import { gameSetupWidget } from '../widgets/game-setup';
+import { gmBroadcastWidget } from '../widgets/gm-broadcast';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { helmsRadarWidget } from '../widgets/helms-radar';
@@ -83,6 +84,8 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
     const gameStatus = await driver.getGameStatus();
     const gameIsLive = gameStatus === GameStatus.RUNNING;
     const gmWidgets = gameIsLive ? new GmWidgets(driver) : null;
+    // announcements need a running game (history clears on stop), so the blade lives with the live-game panes
+    const gmBroadcast = gmBroadcastWidget(adminDriver);
 
     // Game setup (load/save/start/stop), game controls (record/pause/speed) and the station roster
     // are management panes the GM touches occasionally, so they share ONE tabbed stack (M4.32).
@@ -105,6 +108,7 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
             content: [
                 { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
                 { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+                { ...getGoldenLayoutItemConfig(gmBroadcast), isClosable: false },
             ],
             height: 40,
             isClosable: false,
@@ -137,6 +141,7 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
         dashboard.registerWidget(gmWidgets.radar);
         dashboard.registerWidget(gmWidgets.tweak);
         dashboard.registerWidget(gmWidgets.create);
+        dashboard.registerWidget(gmBroadcast);
     }
     dashboard.registerWidget(gameSetup);
     dashboard.registerWidget(gameControls);

@@ -57,4 +57,16 @@ describe('AdminRoom JSON pointer commands', () => {
         await supertest(driver.serverDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
         expect(driver.serverDriver.gameManager.state.speed).toEqual(2.5);
     });
+
+    it('broadcastMessage from a GM client joins the message queue and history', async () => {
+        const { client, room } = await connectAdmin('gm-broadcast');
+        const { state } = driver.serverDriver.gameManager;
+        await client.sendCommand(room, 'broadcastMessage', { value: 'All hands, brace' });
+        await client.sendCommand(room, 'broadcastMessage', { value: 'Second call' });
+        await client.sendCommand(room, 'broadcastMessage', { value: '   ' });
+        await waitForServer(() => state.messageHistory.length === 2);
+        expect(state.messageHistory.map((m) => m.text)).toEqual(['All hands, brace', 'Second call']);
+        expect(state.message).toEqual('All hands, brace');
+        expect(state.queuedMessages).toEqual(['Second call']);
+    });
 });

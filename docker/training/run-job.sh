@@ -2,12 +2,13 @@
 # Entry point of the training image. The job spec comes from the environment (the first argument
 # overrides JOB); see docs/integration/ai-training-k3s.md.
 #
-#   JOB              train | branch | suite | merge | help
+#   JOB              train | branch | suite | waves | merge | help
 #   RUN_NAME         run folder name (default: the Kubernetes job name, else JOB-SCENARIO)
 #   RUN_DATE         archive day YYYY-MM-DD (default: from a CronJob's job name, else today UTC)
 #   ARCHIVE          archive root, laid out as training-archive (default /training-archive)
 #   SCENARIO         training rung, e.g. T3-directed                         (train, branch)
-#   CREWS            comma-separated crew files, relative to modules/ai     (train, branch: the first; suite: the first)
+#   SCENARIOS        comma-separated wave rungs or cuts, e.g. W-waves,W-cut-lof (waves)
+#   CREWS           comma-separated crew files, relative to modules/ai     (train, branch: the first; suite: the first)
 #   SEEDS_PER_SHARD  seeds per shard (default 2)                             (train, branch)
 #   FIRST_SEED       first seed of shard 0 (default 1)                       (train, branch)
 #   SHARDS           shard count, equal to the Job's completions (default 1)
@@ -20,8 +21,12 @@
 #   HEAP_MB          V8 old-space cap per process (default 4096)
 #   EXTRA_ARGS       appended to the CLI call
 #   KEEP_SHARDS      1 keeps _shards/<date>/<run> after a merge (default 0)
+#   KEEP_RECORDINGS  1 keeps a waves shard's .sgr recordings (default 0)    (waves)
 #
-# Every shard writes ARCHIVE/_shards/<date>/<run>/shard-<i>/ and a `done` marker; the shard that
+# A waves shard (the paired eval queue, modules/ai/src/cluster/eval-queue.ts) plays every crew on its
+# seeds of each scenario into ARCHIVE/<date>/eval/<run>/shard-<i>/<scenario>-waves.json and a `done`
+# marker; the queue's collect reads those, so a waves run has no merge and no manifest rebuild.
+# Every other shard writes ARCHIVE/_shards/<date>/<run>/shard-<i>/ and a `done` marker; the shard that
 # completes the set merges them into the archive day and rebuilds its manifest.jsonl.
 set -eu
 
@@ -136,10 +141,22 @@ suite)
     [ "${status:-0}" = 0 ] || echo "suite: regression against the baseline (see $out/suite.md)"
     exit "${status:-0}"
     ;;
+waves)
+    shard_seeds
+    out=$ARCHIVE/$RUN_DATE/eval/$RUN_NAME/shard-$IDX
+    for scenario in $(printf '%s' "${SCENARIOS:?SCENARIOS is required}" | tr ',' ' '); do
+        # shellcheck disable=SC2046
+        cli cli/waves.ts --scenario "$scenario" $(crew_args) --first-seed "$SHARD_FIRST" --seeds "$SHARD_COUNT" \
+            --timeout "${TIMEOUT:-480}" --workers "$WORKERS" --out "$out"
+    done
+    [ "${KEEP_RECORDINGS:-0}" = 1 ] || find "$out" \( -name '*.sgr' -o -name '*.duckdb*' \) -delete
+    stamp "$out"
+    touch "$out/done"
+    ;;
 merge)
     merge
     ;;
 help | *)
-    sed -n '2,24p' "$0"
+    sed -n '2,30p' "$0"
     ;;
 esac

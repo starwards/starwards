@@ -25,8 +25,8 @@ export function handleFile(file: File, getAdminDriver: () => AdminDriver | null,
             ui.setNotice('Stop the running game before loading a saved game.');
             return;
         }
-        void file.text().then((text) => {
-            adminDriver.loadGame(text);
+        void file.arrayBuffer().then((buffer) => {
+            adminDriver.loadGame(new Uint8Array(buffer));
             ui.setNotice(`Loading ${file.name}…`);
         });
     } else {

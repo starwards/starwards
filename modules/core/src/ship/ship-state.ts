@@ -1,6 +1,7 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 import { Faction, Spaceship, Vec2 } from '../space';
 import { LockPropertyArg, Lockable } from '../lock-commands';
+import { NpcAiProfile, TODAY_NPC_AI } from './npc-ai-profile';
 import { ShipArea, XY, capToRange, notNull, toDegreesDelta } from '..';
 import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
@@ -171,10 +172,17 @@ export class ShipState extends Schema implements Lockable {
     armor!: Armor;
 
     /**
-     * Calibration only, not a game config. Switch for headless training rungs: `true` flies ATTACK without the combat weave, to
-     * measure what the weave costs the shooter. Server-only, not synced; unset in every real game.
+     * The doctrine and difficulty data driving this ship's NPC AI. Server-only, not synced: doctrine
+     * stays hidden from player-facing state.
      */
-    labNoCombatWeave?: boolean;
+    aiProfile: NpcAiProfile = TODAY_NPC_AI;
+
+    /** Colyseus clones only the synced fields, so the server-only {@link aiProfile} is carried over by hand. */
+    override clone(): this {
+        const cloned = super.clone();
+        cloned.aiProfile = this.aiProfile;
+        return cloned;
+    }
 
     @gameField(Magazine)
     magazine!: Magazine;

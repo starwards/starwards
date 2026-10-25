@@ -1,0 +1,32 @@
+{
+    "name": "captain-reference-guard-lull-k2-x5",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain.v17-restock.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ],
+    "knobs": {
+        "LULL_DOCK_MISSILES": 2,
+        "LULL_DOCK_CLEAR_METERS": 5000
+    }
+}

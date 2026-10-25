@@ -9,6 +9,7 @@ import {
     isMissile,
     weaponDamageTypes,
 } from '../space';
+import { XY } from '../logic/xy';
 
 /**
  * The scan level a player holds on an object. A GM view (no faction) sees everything; same-faction
@@ -54,6 +55,29 @@ export function scanCycleTargets(
             scanLevel === ScanLevel.UFO || Spaceship.isInstance(o) || (isMissile(o) && scanLevel < ScanLevel.SNAPSHOT)
         );
     });
+}
+
+/**
+ * Radar lines from each missile the player holds at FULL scan to its current target (M4.44).
+ * FULL is the scan level that reveals intent, so the line disappears once the missile decays to
+ * SNAPSHOT, and follows the missile when it retargets.
+ */
+export function missileTargetLines(
+    objects: Iterable<SpaceObject>,
+    getObject: (id: string) => SpaceObject | undefined,
+    playerFaction: Faction | undefined,
+): [XY, XY][] {
+    const lines: [XY, XY][] = [];
+    for (const o of objects) {
+        if (!isMissile(o) || o.destroyed || !o.targetId || playerScanLevel(o, playerFaction) < ScanLevel.FULL) {
+            continue;
+        }
+        const target = getObject(o.targetId);
+        if (target && !target.destroyed) {
+            lines.push([o.position, target.position]);
+        }
+    }
+    return lines;
 }
 
 /**

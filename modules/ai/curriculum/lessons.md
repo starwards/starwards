@@ -687,6 +687,45 @@ Elec missile, P(hit):
   $0) to test "engage the raider nearest a station" before writing it as a reference rule; a wave run is
   15 min at 8 workers, so budget the corpus by seed shards.
 
+### L5d — captain-reference-guard-park, helms parks on the engaged enemy (2026-10-22)
+
+- **Change:** helms.v22 (`parkOnEngaged`): the reference helms parks on the enemy the captain's focus or
+  engage order names, not on the nearest enemy; otherwise `captain-reference-guard`.
+- **Level:** W-waves seeds 1-64: 46/64 passed (`captain-reference-guard` 46/64; discordant 8/8, exact
+  McNemar p 1.00); holdSeconds −13.9 s [−45.7, +17.9], stationArmorLost −0.01 [−0.20, +0.18], raiders
+  killed −0.08 [−0.27, +0.11]: within noise. Archive `2026-10-22/mac1/fight-park64`.
+- **Regression suite:** not run (no gain on L5d).
+- **Decision:** rejected; recorded failure.
+- **Lesson:** in the 13 W-waves seeds the guard crew reached the wave-3 station in time and still lost,
+  the GVTS killed 0-1 of 5-7 raiders and dealt at most 2 k damage while the station took 30-63 k; the
+  reference crew's passes on the same seeds kill no more (two passed firing no shell at all). Helms
+  parking on the nearest raider while weapons holds the focus target (lock and nearest differ in 54-96%
+  of the fight) pulls the gun off arc and out of range, and a raider holding 1 km off the ship drags it
+  up to 50 km from the station. Parking on the engaged enemy cut that mismatch (seed 2: 76% to 33%,
+  gun clear to fire 45% to 75%) but kills did not follow, and passes churned 8 each way: a wave-3 pass
+  is a race between the station's hull and the wave-4 clock, not the GVTS's fight. By wave 3 the
+  magazine is dry or nearly (HiExp shells out before or during the fight in 11 of 13).
+- **Reuse:** a wave-3 lever must change raider damage on the station (kills before arrival, drawing
+  aggro, a restocked magazine), not gun uptime alone.
+
+### L5d — guard baseline, closed levers and screen power (2026-10-23)
+
+- **Change:** none accepted; `captain-reference-guard` frozen as baseline (23/32 on seeds 65-96).
+- **Level:** closed on 32-seed screens: intercept 2000 (160 cluster seeds, p 0.77), timed restock dock
+  600/640/660 (15/19/18; rescues 4-5 FAIL seeds, loses 8-12 PASS seeds), engineer.v13 (19/32),
+  HE_RESERVE, close-stop scalars, scan levers. Lever 3 (per-action branch labels, 4 rollouts) interim:
+  9% decisive states, learners 17-21 pts under always-hold LOSO, oracle gain ~ winner's curse.
+- **Decision:** rejected; lever 3 sweep killed.
+- **Lesson:** a 32-seed pass/fail screen has ~15% power for +3/32 (~150-260 paired seeds needed), and
+  32 rollouts resolve only per-state gains >= .35. The closed levers are unproven, not disproven; screen
+  with a control variate, a validated continuous surrogate and group-sequential looks
+  (`helios/noise-eval-2026-10-23/PLAN.md`). Any fork/rule claim needs 16-32+ rollouts on decisive states
+  before fitting. All 34/34 guard FAILs lose `station-small` in wave 3 (18 within 30 s of passing);
+  lost magazine capacity permanently deletes missiles; continuous refill reaches 62/64 while 1.5x start
+  stock adds +7: missile timing beats quantity (`helios/missile-tactics-2026-10-23/PLAN.md`).
+- **Reuse:** oracle tests T1 (+8 HE at 900 s), T2 (no capacity damage), T3 (true station-attacker
+  target), T6 (AP fallback) before a CMA-ES search over surviving tactic knobs; balance ceiling if they miss.
+
 Copy this block for every candidate run on a level.
 
 ```markdown

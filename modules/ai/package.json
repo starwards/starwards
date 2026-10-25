@@ -15,6 +15,10 @@
         "bench": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev -r ts-node/register/transpile-only ./src/cli/bench.ts",
         "suite": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev -r ts-node/register/transpile-only ./src/cli/suite.ts",
         "agree": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/agree.ts",
+        "eval-queue": "node -r ts-node/register/transpile-only ./src/cli/eval-queue.ts",
+        "composite": "node -r ts-node/register/transpile-only ./src/cli/composite.ts",
+        "waves": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/waves.ts",
+        "search": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/search.ts",
         "compare": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/compare.ts",
         "score:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/dataset.ts",
         "score": "node -r ts-node/register/transpile-only ./src/scoring/cli.ts",
@@ -25,9 +29,16 @@
         "score:weapons": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/scoring/weapons-validate.ts",
         "heatmap:dataset": "node --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/heatmap/dataset.ts",
         "heatmap": "node -r ts-node/register/transpile-only ./src/heatmap/cli.ts",
+        "adversary": "node --env-file-if-exists=.env --env-file-if-exists=../../../.env.jev --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/adversary.ts",
+        "parity": "node -r ts-node/register/transpile-only ./src/cli/parity.ts",
+        "perception": "node -r ts-node/register/transpile-only ./src/cli/perception.ts",
         "branch": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/branch.ts",
         "prebranch:js": "npm run build:cli",
-        "branch:js": "node --env-file-if-exists=.env --max-old-space-size=8192 ./dist/cli/branch.js"
+        "branch:js": "node --env-file-if-exists=.env --max-old-space-size=8192 ./dist/cli/branch.js",
+        "sweep": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/sweep.ts",
+        "rl-train": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/rl-train.ts",
+        "sweep-features": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/sweep-features.ts",
+        "magazine-timeline": "node --env-file-if-exists=.env --max-old-space-size=8192 -r ts-node/register/transpile-only ./src/cli/magazine-timeline.ts"
     },
     "dependencies": {
         "@starwards/bots": "0.5.1",

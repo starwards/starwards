@@ -28,6 +28,7 @@ test.describe('Wave-defence scenario', () => {
                 (o) =>
                     o.type !== 'Nebula' &&
                     o.type !== 'HazardCloud' &&
+                    o.type !== 'Waypoint' &&
                     o.id !== 'GVTS' &&
                     !waveDefenceStations.some((s) => s.id === o.id),
             )

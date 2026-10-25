@@ -1,0 +1,218 @@
+{
+  "rung": "A1",
+  "crew": "reference",
+  "firstSeed": 1,
+  "seeds": 16,
+  "timeoutSeconds": 180,
+  "rangeBinEdges": [
+    500,
+    1000,
+    2000,
+    3000,
+    5000,
+    8000,
+    15000,
+    50000,
+    null
+  ],
+  "profiles": [
+    {
+      "profile": "today",
+      "runs": 16,
+      "passes": 16,
+      "passRate": 1,
+      "passRateCi": [
+        0.8063865817272802,
+        1
+      ],
+      "medianSeconds": 45.20833333333205,
+      "meanValue": 0.8007799709777337,
+      "meanWavesSurvived": null,
+      "fingerprint": {
+        "raiders": 16,
+        "seconds": 680.6999999999819,
+        "rangeShare": [
+          0,
+          0.02255031585132939,
+          0.15454679006904587,
+          0.254076685764655,
+          0.47576024680475565,
+          0.0930659615102141,
+          0,
+          0,
+          0
+        ],
+        "meanSpeed": 450.00913641594514,
+        "fireDuty": 0.6923754958131331,
+        "attentionSwitchesPerMinute": 0,
+        "hits": 277,
+        "brokenPlateShare": 0.22021660649819494
+      }
+    },
+    {
+      "profile": "intercept",
+      "runs": 16,
+      "passes": 16,
+      "passRate": 1,
+      "passRateCi": [
+        0.8063865817272802,
+        1
+      ],
+      "medianSeconds": 45.20833333333205,
+      "meanValue": 0.8007799709777337,
+      "meanWavesSurvived": null,
+      "fingerprint": {
+        "raiders": 16,
+        "seconds": 680.6999999999819,
+        "rangeShare": [
+          0,
+          0.02255031585132939,
+          0.15454679006904587,
+          0.254076685764655,
+          0.47576024680475565,
+          0.0930659615102141,
+          0,
+          0,
+          0
+        ],
+        "meanSpeed": 450.00913641594514,
+        "fireDuty": 0.6923754958131331,
+        "attentionSwitchesPerMinute": 0,
+        "hits": 277,
+        "brokenPlateShare": 0.22021660649819494
+      }
+    },
+    {
+      "profile": "standoff",
+      "runs": 16,
+      "passes": 16,
+      "passRate": 1,
+      "passRateCi": [
+        0.8063865817272802,
+        1
+      ],
+      "medianSeconds": 45.20833333333205,
+      "meanValue": 0.8007799709777337,
+      "meanWavesSurvived": null,
+      "fingerprint": {
+        "raiders": 16,
+        "seconds": 680.6999999999819,
+        "rangeShare": [
+          0,
+          0.02255031585132939,
+          0.15454679006904587,
+          0.254076685764655,
+          0.47576024680475565,
+          0.0930659615102141,
+          0,
+          0,
+          0
+        ],
+        "meanSpeed": 450.00913641594514,
+        "fireDuty": 0.6923754958131331,
+        "attentionSwitchesPerMinute": 0,
+        "hits": 277,
+        "brokenPlateShare": 0.22021660649819494
+      }
+    },
+    {
+      "profile": "shadow",
+      "runs": 16,
+      "passes": 16,
+      "passRate": 1,
+      "passRateCi": [
+        0.8063865817272802,
+        1
+      ],
+      "medianSeconds": 37.441666666665824,
+      "meanValue": 0.8325615242674458,
+      "meanWavesSurvived": null,
+      "fingerprint": {
+        "raiders": 16,
+        "seconds": 594.9499999999867,
+        "rangeShare": [
+          0,
+          0.037145978653667096,
+          0.3676779561307644,
+          0.38880017928677485,
+          0.0998963498333193,
+          0.10647953609547434,
+          0,
+          0,
+          0
+        ],
+        "meanSpeed": 455.5056836204752,
+        "fireDuty": 0.6740062190100002,
+        "attentionSwitchesPerMinute": 0,
+        "hits": 413,
+        "brokenPlateShare": 0.3898305084745763
+      }
+    },
+    {
+      "profile": "noweave",
+      "runs": 16,
+      "passes": 16,
+      "passRate": 1,
+      "passRateCi": [
+        0.8063865817272802,
+        1
+      ],
+      "medianSeconds": 35.69999999999926,
+      "meanValue": 0.8471056384551623,
+      "meanWavesSurvived": null,
+      "fingerprint": {
+        "raiders": 16,
+        "seconds": 562.8333333333219,
+        "rangeShare": [
+          0,
+          0.024015398282499205,
+          0.13896949955581742,
+          0.30112525910571636,
+          0.4238081137103899,
+          0.11208172934557714,
+          0,
+          0,
+          0
+        ],
+        "meanSpeed": 435.39296938703154,
+        "fireDuty": 0.6769321883328373,
+        "attentionSwitchesPerMinute": 0,
+        "hits": 327,
+        "brokenPlateShare": 0.3180428134556575
+      }
+    },
+    {
+      "profile": "standground",
+      "runs": 16,
+      "passes": 15,
+      "passRate": 0.9375,
+      "passRateCi": [
+        0.7167073163197013,
+        0.9888809426916687
+      ],
+      "medianSeconds": 25.066666666666524,
+      "meanValue": 0.855080500010496,
+      "meanWavesSurvived": null,
+      "fingerprint": {
+        "raiders": 16,
+        "seconds": 570.4500000000318,
+        "rangeShare": [
+          0.04145849767726876,
+          0.08250796155081468,
+          0.17594296900106882,
+          0.13617903993922037,
+          0.13536097233177768,
+          0.4285505594998499,
+          0,
+          0,
+          0
+        ],
+        "meanSpeed": 239.20438420543954,
+        "fireDuty": 0.33867998948196865,
+        "attentionSwitchesPerMinute": 0,
+        "hits": 355,
+        "brokenPlateShare": 0.39436619718309857
+      }
+    }
+  ]
+}

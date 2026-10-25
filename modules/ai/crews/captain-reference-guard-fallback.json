@@ -1,0 +1,31 @@
+{
+    "name": "captain-reference-guard-fallback",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain.v17.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ],
+    "knobs": {
+        "TUBE_AMMO_FALLBACK": 1
+    }
+}

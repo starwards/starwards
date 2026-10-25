@@ -1,8 +1,10 @@
 import { Capabilities, Display, stationControls } from './controls';
 import { EngineerPolicyName, makeEngineerPolicy } from './engineer-policies';
 
+import { EngineerStyle, engineerChoice } from './reference-engineer';
 import { BrainRequest } from './request';
 import { makeReferencePolicy } from './reference-policy';
+import { setReferenceKnobs } from './reference-knobs';
 
 const capabilities: Capabilities = {
     commands: [
@@ -81,6 +83,56 @@ describe('scripted engineers', () => {
     });
 });
 
+describe('a magazine-first repairing engineer', () => {
+    it('queues the feed-system overhaul before another idle repair that also fixes a shown defect', async () => {
+        const defects = [
+            { system: '/chainGuns/0', field: 'bearingSkew' },
+            { system: '/magazine', field: 'capacity' },
+        ];
+        const shown = display(800, defects);
+        const slots = (
+            shown.panels['repair-queue'] as {
+                slots: { protocolId: string; priority?: string; refusalReason?: string }[];
+            }
+        ).slots;
+        slots.unshift({ protocolId: 'actuatorRecalibration', priority: 'OFF', refusalReason: '' });
+        const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
+        const answer = async (repair: 'all' | 'magazine') =>
+            (await makeReferencePolicy(1, { jumpStart: true, repair }).answer({} as BrainRequest, controls, shown))
+                .answers;
+        expect((await answer('all'))['cycleRepairPriority:feedSystemOverhaul']?.choice).toBe('none');
+        expect((await answer('magazine'))['cycleRepairPriority:feedSystemOverhaul']?.choice).toBe('raise');
+    });
+});
+
+describe('a magazine-retrying repairing engineer', () => {
+    const defects = [{ system: '/magazine', field: 'capacity' }];
+    const cancelled = 'Feed-system overhaul was cancelled: insufficient reactor energy';
+
+    async function answer(repair: 'magazine' | 'magazine-retry', refusalReason: string) {
+        const shown = display(800, defects);
+        const slots = (shown.panels['repair-queue'] as { slots: { protocolId: string; refusalReason: string }[] })
+            .slots;
+        slots[0].refusalReason = refusalReason;
+        const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
+        const { answers } = await makeReferencePolicy(1, { jumpStart: true, repair }).answer(
+            {} as BrainRequest,
+            controls,
+            shown,
+        );
+        return answers['cycleRepairPriority:feedSystemOverhaul']?.choice;
+    }
+
+    it('queues the feed-system overhaul again after it was cancelled for lack of reactor energy', async () => {
+        expect(await answer('magazine', cancelled)).toBe('none');
+        expect(await answer('magazine-retry', cancelled)).toBe('raise');
+    });
+
+    it('still leaves a repair that is refused for another reason', async () => {
+        expect(await answer('magazine-retry', 'Feed-system overhaul needs a docked ship')).toBe('none');
+    });
+});
+
 describe('reference engineer', () => {
     const referenceCapabilities: Capabilities = {
         commands: [{ command: 'systemPower', systems: ['/thrusters/0'] }, { command: 'cycleRepairPriority' }],
@@ -124,5 +176,59 @@ describe('reference engineer', () => {
         expect((await referenceChoices(shown(300, [reactorDefect])))['systemPower:/thrusters/0']).toBe('lower');
         expect((await referenceChoices(shown(300, [])))['systemPower:/thrusters/0']).toBe('hold');
         expect((await referenceChoices(shown(450, [reactorDefect], 0)))['systemPower:/thrusters/0']).toBe('hold');
+    });
+});
+
+describe('a magazine-first repairing engineer', () => {
+    const defects = [
+        { system: '/reactor', field: 'effeciencyFactor' },
+        { system: '/magazine', field: 'capacity' },
+    ];
+    const shown = (priorities: Record<string, string>): Display => {
+        const d = display(800, defects, priorities);
+        const slots = (d.panels['repair-queue'] as { slots: { protocolId: string; priority: string }[] }).slots;
+        slots.push({ protocolId: 'powerTrainReset', priority: priorities.powerTrainReset ?? 'OFF' });
+        return d;
+    };
+    const choice = (
+        key: string,
+        now: number,
+        priorities: Record<string, string>,
+        repair: EngineerStyle['repair'] = 'magazine-first',
+    ) =>
+        engineerChoice(
+            'cycleRepairPriority',
+            key,
+            shown(priorities) as Parameters<typeof engineerChoice>[2],
+            { jumpStart: true, repair },
+            false,
+            now,
+        );
+
+    afterEach(() => setReferenceKnobs());
+
+    it('cancels a running reactor repair for the feed-system overhaul once wave 1 is over', () => {
+        expect(choice('powerTrainReset', 310, { powerTrainReset: 'RUNNING' })).toBe('lower');
+        expect(choice('powerTrainReset', 310, { powerTrainReset: 'RUNNING' }, 'magazine-retry')).toBe('none');
+        expect(choice('feedSystemOverhaul', 310, { powerTrainReset: 'RUNNING' })).toBe('none');
+        expect(choice('feedSystemOverhaul', 310, {})).toBe('raise');
+    });
+
+    it('leaves the reactor repair running during wave 1 and after the window', () => {
+        expect(choice('powerTrainReset', 200, { powerTrainReset: 'RUNNING' })).toBe('none');
+        expect(choice('powerTrainReset', 400, { powerTrainReset: 'RUNNING' })).toBe('none');
+    });
+
+    it('cancels again before a restock-window dock', () => {
+        setReferenceKnobs({ RESTOCK_FROM_SECONDS: 640, RESTOCK_UNTIL_SECONDS: 800 });
+        expect(choice('powerTrainReset', 500, { powerTrainReset: 'RUNNING' })).toBe('none');
+        expect(choice('powerTrainReset', 600, { powerTrainReset: 'RUNNING' })).toBe('lower');
+        expect(choice('powerTrainReset', 650, { powerTrainReset: 'RUNNING' })).toBe('none');
+    });
+
+    it('never cancels a jump-start, a wind-down or the overhaul itself', () => {
+        expect(choice('reactorJumpStart', 310, { reactorJumpStart: 'RUNNING' })).toBe('none');
+        expect(choice('powerTrainReset', 310, { powerTrainReset: 'CANCELLING' })).toBe('none');
+        expect(choice('feedSystemOverhaul', 310, { feedSystemOverhaul: 'RUNNING' })).toBe('none');
     });
 });

@@ -2,7 +2,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { GameMap, ShipModel } from '@starwards/core/internal';
+import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
+import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
 import { RungTracker, WaveOutcome, waveRung } from './wave-rung';
@@ -30,6 +31,7 @@ import {
 import { ingest, storePathFor } from './analysis/store';
 
 import { HeadlessRecorder } from '../headless-recorder';
+import { WAVE_CUTS } from './wave-cuts';
 import { computeChecks } from './analysis/checks';
 import { computeEvents } from './analysis/events';
 import { extractMetrics } from './analysis/extract';
@@ -292,8 +294,37 @@ const W_OUTRANGED: TrainingScenario<T0Params> = {
 /** The wave-defence rung (see {@link waveRung}). */
 const W_WAVES = { name: 'W-waves', waveIntervalSeconds: 480, passWaves: 3 };
 
-/** The wave-defence rung started at map wave 4 (three waves behind it), where predators and cataphracts arrive. */
-const W_WAVES_LATE = { ...W_WAVES, name: 'W-waves-late', passWaves: 2, skipWaves: 3 };
+/** The wave-defence rung started at map wave 4, where predators and cataphracts arrive: passes after 2 waves. */
+const W_WAVES_LATE = { ...W_WAVES, name: 'W-waves-late', passWaves: 2, firstWave: 4 };
+
+/**
+ * Adversary rung A1: T1 (one dragonfly-MK1 attacking the GVTS) with the raider varied by `profile`
+ * while the crew stays fixed; `A1-today` plays exactly as T1.
+ */
+const adversaryT1 = (profile: AdversaryProfile): TrainingScenario<T0Params> => ({
+    ...T1_ATTACKING_DRAGONFLY,
+    name: `A1-${profile.name}`,
+    description: `T1 with the raider varied (adversary rung): ${profile.description}`,
+    createMap: (params) =>
+        createTrainingT1Map(params, 'dragonfly-MK1', {
+            noCombatWeave: profile.ai.noCombatWeave,
+            standGround: profile.standGround,
+            flightDoctrine: profile.ai.flightDoctrine === FlightDoctrine.AUTO ? undefined : profile.ai.flightDoctrine,
+        }),
+});
+
+/** Adversary rung AW: the wave rung with every raider varied by `profile`. */
+const adversaryWaves = (profile: AdversaryProfile) =>
+    waveRung({ ...W_WAVES, name: `AW-${profile.name}`, adversary: profile });
+
+const adversaryRungs: Record<string, TrainingScenario<never>> = {
+    ...Object.fromEntries(
+        Object.values(adversaryProfiles).map((p) => [`A1-${p.name}`, adversaryT1(p) as TrainingScenario<never>]),
+    ),
+    ...Object.fromEntries(
+        waveAdversaryProfiles.map((p) => [`AW-${p.name}`, adversaryWaves(p) as TrainingScenario<never>]),
+    ),
+};
 
 export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     T0: T0_PLAY_DEAD_DRAGONFLY as TrainingScenario<never>,
@@ -330,6 +361,8 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
         name: 'W-waves-endless',
         passWaves: Infinity,
     }) as TrainingScenario<never>,
+    ...adversaryRungs,
+    ...WAVE_CUTS,
 };
 
 /**
@@ -352,6 +385,8 @@ export interface TrainingRunOptions {
      * and, without a {@link beforeTick} driving it, the ship does nothing.
      */
     readonly crewedPlayer?: boolean;
+    /** Runs NPC ships on the real energy and repair rules; omitted, the game's default. */
+    readonly npcRealEnergy?: boolean;
     /**
      * Awaited before every `game.tick(dt)`, as the wave-defence harness drives its crew before the
      * tick, so whatever it sets takes effect on that tick. Cannot cross `run-training.ts`'s worker IPC.
@@ -365,11 +400,19 @@ export interface TrainingRunOptions {
  */
 export async function playTraining<P>(
     scenario: TrainingScenario<P>,
-    { seed, timeoutSeconds, hz = SERVER_TICK_HZ, recording, crewedPlayer = false, beforeTick }: TrainingRunOptions,
+    {
+        seed,
+        timeoutSeconds,
+        hz = SERVER_TICK_HZ,
+        recording,
+        crewedPlayer = false,
+        npcRealEnergy,
+        beforeTick,
+    }: TrainingRunOptions,
 ) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
     const tracked = scenario.track?.(params);
-    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer });
+    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer, npcRealEnergy });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');

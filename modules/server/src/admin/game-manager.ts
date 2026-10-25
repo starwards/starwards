@@ -6,6 +6,7 @@ import {
     BotEntry,
     BotStatus,
     BridgeSeat,
+    Faction,
     GameApi,
     GameMap,
     GameStatus,
@@ -38,6 +39,7 @@ import {
     waitFor,
 } from '@starwards/core/internal';
 
+import { SystemBrokenAnnouncer } from './system-broken-announcer';
 import { decodedCopy } from '../serialization/game-state-serialization';
 import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
@@ -64,6 +66,7 @@ export class GameManager {
     private shipCleanups = new Map<string, () => unknown>();
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
+    private systemBroken = new SystemBrokenAnnouncer();
     private die = new ShipDie();
     public spaceManager = this.makeSpaceManager();
     /** Runs the bots seated in `state.bots`. */
@@ -102,13 +105,24 @@ export class GameManager {
         convertToDerelict: (shipId: string) => {
             this.spaceManager.convertToDerelict(shipId);
         },
+        grantSnapshot: (targetId: string, faction: Faction) => {
+            this.spaceManager.forceFlushEntities(); // the target may still be queued for insertion
+            this.spaceManager.factionIntel.grantSnapshot(targetId, faction, this._totalSeconds);
+        },
         getObject: (id: string) => this.spaceManager.state.get(id),
         getObjects: () => this.spaceManager.state,
         setSpeed: (speed: number) => {
             this.state.speed = Math.max(0, Math.min(3, speed));
         },
         setMessage: (message: string) => {
-            this.state.message = message;
+            if (message.trim().length === 0) this.state.clearMessage();
+            else this.state.showMessageNow(message);
+        },
+        pushMessage: (message: string, seconds?: number) => {
+            this.state.pushMessage(message, seconds);
+        },
+        clearMessage: () => {
+            this.state.clearMessage();
         },
     };
 
@@ -128,6 +142,7 @@ export class GameManager {
 
     update(currDeltaSeconds: number) {
         this.drainStationCommands();
+        this.state.tickMessages(currDeltaSeconds);
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
         this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;
@@ -145,6 +160,9 @@ export class GameManager {
             this.die.update(iterationData);
             for (const shipManager of this.shipManagers.values()) {
                 shipManager.update(iterationData);
+                for (const message of this.systemBroken.check(shipManager.spaceObject.id, shipManager.state)) {
+                    this.state.pushMessage(message);
+                }
             }
             this.spaceManager.update(iterationData);
             const space = this.spaceManager.state;
@@ -361,7 +379,27 @@ export class GameManager {
         }
     }
 
-    public async stopGame() {
+    private lifecycleTail: Promise<void> = Promise.resolve();
+    private lifecycleInFlight = 0;
+
+    /** Runs start/stop/load one at a time; an operation begins synchronously only when none is queued or running. */
+    private serialized<T>(operation: () => Promise<T>): Promise<T> {
+        const result = this.lifecycleInFlight === 0 ? operation() : this.lifecycleTail.then(operation);
+        this.lifecycleInFlight++;
+        this.lifecycleTail = result.then(
+            () => undefined,
+            () => undefined,
+        );
+        void this.lifecycleTail.then(() => this.lifecycleInFlight--);
+        return result;
+    }
+
+    /** Stops the game; when a start or stop is in flight, waits for it first so the stop is never a silent no-op. */
+    public stopGame() {
+        return this.serialized(() => this.doStopGame());
+    }
+
+    private async doStopGame() {
         this.map = null;
         if (this.state.gameStatus === GameStatus.RUNNING) {
             this.state.gameStatus = GameStatus.STOPPING;
@@ -379,15 +417,20 @@ export class GameManager {
             this.die = new ShipDie();
             this.state.playerShipIds.splice(0);
             this.state.shipIds.splice(0);
-            this.state.message = '';
+            this.state.resetMessages();
             this.shipCleanups.clear();
             this.shipManagers.clear();
+            this.systemBroken = new SystemBrokenAnnouncer();
             this.convertingShips.clear();
             this.state.gameStatus = GameStatus.STOPPED;
         }
     }
 
-    public async startGame(map: GameMap) {
+    public startGame(map: GameMap) {
+        return this.serialized(() => this.doStartGame(map));
+    }
+
+    private async doStartGame(map: GameMap) {
         if (this.state.gameStatus === GameStatus.STOPPED) {
             this.state.gameStatus = GameStatus.STARTING;
             this.map = map;
@@ -431,12 +474,16 @@ export class GameManager {
         return snapshot;
     }
 
-    public async loadGame(source: SavedGame, map: GameMap) {
+    public loadGame(source: SavedGame, map: GameMap) {
+        return this.serialized(() => this.doLoadGame(source, map));
+    }
+
+    private async doLoadGame(source: SavedGame, map: GameMap) {
         const { fragment } = decodedCopy(SavedGame, source);
         await waitFor(
             async () => {
                 if (this.state.gameStatus !== GameStatus.STOPPED) {
-                    await this.stopGame();
+                    await this.doStopGame();
                     throw new Error('Waiting for game to stop');
                 }
             },
@@ -533,6 +580,7 @@ export class GameManager {
                 this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
                 await matchMaker.remoteRoomCall(id, 'disconnect', []);
                 this.shipManagers.delete(id);
+                this.systemBroken.forget(id);
             }
         });
 

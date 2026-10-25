@@ -80,7 +80,14 @@ const defaultStationsManifest: StationsManifest = {
         },
         signals: {
             enabled: true,
-            widgets: ['long-range-radar', 'target-info', 'systems-status', 'signals-jobs', 'target-intel'],
+            widgets: [
+                'long-range-radar',
+                'target-info',
+                'systems-status',
+                'signals-jobs',
+                'target-intel',
+                'hull-status',
+            ],
             commands: ['beamDirection', 'beamArc', 'pauseJobs', 'prioritizeJob', 'cancelJob'],
             prompt:
                 'You work the scan beam. You identify contacts the rest of the crew can only see as blips, and ' +

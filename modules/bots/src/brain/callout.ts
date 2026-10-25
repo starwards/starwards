@@ -1,7 +1,7 @@
 import { BrainSpec, CalloutFill } from './spec';
 import { Contact, Radar, offNose } from './verbal';
-import { SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 import {
+    GUN_CLOSE_METERS,
     bearingWords,
     closeRange,
     launchRange,
@@ -10,9 +10,12 @@ import {
     nearestEnemy,
     offNoseWords,
 } from './engagement';
+import { HullStatus, SALVO_MISSILES, radarReach } from '@starwards/core/internal';
 
 import { ChoiceQuestion } from './request';
 import { Display } from './controls';
+import { isEnemyShip } from './enemy';
+import { plateIntelFill } from './plate-intel';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';
@@ -91,6 +94,8 @@ const calloutFills: Record<
         const locked = targetId ? r?.contacts?.find((c) => c.id === targetId) : undefined;
         return locked && r?.ownShip ? degreesAndSide(offNose(locked.bearing, r.ownShip.heading)) : undefined;
     },
+    /** Engineer: the magazine's capacity share, from the damage report (1 when it shows no capacity defect). */
+    magazineState: ({ panels }) => ({ capacity: magazineCapacity(panels).toFixed(2) }),
     /** Engineer: how far damage has bent a chain gun off the nose, from the damage report. */
     gunSkew: ({ panels }) => {
         const report = panels['damage-report'];
@@ -139,13 +144,14 @@ const calloutFills: Record<
         };
     },
     /**
-     * Captain: close to missile range of the nearest enemy, which lies `distance` away on world
-     * `bearing`; the range is inside the envelope for how the enemy moves since the previous decision,
+     * Captain: close to missile range of the enemy that threatens an allied station most (nearest any
+     * station in sight), else of the nearest enemy, which lies `distance` away on world `bearing`; the range is inside the envelope for how the enemy moves since the previous decision,
      * or gun range once the enemy is inside it.
      */
-    closeOrder: ({ radar }, previous, seconds) => {
+    closeOrder: ({ radar }, previous, seconds, supplied) => {
         const r = radar as Radar | undefined;
-        const enemy = nearestEnemy(r);
+        // a straggler near the own ship must not drag it away from a station under attack
+        const enemy = suppliedTarget(r, supplied) ?? stationThreat(r)?.enemy ?? nearestEnemy(r);
         return (
             enemy && {
                 name: enemy.name,
@@ -153,6 +159,23 @@ const calloutFills: Record<
                     closeRange(enemy.distance, launchRange(enemy, r, previous?.radar as Radar | undefined, seconds)) /
                     1000
                 ).toFixed(0),
+                distance: (enemy.distance / 1000).toFixed(1),
+                bearing: bearingWords(enemy.bearing),
+            }
+        );
+    },
+    /**
+     * Captain: close to gun range of the enemy that threatens an allied station most, else of the nearest
+     * enemy, whatever its distance: the ship never parks at missile range while a focus has the crew fight
+     * the raiders one after the other.
+     */
+    gunCloseOrder: ({ radar }, _previous, _seconds, supplied) => {
+        const r = radar as Radar | undefined;
+        const enemy = suppliedTarget(r, supplied) ?? stationThreat(r)?.enemy ?? nearestEnemy(r);
+        return (
+            enemy && {
+                name: enemy.name,
+                range: (GUN_CLOSE_METERS / 1000).toFixed(0),
                 distance: (enemy.distance / 1000).toFixed(1),
                 bearing: bearingWords(enemy.bearing),
             }
@@ -252,18 +275,18 @@ const calloutFills: Record<
      * the focus picks the enemy nearest the station an enemy is nearest to, and the names follow that
      * order; otherwise the names are the order, nearest the own ship first.
      */
-    focusOrder: ({ radar }) => {
+    focusOrder: ({ radar }, _previous, _seconds, supplied) => {
         const r = radar as Radar | undefined;
         const own = r?.ownShip?.faction;
-        const enemies = (r?.contacts ?? []).filter(
-            (c) => c.type === 'Spaceship' && c.faction !== undefined && c.faction !== own,
-        );
+        const enemies = (r?.contacts ?? []).filter((c) => isEnemyShip(c, own));
         if (!enemies.length) {
             return undefined;
         }
         const apart = (a: Contact, b: Contact) =>
             a.position && b.position ? Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y) : Infinity;
-        const station = stationThreat(r)?.station;
+        const station =
+            (supplied?.station !== undefined && r?.contacts?.find((c) => c.name === supplied.station)) ||
+            stationThreat(r)?.station;
         const order = [...enemies].sort((x, y) =>
             station ? apart(x, station) - apart(y, station) : x.distance - y.distance,
         );
@@ -278,6 +301,20 @@ const calloutFills: Record<
             : { names, focus: names };
         return values;
     },
+    /** Signals: the armor of the contact marked on Target Details (`plateIntel`). */
+    plateIntel: (display) => plateIntelFill(display),
+    /** Signals: the most urgent hull or capsule tier change on its hull-status panel (`hullStatusChange`). */
+    hullStatusChange: (display, previous) => {
+        const change = hullStatusChange(display, previous);
+        return (
+            change && {
+                who: change.row.allied ? 'ally' : 'enemy',
+                name: change.row.name,
+                part: change.part,
+                tier: change.tier,
+            }
+        );
+    },
     /** Captain: a salvo of the default size. */
     salvoOrder: () => ({ count: String(SALVO_MISSILES) }),
     /** Captain: engage the nearest enemy, by the name the crew's radars show. */
@@ -285,10 +322,102 @@ const calloutFills: Record<
         const enemy = nearestEnemy(radar as Radar | undefined);
         return enemy && { name: enemy.name };
     },
+    /** Captain: fly to the centre of the allied stations in sight, `distance` away on world `bearing`. */
+    guardOrder: ({ radar }) => {
+        const r = radar as Radar | undefined;
+        const centre = stationsCentre(r);
+        const own = r?.ownShip?.position;
+        if (!centre || !own) return undefined;
+        const goal = pastStations(own, centre, alliedStations(r));
+        const dx = goal.x - own.x;
+        const dy = goal.y - own.y;
+        return {
+            name: 'the stations',
+            range: (GUARD_RANGE_METERS / 1000).toFixed(0),
+            distance: (Math.hypot(dx, dy) / 1000).toFixed(1),
+            bearing: bearingWords((Math.atan2(dy, dx) * 180) / Math.PI),
+        };
+    },
 };
 
+/** How near the centre of the stations a guard order brings the ship, metres. */
+export const GUARD_RANGE_METERS = 1000;
+
+type XY = { x: number; y: number };
+
+/** A station closer than this to the straight way to a guard point stands in the way. */
+const GUARD_CLEARANCE_METERS = 3_000;
+/** How wide of a station in the way a guard order passes it. */
+const GUARD_DETOUR_METERS = 4_000;
+
+/**
+ * Where to fly towards `goal` from `from`: the goal itself, or a point beside the nearest station that
+ * stands in the straight way, on the side the ship already is (the ship would stop against its hull).
+ */
+function pastStations(from: XY, goal: XY, stations: readonly Contact[]): XY {
+    const wx = goal.x - from.x;
+    const wy = goal.y - from.y;
+    const way = Math.hypot(wx, wy);
+    if (way < 1) return goal;
+    const [ux, uy] = [wx / way, wy / way];
+    const blocking = stations
+        .filter((s) => s.position)
+        .map((s) => {
+            const along = (s.position!.x - from.x) * ux + (s.position!.y - from.y) * uy;
+            const side = (s.position!.x - from.x) * -uy + (s.position!.y - from.y) * ux;
+            return { s, along, side };
+        })
+        .filter(({ along, side }) => along > 0 && along < way && Math.abs(side) < GUARD_CLEARANCE_METERS)
+        .sort((a, b) => a.along - b.along)[0];
+    if (!blocking) return goal;
+    const away = blocking.side > 0 ? -1 : 1;
+    return {
+        x: blocking.s.position!.x + -uy * away * GUARD_DETOUR_METERS,
+        y: blocking.s.position!.y + ux * away * GUARD_DETOUR_METERS,
+    };
+}
+
+/** The centre of the allied stations on the radar, undefined with none in sight. */
+export function stationsCentre(r: Radar | undefined) {
+    const stations = alliedStations(r).filter((s) => s.position);
+    if (!stations.length) return undefined;
+    return {
+        x: stations.reduce((a, s) => a + s.position!.x, 0) / stations.length,
+        y: stations.reduce((a, s) => a + s.position!.y, 0) / stations.length,
+    };
+}
+
+/** The contact the speaking seat names in `supplied.target` (its own pick of the enemy), while the radar shows it. */
+const suppliedTarget = (r: Radar | undefined, supplied: FillValues | undefined) =>
+    supplied?.target === undefined ? undefined : r?.contacts?.find((c) => c.name === supplied.target);
+
+/** The parts of a ship whose tier the hull-status panel shows, the capsule (life) first. */
+const STATUS_PARTS = ['capsule', 'hull'] as const;
+
+/**
+ * The most urgent hull or capsule tier change on the Signals hull-status panel since the previous
+ * decision: only rows live at both decisions count (a snapshot is frozen, so it never changes on its
+ * own); an ally first, then the contact nearest an allied station (the one attacking it), then any
+ * other; for one subject, the capsule before the hull.
+ */
+export function hullStatusChange(display: Display, previous: Display | undefined) {
+    const before = new Map(((previous?.panels['hull-status'] ?? []) as HullStatus[]).map((r) => [r.id, r] as const));
+    const attacker = stationThreat(display.radar as Radar | undefined)?.enemy.id;
+    const rank = (r: HullStatus) => (r.allied ? 0 : r.id === attacker ? 1 : 2);
+    const changes = ((display.panels['hull-status'] ?? []) as HullStatus[]).flatMap((row) => {
+        const b = before.get(row.id);
+        if (row.intel !== 'LIVE' || b?.intel !== 'LIVE') return [];
+        return STATUS_PARTS.filter((part) => row[part] && b[part] !== row[part]).map((part) => ({
+            row,
+            part,
+            tier: row[part]!,
+        }));
+    });
+    return changes.sort((x, y) => rank(x.row) - rank(y.row))[0];
+}
+
 /** Allied stations on the radar: own-faction ships big enough to dock at. */
-function alliedStations(r: Radar | undefined) {
+export function alliedStations(r: Radar | undefined) {
     const own = r?.ownShip?.faction;
     return (r?.contacts ?? []).filter(
         (c) => c.type === 'Spaceship' && own !== undefined && c.faction === own && (c.radius ?? 0) >= DOCK_HOST_RADIUS,
@@ -296,12 +425,12 @@ function alliedStations(r: Radar | undefined) {
 }
 
 /** The identified enemy ship nearest any allied station on the radar, and that station. */
-function stationThreat(r: Radar | undefined) {
+export function stationThreat(r: Radar | undefined) {
     const own = r?.ownShip?.faction;
     const stations = alliedStations(r).filter((s) => s.position);
     let best: { enemy: Contact; station: Contact; gap: number } | undefined;
     for (const enemy of r?.contacts ?? []) {
-        if (enemy.type !== 'Spaceship' || enemy.faction === undefined || enemy.faction === own || !enemy.position) {
+        if (!isEnemyShip(enemy, own) || !enemy.position) {
             continue;
         }
         for (const station of stations) {
@@ -409,4 +538,15 @@ export function checkFireOf(panels: Display['panels']) {
     if (t?.allyInLine) return { ally: t.allyInLine, where: 'in the line of fire' };
     if (t?.allyNearTarget) return { ally: t.allyNearTarget, where: 'by the target' };
     return undefined;
+}
+
+/** The magazine's capacity share the engineer's damage report shows: 1 when it lists no capacity defect. */
+export function magazineCapacity(panels: Display['panels']) {
+    const report = panels['damage-report'];
+    const defect = Array.isArray(report)
+        ? (report as { system: string; field: string; value: number }[]).find(
+              (d) => d.system === '/magazine' && d.field === 'capacity',
+          )
+        : undefined;
+    return defect?.value ?? 1;
 }

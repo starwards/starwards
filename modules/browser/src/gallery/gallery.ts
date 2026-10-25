@@ -65,7 +65,13 @@ function buildSceneSelector() {
  * A widget that renders past the size its scene declared would be silently cropped out of the
  * baseline — untested pixels that look like coverage. Grow the box to whatever the scene drew.
  */
-function fitToContent() {
+async function fitToContent() {
+    // tweakpane folders open and close through 0.2s height transitions: measured before they end,
+    // a collapsed folder still counts at its open height and the box keeps that empty space
+    await new Promise(requestAnimationFrame);
+    // transitions only: a looping CSS animation (a blinking marker) never finishes
+    const transitions = document.getAnimations().filter((animation) => animation instanceof CSSTransition);
+    await Promise.all(transitions.map((animation) => animation.finished.catch(() => undefined)));
     // let the widget lay itself out at its natural size, then pin the box to what it drew
     container.style.width = 'max-content';
     container.style.height = 'max-content';
@@ -126,13 +132,14 @@ async function loadScene() {
                     window.__PIXI_APP__!.ticker.stop();
                     // Force final render to ensure canvas has content
                     window.__PIXI_APP__!.render();
-                    fitToContent();
-                    window.__PIXI_READY__ = true;
+                    void fitToContent().then(() => {
+                        window.__PIXI_READY__ = true;
+                    });
                 }
             };
             window.__PIXI_APP__.ticker.add(waitForRender);
         } else {
-            fitToContent();
+            await fitToContent();
             window.__PIXI_READY__ = true;
         }
     } catch (error) {

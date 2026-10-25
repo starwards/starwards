@@ -2,10 +2,10 @@ import { ShipDriver, isRestockingAmmo, magazineStocks } from '@starwards/core';
 import { addInlineBarBlade, addSubheader, addTextBlade, applyThresholdTheme, createWidgetPane } from '../panel';
 import { aggregate, readNumberProp, readProp } from '../property-wrappers';
 
+import { ammoGroups, ammoLevel } from './ammo-groups';
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
 import { ammoFamilyName } from './ammo-names';
-import { ammoGroups } from './ammo-groups';
 
 export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
     class AmmoComponent {
@@ -58,15 +58,21 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
             };
             const heldMax = () => shipDriver.state.magazine.getMax(projectileKey);
             // shell counts run to thousands and only fit as a bare count; missile counts read against their stock
-            const format = designMax >= 1000 ? String : (count: number) => `${count}/${heldMax()}`;
+            const stock = designMax >= 1000 ? String : (count: number) => `${count}/${heldMax()}`;
+            // the weapons seat has no pointer, so the warning is in the value itself, not only the colour
+            const format = (count: number) => {
+                const level = ammoLevel(count, designMax);
+                return level === 'EMPTY' ? 'EMPTY' : level === 'LOW' ? `LOW ${stock(count)}` : stock(count);
+            };
             const row = addInlineBarBlade(
                 groupFolder,
                 countProp,
                 { label: ammoFamilyName(projectileKey), format },
                 panelCleanup.add,
             );
-            // amber once a quarter of the stock or less is left
-            applyThresholdTheme(row.element, countProp, Math.floor(designMax / 4) + 1, -1, panelCleanup.add);
+            row.element.classList.add('sw-ammo-row');
+            // amber once a quarter of the stock or less is left, red when none is
+            applyThresholdTheme(row.element, countProp, Math.floor(designMax / 4) + 1, 0, panelCleanup.add);
         }
     }
 }

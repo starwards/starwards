@@ -221,4 +221,26 @@ describe('ShipDie', () => {
             expect(sum / n).to.be.closeTo(mean, 0.2);
         });
     });
+
+    describe('reseed', () => {
+        const rolls = (die: ShipDie) => Array.from({ length: 8 }, (_, i) => die.getRoll(`event:${i}`)).join();
+        const reseeded = (key: number) => {
+            const die = new ShipDie(5);
+            tick(die, 10);
+            die.reseed(key);
+            tick(die, EVENT_SALT_WINDOW_SECONDS);
+            return rolls(die);
+        };
+
+        it('same key => identical rolls after it', () => {
+            expect(reseeded(11)).to.equal(reseeded(11));
+        });
+
+        it('different keys => different rolls after it, and both differ from no reseed', () => {
+            const plain = new ShipDie(5);
+            tick(plain, 10 + EVENT_SALT_WINDOW_SECONDS);
+            expect(reseeded(11)).to.not.equal(reseeded(12));
+            expect(reseeded(11)).to.not.equal(rolls(plain));
+        });
+    });
 });
