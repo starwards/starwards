@@ -1,6 +1,6 @@
 import { Answer, Policy } from './brain';
 import { CALLOUT_QUESTION, stationThreat } from './callout';
-import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
+import { EngineerStyle, REFERENCE_ENGINEER, engineerChoice } from './reference-engineer';
 import { Resupply, SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
 import { closingSpeed, inLaunchEnvelope, launchRange } from './engagement';
@@ -742,11 +742,22 @@ function checkFire(display: Display) {
     return Boolean(shown?.allyInLine || shown?.allyNearTarget);
 }
 
-/** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */
+/**
+ * Whether the gun panel shows a chain gun that cannot or should not fire: jammed, in forced cooldown,
+ * or within `GUN_JAM_MARGIN` of the heat at which a shot may jam it (that bar drops as the barrel wears).
+ */
 function gunTooHot(display: Display) {
-    const systems = (display.panels['systems-status'] ?? []) as unknown as SystemStatus[];
-    return systems.some(
-        (s) => s.pointer.startsWith('/chainGuns/') && s.heat > referenceKnobs.GUN_HOLD_HEAT && s.coolantFactor > 0,
+    const guns = (display.panels['gun-status'] ?? []) as unknown as {
+        heat?: number;
+        jammedSeconds?: number;
+        cooling?: boolean;
+        jamBar?: number;
+    }[];
+    return guns.some(
+        (g) =>
+            (g.jammedSeconds ?? 0) > 0 ||
+            g.cooling === true ||
+            (g.heat !== undefined && g.jamBar !== undefined && g.heat >= g.jamBar - referenceKnobs.GUN_JAM_MARGIN),
     );
 }
 

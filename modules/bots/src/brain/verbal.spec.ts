@@ -256,3 +256,13 @@ describe('verbal radar: scan beam', () => {
         );
     });
 });
+
+describe('verbal gun-status heat', () => {
+    it('reports heat, jam, cooldown and wear', () => {
+        const gun = { index: 0, projectile: 'HiExpShell', loadedProjectile: 'HiExpShell', loadAmmo: true };
+        const lines = verbalReader(1)({
+            panels: { 'gun-status': [{ ...gun, heat: 71.6, cooling: true, jammedSeconds: 2.1, barrelWear: 0.25 }] },
+        });
+        expect(lines.join(' ')).toContain('heat 72, COOLING DOWN, JAMMED 3s, barrel wear 25%');
+    });
+});

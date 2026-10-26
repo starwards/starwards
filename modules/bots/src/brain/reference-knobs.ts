@@ -20,8 +20,8 @@ export const REFERENCE_KNOB_DEFAULTS = {
     PURSUIT_METERS: 1500,
     /** Clearance helms and weapons keep the gun line off an allied station's hull. */
     LINE_CLEARANCE_METERS: 600,
-    /** Weapons holds fire while a chain gun is hotter than this. */
-    GUN_HOLD_HEAT: 85,
+    /** Weapons holds fire once a chain gun's heat is within this of its jam bar. */
+    GUN_JAM_MARGIN: 5,
     /** Proportional gain of helms' parking. */
     PARKING_GAIN: 0.3,
     /** Captain refocuses on a nearer station threat only after the held one is this much farther. */

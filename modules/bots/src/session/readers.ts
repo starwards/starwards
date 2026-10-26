@@ -203,6 +203,12 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             isFiring: gun.isFiring,
             shellRange: gun.shellRange,
             shellSecondsToLive: gun.shellSecondsToLive,
+            heat: gun.heat,
+            jammedSeconds: gun.jammedSeconds,
+            cooling: gun.cooling,
+            barrelWear: gun.barrelWear,
+            spreadBar: gun.spreadBar,
+            jamBar: gun.jamBar,
         })),
 
     'ammo-status': (s) => {
