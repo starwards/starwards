@@ -143,6 +143,29 @@ describe('crew doctrine', () => {
             expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'doctrine' });
         });
 
+        it('stays docked for an enemy beyond range, a neutral, a snapshot ally row, or before the timeout', () => {
+            const { b, doctrine, run, slot } = dockedAt0();
+            const docked = helms(0, true, DOCKING_MODE.DOCKED);
+            doctrine.see('helms', withContacts(docked, [enemy(9000), { ...enemy(2000), faction: -1 }]));
+            doctrine.see('signals', {
+                panels: {
+                    'hull-status': [{ id: 'S2', name: 'S2', allied: true, intel: 'SNAPSHOT', hull: 'critical' }],
+                },
+            });
+            b.tick(DOCTRINE_DOCK_TIMEOUT - 10);
+            run();
+            expect(slot('navigation')?.kind).toBe('dock_for_repair');
+        });
+
+        it('forgets a threat once commands() has run', () => {
+            const { doctrine, b, run, slot } = dockedAt0();
+            doctrine.see('helms', withContacts(helms(0, true, DOCKING_MODE.DOCKED), [enemy(5000)]));
+            expect(doctrine.commands(b.shown)).toHaveLength(1);
+            expect(doctrine.commands(b.shown)).toEqual([]);
+            run();
+            expect(slot('navigation')?.kind).toBe('dock_for_repair');
+        });
+
         it('undocks after the dock timeout', () => {
             const { b, doctrine, run, slot } = dockedAt0();
             b.tick(DOCTRINE_DOCK_TIMEOUT + 10);

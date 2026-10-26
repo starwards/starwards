@@ -15,7 +15,7 @@ export const DOCTRINE_DOCK_BELOW = 0.5;
 export const DOCTRINE_UNDOCK_AT = 0.95;
 /** Seconds after which a standing dock order is cast off even if armor has not recovered. */
 export const DOCTRINE_DOCK_TIMEOUT = 120;
-/** A hostile ship within this many metres of a seat's ship, or an allied hull no longer intact, ends a repair dock. */
+/** A hostile ship within this many metres of a seat's ship ends a repair dock; so does an allied hull no longer intact. */
 export const DOCTRINE_THREAT_METERS = 8000;
 /** A contact this wide or wider is a station a ship docks at, not a ship. */
 const DOCK_HOST_RADIUS = 200;
@@ -106,17 +106,17 @@ export function crewDoctrine() {
                     );
                 }
             }
-            const ownId = (radar?.ownShip as { id?: string } | undefined)?.id;
             const hostile = (radar?.contacts ?? []).some(
                 (c) =>
                     c.type === 'Spaceship' &&
                     faction !== undefined &&
                     c.faction !== undefined &&
+                    c.faction >= 0 &&
                     c.faction !== faction &&
                     c.distance < DOCTRINE_THREAT_METERS,
             );
             const hurtAlly = ((display.panels['hull-status'] ?? []) as HullStatus[]).some(
-                (r) => r.allied && r.intel === 'LIVE' && r.id !== ownId && r.hull !== undefined && r.hull !== 'intact',
+                (r) => r.allied && r.intel === 'LIVE' && r.hull !== undefined && r.hull !== 'intact',
             );
             threat ||= hostile || hurtAlly;
             if (station === 'helms') armor = armorShare(display);
@@ -124,6 +124,7 @@ export function crewDoctrine() {
         /** The commands that bring each slot doctrine wants to its order, where no captain order stands in the way. */
         commands(board: OrdersBoard | undefined): OrderCommand[] {
             const orders = board?.orders ?? [];
+            wanted.delete('navigation');
             const nav = orders.find((o) => o.slot === 'navigation');
             if (nav?.issuer === 'doctrine' && nav.kind === 'dock_for_repair' && nav.status === 'complete') {
                 if (threat) want({ kind: 'launch' }, 'helms');
