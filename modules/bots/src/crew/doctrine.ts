@@ -1,4 +1,4 @@
-import { CREW_ORDER_KINDS, OrderSlot } from '@starwards/core/internal';
+import { CREW_ORDER_KINDS, HullStatus, OrderSlot } from '@starwards/core/internal';
 import { GivenOrder, OrderCommand, OrdersBoard, armorShare, orderCommand, paramsArg } from './orders';
 
 import { Display } from '../brain/controls';
@@ -13,6 +13,10 @@ export const DOCTRINE_CLOSE_METERS = 2000;
 export const DOCTRINE_DOCK_BELOW = 0.5;
 /** The armor share at which doctrine casts off from a dock it sent the ship to. */
 export const DOCTRINE_UNDOCK_AT = 0.95;
+/** Seconds after which a standing dock order is cast off even if armor has not recovered. */
+export const DOCTRINE_DOCK_TIMEOUT = 120;
+/** A hostile ship within this many metres of a seat's ship, or an allied hull no longer intact, ends a repair dock. */
+export const DOCTRINE_THREAT_METERS = 8000;
 /** A contact this wide or wider is a station a ship docks at, not a ship. */
 const DOCK_HOST_RADIUS = 200;
 
@@ -32,7 +36,9 @@ function offNose(words: string | undefined): number | undefined {
  * 1. signals says `enemy_position` → `close_to` that enemy, {@link DOCTRINE_CLOSE_METERS} (maneuver);
  * 2. weapons says `target_locked` → `engage`, naming no ship (engagement);
  * 3. a seat's radar shows an allied dock → `dock_below_armor` there at {@link DOCTRINE_DOCK_BELOW} (repair);
- * 4. docked by its own dock order and armor back to {@link DOCTRINE_UNDOCK_AT} → `undock` (navigation).
+ * 4. docked by its own dock order and armor back to {@link DOCTRINE_UNDOCK_AT}, or the order older than
+ *    {@link DOCTRINE_DOCK_TIMEOUT} → `undock`; a hostile within {@link DOCTRINE_THREAT_METERS} or an allied
+ *    hull that is not intact → `launch` (navigation).
  *
  * It writes through the board's commands with issuer `doctrine`, so a captain order replaces it,
  * a captain's revoke hands the slot back to it, and it never overwrites a captain order.
@@ -40,6 +46,7 @@ function offNose(words: string | undefined): number | undefined {
 export function crewDoctrine() {
     const wanted = new Map<OrderSlot, { given: GivenOrder; origin: string }>();
     let armor: number | undefined;
+    let threat = false;
     const want = (given: GivenOrder, origin: string) =>
         wanted.set(CREW_ORDER_KINDS[given.kind].slot, { given, origin });
     return {
@@ -99,21 +106,35 @@ export function crewDoctrine() {
                     );
                 }
             }
+            const ownId = (radar?.ownShip as { id?: string } | undefined)?.id;
+            const hostile = (radar?.contacts ?? []).some(
+                (c) =>
+                    c.type === 'Spaceship' &&
+                    faction !== undefined &&
+                    c.faction !== undefined &&
+                    c.faction !== faction &&
+                    c.distance < DOCTRINE_THREAT_METERS,
+            );
+            const hurtAlly = ((display.panels['hull-status'] ?? []) as HullStatus[]).some(
+                (r) => r.allied && r.intel === 'LIVE' && r.id !== ownId && r.hull !== undefined && r.hull !== 'intact',
+            );
+            threat ||= hostile || hurtAlly;
             if (station === 'helms') armor = armorShare(display);
         },
         /** The commands that bring each slot doctrine wants to its order, where no captain order stands in the way. */
         commands(board: OrdersBoard | undefined): OrderCommand[] {
             const orders = board?.orders ?? [];
             const nav = orders.find((o) => o.slot === 'navigation');
-            if (
-                nav?.issuer === 'doctrine' &&
-                nav.kind === 'dock_for_repair' &&
-                nav.status === 'complete' &&
-                armor !== undefined &&
-                armor >= DOCTRINE_UNDOCK_AT
-            ) {
-                want({ kind: 'undock' }, 'helms');
+            if (nav?.issuer === 'doctrine' && nav.kind === 'dock_for_repair' && nav.status === 'complete') {
+                if (threat) want({ kind: 'launch' }, 'helms');
+                else if (
+                    (armor !== undefined && armor >= DOCTRINE_UNDOCK_AT) ||
+                    nav.secondsAgo >= DOCTRINE_DOCK_TIMEOUT
+                ) {
+                    want({ kind: 'undock' }, 'helms');
+                }
             }
+            threat = false;
             const out: OrderCommand[] = [];
             for (const [slot, { given, origin }] of wanted) {
                 const current = orders.find((o) => o.slot === slot);

@@ -1,6 +1,6 @@
+import { DOCTRINE_DOCK_TIMEOUT, crewDoctrine } from './doctrine';
 import { DOCKING_MODE } from './orders';
 import { Display } from '../brain/controls';
-import { crewDoctrine } from './doctrine';
 import { testBoard } from './orders.fixtures';
 
 const signalsDisplay: Display = {
@@ -97,5 +97,58 @@ describe('crew doctrine', () => {
         expect(doctrine.commands(b.shown)).toEqual([]);
         run();
         expect(slot('engagement')?.kind).toBe('hold_fire');
+    });
+
+    describe('casts off a dock it sent the ship to before armor is back', () => {
+        const dockedAt0 = () => {
+            const c = crew();
+            c.doctrine.see('helms', helms(10));
+            c.run();
+            c.b.report({ station: 'helms', display: helms(0) });
+            c.b.report({ station: 'helms', display: helms(0, true, DOCKING_MODE.DOCKED) });
+            c.doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
+            c.run();
+            expect(c.slot('navigation')?.kind).toBe('dock_for_repair');
+            return c;
+        };
+        const enemy = (distance: number) => ({
+            name: 'raider',
+            type: 'Spaceship',
+            faction: 2,
+            distance,
+            position: { x: distance, y: 0 },
+        });
+        const withContacts = (d: Display, extra: object[]): Display => ({
+            ...d,
+            radar: {
+                ...(d.radar as object),
+                contacts: [...((d.radar as { contacts?: object[] }).contacts ?? []), ...extra],
+            },
+        });
+
+        it('launches when an enemy is in range', () => {
+            const { doctrine, run, slot } = dockedAt0();
+            doctrine.see('helms', withContacts(helms(0, true, DOCKING_MODE.DOCKED), [enemy(5000)]));
+            run();
+            expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'doctrine' });
+        });
+
+        it('undocks when an allied hull is no longer intact', () => {
+            const { doctrine, run, slot } = dockedAt0();
+            doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
+            doctrine.see('signals', {
+                panels: { 'hull-status': [{ id: 'S2', name: 'S2', allied: true, intel: 'LIVE', hull: 'damaged' }] },
+            });
+            run();
+            expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'doctrine' });
+        });
+
+        it('undocks after the dock timeout', () => {
+            const { b, doctrine, run, slot } = dockedAt0();
+            b.tick(DOCTRINE_DOCK_TIMEOUT + 10);
+            doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
+            run();
+            expect(slot('navigation')).toMatchObject({ kind: 'undock', issuer: 'doctrine' });
+        });
     });
 });
