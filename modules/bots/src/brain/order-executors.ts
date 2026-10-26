@@ -77,7 +77,6 @@ const MAX_SPEED = 450;
 const ORDERED_SPEED = 0.9 * MAX_SPEED;
 const GAIN = 0.3;
 const PURSUIT_METERS = 1_500;
-const DOCKED_REPAIRS = ['armorPlateRenewal', 'hullWideSystemsOverhaul'] as const;
 const HELM = ['rotationMode', 'maneuveringMode', 'rotation', 'boost', 'strafe', 'afterBurner', 'antiDrift'] as const;
 
 const own = (d: Display) => d.radar?.ownShip?.position ?? { x: 0, y: 0 };
@@ -396,16 +395,19 @@ const engineerExecutors: Record<string, OrderExecutor> = {
             const slots = (display.panels['repair-queue'] as { slots?: RepairSlot[] } | undefined)?.slots ?? [];
             const armor = display.panels['armor-status'] as
                 { numberOfPlates?: number; healthyPlates?: number } | undefined;
-            const needs: Record<string, boolean> = {
-                armorPlateRenewal: armor !== undefined && (armor.healthyPlates ?? 0) < (armor.numberOfPlates ?? 0),
-                hullWideSystemsOverhaul: ((display.panels['damage-report'] ?? []) as unknown[]).length > 0,
+            const armorLost = armor !== undefined && (armor.healthyPlates ?? 0) < (armor.numberOfPlates ?? 0);
+            const priorityOf = (key: string) => slots.find((s) => s.protocolId === key)?.priority;
+            // renewal heals one plate per run and drops to OFF: keep it at HIGH so the long overhaul never takes the queue
+            const renewal = armorLost && ['OFF', 'LOW', 'MEDIUM'].includes(priorityOf('armorPlateRenewal') ?? '');
+            // the overhaul only starts once the armor is whole; a standing damage report is not a need on its own
+            const overhaul =
+                !armorLost &&
+                priorityOf('hullWideSystemsOverhaul') === 'OFF' &&
+                ((display.panels['damage-report'] ?? []) as unknown[]).length > 0;
+            return {
+                'cycleRepairPriority:armorPlateRenewal': renewal ? 'raise' : 'none',
+                'cycleRepairPriority:hullWideSystemsOverhaul': overhaul ? 'raise' : 'none',
             };
-            return Object.fromEntries(
-                DOCKED_REPAIRS.map((key) => {
-                    const slot = slots.find((s) => s.protocolId === key);
-                    return [`cycleRepairPriority:${key}`, slot?.priority === 'OFF' && needs[key] ? 'raise' : 'none'];
-                }),
-            );
         },
     },
     preserve_energy: {
