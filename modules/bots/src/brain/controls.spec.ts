@@ -209,3 +209,35 @@ describe('brain request', () => {
         expect(request.state).toMatchObject({ role: 'pilot', mission: 'close in' });
     });
 });
+
+describe('offline systems', () => {
+    const weaponsCapabilities: Capabilities = {
+        commands: [
+            { command: 'fireChainGun', count: 1 },
+            { command: 'fireTube', count: 1 },
+            { command: 'systemPower', systems: ['/chainGuns/0', '/tubes/0'] },
+        ],
+    };
+    const display = (offline: string[]): Display => ({
+        panels: {
+            'systems-status': ['/chainGuns/0', '/tubes/0'].map((pointer) => ({
+                pointer,
+                offline: offline.includes(pointer),
+            })),
+        },
+    });
+    const pressAll = (d: Display) =>
+        [...controlsById(d, weaponsCapabilities).values()].flatMap((c) => {
+            const option = c.command === 'systemPower' ? 'raise' : 'fire';
+            return c.options[option] ? [c.press(option)] : [];
+        });
+
+    it('sends no command to an offline system, and resumes when it recovers', () => {
+        expect(pressAll(display([])).filter(Boolean).length).toBeGreaterThan(2);
+        const offline = pressAll(display(['/chainGuns/0']));
+        expect(offline.filter((p) => p && JSON.stringify(p.args).includes('chainGuns'))).toEqual([]);
+        expect(offline.filter((p) => p?.command === 'fireChainGun')).toEqual([]);
+        expect(offline.some((p) => p?.command === 'fireTube')).toBe(true);
+        expect(pressAll(display(['/chainGuns/0', '/tubes/0'])).filter(Boolean)).toEqual([]);
+    });
+});

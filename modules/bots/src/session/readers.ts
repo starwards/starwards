@@ -1,5 +1,6 @@
 import {
     AmmoType,
+    HackLevel,
     JobStatus,
     RepairPriority,
     Spaceship,
@@ -59,6 +60,11 @@ function describeSystem(system: System) {
         energyPerMinute: system.state.energyPerMinute,
         broken: system.state.broken,
         effectiveness: system.state.effectiveness,
+        hacked: system.state.hacked,
+        /** True while a hack holds the system offline: it takes no commands until it recovers. */
+        offline: system.state.hacked === HackLevel.DISABLED,
+        /** Seconds until an offline system recovers; 0 when it is not offline. */
+        offlineSecondsLeft: system.state.hacked === HackLevel.DISABLED ? system.state.hackedSecondsLeft : 0,
     };
 }
 
