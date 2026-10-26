@@ -3,6 +3,13 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
+import {
+    DockOnlyParams,
+    T2DockParams,
+    createTrainingDockOnlyMap,
+    createTrainingT2DockMap,
+} from '../../scenarios/training-dock';
+import { DockOutcome, DockTracker, trackDock } from './dock-rung';
 import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
@@ -22,7 +29,6 @@ import {
     createTrainingT3DirectedMap,
     createTrainingT3IncomingMap,
 } from '../../scenarios/training';
-import { T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
     WeaponsMultiParams,
     createTrainingWeaponsMultiMap,
@@ -72,6 +78,8 @@ export interface TrainingResult {
     readonly hz: number;
     /** A wave rung's outcome; `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
     readonly waves?: WaveOutcome;
+    /** A dock-only rung's outcome; `killed` is its pass (every armor plate healthy). */
+    readonly dock?: DockOutcome;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
     /** Names of `analysis/checks.ts` checks that passed on this run's store. */
@@ -93,6 +101,8 @@ export interface TrainingScenario<P> {
     readonly enemies?: readonly string[];
     /** A rung whose map decides its own outcome (waves): the map and a tracker that ends the run and scores it. */
     track?(params: P): { map: GameMap; tracker: RungTracker };
+    /** A dock-only rung: the map and a tracker that ends the run once the hull is whole and reports the dock metrics. */
+    trackDock?(params: P): { map: GameMap; tracker: DockTracker };
 }
 
 const T0_PLAY_DEAD_DRAGONFLY: TrainingScenario<T0Params> = {
@@ -126,7 +136,7 @@ const T0_WIDE: TrainingScenario<T0WideParams> = {
     createMap: (params) => createTrainingT0Map(params, { targetModel: params.targetModel }),
 };
 
-type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel' | 'playerMissiles'>>;
+type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel' | 'playerMissiles' | 'playerArmor'>>;
 
 /** T0 with the GVTS starting short of energy and shells, guns already hot (calibration only). */
 const T0_CONSTRAINED: TrainingScenario<T0ConstrainedParams> = {
@@ -190,7 +200,7 @@ const T2_TWO_ATTACKERS: TrainingScenario<T2Params> = {
     enemies: [TRAINING_TARGET_ID, TRAINING_TARGET2_ID],
 };
 
-type T2ConstrainedParams = T2Params & Required<Omit<T0Lab, 'targetModel'>>;
+type T2ConstrainedParams = T2Params & Required<Omit<T0Lab, 'targetModel' | 'playerArmor'>>;
 
 /** T2 with the GVTS starting as on T0-constrained (short of energy and shells, guns already hot) and short of missiles. */
 const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
@@ -317,6 +327,23 @@ const adversaryT1 = (profile: AdversaryProfile): TrainingScenario<T0Params> => (
 const adversaryWaves = (profile: AdversaryProfile) =>
     waveRung({ ...W_WAVES, name: `AW-${profile.name}`, adversary: profile });
 
+type DockOnlyRungParams = DockOnlyParams & { readonly playerArmor: number };
+
+/** Dock-only rung: the GVTS starts with `playerArmor` of its 16 plates healthy beside an allied station; passes once all are. */
+const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockOnlyRungParams> => ({
+    name,
+    description: `GVTS with ${playerArmor} of 16 armor plates healthy beside an allied, unarmed large station 2-5 km (surface) away, ${late ? 'one dragonfly-MK1 attacking from 15-25 km' : 'no attackers'}; passes once every plate is healthy`,
+    params: fc.record({
+        stationDistance: fc.integer({ min: 2000, max: 5000 }),
+        stationBearing: fc.integer({ min: 0, max: 359 }),
+        attackerDistance: late ? fc.integer({ min: 15000, max: 25000 }) : fc.constant(undefined),
+        playerArmor: fc.constant(playerArmor),
+    }),
+    enemies: [],
+    createMap: (params) => createTrainingDockOnlyMap(params, params),
+    trackDock: (params) => trackDock(params, params.playerArmor),
+});
+
 const adversaryRungs: Record<string, TrainingScenario<never>> = {
     ...Object.fromEntries(
         Object.values(adversaryProfiles).map((p) => [`A1-${p.name}`, adversaryT1(p) as TrainingScenario<never>]),
@@ -336,6 +363,8 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'T3-directed': T3_DIRECTED as TrainingScenario<never>,
     'T3-incoming': T3_INCOMING as TrainingScenario<never>,
     'T2-dock': T2_DOCK as TrainingScenario<never>,
+    'D-dock-0of16': dockOnly('D-dock-0of16', 0, false) as TrainingScenario<never>,
+    'D-dock-0of16-late': dockOnly('D-dock-0of16-late', 0, true) as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
     'T1-noweave': t1WithHull(
@@ -412,7 +441,11 @@ export async function playTraining<P>(
 ) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
     const tracked = scenario.track?.(params);
-    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer, npcRealEnergy });
+    const dockTracked = scenario.trackDock?.(params);
+    const game = HeadlessGame.start(tracked?.map ?? dockTracked?.map ?? scenario.createMap(params), seed, {
+        crewedPlayer,
+        npcRealEnergy,
+    });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');
@@ -443,21 +476,29 @@ export async function playTraining<P>(
         await beforeTick?.(game, recorder);
         game.tick(dt);
         recorder.capture();
-        if (tracked?.tracker.done(game)) {
+        if (tracked?.tracker.done(game) || dockTracked?.tracker.done(game)) {
             break;
         }
         const living = enemies.filter(alive);
-        if (!tracked && !living.length) {
+        if (!tracked && !dockTracked && !living.length) {
             break;
         }
-        const targetObject = game.spaceManager.state.get(living[0]);
+        const targetObject = living.length ? game.spaceManager.state.get(living[0]) : undefined;
         if (targetObject) {
             gunnery.push(sampleGunnery(gvts.state, targetObject));
         }
     }
     recorder.capture(true);
 
-    return { params, enemies, recorder, scratchDir, gunnery, waves: tracked?.tracker.outcome(game) };
+    return {
+        params,
+        enemies,
+        recorder,
+        scratchDir,
+        gunnery,
+        waves: tracked?.tracker.outcome(game),
+        dock: dockTracked?.tracker.outcome(game),
+    };
 }
 
 /**
@@ -473,7 +514,7 @@ export async function runTraining<P>(
 ): Promise<TrainingResult> {
     const started = Date.now();
     const { seed, hz = SERVER_TICK_HZ, recording } = options;
-    const { params, enemies, recorder, scratchDir, gunnery, waves } = await playTraining(scenario, options);
+    const { params, enemies, recorder, scratchDir, gunnery, waves, dock } = await playTraining(scenario, options);
 
     const dbPath = storePathFor(recorder.filePath);
     const store = await ingest(dbPath, recorder.filePath, { player: TRAINING_PLAYER_ID, target: TRAINING_TARGET_ID });
@@ -498,7 +539,16 @@ export async function runTraining<P>(
               seconds: waves.passedAt ?? metrics.seconds,
               waves,
           }
-        : { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
+        : dock
+          ? {
+                ...metrics,
+                killed: dock.passedAt !== null,
+                kills,
+                enemies: enemies.length,
+                seconds: dock.passedAt ?? metrics.seconds,
+                dock,
+            }
+          : { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
 
     const wallSeconds = (Date.now() - started) / 1000;
     if (recording) {

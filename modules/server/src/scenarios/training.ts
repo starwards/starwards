@@ -46,12 +46,14 @@ export interface T0Lab {
     readonly playerGunHeat?: number;
     /** Missiles in each missile stock of the magazine, capped at the hull's maximum. */
     readonly playerMissiles?: number;
+    /** Healthy armor plates the GVTS starts with; the rest start broken. Default: every plate healthy. */
+    readonly playerArmor?: number;
 }
 
 /** Starts the GVTS short of energy and shells with hot guns, per the given {@link T0Lab} fields. */
-function constrainPlayer(
+export function constrainPlayer(
     player: ShipState,
-    { playerEnergy, playerShells, playerGunHeat, playerMissiles }: Omit<T0Lab, 'targetModel'>,
+    { playerEnergy, playerShells, playerGunHeat, playerMissiles, playerArmor }: Omit<T0Lab, 'targetModel'>,
 ): void {
     if (playerEnergy !== undefined) {
         player.reactor.energy = playerEnergy * player.reactor.design.maxEnergy;
@@ -70,6 +72,15 @@ function constrainPlayer(
         for (const gun of player.chainGuns) {
             gun.heat = playerGunHeat;
         }
+    }
+    if (playerArmor !== undefined) {
+        player.armor.armorPlates.forEach((plate, index) => {
+            if (index >= playerArmor) {
+                for (const layer of plate.layers) {
+                    layer.health = 0;
+                }
+            }
+        });
     }
 }
 
