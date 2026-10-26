@@ -180,7 +180,7 @@ export function makeReferencePolicy(
             }
             spend.lockId = lockId;
             const intel = heardPlateIntel(heard, lockId);
-            spend.plateCall = intel && informedAmmoSide(intel);
+            spend.plateCall = intel && informedAmmoSide(intel, referenceKnobs.AMMO_PLATE_STATE > 0.5);
             spend.firstShells ??= shellsLeft(display);
             const launchTube =
                 seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS &&
