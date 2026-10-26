@@ -1,6 +1,7 @@
-import { DOCTRINE_DOCK_TIMEOUT, crewDoctrine } from './doctrine';
 import { DOCKING_MODE } from './orders';
 import { Display } from '../brain/controls';
+import { crewDoctrine } from './doctrine';
+import { setReferenceKnobs } from '../brain/reference-knobs';
 import { testBoard } from './orders.fixtures';
 
 const signalsDisplay: Display = {
@@ -99,22 +100,23 @@ describe('crew doctrine', () => {
         expect(slot('engagement')?.kind).toBe('hold_fire');
     });
 
-    describe('casts off a dock it sent the ship to before armor is back', () => {
-        const dockedAt0 = () => {
+    describe('dock exit knobs', () => {
+        afterEach(() => setReferenceKnobs());
+        const dockedAt = (healthy: number) => {
             const c = crew();
             c.doctrine.see('helms', helms(10));
             c.run();
-            c.b.report({ station: 'helms', display: helms(0) });
-            c.b.report({ station: 'helms', display: helms(0, true, DOCKING_MODE.DOCKED) });
-            c.doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
+            c.b.report({ station: 'helms', display: helms(healthy) });
+            c.b.report({ station: 'helms', display: helms(healthy, true, DOCKING_MODE.DOCKED) });
+            c.doctrine.see('helms', helms(healthy, true, DOCKING_MODE.DOCKED));
             c.run();
             expect(c.slot('navigation')?.kind).toBe('dock_for_repair');
             return c;
         };
-        const enemy = (distance: number) => ({
+        const enemy = (distance: number, faction = 2) => ({
             name: 'raider',
             type: 'Spaceship',
-            faction: 2,
+            faction,
             distance,
             position: { x: distance, y: 0 },
         });
@@ -125,53 +127,147 @@ describe('crew doctrine', () => {
                 contacts: [...((d.radar as { contacts?: object[] }).contacts ?? []), ...extra],
             },
         });
-
-        it('launches when an enemy is in range', () => {
-            const { doctrine, run, slot } = dockedAt0();
-            doctrine.see('helms', withContacts(helms(0, true, DOCKING_MODE.DOCKED), [enemy(5000)]));
-            run();
-            expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'doctrine' });
+        const allyRow = (hull: string, intel = 'LIVE') => ({
+            panels: { 'hull-status': [{ id: 'S2', name: 'S2', allied: true, intel, hull }] },
         });
+        const nearEnemy = (healthy: number) => withContacts(helms(healthy, true, DOCKING_MODE.DOCKED), [enemy(5000)]);
 
-        it('undocks when an allied hull is no longer intact', () => {
-            const { doctrine, run, slot } = dockedAt0();
-            doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
-            doctrine.see('signals', {
-                panels: { 'hull-status': [{ id: 'S2', name: 'S2', allied: true, intel: 'LIVE', hull: 'damaged' }] },
-            });
-            run();
-            expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'doctrine' });
-        });
-
-        it('stays docked for an enemy beyond range, a neutral, a snapshot ally row, or before the timeout', () => {
-            const { b, doctrine, run, slot } = dockedAt0();
-            const docked = helms(0, true, DOCKING_MODE.DOCKED);
-            doctrine.see('helms', withContacts(docked, [enemy(9000), { ...enemy(2000), faction: -1 }]));
-            doctrine.see('signals', {
-                panels: {
-                    'hull-status': [{ id: 'S2', name: 'S2', allied: true, intel: 'SNAPSHOT', hull: 'critical' }],
-                },
-            });
-            b.tick(DOCTRINE_DOCK_TIMEOUT - 10);
+        it('with every knob at its default, only armor casts off', () => {
+            const { b, doctrine, run, slot } = dockedAt(0);
+            doctrine.see('helms', nearEnemy(0));
+            doctrine.see('signals', allyRow('critical'));
+            b.tick(10_000);
             run();
             expect(slot('navigation')?.kind).toBe('dock_for_repair');
         });
 
-        it('forgets a threat once commands() has run', () => {
-            const { doctrine, b, run, slot } = dockedAt0();
-            doctrine.see('helms', withContacts(helms(0, true, DOCKING_MODE.DOCKED), [enemy(5000)]));
-            expect(doctrine.commands(b.shown)).toHaveLength(1);
-            expect(doctrine.commands(b.shown)).toEqual([]);
-            run();
-            expect(slot('navigation')?.kind).toBe('dock_for_repair');
+        describe('DOCK_EXIT_THREAT_METERS', () => {
+            it('casts off when a hostile is within range', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000 });
+                const { doctrine, run, slot } = dockedAt(0);
+                doctrine.see('helms', nearEnemy(0));
+                run();
+                expect(slot('navigation')).toMatchObject({ kind: 'undock', issuer: 'doctrine' });
+            });
+            it('stays for a hostile beyond range, a neutral and an ally', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000 });
+                const { doctrine, run, slot } = dockedAt(0);
+                doctrine.see(
+                    'helms',
+                    withContacts(helms(0, true, DOCKING_MODE.DOCKED), [enemy(9000), enemy(2000, -1), enemy(2000, 1)]),
+                );
+                run();
+                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+            });
+            it('forgets the threat once commands() ran', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000 });
+                const { doctrine, b, run, slot } = dockedAt(0);
+                doctrine.see('helms', nearEnemy(0));
+                expect(doctrine.commands(b.shown)).toHaveLength(1);
+                expect(doctrine.commands(b.shown)).toEqual([]);
+                run();
+                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+            });
         });
 
-        it('undocks after the dock timeout', () => {
-            const { b, doctrine, run, slot } = dockedAt0();
-            b.tick(DOCTRINE_DOCK_TIMEOUT + 10);
-            doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
+        describe('DOCK_EXIT_ALLY_DAMAGED', () => {
+            it('casts off while an allied hull is hurt', () => {
+                setReferenceKnobs({ DOCK_EXIT_ALLY_DAMAGED: 1 });
+                const { doctrine, run, slot } = dockedAt(0);
+                doctrine.see('signals', allyRow('damaged'));
+                run();
+                expect(slot('navigation')?.kind).toBe('undock');
+            });
+            it('stays for an intact or snapshot ally row', () => {
+                setReferenceKnobs({ DOCK_EXIT_ALLY_DAMAGED: 1 });
+                const { doctrine, run, slot } = dockedAt(0);
+                doctrine.see('signals', allyRow('intact'));
+                doctrine.see('signals', allyRow('critical', 'SNAPSHOT'));
+                run();
+                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+            });
+        });
+
+        describe('DOCK_EXIT_TIMEOUT_SECONDS', () => {
+            it('casts off that long after docking', () => {
+                setReferenceKnobs({ DOCK_EXIT_TIMEOUT_SECONDS: 120 });
+                const { b, doctrine, run, slot } = dockedAt(0);
+                b.tick(200);
+                doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
+                run();
+                expect(slot('navigation')?.kind).toBe('undock');
+            });
+            it('stays before the timeout', () => {
+                setReferenceKnobs({ DOCK_EXIT_TIMEOUT_SECONDS: 120 });
+                const { b, doctrine, run, slot } = dockedAt(0);
+                b.tick(100);
+                doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
+                run();
+                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+            });
+        });
+
+        describe('DOCK_EXIT_ARMOR_FLOOR', () => {
+            it('shuts the threat exit below the floor', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000, DOCK_EXIT_ARMOR_FLOOR: 0.3 });
+                const { doctrine, run, slot } = dockedAt(2);
+                doctrine.see('helms', nearEnemy(2));
+                run();
+                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+            });
+            it('opens the threat exit at the floor', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000, DOCK_EXIT_ARMOR_FLOOR: 0.3 });
+                const { doctrine, run, slot } = dockedAt(4);
+                doctrine.see('helms', nearEnemy(4));
+                run();
+                expect(slot('navigation')?.kind).toBe('undock');
+            });
+        });
+
+        describe('DOCK_EXIT_LAUNCH', () => {
+            it('casts off with launch', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000, DOCK_EXIT_LAUNCH: 1 });
+                const { doctrine, run, slot } = dockedAt(0);
+                doctrine.see('helms', nearEnemy(0));
+                run();
+                expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'doctrine' });
+            });
+        });
+
+        describe('DOCK_EXIT_HOLDOFF_SECONDS', () => {
+            it('stands no new dock order until the hold-off passes, so there is no dock-launch-redock loop', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000, DOCK_EXIT_HOLDOFF_SECONDS: 60 });
+                const { b, doctrine, run, slot } = dockedAt(0);
+                doctrine.see('helms', nearEnemy(0));
+                run();
+                expect(slot('navigation')?.kind).toBe('undock');
+                expect(slot('repair')).toBeUndefined();
+                doctrine.see('helms', helms(0));
+                run();
+                expect(slot('repair')).toBeUndefined();
+                b.tick(100);
+                run();
+                doctrine.see('helms', helms(0));
+                run();
+                expect(slot('repair')).toMatchObject({ kind: 'dock_below_armor', issuer: 'doctrine' });
+            });
+            it('leaves the standing dock order alone at the default', () => {
+                setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000 });
+                const { doctrine, run, slot } = dockedAt(0);
+                doctrine.see('helms', nearEnemy(0));
+                run();
+                expect(slot('repair')).toMatchObject({ kind: 'dock_below_armor' });
+            });
+        });
+
+        it('a captain navigation order blocks the cast-off', () => {
+            setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000 });
+            const { b, doctrine, run, slot } = dockedAt(0);
+            b.give([{ kind: 'launch' }]);
+            expect(slot('navigation')).toMatchObject({ issuer: 'captain' });
+            doctrine.see('helms', nearEnemy(0));
             run();
-            expect(slot('navigation')).toMatchObject({ kind: 'undock', issuer: 'doctrine' });
+            expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'captain' });
         });
     });
 });
