@@ -1,5 +1,7 @@
 import { ControlDesign, ValueSource, controlCatalogue } from './catalogue';
 
+import { offlinePointers, pressesOfflineSystem } from './offline-systems';
+
 import { StationCommand } from '@starwards/core/internal';
 
 /** What the station shows: every panel by widget name, and the radar if it has one. */
@@ -62,9 +64,17 @@ export function stationControls({ display, capabilities, burstSeconds }: ExpandC
     for (const [group, members] of groups) {
         controls.push(groupControl(group, members));
     }
+    const offline = offlinePointers(display);
     return controls.map((c) => {
         const seat = offered.get(c.command)?.seat;
-        return seat === undefined ? c : { ...c, seat };
+        const control: Control = {
+            ...c,
+            press: (option) => {
+                const press = c.press(option);
+                return press && pressesOfflineSystem(press, offline) ? undefined : press;
+            },
+        };
+        return seat === undefined ? control : { ...control, seat };
     });
 }
 
