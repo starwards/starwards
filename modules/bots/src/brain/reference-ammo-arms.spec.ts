@@ -71,6 +71,17 @@ describe('weapons ammo policy arms', () => {
         );
     });
 
+    it('model-blind: AMMO_PLATE_STATE returns HE for a broken-facing whipple target', async () => {
+        expect(REFERENCE_KNOB_DEFAULTS.AMMO_PLATE_STATE).toBe(0);
+        setReferenceKnobs({ AMMO_INFORMED: 1, AMMO_PLATE_STATE: 1 });
+        expect(await gunChoice(makeReferencePolicy(1), display('HiExpShell'), [said('broken', 'e1', 'whipple')])).toBe(
+            'wait',
+        );
+        expect(await gunChoice(makeReferencePolicy(1), display('ArmPenShell'), [said('broken', 'e1', 'whipple')])).toBe(
+            'press',
+        );
+    });
+
     it('pure arms: HE-only and AP-only ignore the call and need no lock', async () => {
         setReferenceKnobs({ AMMO_HE_ONLY: 1 });
         expect(await gunChoice(makeReferencePolicy(1), display('ArmPenShell', null), [said('holding')])).toBe('press');

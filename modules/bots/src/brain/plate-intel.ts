@@ -61,10 +61,10 @@ export function plateIntelFill(display: Display): FillValues | undefined {
 /**
  * Weapons' ammo from the armor intel: AP while the facing plates hold, HE once they are broken; AP
  * against whipple, which AP penetrates fully and HE barely scratches. With the facing plate unknown,
- * HE once most plates are down.
+ * HE once most plates are down. With `modelBlind` the model is ignored and only the plate state decides.
  */
-export function informedAmmoSide(intel: PlateIntel): 'ap' | 'he' {
-    if (intel.model === 'whipple') return 'ap';
+export function informedAmmoSide(intel: PlateIntel, modelBlind = false): 'ap' | 'he' {
+    if (!modelBlind && intel.model === 'whipple') return 'ap';
     if (intel.facing === 'unknown') return intel.holding * 2 < intel.total ? 'he' : 'ap';
     return intel.facing === 'broken' ? 'he' : 'ap';
 }
