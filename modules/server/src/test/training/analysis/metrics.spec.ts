@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { Store } from './store';
 import { plateIntelHeard, shellsFiredByAmmo } from './metrics';
+import { Store } from './store';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
 
 jest.setTimeout(30_000);
@@ -24,8 +24,8 @@ describe('ammo and plate_intel metrics', () => {
         );
     }
     const shot = (t: number, id: string, shipId: string, ammo: string) => event(t, 'shot', id, { shipId, ammo });
-    const callout = (t: number, callout: string, id: string, delivered: boolean, station = 'signals') =>
-        event(t, 'callout', 'gvts', { station, callout, delivered, values: { id } });
+    const callout = (t: number, kind: string, id: string, delivered: boolean, station = 'signals') =>
+        event(t, 'callout', 'gvts', { station, callout: kind, delivered, values: { id } });
 
     beforeAll(async () => {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sw-analysis-metrics-'));
