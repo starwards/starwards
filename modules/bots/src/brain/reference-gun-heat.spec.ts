@@ -2,6 +2,7 @@ import { Capabilities, Display, stationControls } from './controls';
 
 import { BrainRequest } from './request';
 import { makeReferencePolicy } from './reference-policy';
+import { setReferenceKnobs } from './reference-knobs';
 
 const capabilities: Capabilities = { commands: [{ command: 'fireChainGun', count: 1 }] };
 
@@ -38,14 +39,37 @@ async function choice(shown: Display) {
 }
 
 describe('reference weapons gun heat', () => {
+    afterEach(() => setReferenceKnobs({}));
+
     it('fires a cool gun', async () => {
         expect(await choice(display({ heat: 10, jamBar: 80, jammedSeconds: 0, cooling: false }))).toBe('fire');
     });
 
-    it('holds fire when heat nears the jam bar, however worn the barrel', async () => {
-        expect(await choice(display({ heat: 77, jamBar: 80 }))).toBe('hold_fire');
-        expect(await choice(display({ heat: 57, jamBar: 60 }))).toBe('hold_fire');
-        expect(await choice(display({ heat: 40, jamBar: 60 }))).toBe('fire');
+    it('keeps master behaviour with the margin knob at its default: a gun near its jam bar still fires', async () => {
+        expect(await choice(display({ heat: 79, jamBar: 80 }))).toBe('fire');
+    });
+
+    describe('with GUN_HOLD_MARGIN set', () => {
+        beforeEach(() => setReferenceKnobs({ GUN_HOLD_MARGIN: 5 }));
+
+        it('holds fire when heat nears the jam bar, however worn the barrel', async () => {
+            expect(await choice(display({ heat: 77, jamBar: 80 }))).toBe('hold_fire');
+            expect(await choice(display({ heat: 57, jamBar: 60 }))).toBe('hold_fire');
+            expect(await choice(display({ heat: 40, jamBar: 60 }))).toBe('fire');
+        });
+
+        it('holds fire exactly at the margin from the jam bar, and not a degree below', async () => {
+            expect(await choice(display({ heat: 75, jamBar: 80 }))).toBe('hold_fire');
+            expect(await choice(display({ heat: 74, jamBar: 80 }))).toBe('fire');
+        });
+
+        it('fires when the jam bar is unknown', async () => {
+            expect(await choice(display({ heat: 99 }))).toBe('fire');
+        });
+
+        it('ignores the margin when there is no coolant to shed heat', async () => {
+            expect(await choice(display({ heat: 79, jamBar: 80, coolantFactor: 0 }))).toBe('fire');
+        });
     });
 
     it('holds fire while jammed or in forced cooldown', async () => {
@@ -53,17 +77,13 @@ describe('reference weapons gun heat', () => {
         expect(await choice(display({ heat: 75, jamBar: 80, cooling: true }))).toBe('hold_fire');
     });
 
-    it('holds fire exactly at the margin from the jam bar, and not a degree below', async () => {
-        expect(await choice(display({ heat: 75, jamBar: 80 }))).toBe('hold_fire');
-        expect(await choice(display({ heat: 74, jamBar: 80 }))).toBe('fire');
-    });
-
-    it('holds fire in forced cooldown at low heat, and fires when the jam bar is unknown', async () => {
+    it('holds fire in forced cooldown at low heat', async () => {
         expect(await choice(display({ heat: 5, cooling: true }))).toBe('hold_fire');
-        expect(await choice(display({ heat: 99 }))).toBe('fire');
     });
 
-    it('ignores the heat margin when there is no coolant to shed it', async () => {
-        expect(await choice(display({ heat: 79, jamBar: 80, coolantFactor: 0 }))).toBe('fire');
+    it('still gates on the systems panel heat, as before', async () => {
+        const shown = display({ heat: 10 });
+        shown.panels['systems-status'] = [{ pointer: '/chainGuns/0', power: 1, coolantFactor: 1, heat: 90 }] as never;
+        expect(await choice(shown)).toBe('hold_fire');
     });
 });

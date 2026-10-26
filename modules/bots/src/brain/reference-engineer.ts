@@ -21,7 +21,7 @@ type RepairScope = Exclude<EngineerStyle['repair'], 'none'>;
 
 export const REFERENCE_ENGINEER: EngineerStyle = { jumpStart: true, repair: 'reactor' };
 
-type SystemStatus = { pointer: string; power: number; coolantFactor: number; heat: number };
+export type SystemStatus = { pointer: string; power: number; coolantFactor: number; heat: number };
 type Engineering = { energy: number; maxEnergy: number; energyCells: number };
 type RepairSlot = { protocolId: string; priority: string; refusalReason?: string };
 type Defect = { system: string; field: string };
