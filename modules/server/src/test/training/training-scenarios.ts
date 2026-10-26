@@ -55,6 +55,10 @@ export interface TrainingResult {
     /** Target `healthRatio` at end (0 when killed). */
     readonly targetHealth: number;
     readonly shellsFired: number;
+    /** Shells fired split by ammo type (AP / HE). */
+    readonly shellsByAmmo: { readonly ap: number; readonly he: number };
+    /** Signals `plate_intel` calls about the target that weapons could hear. */
+    readonly plateIntelCalls: number;
     /** Sim-seconds with at least one GVTS chain gun firing. */
     readonly secondsFiring: number;
     /** Mean GVTS-to-target distance while the target lived. */
