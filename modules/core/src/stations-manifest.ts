@@ -102,6 +102,7 @@ export const stationCommands = [
     'pauseJobs',
     'prioritizeJob',
     'cancelJob',
+    'markTarget',
     // dradis
     'placeWaypoint',
     'editWaypoint',

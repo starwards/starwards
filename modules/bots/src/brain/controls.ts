@@ -76,6 +76,11 @@ function expansionKeys(design: ControlDesign, capability: Capabilities['commands
         const jobs = (panel(display, 'signals-jobs') as { jobs?: { id: string }[] } | undefined)?.jobs ?? [];
         return jobs.map((j) => ({ suffix: `:${j.id}`, args: {}, fill: j.id }));
     }
+    if (design.kind === 'contact') {
+        const contacts =
+            (display.radar as { contacts?: { id: string; scanLevel?: string }[] } | undefined)?.contacts ?? [];
+        return contacts.filter((c) => c.scanLevel !== 'UFO').map((c) => ({ suffix: `:${c.id}`, args: {}, fill: c.id }));
+    }
     if (design.kind === 'protocol') {
         const slots = (panel(display, 'repair-queue') as { slots?: { protocolId: string }[] } | undefined)?.slots ?? [];
         return slots.map((s) => ({
@@ -180,6 +185,14 @@ function expandControl(
                 press: (o) => (o === 'fire' ? send(undefined, { seconds: burstSeconds }) : undefined),
             };
         case 'job':
+            return {
+                id,
+                command,
+                options: { press: design.verb, wait: hold },
+                rest: 'wait',
+                press: (o) => (o === 'press' ? send(String(key.fill)) : undefined),
+            };
+        case 'contact':
             return {
                 id,
                 command,

@@ -1,5 +1,5 @@
 import { Answer, Policy } from './brain';
-import { CALLOUT_QUESTION, stationThreat } from './callout';
+import { CALLOUT_QUESTION, Heard, stationThreat } from './callout';
 import { EngineerStyle, REFERENCE_ENGINEER, SystemStatus, engineerChoice } from './reference-engineer';
 import { Resupply, SalvoTally, calloutMemory, referenceCallout } from './reference-orders';
 import { Contact as ShownContact, Radar as ShownRadar } from './verbal';
@@ -227,6 +227,7 @@ export function makeReferencePolicy(
                         shellPreference,
                         fireRangeMeters,
                         spend,
+                        heard,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
                 tallyPress(control, choice, previous);
@@ -301,6 +302,7 @@ function referenceChoice(
     shellPreference: readonly string[] | undefined,
     fireRangeMeters: number,
     spend: Spend,
+    heard: readonly Heard[] | undefined,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
@@ -440,6 +442,8 @@ function referenceChoice(
         }
         case 'beamDirection':
             return beamChoice(display);
+        case 'markTarget':
+            return markChoice(display, heard, control.id.slice(command.length + 1));
         case 'systemPower':
         case 'systemCoolant':
         case 'cycleRepairPriority':
@@ -804,6 +808,23 @@ function beamChoice(display: Display) {
     if (!beam || !next) return 'hold';
     const off = delta(delta(next.bearing, heading), beam.bearing);
     return Math.abs(off) <= BEAM_SLACK_DEGREES ? 'hold' : off > 0 ? 'right' : 'left';
+}
+
+/**
+ * Signals marks the contact weapons called locked, else the nearest identified enemy ship, whenever it
+ * differs from the current mark (`SIGNALS_MARK_LOCK`).
+ */
+function markChoice(display: Display, heard: readonly Heard[] | undefined, contactId: string) {
+    if (referenceKnobs.SIGNALS_MARK_LOCK <= 0.5) return undefined;
+    const contacts = (display.radar?.contacts ?? []).filter((c) => isShip(c) && !isAlly(c, display));
+    const called = (heard ?? [])
+        .filter((h) => h.speaker === 'weapons' && h.callout === 'target_locked')
+        .sort((a, b) => a.secondsAgo - b.secondsAgo)[0]?.values?.name;
+    const wanted =
+        contacts.find((c) => c.scanLevel !== 'UFO' && called !== undefined && c.name === called) ??
+        contacts.filter((c) => c.scanLevel !== 'UFO').sort((a, b) => a.distance - b.distance)[0];
+    const marked = (display.panels['target-intel'] as { targetId?: string } | undefined)?.targetId;
+    return wanted?.id === contactId && marked !== contactId ? 'press' : 'wait';
 }
 
 /** A contact identified as the own faction's. */

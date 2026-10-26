@@ -86,6 +86,11 @@ export const REFERENCE_KNOB_DEFAULTS = {
      * Replaces `AMMO_OPEN_AP`, the blind arm, whose tally stands in for plates weapons cannot see.
      */
     AMMO_INFORMED: 0,
+    /**
+     * Above 0.5, Signals marks the contact weapons has locked (heard as `target_locked`), else the nearest
+     * identified enemy ship, so Target Details carries its armor and `plate_intel` can be called; 0 never marks.
+     */
+    SIGNALS_MARK_LOCK: 0,
     /** Pure arm: above 0.5 the gun loads HE shells only (AP, Frag after them); above 1.5 the tubes load HE missiles first. */
     AMMO_HE_ONLY: 0,
     /** Pure arm: above 0.5 the gun loads AP shells only (HE, Frag after them); above 1.5 the tubes load AP missiles first. */

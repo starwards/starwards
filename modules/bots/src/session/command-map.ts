@@ -104,6 +104,7 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     pauseJobs: { kind: 'fixed', pointer: '/signals/jobsPaused', value: 'toggle' },
     prioritizeJob: { kind: 'fixed', pointer: '/signals/prioritizeJobId', value: 'id' },
     cancelJob: { kind: 'fixed', pointer: '/signals/cancelJobId', value: 'id' },
+    markTarget: { kind: 'fixed', pointer: '/signalsTargetId', value: 'id' },
 
     // --- dradis ---
     placeWaypoint: {
