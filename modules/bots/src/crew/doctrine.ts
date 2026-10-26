@@ -1,7 +1,9 @@
-import { CREW_ORDER_KINDS, OrderSlot } from '@starwards/core/internal';
+import { CREW_ORDER_KINDS, HullStatus, OrderSlot } from '@starwards/core/internal';
 import { GivenOrder, OrderCommand, OrdersBoard, armorShare, orderCommand, paramsArg } from './orders';
 
 import { Display } from '../brain/controls';
+import { isEnemyShip } from '../brain/enemy';
+import { referenceKnobs } from '../brain/reference-knobs';
 
 type XY = { x: number; y: number };
 type Contact = { name?: string; position?: XY; radius?: number; type?: string; faction?: number; distance: number };
@@ -32,7 +34,9 @@ function offNose(words: string | undefined): number | undefined {
  * 1. signals says `enemy_position` → `close_to` that enemy, {@link DOCTRINE_CLOSE_METERS} (maneuver);
  * 2. weapons says `target_locked` → `engage`, naming no ship (engagement);
  * 3. a seat's radar shows an allied dock → `dock_below_armor` there at {@link DOCTRINE_DOCK_BELOW} (repair);
- * 4. docked by its own dock order and armor back to {@link DOCTRINE_UNDOCK_AT} → `undock` (navigation).
+ * 4. docked by its own dock order and armor back to {@link DOCTRINE_UNDOCK_AT} → `undock` (navigation); the
+ *    reference knobs `DOCK_EXIT_*` add further exits (a hostile near, an allied hull hurt, a dock timeout),
+ *    all off by default.
  *
  * It writes through the board's commands with issuer `doctrine`, so a captain order replaces it,
  * a captain's revoke hands the slot back to it, and it never overwrites a captain order.
@@ -40,6 +44,11 @@ function offNose(words: string | undefined): number | undefined {
 export function crewDoctrine() {
     const wanted = new Map<OrderSlot, { given: GivenOrder; origin: string }>();
     let armor: number | undefined;
+    let nearestHostile = Infinity;
+    let allyHurt = false;
+    let now = 0;
+    let dockedSince: { id: string | number; at: number } | undefined;
+    let exitedAt = -Infinity;
     const want = (given: GivenOrder, origin: string) =>
         wanted.set(CREW_ORDER_KINDS[given.kind].slot, { given, origin });
     return {
@@ -75,7 +84,7 @@ export function crewDoctrine() {
         see(station: string, display: Display) {
             const radar = display.radar as Radar | undefined;
             const faction = radar?.ownShip?.faction;
-            if (!wanted.has('repair')) {
+            if (!wanted.has('repair') && now >= exitedAt + referenceKnobs.DOCK_EXIT_HOLDOFF_SECONDS) {
                 const dock = (radar?.contacts ?? [])
                     .filter(
                         (c) =>
@@ -99,22 +108,42 @@ export function crewDoctrine() {
                     );
                 }
             }
+            for (const c of radar?.contacts ?? []) {
+                if (isEnemyShip(c, faction)) nearestHostile = Math.min(nearestHostile, c.distance);
+            }
+            allyHurt ||= ((display.panels['hull-status'] ?? []) as HullStatus[]).some(
+                (r) => r.allied && r.intel === 'LIVE' && r.hull !== undefined && r.hull !== 'intact',
+            );
             if (station === 'helms') armor = armorShare(display);
         },
         /** The commands that bring each slot doctrine wants to its order, where no captain order stands in the way. */
         commands(board: OrdersBoard | undefined): OrderCommand[] {
             const orders = board?.orders ?? [];
+            wanted.delete('navigation');
             const nav = orders.find((o) => o.slot === 'navigation');
-            if (
-                nav?.issuer === 'doctrine' &&
-                nav.kind === 'dock_for_repair' &&
-                nav.status === 'complete' &&
-                armor !== undefined &&
-                armor >= DOCTRINE_UNDOCK_AT
-            ) {
-                want({ kind: 'undock' }, 'helms');
-            }
             const out: OrderCommand[] = [];
+            if (nav) now = nav.issuedAt + nav.secondsAgo;
+            if (nav?.issuer === 'doctrine' && nav.kind === 'dock_for_repair' && nav.status === 'complete') {
+                if (dockedSince?.id !== nav.id) dockedSince = { id: nav.id, at: now };
+                const k = referenceKnobs;
+                const mayExitOnThreat = armor === undefined || armor >= k.DOCK_EXIT_ARMOR_FLOOR;
+                const threat =
+                    mayExitOnThreat &&
+                    ((k.DOCK_EXIT_THREAT_METERS > 0 && nearestHostile < k.DOCK_EXIT_THREAT_METERS) ||
+                        (k.DOCK_EXIT_ALLY_DAMAGED > 0.5 && allyHurt));
+                const timeout = k.DOCK_EXIT_TIMEOUT_SECONDS > 0 && now - dockedSince.at >= k.DOCK_EXIT_TIMEOUT_SECONDS;
+                if (threat || timeout || (armor !== undefined && armor >= DOCTRINE_UNDOCK_AT)) {
+                    want({ kind: k.DOCK_EXIT_LAUNCH > 0.5 ? 'launch' : 'undock' }, 'helms');
+                }
+                if (threat && k.DOCK_EXIT_HOLDOFF_SECONDS > 0) {
+                    exitedAt = now;
+                    const revoke = orderCommand({ kind: 'revoke', params: { slot: 'repair' } }, 'doctrine');
+                    if (revoke) out.push(revoke);
+                    wanted.delete('repair');
+                }
+            }
+            nearestHostile = Infinity;
+            allyHurt = false;
             for (const [slot, { given, origin }] of wanted) {
                 const current = orders.find((o) => o.slot === slot);
                 if (current?.issuer === 'captain') continue;

@@ -181,6 +181,18 @@ export const REFERENCE_KNOB_DEFAULTS = {
      * 619-796 s, lost runs end at 1024-1211 s.
      */
     LATE_STANCE_SECONDS: 1020,
+    /** A doctrine repair dock is cast off when a hostile ship is within this many metres (and armor is at `DOCK_EXIT_ARMOR_FLOOR`); 0 never. */
+    DOCK_EXIT_THREAT_METERS: 0,
+    /** Above 0.5, a doctrine repair dock is cast off while an allied hull shows less than intact. */
+    DOCK_EXIT_ALLY_DAMAGED: 0,
+    /** A doctrine repair dock is cast off this many seconds after the ship docked; 0 never. */
+    DOCK_EXIT_TIMEOUT_SECONDS: 0,
+    /** The threat exits stay shut while the armor share is below this. */
+    DOCK_EXIT_ARMOR_FLOOR: 0,
+    /** After a threat exit doctrine stands no new dock order for this many seconds; 0 re-docks at once. */
+    DOCK_EXIT_HOLDOFF_SECONDS: 0,
+    /** Above 0.5, a doctrine repair dock is cast off with `launch`, else with `undock`. */
+    DOCK_EXIT_LAUNCH: 0,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,
