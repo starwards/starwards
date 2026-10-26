@@ -342,6 +342,8 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'T2-dock': T2_DOCK as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
+    'T1-cataphract': t1WithHull('T1-cataphract', 'cataphract') as TrainingScenario<never>,
+    'T1-gravitas': t1WithHull('T1-gravitas', 'gravitas') as TrainingScenario<never>,
     'T1-noweave': t1WithHull(
         'T1-noweave',
         'dragonfly-MK1',
