@@ -332,6 +332,11 @@ export class DamageManager {
                 limitPercision(this.die.getRollInRange('chainGunAngleOffset:' + damageId, 1, 2)),
                 this.die.getSuccess('chainGunAngleSign:' + damageId, 0.5) ? 1 : -1,
             );
+        } else if (chainGun.type === 'ChainGun' && this.die.getRoll('damageChaingunBarrel:' + damageId) >= 0.75) {
+            chainGun.barrelWear = Math.min(
+                1,
+                chainGun.barrelWear + limitPercision(this.die.getRollInRange('barrelWear:' + damageId, 0.1, 0.25)),
+            );
         } else {
             chainGun.rateOfFireFactor *= 0.9;
         }

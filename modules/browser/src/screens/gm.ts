@@ -1,24 +1,26 @@
 // import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, GameStatus, Status, createLogger, spaceCommands } from '@starwards/core';
-import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
+import { Dashboard, DashboardWidget, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import { ScreenTeardown, runScreenLifecycle } from './station-lifecycle';
 import { installFileDrop, mountDropUi } from '../drop-file';
 
 import { GmWidgets } from '../widgets/gm';
 import GoldenLayout from 'golden-layout';
 import { InputManager } from '../input/input-manager';
+import { WidgetContainer } from '../container';
 import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
 import { beginStationRegistrationWithRetry } from '../station-identity';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
 import { dockingWidget } from '../widgets/docking';
+import { drawGameControls } from '../widgets/game-controls';
+import { drawGameSetup } from '../widgets/game-setup';
 import { drawGmStatusChip } from '../widgets/observation-mode';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
-import { gameControlsWidget } from '../widgets/game-controls';
-import { gameSetupWidget } from '../widgets/game-setup';
+import { gmBroadcastWidget } from '../widgets/gm-broadcast';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { helmsRadarWidget } from '../widgets/helms-radar';
@@ -69,8 +71,19 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
         stopDrop();
         dropUi.destroy();
     };
-    const gameSetup = gameSetupWidget(adminDriver);
-    const gameControls = gameControlsWidget(adminDriver);
+    // setup and controls share ONE tab: both panes render into the same golden-layout container
+    class GameSetupAndControlsComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            drawGameSetup(container, adminDriver);
+            drawGameControls(container, adminDriver);
+        }
+    }
+    const gameSetupAndControls: DashboardWidget = {
+        name: 'game setup and controls',
+        type: 'component',
+        component: GameSetupAndControlsComponent,
+        defaultProps: {},
+    };
     const stationRoster = stationRosterWidget(driver, adminDriver);
 
     // `GmWidgets`' radar/tweak/create ask for a space room right away — fine once a game is
@@ -83,18 +96,19 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
     const gameStatus = await driver.getGameStatus();
     const gameIsLive = gameStatus === GameStatus.RUNNING;
     const gmWidgets = gameIsLive ? new GmWidgets(driver) : null;
+    // announcements need a running game (history clears on stop), so the blade lives with the live-game panes
+    const gmBroadcast = gmBroadcastWidget(adminDriver);
 
     // Game setup (load/save/start/stop), game controls (record/pause/speed) and the station roster
-    // are management panes the GM touches occasionally, so they share ONE tabbed stack (M4.32).
-    // The stack stays separate from tweak/create: a fifth tab there would overflow into
-    // golden-layout's dropdown, so the three tabs use short titles and the column is 25% wide to fit them.
+    // are management panes the GM touches occasionally, so they share ONE tabbed stack (M4.32), with
+    // setup and controls merged into a single 'game' tab. The stack takes 33% of the column height and
+    // stays separate from tweak/create so their tabs don't overflow into golden-layout's dropdown.
     const managementStack = {
         content: [
-            { ...getGoldenLayoutItemConfig(gameSetup), title: 'setup', isClosable: false },
-            { ...getGoldenLayoutItemConfig(gameControls), title: 'controls', isClosable: false },
+            { ...getGoldenLayoutItemConfig(gameSetupAndControls), title: 'game', isClosable: false },
             { ...getGoldenLayoutItemConfig(stationRoster), title: 'roster', isClosable: false },
         ],
-        height: 60,
+        height: 33,
         isClosable: false,
         title: '',
         type: 'stack' as const,
@@ -105,8 +119,9 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
             content: [
                 { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
                 { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+                { ...getGoldenLayoutItemConfig(gmBroadcast), isClosable: false },
             ],
-            height: 40,
+            height: 67,
             isClosable: false,
             title: '',
             type: 'stack',
@@ -137,9 +152,9 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
         dashboard.registerWidget(gmWidgets.radar);
         dashboard.registerWidget(gmWidgets.tweak);
         dashboard.registerWidget(gmWidgets.create);
+        dashboard.registerWidget(gmBroadcast);
     }
-    dashboard.registerWidget(gameSetup);
-    dashboard.registerWidget(gameControls);
+    dashboard.registerWidget(gameSetupAndControls);
     dashboard.registerWidget(stationRoster);
     drawGmStatusChip(adminDriver);
 

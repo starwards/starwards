@@ -1,0 +1,29 @@
+{
+    "name": "captain-reference-resupply-lean",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../brains/captain.v13.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../brains/weapons.v26.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference",
+            "brain": "../brains/engineer.v12.json"
+        }
+    ]
+}

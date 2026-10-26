@@ -17,6 +17,7 @@ const helmsCapabilities: Capabilities = {
         'maneuveringMode',
         'afterBurner',
         'dock',
+        'launch',
     ].map((command) => ({ command })),
 };
 
@@ -116,6 +117,19 @@ describe('reference seats under the order board', () => {
         expect((await choices(policy, helmsDisplay(board([{ kind: 'undock' }]), [], docked))).dock).toBe('press');
     });
 
+    it('launches only from the dock, on the order to launch', async () => {
+        const policy = withOrderBoard(idleTestPolicy, 'helms');
+        const docked = { dockingMode: DOCKING_MODE.DOCKED };
+        const launching = await choices(policy, helmsDisplay(board([{ kind: 'launch' }]), [], docked));
+        expect(launching.launch).toBe('press');
+        expect(launching.dock).toBe('wait');
+        const flying = await choices(
+            policy,
+            helmsDisplay(board([{ kind: 'launch' }]), [], { dockingMode: DOCKING_MODE.UNDOCKED }),
+        );
+        expect(flying.launch).toBe('wait');
+    });
+
     it('chase target vs preserve energy: the stance`s ranking decides the afterburner, the chase still steers', async () => {
         const policy = withOrderBoard(idleTestPolicy, 'helms');
         const energyFirst = await choices(policy, helmsDisplay(board([chase, { kind: 'preserve_energy' }])));
@@ -167,5 +181,34 @@ describe('reference seats under the order board', () => {
         });
         expect(c['cycleRepairPriority:armorPlateRenewal']).toBe('raise');
         expect(c['cycleRepairPriority:hullWideSystemsOverhaul']).toBe('none');
+    });
+
+    it('dock for repair: renewal is lifted to HIGH while armor is lost, and the overhaul waits for full armor', async () => {
+        const state = testBoard().give([dock]);
+        state.report({ station: 'helms', display: helmsDisplay(board([]), [], { dockingMode: DOCKING_MODE.DOCKED }) });
+        const engineer = (healthyPlates: number, renewal: string, overhaul: string): Display => ({
+            panels: {
+                [ORDERS_PANEL]: state.shown,
+                'armor-status': { numberOfPlates: 16, healthyPlates },
+                'damage-report': [{}],
+                'repair-queue': {
+                    slots: [
+                        { protocolId: 'armorPlateRenewal', priority: renewal, refusalReason: '' },
+                        { protocolId: 'hullWideSystemsOverhaul', priority: overhaul, refusalReason: '' },
+                    ],
+                },
+            },
+        });
+        const policy = withOrderBoard(idleTestPolicy, 'engineer');
+        const opts = { commands: [{ command: 'cycleRepairPriority' }] };
+        const lost = await choices(policy, engineer(3, 'LOW', 'OFF'), opts);
+        expect(lost['cycleRepairPriority:armorPlateRenewal']).toBe('raise');
+        expect(lost['cycleRepairPriority:hullWideSystemsOverhaul']).toBe('none');
+        const running = await choices(policy, engineer(3, 'RUNNING', 'OFF'), opts);
+        expect(running['cycleRepairPriority:armorPlateRenewal']).toBe('none');
+        const high = await choices(policy, engineer(3, 'HIGH', 'OFF'), opts);
+        expect(high['cycleRepairPriority:armorPlateRenewal']).toBe('none');
+        const full = await choices(policy, engineer(16, 'OFF', 'OFF'), opts);
+        expect(full['cycleRepairPriority:hullWideSystemsOverhaul']).toBe('raise');
     });
 });

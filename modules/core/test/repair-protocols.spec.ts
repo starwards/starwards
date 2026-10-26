@@ -92,10 +92,13 @@ describe('repair protocols catalog', () => {
             for (const protocol of fieldProtocols) {
                 const responsive = getModeStats(protocol, RepairProtocolMode.Responsive);
                 const dark = getModeStats(protocol, RepairProtocolMode.Dark);
-                expect(
-                    responsive.sideEffectSystems,
-                    `${protocol.name}: Responsive must be side-effect free`,
-                ).to.deep.equal([]);
+                // a barrel swap takes the guns offline whichever mode runs it
+                if (protocol !== repairProtocols.barrelReplacement) {
+                    expect(
+                        responsive.sideEffectSystems,
+                        `${protocol.name}: Responsive must be side-effect free`,
+                    ).to.deep.equal([]);
+                }
                 expect(dark.duration, `${protocol.name}: Dark duration`).to.be.closeTo(responsive.duration / 3, 0.001);
                 expect(dark.energyDraw, `${protocol.name}: energyDraw unchanged between modes`).to.equal(
                     responsive.energyDraw,

@@ -1,8 +1,8 @@
 import { JobStatus } from '@starwards/core';
 import { visibleJobRows } from '../src/widgets/signals-jobs-rows';
 
-function job(id: string, status: JobStatus, progress = 0) {
-    return { id, targetId: id, status, progress };
+function job(id: string, status: JobStatus, progress = 0, needsBeam = false) {
+    return { id, targetId: id, status, progress, needsBeam };
 }
 
 describe('visibleJobRows', () => {
@@ -33,6 +33,17 @@ describe('visibleJobRows', () => {
         expect(rows.dormantCount).toBe(1);
     });
 
+    test('dormant jobs waiting only on the scan beam are listed as needs-beam rows, not counted as dormant (#2339)', () => {
+        const jobs = [
+            job('working', JobStatus.IN_PROGRESS),
+            job('out of sight', JobStatus.DORMANT),
+            job('off beam', JobStatus.DORMANT, 0, true),
+        ];
+        const rows = visibleJobRows(jobs);
+        expect(rows.needsBeam).toEqual([{ index: 2, job: jobs[2] }]);
+        expect(rows.dormantCount).toBe(1);
+    });
+
     test('caps visible queued rows at 8 and reports the remainder', () => {
         const jobs = [
             job('working', JobStatus.IN_PROGRESS),
@@ -42,6 +53,14 @@ describe('visibleJobRows', () => {
         expect(rows.queued).toHaveLength(8);
         expect(rows.queued.map((r) => r.job.id)).toEqual(['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7']);
         expect(rows.moreCount).toBe(4);
+    });
+
+    test('caps needs-beam rows at 8 and reports the remainder', () => {
+        const jobs = Array.from({ length: 10 }, (_, i) => job(`b${i}`, JobStatus.DORMANT, 0, true));
+        const rows = visibleJobRows(jobs);
+        expect(rows.needsBeam).toHaveLength(8);
+        expect(rows.moreBeamCount).toBe(2);
+        expect(rows.dormantCount).toBe(0);
     });
 
     test('with no job being worked, active is null', () => {

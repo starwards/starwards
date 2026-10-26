@@ -63,7 +63,7 @@ answers into console commands.
 
 **A brain is one data file**, [`modules/ai/brains/<station>.v<N>.json`](../../modules/ai/brains) (the reference brains are `modules/bots/src/brains/<station>.v1.json`):
 model, decision interval, confidence floor, role, mission, per-control wording overrides, controls to
-skip and display parts to hide. Tuning a brain means writing its next version; the code is shared by
+skip and display parts to hide; the reference weapons rules also read `shellPreference`, the chain-gun shell types in the order they load them, `fireRangeMeters`, the range inside which they fire, and the reference engineer rules `repairs` (`all` queues a field repair for any system's defect, not the reactor's only). Tuning a brain means writing its next version; the code is shared by
 every brain and every host.
 
 Policies answer a brain's questions: `jev`, `reference` (hand-written rules for every seat — the
@@ -175,6 +175,7 @@ a display that does not show the value says nothing.
 | `farContact`    | signals  | nearest ship or unidentified contact on its radar beyond 5 km                        | "contact UFO-12 at 7.4 km, 20° left of the nose"          |
 | `enemyContact`  | signals  | nearest identified enemy ship on its radar; range change since its previous decision | "enemy raider at 42.3 km, 30° right of the nose, closing" |
 | `closeOrder`    | captain  | nearest identified enemy ship on the dradis; its HiExp launch range less 2 km        | "close to 43 km of raider, now 52.3 km at bearing 045"    |
+| `gunCloseOrder` | captain  | the enemy ship nearest an allied station in sight, else the nearest; gun range, 2 km | "close to 2 km of raider, now 52.3 km at bearing 045"     |
 | `engageOrder`   | captain  | nearest identified enemy ship on the dradis                                          | "engage raider"                                           |
 
 The filled values travel with the phrase (`values` on what a listener hears), so a rule-based
@@ -503,6 +504,8 @@ npm run compare -- --results <out>/T0-crews.json [--results <other>/T0-crews.jso
 npm run agree -- --recording <x.sgr | folder> --station helms [--brain brains/helms.v12.json] [--reach 5000] [--md]
 ```
 
+- **Depth meter.** `npm run meter -- --question <text> --arm <name>=<pure|blind|informed|control>=<waves results.json>[#crew] ...` reads finished `waves` results (unpaired: seeds do not pair, a placebo flips about 30% of them) and prints per-arm pass rates with Wilson intervals, the runs per arm that detect a 5 pp gap, the success check (informed beats every pure arm; blind lands between; pass rate near the control) and the golden-rule check (each pure arm is the best response to some raider model). About 1000 runs per arm detect 5 pp at a 70% pass rate; 256 detect about 10 pp.
+
 - **Answer cache.** Every Jev answer is stored on disk under `training-archive/jev-cache`, keyed by
   model and request; a request already paid for is answered from disk for free, so a replayed seed
   makes the same decisions. Reports show paid and cached tokens apart. `--no-cache` asks afresh,
@@ -556,6 +559,8 @@ simulated time.
 the latest is cleared, or 480 s after it spawned. A wave counts as survived once the next wave spawns
 with all three stations alive. A run passes after 3 waves survived, and ends then or at its timeout.
 Use a 1500 s timeout: the fourth wave spawns by 1440 s.
+`W-waves-late` is the same rung started at map wave 4 (its first wave is a predator escort, its second a
+cataphract and predator gunline), counting waves from there: it passes after 2 waves survived.
 `W-waves-endless` never passes, so its runs show how far a crew gets (calibration only). Results carry
 `waves`: waves survived and reached, stations lost, the time of the first loss, raiders killed and
 spawned, and GVTS health. The crew report adds a Waves table and pairs waves survived, stations lost and
@@ -586,6 +591,35 @@ platform falls at 789 s with the GVTS 40-100 km away, after wave 2's harass MK2s
 
 `focus nearest_to <station>` points the crew at the enemy nearest an allied station instead. Jev
 captain v1 on seeds 1-8: 2/8, against `captain-reference` 5/8.
+
+### Adversary rungs: vary the raider, fix the crew
+
+The training rungs hold the raider fixed and vary the crew. The adversary rungs do the opposite (M4.65,
+stage S0 of the NPC AI design): the frozen reference crew plays, and only the raider's profile changes.
+A profile ([`adversary-profile.ts`](../../modules/server/src/scenarios/adversary-profile.ts)) sets levers the
+game already has (flight doctrine, combat weave, stand ground); the `today` profile changes nothing.
+
+| Rung             | Layout                                                    | Crew for the baseline |
+| ---------------- | --------------------------------------------------------- | --------------------- |
+| `A1-<profile>`   | T1: one dragonfly-MK1 attacking the GVTS                  | `reference`           |
+| `AW-<profile>`   | `W-waves` with every raider of every wave varied          | `captain-reference`   |
+
+`npm --prefix modules/ai run adversary -- --family A1 --seeds 16 --workers 4 --out <dir>` plays every
+profile on the same seeds. Each raider is fingerprinted by
+[`fingerprint.ts`](../../modules/ai/src/adversary/fingerprint.ts), a read-only probe that does not change the
+run: time in each range bin to the engaged target, engagement-target switches, fire duty, mean speed, and
+hits landed on a hull section holding an already-broken armor plate. Unpaired pass rates need 256 runs
+per arm to resolve 10 points, so the report gives the pass rate with its Wilson interval and tells
+profiles apart by their fingerprints (range separation, total variation). Limit: the target an
+unordered raider picks for itself is private to `AutomationManager`, so a raider on no order shows no
+attention switches.
+
+`npm --prefix modules/ai run parity` lists every Target Details readout where an NPC differs from a PC
+ship of the same hull ([`parity.ts`](../../modules/ai/src/adversary/parity.ts)).
+`npm --prefix modules/ai run perception` measures what faction-only perception would give wave raiders
+that spawn 140 km out ([`perception.ts`](../../modules/ai/src/adversary/perception.ts)). Committed
+results: [`curriculum/adversary/`](../../modules/ai/curriculum/adversary/) (reports) and
+[`curriculum/baselines/adversary/`](../../modules/ai/curriculum/baselines/adversary/) (baselines).
 
 ## Branching: what if the crew had decided otherwise
 
@@ -741,7 +775,7 @@ list. A human screen may attach to a seat a bot holds; input is shared. Bot choi
 when the game stops, restarts or loads. Game time is wall time times the admin speed; a paused game
 makes no decisions. A seat whose brain throws records a `brain_error` event and keeps playing.
 
-While the server records, the recorder writes `<recording>.events.jsonl` beside the `.sgr` with the
+While the server records, the recorder writes `<recording>.events.jsonl.zst` (zstd) beside the `.sgr` with the
 same `brain_request` / `decision` / `command` / `callout` / `brain_error` events a training run
 records, on the recording's clock. A bot seated before recording starts begins writing when it
 starts; events after recording stops are dropped. The sidecar downloads beside the `.sgr` from the

@@ -1,5 +1,5 @@
-import { azimuthCircle } from '../src/radar/tactical-radar-layers';
-import { degToRad } from '@starwards/core';
+import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, degToRad } from '@starwards/core';
+import { azimuthCircle, missileTargetLinesLayer } from '../src/radar/tactical-radar-layers';
 
 jest.mock('pixi.js', () => {
     class Container {
@@ -23,7 +23,26 @@ jest.mock('pixi.js', () => {
             this.texture = texture;
         }
     }
-    class Graphics extends Container {}
+    /** Records line draw calls so a test can read back what the layer painted. */
+    class Graphics extends Container {
+        ops: { op: string; x?: number; y?: number }[] = [];
+        clear() {
+            this.ops = [];
+            return this;
+        }
+        moveTo(x: number, y: number) {
+            this.ops.push({ op: 'moveTo', x, y });
+            return this;
+        }
+        lineTo(x: number, y: number) {
+            this.ops.push({ op: 'lineTo', x, y });
+            return this;
+        }
+        stroke() {
+            this.ops.push({ op: 'stroke' });
+            return this;
+        }
+    }
     return {
         Container,
         Sprite,
@@ -93,5 +112,54 @@ describe('azimuthCircle (heading ring)', () => {
         expect(sprite.rotation).toBeCloseTo(degToRad * -90, 5);
         expect(sprite.position.x).toBeCloseTo(30, 5);
         expect(sprite.position.y).toBeCloseTo(40, 5);
+    });
+});
+
+describe('missileTargetLinesLayer (M4.44)', () => {
+    type FakeGraphics = { ops: { op: string; x?: number; y?: number }[] };
+
+    function missile(id: string, x: number, level: ScanLevel) {
+        const m = new Projectile('HiExpMissile');
+        m.id = id;
+        m.position.x = x;
+        m.position.y = 0;
+        m.targetId = 'target';
+        m.scanLevels[Number(Faction.Gravitas)] = level;
+        return m;
+    }
+
+    function drawLines(objects: SpaceObject[]) {
+        const target = new Spaceship();
+        target.id = 'target';
+        target.position.x = 500;
+        target.position.y = 700;
+        const all = [target, ...objects];
+        const spaceDriver = {
+            state: {
+                getAll: (type: string) => all.filter((o) => o.type === type),
+                get: (id: string) => all.find((o) => o.id === id),
+            },
+        } as unknown as Parameters<typeof missileTargetLinesLayer>[1];
+        const { root, tick } = fakeCameraView();
+        const graphics = missileTargetLinesLayer(
+            root,
+            spaceDriver,
+            Faction.Gravitas,
+            () => true,
+        ) as unknown as FakeGraphics;
+        tick();
+        return graphics.ops;
+    }
+
+    test('a FULL missile draws a line from itself to its target', () => {
+        expect(drawLines([missile('m', -100, ScanLevel.FULL)])).toEqual([
+            { op: 'moveTo', x: -100, y: 0 },
+            { op: 'lineTo', x: 500, y: 700 },
+            { op: 'stroke' },
+        ]);
+    });
+
+    test('a SNAPSHOT missile draws nothing', () => {
+        expect(drawLines([missile('m', -100, ScanLevel.SNAPSHOT)])).toEqual([]);
     });
 });

@@ -1,0 +1,29 @@
+{
+    "name": "captain-reference-guard-placebo-tick",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/captain.v17.json",
+            "phaseSeconds": 0.016
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ]
+}

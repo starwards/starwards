@@ -154,4 +154,26 @@ describe('ShipRoom JSON pointer commands', () => {
             expect(seen(o.room.state)).toEqual(seen(driver.serverDriver.getShip(shipId).state));
         }
     });
+
+    it('GM resupply and repair messages act on the ship and sync to its clients', async () => {
+        const { client, room, shipId } = await connectShip('gm-quick-actions');
+        const state = driver.serverDriver.getShip(shipId).state;
+        state.reactor.energy = 0;
+        state.maneuvering.afterBurnerFuel = 0;
+        state.magazine.setCount('HiExpShell', 0);
+        state.armor.armorPlates[0].layers[0].health = 0;
+        state.reactor.effeciencyFactor = 0.1;
+
+        await client.sendCommand(room, 'gmResupply', {});
+        await waitForServer(() => state.reactor.energy === state.reactor.design.maxEnergy);
+        expect(state.maneuvering.afterBurnerFuel).toEqual(state.maneuvering.design.maxAfterBurnerFuel);
+        expect(state.magazine.getCount('HiExpShell')).toEqual(state.magazine.getMax('HiExpShell'));
+        // resupply alone repairs nothing
+        expect(state.armor.armorPlates[0].layers[0].health).toEqual(0);
+
+        await client.sendCommand(room, 'gmRepair', {});
+        await waitForServer(() => state.reactor.effeciencyFactor === 1);
+        expect(state.armor.armorPlates[0].layers[0].health).toEqual(state.armor.armorPlates[0].layers[0].maxHealth);
+        await client.waitForSync(room, (s: ShipState) => s.reactor.effeciencyFactor === 1 && s.reactor.energy > 0);
+    });
 });

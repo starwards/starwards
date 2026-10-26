@@ -6,6 +6,7 @@ import {
     OUT_OF_PLAY_DISTANCE_METERS,
     OUT_OF_PLAY_SECONDS,
     STATIONS,
+    STATION_ATTACK_ANNOUNCE_COOLDOWN_SECONDS,
     WAVE_INTERVAL_SECONDS,
     WaveDefenceTuning,
     WaveShipSpec,
@@ -26,6 +27,7 @@ import {
     Order,
     PowerLevel,
     SHADOW_TRACK_RANGE,
+    ScanLevel,
     ShipManagerNpc,
     ShipModel,
     Spaceship,
@@ -34,6 +36,7 @@ import {
     ammoTypes,
     makeId,
     mulberry32,
+    npcDoctrines,
     waitFor,
 } from '@starwards/core/internal';
 
@@ -100,9 +103,8 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
     it('A1: wave 1 is always exactly two dragonfly-MK1, INTERCEPT, targeting the station, regardless of rng', () => {
         const wave1Spec = {
             model: 'dragonfly-MK1',
-            flightDoctrine: FlightDoctrine.INTERCEPT,
+            doctrine: 'rush',
             targetPolicy: { kind: 'station' },
-            aggro: 'Brawler',
         };
         for (const rng of [() => 0, () => 0.999, Math.random]) {
             expect(generateWaveSpecs(1, rng)).toEqual([wave1Spec, wave1Spec]);
@@ -116,18 +118,12 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
         const wave2 = generateWaveSpecs(2, rng);
         expect(
             wave2.some(
-                (s) =>
-                    s.model === 'dragonfly-MK2' &&
-                    s.flightDoctrine === FlightDoctrine.SHADOW &&
-                    s.targetPolicy.kind === 'player',
+                (s) => s.model === 'dragonfly-MK2' && s.doctrine === 'shadowPlayer' && s.targetPolicy.kind === 'player',
             ),
         ).toBe(true);
         expect(
             wave2.some(
-                (s) =>
-                    s.model === 'dragonfly-MK1' &&
-                    s.flightDoctrine === FlightDoctrine.INTERCEPT &&
-                    s.targetPolicy.kind === 'station',
+                (s) => s.model === 'dragonfly-MK1' && s.doctrine === 'rush' && s.targetPolicy.kind === 'station',
             ),
         ).toBe(true);
 
@@ -138,7 +134,7 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
             wave3.every(
                 (s) =>
                     (s.model === 'dragonfly-MK1' || s.model === 'dragonfly-MK2') &&
-                    s.flightDoctrine === FlightDoctrine.INTERCEPT &&
+                    s.doctrine === 'rush' &&
                     s.targetPolicy.kind === 'station',
             ),
         ).toBe(true);
@@ -147,28 +143,35 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
         const wave4 = generateWaveSpecs(4, rng);
         const heavies = wave4.filter((s) => s.model === 'predator' || s.model === 'glaive');
         expect(heavies).toHaveLength(1);
-        expect(heavies[0].flightDoctrine).toEqual(FlightDoctrine.STANDOFF);
+        expect(heavies[0].doctrine).toEqual('holdRange');
         expect(heavies[0].targetPolicy).toEqual({ kind: 'station' });
         const escorts = wave4.filter((s) => s.model === 'dragonfly-MK1');
         expect(escorts.length).toBeGreaterThan(0);
-        expect(
-            escorts.every((s) => s.flightDoctrine === FlightDoctrine.SHADOW && s.targetPolicy.kind === 'follow-heavy'),
-        ).toBe(true);
+        expect(escorts.every((s) => s.doctrine === 'shadowEscort' && s.targetPolicy.kind === 'follow-heavy')).toBe(
+            true,
+        );
 
         // wave 5: Gunline -- largest-affordable heavies first, remainder MK1, STANDOFF/station
         const wave5 = generateWaveSpecs(5, rng);
-        expect(
-            wave5.every((s) => s.flightDoctrine === FlightDoctrine.STANDOFF && s.targetPolicy.kind === 'station'),
-        ).toBe(true);
+        expect(wave5.every((s) => s.doctrine === 'holdRange' && s.targetPolicy.kind === 'station')).toBe(true);
         expect(wave5.some((s) => s.model === 'predator' || s.model === 'glaive' || s.model === 'cataphract')).toBe(
             true,
         );
     });
 
+    it('each archetype resolves to named doctrines: swarm rush, gunline holdRange, harass shadowPlayer+rush, escort holdRange+shadowEscort', () => {
+        const doctrinesOf = (wave: number) => [...new Set(generateWaveSpecs(wave, () => 0.42).map((s) => s.doctrine))];
+        expect(doctrinesOf(1)).toEqual(['rush']);
+        expect(doctrinesOf(2)).toEqual(['shadowPlayer', 'rush']); // harass
+        expect(doctrinesOf(3)).toEqual(['rush']); // swarm
+        expect(doctrinesOf(4)).toEqual(['holdRange', 'shadowEscort']); // escort
+        expect(doctrinesOf(5)).toEqual(['holdRange']); // gunline
+    });
+
     it('every raider in waves 1-10 carries an aggro character, the escort heavy included', () => {
         for (let wave = 1; wave <= 10; wave++) {
             for (const spec of generateWaveSpecs(wave, () => 0.5)) {
-                expect(spec.aggro).not.toBeNull();
+                expect(npcDoctrines[spec.doctrine].aggro).not.toBeNull();
             }
         }
     });
@@ -209,7 +212,8 @@ describe('generateWaveSpecs (authored wave archetypes, issue #2241)', () => {
 function waveSummary(specs: readonly WaveShipSpec[]): string[] {
     const counts = new Map<string, number>();
     for (const spec of specs) {
-        const key = `${spec.model} ${FlightDoctrine[spec.flightDoctrine]} ${spec.targetPolicy.kind} ${spec.aggro ?? '-'}`;
+        const { flightDoctrine, aggro } = npcDoctrines[spec.doctrine];
+        const key = `${spec.model} ${FlightDoctrine[flightDoctrine]} ${spec.targetPolicy.kind} ${aggro ?? '-'}`;
         counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return [...counts].map(([key, count]) => `${count}x ${key}`);
@@ -321,9 +325,8 @@ describe('wave tuning overrides', () => {
         expect(generateWaveSpecs(2, () => 0, tuning)).toEqual([
             {
                 model: 'cataphract',
-                flightDoctrine: FlightDoctrine.STANDOFF,
+                doctrine: 'holdRange',
                 targetPolicy: { kind: 'station' },
-                aggro: 'Brawler',
             },
         ]);
     });
@@ -629,6 +632,81 @@ describe('wave_defence map (integration)', () => {
     });
 });
 
+describe('station banners (M4.59)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    async function waitForShipManagersGone(ids: readonly string[]) {
+        for (let i = 0; i < 200 && ids.some((id) => gameDriver.shipManagers.has(id)); i++) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+    }
+
+    function history() {
+        return gameDriver.gameManager.state.messageHistory.map((m) => m.text);
+    }
+
+    function hitStation(id: string) {
+        const layer = gameDriver.getShip(id).state.armor.armorPlates[0].layers[0];
+        layer.health = Math.max(0, layer.health - 1);
+    }
+
+    it('announces every station lost when several die in the same tick', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+        gameDriver.gameManager.update(1 / 20);
+        expect(history().filter((t) => t.startsWith('Station'))).toEqual([]);
+
+        gameDriver.spaceManager.destroyObject('station-large');
+        gameDriver.spaceManager.destroyObject('station-small');
+        gameDriver.gameManager.update(1 / 20); // drains destroy commands
+        await waitForShipManagersGone(['station-large', 'station-small']);
+        gameDriver.gameManager.update(1 / 20);
+
+        const lost = history().filter((t) => t.startsWith('Station lost'));
+        expect(lost).toHaveLength(2);
+        expect(lost).toEqual(expect.arrayContaining(['Station lost: station-large', 'Station lost: station-small']));
+    });
+
+    it('announces all three losses, queued rather than replaced, before the defeat message', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+        gameDriver.gameManager.update(1 / 20);
+        for (const station of STATIONS) {
+            gameDriver.spaceManager.destroyObject(station.id);
+        }
+        gameDriver.gameManager.update(1 / 20);
+        await waitForShipManagersGone(STATIONS.map((s) => s.id));
+        gameDriver.gameManager.update(1 / 20);
+
+        const lost = history().filter((t) => t.startsWith('Station lost'));
+        expect(lost).toHaveLength(STATIONS.length);
+        expect(history().some((t) => t.startsWith('Defeat'))).toBe(true);
+        expect(gameDriver.gameManager.state.speed).toEqual(0);
+    });
+
+    it('announces a station under attack once per cooldown window, per station', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+        gameDriver.gameManager.update(1 / 20); // baseline armor health recorded
+        const attacks = () => history().filter((t) => t.startsWith('Station under attack'));
+        expect(attacks()).toEqual([]);
+
+        hitStation('station-large');
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks()).toEqual(['Station under attack: station-large']);
+
+        hitStation('station-large'); // inside the cooldown
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks()).toHaveLength(1);
+
+        hitStation('station-small'); // other station is independent
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks()).toHaveLength(2);
+
+        gameDriver.gameManager.update(STATION_ATTACK_ANNOUNCE_COOLDOWN_SECONDS);
+        hitStation('station-large');
+        gameDriver.gameManager.update(1 / 20);
+        expect(attacks().filter((t) => t.endsWith('station-large'))).toHaveLength(2);
+    });
+});
+
 describe('wave progression: incapacitated/out-of-play raiders and the hard wave timer (issue #2233)', () => {
     // Each test simulates minutes of game time at 1-20 Hz: ~2 s alone, past the 5 s default under a full parallel run.
     jest.setTimeout(20_000);
@@ -790,6 +868,18 @@ describe('wave progression: incapacitated/out-of-play raiders and the hard wave 
         pinInPlace();
         gameDriver.gameManager.update(2); // crosses 120 s
         expect(npcWaveIds().length).toBeGreaterThan(wave1Ids.length);
+    });
+
+    it('firstWave: the first spawn is that wave, with its own composition', async () => {
+        const spawned: [number, number][] = [];
+        const map = createWaveDefenceMap(
+            () => 0,
+            { ...DEFAULT_WAVE_TUNING, firstWave: 4 },
+            { onWaveSpawned: (wave, shipIds) => spawned.push([wave, shipIds.length]) },
+        );
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        expect(spawned).toEqual([[4, generateWaveSpecs(4, () => 0).length]]);
     });
 
     it('onWaveSpawned reports each wave number, its ship ids and the station it targets', async () => {
@@ -991,6 +1081,35 @@ describe('station radar power (issue #2084 design redirect)', () => {
 
         const player = gameDriver.getShip('GVTS');
         expect(player.state.radars.every((radar) => radar.power === PowerLevel.NORMAL)).toBe(true);
+    });
+});
+
+describe('wave_defence raider intel (issue #2484)', () => {
+    const gameDriver = makeDriver({ manualClock: true });
+
+    it('starts Raiders holding SNAPSHOT, with data, on every station and the player ship', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+
+        const { factionIntel } = gameDriver.spaceManager;
+        for (const id of [...STATIONS.map((s) => s.id), 'GVTS']) {
+            expect(factionIntel.getScanLevel(id, Faction.Raiders)).toBe(ScanLevel.SNAPSHOT);
+            expect(factionIntel.getSnapshot(id, Faction.Raiders)).toBeDefined();
+        }
+    });
+
+    it('places a Raiders waypoint and a Gravitas waypoint on each station at its position', async () => {
+        await gameDriver.gameManager.startGame(createWaveDefenceMap(() => 0));
+
+        const waypoints = [...gameDriver.spaceManager.state.getAll('Waypoint')];
+        expect(waypoints).toHaveLength(STATIONS.length * 2);
+        for (const station of STATIONS) {
+            for (const faction of [Faction.Raiders, Faction.Gravitas]) {
+                const found = waypoints.filter(
+                    (w) => w.faction === faction && XY.distance(w.position, station.position) < 1,
+                );
+                expect(found).toHaveLength(1);
+            }
+        }
     });
 });
 

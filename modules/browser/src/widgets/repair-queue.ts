@@ -16,6 +16,7 @@ import {
     formatRepairPriority as formatPriority,
     formatRepairUpNextEntry,
     getRepairProtocolHotkey,
+    getRepairProtocolKeyLabel,
     getRepairProtocolModeHotkey,
     getRepairUpNext,
     isRepairSlotVisible,
@@ -92,7 +93,7 @@ function protocolSummary(
 
 /**
  * Engineer damage-control panel (issue #2247): the "up next" order (issue #2434), then the active
- * repair (name, time remaining, progress), then one row per catalog protocol — a fixed set, in catalog order — each showing its
+ * repair (name, time remaining, progress), then one row per catalog protocol, titled by its raise key, — a fixed set, in catalog order — each showing its
  * priority (OFF/LOW/MEDIUM/HIGH/RUNNING/CANCELLING), progress while running, and the reason the
  * last priority change was refused. `slots` never grows or shrinks after ship construction, so
  * every row is built once; each blade live-binds its own field.
@@ -212,17 +213,17 @@ function drawSlot(
     }
     const priority = readProp<RepairPriority>(shipDriver, `/repairQueue/slots/${index}/priority`);
     const priorityBlade = addTextBlade(row, priority, { label: 'priority', format: formatPriority }, cleanup);
-    const applyPriority = () => {
-        const value = priority.getValue();
-        priorityBlade.element.dataset.priority = value === undefined ? '' : formatPriority(value);
-    };
-    const applyTitle = () => {
-        row.title = repairSlotTitle(protocolName(protocolId), priority.getValue());
-    };
-    cleanup(priority.onChange(applyPriority));
-    cleanup(priority.onChange(applyTitle));
-    applyPriority();
-    applyTitle();
+    if (interactive) {
+        const applyTitle = () => {
+            row.title = repairSlotTitle(protocolName(protocolId), priority.getValue());
+        };
+        cleanup(priority.onChange(applyTitle));
+        applyTitle();
+    } else {
+        // the title bar's badge already shows the priority; a second copy here would read "RUNNING" twice
+        priorityBlade.element.classList.add('sw-visually-hidden');
+        showKeyAndPriority(row, getRepairProtocolKeyLabel(protocolId), priority, cleanup);
+    }
     // a docked/shipyard-tier slot's `mode` field exists on the schema but is meaningless (see
     // RepairProtocolSlot.mode) — getRepairProtocolModeHotkey (and this row) only exist for a
     // field-tier protocol, the one kind that actually has two modes to show or toggle between.
@@ -272,7 +273,9 @@ function drawSlot(
     if (!interactive) {
         // a display station has no room for two rows that are blank until something goes wrong
         hideWhile(energyBlade.element, energyStarved, (starved) => !starved, cleanup);
-        hideWhile(noticeBlade.element, refusalReason, (reason) => !reason, cleanup);
+        // an input cannot wrap, so the reason shows in a wrapping line of its own (issue #2438)
+        noticeBlade.element.classList.add('sw-visually-hidden');
+        showNotice(row, refusalReason, cleanup);
         // collapsed unless running/cancelling or carrying a notice (plan card M3.11)
         let wasOpen: boolean | undefined;
         const applyExpansion = () => {
@@ -321,6 +324,47 @@ function showRunTime(
         }
     };
     cleanup(aggregate(inputs, label).onChange(apply));
+    apply();
+}
+
+/**
+ * A display station's slot title bar (issue #2438): the slot's hotkey where a row number would sit
+ * (`data-key`), the name, then the priority as a badge of its own so a long name truncates, never the priority.
+ */
+function showKeyAndPriority(
+    row: FolderApi,
+    key: string,
+    priority: Model<RepairPriority>,
+    cleanup: (d: Destructor) => void,
+) {
+    const titleBar = row.element.querySelector<HTMLElement>(':scope > .tp-fldv_b');
+    if (!titleBar) {
+        return;
+    }
+    titleBar.dataset.key = key;
+    const badge = document.createElement('span');
+    badge.className = 'sw-repair-badge';
+    titleBar.querySelector(':scope > .tp-fldv_t')?.after(badge);
+    const apply = () => {
+        const value = priority.getValue();
+        const text = value === undefined || value === RepairPriority.OFF ? '' : formatPriority(value);
+        badge.textContent = text;
+        badge.dataset.priority = text;
+    };
+    cleanup(priority.onChange(apply));
+    apply();
+}
+
+/** The refusal reason as a wrapping line under the slot's details; absent while there is none. */
+function showNotice(row: FolderApi, reason: Model<string>, cleanup: (d: Destructor) => void) {
+    const notice = document.createElement('div');
+    notice.className = 'sw-repair-notice';
+    row.element.querySelector(':scope > .tp-fldv_c')?.append(notice);
+    const apply = () => {
+        notice.textContent = reason.getValue() ?? '';
+        notice.hidden = !notice.textContent;
+    };
+    cleanup(reason.onChange(apply));
     apply();
 }
 

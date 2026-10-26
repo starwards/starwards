@@ -1,4 +1,4 @@
-import { Faction, ScanLevel, SpaceObject, SpaceState } from '../space';
+import { Faction, ScanLevel, SpaceObject, SpaceState, isMissile } from '../space';
 import type { ShipSnapshot } from '../ship/ship-snapshot';
 import { drainCommands } from '../commands';
 
@@ -11,8 +11,10 @@ export const FULL_SCAN_GRACE_SECONDS = 0.5;
  * goes through here, so the faction bounds guard cannot be routed around.
  */
 export class FactionIntelManager {
-    /** seconds each (ship, faction) FULL has gone without scan-beam cover, keyed `${shipId}/${faction}` */
+    /** seconds each (target, faction) FULL has gone without scan-beam cover, keyed `${targetId}/${faction}` */
     private uncoveredSeconds = new Map<string, number>();
+    /** faction of the ship that fired each in-flight missile, keyed by missile id */
+    private firingFactions = new Map<string, Faction>();
     /** captured SNAPSHOTs, keyed by target id then faction. Plain memory: never synced (SPEC-0008 §5). */
     private snapshots = new Map<string, Map<Faction, ShipSnapshot>>();
     private totalSeconds = 0;
@@ -52,6 +54,17 @@ export class FactionIntelManager {
         }
     }
 
+    /**
+     * Gives the faction SNAPSHOT intel on the target as of `atSeconds`: the level, the capture
+     * time, and the ship's data as it is now. What a FULL→SNAPSHOT demotion does; also how a map
+     * starts a faction already knowing a target.
+     */
+    public grantSnapshot(targetId: string, faction: Faction, atSeconds: number) {
+        this.setScanLevel(targetId, faction, ScanLevel.SNAPSHOT);
+        this.setScanSnapshotCapturedAt(targetId, faction, atSeconds);
+        this.captureSnapshot(targetId, faction, atSeconds);
+    }
+
     private captureSnapshot(targetId: string, faction: Faction, atSeconds: number) {
         const data = this.encodeShip(targetId);
         if (!data) return;
@@ -85,11 +98,11 @@ export class FactionIntelManager {
     }
 
     /**
-     * Per-faction FULL maintenance: a faction holds FULL on a ship only while one of its scan beams
-     * covers it. After `FULL_SCAN_GRACE_SECONDS` without cover the ship demotes to SNAPSHOT,
-     * capturing the moment of demotion. Promotion is driven by each ship's signals scan-job queue
-     * (SignalsJobManager). A projectile at FULL (its own faction's, or a Signals scan) keeps it for
-     * its short life; only ships demote.
+     * Per-faction FULL maintenance: a faction holds FULL on a ship or missile only while one of its
+     * scan beams covers it. After `FULL_SCAN_GRACE_SECONDS` without cover the target demotes to
+     * SNAPSHOT, capturing the moment of demotion. Promotion is driven by each ship's signals scan-job
+     * queue (SignalsJobManager). A faction always holds FULL on its own objects and missiles; shells
+     * keep their level for their short life.
      */
     private updateScanDemotion(
         totalSeconds: number,
@@ -97,26 +110,42 @@ export class FactionIntelManager {
         beamCoveredByFaction: ReadonlyArray<ReadonlySet<SpaceObject>>,
     ) {
         const uncovered = new Map<string, number>();
-        for (const ship of this.state.getAll('Spaceship')) {
+        const firingFactions = new Map<string, Faction>();
+        const demote = (target: SpaceObject, firingFaction: Faction | undefined) => {
             for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
                 if (
-                    ship.faction === faction ||
-                    beamCoveredByFaction[Number(faction)]?.has(ship) ||
-                    this.getScanLevel(ship.id, faction) !== ScanLevel.FULL
+                    target.faction === faction ||
+                    firingFaction === faction ||
+                    beamCoveredByFaction[Number(faction)]?.has(target) ||
+                    this.getScanLevel(target.id, faction) !== ScanLevel.FULL
                 ) {
                     continue;
                 }
-                const key = `${ship.id}/${faction}`;
+                const key = `${target.id}/${faction}`;
                 const seconds = (this.uncoveredSeconds.get(key) ?? 0) + deltaSeconds;
                 if (seconds > FULL_SCAN_GRACE_SECONDS) {
-                    this.setScanLevel(ship.id, faction, ScanLevel.SNAPSHOT);
-                    this.setScanSnapshotCapturedAt(ship.id, faction, totalSeconds);
-                    this.captureSnapshot(ship.id, faction, totalSeconds);
+                    this.grantSnapshot(target.id, faction, totalSeconds);
                 } else {
                     uncovered.set(key, seconds);
                 }
             }
+        };
+        for (const ship of this.state.getAll('Spaceship')) {
+            demote(ship, undefined);
         }
+        for (const projectile of this.state.getAll('Projectile')) {
+            if (!isMissile(projectile)) {
+                continue;
+            }
+            // The firing ship's faction always knows its missile. Remembered per missile, so that
+            // knowledge outlives a firing ship destroyed while the missile is in flight.
+            const firingFaction = this.firingFactions.get(projectile.id) ?? this.state.get(projectile.shipId)?.faction;
+            if (firingFaction !== undefined) {
+                firingFactions.set(projectile.id, firingFaction);
+            }
+            demote(projectile, firingFaction);
+        }
+        this.firingFactions = firingFactions;
         this.uncoveredSeconds = uncovered;
     }
 
@@ -148,11 +177,16 @@ export class FactionIntelManager {
      * Returns ScanLevel.UFO (0) if not set, or at least BASIC for same-faction targets
      */
     public getScanLevel(targetId: string, faction: Faction): ScanLevel {
-        const slot = this.getScanSlot(targetId, faction);
-        if (!slot) {
+        const target = this.state.get(targetId);
+        return target ? this.getScanLevelOf(target, faction) : ScanLevel.UFO;
+    }
+
+    /** {@link getScanLevel} of an object already in hand, without looking it up by id. */
+    public getScanLevelOf(target: SpaceObject, faction: Faction): ScanLevel {
+        const factionIndex = Number(faction);
+        if (target.destroyed || factionIndex < 0 || factionIndex >= Number(Faction.FACTION_COUNT)) {
             return ScanLevel.UFO;
         }
-        const [target, factionIndex] = slot;
         const storedLevel = target.scanLevels[factionIndex] || ScanLevel.UFO;
         // Objects from same faction have at least BASIC scan level
         if (target.faction === faction) {

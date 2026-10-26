@@ -10,6 +10,7 @@ import {
     Policy,
     SILENCE,
     SeatPlan,
+    isEnemyShip,
     missileLaunchRange,
     orderCommand,
     orderFromCallout,
@@ -20,12 +21,15 @@ import { CREW_ORDER_KINDS, STANCES } from '@starwards/core/internal';
 import { RunLog, StateSummary, requestAt, stateAt } from './run-log';
 
 import { CrewOptions } from '../crew/crew';
+import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 
 /** What a branch changes in the replayed run, from its branch point on. */
 export type Intervention = {
     seats?: (seats: SeatPlan[]) => SeatPlan[];
     intervene?: CrewOptions['intervene'];
     lens?: CrewOptions['lens'];
+    /** Test-only: acts on the game itself each tick (an oracle), outside the crew's consoles. */
+    script?: (game: HeadlessGame) => void;
 };
 
 /** A decision worth replaying differently: when, why, what was decided there, and what the crew knew. */
@@ -424,9 +428,7 @@ function onlyEnemy(display: Display, name: string): Display {
         ...display,
         radar: {
             ...radar,
-            contacts: radar.contacts.filter(
-                (c) => !(c.type === 'Spaceship' && c.faction !== undefined && c.faction !== faction && c.name !== name),
-            ),
+            contacts: radar.contacts.filter((c) => !(isEnemyShip(c, faction) && c.name !== name)),
         },
     };
 }

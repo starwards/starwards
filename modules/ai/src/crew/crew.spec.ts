@@ -3,7 +3,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { CALLOUT_QUESTION, Policy, brainSpecSchema, referenceSeatPlan } from '@starwards/bots';
 import { findSidecar, readSidecar } from '@starwards/server/src/recording/sidecar-file';
-import { runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
+import { playTraining, runTraining, trainingScenarios } from '@starwards/server/src/test/training/training-scenarios';
+
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
 import { headlessCrew } from './crew';
 import { idlePolicy } from '../brain/policies';
@@ -148,6 +149,36 @@ describe('a headless crew that talks', () => {
         } finally {
             await rmDirRetrying(dir);
         }
+    });
+
+    it("shifts a seat's decisions by its phaseSeconds", async () => {
+        let now = 0;
+        const asked: Record<string, number[]> = { weapons: [], helms: [] };
+        const recordingAt = (station: string): Policy => ({
+            name: station,
+            answer: (request, controls, display) => {
+                asked[station].push(now);
+                return idlePolicy.answer(request, controls, display);
+            },
+        });
+        const crew = headlessCrew({
+            shipId: TRAINING_PLAYER_ID,
+            latencySeconds: 0,
+            intervene: (seconds) => (now = seconds),
+            seats: [
+                { station: 'weapons', spec: brain('weapons'), policy: recordingAt('weapons') },
+                { station: 'helms', spec: brain('helms'), policy: recordingAt('helms'), phaseSeconds: 0.5 },
+            ],
+        });
+        await playTraining(trainingScenarios.T0, {
+            seed: 1,
+            timeoutSeconds: 2.2,
+            crewedPlayer: true,
+            beforeTick: crew.beforeTick,
+        });
+
+        expect(asked.weapons[0]).toBeCloseTo(asked.helms[0] - 0.5, 1);
+        expect(asked.helms[1] - asked.helms[0]).toBeCloseTo(1, 1);
     });
 });
 

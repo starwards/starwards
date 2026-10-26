@@ -15,11 +15,13 @@ import { AggroManager } from './aggro-manager';
 import { CrewOrdersManager } from './crew-orders-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { EnergyManager } from './energy-manager';
+import { EngineerGovernor } from './engineer-governor';
 import { IterationData } from '../updateable';
 import { MovementManager } from './movement-manager';
 import { RepairManager } from './repair-manager';
 import { ScanBeamAutomation } from './scan-beam-automation';
 import { SpaceManager } from '../logic/space-manager';
+import { capToRange } from '../logic';
 
 export class ShipManagerPc extends ShipManager implements PcShipApi {
     readonly isPlayerShip = true;
@@ -102,8 +104,17 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
         this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
     }
 }
+/**
+ * Whether a new NPC ship runs the real {@link EnergyManager} and {@link RepairManager} (with the
+ * {@link EngineerGovernor} standing in for its crew). Per-ship override: {@link ShipManagerNpc.setRealEnergy}.
+ */
+export const NPC_REAL_ENERGY_DEFAULT = false;
+
 export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     readonly isPlayerShip = false;
+    private energyManager: EnergyManager | null = null;
+    private repairManager: RepairManager | null = null;
+    private governor: EngineerGovernor | null = null;
     private readonly aggro = new AggroManager();
     /** Nobody crews a station's or platform's signals, so their scan beams sweep and follow on their own (M4.31). */
     private readonly scanBeams: ScanBeamAutomation | null;
@@ -117,21 +128,42 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     ) {
         super(spaceObject, state, spaceManager, die, ships);
         this.state.isPlayerShip = false;
-        /**
-         * NPCs have no power-allocation UI to keep a reactor budget solvent under sustained combat,
-         * so every system -- weapons, radar, maneuvering alike -- draws free energy here; wiring a
-         * real per-tick energy cost into maneuvering was tried for #2208 and made NPCs strand
-         * themselves mid-engagement (orbit-capture and heat-management sims never closed distance
-         * again once the reactor ran dry, since nothing manages their power the way a player does).
-         * Damage still bites without it: `rotationCapacity` and `velocityCapacity` factor in
-         * `effectiveness`/`efficiency`, so a maneuvering system shot to pieces or hacked really does
-         * turn and thrust slower, same as a player ship's -- there is just no finite joule budget
-         * underneath that degradation for a bot that cannot manage one.
-         */
         this.internalProxy.drawEnergy = () => 1;
+        this.setRealEnergy(NPC_REAL_ENERGY_DEFAULT);
         this.damageManager.onWeaponHit = (attackerId, amount) => this.aggro.noteHit(attackerId, amount);
         this.scanBeams =
             this.state.smartPilot.design.maxSpeed === 0 ? new ScanBeamAutomation(this.state, spaceManager) : null;
+    }
+
+    /** Whether this NPC meters energy and works a repair queue like a player ship, governed by a reflex engineer. */
+    get realEnergy() {
+        return this.energyManager !== null;
+    }
+
+    /**
+     * Switches this NPC between the real energy/repair rules and free draws.
+     * Free draws exist because NPCs have no crew to keep a reactor budget solvent (#2208: a metered
+     * maneuvering system stranded them mid-engagement); with the flag on the {@link EngineerGovernor}
+     * plays that crew, shedding power before manoeuvring can run dry.
+     */
+    setRealEnergy(enabled: boolean) {
+        if (enabled === this.realEnergy) {
+            return;
+        }
+        if (enabled) {
+            const energyManager = new EnergyManager(this.state, this.heatManager);
+            this.energyManager = energyManager;
+            this.repairManager = new RepairManager(this.state, energyManager, this.heatManager);
+            this.governor = new EngineerGovernor(this.state);
+            this.internalProxy.drawEnergy = energyManager.drawEnergy;
+        } else {
+            this.governor?.release();
+            this.energyManager = null;
+            this.repairManager = null;
+            this.governor = null;
+            this.state.repairQueue.slots.clear();
+            this.internalProxy.drawEnergy = () => 1;
+        }
     }
 
     /** Sets how this NPC's aggro reacts to attackers; `null` keeps it on its standing order. */
@@ -164,11 +196,64 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         this.scanBeams?.update();
     }
 
+    /**
+     * What fraction of the thrust it asks for the reactor grants this tick -- the same per-thruster
+     * demand a player ship's `MovementManager` draws, so an NPC pays for flight like one. 1 when
+     * energy is free (flag off) or nothing is asked for.
+     */
+    private drawThrustEnergy(deltaSeconds: number) {
+        if (!this.energyManager) {
+            return 1;
+        }
+        const action = this.state.localToGlobal(this.state.smartPilot.maneuvering);
+        let asked = 0;
+        let granted = 0;
+        for (const thruster of this.state.thrusters) {
+            if (!thruster.effectiveness) {
+                continue;
+            }
+            const desired = capToRange(0, 1, XY.rotate(action, -thruster.getGlobalBearing(this.state)).x);
+            const cost =
+                desired *
+                thruster.design.capacity *
+                thruster.effectiveness *
+                deltaSeconds *
+                thruster.design.energyCost *
+                thruster.powerDrawFactor;
+            asked += cost;
+            granted += cost * this.energyManager.drawEnergy(cost, thruster);
+        }
+        return asked > 0 ? granted / asked : 1;
+    }
+
+    /** The fraction of the turn it asks for the reactor grants this tick; see {@link drawThrustEnergy}. */
+    private drawRotationEnergy(deltaSeconds: number) {
+        const { maneuvering } = this.state;
+        const rotation = Math.abs(this.state.smartPilot.rotation);
+        if (!this.energyManager || !rotation) {
+            return 1;
+        }
+        const enginePower = rotation * deltaSeconds * maneuvering.effectiveness * maneuvering.design.rotationCapacity;
+        return this.energyManager.drawEnergy(
+            enginePower * maneuvering.design.rotationEnergyCost * maneuvering.powerDrawFactor,
+            maneuvering,
+        );
+    }
+
     private handleManeuvering(deltaSeconds: number) {
         const moveDirections = vector2ShipDirections(this.state.smartPilot.maneuvering);
+        const supply = this.drawThrustEnergy(deltaSeconds);
         const localVelocity = {
-            x: this.state.smartPilot.maneuvering.x * this.state.velocityCapacity(moveDirections.x) * deltaSeconds,
-            y: this.state.smartPilot.maneuvering.y * this.state.velocityCapacity(moveDirections.y) * deltaSeconds,
+            x:
+                this.state.smartPilot.maneuvering.x *
+                this.state.velocityCapacity(moveDirections.x) *
+                deltaSeconds *
+                supply,
+            y:
+                this.state.smartPilot.maneuvering.y *
+                this.state.velocityCapacity(moveDirections.y) *
+                deltaSeconds *
+                supply,
         };
         this.changeVelocity(this.state.localToGlobal(localVelocity));
         this.capMaxSpeed();
@@ -201,10 +286,17 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     update(id: IterationData) {
         super.update(id);
         const { deltaSeconds } = id;
+        this.governor?.update(id);
+        this.repairManager?.update(id);
+        this.energyManager?.update(id);
         // enforce maxSpeed
         this.handleManeuvering(deltaSeconds);
         if (this.state.smartPilot.rotation) {
-            const speedToChange = this.state.smartPilot.rotation * this.state.rotationCapacity * deltaSeconds;
+            const speedToChange =
+                this.state.smartPilot.rotation *
+                this.state.rotationCapacity *
+                deltaSeconds *
+                this.drawRotationEnergy(deltaSeconds);
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
             // Immediate sync so code later in the same tick reads the updated turnSpeed
             this.state.spaceship.turnSpeed = this.spaceObject.turnSpeed;

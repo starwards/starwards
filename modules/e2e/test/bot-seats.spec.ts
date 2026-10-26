@@ -1,5 +1,5 @@
 import { Download, Page } from '@playwright/test';
-import { EVENTS_EXT, RECORDING_EXT } from '@starwards/core';
+import { EVENTS_ZST_EXT, RECORDING_EXT } from '@starwards/core';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
 
@@ -48,7 +48,7 @@ test.describe('GM bot seats', () => {
         await expect(r.seatBot('pilot')).toBeHidden();
         await expect(r.row('pilot')).toHaveAttribute('data-unassigned', 'false');
 
-        await page.locator('.lm_title', { hasText: 'controls' }).click();
+        await page.locator('.lm_title', { hasText: /^game$/ }).click();
         const controls = page.locator('[data-id="Game Controls"]');
         await expect(controls).toBeVisible({ timeout: 15000 });
         // every game records from its start
@@ -60,7 +60,7 @@ test.describe('GM bot seats', () => {
         await expect.poll(() => downloads.length, { timeout: 10000 }).toBe(2);
         const names = downloads.map((d) => d.suggestedFilename());
         expect(names.some((n) => n.endsWith(RECORDING_EXT))).toBe(true);
-        expect(names.some((n) => n.endsWith(EVENTS_EXT))).toBe(true);
+        expect(names.some((n) => n.endsWith(EVENTS_ZST_EXT))).toBe(true);
 
         await page.locator('.lm_title', { hasText: 'roster' }).click();
         await r.remove('pilot').click();

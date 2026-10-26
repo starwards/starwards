@@ -129,6 +129,7 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelUpCommand'), 'r', 'Warp Up');
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelDownCommand'), 'f', 'Warp Down');
     input.addMomentaryClickAction(writeProp(shipDriver, '/docking/toggleCommand'), 'z', 'Toggle Dock');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/docking/launchCommand'), shipInputConfig.launch, 'Launch');
     input.init();
     const teardownHelp = setupHotkeyHelp(input);
     return () => {

@@ -1,0 +1,36 @@
+{
+    "name": "captain-reference-spend-finish",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/captain.v17.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ],
+    "knobs": {
+        "FIRE_RANGE_METERS": 5000,
+        "STATION_GUARD_METERS": 2000,
+        "WAVE_SHELL_BUDGET": 0.7,
+        "SHELL_BUDGET_SECONDS": 690,
+        "FINISH_LOCK_SECONDS": 6,
+        "RETARGET_MARGIN_METERS": 8000
+    }
+}

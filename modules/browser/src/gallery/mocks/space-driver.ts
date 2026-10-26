@@ -20,6 +20,8 @@ interface MockSpaceState {
     getShip(id: string): Spaceship | undefined;
     getAll<T extends SpaceObject>(type: string): Iterable<T>;
     [Symbol.iterator](): IterableIterator<SpaceObject>;
+    /** objects by type then id, so JSON pointers like `/Waypoint/<id>/title` resolve as on the real state */
+    [type: string]: unknown;
 }
 
 interface MockSpaceDriver {
@@ -168,6 +170,11 @@ export function createMockSpaceDriver(objects: SpaceObject[] = []): MockSpaceDri
             yield* objectMap.values();
         },
     };
+
+    for (const obj of objects) {
+        const byId = (state[obj.type] ??= {}) as Record<string, SpaceObject>;
+        byId[obj.id] = obj;
+    }
 
     return {
         events: new EventEmitter2({ wildcard: true, delimiter: '/', maxListeners: 0 }),

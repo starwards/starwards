@@ -1,0 +1,32 @@
+{
+    "name": "captain-reference-guard-he-reserve4-900",
+    "seats": [
+        {
+            "station": "captain",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/captain.v17.json"
+        },
+        {
+            "station": "signals",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/signals.v10.json"
+        },
+        {
+            "station": "helms",
+            "policy": "reference"
+        },
+        {
+            "station": "weapons",
+            "policy": "reference",
+            "brain": "../../bots/src/brains/weapons.v20.json"
+        },
+        {
+            "station": "engineer",
+            "policy": "reference"
+        }
+    ],
+    "knobs": {
+        "MISSILE_RESERVE": 4,
+        "MISSILE_RESERVE_SECONDS": 900
+    }
+}

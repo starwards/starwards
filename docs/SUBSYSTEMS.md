@@ -49,6 +49,12 @@ last_verified: 2026-09-03
 
 `RepairProtocolSlot.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for repair protocols specifically: true for every tick a RUNNING slot's declared energy draw isn't fully covered. A partial grant advances the run (progress and heat) at that share; a tick with nothing granted stalls it, and an outage sustained past `ENERGY_STARVATION_GRACE_SECONDS` force-stops it (see `RepairManager.tickRunning`). It's what lets the repair-queue widget show _why_ a progress bar is slow or stalled, before that slot's own `refusalReason` has anything to say.
 
+### Beam Hacking (stage 1, issue #2499)
+
+The Signals officer marks a target and sets `signals.hackSystem` (`thrusters`, `chainGuns` or `smartPilot`; `HACKABLE_SYSTEM_KEYS`). While the faction holds FULL scan on the target, `signals.hackProgress` fills over the system's design `hackSeconds` (thrusters 6, chain guns 8, smart pilot 10), scaled by Signals effectiveness. On completion every instance of that system on the target goes offline (`hacked = DISABLED`, effectiveness 0) for its design `hackOfflineSeconds` (default 5), tracked in `SystemState.hackedSecondsLeft`, then recovers. Losing FULL, a target firewall repair running, or an unhackable key (armor) cancels the order and sets `signals.hackRefusal`. Both values are per-design (`DesignState.hackSeconds`, `hackOfflineSeconds`) and a design may override them. NPCs run the same thruster and chain-gun model, so an offline system changes their behaviour. NPC steering bypasses the smart pilot (DIRECT mode), so a smart-pilot hack has a synthetic NPC effect: while `smartPilot.hacked` is DISABLED, `AutomationManager.dropSteeringWhileSmartPilotHacked` zeroes the AI's rotation and maneuvering commands each tick (the hull coasts, gunnery still fires) and steering resumes when the window closes. A player ship gets the real effect (`effectiveness` 0). The hacked player ship's crew sees "System hacked: ..." through the message banner.
+
+Counterplay: the `firewallRepair` protocol (field tier, 30 s, 2 energy/s, 15 heat) blocks hack progress while it runs and ends every active offline window when it completes.
+
 ### Repair Protocols (issue #2247, modes and cancel speed in #2255)
 
 Each catalog protocol (`configurations/repair-protocols.ts`) has its own `RepairProtocolSlot` on `ShipState.repairQueue.slots` — one per protocol, in catalog order, created once and never resized. A slot's `priority` (`RepairPriority`: `OFF`/`LOW`/`MEDIUM`/`HIGH`/`RUNNING`/`CANCELLING`) is its whole scheduling state; a separate `mode` field (`RepairProtocolMode`: `Responsive`/`Dark`, see below) tracks a field-tier slot's chosen price. There is no separate queue list, so a protocol never needs to be in the backlog more than once.
@@ -107,7 +113,7 @@ Independent of `order`, but not of hull heading (issue #2145).
 fuze maths on the officer's `weaponsTarget`, while `state.smartGunnery` (default on, commandable
 and tweakable) is set. The computer only writes `bearingCommand` and `shellRange`; `isFiring` and
 the ammo selection stay the officer's. Mounts that cannot bear on the target return to bearing 0;
-with no visible target the mounts hold. NPC heat management (power backoff, ceasefire latch) never
+with no visible target the mounts hold. NPC heat management (coolant split, power backoff) never
 applies to player ships.
 
 Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; whether
@@ -207,6 +213,12 @@ A jammed missile (`Projectile.jammed`, set by `SpaceManager.updateJamLevels` whe
 has no target of its own: each tick without a live target it locks onto the nearest solid object
 within `jamLockRange` other than its launcher, then homes on it like any other missile. The lock is
 already inside sprint range, so it accelerates straight away.
+
+### NPC doctrines
+
+A doctrine is a named `NpcAiProfile` (`npcDoctrines` in `modules/core/src/ship/npc-doctrines.ts`): a flight doctrine plus an aggro character (`aggro`). Wave archetypes reference them by name (`WaveShipSpec.doctrine`): swarm `rush`, gunline `holdRange`, harass `shadowPlayer` + `rush`, escort `holdRange` + `shadowEscort`. Wave spawning sets `ShipState.aiProfile` from the doctrine. Server-side only, never a `@gameField`, so it appears in no scan or Target Details.
+
+**Perception and difficulty.** `NpcAiProfile.perception` is `exact` (default, `TODAY_NPC_AI`: every live hostile, the test profile) or `faction`: only hostiles the NPC's faction holds in field of view and has scanned to `BASIC` or better (`playerScanLevel`). `aiTickRatio` runs the decision layer (perceiving hostiles) every Nth tick; physics and execution run every tick. `npcDifficultyPresets` (`hard` 1:1, `normal` 1:4, `easy` 1:10; placeholder ratios) use `faction` perception. The default is `exact` perception at 1:1, so existing behaviour is unchanged. `npm --prefix modules/ai run waves -- --difficulty <preset>` plays the `AW-<preset>` wave rung.
 
 ### Flight doctrine
 
@@ -323,7 +335,28 @@ Every NPC tick (`AutomationManager.manageHeat`, gated on `!isPlayerShip` and `de
 
 - **Coolant:** every system's `coolantFactor` is set to `heat / MAX_SYSTEM_HEAT`, so hotter systems draw a larger share of `HeatManager`'s coolant budget. Runs on a 500ms game-time cadence (not every tick), phase-staggered per ship off the ship's own die so a fleet doesn't all reallocate — and sync their `coolantFactor` — on the same tick.
 - **Power backoff:** each chain gun's `power` is hysteresis-latched between `PowerLevel.NORMAL` and `PowerLevel.LOW` — steps down to `LOW` once `heat` reaches 60% of `MAX_SYSTEM_HEAT`, steps back up to `NORMAL` only once it cools below 40%. A duty-cycle throttle between two named `PowerLevel`s (never a raw float — `power`'s declared type is the enum the status UI renders by name), and only ever written for a mount automation has itself latched — a GM- or scenario-set level on a mount that never got hot enough to trigger backoff is left untouched.
-- **Ceasefire backstop:** a rare, hysteresis-latched hard stop on `isFiring`, evaluated per mount. Engages at 95% heat, releases only once the mount cools back below 70% — well above where power backoff already engages, so it rarely fires in practice.
+
+### Gun Heat (player and NPC alike)
+
+`ChainGunManager` applies one physical heat model to every chain gun (tubes are exempt; constants in `GUN_HEAT`, `chain-gun.ts`). Heat is 0-100; a worn barrel lowers both bars.
+
+| Heat (pristine barrel)  | Effect                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| below spread bar (50)   | normal fire                                                                                    |
+| spread bar - jam bar (50-80) | shot deviation grows with heat (up to 4x at 100)                                          |
+| jam bar - 100 (80-100)  | each shot may jam the gun (0 at the jam bar to 10% at 100); a jam stops it for 3 s (`jammedSeconds`) |
+| 100                     | forced cooldown (`cooling`): the gun cannot fire until heat falls to 70                        |
+
+`barrelWear` (0-1, a `@defectible` named "barrel wear") widens base spread (up to 3x) and lowers the bars linearly to 25 (spread) and 60 (jam) at full wear. Wear grows 0.01/s while heat is at or above the jam bar, with heat pushed past 100 (`HeatManager.addHeat` overflow, 0.005 per heat unit — this replaces the old `overheat` system damage for guns), and from weapon hits (`DamageManager.damageChainGun`). The `barrelReplacement` repair protocol resets it and takes the guns offline for the run. NPC AI keeps only its pre-emptive power backoff; the old ceasefire latch is gone.
+
+### Real Energy and Repair (NPC, per-ship flag)
+
+By default an NPC's energy draws are free and it has no repair queue. `ShipManagerNpc.setRealEnergy(true)` (default `NPC_REAL_ENERGY_DEFAULT`, off) gives it the player ship's `EnergyManager` and `RepairManager`, meters its thrust and turning like `MovementManager` does, and runs an `EngineerGovernor` (`engineer-governor.ts`) as its crew, through the same state a crew writes:
+
+- **Power shedding:** as the reactor store falls below 50% / 30% / 15% of `maxEnergy` the governor caps radar, then tube and gun, then radar and tube at `SHUTDOWN`, and restores each system's original level 10 points above the threshold. Manoeuvring is never shed: it is the reserve.
+- **Reflex repair:** a protocol whose targeted defect has stood for `REPAIR_NOTICING_DELAY_SECONDS` is raised through `cyclePriorityCommands` (urgent systems — guns, thrusters, manoeuvring, reactor — to `HIGH`, the rest to `LOW`).
+
+Headless runs: `HeadlessGame.start(map, seed, { npcRealEnergy })`, `npm --prefix modules/ai run adversary -- --npc-real-energy`, `runParity(scenarios, { npcRealEnergy })`.
 
 ## System Interactions
 

@@ -1,9 +1,16 @@
 import { Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { Projectile, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { azimuthCircle, crosshairs, mountArc, speedLines } from '../radar/tactical-radar-layers';
+import {
+    azimuthCircle,
+    crosshairs,
+    missileTargetLinesLayer,
+    mountArc,
+    speedLines,
+} from '../radar/tactical-radar-layers';
 import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
+import { BlipTraceLayer } from '../radar/blips/blip-trace-layer';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { DashboardWidget } from './dashboard';
@@ -118,6 +125,16 @@ export async function drawTacticalRadar(
     const isOwnShell = (o: SpaceObject): o is Projectile => Projectile.isInstance(o) && o.shipId === shipDriver.id;
     const includeInRadar = (o: SpaceObject) => rangeFilter.isInRange(o) || isOwnShell(o);
     const getBlipColor = (s: SpaceObject) => (s.type === 'Projectile' || isOwnShell(s) ? radar.shellTint : green);
+    const traceLayer = new BlipTraceLayer(
+        root,
+        spaceDriver,
+        32,
+        includeInRadar,
+        getBlipColor,
+        shipDriver.state.faction,
+    );
+    traceLayer.renderRoot.mask = circleMask;
+    root.addLayer(traceLayer.renderRoot);
     const blipLayer = new ObjectsLayer(
         root,
         spaceDriver,
@@ -131,6 +148,9 @@ export async function drawTacticalRadar(
         shipDriver.state.faction,
     );
 
+    const missileLines = missileTargetLinesLayer(root, spaceDriver, shipDriver.state.faction, includeInRadar);
+    missileLines.mask = circleMask;
+    root.addLayer(missileLines);
     blipLayer.renderRoot.mask = circleMask;
     root.addLayer(blipLayer.renderRoot);
 

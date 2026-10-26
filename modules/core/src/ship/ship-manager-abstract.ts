@@ -29,13 +29,13 @@ import { Turret, updateTurret } from './turret';
 import { applyLockCommands, rehydrateLockRegistry } from '../lock-commands';
 
 import { AmmoManager } from './ammo-manager';
-import { Armor } from './armor';
 import { AutomationManager } from './automation-manager';
 import { BeamJamManager } from './beam-jam-manager';
 import { Capsule } from './capsule';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { DockingManager } from './docking-manager';
+import { HackManager } from './hack-manager';
 import { HeatManager } from './heat-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
@@ -48,7 +48,9 @@ import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
 import { createLogger } from '../logger';
+import { fixArmor } from './armor';
 import { revertRepairSlot } from './repair-manager';
+import { tickHackWindows } from './hack-windows';
 
 const { error: logError } = createLogger('ship-manager');
 
@@ -60,14 +62,6 @@ const { error: logError } = createLogger('ship-manager');
  * numbers, same caveat as `ENERGY_STARVATION_GRACE_SECONDS` in `repair-manager.ts`.
  */
 export const TARGET_OCCLUSION_GRACE_SECONDS = 1.5;
-
-function fixArmor(armor: Armor) {
-    for (const plate of armor.armorPlates) {
-        for (const layer of plate.layers) {
-            layer.health = layer.maxHealth;
-        }
-    }
-}
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
@@ -175,7 +169,7 @@ export abstract class ShipManager implements Updateable {
     protected chainGunManagers = new Array<ChainGunManager>();
     protected dockingManager: DockingManager;
     /**
-     * Public so tests can reach heat-management hooks (`setHeatManagementEnabled`, `isCeasefireLatched`)
+     * Public so tests can reach heat-management hooks (`setHeatManagementEnabled`)
      * — a test-only hatch, not a supported API. Non-test code should not depend on this being public.
      */
     public automationManager: AutomationManager;
@@ -185,6 +179,7 @@ export abstract class ShipManager implements Updateable {
     protected reactorCellManager: ReactorCellManager;
     public signalsJobManager: SignalsJobManager;
     protected beamJamManager: BeamJamManager;
+    protected hackManager: HackManager;
 
     /** Calls `listener` for every defect this ship's systems take, with its cause (e.g. headless recording). */
     listenToDefects(listener: DamageManager['onDefect']) {
@@ -214,6 +209,7 @@ export abstract class ShipManager implements Updateable {
         this.reactorCellManager = new ReactorCellManager(this.state);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
         this.beamJamManager = new BeamJamManager(this.state, this.spaceManager, this.internalProxy);
+        this.hackManager = new HackManager(this.state, this.spaceManager, (id) => this.ships?.get(id)?.state);
         for (const [index, chainGun] of this.state.chainGuns.entries()) {
             this.chainGunManagers.push(
                 new ChainGunManager(
@@ -365,6 +361,8 @@ export abstract class ShipManager implements Updateable {
 
         this.signalsJobManager.update(id);
         this.beamJamManager.update(id);
+        this.hackManager.update(id);
+        tickHackWindows(this.state, id.deltaSeconds);
         this.ammoManager.update(id);
         this.reactorCellManager.update(id);
         this.updateAmmo();

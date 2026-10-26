@@ -8,6 +8,7 @@ docker/node-red/data/*.backup
 
 # build artifact folders
 dist
+dist-player
 cjs
 esm
 umd

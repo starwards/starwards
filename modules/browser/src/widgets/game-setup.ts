@@ -3,7 +3,6 @@ import { addButton, createWidgetPane } from '../panel';
 import { handleFile, loadFileAccept } from '../drop-file';
 
 import $ from 'jquery';
-import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
 import fileDownload from 'js-file-download';
 import { readProp } from '../property-wrappers';
@@ -17,30 +16,12 @@ const MAPS = [
     { label: 'Wave Defence', name: 'wave_defence' },
 ];
 
-/**
- * The GM's load/start/stop/save controls (issue #2132) — the same actions the lobby offers, so
- * the GM doesn't need a second tab open just to get a game running before assigning stations.
- */
-export function gameSetupWidget(adminDriver: AdminDriver): DashboardWidget {
-    class GameSetupComponent {
-        constructor(container: WidgetContainer, _: unknown) {
-            drawGameSetup(container, adminDriver);
-        }
-    }
-    return {
-        name: 'game setup',
-        type: 'component',
-        component: GameSetupComponent,
-        defaultProps: {},
-    };
-}
-
 function saveFileName() {
     const d = new Date();
     return `save_${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}_${d.getHours()}:${d.getMinutes()}${saveFileExtension}`;
 }
 
-function drawGameSetup(container: WidgetContainer, adminDriver: AdminDriver) {
+export function drawGameSetup(container: WidgetContainer, adminDriver: AdminDriver) {
     const { pane, cleanup } = createWidgetPane(container, 'Game Setup');
     const gameStatus = readProp<GameStatus>(adminDriver, '/gameStatus');
 

@@ -616,4 +616,39 @@ test.describe('GM Screen', () => {
             expect(ship.state.smartPilot.offsetFactor).toBeCloseTo(0.9, 5);
         }).toPass({ timeout: 2000 });
     });
+
+    test('tweak panel Resupply and Repair buttons restore a depleted, damaged ship (M4.62)', async ({ page }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const ship = gameDriver.getShip(single_ship.testShipId);
+        const { state } = ship;
+        const layer = state.armor.armorPlates[0].layers[0];
+        state.reactor.energy = 0;
+        state.reactor.energyCells = 0;
+        state.maneuvering.afterBurnerFuel = 0;
+        state.magazine.setCount('HiExpShell', 0);
+        layer.health = 0;
+        state.capsule.integrity = 0.3;
+        state.reactor.effeciencyFactor = 0.1;
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        await tweakPanel.locator('button', { hasText: 'Resupply (ammo, energy, fuel)' }).click({ timeout: 5000 });
+        await expect(() => {
+            expect(state.reactor.energyCells).toBe(state.reactor.design.maxEnergyCells);
+            expect(state.maneuvering.afterBurnerFuel).toBeGreaterThan(0);
+            expect(state.magazine.getCount('HiExpShell')).toBe(state.magazine.getMax('HiExpShell'));
+        }).toPass({ timeout: 3000 });
+        expect(layer.health).toBe(0);
+
+        await tweakPanel.locator('button', { hasText: 'Repair (armor, systems)' }).click();
+        await expect(() => {
+            expect(layer.health).toBe(layer.maxHealth);
+            expect(state.capsule.integrity).toBe(1);
+            expect(state.reactor.effeciencyFactor).toBe(1);
+        }).toPass({ timeout: 3000 });
+    });
 });

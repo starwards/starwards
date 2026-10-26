@@ -32,6 +32,9 @@ export class SimClock {
 
     constructor(private now: number) {}
 
+    /** Simulated seconds now. */
+    time = () => this.now;
+
     wait = (seconds: number) => new Promise<void>((resolve) => this.waiting.push({ at: this.now + seconds, resolve }));
 
     /**
@@ -90,23 +93,30 @@ export function headlessStation(game: HeadlessGame, shipId: string, station: str
         withMultiplexedStations(getStationsManifest(shipId)),
         botSeatScreen(station),
         (seat, entry) =>
-            new StationSession(seat, entry, shipDriver, spaceDriver, { radar, wait: clock.wait, shipIntel }),
+            new StationSession(seat, entry, shipDriver, spaceDriver, {
+                radar,
+                wait: clock.wait,
+                now: clock.time,
+                shipIntel,
+            }),
     );
 }
 
 /** Target internals straight from the game: live ship states, and the faction intel manager's snapshots. */
 function inProcessShipIntel(game: HeadlessGame): ShipIntelSource {
-    let decoded: { data: Uint8Array; state: ShipState } | undefined;
+    const decoded = new Map<string, { data: Uint8Array; state: ShipState }>();
     return {
         live: (ship) => game.shipManagers.get(ship.id)?.state,
         snapshot: (ship, faction) => {
             const intel = game.spaceManager.factionIntel;
             const snapshot = intel.getSnapshot(ship.id, faction);
             if (!snapshot) return undefined;
-            if (decoded?.data !== snapshot.data) {
-                decoded = { data: snapshot.data, state: decodeShipSnapshot(snapshot.data) };
+            let held = decoded.get(ship.id);
+            if (held?.data !== snapshot.data) {
+                held = { data: snapshot.data, state: decodeShipSnapshot(snapshot.data) };
+                decoded.set(ship.id, held);
             }
-            return { state: decoded.state, ageSeconds: intel.getSnapshotAge(ship.id, faction) ?? 0 };
+            return { state: held.state, ageSeconds: intel.getSnapshotAge(ship.id, faction) ?? 0 };
         },
     };
 }

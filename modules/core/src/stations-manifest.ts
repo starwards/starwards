@@ -35,6 +35,7 @@ export const stationWidgets = [
     'target-info',
     'signals-jobs',
     'target-intel',
+    'hull-status',
     'waypoint-groups',
     'waypoint-edit',
 ] as const;
@@ -73,6 +74,7 @@ export const stationCommands = [
     'warpUp',
     'warpDown',
     'dock',
+    'launch',
     // weapons
     'nextTarget',
     'prevTarget',

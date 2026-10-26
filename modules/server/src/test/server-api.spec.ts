@@ -1,6 +1,7 @@
 import { HTTP_CONFLICT_STATUS } from '../server';
-import { getUnzipped } from '../serialization/game-state-serialization';
+import { isBinarySavedGame } from '@starwards/core/internal';
 import { makeDriver } from './driver';
+import { schemaToString } from '../serialization/game-state-serialization';
 import supertest from 'supertest';
 
 describe('server-API', () => {
@@ -98,43 +99,63 @@ describe('server-API', () => {
             gameDriver.gameManager.update(0);
         });
 
-        // In the following tests we use `getUnzipped()` to compare unzipped data
-        // because zipped result is environment-dependent and sometimes depends on timestamps
-        // see https://stackoverflow.com/a/26521451/11813
+        const saveGame = async () => {
+            const response = await supertest(gameDriver.httpServer)
+                .post('/save-game')
+                .buffer(true)
+                .parse((res, cb) => {
+                    const chunks: Buffer[] = [];
+                    res.on('data', (c: Buffer) => chunks.push(c));
+                    res.on('end', () => cb(null, Buffer.concat(chunks)));
+                })
+                .expect(200);
+            return response.body as Buffer;
+        };
+        const loadGame = (file: Buffer) =>
+            supertest(gameDriver.httpServer)
+                .post('/load-game')
+                .set('Content-Type', 'application/octet-stream')
+                .send(file);
 
-        it('saved game can be created and is non-empty', async () => {
-            const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
-
-            expect(response.text).toBeTruthy();
-            expect(response.text.length).toBeGreaterThan(100);
-
-            const unzipped = await getUnzipped(response.text);
-            expect(unzipped).toBeTruthy();
-            expect(unzipped.length).toBeGreaterThan(0);
+        it('saved game is a non-empty binary file', async () => {
+            const file = await saveGame();
+            expect(isBinarySavedGame(file)).toBe(true);
+            expect(file.length).toBeGreaterThan(100);
         });
 
         it('two save game operations return same data', async () => {
-            const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
-            const response2 = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
-            expect(await getUnzipped(response.text)).toEqual(await getUnzipped(response2.text));
+            expect(await saveGame()).toEqual(await saveGame());
         });
 
         it('saved game contains same data as game state', async () => {
-            const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
-            await gameDriver.assertSameState(response.text);
+            await gameDriver.assertSameState(await saveGame());
         });
 
         it('load saved game retains data', async () => {
-            // create a save game
-            const firstSaveGame = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
-            const savedGameRawData = firstSaveGame.text;
+            const first = await saveGame();
             await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
-            // load saved game
-            await supertest(gameDriver.httpServer).post('/load-game').send({ data: savedGameRawData }).expect(200);
-            // save again and compare
-            const secondSaveGame = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
-            expect(await getUnzipped(secondSaveGame.text)).toEqual(await getUnzipped(firstSaveGame.text));
-            await gameDriver.assertSameState(secondSaveGame.text);
+            await loadGame(first).expect(200);
+            const second = await saveGame();
+            expect(second).toEqual(first);
+            await gameDriver.assertSameState(second);
+        });
+
+        it('loads a saved game in the older text format, as a file or as JSON', async () => {
+            const text = await schemaToString(gameDriver.gameManager.saveGame()!);
+            await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
+            await loadGame(Buffer.from(text)).expect(200);
+            expect(gameDriver.gameManager.state.isGameRunning).toBe(true);
+            await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
+            await supertest(gameDriver.httpServer).post('/load-game').send({ data: text }).expect(200);
+            expect(gameDriver.gameManager.state.isGameRunning).toBe(true);
+        });
+
+        it('refuses a truncated or corrupt saved game with 400', async () => {
+            const file = await saveGame();
+            await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
+            await loadGame(file.subarray(0, file.length - 4)).expect(400);
+            await loadGame(Buffer.from('garbage')).expect(400);
+            expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
         });
     });
 });

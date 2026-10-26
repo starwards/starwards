@@ -1,5 +1,6 @@
 import {
     Faction,
+    HullStatus,
     PowerLevel,
     SmartPilotMode,
     StationRadarWidget,
@@ -61,6 +62,11 @@ type Gun = {
     isFiring: boolean;
     shellRange?: number;
     safetyLocked?: boolean;
+    heat?: number;
+    jammedSeconds?: number;
+    cooling?: boolean;
+    barrelWear?: number;
+    jamBar?: number;
 };
 
 /** Where a contact was at the previous reading. */
@@ -237,7 +243,7 @@ const panelTemplates = {
     'gun-status': (p: Gun[]) =>
         p.map(
             (g) =>
-                `Chain gun ${g.index}: ${g.isFiring ? 'FIRING' : 'not firing'}, ${g.loadedProjectile === 'None' ? (g.loadAmmo ? `loading ${g.projectile}` : 'not loading') : `${g.loadedProjectile} loaded`}, loading switch ${g.loadAmmo ? 'on' : 'off'}.`,
+                `Chain gun ${g.index}: ${g.isFiring ? 'FIRING' : 'not firing'}, ${g.loadedProjectile === 'None' ? (g.loadAmmo ? `loading ${g.projectile}` : 'not loading') : `${g.loadedProjectile} loaded`}, loading switch ${g.loadAmmo ? 'on' : 'off'}${g.heat === undefined ? '' : `, heat ${Math.round(g.heat)}${g.jamBar === undefined ? '' : ` (jam risk from ${Math.round(g.jamBar)})`}`}${g.cooling ? ', COOLING DOWN' : ''}${(g.jammedSeconds ?? 0) > 0 ? `, JAMMED ${Math.ceil(g.jammedSeconds ?? 0)}s` : ''}${(g.barrelWear ?? 0) > 0 ? `, barrel wear ${percent(g.barrelWear ?? 0)}` : ''}.`,
         ),
     'ammo-status': (p: { fitted: boolean; ammo?: Record<string, { count: number; max: number }> }) =>
         p.fitted && p.ammo
@@ -298,6 +304,17 @@ const panelTemplates = {
             `Armor ${armor.healthyPlates} of ${armor.numberOfPlates} plates holding${broken.length ? `; broken plates ${broken.join(', ')} (${armor.degreesPerPlate} degrees each)` : ''}.`,
         ];
     },
+    'hull-status': (p: HullStatus[]) =>
+        p.length
+            ? p.map(
+                  (r) =>
+                      `${r.allied ? 'Ally' : 'Contact'} ${r.name}: ${
+                          r.intel === 'PENDING'
+                              ? 'hull status loading'
+                              : `hull ${r.hull}, capsule ${r.capsule}${r.intel === 'SNAPSHOT' ? ` (snapshot ${Math.round(r.ageSeconds ?? 0)} s old)` : ''}`
+                      }.`,
+              )
+            : ['Hull status: no allies or scanned contacts.'],
     'waypoint-groups': (p: Record<string, string[]>) => [
         `Waypoint groups: ${
             Object.entries(p)

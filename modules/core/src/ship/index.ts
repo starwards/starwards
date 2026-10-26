@@ -1,4 +1,5 @@
 import * as _crewOrderCommands from './crew-order-commands';
+import * as _gmCommands from './gm-commands';
 import * as _repairCommands from './repair-commands';
 
 export * from './ammo-manager';
@@ -11,7 +12,10 @@ export * from './damage-manager';
 export * from './docking';
 export * from './flight-doctrine';
 export * from './flight-profile';
+export * from './gun-heat';
 export * from './make-ship-state';
+export * from './npc-ai-profile';
+export * from './npc-doctrines';
 export * from './radar';
 export * from './reactor';
 export * from './reactor-cell-manager';
@@ -43,3 +47,5 @@ export const repairCommands = _repairCommands;
 export { MAX_SYSTEM_HEAT } from './heat-manager';
 /** The order board's commands: issue an order, revoke a slot, report an order's progress. */
 export const crewOrderCommands = _crewOrderCommands;
+/** GM quick actions on one ship: resupply (ammo, energy, fuel) and repair (armor, systems). */
+export const gmShipCommands = _gmCommands;

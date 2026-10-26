@@ -92,6 +92,7 @@ export const controlCatalogue = {
     warpUp: { kind: 'group', group: 'warp', option: 'up' },
     warpDown: { kind: 'group', group: 'warp', option: 'down' },
     dock: { kind: 'press', value: true, expand: 'single' },
+    launch: { kind: 'press', value: true, expand: 'single' },
 
     // weapons
     nextTarget: { kind: 'group', group: 'target', option: 'next' },

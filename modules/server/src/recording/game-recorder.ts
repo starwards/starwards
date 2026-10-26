@@ -22,9 +22,12 @@ import {
 import { PatchTap, RecordingSerializer, recordingDeltasEnabled } from './recording-serializer';
 import { GameManager } from '../admin/game-manager';
 import { matchMaker } from '@colyseus/core';
+import { promisify } from 'node:util';
 import { schemaToBytes } from '../serialization/game-state-serialization';
+import { zstdCompress } from 'node:zlib';
 
 const { error: logError } = createLogger('server:game-recorder');
+const compress = promisify(zstdCompress);
 
 interface RecordingSummary {
     name: string;
@@ -98,6 +101,8 @@ export class GameRecorder implements PatchTap {
     private eventsPath: string | null = null;
     /** sidecar line writes, in order */
     private eventWrites: Promise<void> = Promise.resolve();
+    /** encoded event lines not yet compressed into the sidecar; each write drains them into one zstd frame */
+    private pendingEventLines: { eventsPath: string; line: string }[] = [];
     /** whether this recording's `.sgr` header landed; sidecar events wait for it */
     private headerWritten: Promise<boolean> = Promise.resolve(false);
     /** the game (its `SpaceManager`) the current recording belongs to */
@@ -206,7 +211,7 @@ export class GameRecorder implements PatchTap {
             () => true,
             () => false,
         );
-        this.eventsPath = sidecarName(this.filePath);
+        this.eventsPath = zstSidecarName(this.filePath);
         this.onRecordingChange(true);
         try {
             await headerWrite;
@@ -270,11 +275,15 @@ export class GameRecorder implements PatchTap {
         if (!eventsPath) return;
         const line = encodeEventLine({ t: this.manager.totalSeconds - this.baseSeconds, ...event });
         const headerWritten = this.headerWritten;
+        this.pendingEventLines.push({ eventsPath, line });
         // written even if the recording closes meanwhile: it was accepted while recording
         this.eventWrites = this.eventWrites
             .then(async () => {
+                const lines = this.pendingEventLines.filter((e) => e.eventsPath === eventsPath).map((e) => e.line);
+                this.pendingEventLines = this.pendingEventLines.filter((e) => e.eventsPath !== eventsPath);
                 // a start whose header write failed has no recording for the event to belong to
-                if (await headerWritten) await fs.appendFile(eventsPath, line, 'utf-8');
+                if (lines.length && (await headerWritten))
+                    await fs.appendFile(eventsPath, await compress(lines.join('')));
             })
             .catch((e: unknown) => logError(`error writing recording event:`, e));
     }

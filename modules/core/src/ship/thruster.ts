@@ -1,26 +1,31 @@
+import { HackDesign, defectible } from './system';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
 
 import { ShipState } from './ship-state';
-import { defectible } from './system';
 import { gameField } from '../game-field';
 import { getDirectionConfigFromAngle } from './ship-direction';
 import { range } from '../range';
 
-export type ThrusterDesign = TurretDesign & {
-    modelName?: string;
-    isInternal: boolean;
-    isElectronics: boolean;
-    capacity: number;
-    energyCost: number;
-    afterBurnerCapacity: number;
-    damage50: number;
-};
+export type ThrusterDesign = TurretDesign &
+    HackDesign & {
+        modelName?: string;
+        isInternal: boolean;
+        isElectronics: boolean;
+        capacity: number;
+        energyCost: number;
+        afterBurnerCapacity: number;
+        damage50: number;
+    };
 
 export class ThrusterDesignState extends TurretDesignState implements ThrusterDesign {
     @gameField('float32') capacity = 0;
     @gameField('float32') energyCost = 0;
     @gameField('float32') afterBurnerCapacity = 0;
     @gameField('float32') damage50 = 0;
+    constructor() {
+        super();
+        this.hackSeconds = 6;
+    }
 }
 export class Thruster extends Turret {
     public static isInstance = (o: unknown): o is Thruster => {

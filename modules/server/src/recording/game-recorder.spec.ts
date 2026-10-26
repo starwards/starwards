@@ -3,23 +3,19 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import {
-    EVENTS_EXT,
+    EVENTS_ZST_EXT,
     POWER_DRAW_EXPONENT,
     RECORDING_EXT,
     RecordingRecord,
     parseEventLine,
-    sidecarName,
     waitFor,
+    zstSidecarName,
 } from '@starwards/core/internal';
 import { GameRecorder, RecordingConflictError, isRecordingFileName } from './game-recorder';
 import { makeDriver } from '../test/driver';
 import { readRecords } from './recording-file';
+import { readSidecarLines } from './sidecar-file';
 import { writeTextRecording } from '../test/text-recording-fixture';
-
-async function readLines(filePath: string): Promise<string[]> {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return content.split('\n').filter((l) => l.length > 0);
-}
 
 async function readSgr(filePath: string): Promise<RecordingRecord[]> {
     const records: RecordingRecord[] = [];
@@ -249,7 +245,7 @@ describe('GameRecorder', () => {
 
     describe('decision sidecar', () => {
         const decision = { kind: 'decision', objectId: 'GVTS', data: {} };
-        const sidecars = async () => (await fs.readdir(tmpDir)).filter((n) => n.endsWith(EVENTS_EXT));
+        const sidecars = async () => (await fs.readdir(tmpDir)).filter((n) => n.endsWith(EVENTS_ZST_EXT));
 
         it('appends events only while recording, beside the .sgr, on the recording clock', async () => {
             gameDriver.gameManager.state.speed = 1;
@@ -267,9 +263,9 @@ describe('GameRecorder', () => {
             recorder.appendEvent(decision);
             await new Promise((res) => setTimeout(res, 20));
 
-            const sidecar = sidecarName(filename);
+            const sidecar = zstSidecarName(filename);
             expect(await sidecars()).toEqual([sidecar]);
-            const events = (await readLines(path.join(tmpDir, sidecar))).map(parseEventLine);
+            const events = readSidecarLines(path.join(tmpDir, sidecar)).map(parseEventLine);
             expect(events).toHaveLength(2);
             expect(events[0]).toMatchObject(decision);
             expect(events[0]!.t).toBeGreaterThanOrEqual(0);
@@ -282,7 +278,7 @@ describe('GameRecorder', () => {
             const realFs = jest.requireActual<typeof import('node:fs/promises')>('node:fs/promises');
             const appendFile = realFs.appendFile.bind(realFs);
             const slowSidecar = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
-                if (typeof file === 'string' && file.endsWith(EVENTS_EXT))
+                if (typeof file === 'string' && file.endsWith(EVENTS_ZST_EXT))
                     await new Promise((res) => setTimeout(res, 300));
                 return appendFile(file, data, options);
             });
@@ -300,7 +296,7 @@ describe('GameRecorder', () => {
                 await gameDriver.gameManager.stopGame();
                 await ended;
 
-                const lines = await readLines(path.join(tmpDir, sidecarName(filename)));
+                const lines = readSidecarLines(path.join(tmpDir, zstSidecarName(filename)));
                 expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
             } finally {
                 slowSidecar.mockRestore();
@@ -312,8 +308,8 @@ describe('GameRecorder', () => {
             const appendFile = realFs.appendFile.bind(realFs);
             const headerFirst: boolean[] = [];
             const spy = jest.spyOn(realFs, 'appendFile').mockImplementation(async (file, data, options) => {
-                if (typeof file === 'string' && file.endsWith(EVENTS_EXT)) {
-                    const sgr = file.slice(0, -EVENTS_EXT.length) + RECORDING_EXT;
+                if (typeof file === 'string' && file.endsWith(EVENTS_ZST_EXT)) {
+                    const sgr = file.slice(0, -EVENTS_ZST_EXT.length) + RECORDING_EXT;
                     headerFirst.push((await readSgr(sgr)).some((r) => r.kind === 'header'));
                 }
                 return appendFile(file, data, options);
@@ -327,7 +323,7 @@ describe('GameRecorder', () => {
                 const filename = await recorder.startRecording();
                 await recorder.stopRecording();
 
-                const lines = await readLines(path.join(tmpDir, sidecarName(filename)));
+                const lines = readSidecarLines(path.join(tmpDir, zstSidecarName(filename)));
                 expect(lines.map(parseEventLine)).toEqual([expect.objectContaining(decision)]);
                 expect(headerFirst).toEqual([true]);
             } finally {
@@ -354,7 +350,7 @@ describe('GameRecorder', () => {
             recorder.appendEvent(decision);
             await recorder.stopRecording();
             expect(await recorder.listRecordings()).toEqual([
-                expect.objectContaining({ name: filename, events: sidecarName(filename) }),
+                expect.objectContaining({ name: filename, events: zstSidecarName(filename) }),
             ]);
         });
 

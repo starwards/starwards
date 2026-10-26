@@ -123,12 +123,11 @@ describe('player smartgun', () => {
         expect(shipMgr.state.smartGunStatus).to.equal('off');
     });
 
-    it('never latches a ceasefire on heat: the trigger stays the officer', () => {
-        const { shipMgr, run, mount } = setup(0);
+    it('never drops the trigger on heat: the trigger stays the officer', () => {
+        const { run, mount } = setup(0);
         mount.heat = 99;
         mount.isFiring = true;
         run(5);
-        expect(shipMgr.automationManager.isCeasefireLatched(mount)).to.equal(false);
         expect(mount.isFiring).to.equal(true);
     });
 });

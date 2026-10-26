@@ -9,6 +9,7 @@ import {
     cmdReceivers,
     createLogger,
     crewOrderCommands,
+    gmShipCommands,
     handleGmSetValueCommand,
     handleJsonPointerCommand,
     lockCommands,
@@ -48,6 +49,10 @@ export class ShipRoom extends Room<{ state: ShipState }> {
         }
         // GM property locks apply to any ship (NPC or player) — the GM tweak panel tweaks both.
         for (const [cmdName, handler] of cmdReceivers(lockCommands, manager)) {
+            this.onMessage(cmdName, handler);
+        }
+        // GM quick actions (resupply, repair): any ship, NPC or player; sent only by the GM screen
+        for (const [cmdName, handler] of cmdReceivers(gmShipCommands, manager)) {
             this.onMessage(cmdName, handler);
         }
         // GM tweak panel's write channel — must be registered under its own message name so it

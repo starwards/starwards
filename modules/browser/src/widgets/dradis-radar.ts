@@ -3,6 +3,7 @@ import { Container, Text, UPDATE_PRIORITY } from 'pixi.js';
 import { Faction, ShipDriver, SpaceDriver, SpaceObject, radarReach } from '@starwards/core';
 import { blue, radarFogOfWar, red, yellow } from '../colors';
 
+import { BlipTraceLayer } from '../radar/blips/blip-trace-layer';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { DeclutterLayer } from '../radar/blips/declutter-layer';
@@ -14,6 +15,7 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
+import { missileTargetLinesLayer } from '../radar/tactical-radar-layers';
 import { waitForShip } from '../ship-logic';
 
 WebFont.load({
@@ -122,7 +124,12 @@ export async function drawDradisRadar(
     const declutter = new DeclutterLayer(BLIP_SIZE, shipDriver.state.faction, () => insets.viewport);
     blipLayer.layout = declutter.layout;
     // group and POI markers sit under the blips, so a named ship inside a cluster stays on top
+    root.addLayer(
+        new BlipTraceLayer(root, spaceDriver, BLIP_SIZE, rangeFilter.isInRange, getColor, shipDriver.state.faction)
+            .renderRoot,
+    );
     root.addLayer(declutter.renderRoot);
+    root.addLayer(missileTargetLinesLayer(root, spaceDriver, shipDriver.state.faction, rangeFilter.isInRange));
     root.addLayer(blipLayer.renderRoot);
     root.addLayer(insets.renderRoot);
     root.ticker.add(

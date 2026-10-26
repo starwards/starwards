@@ -8,6 +8,7 @@ import {
     ShipManagerPc,
     SpaceManager,
     Spaceship,
+    TODAY_NPC_AI,
     Vec2,
     XY,
     makeShipState,
@@ -135,7 +136,28 @@ describe('AI heat-management automation', () => {
         });
     });
 
+    describe('ai profile', () => {
+        it('survives cloning the ship state', () => {
+            const { shipMgr } = createNpcShip('demo-ship', 'npc-clone');
+            const profile = { ...TODAY_NPC_AI, noCombatWeave: true };
+            shipMgr.state.aiProfile = profile;
+
+            expect(shipMgr.state.clone().aiProfile).to.equal(profile);
+        });
+    });
+
     describe('power backoff', () => {
+        it("engages at the heat the ship's AI profile names, not a fixed constant", () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-backoff-profile');
+            shipMgr.state.aiProfile = { ...TODAY_NPC_AI, powerBackoffEngageHeat: 0.9 };
+            const gun = shipMgr.state.chainGuns[0];
+            gun.heat = 75;
+
+            singleTick(shipMgr, spaceMgr);
+
+            expect(gun.power).to.not.equal(PowerLevel.LOW);
+        });
+
         it('steps power down to a discrete PowerLevel on an overheating gun before it reaches ceasefire', () => {
             const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-backoff');
             const gun = shipMgr.state.chainGuns[0];
@@ -207,50 +229,35 @@ describe('AI heat-management automation', () => {
         });
     });
 
-    describe('ceasefire hard stop', () => {
-        it('forces isFiring off once heat crosses the ceasefire threshold', () => {
-            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-ceasefire');
+    describe('forced cooldown (shared gun physics)', () => {
+        it('locks an NPC gun at 100 heat and releases it at 70 with no AI latch involved', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-cooldown');
             const gun = shipMgr.state.chainGuns[0];
-            gun.isFiring = true;
-            gun.heat = 96;
+            gun.heat = 99;
+            shipMgr['heatManager'].addHeat(5, gun);
+            expect(gun.cooling).to.equal(true);
 
+            gun.heat = 80;
             singleTick(shipMgr, spaceMgr);
+            expect(gun.cooling, 'still locked above the release heat').to.equal(true);
 
-            expect(gun.isFiring).to.equal(false);
-        });
-
-        it('keeps ceasefire latched until heat drops below the release threshold (hysteresis)', () => {
-            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-hysteresis');
-            const gun = shipMgr.state.chainGuns[0];
-            gun.heat = 96;
+            gun.heat = 60;
             singleTick(shipMgr, spaceMgr);
-            expect(gun.isFiring).to.equal(false);
-
-            gun.heat = 80; // cooled, but still above the release threshold
-            gun.isFiring = true;
-            singleTick(shipMgr, spaceMgr);
-            expect(gun.isFiring, 'still latched above release threshold').to.equal(false);
-
-            gun.heat = 60; // below the release threshold
-            gun.isFiring = true;
-            singleTick(shipMgr, spaceMgr);
-            expect(gun.isFiring, 'latch released once cooled').to.equal(true);
+            expect(gun.cooling, 'released once cooled').to.equal(false);
         });
     });
 
     describe('per-mount heat evaluation', () => {
-        it('gates each mount independently — a hot mount does not silence a cool one', () => {
+        it('gates each mount independently — a hot mount does not lock a cool one', () => {
             const { spaceMgr, shipMgr } = createNpcShip('glaive', 'npc-multi-mount');
             const [hot, cool]: ChainGun[] = [...shipMgr.state.chainGuns];
-            hot.heat = 96;
-            hot.isFiring = true;
+            hot.heat = 99;
             cool.heat = 10;
-            cool.isFiring = true;
-
+            shipMgr['heatManager'].addHeat(5, hot);
             singleTick(shipMgr, spaceMgr);
 
-            expect(hot.isFiring, 'hot mount ceasefires').to.equal(false);
-            expect(cool.isFiring, 'cool mount keeps firing').to.equal(true);
+            expect(hot.cooling, 'hot mount is cooling down').to.equal(true);
+            expect(cool.cooling, 'cool mount keeps firing').to.equal(false);
         });
     });
 
@@ -312,7 +319,7 @@ describe('AI heat-management automation', () => {
             const gun = attackerMgr.state.chainGuns[0];
             const initialArmor = armorHealthSum(targetState);
             let totalTicks = 0;
-            let ceasefireLatchedTicks = 0;
+            let coolingTicks = 0;
             let sawPowerBackoff = false;
             let maxHeat = 0;
             for (const id of makeIterationsData(600, 12000)) {
@@ -321,31 +328,30 @@ describe('AI heat-management automation', () => {
                 spaceMgr.update(id);
                 totalTicks++;
                 if (gun.power < PowerLevel.NORMAL) sawPowerBackoff = true;
-                if (attackerMgr.automationManager.isCeasefireLatched(gun)) ceasefireLatchedTicks++;
+                if (gun.cooling) coolingTicks++;
                 maxHeat = Math.max(maxHeat, gun.heat);
             }
 
             return {
                 armorLost: initialArmor - armorHealthSum(targetState),
                 sawPowerBackoff,
-                ceasefireLatchedFraction: ceasefireLatchedTicks / totalTicks,
+                coolingFraction: coolingTicks / totalTicks,
                 gunEffectiveness: gun.effectiveness,
                 maxHeat,
             };
         }
 
-        it('backs off power under sustained fire and keeps ceasefire a rare backstop while still damaging the target', () => {
+        it('backs off power under sustained fire and keeps forced cooldown a rare backstop while still damaging the target', () => {
             // coolant-starved hull: reallocation alone cannot hold the line, so power backoff — the
-            // second line of defence — is what keeps the mount off the ceasefire threshold.
+            // second line of defence — is what keeps the mount off forced cooldown.
             const result = runSustainedEngagement(true, STARVED_COOLANT);
 
             // the engagement still measurably damages the target
             expect(result.armorLost).to.be.greaterThan(0);
             // power backoff actually engages at some point during sustained fire
             expect(result.sawPowerBackoff, 'power backoff engaged during the engagement').to.equal(true);
-            // the ceasefire hard-stop — measured on actual latch membership, not a heat-threshold
-            // proxy — stays a rare backstop, not the primary throttle
-            expect(result.ceasefireLatchedFraction).to.be.lessThan(0.05);
+            // forced cooldown stays a rare backstop, not the primary throttle
+            expect(result.coolingFraction).to.be.lessThan(0.05);
             // the gun never takes overheat damage past its own defenses
             expect(result.gunEffectiveness).to.be.greaterThan(0);
         });
@@ -377,8 +383,7 @@ describe('AI heat-management automation', () => {
             );
             expect(withAutomation.armorLost).to.be.closeTo(4, 1);
             expect(withoutAutomation.armorLost).to.be.closeTo(4, 1);
-            // the actual point of heat management: with it, heat never approaches the ceasefire
-            // threshold; without it, the gun sits pegged at the overheat ceiling for the fight
+            // the actual point of heat management: with it, heat never approaches forced cooldown; without it, the gun sits pegged at the overheat ceiling for the fight
             expect(withAutomation.maxHeat, 'heat management keeps heat well clear of the ceiling').to.be.lessThan(
                 MAX_SYSTEM_HEAT * 0.9,
             );

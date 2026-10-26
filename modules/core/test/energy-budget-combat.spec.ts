@@ -1,6 +1,5 @@
 import { MockDie, makeIterationsData } from './ship-test-harness';
 import { PowerLevel, ShipManagerPc, SmartPilotMode, SpaceManager, Spaceship, gravitas, makeShipState } from '../src';
-import { MAX_SYSTEM_HEAT } from '../src/ship/heat-manager';
 
 import { expect } from 'chai';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
@@ -47,9 +46,9 @@ describe('energy budget under sustained weapons fire (#2187)', () => {
     it('a cooled gravitas at max reactor power does not drain its reserve firing its chaingun continuously at 60 Hz', () => {
         const { state, chainGun, tick } = makeFiringGravitas();
         const startEnergy = state.reactor.energy;
-        // real server tick rate; stop at overheat (#2313: sustained fire overheats by design) so
-        // the reserve is judged over the whole burst the gun can actually deliver
-        for (const id of makeIterationsData(60, 60 * 60, () => chainGun.heat >= MAX_SYSTEM_HEAT)) {
+        // real server tick rate; stop when the gun jams or locks to cooldown (#2313: sustained fire
+        // overheats by design) so the reserve is judged over the whole burst the gun can actually deliver
+        for (const id of makeIterationsData(60, 60 * 60, () => chainGun.jammedSeconds > 0 || chainGun.cooling)) {
             tick(id);
         }
 
@@ -61,16 +60,16 @@ describe('energy budget under sustained weapons fire (#2187)', () => {
 });
 
 describe('chain gun sustained fire (#2313)', () => {
-    it('a fully cooled gravitas chaingun at normal power overheats after ~10 s of continuous fire at 60 Hz', () => {
+    it('a fully cooled gravitas chaingun at normal power jams or locks out after ~8-10 s of continuous fire at 60 Hz', () => {
         const { chainGun, tick } = makeFiringGravitas();
         let overheatAt = Infinity;
         for (const id of makeIterationsData(30, 30 * 60)) {
             tick(id);
-            if (chainGun.heat >= MAX_SYSTEM_HEAT) {
+            if (chainGun.jammedSeconds > 0 || chainGun.cooling) {
                 overheatAt = id.totalSeconds;
                 break;
             }
         }
-        expect(overheatAt, 'seconds of continuous fire to overheat').to.be.within(9, 11);
+        expect(overheatAt, 'seconds of continuous fire to jam or lock out').to.be.within(7, 11);
     });
 });

@@ -95,9 +95,9 @@ The GM assigns your client to a seat from the roster's "Unassigned clients" list
 
 The server records every game from its start. Press **Stop Recording** in the GM screen's **Game
 Controls** to end it, and **Record** to start a new one. While the server records, every bot decision
-is written beside the recording as `<recording>.events.jsonl`.
+is written beside the recording as `<recording>.events.jsonl.zst` (zstd).
 
-The download of the stopped recording offers the `.sgr` and its `.events.jsonl` together. The
+The download of the stopped recording offers the `.sgr` and its `.events.jsonl.zst` together. The
 Recordings menu in the lobby lists every saved recording with a `decisions` link for its sidecar.
 
 Analyse a recording's decisions per control (confidence, fallbacks, flips):

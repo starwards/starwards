@@ -1,0 +1,51 @@
+{
+    "crew": "captain-reference-guard-park,captain-reference",
+    "idle": "idle",
+    "calibratedOn": "2026-10-22",
+    "components": [
+        {
+            "name": "waves-hold-median",
+            "scenario": "W-waves",
+            "metric": "holdSeconds",
+            "stat": "median",
+            "higherIsBetter": true,
+            "sigma": 68.17931638772355,
+            "snr": 8.83601310853361,
+            "seeds": 64,
+            "weight": 0.5291653849212029
+        },
+        {
+            "name": "waves-hold-p10",
+            "scenario": "W-waves",
+            "metric": "holdSeconds",
+            "stat": "p10",
+            "higherIsBetter": true,
+            "sigma": 136.17698345533043,
+            "snr": 4.151802938012246,
+            "seeds": 64,
+            "weight": 0.24864046406726473
+        },
+        {
+            "name": "intercept-capsule",
+            "scenario": "W-cut-intercept",
+            "metric": "stationCapsuleLost",
+            "stat": "mean",
+            "higherIsBetter": false,
+            "sigma": 0.2811492016032419,
+            "snr": 2.3786302653056826,
+            "seeds": 16,
+            "weight": 0.14244985656597692
+        },
+        {
+            "name": "lof-capsule",
+            "scenario": "W-cut-lof",
+            "metric": "stationCapsuleLost",
+            "stat": "mean",
+            "higherIsBetter": false,
+            "sigma": 0.44120794755788656,
+            "snr": 1.3315716619608722,
+            "seeds": 16,
+            "weight": 0.07974429444555532
+        }
+    ]
+}

@@ -8,6 +8,7 @@ import {
     ammoTypes,
     blastRadius,
     helmsRadarReach,
+    hullStatusList,
     magazineStocks,
     orderRepairQueue,
     targetIntel,
@@ -202,6 +203,13 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             isFiring: gun.isFiring,
             shellRange: gun.shellRange,
             shellSecondsToLive: gun.shellSecondsToLive,
+            heat: gun.heat,
+            coolantFactor: gun.coolantFactor,
+            jammedSeconds: gun.jammedSeconds,
+            cooling: gun.cooling,
+            barrelWear: gun.barrelWear,
+            spreadBar: gun.spreadBar,
+            jamBar: gun.jamBar,
         })),
 
     'ammo-status': (s) => {
@@ -280,6 +288,21 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
         const noSource = { live: () => undefined, snapshot: () => undefined };
         return { targetId: targetId || null, ...targetIntel(target, s.viewFaction, s.shipIntel ?? noSource) };
     },
+
+    /**
+     * The Signals hull-status list (SPEC-0010), from the same core predicate the browser draws:
+     * allies live, other ships at FULL live or SNAPSHOT frozen, nothing below. Capsule state as
+     * tiers only, settled with hysteresis on the session's clock.
+     */
+    'hull-status': (s) =>
+        hullStatusList(
+            s.spaceDriver.state,
+            s.viewFaction,
+            s.shipDriver.id,
+            s.shipIntel ?? { live: () => undefined, snapshot: () => undefined },
+            s.hullTiers,
+            s.now(),
+        ),
 
     'waypoint-groups': (s) => {
         const groups: Record<string, string[]> = {};

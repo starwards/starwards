@@ -56,6 +56,7 @@ const defectShortLabels: Record<string, string> = {
     'job success': 'JOB OK',
     'job speed': 'JOB SPD',
     'bearing skew': 'SKEW',
+    'barrel wear': 'WEAR',
     'rate of fire': 'ROF',
     'range fluctuation': 'RNG FLUX',
     'turn speed': 'TURN',
@@ -74,9 +75,10 @@ export function drawFullSystemsStatus(
     shipDriver: ShipDriver,
     systems = shipDriver.systems,
     fit = false,
+    { energy = true }: { energy?: boolean } = {},
 ) {
     if (fit) {
-        drawSystemsTable(container, shipDriver, systems);
+        drawSystemsTable(container, shipDriver, systems, energy);
         return;
     }
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Full Systems Status');
@@ -214,7 +216,7 @@ function applyTint(element: HTMLElement, tone: Tone) {
  * level a bar and STAT and HACK naming only a fault. A system's defects follow as one line of labelled
  * bars, because the repair queue cannot be aimed without them.
  */
-function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, systems: System[]) {
+function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, systems: System[], showEnergy: boolean) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Systems');
     const w = fitWidths;
     pane.registerPlugin(TweakpaneTablePlugin);
@@ -224,7 +226,7 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
         headers: [
             { label: 'STAT', width: w.status },
             { label: 'PWR', width: w.power },
-            { label: 'EPM', width: w.epm },
+            ...(showEnergy ? [{ label: 'EPM', width: w.epm }] : []),
             { label: 'HEAT', width: w.heat },
             { label: 'COOL', width: w.coolant },
             { label: 'EFF', width: w.eff },
@@ -249,12 +251,14 @@ function drawSystemsTable(container: WidgetContainer, shipDriver: ShipDriver, sy
         applyFault();
 
         addBarCellToRow(row, readNumberProp(shipDriver, `${pointer}/power`), { width: w.power }, panelCleanup.add);
-        addTextCellToRow(
-            row,
-            readProp<number>(shipDriver, `${pointer}/energyPerMinute`),
-            { format: (epm: number) => `${Math.round(epm)}`, width: w.epm },
-            panelCleanup.add,
-        );
+        if (showEnergy) {
+            addTextCellToRow(
+                row,
+                readProp<number>(shipDriver, `${pointer}/energyPerMinute`),
+                { format: (epm: number) => `${Math.round(epm)}`, width: w.epm },
+                panelCleanup.add,
+            );
+        }
         const heatCell = addBarCellToRow(
             row,
             readNumberProp(shipDriver, `${pointer}/heat`),

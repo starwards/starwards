@@ -56,6 +56,7 @@ const REPAIR_PROTOCOL_HOTKEYS = [
     'alt+e',
     'alt+r',
     'alt+t',
+    'alt+y',
 ];
 
 /** The raise hotkey assigned to `protocolId`, or `undefined` if the catalog has grown past `REPAIR_PROTOCOL_HOTKEYS`. */
@@ -65,6 +66,14 @@ export function getRepairProtocolHotkey(
 ): string | undefined {
     const index = Object.keys(catalog).indexOf(protocolId);
     return index >= 0 ? REPAIR_PROTOCOL_HOTKEYS[index] : undefined;
+}
+
+/** The key a slot row shows (issue #2438): its raise hotkey without the modifier, e.g. `1` or `Q`; empty if it has none. */
+export function getRepairProtocolKeyLabel(
+    protocolId: string,
+    catalog: Record<string, RepairProtocolStats> = repairProtocols,
+): string {
+    return getRepairProtocolHotkey(protocolId, catalog)?.replace('alt+', '').toUpperCase() ?? '';
 }
 
 /** The lower hotkey for `protocolId` — the same digit/letter as the raise hotkey, with `shift` added. */

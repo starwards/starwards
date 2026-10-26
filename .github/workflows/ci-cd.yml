@@ -331,6 +331,8 @@ jobs:
             - run: npm --version
             - run: npm ci
             - run: npm run build
+            # Guards webpack.player.js against drift in webpack.prod.js (blog replay embed).
+            - run: npm --prefix modules/browser run build:player
             - run: npm run build:exe
             - name: Store Windows executable
               uses: actions/upload-artifact@v4

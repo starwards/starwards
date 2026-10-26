@@ -1,10 +1,13 @@
 import {
     Faction,
+    HullStatus,
     ScanLevel,
     ShipIntelSource,
     Spaceship,
+    StatusTierTracker,
     TargetIntel,
     Vec2,
+    hullStatusList,
     makeShipState,
     shipConfigurations,
 } from '@starwards/core/internal';
@@ -68,5 +71,75 @@ describe('target-intel panel', () => {
 
     it('reads PENDING without a source', () => {
         expect(read(ScanLevel.FULL, undefined).intel).toBe('PENDING');
+    });
+});
+
+describe('hull-status panel', () => {
+    const states = {
+        ally: makeShipState('ally', shipConfigurations['dragonfly-MK1']),
+        full: makeShipState('full', shipConfigurations['dragonfly-MK1']),
+        snap: makeShipState('snap', shipConfigurations['dragonfly-MK1']),
+        basic: makeShipState('basic', shipConfigurations['dragonfly-MK1']),
+    };
+    states.ally.capsule.integrity = 0.3;
+    states.snap.capsule.integrity = 0.1;
+    const source: ShipIntelSource = {
+        live: (s) => states[s.id as keyof typeof states],
+        snapshot: (s) => ({ state: states[s.id as keyof typeof states], ageSeconds: 12 }),
+    };
+
+    function ship(id: string, faction: Faction, scanLevel: ScanLevel) {
+        const s = new Spaceship().init(id, Vec2.make({ x: 0, y: 0 }), 'dragonfly-MK1', faction);
+        s.callsign = id;
+        s.scanLevels[Number(Faction.Gravitas)] = scanLevel;
+        return s;
+    }
+    const objects = [
+        ship('self', Faction.Gravitas, ScanLevel.BASIC),
+        ship('ally', Faction.Gravitas, ScanLevel.BASIC),
+        ship('full', Faction.Raiders, ScanLevel.FULL),
+        ship('snap', Faction.Raiders, ScanLevel.SNAPSHOT),
+        ship('basic', Faction.Raiders, ScanLevel.BASIC),
+    ];
+    const session = {
+        viewFaction: Faction.Gravitas,
+        shipIntel: source,
+        now: () => 0,
+        hullTiers: new StatusTierTracker(),
+        shipDriver: { id: 'self' },
+        spaceDriver: { state: objects },
+    } as unknown as StationSession;
+
+    // the bot panel and the browser's Signals list are the same core predicate
+    it('lists exactly what core hullStatusList lists for the same observer', () => {
+        const panel = widgetReaders['hull-status']?.(session);
+        expect(panel).toEqual(hullStatusList(objects, Faction.Gravitas, 'self', source, new StatusTierTracker(), 0));
+    });
+
+    it('shows allies live, FULL live, SNAPSHOT frozen with age, nothing below', () => {
+        const panel = widgetReaders['hull-status']?.(session) as HullStatus[];
+        expect(panel.map((r) => [r.id, r.intel, r.capsule])).toEqual([
+            ['ally', 'LIVE', 'critical'],
+            ['full', 'LIVE', 'intact'],
+            ['snap', 'SNAPSHOT', 'failing'],
+        ]);
+        expect(panel[2].ageSeconds).toBe(12);
+    });
+});
+
+describe('gun-status panel', () => {
+    it('shows heat, jam, cooldown and wear with the wear-adjusted bars', () => {
+        const state = makeShipState('ship', shipConfigurations['dragonfly-MK1']);
+        const gun = [...state.chainGuns][0];
+        gun.heat = 42;
+        gun.cooling = true;
+        gun.jammedSeconds = 3;
+        gun.barrelWear = 1;
+        const session = { stationName: 'weapons', shipDriver: { state } } as unknown as StationSession;
+        const [shown] = widgetReaders['gun-status']?.(session) as Record<string, unknown>[];
+        expect(shown).toMatchObject({ heat: 42, cooling: true, jammedSeconds: 3, barrelWear: 1 });
+        expect(shown.jamBar).toBe(gun.jamBar);
+        expect(shown.spreadBar).toBe(gun.spreadBar);
+        expect(gun.jamBar).toBeLessThan(80);
     });
 });

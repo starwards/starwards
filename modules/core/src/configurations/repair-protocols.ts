@@ -1,8 +1,9 @@
+import { DefectibleConfig, SystemState } from '../ship/system';
 import { DEFECTIBLE_METADATA } from '../game-field';
 import { RepairProtocolMode } from '../ship/repair-queue';
 import { ShipState } from '../ship/ship-state';
-import { SystemState } from '../ship/system';
 import { allColyseusProperties } from '../traverse';
+import { clearHacks } from '../ship/hack-windows';
 
 /**
  * Ship-design-agnostic tier gate: a protocol above the ship's current repair
@@ -419,6 +420,42 @@ export const turnSpeedGovernorTuning: RepairProtocolStats = {
     tier: 'field',
 };
 
+/** Fits fresh barrels: the guns are offline for the whole job in either mode. */
+export const barrelReplacement: RepairProtocolStats = {
+    name: 'Barrel replacement',
+    targets: [{ system: 'chainGuns', field: 'barrelWear' }],
+    modes: {
+        [RepairProtocolMode.Responsive]: {
+            duration: 60,
+            energyDraw: 2,
+            heat: 10,
+            sideEffectSystems: ['chainGuns'],
+        },
+        [RepairProtocolMode.Dark]: {
+            duration: 20,
+            energyDraw: 2,
+            heat: 10,
+            sideEffectSystems: ['chainGuns'],
+        },
+    },
+    tier: 'field',
+};
+
+/**
+ * Counter to beam hacking (M4.76): the engineer runs a firewall repair. While it runs, no hack can
+ * progress against this ship; on completion every active offline window a hack opened ends early.
+ * Hull-wide rather than per system: the protocol flow has no per-system target. Cost sits with the
+ * other field protocols (30 s, 2 energy/s, 15 heat); Dark mode is a third of the time with no
+ * system darkened (nothing to darken -- the firewall is software).
+ */
+export const firewallRepair: RepairProtocolStats = {
+    name: 'Firewall repair',
+    targets: [],
+    modes: fieldModes({ duration: 30, energyDraw: 2, heat: 15 }, []),
+    tier: 'field',
+    onComplete: clearHacks,
+};
+
 export const repairProtocols = {
     actuatorRecalibration,
     thrustLinePurge,
@@ -439,6 +476,10 @@ export const repairProtocols = {
     // `REPAIR_PROTOCOL_HOTKEYS` (alt+r). Traverse loss has no protocol of its own: it follows
     // from `bearingSkew`, so repairing skew restores both (M4.33).
     turnSpeedGovernorTuning,
+    // Fills the last slot of `REPAIR_PROTOCOL_HOTKEYS` (alt+t).
+    firewallRepair,
+    // Fills the slot added after it (alt+y).
+    barrelReplacement,
 } as const satisfies Record<string, RepairProtocolStats>;
 
 export type RepairProtocolName = keyof typeof repairProtocols;
@@ -536,7 +577,8 @@ export function findUncoveredDefectibleFields(
         if (!(instance instanceof SystemState) || typeof field !== 'string') {
             continue;
         }
-        if (Reflect.getMetadata(DEFECTIBLE_METADATA, instance, field) == null) {
+        const config = Reflect.getMetadata(DEFECTIBLE_METADATA, instance, field) as DefectibleConfig | undefined;
+        if (config == null || !(config.enabled?.(instance) ?? true)) {
             continue;
         }
         const topLevelKey = systemPointer.split('/')[1] ?? '';
