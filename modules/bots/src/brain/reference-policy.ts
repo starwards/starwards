@@ -343,7 +343,8 @@ function referenceChoice(
         case 'fireChainGun': {
             const target = display.radar?.contacts?.find((c) => c.id === targeting?.targetId);
             return target &&
-                !gunTooHot(display) &&
+                !systemsTooHot(display) &&
+                !gunHeld(display, Number(control.id.split(':')[1] ?? 0)) &&
                 !checkFire(display) &&
                 Math.abs(delta(target.bearing, heading)) <= referenceKnobs.FIRE_ARC_DEGREES &&
                 target.distance <= Math.min(fireRangeMeters, GUN_REACH_METERS) &&
@@ -743,10 +744,38 @@ function checkFire(display: Display) {
 }
 
 /** Whether the weapons console shows the chain gun too hot to fire without damaging itself. */
-function gunTooHot(display: Display) {
+function systemsTooHot(display: Display) {
     const systems = (display.panels['systems-status'] ?? []) as unknown as SystemStatus[];
     return systems.some(
         (s) => s.pointer.startsWith('/chainGuns/') && s.heat > referenceKnobs.GUN_HOLD_HEAT && s.coolantFactor > 0,
+    );
+}
+
+/**
+ * Whether the gun panel shows chain gun `index` unable or unfit to fire: jammed (the jam clears on its
+ * own, so wait it out), in forced cooldown, or -- with `GUN_HOLD_MARGIN` set -- within that margin of
+ * the heat at which a shot may jam it (that bar drops as the barrel wears). Without coolant the gun
+ * never sheds heat, so the margin is ignored rather than idling it forever.
+ */
+function gunHeld(display: Display, index: number) {
+    const guns = (display.panels['gun-status'] ?? []) as unknown as {
+        index: number;
+        heat?: number;
+        coolantFactor?: number;
+        jammedSeconds?: number;
+        cooling?: boolean;
+        jamBar?: number;
+    }[];
+    const g = guns.find((gun) => gun.index === index);
+    return (
+        g !== undefined &&
+        ((g.jammedSeconds ?? 0) > 0 ||
+            g.cooling === true ||
+            (referenceKnobs.GUN_HOLD_MARGIN >= 0 &&
+                g.coolantFactor !== 0 &&
+                g.heat !== undefined &&
+                g.jamBar !== undefined &&
+                g.heat >= g.jamBar - referenceKnobs.GUN_HOLD_MARGIN))
     );
 }
 

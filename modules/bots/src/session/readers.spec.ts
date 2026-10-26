@@ -126,3 +126,20 @@ describe('hull-status panel', () => {
         expect(panel[2].ageSeconds).toBe(12);
     });
 });
+
+describe('gun-status panel', () => {
+    it('shows heat, jam, cooldown and wear with the wear-adjusted bars', () => {
+        const state = makeShipState('ship', shipConfigurations['dragonfly-MK1']);
+        const gun = [...state.chainGuns][0];
+        gun.heat = 42;
+        gun.cooling = true;
+        gun.jammedSeconds = 3;
+        gun.barrelWear = 1;
+        const session = { stationName: 'weapons', shipDriver: { state } } as unknown as StationSession;
+        const [shown] = widgetReaders['gun-status']?.(session) as Record<string, unknown>[];
+        expect(shown).toMatchObject({ heat: 42, cooling: true, jammedSeconds: 3, barrelWear: 1 });
+        expect(shown.jamBar).toBe(gun.jamBar);
+        expect(shown.spreadBar).toBe(gun.spreadBar);
+        expect(gun.jamBar).toBeLessThan(80);
+    });
+});
