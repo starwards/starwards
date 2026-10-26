@@ -343,7 +343,7 @@ function referenceChoice(
         case 'fireChainGun': {
             const target = display.radar?.contacts?.find((c) => c.id === targeting?.targetId);
             return target &&
-                !gunTooHot(display) &&
+                !gunTooHot(display, Number(control.id.split(':')[1] ?? 0)) &&
                 !checkFire(display) &&
                 Math.abs(delta(target.bearing, heading)) <= referenceKnobs.FIRE_ARC_DEGREES &&
                 target.distance <= Math.min(fireRangeMeters, GUN_REACH_METERS) &&
@@ -743,21 +743,28 @@ function checkFire(display: Display) {
 }
 
 /**
- * Whether the gun panel shows a chain gun that cannot or should not fire: jammed, in forced cooldown,
- * or within `GUN_JAM_MARGIN` of the heat at which a shot may jam it (that bar drops as the barrel wears).
+ * Whether the gun panel shows chain gun `index` unable or unfit to fire: jammed, in forced cooldown, or
+ * within `GUN_JAM_MARGIN` of the heat at which a shot may jam it (that bar drops as the barrel wears).
+ * Without coolant the gun never sheds heat, so the heat margin is ignored rather than idling it forever.
  */
-function gunTooHot(display: Display) {
+function gunTooHot(display: Display, index: number) {
     const guns = (display.panels['gun-status'] ?? []) as unknown as {
+        index: number;
         heat?: number;
+        coolantFactor?: number;
         jammedSeconds?: number;
         cooling?: boolean;
         jamBar?: number;
     }[];
-    return guns.some(
-        (g) =>
-            (g.jammedSeconds ?? 0) > 0 ||
+    const g = guns.find((gun) => gun.index === index);
+    return (
+        g !== undefined &&
+        ((g.jammedSeconds ?? 0) > 0 ||
             g.cooling === true ||
-            (g.heat !== undefined && g.jamBar !== undefined && g.heat >= g.jamBar - referenceKnobs.GUN_JAM_MARGIN),
+            (g.coolantFactor !== 0 &&
+                g.heat !== undefined &&
+                g.jamBar !== undefined &&
+                g.heat >= g.jamBar - referenceKnobs.GUN_JAM_MARGIN))
     );
 }
 

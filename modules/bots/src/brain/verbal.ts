@@ -66,6 +66,7 @@ type Gun = {
     jammedSeconds?: number;
     cooling?: boolean;
     barrelWear?: number;
+    jamBar?: number;
 };
 
 /** Where a contact was at the previous reading. */
@@ -242,7 +243,7 @@ const panelTemplates = {
     'gun-status': (p: Gun[]) =>
         p.map(
             (g) =>
-                `Chain gun ${g.index}: ${g.isFiring ? 'FIRING' : 'not firing'}, ${g.loadedProjectile === 'None' ? (g.loadAmmo ? `loading ${g.projectile}` : 'not loading') : `${g.loadedProjectile} loaded`}, loading switch ${g.loadAmmo ? 'on' : 'off'}${g.heat === undefined ? '' : `, heat ${Math.round(g.heat)}`}${g.cooling ? ', COOLING DOWN' : ''}${(g.jammedSeconds ?? 0) > 0 ? `, JAMMED ${Math.ceil(g.jammedSeconds ?? 0)}s` : ''}${(g.barrelWear ?? 0) > 0 ? `, barrel wear ${percent(g.barrelWear ?? 0)}` : ''}.`,
+                `Chain gun ${g.index}: ${g.isFiring ? 'FIRING' : 'not firing'}, ${g.loadedProjectile === 'None' ? (g.loadAmmo ? `loading ${g.projectile}` : 'not loading') : `${g.loadedProjectile} loaded`}, loading switch ${g.loadAmmo ? 'on' : 'off'}${g.heat === undefined ? '' : `, heat ${Math.round(g.heat)}${g.jamBar === undefined ? '' : ` (jam risk from ${Math.round(g.jamBar)})`}`}${g.cooling ? ', COOLING DOWN' : ''}${(g.jammedSeconds ?? 0) > 0 ? `, JAMMED ${Math.ceil(g.jammedSeconds ?? 0)}s` : ''}${(g.barrelWear ?? 0) > 0 ? `, barrel wear ${percent(g.barrelWear ?? 0)}` : ''}.`,
         ),
     'ammo-status': (p: { fitted: boolean; ammo?: Record<string, { count: number; max: number }> }) =>
         p.fitted && p.ammo

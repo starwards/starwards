@@ -204,6 +204,7 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             shellRange: gun.shellRange,
             shellSecondsToLive: gun.shellSecondsToLive,
             heat: gun.heat,
+            coolantFactor: gun.coolantFactor,
             jammedSeconds: gun.jammedSeconds,
             cooling: gun.cooling,
             barrelWear: gun.barrelWear,

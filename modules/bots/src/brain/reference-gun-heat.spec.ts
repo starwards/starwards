@@ -5,7 +5,7 @@ import { makeReferencePolicy } from './reference-policy';
 
 const capabilities: Capabilities = { commands: [{ command: 'fireChainGun', count: 1 }] };
 
-type GunHeat = { heat?: number; jammedSeconds?: number; cooling?: boolean; jamBar?: number };
+type GunHeat = { coolantFactor?: number; heat?: number; jammedSeconds?: number; cooling?: boolean; jamBar?: number };
 
 function display(gun: GunHeat): Display {
     return {
@@ -51,5 +51,19 @@ describe('reference weapons gun heat', () => {
     it('holds fire while jammed or in forced cooldown', async () => {
         expect(await choice(display({ heat: 10, jamBar: 80, jammedSeconds: 3 }))).toBe('hold_fire');
         expect(await choice(display({ heat: 75, jamBar: 80, cooling: true }))).toBe('hold_fire');
+    });
+
+    it('holds fire exactly at the margin from the jam bar, and not a degree below', async () => {
+        expect(await choice(display({ heat: 75, jamBar: 80 }))).toBe('hold_fire');
+        expect(await choice(display({ heat: 74, jamBar: 80 }))).toBe('fire');
+    });
+
+    it('holds fire in forced cooldown at low heat, and fires when the jam bar is unknown', async () => {
+        expect(await choice(display({ heat: 5, cooling: true }))).toBe('hold_fire');
+        expect(await choice(display({ heat: 99 }))).toBe('fire');
+    });
+
+    it('ignores the heat margin when there is no coolant to shed it', async () => {
+        expect(await choice(display({ heat: 79, jamBar: 80, coolantFactor: 0 }))).toBe('fire');
     });
 });
