@@ -1,4 +1,13 @@
-import { blastHits, killedAt, lastFrameT, meanDistance, secondsFiring, shellsFired } from './metrics';
+import {
+    blastHits,
+    killedAt,
+    lastFrameT,
+    meanDistance,
+    plateIntelHeard,
+    secondsFiring,
+    shellsFired,
+    shellsFiredByAmmo,
+} from './metrics';
 import { Store } from './store';
 
 /**
@@ -14,6 +23,10 @@ interface ExtractedMetrics {
     readonly targetHealth: number;
     readonly shellsFired: number;
     readonly secondsFiring: number;
+    /** Shells the player fired split by ammo type (AP / HE); 0s without a recorder sidecar. */
+    readonly shellsByAmmo: { readonly ap: number; readonly he: number };
+    /** Signals `plate_intel` calls about the target that went on the crew channel; 0 without a sidecar. */
+    readonly plateIntelCalls: number;
     /** Distinct explosions that ever overlapped the target, from the recorder's sidecar; 0 without one. */
     readonly blastHits: number;
     readonly meanDistance: number;
@@ -56,6 +69,8 @@ export async function extractMetrics(store: Store, runId: string, roles: Extract
         targetHealth,
         shellsFired: await shellsFired(store, runId, roles.playerId),
         secondsFiring: await secondsFiring(store, runId, roles.playerId),
+        shellsByAmmo: await shellsFiredByAmmo(store, runId, roles.playerId),
+        plateIntelCalls: await plateIntelHeard(store, runId, roles.targetId),
         blastHits: await blastHits(store, runId, roles.targetId),
         meanDistance: await meanDistance(store, runId, roles.playerId, roles.targetId),
         targetDrift: Math.hypot(endX - spawnX, endY - spawnY),

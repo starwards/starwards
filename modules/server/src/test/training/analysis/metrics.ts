@@ -43,6 +43,36 @@ export async function shellsFired(store: Store, runId: string, objectId: string)
     return [...first].reduce((sum, [path, start]) => sum + Math.max(0, start - (last.get(path) ?? start)), 0);
 }
 
+/** Shells `shipId` fired, by ammo type, from the recorder's `shot` events; 0s without a sidecar. */
+export async function shellsFiredByAmmo(
+    store: Store,
+    runId: string,
+    shipId: string,
+): Promise<{ ap: number; he: number }> {
+    const rows = await store.all<{ ammo: string; n: number }>(
+        `SELECT json_extract_string(detail_json, '$.ammo') AS ammo, count(*)::INTEGER AS n FROM event
+         WHERE run_id = ? AND kind = 'shot' AND json_extract_string(detail_json, '$.shipId') = ? GROUP BY ammo`,
+        runId,
+        shipId,
+    );
+    const count = (ammo: string) => rows.find((r) => r.ammo === ammo)?.n ?? 0;
+    return { ap: count('ArmPenShell'), he: count('HiExpShell') };
+}
+
+/** Signals `plate_intel` calls about `targetId` that went on the air (not suppressed as repeats); 0 without a sidecar. */
+export async function plateIntelHeard(store: Store, runId: string, targetId: string): Promise<number> {
+    const rows = await store.all<{ n: number }>(
+        `SELECT count(*)::INTEGER AS n FROM event WHERE run_id = ? AND kind = 'callout'
+         AND json_extract_string(detail_json, '$.station') = 'signals'
+         AND json_extract_string(detail_json, '$.callout') = 'plate_intel'
+         AND json_extract_string(detail_json, '$.values.id') = ?
+         AND json_extract(detail_json, '$.delivered') = true`,
+        runId,
+        targetId,
+    );
+    return rows[0]?.n ?? 0;
+}
+
 async function seriesRows(store: Store, runId: string, objectId: string, path: string) {
     return store.all<{ t: number; num: number | null }>(
         'SELECT t, num FROM value WHERE run_id = ? AND object_id = ? AND path = ? ORDER BY t',
