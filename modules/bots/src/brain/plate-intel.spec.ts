@@ -79,6 +79,11 @@ describe('informedAmmoSide', () => {
         expect(informedAmmoSide({ facing: 'broken', model: 'whipple', holding: 0, total: 4 })).toBe('ap');
     });
 
+    it('model-blind, plays whipple by its plates like any other model', () => {
+        expect(informedAmmoSide({ facing: 'broken', model: 'whipple', holding: 0, total: 4 }, true)).toBe('he');
+        expect(informedAmmoSide({ facing: 'holding', model: 'whipple', holding: 4, total: 4 }, true)).toBe('ap');
+    });
+
     it('with the facing plate unknown, goes by whether most plates are down', () => {
         expect(informedAmmoSide({ facing: 'unknown', model: 'composite', holding: 3, total: 4 })).toBe('ap');
         expect(informedAmmoSide({ facing: 'unknown', model: 'composite', holding: 1, total: 4 })).toBe('he');

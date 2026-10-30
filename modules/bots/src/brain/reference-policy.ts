@@ -9,6 +9,7 @@ import { heardPlateIntel, informedAmmoSide } from './plate-intel';
 
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
+import { isEnemyShip } from './enemy';
 import { referenceKnobs } from './reference-knobs';
 
 type XY = { x: number; y: number };
@@ -137,6 +138,8 @@ export function makeReferencePolicy(
     let armed = false;
     let lastLaunch = -Infinity;
     let previous: Display | undefined;
+    /** The contact weapons last called locked: it is called once per lock, so Signals remembers it. */
+    let calledLockId: string | undefined;
     const talk = calloutMemory(resupply, threatTarget, guardCentre);
     /** Weapons' own count of its launches at the locked ship: when each is due to arrive. */
     let salvo: { targetId: string; arrivals: number[] } | undefined;
@@ -180,7 +183,7 @@ export function makeReferencePolicy(
             }
             spend.lockId = lockId;
             const intel = heardPlateIntel(heard, lockId);
-            spend.plateCall = intel && informedAmmoSide(intel);
+            spend.plateCall = intel && informedAmmoSide(intel, referenceKnobs.AMMO_PLATE_STATE > 0.5);
             spend.firstShells ??= shellsLeft(display);
             const launchTube =
                 seconds - lastLaunch >= referenceKnobs.LAUNCH_INTERVAL_SECONDS &&
@@ -190,6 +193,8 @@ export function makeReferencePolicy(
                 (referenceKnobs.MISSILE_FINISH_SECONDS <= 0 || spend.firedOn < referenceKnobs.MISSILE_FINISH_SECONDS)
                     ? tubeToLaunch(display, previous, decisionSeconds, seconds)
                     : undefined;
+            calledLockId = heardLockId(heard) ?? calledLockId;
+            const markId = referenceKnobs.SIGNALS_MARK_LOCK > 0.5 ? wantedMark(display, calledLockId) : undefined;
             const answers: Record<string, Answer> = {};
             let launched: SalvoTally | undefined;
             const before = { firedOn: spend.firedOn, apMissiles: spend.apMissiles, lastLaunch, salvo };
@@ -227,7 +232,7 @@ export function makeReferencePolicy(
                         shellPreference,
                         fireRangeMeters,
                         spend,
-                        heard,
+                        markId,
                     ) ?? control.rest;
                 answers[control.id] = { choice, source: 'rule' };
                 tallyPress(control, choice, previous);
@@ -302,7 +307,7 @@ function referenceChoice(
     shellPreference: readonly string[] | undefined,
     fireRangeMeters: number,
     spend: Spend,
-    heard: readonly Heard[] | undefined,
+    markId: string | undefined,
 ) {
     const { standoff } = parking;
     const heading = display.radar?.ownShip?.heading ?? 0;
@@ -443,7 +448,7 @@ function referenceChoice(
         case 'beamDirection':
             return beamChoice(display);
         case 'markTarget':
-            return markChoice(display, heard, control.id.slice(command.length + 1));
+            return markId !== undefined && control.id === `markTarget:${markId}` ? 'press' : 'wait';
         case 'systemPower':
         case 'systemCoolant':
         case 'cycleRepairPriority':
@@ -810,21 +815,27 @@ function beamChoice(display: Display) {
     return Math.abs(off) <= BEAM_SLACK_DEGREES ? 'hold' : off > 0 ? 'right' : 'left';
 }
 
-/**
- * Signals marks the contact weapons called locked, else the nearest identified enemy ship, whenever it
- * differs from the current mark (`SIGNALS_MARK_LOCK`).
- */
-function markChoice(display: Display, heard: readonly Heard[] | undefined, contactId: string) {
-    if (referenceKnobs.SIGNALS_MARK_LOCK <= 0.5) return undefined;
-    const contacts = (display.radar?.contacts ?? []).filter((c) => isShip(c) && !isAlly(c, display));
-    const called = (heard ?? [])
+/** The id of the contact weapons most recently called locked, if heard now. */
+function heardLockId(heard: readonly Heard[] | undefined) {
+    const call = (heard ?? [])
         .filter((h) => h.speaker === 'weapons' && h.callout === 'target_locked')
-        .sort((a, b) => a.secondsAgo - b.secondsAgo)[0]?.values?.name;
-    const wanted =
-        contacts.find((c) => c.scanLevel !== 'UFO' && called !== undefined && c.name === called) ??
-        contacts.filter((c) => c.scanLevel !== 'UFO').sort((a, b) => a.distance - b.distance)[0];
+        .sort((a, b) => a.secondsAgo - b.secondsAgo)[0];
+    return call?.values?.id;
+}
+
+/**
+ * The contact Signals should have marked (`SIGNALS_MARK_LOCK`): the one weapons called locked, else the one
+ * already marked while it is still a scanned enemy, else the nearest scanned enemy; undefined if it is marked.
+ */
+function wantedMark(display: Display, calledLockId: string | undefined) {
+    const own = display.radar?.ownShip?.faction;
+    const enemies = (display.radar?.contacts ?? []).filter((c) => c.scanLevel !== 'UFO' && isEnemyShip(c, own));
     const marked = (display.panels['target-intel'] as { targetId?: string } | undefined)?.targetId;
-    return wanted?.id === contactId && marked !== contactId ? 'press' : 'wait';
+    const wanted =
+        enemies.find((c) => c.id === calledLockId) ??
+        enemies.find((c) => c.id === marked) ??
+        enemies.sort((a, b) => a.distance - b.distance)[0];
+    return wanted && wanted.id !== marked ? wanted.id : undefined;
 }
 
 /** A contact identified as the own faction's. */

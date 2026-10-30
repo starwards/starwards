@@ -1,5 +1,6 @@
 import {
     Faction,
+    HackLevel,
     HullStatus,
     ScanLevel,
     ShipIntelSource,
@@ -124,6 +125,46 @@ describe('hull-status panel', () => {
             ['snap', 'SNAPSHOT', 'failing'],
         ]);
         expect(panel[2].ageSeconds).toBe(12);
+    });
+});
+
+describe('systems-status panel hack state', () => {
+    function read(hacked: HackLevel, hackedSecondsLeft: number) {
+        const system = {
+            pointer: '/chainGuns/0',
+            state: {
+                name: 'gun',
+                power: 1,
+                coolantFactor: 1,
+                heat: 0,
+                energyPerMinute: 0,
+                broken: false,
+                effectiveness: 1,
+                hacked,
+                hackedSecondsLeft,
+            },
+            getStatus: () => 'OK',
+            getHeatStatus: () => 'OK',
+        };
+        const session = {
+            stationName: 'engineer',
+            widgets: [],
+            shipDriver: { systems: [system] },
+        } as unknown as StationSession;
+        return (widgetReaders['full-systems-status']?.(session) as Record<string, unknown>[])[0];
+    }
+
+    it('shows a disabled system as offline with the seconds left to recover', () => {
+        expect(read(HackLevel.DISABLED, 3.5)).toMatchObject({
+            offline: true,
+            offlineSecondsLeft: 3.5,
+            hacked: HackLevel.DISABLED,
+        });
+    });
+
+    it('shows a healthy or compromised system as online', () => {
+        expect(read(HackLevel.OK, 0)).toMatchObject({ offline: false, offlineSecondsLeft: 0 });
+        expect(read(HackLevel.COMPROMISED, 2)).toMatchObject({ offline: false, offlineSecondsLeft: 0 });
     });
 });
 

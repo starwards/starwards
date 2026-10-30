@@ -1,6 +1,9 @@
 import { ControlDesign, ValueSource, controlCatalogue } from './catalogue';
 
+import { offlinePointers, pressesOfflineSystem } from './offline-systems';
+
 import { StationCommand } from '@starwards/core/internal';
+import { referenceKnobs } from './reference-knobs';
 
 /** What the station shows: every panel by widget name, and the radar if it has one. */
 export type Display = { panels: Record<string, unknown>; radar?: unknown };
@@ -62,9 +65,17 @@ export function stationControls({ display, capabilities, burstSeconds }: ExpandC
     for (const [group, members] of groups) {
         controls.push(groupControl(group, members));
     }
+    const offline = offlinePointers(display);
     return controls.map((c) => {
         const seat = offered.get(c.command)?.seat;
-        return seat === undefined ? c : { ...c, seat };
+        const control: Control = {
+            ...c,
+            press: (option) => {
+                const press = c.press(option);
+                return press && pressesOfflineSystem(press, offline) ? undefined : press;
+            },
+        };
+        return seat === undefined ? control : { ...control, seat };
     });
 }
 
@@ -77,6 +88,7 @@ function expansionKeys(design: ControlDesign, capability: Capabilities['commands
         return jobs.map((j) => ({ suffix: `:${j.id}`, args: {}, fill: j.id }));
     }
     if (design.kind === 'contact') {
+        if (referenceKnobs.SIGNALS_MARK_LOCK <= 0.5) return [];
         const contacts =
             (display.radar as { contacts?: { id: string; scanLevel?: string }[] } | undefined)?.contacts ?? [];
         return contacts.filter((c) => c.scanLevel !== 'UFO').map((c) => ({ suffix: `:${c.id}`, args: {}, fill: c.id }));
@@ -185,13 +197,6 @@ function expandControl(
                 press: (o) => (o === 'fire' ? send(undefined, { seconds: burstSeconds }) : undefined),
             };
         case 'job':
-            return {
-                id,
-                command,
-                options: { press: design.verb, wait: hold },
-                rest: 'wait',
-                press: (o) => (o === 'press' ? send(String(key.fill)) : undefined),
-            };
         case 'contact':
             return {
                 id,

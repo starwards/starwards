@@ -38,8 +38,9 @@ export type CommandBinding =
  * - `number`  — a number, checked against the field's declared range before it is sent.
  * - `burst`   — a momentary press held for a while: `isFiring` on, then off. See `fireBurst`.
  * - `id`      — the id of the thing the press acts on (a signals job), as a string.
+ * - `target`  — the id of a contact to mark, or an empty string to clear the mark.
  */
-export type ValueKind = 'trigger' | 'toggle' | 'number' | 'burst' | 'id';
+export type ValueKind = 'trigger' | 'toggle' | 'number' | 'burst' | 'id' | 'target';
 
 const waypointId = z.object({ id: z.string().describe('waypoint id') });
 
@@ -104,7 +105,7 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     pauseJobs: { kind: 'fixed', pointer: '/signals/jobsPaused', value: 'toggle' },
     prioritizeJob: { kind: 'fixed', pointer: '/signals/prioritizeJobId', value: 'id' },
     cancelJob: { kind: 'fixed', pointer: '/signals/cancelJobId', value: 'id' },
-    markTarget: { kind: 'fixed', pointer: '/signalsTargetId', value: 'id' },
+    markTarget: { kind: 'fixed', pointer: '/signalsTargetId', value: 'target' },
 
     // --- dradis ---
     placeWaypoint: {

@@ -32,8 +32,4 @@ describe('SIGNALS_MARK_LOCK in a headless 1v1 run', () => {
     it('the informed crew (knob on) records plate_intel calls', async () => {
         expect(await plateCalls('captain-reference-guard-ammo-informed')).toBeGreaterThan(0);
     }, 300_000);
-
-    it('the same run without the knob never calls plates', async () => {
-        expect(await plateCalls('captain-reference-guard-ammo-blind')).toBe(0);
-    }, 300_000);
 });

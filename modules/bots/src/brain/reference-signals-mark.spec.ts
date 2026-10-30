@@ -28,18 +28,22 @@ function display(marked = ''): Display {
     };
 }
 
-const locked = (name: string): Heard => ({
+const locked = (id: string, name = id, secondsAgo = 1): Heard => ({
     speaker: 'weapons',
     callout: 'target_locked',
     phrase: `target locked on ${name}`,
-    values: { name },
-    secondsAgo: 1,
+    values: { name, id },
+    secondsAgo,
 });
 
-async function pressed(shown: Display, heard: Heard[] = []) {
+type Radar = { contacts: ReturnType<typeof ship>[] };
+
+/** One decision of a fresh policy, or of `policy` when the test spans decisions. */
+async function decide(shown: Display, heard: Heard[] = [], policy = makeReferencePolicy(1)) {
     const controls = stationControls({ display: shown, capabilities, burstSeconds: 1 });
-    const { answers } = await makeReferencePolicy(1).answer({} as BrainRequest, controls, shown, heard);
+    const { answers } = await policy.answer({} as BrainRequest, controls, shown, heard);
     return {
+        offered: controls.map((c) => c.id),
         ids: Object.keys(answers).filter((id) => answers[id]?.choice === 'press'),
         sent: controls.flatMap((c) => (answers[c.id]?.choice === 'press' ? [c.press('press')] : [])),
     };
@@ -48,21 +52,52 @@ async function pressed(shown: Display, heard: Heard[] = []) {
 afterEach(() => setReferenceKnobs());
 
 describe('signals markTarget', () => {
-    it('knob off by default: never marks', async () => {
+    it('knob off by default: the console offers no mark control and nothing is marked', async () => {
         expect(REFERENCE_KNOB_DEFAULTS.SIGNALS_MARK_LOCK).toBe(0);
-        expect((await pressed(display(), [locked('far')])).ids).toEqual([]);
+        const { offered, ids } = await decide(display(), [locked('far')]);
+        expect(offered).toEqual([]);
+        expect(ids).toEqual([]);
     });
 
-    it('knob on: marks the contact weapons locked', async () => {
-        setReferenceKnobs({ SIGNALS_MARK_LOCK: 1 });
-        const { sent } = await pressed(display(), [locked('far')]);
-        expect(sent).toEqual([{ command: 'markTarget', args: {}, value: 'far' }]);
-    });
+    describe('knob on', () => {
+        beforeEach(() => setReferenceKnobs({ SIGNALS_MARK_LOCK: 1 }));
 
-    it('knob on, no lock heard: marks the nearest enemy; nothing once it is marked', async () => {
-        setReferenceKnobs({ SIGNALS_MARK_LOCK: 1 });
-        expect((await pressed(display())).ids).toEqual(['markTarget:near']);
-        expect((await pressed(display('near'))).ids).toEqual([]);
-        expect((await pressed(display('near'), [locked('far')])).ids).toEqual(['markTarget:far']);
+        it('marks the contact weapons locked, by id', async () => {
+            const { sent } = await decide(display(), [locked('far')]);
+            expect(sent).toEqual([{ command: 'markTarget', args: {}, value: 'far' }]);
+        });
+
+        it('tells same-named ships apart by id', async () => {
+            const shown = display();
+            const twin = { ...ship('twin', 9000), name: 'near' };
+            (shown.radar as Radar).contacts.push(twin);
+            expect((await decide(shown, [locked('twin', 'near')])).ids).toEqual(['markTarget:twin']);
+        });
+
+        it('keeps following the lock after the call is no longer heard', async () => {
+            const policy = makeReferencePolicy(1);
+            expect((await decide(display(), [locked('far')], policy)).ids).toEqual(['markTarget:far']);
+            expect((await decide(display('far'), [], policy)).ids).toEqual([]);
+            // the mark was knocked off the lock: Signals puts it back
+            expect((await decide(display('near'), [], policy)).ids).toEqual(['markTarget:far']);
+        });
+
+        it('with no lock heard: keeps a valid mark, else marks the nearest enemy', async () => {
+            expect((await decide(display())).ids).toEqual(['markTarget:near']);
+            expect((await decide(display('far'))).ids).toEqual([]);
+            expect((await decide(display('gone'))).ids).toEqual(['markTarget:near']);
+        });
+
+        it('never marks an ally, a neutral or an unscanned speck', async () => {
+            const shown = display();
+            (shown.radar as Radar).contacts = [
+                ship('friend', 100, 1),
+                { ...ship('neutral', 200), faction: -1 },
+                { ...ship('speck', 300), scanLevel: 'UFO' },
+            ];
+            const { offered, ids } = await decide(shown);
+            expect(offered).not.toContain('markTarget:speck');
+            expect(ids).toEqual([]);
+        });
     });
 });
