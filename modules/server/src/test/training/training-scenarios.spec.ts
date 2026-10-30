@@ -39,7 +39,7 @@ function targetOf(scenarioName: string) {
 }
 
 describe('training ladder', () => {
-    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T2-constrained, T3-directed, T3-incoming, T2-dock, D-dock-0of16, D-dock-0of16-late, T1-MK2, T1-predator, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi, W-outranged, W-waves, W-waves-late, W-waves-endless and the W-cut scenario cuts', () => {
+    it('has the rungs T0, T0-wide, T0-constrained, T1, T2, T2-constrained, T3-directed, T3-incoming, T2-dock, D-dock-0of16, D-dock-0of16-late, T1-MK2, T1-predator, T1-cataphract, T1-gravitas, T1-noweave, E1-MK2, E1-predator, T1-lite, W-multi, W-outranged, W-waves, W-waves-late, W-waves-endless and the W-cut scenario cuts', () => {
         expect(Object.keys(trainingScenarios).filter((name) => !/^A[1W]-/.test(name))).toEqual([
             'T0',
             'T0-wide',
@@ -54,6 +54,8 @@ describe('training ladder', () => {
             'D-dock-0of16-late',
             'T1-MK2',
             'T1-predator',
+            'T1-cataphract',
+            'T1-gravitas',
             'T1-noweave',
             'E1-MK2',
             'E1-predator',
@@ -139,6 +141,8 @@ describe('training ladder', () => {
         ['T1', 'dragonfly-MK1', false],
         ['T1-MK2', 'dragonfly-MK2', false],
         ['T1-predator', 'predator', false],
+        ['T1-cataphract', 'cataphract', false],
+        ['T1-gravitas', 'gravitas', false],
         ['T1-noweave', 'dragonfly-MK1', true],
     ])('%s: a %s attacking the GVTS, no combat weave: %s', (scenarioName, expectedModel, noCombatWeave) => {
         const { state, model } = targetOf(scenarioName);

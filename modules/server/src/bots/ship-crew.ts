@@ -132,7 +132,14 @@ export async function shipCrew(options: ShipCrewOptions) {
             // said when the decision lands, as a player speaks once they have made up their mind; a fused brain speaks as the member seat
             const delivered = channel.say(said.seat ?? station, said, seconds);
             const seatTag = said.seat === undefined ? {} : { seat: said.seat };
-            emit('callout', { station, ...seatTag, callout: said.callout, phrase: said.phrase, delivered });
+            emit('callout', {
+                station,
+                ...seatTag,
+                callout: said.callout,
+                phrase: said.phrase,
+                ...(said.values ? { values: said.values } : {}),
+                delivered,
+            });
             const own = (display.radar as { ownShip?: { position?: { x: number; y: number } } } | undefined)?.ownShip;
             const order =
                 (said.seat ?? station) === 'captain' && orderFromCallout(said.callout, said.values, own?.position);
