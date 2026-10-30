@@ -3,6 +3,7 @@ import { ControlDesign, ValueSource, controlCatalogue } from './catalogue';
 import { offlinePointers, pressesOfflineSystem } from './offline-systems';
 
 import { StationCommand } from '@starwards/core/internal';
+import { referenceKnobs } from './reference-knobs';
 
 /** What the station shows: every panel by widget name, and the radar if it has one. */
 export type Display = { panels: Record<string, unknown>; radar?: unknown };
@@ -85,6 +86,12 @@ function expansionKeys(design: ControlDesign, capability: Capabilities['commands
     if (design.kind === 'job') {
         const jobs = (panel(display, 'signals-jobs') as { jobs?: { id: string }[] } | undefined)?.jobs ?? [];
         return jobs.map((j) => ({ suffix: `:${j.id}`, args: {}, fill: j.id }));
+    }
+    if (design.kind === 'contact') {
+        if (referenceKnobs.SIGNALS_MARK_LOCK <= 0.5) return [];
+        const contacts =
+            (display.radar as { contacts?: { id: string; scanLevel?: string }[] } | undefined)?.contacts ?? [];
+        return contacts.filter((c) => c.scanLevel !== 'UFO').map((c) => ({ suffix: `:${c.id}`, args: {}, fill: c.id }));
     }
     if (design.kind === 'protocol') {
         const slots = (panel(display, 'repair-queue') as { slots?: { protocolId: string }[] } | undefined)?.slots ?? [];
@@ -190,6 +197,7 @@ function expandControl(
                 press: (o) => (o === 'fire' ? send(undefined, { seconds: burstSeconds }) : undefined),
             };
         case 'job':
+        case 'contact':
             return {
                 id,
                 command,

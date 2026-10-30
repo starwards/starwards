@@ -220,10 +220,10 @@ const calloutFills: Record<
         const shown = checkFireOf(panels);
         return shown && { name: shown.ally.name, range: (shown.ally.distance / 1000).toFixed(1), where: shown.where };
     },
-    /** Weapons: the ship the lock holds, by name. */
+    /** Weapons: the ship the lock holds, by name; `id` rides along unspoken for listeners that must tell same-named ships apart. */
     lockedTarget: (display) => {
         const locked = lockedContact(display);
-        return locked && { name: locked.name };
+        return locked && { name: locked.name, id: locked.id };
     },
     /**
      * Weapons: the locked ship's range, the launch envelope of the missile the reference loads for how
