@@ -5,9 +5,14 @@ on:
     branches: [master]
   pull_request:
     types: [opened, synchronize, reopened, closed]
+  # Teardown only fires on `closed`; when that event triggers no run the
+  # namespace leaks, so a daily sweep deletes previews of non-open PRs.
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
 
 concurrency:
-  group: deploy-${{ github.event.pull_request.number || 'master' }}
+  group: deploy-${{ github.event.pull_request.number || (github.event_name == 'push' && 'master') || 'sweep' }}
   cancel-in-progress: true
 
 env:
@@ -17,7 +22,7 @@ env:
 
 jobs:
   build-push:
-    if: github.event.action != 'closed'
+    if: (github.event_name == 'push' || github.event_name == 'pull_request') && github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -88,7 +93,7 @@ jobs:
 
   deploy:
     needs: build-push
-    if: github.event.action != 'closed'
+    if: (github.event_name == 'push' || github.event_name == 'pull_request') && github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -213,37 +218,64 @@ jobs:
           kubectl delete namespace "starwards-pr-${{ github.event.pull_request.number }}" \
             --ignore-not-found --wait=false
 
+      - uses: actions/checkout@v4
+
       - name: Remove GitHub deployment environment
         uses: actions/github-script@v7
         with:
           script: |
-            // pr-<N> (game server) plus per-service environments pr-<N>-<service>
-            const prefix = `pr-${context.payload.pull_request.number}`;
-            const { data } = await github.rest.repos.getAllEnvironments({
-              ...context.repo, per_page: 100
-            });
-            const names = data.environments
-              .map((e) => e.name)
-              .filter((n) => n === prefix || n.startsWith(`${prefix}-`));
-            for (const environment of names) {
-              const { data: deployments } = await github.rest.repos.listDeployments({
-                ...context.repo, environment, per_page: 100
-              });
-              for (const d of deployments) {
-                await github.rest.repos.createDeploymentStatus({
-                  ...context.repo, deployment_id: d.id, state: 'inactive'
-                });
-                await github.rest.repos.deleteDeployment({
-                  ...context.repo, deployment_id: d.id
-                });
-              }
-              // Deleting the environment shell needs admin rights, which
-              // GITHUB_TOKEN may not have — best-effort only.
-              try {
-                await github.rest.repos.deleteAnEnvironment({
-                  ...context.repo, environment_name: environment
-                });
-              } catch (e) {
-                core.warning(`Could not delete environment ${environment}: ${e.message}`);
-              }
-            }
+            const remove = require('./.github/k8s/remove-pr-environments.js');
+            await remove({ github, context, core }, [context.payload.pull_request.number]);
+
+  sweep:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: teardown # gives the OIDC token an environment subject for Tailscale
+    permissions:
+      contents: read
+      pull-requests: read
+      deployments: write
+      id-token: write # Tailscale workload identity federation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: 100.67.69.53
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Delete previews of non-open PRs
+        id: sweep
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          open=$(gh pr list -R "$GITHUB_REPOSITORY" --state open --limit 500 --json number --jq '.[].number')
+          previews=$(kubectl get ns -l app=starwards -o name | sed -n 's#^namespace/starwards-pr-##p')
+          deleted=()
+          for pr in $previews; do
+            if ! grep -qx "$pr" <<<"$open"; then
+              echo "deleting starwards-pr-$pr"
+              kubectl delete namespace "starwards-pr-$pr" --ignore-not-found --wait=false
+              deleted+=("$pr")
+            fi
+          done
+          echo "deleted=$(jq -cn '$ARGS.positional | map(tonumber)' --args "${deleted[@]}")" >> "$GITHUB_OUTPUT"
+
+      - name: Remove GitHub deployment environments
+        if: steps.sweep.outputs.deleted != '[]'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const remove = require('./.github/k8s/remove-pr-environments.js');
+            await remove({ github, context, core }, ${{ steps.sweep.outputs.deleted }});
