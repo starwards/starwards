@@ -94,7 +94,22 @@ function deployment({ namespace, release, name, image, ports, env, volumes, reso
     if (volumes && volumes.length) {
         container.volumeMounts = volumes.map((v) => ({ name: v.name, mountPath: v.mountPath }));
     }
-    const podSpec = { containers: [container] };
+    const podSpec = {
+        containers: [container],
+        // node2 holds the cluster's databases; keep previews elsewhere
+        affinity: {
+            nodeAffinity: {
+                preferredDuringSchedulingIgnoredDuringExecution: [
+                    {
+                        weight: 100,
+                        preference: {
+                            matchExpressions: [{ key: 'kubernetes.io/hostname', operator: 'NotIn', values: ['node2'] }],
+                        },
+                    },
+                ],
+            },
+        },
+    };
     if (volumes && volumes.length) {
         podSpec.volumes = volumes.map((v) => ({ name: v.name, emptyDir: v.emptyDir }));
     }
