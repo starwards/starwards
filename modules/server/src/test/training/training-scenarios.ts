@@ -3,12 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
-import {
-    DockOnlyParams,
-    T2DockParams,
-    createTrainingDockOnlyMap,
-    createTrainingT2DockMap,
-} from '../../scenarios/training-dock';
+import { DockOnlyParams, T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import { DockOutcome, DockTracker, trackDock } from './dock-rung';
 import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
@@ -343,8 +338,8 @@ const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingSce
         attackerDistance: late ? fc.integer({ min: 15000, max: 25000 }) : fc.constant(undefined),
         playerArmor: fc.constant(playerArmor),
     }),
-    enemies: [],
-    createMap: (params) => createTrainingDockOnlyMap(params, params),
+    enemies: late ? [TRAINING_TARGET_ID] : [],
+    createMap: (params) => trackDock(params, params.playerArmor).map,
     trackDock: (params) => trackDock(params, params.playerArmor),
 });
 

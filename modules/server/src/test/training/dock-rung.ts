@@ -1,5 +1,12 @@
+import {
+    Armor,
+    DockingMode,
+    GameMap,
+    RepairPriority,
+    isRepairPriorityPending,
+    repairProtocols,
+} from '@starwards/core/internal';
 import { DockOnlyParams, createTrainingDockOnlyMap } from '../../scenarios/training-dock';
-import { DockingMode, GameMap, RepairPriority, repairProtocols } from '@starwards/core/internal';
 import { HeadlessGame } from '../headless-game';
 import { TRAINING_PLAYER_ID } from '../../scenarios/training';
 
@@ -26,6 +33,9 @@ export interface DockTracker {
     outcome(game: HeadlessGame): DockOutcome;
 }
 
+/** Plates at full health on every layer: the dock rung's "healthy", stricter than `Armor.numberOfHealthyPlates` (not broken). */
+const intactPlates = (armor: Armor) => armor.armorPlates.filter((p) => p.healthRatio >= 1).length;
+
 const overhaulIds = [
     'feedSystemOverhaul',
     'hullWideSystemsOverhaul',
@@ -33,12 +43,12 @@ const overhaulIds = [
 
 export function trackDock(params: DockOnlyParams, playerArmor: number): { map: GameMap; tracker: DockTracker } {
     let platesAtStart = 0;
-    let platesHealthyAtStart = -1;
+    let platesHealthyAtStart = 0;
     let passedAt: number | null = null;
     let dockedSeconds = 0;
     let launches = 0;
     let previousMode = DockingMode.UNDOCKED;
-    let renewalWasCancelling = false;
+    let renewalWasRunning = false;
     let overhaulPreemptedRenewal = false;
     let lastSeconds = 0;
     const armorOf = (game: HeadlessGame) => game.api.getShip(TRAINING_PLAYER_ID)!.state.armor;
@@ -46,31 +56,31 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
         done(game) {
             const state = game.api.getShip(TRAINING_PLAYER_ID)!.state;
             const armor = state.armor;
-            if (platesHealthyAtStart < 0) {
-                platesAtStart = armor.numberOfPlates;
-                platesHealthyAtStart = armor.numberOfHealthyPlates;
-            }
             const dt = game.seconds - lastSeconds;
             lastSeconds = game.seconds;
             const mode = state.docking.mode;
             if (mode === DockingMode.DOCKED) {
                 dockedSeconds += dt;
             }
-            if (previousMode === DockingMode.DOCKED && mode === DockingMode.UNDOCKED) {
+            if (previousMode === DockingMode.DOCKED && mode !== DockingMode.DOCKED) {
                 launches++;
             }
             previousMode = mode;
             const slots = state.repairQueue.slots;
             const renewal = slots.find((s) => s.protocolId === 'armorPlateRenewal');
-            const cancelling = renewal?.priority === RepairPriority.CANCELLING;
-            if (cancelling && !renewalWasCancelling) {
-                overhaulPreemptedRenewal ||= slots.some(
-                    (s) =>
-                        (overhaulIds as readonly string[]).includes(s.protocolId) && s.priority !== RepairPriority.OFF,
-                );
-            }
-            renewalWasCancelling = cancelling;
-            if (passedAt === null && armor.numberOfHealthyPlates === armor.numberOfPlates) {
+            const overhauls = slots.filter((s) => (overhaulIds as readonly string[]).includes(s.protocolId));
+            const renewalPriority = renewal?.priority ?? RepairPriority.OFF;
+            const renewalStopped =
+                renewalWasRunning &&
+                (renewalPriority === RepairPriority.CANCELLING ||
+                    (renewalPriority === RepairPriority.OFF && renewal!.refusalReason !== ''));
+            const renewalWaiting =
+                isRepairPriorityPending(renewalPriority) || renewalPriority === RepairPriority.CANCELLING;
+            overhaulPreemptedRenewal ||=
+                (renewalStopped && overhauls.some((s) => s.priority !== RepairPriority.OFF)) ||
+                (renewalWaiting && overhauls.some((s) => s.priority === RepairPriority.RUNNING));
+            renewalWasRunning = renewalPriority === RepairPriority.RUNNING;
+            if (passedAt === null && intactPlates(armor) === armor.numberOfPlates) {
                 passedAt = game.seconds;
             }
             return passedAt !== null;
@@ -80,7 +90,7 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
             return {
                 platesAtStart,
                 platesHealthyAtStart,
-                platesRepaired: armor.numberOfHealthyPlates - platesHealthyAtStart,
+                platesRepaired: intactPlates(armor) - platesHealthyAtStart,
                 passedAt,
                 dockedSeconds,
                 launches,
@@ -89,5 +99,17 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
             };
         },
     };
-    return { map: createTrainingDockOnlyMap(params, { playerArmor }), tracker };
+    const map = createTrainingDockOnlyMap(params, { playerArmor });
+    return {
+        map: {
+            ...map,
+            init: (game) => {
+                map.init(game);
+                const armor = game.getShip(TRAINING_PLAYER_ID)!.state.armor;
+                platesAtStart = armor.numberOfPlates;
+                platesHealthyAtStart = intactPlates(armor);
+            },
+        },
+        tracker,
+    };
 }

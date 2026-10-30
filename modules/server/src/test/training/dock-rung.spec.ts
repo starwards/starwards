@@ -58,3 +58,25 @@ describe('runTraining on a dock-only rung', () => {
         expect(result.dock).toMatchObject({ platesHealthyAtStart: 0, passedAt: null, launches: 0 });
     });
 });
+
+describe('dock rung details', () => {
+    it('applies playerArmor to T0 and rejects out-of-range values', () => {
+        const game = HeadlessGame.start(createTrainingT0Map({ distance: 3000, bearing: 0 }, { playerArmor: 4 }), 1);
+        expect(game.shipManagers.get(TRAINING_PLAYER_ID)!.state.armor.numberOfHealthyPlates).toBe(4);
+        expect(() =>
+            HeadlessGame.start(createTrainingT0Map({ distance: 3000, bearing: 0 }, { playerArmor: 99 }), 1),
+        ).toThrow(/playerArmor/);
+    });
+
+    it('reads the start state before any tick', () => {
+        const scenario = trainingScenarios['D-dock-0of16'];
+        const [params] = fc.sample(scenario.params, { seed: 1, numRuns: 1 });
+        const { map, tracker } = scenario.trackDock!(params);
+        const game = HeadlessGame.start(map, 1);
+        expect(tracker.outcome(game)).toMatchObject({ platesAtStart: 16, platesHealthyAtStart: 0 });
+    });
+
+    it('tracks the late attacker as the rung enemy', () => {
+        expect(trainingScenarios['D-dock-0of16-late'].enemies).toHaveLength(1);
+    });
+});

@@ -46,7 +46,7 @@ export interface T0Lab {
     readonly playerGunHeat?: number;
     /** Missiles in each missile stock of the magazine, capped at the hull's maximum. */
     readonly playerMissiles?: number;
-    /** Healthy armor plates the GVTS starts with; the rest start broken. Default: every plate healthy. */
+    /** Healthy armor plates the GVTS starts with: the first `playerArmor` plates (one contiguous arc) stay intact, the rest start broken. An integer within the plate count. Default: every plate healthy. */
     readonly playerArmor?: number;
 }
 
@@ -74,6 +74,9 @@ export function constrainPlayer(
         }
     }
     if (playerArmor !== undefined) {
+        if (!Number.isInteger(playerArmor) || playerArmor < 0 || playerArmor > player.armor.numberOfPlates) {
+            throw new Error(`playerArmor ${playerArmor} is not an integer within 0..${player.armor.numberOfPlates}`);
+        }
         player.armor.armorPlates.forEach((plate, index) => {
             if (index >= playerArmor) {
                 for (const layer of plate.layers) {
@@ -90,7 +93,7 @@ export function constrainPlayer(
  */
 export function createTrainingT0Map(
     params: T0Params,
-    { targetModel = 'dragonfly-MK1', playerEnergy, playerShells, playerGunHeat }: T0Lab = {},
+    { targetModel = 'dragonfly-MK1', ...constraints }: T0Lab = {},
 ): GameMap {
     return {
         name: 'training_t0',
@@ -99,7 +102,7 @@ export function createTrainingT0Map(
                 game.addPlayerSpaceship(
                     new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
                 ).state,
-                { playerEnergy, playerShells, playerGunHeat },
+                constraints,
             );
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
             const target = game.addNpcSpaceship(
