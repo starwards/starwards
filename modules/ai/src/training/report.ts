@@ -22,8 +22,7 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
     { name: 'raiders killed', of: (r) => r.waves?.raidersKilled, better: 'higher' },
     { name: 'run value', of: (r) => r.score?.value, better: 'higher' },
     { name: 'friendly hits', of: (r) => r.score?.friendlyHits, better: 'lower' },
-    { name: 'dock: seconds docked', of: (r) => r.dock?.dockedSeconds, better: 'higher' },
-    { name: 'dock: plates repaired', of: (r) => r.dock?.platesRepaired, better: 'higher' },
+    { name: 'dock: seconds docked', of: (r) => r.dock?.dockedSeconds, better: 'lower' },
     { name: 'dock: launches per minute', of: (r) => r.dock?.launchesPerMinute, better: 'lower' },
     {
         name: 'dock: renewal preempted',
@@ -199,6 +198,9 @@ function dockSection(results: readonly CrewRunResult[], crews: readonly string[]
 
 /** On a multi-enemy rung, the enemies killed over all runs, partial runs included. */
 function partialKills(runs: readonly CrewRunResult[]) {
+    if (runs.some((r) => r.dock)) {
+        return ''; // a dock rung's `killed` is its pass; the attacker count would read as success
+    }
     const enemies = runs.reduce((n, r) => n + (r.enemies ?? 1), 0);
     return enemies > runs.length
         ? ` (enemies ${runs.reduce((n, r) => n + (r.kills ?? (r.killed ? 1 : 0)), 0)}/${enemies})`

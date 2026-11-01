@@ -16,7 +16,7 @@ export interface DockOutcome {
     /** Exits from DOCKED (via UNDOCKING or straight to UNDOCKED). */
     readonly launches: number;
     readonly launchesPerMinute: number;
-    /** Whether a running armor-plate renewal was demoted (cancelling, or back to pending) while an overhaul was queued or running. */
+    /** Whether the crew cancelled a running armor-plate renewal for an overhaul: one was queued at the cancel, or ran before the renewal did. */
     readonly overhaulPreemptedRenewal: boolean;
 }
 
@@ -41,7 +41,8 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
     let dockedSeconds = 0;
     let launches = 0;
     let dockedStint = false;
-    let intactBefore = -1;
+    let intactBefore: boolean[] = [];
+    let renewalCancelled = false;
     let platesRepaired = 0;
     let renewalWasRunning = false;
     let overhaulPreemptedRenewal = false;
@@ -64,26 +65,32 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
                 launches++;
             }
             const slots = state.repairQueue.slots;
-            const renewalPriority =
-                slots.find((s) => s.protocolId === 'armorPlateRenewal')?.priority ?? RepairPriority.OFF;
-            const renewalStopped = slots.find((s) => s.protocolId === 'armorPlateRenewal')?.refusalReason ?? '';
-            const overhaulQueued = slots.some(
-                (s) => (overhaulIds as readonly string[]).includes(s.protocolId) && s.priority !== RepairPriority.OFF,
-            );
-            // Preempted: the crew cancelled a running renewal (not a forced stop, which sets a refusal reason) with an overhaul
-            // waiting; a renewal merely queued behind a running overhaul is delay, not preemption.
-            overhaulPreemptedRenewal ||=
+            const renewal = slots.find((s) => s.protocolId === 'armorPlateRenewal');
+            const renewalPriority = renewal?.priority ?? RepairPriority.OFF;
+            const overhauls = slots.filter((s) => (overhaulIds as readonly string[]).includes(s.protocolId));
+            const plates = armor.armorPlates.map((p) => p.healthRatio >= 1);
+            const repairedNow = plates.filter((intact, i) => intact && !intactBefore[i]).length;
+            platesRepaired += repairedNow;
+            intactBefore = plates;
+            // Preempted: the crew cancelled a running renewal that had not finished (a forced stop leaves a refusal reason) and an
+            // overhaul was waiting then, or took the repair crew before the renewal ran again. A renewal merely queued behind a
+            // running overhaul is delay, not preemption. A cancel can finish inside one update, so an OFF slot after RUNNING is a cancel.
+            if (
                 renewalWasRunning &&
-                renewalPriority === RepairPriority.CANCELLING &&
-                renewalStopped === '' &&
-                overhaulQueued;
-            renewalWasRunning = renewalPriority === RepairPriority.RUNNING;
-            const intact = intactPlates(armor);
-            if (intactBefore >= 0 && intact > intactBefore) {
-                platesRepaired += intact - intactBefore;
+                renewalPriority !== RepairPriority.RUNNING &&
+                !repairedNow &&
+                !renewal?.refusalReason
+            ) {
+                renewalCancelled = true;
+                overhaulPreemptedRenewal ||= overhauls.some((s) => s.priority !== RepairPriority.OFF);
             }
-            intactBefore = intact;
-            if (passedAt === null && intactPlates(armor) === armor.numberOfPlates) {
+            if (renewalPriority === RepairPriority.RUNNING) {
+                renewalCancelled = false;
+            }
+            overhaulPreemptedRenewal ||=
+                renewalCancelled && overhauls.some((s) => s.priority === RepairPriority.RUNNING);
+            renewalWasRunning = renewalPriority === RepairPriority.RUNNING;
+            if (passedAt === null && plates.every(Boolean)) {
                 passedAt = game.seconds;
             }
             return passedAt !== null;
@@ -110,7 +117,7 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
                 const armor = game.getShip(TRAINING_PLAYER_ID)!.state.armor;
                 platesAtStart = armor.numberOfPlates;
                 platesIntactAtStart = intactPlates(armor);
-                intactBefore = platesIntactAtStart;
+                intactBefore = armor.armorPlates.map((p) => p.healthRatio >= 1);
             },
         },
         tracker,

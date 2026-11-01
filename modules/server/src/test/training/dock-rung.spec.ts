@@ -180,4 +180,35 @@ describe('dock metrics over a scripted dock', () => {
         state.repairQueue.slots.clear();
         expect(() => tracker.done(game)).not.toThrow();
     });
+
+    it('flags a cancel that finishes inside one update, and an overhaul raised after the cancel', () => {
+        const instant = setup();
+        instant.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        instant.tracker.done(instant.game);
+        instant.slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
+        instant.slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        instant.tracker.done(instant.game);
+        expect(instant.tracker.outcome(instant.game).overhaulPreemptedRenewal).toBe(true);
+
+        const later = setup();
+        later.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        later.tracker.done(later.game);
+        later.slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        later.tracker.done(later.game);
+        expect(later.tracker.outcome(later.game).overhaulPreemptedRenewal).toBe(false);
+        later.slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
+        later.tracker.done(later.game);
+        expect(later.tracker.outcome(later.game).overhaulPreemptedRenewal).toBe(true);
+    });
+
+    it('counts a repair in the same tick another plate breaks', () => {
+        const { game, tracker, state } = setup();
+        const plates = state.armor.armorPlates;
+        plates[5].layers.forEach((l) => (l.health = l.maxHealth));
+        tracker.done(game);
+        plates[3].layers.forEach((l) => (l.health = l.maxHealth));
+        plates[5].layers.forEach((l) => (l.health = 0));
+        tracker.done(game);
+        expect(tracker.outcome(game).platesRepaired).toBe(2);
+    });
 });
