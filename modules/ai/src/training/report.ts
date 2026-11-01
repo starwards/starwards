@@ -22,6 +22,14 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
     { name: 'raiders killed', of: (r) => r.waves?.raidersKilled, better: 'higher' },
     { name: 'run value', of: (r) => r.score?.value, better: 'higher' },
     { name: 'friendly hits', of: (r) => r.score?.friendlyHits, better: 'lower' },
+    { name: 'dock: seconds docked', of: (r) => r.dock?.dockedSeconds, better: 'higher' },
+    { name: 'dock: plates repaired', of: (r) => r.dock?.platesRepaired, better: 'higher' },
+    { name: 'dock: launches per minute', of: (r) => r.dock?.launchesPerMinute, better: 'lower' },
+    {
+        name: 'dock: renewal preempted',
+        of: (r) => (r.dock ? Number(r.dock.overhaulPreemptedRenewal) : undefined),
+        better: 'lower',
+    },
     { name: 'killed', of: (r) => (r.killed ? 1 : 0), better: 'higher' },
     { name: 'seconds', of: (r) => r.seconds, better: 'lower' },
     { name: 'tactical score', of: (r) => r.score?.tactical, better: 'higher' },
@@ -98,6 +106,9 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     if (results.some((r) => r.waves)) {
         lines.push('', ...wavesSection(results, crews));
     }
+    if (results.some((r) => r.dock)) {
+        lines.push('', ...dockSection(results, crews));
+    }
     if (crews.length > 1) {
         lines.push('', ...pairedSection(results, baseline ?? crews[0]));
     }
@@ -163,6 +174,24 @@ function wavesSection(results: readonly CrewRunResult[], crews: readonly string[
         const sum = (f: (w: (typeof waves)[number]) => number) => waves.reduce((a, w) => a + f(w), 0);
         lines.push(
             `| ${crew} | ${waves.filter((w) => w.passedAt !== null).length}/${waves.length} | ${Math.min(...survived)} / ${fmt(median(survived))} / ${Math.max(...survived)} | ${fmt(meanOf(waves.map((w) => w.stationsLost)), 2)} | ${sum((w) => w.raidersKilled)}/${sum((w) => w.raidersSpawned)} | ${waves.filter((w) => w.gvtsHealth > 0).length}/${waves.length} | ${fmt(meanOf(waves.map((w) => w.gvtsHealth)), 2)} |`,
+        );
+    }
+    return lines;
+}
+
+/** Dock-only rungs: `killed` is the pass (every plate intact), `seconds` the time to pass; these are the dock behaviour behind them. */
+function dockSection(results: readonly CrewRunResult[], crews: readonly string[]) {
+    const lines = [
+        '## Dock',
+        '',
+        '| crew | passed | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) | runs where an overhaul preempted renewal |',
+        '| --- | --- | --- | --- | --- | --- |',
+    ];
+    for (const crew of crews) {
+        const docks = results.flatMap((r) => (r.crew === crew && r.dock ? [r.dock] : []));
+        if (!docks.length) continue;
+        lines.push(
+            `| ${crew} | ${docks.filter((d) => d.passedAt !== null).length}/${docks.length} | ${fmt(meanOf(docks.map((d) => d.dockedSeconds)), 1)} | ${fmt(meanOf(docks.map((d) => d.platesRepaired)), 1)} | ${fmt(meanOf(docks.map((d) => d.launchesPerMinute)), 2)} | ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} |`,
         );
     }
     return lines;

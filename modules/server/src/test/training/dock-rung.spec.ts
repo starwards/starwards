@@ -139,4 +139,45 @@ describe('dock metrics over a scripted dock', () => {
         preempted.tracker.done(preempted.game);
         expect(preempted.tracker.outcome(preempted.game).overhaulPreemptedRenewal).toBe(true);
     });
+
+    it('does not count a bump-out as a launch', () => {
+        const { game, tracker, state } = setup();
+        for (const mode of [DockingMode.DOCKED, DockingMode.DOCKING, DockingMode.DOCKED, DockingMode.UNDOCKING]) {
+            state.docking.mode = mode;
+            tracker.done(game);
+        }
+        expect(tracker.outcome(game).launches).toBe(0);
+        state.docking.mode = DockingMode.UNDOCKED;
+        tracker.done(game);
+        expect(tracker.outcome(game).launches).toBe(1);
+    });
+
+    it('counts repairs, not the net of repairs and re-breaks', () => {
+        const { game, tracker, state } = setup();
+        const plates = state.armor.armorPlates;
+        const restore = (plate: number) => plates[plate].layers.forEach((l) => (l.health = l.maxHealth));
+        const breakPlate = (plate: number) => plates[plate].layers.forEach((l) => (l.health = 0));
+        restore(0);
+        tracker.done(game);
+        breakPlate(0);
+        tracker.done(game);
+        restore(0);
+        restore(1);
+        tracker.done(game);
+        expect(tracker.outcome(game).platesRepaired).toBe(3);
+    });
+
+    it('does not flag a forced stop as preemption, and survives a cleared queue', () => {
+        const { game, tracker, slot, state } = setup();
+        slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        tracker.done(game);
+        slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
+        const renewal = slot('armorPlateRenewal');
+        renewal.priority = RepairPriority.OFF;
+        renewal.refusalReason = 'lost repair tier';
+        tracker.done(game);
+        expect(tracker.outcome(game).overhaulPreemptedRenewal).toBe(false);
+        state.repairQueue.slots.clear();
+        expect(() => tracker.done(game)).not.toThrow();
+    });
 });
