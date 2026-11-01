@@ -151,7 +151,8 @@ export class HeadlessGame {
             // closure rather than state -- so capture the saved order first and re-issue it.
             const { order, orderTargetId } = shipState;
             const orderPosition = XY.clone(shipState.orderPosition);
-            game.shipManagers.set(id, game.makeManager(spaceObject, shipState, !spaceObject.expendable));
+            // a clone: the decoded copy keeps its decoder's references, which break later writes
+            game.shipManagers.set(id, game.makeManager(spaceObject, shipState.clone(), !spaceObject.expendable));
             if (order === Order.ATTACK && orderTargetId) {
                 game.api.orderAttack(id, orderTargetId);
             } else if (order === Order.MOVE) {
