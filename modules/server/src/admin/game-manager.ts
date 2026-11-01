@@ -504,6 +504,7 @@ export class GameManager {
             }
         }
         await this.waitForAllShipRoomsInit();
+        map.resume?.(this.scriptApi);
         this.state.gameStatus = GameStatus.RUNNING;
         this.reconcileStationAssignments();
     }

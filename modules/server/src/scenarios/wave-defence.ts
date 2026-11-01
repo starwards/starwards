@@ -409,7 +409,7 @@ export function createWaveDefenceMap(
     { onWaveSpawned, onRaiderWrittenOff }: WaveDefenceHooks = {},
 ): GameMap {
     let game: GameApi;
-    let waveNumber = (tuning.firstWave ?? 1) - 1;
+    let waveNumber = 0;
     /** Per game, so each game's aggro noise differs; drawn once at init. */
     let noiseSeed = 0;
     /** The wave stream: `rng` until a `reseed` branches it. */
@@ -424,9 +424,9 @@ export function createWaveDefenceMap(
     let secondsSinceLatestSpawn = 0;
     let defeated = false;
     /** Per-raider continuous "can't fight" streak, reset the moment it can fight again. */
-    const cantFightSeconds = new Map<string, number>();
+    let cantFightSeconds = new Map<string, number>();
     /** Per-raider continuous "receding/stationary beyond range" streak and the distance it was last measured at. */
-    const outOfPlay = new Map<string, { seconds: number; lastMinDistance: number }>();
+    let outOfPlay = new Map<string, { seconds: number; lastMinDistance: number }>();
     /**
      * Ticks remaining before a just-spawned raider's archetype-authored order (attack the player,
      * follow the wave's heavy, ...) is guaranteed to have landed in ship automation. The
@@ -435,13 +435,31 @@ export function createWaveDefenceMap(
      * fallback-eligible cleared one are otherwise indistinguishable (both read order=NONE,
      * orderTargetId=null) (issue #2241).
      */
-    const pendingInitialOrderTicks = new Map<string, number>();
+    let pendingInitialOrderTicks = new Map<string, number>();
 
     /** Stations seen alive on a previous tick; null until the first tick. Used to announce losses (M4.59). */
     let knownAliveStationIds: Set<string> | null = null;
-    const lastStationArmorHealth = new Map<string, number>();
+    let lastStationArmorHealth = new Map<string, number>();
     /** Seconds remaining before a station may be announced as under attack again. */
-    const stationAttackCooldown = new Map<string, number>();
+    let stationAttackCooldown = new Map<string, number>();
+
+    /** Starts a game's state afresh: a map object outlives its games. */
+    function startGame(g: GameApi) {
+        game = g;
+        waveNumber = (tuning.firstWave ?? 1) - 1;
+        noiseSeed = Math.floor(draw() * 2 ** 32);
+        liveWaves = [];
+        latestWaveShipIds = [];
+        waveClearTimer = null;
+        secondsSinceLatestSpawn = 0;
+        defeated = false;
+        cantFightSeconds = new Map();
+        outOfPlay = new Map();
+        pendingInitialOrderTicks = new Map();
+        knownAliveStationIds = null;
+        lastStationArmorHealth = new Map();
+        stationAttackCooldown = new Map();
+    }
 
     /** Announces stations lost since the last tick, and stations whose armor took damage (rate-limited per station). */
     function announceStationEvents(alive: readonly string[], deltaSeconds: number) {
@@ -609,8 +627,7 @@ export function createWaveDefenceMap(
     return {
         name: 'wave_defence',
         init: (g) => {
-            game = g;
-            noiseSeed = Math.floor(draw() * 2 ** 32);
+            startGame(g);
             game.addPlayerSpaceship(new Spaceship().init(PLAYER_SHIP_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas));
             for (const station of STATIONS) {
                 const stationApi = game.addNpcSpaceship(
@@ -635,6 +652,14 @@ export function createWaveDefenceMap(
             }
             giveRaidersIntel();
             spawnWave();
+        },
+        // the wave count is not saved, so it restarts; the raiders already out are the current wave
+        resume: (g) => {
+            startGame(g);
+            latestWaveShipIds = [...g.getObjects()]
+                .filter((o) => o.type === 'Spaceship' && o.faction === Faction.Raiders && !o.destroyed)
+                .map((o) => o.id);
+            liveWaves = [{ shipIds: latestWaveShipIds }];
         },
         reseed: (key) => {
             stream = mulberry32(key);
