@@ -126,6 +126,10 @@ cancelled.
   are never touched. It refuses to prune when the container list is unavailable.
 - Removes the GitHub Deployment environments `pr-<N>` and `pr-<N>-<service>` of every
   PR that is not open ([`remove-pr-environments.js`](../.github/k8s/remove-pr-environments.js)).
+  Deleting an environment needs repo Administration: write, which `GITHUB_TOKEN` never
+  has. Without the `ENVIRONMENTS_ADMIN_TOKEN` secret (fine-grained PAT with Administration
+  and Deployments write) only the deployments are deactivated and deleted, and the empty
+  environments remain.
 
 A deploy that is still running when its PR closes checks the PR state before applying, and
 skips deploying if the PR is no longer open.

@@ -270,6 +270,9 @@ jobs:
         env:
           OPEN_PRS: ${{ steps.sweep.outputs.open }}
         with:
+          # deleting environments needs Administration: write (fine-grained PAT
+          # with Administration + Deployments write); GITHUB_TOKEN only clears deployments
+          github-token: ${{ secrets.ENVIRONMENTS_ADMIN_TOKEN || github.token }}
           script: |
             const open = JSON.parse(process.env.OPEN_PRS);
             const remove = require('./.github/k8s/remove-pr-environments.js');
