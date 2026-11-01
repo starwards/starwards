@@ -46,7 +46,7 @@ describe('StationSession', () => {
         } as unknown as SessionShipDriver;
         const session = new StationSession(
             'signals',
-            { enabled: true, commands: ['prioritizeJob', 'cancelJob'] },
+            { enabled: true, commands: ['prioritizeJob', 'cancelJob', 'markTarget'] },
             shipDriver,
             {} as SessionSpaceDriver,
             { radar: {} as RadarView },
@@ -54,9 +54,14 @@ describe('StationSession', () => {
         await session.execute('prioritizeJob', {}, 'job-7');
         await session.execute('cancelJob', {}, 'job-8');
         await expect(session.execute('cancelJob', {}, true)).rejects.toThrow('job id');
+        await session.execute('markTarget', {}, 'enemy-1');
+        await session.execute('markTarget', {}, '');
+        await expect(session.execute('markTarget', {}, 3)).rejects.toThrow('contact id');
         expect(sent).toEqual([
             ['/signals/prioritizeJobId', 'job-7'],
             ['/signals/cancelJobId', 'job-8'],
+            ['/signalsTargetId', 'enemy-1'],
+            ['/signalsTargetId', ''],
         ]);
     });
 

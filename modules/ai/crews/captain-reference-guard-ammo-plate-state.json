@@ -27,6 +27,7 @@
     ],
     "knobs": {
         "AMMO_INFORMED": 1,
-        "AMMO_PLATE_STATE": 1
+        "AMMO_PLATE_STATE": 1,
+        "SIGNALS_MARK_LOCK": 1
     }
 }

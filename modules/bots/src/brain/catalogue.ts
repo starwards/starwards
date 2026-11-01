@@ -14,6 +14,7 @@ import { StationCommand } from '@starwards/core/internal';
  * - `burst`     — a trigger pulled for one decision interval (chain gun).
  * - `protocol`  — a per-repair-protocol pair of keys.
  * - `job`       — a per-signals-job key (prioritize, cancel) that sends that job's id.
+ * - `contact`   — a per-contact key that sends that contact's id (mark it on the Signals station).
  * - `excluded`  — not offered to a brain; the reason says why.
  */
 export type ControlDesign =
@@ -38,6 +39,7 @@ export type ControlDesign =
     | { kind: 'burst'; expand: 'gun' }
     | { kind: 'protocol'; options: Record<string, Record<string, unknown>> }
     | { kind: 'job'; verb: string }
+    | { kind: 'contact'; verb: string }
     | { kind: 'excluded'; reason: string };
 
 /** A path into the display, with `{system}` / `{gun}` filled in when the control is expanded. */
@@ -182,6 +184,7 @@ export const controlCatalogue = {
     pauseJobs: { kind: 'switch', read: { panel: 'signals-jobs', path: ['paused'] }, expand: 'single' },
     prioritizeJob: { kind: 'job', verb: 'move this scan job to the front of the queue' },
     cancelJob: { kind: 'job', verb: 'cancel this scan job' },
+    markTarget: { kind: 'contact', verb: 'mark this contact on your station, so Target Details shows it' },
 
     // dradis
     placeWaypoint: { kind: 'excluded', reason: 'waypoint commands take free-form positions, not button presses' },

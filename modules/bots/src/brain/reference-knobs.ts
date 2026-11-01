@@ -88,6 +88,12 @@ export const REFERENCE_KNOB_DEFAULTS = {
     AMMO_INFORMED: 0,
     /** Above 0.5 the informed arm (`AMMO_INFORMED`) picks ammo by plate state alone, without the AP-against-whipple rule. */
     AMMO_PLATE_STATE: 0,
+    /**
+     * Above 0.5, Signals marks the contact weapons last called locked (`target_locked`), else keeps its mark
+     * while that ship is a scanned enemy, else marks the nearest one, so Target Details carries its armor and
+     * `plate_intel` can be called; 0 never marks, and the Signals console offers no `markTarget` control.
+     */
+    SIGNALS_MARK_LOCK: 0,
     /** Pure arm: above 0.5 the gun loads HE shells only (AP, Frag after them); above 1.5 the tubes load HE missiles first. */
     AMMO_HE_ONLY: 0,
     /** Pure arm: above 0.5 the gun loads AP shells only (HE, Frag after them); above 1.5 the tubes load AP missiles first. */

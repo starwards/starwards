@@ -89,7 +89,7 @@ const defaultStationsManifest: StationsManifest = {
                 'target-intel',
                 'hull-status',
             ],
-            commands: ['beamDirection', 'beamArc', 'pauseJobs', 'prioritizeJob', 'cancelJob'],
+            commands: ['beamDirection', 'beamArc', 'pauseJobs', 'prioritizeJob', 'cancelJob', 'markTarget'],
             prompt:
                 'You work the scan beam. You identify contacts the rest of the crew can only see as blips, and ' +
                 'you say what you find out loud — nobody else has your picture.',

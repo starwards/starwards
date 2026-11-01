@@ -299,6 +299,13 @@ export class StationSession {
                 this.shipDriver.sendJsonCmd(pointer, value);
                 return `${pointer} set to ${value}`;
             }
+            case 'target': {
+                if (typeof value !== 'string') {
+                    throw new InvalidCommandError(`${pointer} takes a contact id, or an empty string to clear`);
+                }
+                this.shipDriver.sendJsonCmd(pointer, value);
+                return value ? `${pointer} set to ${value}` : `${pointer} cleared`;
+            }
             case 'number': {
                 if (typeof value !== 'number') {
                     throw new InvalidCommandError(`${pointer} takes a number value`);
