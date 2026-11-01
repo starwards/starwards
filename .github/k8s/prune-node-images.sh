@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
 # Remove unused starwards images from every node's containerd.
 #
-# Runs one privileged pod per node that chroots into the host and removes each
-# image of ghcr.io/starwards/starwards (and its preview-* packages) that no
-# container on the node references. Other images are never touched. A failing
-# node is reported and skipped; the script exits non-zero if any node failed.
+# Runs one privileged pod per node, all at once, that chroots into the host
+# and removes each image of <image> (and its <image>/preview-* packages) that
+# no container on the node references. Other images are never touched. A
+# failing node is reported and skipped; the script exits non-zero if any did.
 #
-# Usage: prune-node-images.sh   (env: KUBECONFIG, optional GITHUB_RUN_ID)
+# Usage: prune-node-images.sh <image>   (env: KUBECONFIG; optional
+#        GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT to name the pods)
 set -uo pipefail
 
-# Runs on the host. containerd has no in-use check of its own, so collect every
-# image ID referenced by any container (running or exited) and keep those.
+image=${1:?usage: prune-node-images.sh <image>}
+
+# Runs on the host (IMAGE in its env). containerd has no in-use check of its
+# own, so collect every image ID referenced by any container (running or
+# exited) and keep those. Fails closed: without a container list, remove nothing.
 read -r -d '' prune <<'SH' || true
 export PATH="$PATH:/usr/local/bin"
-used=$(k3s crictl ps -a -o json | grep -o 'sha256:[0-9a-f]\{64\}' | sort -u)
-for id in $(k3s crictl images --no-trunc | awk '$1 ~ /^ghcr\.io\/starwards\/starwards(\/preview-|$)/ {print $3}' | sort -u); do
+command -v k3s >/dev/null || { echo "k3s not found"; exit 1; }
+containers=$(k3s crictl ps -a -o json) || { echo "crictl ps failed"; exit 1; }
+used=$(echo "$containers" | grep -o 'sha256:[0-9a-f]\{64\}' | sort -u)
+[ -n "$used" ] || { echo "no containers listed; refusing to prune"; exit 1; }
+images=$(k3s crictl images --no-trunc) || { echo "crictl images failed"; exit 1; }
+for id in $(echo "$images" | awk -v repo="$IMAGE" '$1 == repo || index($1, repo "/preview-") == 1 {print $3}' | sort -u); do
     if echo "$used" | grep -qx "$id"; then continue; fi
     k3s crictl rmi "$id" >/dev/null && echo "removed $id"
 done
@@ -25,7 +33,7 @@ phase_of() { kubectl get pod -n kube-system "$1" -o jsonpath='{.status.phase}' 2
 failed=0
 prune_node() {
     local node=$1 pod phase="" rc=0
-    pod="prune-images-${node}-${GITHUB_RUN_ID:-$$}"
+    pod="prune-images-${node}-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
     if kubectl apply -f - >/dev/null <<YAML; then
 apiVersion: v1
 kind: Pod
@@ -43,6 +51,8 @@ spec:
       env:
         - name: PRUNE
           value: $(jq -Rs . <<<"$prune")
+        - name: IMAGE
+          value: $(printf %s "$image" | jq -Rs .)
       command: [chroot, /host, sh, -c, 'eval "\$PRUNE"']
       volumeMounts:
         - name: host

@@ -98,6 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
       deployments: write
       id-token: write # Tailscale workload identity federation
     environment:
@@ -125,7 +126,14 @@ jobs:
           RELEASE: ${{ needs.build-push.outputs.release }}
           SERVER_IMAGE: ${{ needs.build-push.outputs.image }}
           IMAGES: ${{ needs.build-push.outputs.compose_images }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
+          # a close does not cancel this run; don't recreate a cleaned-up preview
+          if [ -n "$PR" ] && [ "$(gh pr view "$PR" -R "$GITHUB_REPOSITORY" --json state --jq .state)" != OPEN ]; then
+            echo "::notice::PR #$PR is no longer open; not deploying"
+            exit 0
+          fi
           echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
           NAMESPACE="starwards-${RELEASE}"
@@ -161,6 +169,7 @@ jobs:
       # GitHub deployment per additional exposed service (pr-N-<service>) so
       # the PR shows every preview URL.
       - name: Report per-service deployments
+        if: steps.deploy.outputs.hosts != ''
         uses: actions/github-script@v7
         env:
           RELEASE: ${{ needs.build-push.outputs.release }}
@@ -244,13 +253,16 @@ jobs:
           done
           echo "deleted=${deleted[*]}" >> "$GITHUB_OUTPUT"
 
+      # every run, so a prune that failed or ran early is retried next time
       - name: Prune preview images from nodes
-        if: always() && steps.sweep.outputs.deleted != ''
+        if: always() && steps.sweep.conclusion == 'success'
+        env:
+          DELETED: ${{ steps.sweep.outputs.deleted }}
         run: |
           # images become unused only once the pods are gone
-          kubectl wait --for=delete $(printf 'namespace/starwards-pr-%s ' ${{ steps.sweep.outputs.deleted }}) --timeout=300s \
+          [ -z "$DELETED" ] || kubectl wait --for=delete $(printf 'namespace/starwards-pr-%s ' $DELETED) --timeout=300s \
             || echo "::warning::some namespaces still terminating"
-          bash .github/k8s/prune-node-images.sh
+          bash .github/k8s/prune-node-images.sh "$IMAGE"
 
       - name: Remove GitHub deployment environments
         if: always() && steps.sweep.outputs.open != ''
