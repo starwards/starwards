@@ -23,6 +23,7 @@ import {
     shipConfigurations,
 } from '@starwards/core/internal';
 
+import { Encoder } from '@colyseus/schema';
 import { decodedCopy } from '../serialization/game-state-serialization';
 
 /**
@@ -56,6 +57,8 @@ interface HeadlessGameOptions {
  */
 export class HeadlessGame {
     readonly spaceManager = new SpaceManager();
+    /** Drops each tick's changes as a room's patch does; unencoded, the state would hold every destroyed object forever. */
+    private readonly changes = new Encoder(this.spaceManager.state);
     readonly shipManagers = new Map<string, ShipManager>();
     private readonly die: ShipDie;
     private speed = 1;
@@ -225,6 +228,7 @@ export class HeadlessGame {
         this.spaceManager.state.destroySpaceshipCommands = [];
         this.spaceManager.state.createSpaceshipCommands = [];
         this.spaceManager.state.convertShipTypeCommands = [];
+        this.changes.discardChanges();
     }
 
     private addShip(spaceObject: Spaceship, authoredAsPlayer: boolean) {

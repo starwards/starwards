@@ -146,3 +146,20 @@ describe('HeadlessGame.restore', () => {
         }
     });
 });
+
+describe('HeadlessGame.tick', () => {
+    /** Destroyed objects the space state's maps still hold for an encode that never comes. */
+    const heldDeleted = (game: HeadlessGame) =>
+        [...game.spaceManager.state.maps()].reduce(
+            (sum, map) =>
+                sum +
+                ((map as unknown as { journal: { snapshots?: Map<number, unknown> } }).journal.snapshots?.size ?? 0),
+            0,
+        );
+
+    it('releases destroyed space objects', () => {
+        const game = HeadlessGame.start(training_t1, 1);
+        while (game.seconds < 30) game.tick(1 / SERVER_TICK_HZ);
+        expect(heldDeleted(game)).toBe(0);
+    });
+});
