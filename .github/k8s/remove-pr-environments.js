@@ -3,7 +3,10 @@
 // Called from actions/github-script in deploy.yml (cleanup job).
 module.exports = async ({ github, context, core }, openPrs) => {
     const open = new Set(openPrs.map(Number));
-    const environments = await github.paginate(github.rest.repos.getAllEnvironments, { ...context.repo, per_page: 100 });
+    const environments = await github.paginate(github.rest.repos.getAllEnvironments, {
+        ...context.repo,
+        per_page: 100,
+    });
     for (const { name: environment } of environments) {
         const match = /^pr-(\d+)(-|$)/.exec(environment);
         if (!match || open.has(Number(match[1]))) continue;
