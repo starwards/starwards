@@ -17,15 +17,17 @@ image=${1:?usage: prune-node-images.sh <image>}
 # exited) and keep those. Fails closed: without a container list, remove nothing.
 read -r -d '' prune <<'SH' || true
 export PATH="$PATH:/usr/local/bin"
+crictl() { k3s crictl --timeout=60s "$@"; } # default 2s is too short for rmi
 command -v k3s >/dev/null || { echo "k3s not found"; exit 1; }
-containers=$(k3s crictl ps -a -o json) || { echo "crictl ps failed"; exit 1; }
+containers=$(crictl ps -a -o json) || { echo "crictl ps failed"; exit 1; }
 used=$(echo "$containers" | grep -o 'sha256:[0-9a-f]\{64\}' | sort -u)
 [ -n "$used" ] || { echo "no containers listed; refusing to prune"; exit 1; }
-images=$(k3s crictl images --no-trunc) || { echo "crictl images failed"; exit 1; }
+images=$(crictl images --no-trunc) || { echo "crictl images failed"; exit 1; }
 for id in $(echo "$images" | awk -v repo="$IMAGE" '$1 == repo || index($1, repo "/preview-") == 1 {print $3}' | sort -u); do
     if echo "$used" | grep -qx "$id"; then continue; fi
-    k3s crictl rmi "$id" >/dev/null && echo "removed $id"
+    if crictl rmi "$id" >/dev/null; then echo "removed $id"; else echo "could not remove $id"; fi
 done
+exit 0
 SH
 
 phase_of() { kubectl get pod -n kube-system "$1" -o jsonpath='{.status.phase}' 2>/dev/null; }
@@ -63,7 +65,7 @@ spec:
         path: /
 YAML
         # stop at Succeeded or Failed; only Pending/Running uses the timeout
-        for _ in $(seq 90); do
+        for _ in $(seq 300); do # up to 10 min: rmi of a large image can be slow
             phase=$(phase_of "$pod")
             [[ $phase == Succeeded || $phase == Failed ]] && break
             sleep 2
