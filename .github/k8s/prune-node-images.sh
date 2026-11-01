@@ -23,9 +23,9 @@ SH
 phase_of() { kubectl get pod -n kube-system "$1" -o jsonpath='{.status.phase}' 2>/dev/null; }
 
 failed=0
-for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+prune_node() {
+    local node=$1 pod phase="" rc=0
     pod="prune-images-${node}-${GITHUB_RUN_ID:-$$}"
-    phase=""
     if kubectl apply -f - >/dev/null <<YAML; then
 apiVersion: v1
 kind: Pod
@@ -64,8 +64,17 @@ YAML
     else
         echo "::warning::${node}: image prune ${phase:-not started}"
         kubectl logs -n kube-system "$pod" 2>/dev/null | tail -5
-        failed=1
+        rc=1
     fi
     kubectl delete pod -n kube-system "$pod" --ignore-not-found --wait=false >/dev/null
+    return "$rc"
+}
+
+# all nodes at once; each prune is independent
+pids=()
+for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+    prune_node "$node" &
+    pids+=("$!")
 done
+for pid in "${pids[@]}"; do wait "$pid" || failed=1; done
 exit "$failed"
