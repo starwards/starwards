@@ -50,8 +50,7 @@ for svc in $(jq -r '.services | keys[]' "$COMPOSE_JSON" | tr -d '\r'); do
             continue
         fi
         base="${IMAGE_PREFIX}-${name}-base:${MAIN_TAG}"
-        tag_args "${IMAGE_PREFIX}-${name}-base"
-        docker buildx build --push "${tag_flags[@]}" \
+        docker buildx build --push -t "$base" \
             --cache-from type=gha,scope="preview-${name}" \
             --cache-to type=gha,mode=max,scope="preview-${name}" \
             -f "${ctx}/${dockerfile}" "$ctx" >&2

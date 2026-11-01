@@ -45,11 +45,6 @@ jobs:
           echo "release=${RELEASE}" >> "$GITHUB_OUTPUT"
           echo "host=${RELEASE}.${BASE_DOMAIN}" >> "$GITHUB_OUTPUT"
           echo "image=${IMAGE}:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
-          # PR builds also get pr-<N>-<sha>, which stays when pr-<N> moves on,
-          # so teardown can find every image the PR ever pushed.
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "build_tag=${RELEASE}-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
-          fi
 
       - uses: docker/setup-buildx-action@v3
 
@@ -70,7 +65,6 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.image }}
             ${{ env.IMAGE }}:${{ steps.meta.outputs.release }}
-            ${{ steps.meta.outputs.build_tag && format('{0}:{1}', env.IMAGE, steps.meta.outputs.build_tag) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -90,7 +84,7 @@ jobs:
         id: compose
         env:
           IMAGE_PREFIX: ${{ env.IMAGE }}/preview
-          TAGS: ${{ github.sha }} ${{ steps.meta.outputs.release }} ${{ steps.meta.outputs.build_tag }}
+          TAGS: ${{ github.sha }} ${{ steps.meta.outputs.release }}
           COMPOSE_DIR: docker
         run: |
           docker compose -f docker/docker-compose.yml config --format json > /tmp/compose-config.json
@@ -200,7 +194,6 @@ jobs:
     permissions:
       contents: read
       deployments: write
-      packages: write
       id-token: write # Tailscale workload identity federation
     steps:
       - uses: tailscale/github-action@v4
@@ -234,13 +227,6 @@ jobs:
             const remove = require('./.github/k8s/remove-pr-environments.js');
             await remove({ github, context, core }, [context.payload.pull_request.number]);
 
-      - name: Remove preview images
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const remove = require('./.github/k8s/remove-pr-images.js');
-            await remove({ github, context, core }, [context.payload.pull_request.number]);
-
   sweep:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -249,7 +235,6 @@ jobs:
       contents: read
       pull-requests: read
       deployments: write
-      packages: write
       id-token: write # Tailscale workload identity federation
     steps:
       - uses: actions/checkout@v4
@@ -293,12 +278,4 @@ jobs:
         with:
           script: |
             const remove = require('./.github/k8s/remove-pr-environments.js');
-            await remove({ github, context, core }, ${{ steps.sweep.outputs.deleted }});
-
-      - name: Remove preview images
-        if: steps.sweep.outputs.deleted != '[]'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const remove = require('./.github/k8s/remove-pr-images.js');
             await remove({ github, context, core }, ${{ steps.sweep.outputs.deleted }});
