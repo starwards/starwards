@@ -201,10 +201,10 @@ jobs:
       deployments: write
       id-token: write # Tailscale workload identity federation
     steps:
-      # master's scripts; a closed PR may have no merge ref
+      # closed PR: master's scripts (a closed PR may have no merge ref)
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.event.action == 'closed' && github.event.repository.default_branch || github.sha }}
 
       - uses: tailscale/github-action@v4
         with:
