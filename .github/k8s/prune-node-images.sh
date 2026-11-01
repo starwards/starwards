@@ -1,25 +1,18 @@
 #!/usr/bin/env bash
-# Remove cached starwards preview images from every node's containerd.
+# Remove unused images from every node's containerd.
 #
 # Runs one privileged pod per node that chroots into the host and calls
-# `k3s crictl rmi` on each image of ghcr.io/starwards/starwards and its
-# preview-* packages. containerd refuses to remove an image a container still
-# uses, so live previews and master keep theirs; everything else is evicted.
+# `k3s crictl rmi --prune`, which removes only images no container uses, so
+# live previews and master keep theirs. A failing node is reported and
+# skipped; the script exits non-zero at the end if any node failed.
 #
-# Usage: prune-node-images.sh   (env: KUBECONFIG)
-set -euo pipefail
+# Usage: prune-node-images.sh   (env: KUBECONFIG, optional GITHUB_RUN_ID)
+set -uo pipefail
 
-read -r -d '' prune <<'SH' || true
-export PATH="$PATH:/usr/local/bin"
-for id in $(k3s crictl images | awk '$1 ~ /^ghcr\.io\/starwards\/starwards(\/preview-|$)/ {print $3}' | sort -u); do
-    k3s crictl rmi "$id" >/dev/null 2>&1 && echo "removed $id" || true
-done
-SH
-
+failed=0
 for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
-    pod="prune-images-${node}"
-    kubectl delete pod -n kube-system "$pod" --ignore-not-found >/dev/null
-    kubectl apply -f - >/dev/null <<YAML
+    pod="prune-images-${node}-${GITHUB_RUN_ID:-$$}"
+    if kubectl apply -f - >/dev/null <<YAML &&
 apiVersion: v1
 kind: Pod
 metadata:
@@ -33,7 +26,7 @@ spec:
       image: busybox:1.37
       securityContext:
         privileged: true
-      command: [chroot, /host, sh, -c, $(jq -Rs . <<<"$prune")]
+      command: [chroot, /host, sh, -c, 'PATH="\$PATH:/usr/local/bin" k3s crictl rmi --prune']
       volumeMounts:
         - name: host
           mountPath: /host
@@ -42,7 +35,13 @@ spec:
       hostPath:
         path: /
 YAML
-    kubectl wait -n kube-system "pod/${pod}" --for=jsonpath='{.status.phase}'=Succeeded --timeout=180s >/dev/null
-    echo "${node}: $(kubectl logs -n kube-system "$pod" | wc -l) image(s) removed"
-    kubectl delete pod -n kube-system "$pod" --wait=false >/dev/null
+        kubectl wait -n kube-system "pod/${pod}" --for=jsonpath='{.status.phase}'=Succeeded --timeout=180s >/dev/null; then
+        echo "${node}: $(kubectl logs -n kube-system "$pod" | grep -c '^Deleted') image(s) removed"
+    else
+        echo "::warning::${node}: image prune failed"
+        kubectl logs -n kube-system "$pod" 2>/dev/null | tail -5
+        failed=1
+    fi
+    kubectl delete pod -n kube-system "$pod" --ignore-not-found --wait=false >/dev/null
 done
+exit "$failed"

@@ -13,7 +13,8 @@ on:
 
 concurrency:
   group: deploy-${{ github.event.pull_request.number || (github.event_name == 'push' && 'master') || 'sweep' }}
-  cancel-in-progress: true
+  # cleanup runs queue; cancelling one mid-way would strand its environments
+  cancel-in-progress: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed') }}
 
 env:
   REGISTRY: ghcr.io
@@ -187,56 +188,11 @@ jobs:
               });
             }
 
-  teardown:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    environment: teardown # gives the OIDC token an environment subject for Tailscale
-    permissions:
-      contents: read
-      deployments: write
-      id-token: write # Tailscale workload identity federation
-    steps:
-      - uses: tailscale/github-action@v4
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          audience: ${{ secrets.TS_AUDIENCE }}
-          tags: tag:ci
-          ping: 100.67.69.53
-
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-
-      - name: Delete preview environment
-        run: |
-          echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
-          export KUBECONFIG=/tmp/kubeconfig
-          # The whole preview (all compose services, ingress, TLS copy) lives
-          # in its own namespace — deleting it removes everything.
-          kubectl delete namespace "starwards-pr-${{ github.event.pull_request.number }}" \
-            --ignore-not-found --wait=false
-
-      - uses: actions/checkout@v4
-
-      - name: Prune preview images from nodes
-        run: |
-          echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
-          export KUBECONFIG=/tmp/kubeconfig
-          # containerd keeps images still in use, so wait for the pods to go
-          kubectl wait --for=delete "namespace/starwards-pr-${{ github.event.pull_request.number }}" --timeout=300s
-          bash .github/k8s/prune-node-images.sh
-
-      - name: Remove GitHub deployment environment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const remove = require('./.github/k8s/remove-pr-environments.js');
-            await remove({ github, context, core }, [context.payload.pull_request.number]);
-
-  sweep:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  # Removes previews (namespace, node images, GitHub environments) of every
+  # PR that is not open. Runs on PR close, daily, and on demand, so a missed
+  # `closed` event or a failed run is caught by the next one.
+  cleanup:
+    if: github.event.action == 'closed' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: teardown # gives the OIDC token an environment subject for Tailscale
     permissions:
@@ -245,7 +201,10 @@ jobs:
       deployments: write
       id-token: write # Tailscale workload identity federation
     steps:
+      # master's scripts; a closed PR may have no merge ref
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
 
       - uses: tailscale/github-action@v4
         with:
@@ -259,16 +218,17 @@ jobs:
           curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
+          echo '${{ secrets.KUBECONFIG }}' > "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
 
       - name: Delete previews of non-open PRs
         id: sweep
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLOSED_PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
-          export KUBECONFIG=/tmp/kubeconfig
-          open=$(gh pr list -R "$GITHUB_REPOSITORY" --state open --limit 500 --json number --jq '.[].number')
+          open=$(gh pr list -R "$GITHUB_REPOSITORY" --state open --limit 1000 --json number --jq '.[].number' | grep -vx "${CLOSED_PR:-none}" || true)
           previews=$(kubectl get ns -l app=starwards -o name | sed -n 's#^namespace/starwards-pr-##p')
           deleted=()
           for pr in $previews; do
@@ -278,23 +238,26 @@ jobs:
               deleted+=("$pr")
             fi
           done
-          echo "deleted=$(jq -cn '$ARGS.positional | map(tonumber)' --args "${deleted[@]}")" >> "$GITHUB_OUTPUT"
+          echo "deleted=${deleted[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Prune preview images from nodes
-        if: steps.sweep.outputs.deleted != '[]'
+        if: always() && steps.sweep.outputs.deleted != ''
         run: |
-          echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
-          export KUBECONFIG=/tmp/kubeconfig
-          # containerd keeps images still in use, so wait for the pods to go
-          for pr in $(jq -r '.[]' <<<'${{ steps.sweep.outputs.deleted }}'); do
-            kubectl wait --for=delete "namespace/starwards-pr-$pr" --timeout=300s
+          # images become unused only once the pods are gone
+          for pr in ${{ steps.sweep.outputs.deleted }}; do
+            kubectl wait --for=delete "namespace/starwards-pr-$pr" --timeout=300s \
+              || echo "::warning::namespace starwards-pr-$pr still terminating"
           done
           bash .github/k8s/prune-node-images.sh
 
       - name: Remove GitHub deployment environments
-        if: steps.sweep.outputs.deleted != '[]'
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
+            const closed = context.payload.pull_request?.number;
+            const open = (await github.paginate(github.rest.pulls.list, { ...context.repo, state: 'open', per_page: 100 }))
+              .map((p) => p.number)
+              .filter((n) => n !== closed);
             const remove = require('./.github/k8s/remove-pr-environments.js');
-            await remove({ github, context, core }, ${{ steps.sweep.outputs.deleted }});
+            await remove({ github, context, core }, open);
