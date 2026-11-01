@@ -1,3 +1,4 @@
+import { DockingMode, RepairPriority, RepairProtocolSlot, fixArmor } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID, createTrainingT0Map } from '../../scenarios/training';
 import { runTraining, trainingScenarios } from './training-scenarios';
 import { HeadlessGame } from '../headless-game';
@@ -43,7 +44,7 @@ describe('dock metrics', () => {
         expect(tracker.done(game)).toBe(false);
         expect(tracker.outcome(game)).toMatchObject({
             platesAtStart: 16,
-            platesHealthyAtStart: 0,
+            platesIntactAtStart: 0,
             platesRepaired: 0,
             passedAt: null,
             launches: 0,
@@ -55,7 +56,7 @@ describe('runTraining on a dock-only rung', () => {
     it('reports the dock outcome and a failed pass when nothing docks', async () => {
         const result = await runTraining(trainingScenarios['D-dock-0of16'], { seed: 1, timeoutSeconds: 5 });
         expect(result.killed).toBe(false);
-        expect(result.dock).toMatchObject({ platesHealthyAtStart: 0, passedAt: null, launches: 0 });
+        expect(result.dock).toMatchObject({ platesIntactAtStart: 0, passedAt: null, launches: 0 });
     });
 });
 
@@ -73,10 +74,69 @@ describe('dock rung details', () => {
         const [params] = fc.sample(scenario.params, { seed: 1, numRuns: 1 });
         const { map, tracker } = scenario.trackDock!(params);
         const game = HeadlessGame.start(map, 1);
-        expect(tracker.outcome(game)).toMatchObject({ platesAtStart: 16, platesHealthyAtStart: 0 });
+        expect(tracker.outcome(game)).toMatchObject({ platesAtStart: 16, platesIntactAtStart: 0 });
     });
 
     it('tracks the late attacker as the rung enemy', () => {
         expect(trainingScenarios['D-dock-0of16-late'].enemies).toHaveLength(1);
+    });
+});
+
+describe('dock metrics over a scripted dock', () => {
+    const setup = () => {
+        const scenario = trainingScenarios['D-dock-0of16'];
+        const [params] = fc.sample(scenario.params, { seed: 1, numRuns: 1 });
+        const { map, tracker } = scenario.trackDock!(params);
+        const game = HeadlessGame.start(map, 1, { crewedPlayer: true });
+        const state = game.shipManagers.get(TRAINING_PLAYER_ID)!.state;
+        const slot = (id: string): RepairProtocolSlot => state.repairQueue.slots.find((s) => s.protocolId === id)!;
+        return { game, tracker, state, slot };
+    };
+
+    it('counts a launch through UNDOCKING and the docked seconds', () => {
+        const { game, tracker, state } = setup();
+        state.docking.mode = DockingMode.DOCKED;
+        game.tick(1);
+        tracker.done(game);
+        game.tick(1);
+        tracker.done(game);
+        state.docking.mode = DockingMode.UNDOCKING;
+        game.tick(1);
+        tracker.done(game);
+        state.docking.mode = DockingMode.UNDOCKED;
+        game.tick(1);
+        tracker.done(game);
+        const outcome = tracker.outcome(game);
+        expect(outcome.launches).toBe(1);
+        expect(outcome.dockedSeconds).toBeCloseTo(2, 0);
+        expect(outcome.launchesPerMinute).toBeGreaterThan(0);
+    });
+
+    it('passes once every plate is intact and counts the repaired plates', () => {
+        const { game, tracker, state } = setup();
+        fixArmor(state.armor);
+        game.tick(1);
+        expect(tracker.done(game)).toBe(true);
+        const outcome = tracker.outcome(game);
+        expect(outcome.platesRepaired).toBe(16);
+        expect(outcome.passedAt).not.toBeNull();
+    });
+
+    it('flags an overhaul preempting a running renewal, not one merely queued behind it', () => {
+        // the tracker is read between ticks, so the slots are set as the repair manager would have left them
+        const queued = setup();
+        queued.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        queued.tracker.done(queued.game);
+        queued.slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
+        queued.tracker.done(queued.game);
+        expect(queued.tracker.outcome(queued.game).overhaulPreemptedRenewal).toBe(false);
+
+        const preempted = setup();
+        preempted.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        preempted.tracker.done(preempted.game);
+        preempted.slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
+        preempted.slot('armorPlateRenewal').priority = RepairPriority.CANCELLING;
+        preempted.tracker.done(preempted.game);
+        expect(preempted.tracker.outcome(preempted.game).overhaulPreemptedRenewal).toBe(true);
     });
 });

@@ -77,7 +77,7 @@ export interface TrainingResult {
     readonly hz: number;
     /** A wave rung's outcome; `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
     readonly waves?: WaveOutcome;
-    /** A dock-only rung's outcome; `killed` is its pass (every armor plate healthy). */
+    /** A dock-only rung's outcome; `killed` is its pass (every armor plate intact), so `kills`/`enemies` count only the late attacker. */
     readonly dock?: DockOutcome;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];

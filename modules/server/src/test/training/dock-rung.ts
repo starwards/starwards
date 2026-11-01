@@ -13,17 +13,17 @@ import { TRAINING_PLAYER_ID } from '../../scenarios/training';
 /** How a dock-only run went: the pass bar is every armor plate healthy. */
 export interface DockOutcome {
     readonly platesAtStart: number;
-    readonly platesHealthyAtStart: number;
-    /** Healthy plates at the end minus at the start. */
+    readonly platesIntactAtStart: number;
+    /** Intact plates (every layer at full health) at the end minus at the start. */
     readonly platesRepaired: number;
     /** Sim-second every plate was healthy, or null. */
     readonly passedAt: number | null;
     /** Sim-seconds spent DOCKED. */
     readonly dockedSeconds: number;
-    /** DOCKED to UNDOCKED transitions. */
+    /** Exits from DOCKED (via UNDOCKING or straight to UNDOCKED). */
     readonly launches: number;
     readonly launchesPerMinute: number;
-    /** Whether an armor-plate renewal run was cancelled while an overhaul was queued or running. */
+    /** Whether a running armor-plate renewal was demoted (cancelling, or back to pending) while an overhaul was queued or running. */
     readonly overhaulPreemptedRenewal: boolean;
 }
 
@@ -43,7 +43,7 @@ const overhaulIds = [
 
 export function trackDock(params: DockOnlyParams, playerArmor: number): { map: GameMap; tracker: DockTracker } {
     let platesAtStart = 0;
-    let platesHealthyAtStart = 0;
+    let platesIntactAtStart = 0;
     let passedAt: number | null = null;
     let dockedSeconds = 0;
     let launches = 0;
@@ -70,15 +70,11 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
             const renewal = slots.find((s) => s.protocolId === 'armorPlateRenewal');
             const overhauls = slots.filter((s) => (overhaulIds as readonly string[]).includes(s.protocolId));
             const renewalPriority = renewal?.priority ?? RepairPriority.OFF;
-            const renewalStopped =
+            // Preempted: a running renewal was demoted (cancelling, or back to pending) while an overhaul was queued or running.
+            const renewalDemoted =
                 renewalWasRunning &&
-                (renewalPriority === RepairPriority.CANCELLING ||
-                    (renewalPriority === RepairPriority.OFF && renewal!.refusalReason !== ''));
-            const renewalWaiting =
-                isRepairPriorityPending(renewalPriority) || renewalPriority === RepairPriority.CANCELLING;
-            overhaulPreemptedRenewal ||=
-                (renewalStopped && overhauls.some((s) => s.priority !== RepairPriority.OFF)) ||
-                (renewalWaiting && overhauls.some((s) => s.priority === RepairPriority.RUNNING));
+                (renewalPriority === RepairPriority.CANCELLING || isRepairPriorityPending(renewalPriority));
+            overhaulPreemptedRenewal ||= renewalDemoted && overhauls.some((s) => s.priority !== RepairPriority.OFF);
             renewalWasRunning = renewalPriority === RepairPriority.RUNNING;
             if (passedAt === null && intactPlates(armor) === armor.numberOfPlates) {
                 passedAt = game.seconds;
@@ -89,8 +85,8 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
             const armor = armorOf(game);
             return {
                 platesAtStart,
-                platesHealthyAtStart,
-                platesRepaired: intactPlates(armor) - platesHealthyAtStart,
+                platesIntactAtStart,
+                platesRepaired: intactPlates(armor) - platesIntactAtStart,
                 passedAt,
                 dockedSeconds,
                 launches,
@@ -107,7 +103,7 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
                 map.init(game);
                 const armor = game.getShip(TRAINING_PLAYER_ID)!.state.armor;
                 platesAtStart = armor.numberOfPlates;
-                platesHealthyAtStart = intactPlates(armor);
+                platesIntactAtStart = intactPlates(armor);
             },
         },
         tracker,
