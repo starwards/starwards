@@ -34,7 +34,10 @@ const overhaulIds = [
     'hullWideSystemsOverhaul',
 ] as const satisfies readonly (keyof typeof repairProtocols)[];
 
-export function trackDock(params: DockOnlyParams, playerArmor: number): { map: GameMap; tracker: DockTracker } {
+export function trackDock(params: DockOnlyParams & { readonly playerArmor: number }): {
+    map: GameMap;
+    tracker: DockTracker;
+} {
     let platesAtStart = 0;
     let platesIntactAtStart = 0;
     let passedAt: number | null = null;
@@ -45,11 +48,15 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
     let renewalCancelled = false;
     let platesRepaired = 0;
     let renewalWasRunning = false;
+    let renewalProgress = 0;
     let overhaulPreemptedRenewal = false;
     let lastSeconds = 0;
     const tracker: DockTracker = {
         done(game) {
-            const state = game.api.getShip(TRAINING_PLAYER_ID)!.state;
+            const state = game.api.getShip(TRAINING_PLAYER_ID)?.state;
+            if (!state) {
+                return false;
+            }
             const armor = state.armor;
             const dt = game.seconds - lastSeconds;
             lastSeconds = game.seconds;
@@ -75,10 +82,13 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
             // Preempted: the crew cancelled a running renewal that had not finished (a forced stop leaves a refusal reason) and an
             // overhaul was waiting then, or took the repair crew before the renewal ran again. A renewal merely queued behind a
             // running overhaul is delay, not preemption. A cancel can finish inside one update, so an OFF slot after RUNNING is a cancel.
+            // A run that could have finished within this tick (progress near 1) is a completion, even if a hit un-intacts its plate.
+            const couldHaveFinished = renewalProgress + (2 * dt) / armor.plateRepairSeconds >= 1;
             if (
                 renewalWasRunning &&
                 renewalPriority !== RepairPriority.RUNNING &&
                 !repairedNow &&
+                !couldHaveFinished &&
                 !renewal?.refusalReason
             ) {
                 renewalCancelled = true;
@@ -90,6 +100,7 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
             overhaulPreemptedRenewal ||=
                 renewalCancelled && overhauls.some((s) => s.priority === RepairPriority.RUNNING);
             renewalWasRunning = renewalPriority === RepairPriority.RUNNING;
+            renewalProgress = renewalWasRunning ? (renewal?.progress ?? 0) : 0;
             if (passedAt === null && plates.every(Boolean)) {
                 passedAt = game.seconds;
             }
@@ -108,7 +119,7 @@ export function trackDock(params: DockOnlyParams, playerArmor: number): { map: G
             };
         },
     };
-    const map = createTrainingDockOnlyMap(params, { playerArmor });
+    const map = createTrainingDockOnlyMap(params, { playerArmor: params.playerArmor });
     return {
         map: {
             ...map,

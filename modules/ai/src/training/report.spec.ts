@@ -92,8 +92,15 @@ describe('crewReport on a dock rung', () => {
 
     it('tabulates passes, docked seconds, plates repaired, launch rate and preemptions per crew', () => {
         expect(report).toContain(
-            '| crew | passed | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) |',
+            '| crew | passed | runs with dock metrics | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) |',
         );
-        expect(report).toContain('| a | 1/2 | 190.0 | 10.0 | 0.10 | 1/2 |');
+        expect(report).toContain('| a | 1/2 | 2/2 | 190.0 | 10.0 | 0.10 | 1/2 |');
+    });
+
+    it('reads a failed late run with the attacker killed as not passed', () => {
+        const failed = { ...dockRun('c', 1, {}), killed: false, kills: 1, enemies: 1 } as CrewRunResult;
+        const late = crewReport('D-dock-0of16-late', [failed], 'header');
+        expect(late).toMatch(/\| c \|[^\n]*\| 0\/1 \|/);
+        expect(late).not.toContain('(enemies');
     });
 });

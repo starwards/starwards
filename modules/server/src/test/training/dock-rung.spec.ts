@@ -211,4 +211,15 @@ describe('dock metrics over a scripted dock', () => {
         tracker.done(game);
         expect(tracker.outcome(game).platesRepaired).toBe(2);
     });
+
+    it('does not read a finishing run as a cancel when a hit un-intacts its plate the same tick', () => {
+        const { game, tracker, slot } = setup();
+        slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        slot('armorPlateRenewal').progress = 1;
+        tracker.done(game);
+        slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
+        slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        tracker.done(game);
+        expect(tracker.outcome(game).overhaulPreemptedRenewal).toBe(false);
+    });
 });

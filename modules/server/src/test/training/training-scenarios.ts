@@ -339,8 +339,8 @@ const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingSce
         playerArmor: fc.constant(playerArmor),
     }),
     enemies: late ? [TRAINING_TARGET_ID] : [],
-    createMap: (params) => trackDock(params, params.playerArmor).map,
-    trackDock: (params) => trackDock(params, params.playerArmor),
+    createMap: (params) => trackDock(params).map,
+    trackDock,
 });
 
 const adversaryRungs: Record<string, TrainingScenario<never>> = {
