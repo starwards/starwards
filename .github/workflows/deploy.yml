@@ -12,9 +12,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-${{ github.event.pull_request.number || (github.event_name == 'push' && 'master') || 'sweep' }}
-  # cleanup runs queue; cancelling one mid-way would strand its environments
-  cancel-in-progress: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed') }}
+  # Cleanup runs (PR close, schedule, dispatch) share one group and never
+  # cancel: each sweeps every non-open PR, so two at once would race, and a
+  # cancelled one strands privileged prune pods and environments.
+  group: ${{ (github.event.action == 'closed' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'cleanup' || format('deploy-{0}', github.event.pull_request.number || 'master') }}
+  cancel-in-progress: ${{ github.event.action != 'closed' && github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
 
 env:
   REGISTRY: ghcr.io
@@ -228,7 +230,9 @@ jobs:
           CLOSED_PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          open=$(gh pr list -R "$GITHUB_REPOSITORY" --state open --limit 1000 --json number --jq '.[].number' | grep -vx "${CLOSED_PR:-none}" || true)
+          # must fail loudly: an empty list here would delete every preview
+          all_open=$(gh pr list -R "$GITHUB_REPOSITORY" --state open --limit 1000 --json number --jq '.[].number')
+          open=$(grep -vx "${CLOSED_PR:-none}" <<<"$all_open" || true)
           previews=$(kubectl get ns -l app=starwards -o name | sed -n 's#^namespace/starwards-pr-##p')
           deleted=()
           for pr in $previews; do

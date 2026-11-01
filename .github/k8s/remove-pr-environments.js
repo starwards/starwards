@@ -17,8 +17,17 @@ module.exports = async ({ github, context, core }, openPrs) => {
             per_page: 100,
         });
         for (const d of deployments) {
-            await github.rest.repos.createDeploymentStatus({ ...context.repo, deployment_id: d.id, state: 'inactive' });
-            await github.rest.repos.deleteDeployment({ ...context.repo, deployment_id: d.id });
+            try {
+                await github.rest.repos.createDeploymentStatus({
+                    ...context.repo,
+                    deployment_id: d.id,
+                    state: 'inactive',
+                });
+                await github.rest.repos.deleteDeployment({ ...context.repo, deployment_id: d.id });
+            } catch (e) {
+                // already removed by another run
+                if (e.status !== 404) throw e;
+            }
         }
         // Deleting the environment shell needs admin rights, which
         // GITHUB_TOKEN may not have — best-effort only.
