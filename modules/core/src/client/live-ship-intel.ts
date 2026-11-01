@@ -9,12 +9,18 @@ import { SnapshotFetch } from './snapshot-fetch';
  * A `ShipIntelSource` over a running game: live states come from joining the target's ship room,
  * snapshots from the observing ship's room (SPEC-0008 fetch). Reads never block — a source not yet
  * delivered reads as undefined and arrives on a later read. Tracks one snapshot subject at a time.
+ * A ship not read for {@link FORGET_MS} is dropped, as a destroyed ship is never read again.
  */
+const FORGET_MS = 30_000;
+
 export class LiveShipIntel implements ShipIntelSource {
     private readonly liveStates = new Map<string, ShipState>();
     private readonly joining = new Set<string>();
     private readonly fetches = new Map<string, SnapshotFetch>();
     private readonly decoded = new Map<string, { data: Uint8Array; state: ShipState }>();
+    /** ship id → when it was last read */
+    private readonly readAt = new Map<string, number>();
+    private sweptAt = 0;
     /** stops listening for snapshot replies */
     readonly dispose: () => void;
     private readonly send: ShipDriver['needSnapshot'];
@@ -22,17 +28,19 @@ export class LiveShipIntel implements ShipIntelSource {
     constructor(
         private readonly getShipDriver: (shipId: string) => Promise<ShipDriver>,
         observer: Pick<ShipDriver, 'needSnapshot' | 'onSnapshot'>,
+        private readonly now: () => number = Date.now,
     ) {
         this.send = (msg) => observer.needSnapshot(msg);
         this.dispose = observer.onSnapshot((msg) => this.fetches.get(msg.targetId)?.receive(msg));
     }
 
     live(ship: Spaceship): ShipState | undefined {
+        this.read(ship.id);
         const state = this.liveStates.get(ship.id);
         if (!state && !this.joining.has(ship.id)) {
             this.joining.add(ship.id);
             void this.getShipDriver(ship.id).then(
-                (d) => this.liveStates.set(ship.id, d.state),
+                (d) => this.joining.has(ship.id) && this.liveStates.set(ship.id, d.state),
                 () => this.joining.delete(ship.id),
             );
         }
@@ -40,6 +48,7 @@ export class LiveShipIntel implements ShipIntelSource {
     }
 
     snapshot(ship: Spaceship, faction: Faction) {
+        this.read(ship.id);
         let fetch = this.fetches.get(ship.id);
         if (!fetch) {
             fetch = new SnapshotFetch(this.send);
@@ -54,5 +63,20 @@ export class LiveShipIntel implements ShipIntelSource {
             this.decoded.set(ship.id, decoded);
         }
         return { state: decoded.state, ageSeconds: snapshot.ageSeconds };
+    }
+
+    private read(shipId: string) {
+        const now = this.now();
+        this.readAt.set(shipId, now);
+        if (now - this.sweptAt < FORGET_MS) return;
+        this.sweptAt = now;
+        for (const [id, at] of this.readAt) {
+            if (now - at < FORGET_MS) continue;
+            this.readAt.delete(id);
+            this.liveStates.delete(id);
+            this.joining.delete(id);
+            this.fetches.delete(id);
+            this.decoded.delete(id);
+        }
     }
 }

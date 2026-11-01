@@ -150,3 +150,67 @@ describe('LiveShipIntel', () => {
         expect(intel.design?.armor.plates[0].layers[0].health).to.equal(4);
     });
 });
+
+describe('LiveShipIntel forgetting', () => {
+    const other = () => new Spaceship().init('other', Vec2.make({ x: 0, y: 0 }), 'dragonfly-MK1', Faction.Raiders);
+
+    it('lets go of a ship it was not asked about for a while, as when it was destroyed', async () => {
+        const { subject, live } = setup(ScanLevel.FULL);
+        let now = 0;
+        const joined: string[] = [];
+        const source = new LiveShipIntel(
+            (id) => {
+                joined.push(id);
+                return Promise.resolve({ state: live } as ShipDriver);
+            },
+            { needSnapshot: () => undefined, onSnapshot: () => () => undefined },
+            () => now,
+        );
+        source.live(subject);
+        await Promise.resolve();
+        now += 60_000;
+        source.live(other());
+        expect(source.live(subject)).to.equal(undefined);
+        expect(joined).to.deep.equal(['target', 'other', 'target']);
+    });
+
+    it('keeps a ship it is asked about', async () => {
+        const { subject, live } = setup(ScanLevel.FULL);
+        let now = 0;
+        const source = new LiveShipIntel(
+            () => Promise.resolve({ state: live } as ShipDriver),
+            { needSnapshot: () => undefined, onSnapshot: () => () => undefined },
+            () => now,
+        );
+        source.live(subject);
+        await Promise.resolve();
+        for (let i = 0; i < 10; i++) {
+            now += 10_000;
+            expect(source.live(subject)).to.equal(live);
+        }
+    });
+
+    it('lets go of a held snapshot of a ship it was not asked about for a while', () => {
+        const { subject, live } = setup(ScanLevel.SNAPSHOT);
+        subject.scanSnapshotCapturedAt[Number(PLAYER)] = 30;
+        let now = 0;
+        let deliver: (msg: SnapshotMessage) => void = () => undefined;
+        const source = new LiveShipIntel(
+            () => Promise.reject(new Error('no live join at SNAPSHOT')),
+            {
+                needSnapshot: () => undefined,
+                onSnapshot: (cb) => {
+                    deliver = cb;
+                    return () => undefined;
+                },
+            },
+            () => now,
+        );
+        source.snapshot(subject, PLAYER);
+        deliver({ targetId: 'target', capturedAt: 30, ageSeconds: 2, data: encodeShipSnapshot(live) });
+        expect(source.snapshot(subject, PLAYER)).to.not.equal(undefined);
+        now += 60_000;
+        source.snapshot(other(), PLAYER);
+        expect(source.snapshot(subject, PLAYER)).to.equal(undefined);
+    });
+});
