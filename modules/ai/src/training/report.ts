@@ -44,6 +44,7 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
  * score) is left out for that pair.
  */
 export function pairedSection(results: readonly CrewRunResult[], baseline: string) {
+    const dockRung = results.some((r) => r.dock);
     const lines = [
         `## Paired with ${baseline}, seed by seed`,
         '',
@@ -70,7 +71,7 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
             const good = metric.better === 'higher' ? c.meanDiff > 0 : c.meanDiff < 0;
             const sign = (n: number) => `${n >= 0 ? '+' : '−'}${fmt(Math.abs(n), digits)}`;
             lines.push(
-                `| ${crew} | ${metric.name} (${metric.better} is better) | ${seeds.length} | ${fmt(mean(a as number[]), digits)} | ${fmt(mean(b as number[]), digits)} | ${sign(c.meanDiff)} [${sign(c.ci[0])}, ${sign(c.ci[1])}] | ${c.wins} / ${c.losses} / ${c.ties} | ${fmt(c.signP, 3)} | ${isSignificant(c) ? (good ? 'better' : 'worse') : 'within noise'} |`,
+                `| ${crew} | ${dockRung ? dockLabel(metric.name) : metric.name} (${metric.better} is better) | ${seeds.length} | ${fmt(mean(a as number[]), digits)} | ${fmt(mean(b as number[]), digits)} | ${sign(c.meanDiff)} [${sign(c.ci[0])}, ${sign(c.ci[1])}] | ${c.wins} / ${c.losses} / ${c.ties} | ${fmt(c.signP, 3)} | ${isSignificant(c) ? (good ? 'better' : 'worse') : 'within noise'} |`,
             );
         }
     }
@@ -177,6 +178,9 @@ function wavesSection(results: readonly CrewRunResult[], crews: readonly string[
     }
     return lines;
 }
+
+/** On a dock rung `killed` is the pass and `seconds` the time to pass. */
+const dockLabel = (name: string) => (name === 'killed' ? 'passed' : name === 'seconds' ? 'time to pass' : name);
 
 /** Dock-only rungs: `killed` is the pass (every plate healthy), `seconds` the time to pass; these are the dock behaviour behind them. */
 function dockSection(results: readonly CrewRunResult[], crews: readonly string[]) {

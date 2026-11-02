@@ -135,7 +135,7 @@ export async function runBranch(
         if (dock?.passedAt != null) {
             seconds = dock.passedAt;
         }
-        const score = scorer.result({ killed, seconds });
+        const score = scorer.result({ killed: killed && !dock, seconds }); // a dock pass is not a kill
         return {
             killed,
             seconds,

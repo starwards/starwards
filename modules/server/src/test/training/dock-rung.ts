@@ -69,8 +69,8 @@ export function trackDock(map: GameMap): {
     const tracker: DockTracker = {
         done(game) {
             const state = game.api.getShip(TRAINING_PLAYER_ID)?.state;
-            if (!state || state.healthRatio <= 0) {
-                return true; // GVTS lost (mission kill): the hull can no longer be repaired
+            if (!state) {
+                return true; // GVTS gone: the hull can no longer be repaired
             }
             const armor = state.armor;
             const dt = game.seconds - lastSeconds;

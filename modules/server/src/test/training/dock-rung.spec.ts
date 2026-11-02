@@ -273,4 +273,18 @@ describe('dock metrics over a scripted dock', () => {
         tracker.done(game);
         expect(tracker.outcome(game).overhaulPreemptedRenewal).toBe(true);
     });
+
+    it('flags a cancel that winds down through CANCELLING over several ticks', () => {
+        const { game, tracker, slot } = setup();
+        slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        tracker.done(game);
+        slot('armorPlateRenewal').priority = RepairPriority.CANCELLING;
+        slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
+        tracker.done(game);
+        tracker.done(game);
+        slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
+        tracker.done(game);
+        expect(tracker.outcome(game).overhaulPreemptedRenewal).toBe(true);
+    });
 });
