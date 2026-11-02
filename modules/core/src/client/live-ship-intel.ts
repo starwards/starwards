@@ -5,14 +5,16 @@ import { ShipDriver } from './ship';
 import { ShipIntelSource } from './space-object-intel';
 import { SnapshotFetch } from './snapshot-fetch';
 
+/** How long a ship goes unread before {@link LiveShipIntel} drops it; the sweep runs this often, so it goes within twice that. */
+const FORGET_MS = 30_000;
+
 /**
  * A `ShipIntelSource` over a running game: live states come from joining the target's ship room,
  * snapshots from the observing ship's room (SPEC-0008 fetch). Reads never block — a source not yet
  * delivered reads as undefined and arrives on a later read. Tracks one snapshot subject at a time.
- * A ship not read for {@link FORGET_MS} is dropped, as a destroyed ship is never read again.
+ * A ship not read for {@link FORGET_MS} is dropped, as a destroyed ship is never read again. Its
+ * room is not left here: the server disconnects a destroyed ship's room, and `Driver` drops it then.
  */
-const FORGET_MS = 30_000;
-
 export class LiveShipIntel implements ShipIntelSource {
     private readonly liveStates = new Map<string, ShipState>();
     private readonly joining = new Set<string>();

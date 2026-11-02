@@ -72,7 +72,9 @@ export function decodedCopy<T extends Schema>(ctor: Constructor<T>, source: T) {
 /**
  * Drops the ref ids a decoder stamped on a tree. An encoder keeps an instance's ref id when it has
  * one and numbers new instances from its own counter, so a decoded object put in a room's state
- * shares its id with a later new one, and clients decode the one as the other.
+ * shares its id with a later new one, and clients decode the one as the other. Reads
+ * `@colyseus/schema` 5 internals (`$refId`, `ChangeTree.refTarget`, `forEachChild`); the load tests in
+ * `admin/load-game-join.spec.ts` fail if an upgrade changes them.
  */
 function forgetRefIds(tree: ChangeTree) {
     (tree.ref as { [$refId]?: number })[$refId] = undefined;
