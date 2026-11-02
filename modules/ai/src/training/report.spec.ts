@@ -1,4 +1,5 @@
 import { CrewRunResult } from './train-crew';
+import { DockOutcome } from '@starwards/server/src/test/training/dock-rung';
 import { WaveOutcome } from '@starwards/server/src/test/training/wave-rung';
 import { crewReport } from './report';
 
@@ -61,5 +62,49 @@ describe('crewReport on a wave rung', () => {
 
     it('pairs waves survived seed by seed', () => {
         expect(report).toMatch(/\| b \| waves survived \(higher is better\) \| 2 \| 2\.0 \| 1\.0 \|/);
+    });
+});
+
+describe('crewReport on a dock rung', () => {
+    const dockRun = (crew: string, seed: number, dock: Partial<DockOutcome>): CrewRunResult => ({
+        ...waveRun(crew, seed, {}),
+        waves: undefined,
+        dock: {
+            platesAtStart: 16,
+            platesHealthyAtStart: 0,
+            platesRepaired: 0,
+            passedAt: null,
+            dockedSeconds: 0,
+            launches: 0,
+            launchesPerMinute: 0,
+            overhaulPreemptedRenewal: false,
+            ...dock,
+        },
+    });
+    const report = crewReport(
+        'D-dock-0of16',
+        [
+            dockRun('a', 1, { passedAt: 300, platesRepaired: 16, dockedSeconds: 280, launchesPerMinute: 0.2 }),
+            dockRun('a', 2, { platesRepaired: 4, dockedSeconds: 100, overhaulPreemptedRenewal: true }),
+        ],
+        'header',
+    );
+
+    it('tabulates passes, docked seconds, plates repaired, launch rate and preemptions per crew', () => {
+        expect(report).toContain(
+            '| crew | passed | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) |',
+        );
+        expect(report).toContain('| a | 1/2 | 190.0 | 10.0 | 0.10 | 1/2 |');
+    });
+
+    it('labels the main table by pass, not kill, on a dock rung', () => {
+        expect(report).toContain('| crew | brains | passed | time to pass p10 / median / p90 (s) |');
+    });
+
+    it('reads a failed late run with the attacker killed as not passed', () => {
+        const failed = { ...dockRun('c', 1, {}), killed: false, kills: 1, enemies: 1 } as CrewRunResult;
+        const late = crewReport('D-dock-0of16-late', [failed], 'header');
+        expect(late).toMatch(/\| c \|[^\n]*\| 0\/1 \|/);
+        expect(late).not.toContain('(enemies');
     });
 });

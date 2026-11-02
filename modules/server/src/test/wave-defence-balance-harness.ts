@@ -22,7 +22,7 @@ import {
     waveBudget,
 } from '../scenarios/wave-defence';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { inGunRange, median } from './training/gunnery-metrics';
+import { inGunRange, mean, median } from './training/gunnery-metrics';
 import { tapDamage, tapDerelicts } from './damage-tap';
 
 import { BlastOverlaps } from './blast-overlaps';
@@ -683,7 +683,6 @@ export interface SweepCell {
     readonly runs: RunResult[];
 }
 
-const mean = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : NaN);
 const fmt = (n: number, digits = 0) => (Number.isFinite(n) ? n.toFixed(digits) : '–');
 
 function totalStationHealth(record: WaveRecord) {

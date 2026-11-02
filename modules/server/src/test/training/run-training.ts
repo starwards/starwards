@@ -12,10 +12,10 @@
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';
 
+import { mean, median } from './gunnery-metrics';
 import { SERVER_TICK_HZ } from '../headless-game';
 import { fork } from 'child_process';
 import fs from 'fs';
-import { median } from './gunnery-metrics';
 import os from 'os';
 import path from 'path';
 
@@ -91,6 +91,14 @@ async function main() {
 
 const f = (n: number | null, d = 0) => (n === null || !Number.isFinite(n) ? '–' : n.toFixed(d));
 
+/** Dock-only rungs: the dock behaviour behind the pass rate. */
+function dockSummary(results: TrainingResult[]): string[] {
+    const docks = results.flatMap((r) => (r.dock ? [r.dock] : []));
+    return [
+        `- Plates repaired (mean): ${f(mean(docks.map((d) => d.platesRepaired)), 1)}; seconds docked (mean): ${f(mean(docks.map((d) => d.dockedSeconds)), 1)}; launches per minute (mean): ${f(mean(docks.map((d) => d.launchesPerMinute)), 2)}; overhaul preempted renewal in ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} seeds`,
+    ];
+}
+
 function toMarkdown(
     description: string,
     results: TrainingResult[],
@@ -101,6 +109,8 @@ function toMarkdown(
     const killed = results.filter((r) => r.killed);
     const ttk = killed.map((r) => r.seconds).sort((a, b) => a - b);
     const pct = (p: number) => (ttk.length ? ttk[Math.min(ttk.length - 1, Math.floor(ttk.length * p))] : NaN);
+    const dockRung = results.some((r) => r.dock);
+    const targeted = !dockRung || results.some((r) => r.enemies > 0);
     const recording = options.recording
         ? `recording every ${options.recording.intervalSimSeconds} sim-s`
         : 'not recorded';
@@ -109,23 +119,28 @@ function toMarkdown(
         '',
         `Timeout ${options.timeoutSeconds} sim-s, ${options.hz} Hz, ${results.length} seeds on ${workers} workers, ${f(wallSeconds)} s wall, ${recording}.`,
         '',
-        `- Kill rate: **${killed.length}/${results.length}**`,
+        `- ${dockRung ? 'Pass rate' : 'Kill rate'}: **${killed.length}/${results.length}**`,
+        ...(dockRung ? dockSummary(results) : []),
         ...(results.some((r) => r.enemies > 1)
             ? [
                   `- Enemies killed: ${results.reduce((n, r) => n + r.kills, 0)}/${results.reduce((n, r) => n + r.enemies, 0)}; seeds with at least one kill ${results.filter((r) => r.kills > 0).length}/${results.length} (per-target columns read the first enemy)`,
               ]
             : []),
-        `- TTK sim-s (killed): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,
-        `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
-        `- Any system damage (health < 1): ${results.filter((r) => r.targetHealth < 1).length}/${results.length}`,
-        `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
-        `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}`,
+        `- ${dockRung ? 'Time to pass' : 'TTK'} sim-s (${dockRung ? 'passed' : 'killed'}): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,
+        ...(targeted
+            ? [
+                  `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
+                  `- Any system damage (health < 1): ${results.filter((r) => r.targetHealth < 1).length}/${results.length}`,
+                  `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
+                  `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}`,
+              ]
+            : []),
         '',
-        '| seed | params | killed | sim-s | armor stripped at | target health | shells | AP/HE | plate_intel | s firing | in range | in kill zone | blast hits | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        `| seed | params | ${dockRung ? 'passed' : 'killed'} | sim-s | armor stripped at | target health | shells | AP/HE | plate_intel | s firing | in range | in kill zone | blast hits | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |`,
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
-                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : r.kills ? `${r.kills}/${r.enemies}` : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${f(r.targetHealth, 2)} | ${r.shellsFired} | ${r.shellsByAmmo.ap}/${r.shellsByAmmo.he} | ${r.plateIntelCalls} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,
+                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${r.dock && !r.enemies ? '–' : f(r.targetHealth, 2)} | ${r.shellsFired} | ${r.shellsByAmmo.ap}/${r.shellsByAmmo.he} | ${r.plateIntelCalls} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,
         ),
         '',
     ].join('\n');

@@ -599,10 +599,10 @@ stage S0 of the NPC AI design): the frozen reference crew plays, and only the ra
 A profile ([`adversary-profile.ts`](../../modules/server/src/scenarios/adversary-profile.ts)) sets levers the
 game already has (flight doctrine, combat weave, stand ground); the `today` profile changes nothing.
 
-| Rung             | Layout                                                    | Crew for the baseline |
-| ---------------- | --------------------------------------------------------- | --------------------- |
-| `A1-<profile>`   | T1: one dragonfly-MK1 attacking the GVTS                  | `reference`           |
-| `AW-<profile>`   | `W-waves` with every raider of every wave varied          | `captain-reference`   |
+| Rung           | Layout                                           | Crew for the baseline |
+| -------------- | ------------------------------------------------ | --------------------- |
+| `A1-<profile>` | T1: one dragonfly-MK1 attacking the GVTS         | `reference`           |
+| `AW-<profile>` | `W-waves` with every raider of every wave varied | `captain-reference`   |
 
 `npm --prefix modules/ai run adversary -- --family A1 --seeds 16 --workers 4 --out <dir>` plays every
 profile on the same seeds. Each raider is fingerprinted by
@@ -620,6 +620,15 @@ ship of the same hull ([`parity.ts`](../../modules/ai/src/adversary/parity.ts)).
 that spawn 140 km out ([`perception.ts`](../../modules/ai/src/adversary/perception.ts)). Committed
 results: [`curriculum/adversary/`](../../modules/ai/curriculum/adversary/) (reports) and
 [`curriculum/baselines/adversary/`](../../modules/ai/curriculum/baselines/adversary/) (baselines).
+
+### Dock-only rungs: `D-dock-0of16`
+
+`D-dock-0of16` starts the GVTS with no healthy armor plate (`T0Lab.playerArmor`: how many of the first plates stay
+healthy; a plate is healthy above 90% of its health) beside an allied large station, with no attackers.
+`D-dock-0of16-late` adds one dragonfly-MK1 attacking from 15-25 km. A run passes once every plate is healthy,
+so the report's `killed` and `seconds` mean passed and time to pass. Each result carries `dock`: plates repaired,
+seconds docked, launches and launches per minute, and whether an overhaul replaced a cancelled armor-plate renewal.
+`crewReport` adds a Dock section and a paired comparison of renewal preemption.
 
 ## Branching: what if the crew had decided otherwise
 

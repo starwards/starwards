@@ -1,7 +1,8 @@
+import { DockingMode, radarReach } from '@starwards/core/internal';
 import { killedAt, meanDistance, shellsFired } from './metrics';
 import { missileLaunchRange, rangeRate } from '@starwards/bots';
+import { DOCK_ONLY_MAP_NAME } from '../../../scenarios/training-dock';
 import { Store } from './store';
-import { radarReach } from '@starwards/core/internal';
 
 export type CheckStatus = 'pass' | 'fail' | 'skip';
 
@@ -76,7 +77,10 @@ export const CHECK_CATALOGUE: ReadonlyArray<{ name: string; description: string 
     { name: 'fire_within_range', description: "any fire window with mean distance beyond the gun's max range" },
     { name: 'shells_damage_armor', description: 'shells fired in range but no plate health lost' },
     { name: 'strip_leads_to_kill', description: 'armor stripped but no kill within stripToKillSeconds' },
-    { name: 'player_stays_mobile', description: 'player speed 0 at end with no propulsion break' },
+    {
+        name: 'player_stays_mobile',
+        description: 'player speed 0 at end with no propulsion break (docked counts as mobile on dock-only rungs)',
+    },
     { name: 'frames_regular', description: 'frame t gaps deviate from interval_s by more than one frame' },
     {
         name: 'missile_beyond_own_radar',
@@ -211,6 +215,14 @@ async function playerStaysMobile(store: Store, runId: string, roles: RoleIds): P
     const speed = Math.hypot(vx?.num ?? 0, vy?.num ?? 0);
     if (speed > 1e-6) {
         return { name: 'player_stays_mobile', status: 'pass', t: null, detail: { speed } };
+    }
+    // Dock-only rungs end docked by design; read from the recording so a rebuilt store agrees.
+    const mapName = (await store.all<{ map_name: string }>('SELECT map_name FROM run WHERE run_id = ?', runId))[0]
+        ?.map_name;
+    const docking =
+        mapName === DOCK_ONLY_MAP_NAME ? await store.valueAt(runId, roles.player, '/docking/mode', lastT) : undefined;
+    if (docking?.num === DockingMode.DOCKED) {
+        return { name: 'player_stays_mobile', status: 'pass', t: null, detail: { speed, docked: true } };
     }
     const brokenPropulsion = await store.all<{ t: number }>(
         "SELECT t FROM event WHERE run_id = ? AND object_id = ? AND kind = 'system_broken' AND detail_json LIKE '%thruster%'",

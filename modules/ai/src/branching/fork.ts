@@ -1,5 +1,6 @@
 import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 import { readEvents, streamFrames } from '../scoring/recording';
+import { DockOutcome } from '@starwards/server/src/test/training/dock-rung';
 import { Intervention } from './levels';
 import { SavedGame } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
@@ -25,6 +26,8 @@ export type Outcome = {
     value: number | null;
     /** A wave rung's outcome: `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
     waves?: WaveOutcome;
+    /** A dock-only rung's outcome: `killed` is its pass (every armor plate above 90% health), not the attacker's death. */
+    dock?: DockOutcome;
     /** Fingerprint of the crew's decisions, callouts, commands and orders before the branch point. */
     prefix: string;
     /** Fingerprint of the whole run's crew events: equal for two runs that played identically. */
@@ -105,7 +108,7 @@ export async function runBranch(
 ): Promise<Outcome> {
     const dir = keepDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'starwards-branch-'));
     try {
-        const { recorder, enemies, waves } = await playCrewTraining(run.crew, {
+        const { recorder, enemies, waves, dock } = await playCrewTraining(run.crew, {
             scenario: run.scenario,
             seed: run.seed,
             timeoutSeconds: run.timeoutSeconds,
@@ -128,14 +131,18 @@ export async function runBranch(
             seconds = Math.max(seconds, frame.t);
         }
         const kills = waves ? waves.raidersKilled : watches.filter((w) => w.killed(seconds)).length;
-        const killed = waves ? waves.passedAt !== null : kills === enemies.length;
-        const score = scorer.result({ killed, seconds });
+        const killed = waves ? waves.passedAt !== null : dock ? dock.passedAt !== null : kills === enemies.length;
+        if (dock?.passedAt != null) {
+            seconds = dock.passedAt;
+        }
+        const score = scorer.result({ killed: killed && !dock, seconds }); // a dock pass is not a kill
         return {
             killed,
             seconds,
             kills,
             enemies: waves ? waves.raidersSpawned : enemies.length,
             ...(waves ? { waves } : {}),
+            ...(dock ? { dock } : {}),
             value: score?.value ?? null,
             ...fingerprint(recording, t),
         };

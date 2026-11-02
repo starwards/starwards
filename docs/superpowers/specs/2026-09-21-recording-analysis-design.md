@@ -126,13 +126,13 @@ sim-seconds, never frame counts, because frame interval and tick rate vary betwe
 
 Initial set, all scoped to a `player` and a `target` role:
 
-| name                  | fails when                                                                                      |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| `fire_within_range`   | any `fire_start`–`fire_stop` window where mean distance exceeds the gun's effective range       |
-| `shells_damage_armor` | over any window with ≥ _N_ shells fired (default 200) at ≤ _R_ m, total plate health delta is 0 |
-| `strip_leads_to_kill` | `armor_stripped` at `t` but the target isn't destroyed or despawned by `t + T` (default 60 s)   |
-| `player_stays_mobile` | player speed at end is 0 with no `system_broken` event on propulsion                            |
-| `frames_regular`      | frame `t` gaps deviate from `interval_s` by more than 1 frame                                   |
+| name                  | fails when                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `fire_within_range`   | any `fire_start`–`fire_stop` window where mean distance exceeds the gun's effective range                                         |
+| `shells_damage_armor` | over any window with ≥ _N_ shells fired (default 200) at ≤ _R_ m, total plate health delta is 0                                   |
+| `strip_leads_to_kill` | `armor_stripped` at `t` but the target isn't destroyed or despawned by `t + T` (default 60 s)                                     |
+| `player_stays_mobile` | player speed at end is 0 with no `system_broken` event on propulsion; on the dock-only map (`training_dock`) ending docked passes |
+| `frames_regular`      | frame `t` gaps deviate from `interval_s` by more than 1 frame                                                                     |
 
 `shells_damage_armor` and `fire_within_range` together separate hit-rate from
 damage-past-armor — the split the backlog says must precede any balance number.
