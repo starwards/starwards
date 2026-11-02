@@ -103,20 +103,21 @@ export function headlessStation(game: HeadlessGame, shipId: string, station: str
 }
 
 /** Target internals straight from the game: live ship states, and the faction intel manager's snapshots. */
-function inProcessShipIntel(game: HeadlessGame): ShipIntelSource {
-    const decoded = new Map<string, { data: Uint8Array; state: ShipState }>();
+export function inProcessShipIntel(game: HeadlessGame): ShipIntelSource {
+    /** keyed by the snapshot's bytes, so a decoded state goes once the faction intel drops its snapshot */
+    const decoded = new WeakMap<Uint8Array, ShipState>();
     return {
         live: (ship) => game.shipManagers.get(ship.id)?.state,
         snapshot: (ship, faction) => {
             const intel = game.spaceManager.factionIntel;
             const snapshot = intel.getSnapshot(ship.id, faction);
             if (!snapshot) return undefined;
-            let held = decoded.get(ship.id);
-            if (held?.data !== snapshot.data) {
-                held = { data: snapshot.data, state: decodeShipSnapshot(snapshot.data) };
-                decoded.set(ship.id, held);
+            let state = decoded.get(snapshot.data);
+            if (!state) {
+                state = decodeShipSnapshot(snapshot.data);
+                decoded.set(snapshot.data, state);
             }
-            return { state: held.state, ageSeconds: intel.getSnapshotAge(ship.id, faction) ?? 0 };
+            return { state, ageSeconds: intel.getSnapshotAge(ship.id, faction) ?? 0 };
         },
     };
 }
