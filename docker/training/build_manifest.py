@@ -46,7 +46,10 @@ prefixes = json.load(open('commits.json', encoding='utf-8')) if os.path.exists('
 previous = {}
 if os.path.exists('manifest.jsonl'):
     for line in open('manifest.jsonl', encoding='utf-8'):
-        entry = json.loads(line)
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
         previous[entry['path']] = entry.get('codeCommit')
 
 
@@ -83,7 +86,10 @@ def sidecar_lines(sidecar):
 
 
 count = with_outcome = 0
-with open('manifest.jsonl', 'w', encoding='utf-8', newline='\n') as out:
+# Concurrent jobs rebuild the same manifest; write a private temp file and rename it into place so a
+# reader never sees a half-written manifest.
+tmp = f'manifest.jsonl.{os.getpid()}.{os.uname().nodename}.tmp'
+with open(tmp, 'w', encoding='utf-8', newline='\n') as out:
     for sgr in sorted(glob.glob('**/*.sgr', recursive=True)):
         with open(sgr, encoding='utf-8') as f:
             header = json.loads(f.readline())
@@ -128,4 +134,5 @@ with open('manifest.jsonl', 'w', encoding='utf-8', newline='\n') as out:
             'energyModel': header.get('energyModel'),
         }, ensure_ascii=False) + '\n')
         count += 1
+os.replace(tmp, 'manifest.jsonl')
 print(f'{count} entries, {with_outcome} with outcomes')
