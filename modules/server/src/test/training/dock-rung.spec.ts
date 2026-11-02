@@ -44,7 +44,7 @@ describe('dock metrics', () => {
         expect(tracker.done(game)).toBe(false);
         expect(tracker.outcome(game)).toMatchObject({
             platesAtStart: 16,
-            platesIntactAtStart: 0,
+            platesHealthyAtStart: 0,
             platesRepaired: 0,
             passedAt: null,
             launches: 0,
@@ -56,7 +56,7 @@ describe('runTraining on a dock-only rung', () => {
     it('reports the dock outcome and a failed pass when nothing docks', async () => {
         const result = await runTraining(trainingScenarios['D-dock-0of16'], { seed: 1, timeoutSeconds: 5 });
         expect(result.killed).toBe(false);
-        expect(result.dock).toMatchObject({ platesIntactAtStart: 0, passedAt: null, launches: 0 });
+        expect(result.dock).toMatchObject({ platesHealthyAtStart: 0, passedAt: null, launches: 0 });
     });
 });
 
@@ -74,7 +74,7 @@ describe('dock rung details', () => {
         const [params] = fc.sample(scenario.params, { seed: 1, numRuns: 1 });
         const { map, tracker } = scenario.trackDock!(params);
         const game = HeadlessGame.start(map, 1);
-        expect(tracker.outcome(game)).toMatchObject({ platesAtStart: 16, platesIntactAtStart: 0 });
+        expect(tracker.outcome(game)).toMatchObject({ platesAtStart: 16, platesHealthyAtStart: 0 });
     });
 
     it('tracks the late attacker as the rung enemy', () => {
@@ -112,7 +112,7 @@ describe('dock metrics over a scripted dock', () => {
         expect(outcome.launchesPerMinute).toBeGreaterThan(0);
     });
 
-    it('passes once every plate is intact and counts the repaired plates', () => {
+    it('passes once every plate is healthy and counts the repaired plates', () => {
         const { game, tracker, state } = setup();
         fixArmor(state.armor);
         game.tick(1);
@@ -122,7 +122,7 @@ describe('dock metrics over a scripted dock', () => {
         expect(outcome.passedAt).not.toBeNull();
     });
 
-    it('flags an overhaul preempting a running renewal, not one merely queued behind it', () => {
+    it('flags an overhaul promoted after the crew cancels a running renewal, not one merely queued behind it', () => {
         // the tracker is read between ticks, so the slots are set as the repair manager would have left them
         const queued = setup();
         queued.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
@@ -134,8 +134,8 @@ describe('dock metrics over a scripted dock', () => {
         const preempted = setup();
         preempted.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
         preempted.tracker.done(preempted.game);
-        preempted.slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
-        preempted.slot('armorPlateRenewal').priority = RepairPriority.CANCELLING;
+        preempted.slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        preempted.slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
         preempted.tracker.done(preempted.game);
         expect(preempted.tracker.outcome(preempted.game).overhaulPreemptedRenewal).toBe(true);
     });
@@ -171,7 +171,7 @@ describe('dock metrics over a scripted dock', () => {
         const { game, tracker, slot, state } = setup();
         slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
         tracker.done(game);
-        slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
+        slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
         const renewal = slot('armorPlateRenewal');
         renewal.priority = RepairPriority.OFF;
         renewal.refusalReason = 'lost repair tier';
@@ -181,15 +181,7 @@ describe('dock metrics over a scripted dock', () => {
         expect(() => tracker.done(game)).not.toThrow();
     });
 
-    it('flags a cancel that finishes inside one update, and an overhaul raised after the cancel', () => {
-        const instant = setup();
-        instant.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
-        instant.tracker.done(instant.game);
-        instant.slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
-        instant.slot('armorPlateRenewal').priority = RepairPriority.OFF;
-        instant.tracker.done(instant.game);
-        expect(instant.tracker.outcome(instant.game).overhaulPreemptedRenewal).toBe(true);
-
+    it('flags an overhaul promoted on a later tick, but not another protocol, nor a stale cancel', () => {
         const later = setup();
         later.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
         later.tracker.done(later.game);
@@ -199,6 +191,18 @@ describe('dock metrics over a scripted dock', () => {
         later.slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
         later.tracker.done(later.game);
         expect(later.tracker.outcome(later.game).overhaulPreemptedRenewal).toBe(true);
+
+        const other = setup();
+        other.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        other.tracker.done(other.game);
+        other.slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        other.slot('feedSystemOverhaul').priority = RepairPriority.LOW;
+        other.slot('reactorJumpStart').priority = RepairPriority.RUNNING;
+        other.tracker.done(other.game);
+        other.slot('reactorJumpStart').priority = RepairPriority.OFF;
+        other.slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
+        other.tracker.done(other.game);
+        expect(other.tracker.outcome(other.game).overhaulPreemptedRenewal).toBe(false);
     });
 
     it('counts a repair in the same tick another plate breaks', () => {
@@ -212,7 +216,7 @@ describe('dock metrics over a scripted dock', () => {
         expect(tracker.outcome(game).platesRepaired).toBe(2);
     });
 
-    it('does not read a finishing run as a cancel when a hit un-intacts its plate the same tick', () => {
+    it('does not read a finishing run as a cancel when a hit un-heals its plate the same tick', () => {
         const { game, tracker, slot } = setup();
         slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
         slot('armorPlateRenewal').progress = 1;

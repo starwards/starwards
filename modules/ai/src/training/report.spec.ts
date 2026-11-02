@@ -71,7 +71,7 @@ describe('crewReport on a dock rung', () => {
         waves: undefined,
         dock: {
             platesAtStart: 16,
-            platesIntactAtStart: 0,
+            platesHealthyAtStart: 0,
             platesRepaired: 0,
             passedAt: null,
             dockedSeconds: 0,

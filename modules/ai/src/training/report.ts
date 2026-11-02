@@ -145,7 +145,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     );
     for (const r of results) {
         lines.push(
-            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
+            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
         );
     }
     return lines.join('\n') + '\n';
@@ -171,7 +171,7 @@ function wavesSection(results: readonly CrewRunResult[], crews: readonly string[
     return lines;
 }
 
-/** Dock-only rungs: `killed` is the pass (every plate intact), `seconds` the time to pass; these are the dock behaviour behind them. */
+/** Dock-only rungs: `killed` is the pass (every plate healthy), `seconds` the time to pass; these are the dock behaviour behind them. */
 function dockSection(results: readonly CrewRunResult[], crews: readonly string[]) {
     const lines = [
         '## Dock',

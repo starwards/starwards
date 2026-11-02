@@ -3,8 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
-import { DockOnlyParams, T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
-import { DockOutcome, DockTracker, trackDock } from './dock-rung';
+import { DockOutcome, DockRungParams, DockTracker, trackDock } from './dock-rung';
 import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
@@ -24,6 +23,7 @@ import {
     createTrainingT3DirectedMap,
     createTrainingT3IncomingMap,
 } from '../../scenarios/training';
+import { T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
     WeaponsMultiParams,
     createTrainingWeaponsMultiMap,
@@ -77,7 +77,7 @@ export interface TrainingResult {
     readonly hz: number;
     /** A wave rung's outcome; `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
     readonly waves?: WaveOutcome;
-    /** A dock-only rung's outcome; `killed` is its pass (every armor plate intact), so `kills`/`enemies` count only the late attacker. */
+    /** A dock-only rung's outcome; `killed` is its pass (every armor plate healthy), so `kills`/`enemies` count only the late attacker. */
     readonly dock?: DockOutcome;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
@@ -326,12 +326,10 @@ const adversaryT1 = (profile: AdversaryProfile): TrainingScenario<T0Params> => (
 const adversaryWaves = (profile: AdversaryProfile) =>
     waveRung({ ...W_WAVES, name: `AW-${profile.name}`, adversary: profile });
 
-type DockOnlyRungParams = DockOnlyParams & { readonly playerArmor: number };
-
 /** Dock-only rung: the GVTS starts with `playerArmor` of its 16 plates healthy beside an allied station; passes once all are. */
-const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockOnlyRungParams> => ({
+const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockRungParams> => ({
     name,
-    description: `GVTS with ${playerArmor} of 16 armor plates healthy beside an allied, unarmed large station 2-5 km (surface) away, ${late ? 'one dragonfly-MK1 attacking from 15-25 km' : 'no attackers'}; passes once every plate is healthy`,
+    description: `GVTS with ${playerArmor} of 16 armor plates healthy beside an allied, unarmed large station 2-5 km (surface) away, ${late ? 'one dragonfly-MK1 attacking from 15-25 km' : 'no attackers'}; passes once every plate is healthy (above 90% health)`,
     params: fc.record({
         stationDistance: fc.integer({ min: 2000, max: 5000 }),
         stationBearing: fc.integer({ min: 0, max: 359 }),

@@ -1,15 +1,28 @@
-import { Faction, GameMap, Spaceship, Vec2, XY, shipConfigurations } from '@starwards/core/internal';
+import { Faction, GameApi, GameMap, Spaceship, Vec2, XY, shipConfigurations } from '@starwards/core/internal';
 import {
     T0Lab,
     T2Params,
     TRAINING_PLAYER_ID,
     TRAINING_TARGET_ID,
-    constrainPlayer,
+    addConstrainedPlayer,
     createTrainingT2Map,
 } from './training';
 
 /** The allied station of the docking rung (T2-dock). */
 export const TRAINING_DOCK_ID = 'dock';
+
+/** Adds the allied large station `distance` metres (surface) from the GVTS on `bearing` degrees. */
+function addDockStation(game: GameApi, distance: number, bearing: number): void {
+    const radius = shipConfigurations['large-station'].radius;
+    game.addNpcSpaceship(
+        new Spaceship().init(
+            TRAINING_DOCK_ID,
+            Vec2.make(XY.byLengthAndDirection(distance + radius, bearing)),
+            'large-station',
+            Faction.Gravitas,
+        ),
+    );
+}
 
 /** T2-dock layout: the T2 attackers, and an allied station `stationDistance` metres (surface) from the GVTS on `stationBearing`. */
 export interface T2DockParams extends T2Params {
@@ -24,15 +37,11 @@ export interface T2DockParams extends T2Params {
  */
 export function createTrainingT2DockMap(params: T2DockParams, constraints: Omit<T0Lab, 'targetModel'>): GameMap {
     const t2 = createTrainingT2Map(params, constraints);
-    const radius = shipConfigurations['large-station'].radius;
     return {
         name: 'training_t2_dock',
         init: (game) => {
             t2.init(game);
-            const position = XY.byLengthAndDirection(params.stationDistance + radius, params.stationBearing);
-            game.addNpcSpaceship(
-                new Spaceship().init(TRAINING_DOCK_ID, Vec2.make(position), 'large-station', Faction.Gravitas),
-            );
+            addDockStation(game, params.stationDistance, params.stationBearing);
         },
     };
 }
@@ -53,24 +62,11 @@ export function createTrainingDockOnlyMap(
     { stationDistance, stationBearing, attackerDistance }: DockOnlyParams,
     constraints: Omit<T0Lab, 'targetModel'> = {},
 ): GameMap {
-    const radius = shipConfigurations['large-station'].radius;
     return {
         name: 'training_dock',
         init: (game) => {
-            constrainPlayer(
-                game.addPlayerSpaceship(
-                    new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
-                ).state,
-                constraints,
-            );
-            game.addNpcSpaceship(
-                new Spaceship().init(
-                    TRAINING_DOCK_ID,
-                    Vec2.make(XY.byLengthAndDirection(stationDistance + radius, stationBearing)),
-                    'large-station',
-                    Faction.Gravitas,
-                ),
-            );
+            addConstrainedPlayer(game, constraints);
+            addDockStation(game, stationDistance, stationBearing);
             if (attackerDistance !== undefined) {
                 game.addNpcSpaceship(
                     new Spaceship().init(

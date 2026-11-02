@@ -1,6 +1,7 @@
 import {
     Faction,
     FlightDoctrine,
+    GameApi,
     GameMap,
     IdleStrategy,
     ScanLevel,
@@ -46,12 +47,12 @@ export interface T0Lab {
     readonly playerGunHeat?: number;
     /** Missiles in each missile stock of the magazine, capped at the hull's maximum. */
     readonly playerMissiles?: number;
-    /** Healthy armor plates the GVTS starts with: the first `playerArmor` plates (one contiguous arc) stay intact, the rest start broken. An integer within the plate count. Default: every plate healthy. */
+    /** Healthy armor plates the GVTS starts with: the first `playerArmor` plates (one contiguous arc) keep full health, the rest start broken. An integer within the plate count. Default: every plate healthy. */
     readonly playerArmor?: number;
 }
 
 /** Starts the GVTS short of energy and shells with hot guns, per the given {@link T0Lab} fields. */
-export function constrainPlayer(
+function constrainPlayer(
     player: ShipState,
     { playerEnergy, playerShells, playerGunHeat, playerMissiles, playerArmor }: Omit<T0Lab, 'targetModel'>,
 ): void {
@@ -87,6 +88,15 @@ export function constrainPlayer(
     }
 }
 
+/** Adds the GVTS at the origin, starting constrained per `constraints` (see {@link T0Lab}). */
+export function addConstrainedPlayer(game: GameApi, constraints: Omit<T0Lab, 'targetModel'>): void {
+    constrainPlayer(
+        game.addPlayerSpaceship(new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas))
+            .state,
+        constraints,
+    );
+}
+
 /**
  * Training rung 0: the GVTS is ordered to kill a dragonfly-MK1 that never moves or shoots
  * (PLAY_DEAD, no order). Lab conditions -- no stations, no asteroids, no other ships.
@@ -98,12 +108,7 @@ export function createTrainingT0Map(
     return {
         name: 'training_t0',
         init: (game) => {
-            constrainPlayer(
-                game.addPlayerSpaceship(
-                    new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
-                ).state,
-                constraints,
-            );
+            addConstrainedPlayer(game, constraints);
             const position = XY.byLengthAndDirection(params.distance, params.bearing);
             const target = game.addNpcSpaceship(
                 new Spaceship().init(TRAINING_TARGET_ID, Vec2.make(position), targetModel, Faction.Raiders),
@@ -210,12 +215,7 @@ export function createTrainingT2Map(
     return {
         name: 'training_t2',
         init: (game) => {
-            constrainPlayer(
-                game.addPlayerSpaceship(
-                    new Spaceship().init(TRAINING_PLAYER_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas),
-                ).state,
-                constraints,
-            );
+            addConstrainedPlayer(game, constraints);
             const layout: [string, XY][] = [
                 [TRAINING_TARGET_ID, XY.byLengthAndDirection(params.distance, params.bearing)],
                 [TRAINING_TARGET2_ID, XY.byLengthAndDirection(params.distance2, params.bearing + params.offset)],

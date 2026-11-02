@@ -31,9 +31,7 @@ async function within(run: CrewRunResult, recording: string, horizon: number): P
         { killed, seconds, timeoutSeconds: horizon },
         readEvents(recording).filter((e) => e.t < horizon),
     );
-    // Dock metrics (docked seconds, launches) include the time past the horizon and cannot be cut back from the recording.
-    const dock = run.dock && run.seconds <= horizon ? run.dock : undefined;
-    return { ...run, killed, seconds, timeoutSeconds: horizon, score: score ?? null, dock };
+    return { ...run, killed, seconds, timeoutSeconds: horizon, score: score ?? null };
 }
 
 async function main() {
