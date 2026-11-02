@@ -83,7 +83,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         '',
         header,
         '',
-        '| crew | brains | kills | time to kill p10 / median / p90 (s) | run value | friendly hits (runs) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |',
+        `| crew | brains | ${results.some((r) => r.dock) ? 'passed' : 'kills'} | time to ${results.some((r) => r.dock) ? 'pass' : 'kill'} p10 / median / p90 (s) | run value | friendly hits (runs) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |`,
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const crew of crews) {
@@ -176,14 +176,14 @@ function dockSection(results: readonly CrewRunResult[], crews: readonly string[]
     const lines = [
         '## Dock',
         '',
-        '| crew | passed | runs with dock metrics | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) | runs where an overhaul preempted renewal |',
-        '| --- | --- | --- | --- | --- | --- | --- |',
+        '| crew | passed | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) | runs where an overhaul preempted renewal |',
+        '| --- | --- | --- | --- | --- | --- |',
     ];
     for (const crew of crews) {
         const docks = results.flatMap((r) => (r.crew === crew && r.dock ? [r.dock] : []));
         if (!docks.length) continue;
         lines.push(
-            `| ${crew} | ${docks.filter((d) => d.passedAt !== null).length}/${docks.length} | ${docks.length}/${results.filter((r) => r.crew === crew).length} | ${fmt(meanOf(docks.map((d) => d.dockedSeconds)), 1)} | ${fmt(meanOf(docks.map((d) => d.platesRepaired)), 1)} | ${fmt(meanOf(docks.map((d) => d.launchesPerMinute)), 2)} | ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} |`,
+            `| ${crew} | ${docks.filter((d) => d.passedAt !== null).length}/${docks.length} | ${fmt(meanOf(docks.map((d) => d.dockedSeconds)), 1)} | ${fmt(meanOf(docks.map((d) => d.platesRepaired)), 1)} | ${fmt(meanOf(docks.map((d) => d.launchesPerMinute)), 2)} | ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} |`,
         );
     }
     return lines;

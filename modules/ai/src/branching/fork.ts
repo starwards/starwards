@@ -132,6 +132,9 @@ export async function runBranch(
         }
         const kills = waves ? waves.raidersKilled : watches.filter((w) => w.killed(seconds)).length;
         const killed = waves ? waves.passedAt !== null : dock ? dock.passedAt !== null : kills === enemies.length;
+        if (dock?.passedAt != null) {
+            seconds = dock.passedAt;
+        }
         const score = scorer.result({ killed, seconds });
         return {
             killed,

@@ -186,6 +186,7 @@ describe('dock metrics over a scripted dock', () => {
         later.slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
         later.tracker.done(later.game);
         later.slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        later.slot('feedSystemOverhaul').priority = RepairPriority.HIGH;
         later.tracker.done(later.game);
         expect(later.tracker.outcome(later.game).overhaulPreemptedRenewal).toBe(false);
         later.slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
@@ -225,5 +226,51 @@ describe('dock metrics over a scripted dock', () => {
         slot('armorPlateRenewal').priority = RepairPriority.OFF;
         tracker.done(game);
         expect(tracker.outcome(game).overhaulPreemptedRenewal).toBe(false);
+    });
+
+    it('does not count a bump-out or a drift past the docking distance as a launch', () => {
+        const { game, tracker, state } = setup();
+        for (const mode of [
+            DockingMode.DOCKED,
+            DockingMode.DOCKING,
+            DockingMode.DOCKED,
+            DockingMode.DOCKING,
+            DockingMode.UNDOCKED,
+        ]) {
+            state.docking.mode = mode;
+            tracker.done(game);
+        }
+        expect(tracker.outcome(game).launches).toBe(0);
+    });
+
+    it('clears a cancel once the queue goes idle, so a much later overhaul is not preemption', () => {
+        const { game, tracker, slot } = setup();
+        slot('armorPlateRenewal').priority = RepairPriority.RUNNING;
+        tracker.done(game);
+        slot('armorPlateRenewal').priority = RepairPriority.OFF;
+        tracker.done(game);
+        tracker.done(game);
+        slot('feedSystemOverhaul').priority = RepairPriority.RUNNING;
+        tracker.done(game);
+        expect(tracker.outcome(game).overhaulPreemptedRenewal).toBe(false);
+    });
+
+    it('keeps detecting a cancel after the repair queue is rebuilt', () => {
+        const { game, tracker, state } = setup();
+        state.repairQueue.slots.find((s) => s.protocolId === 'armorPlateRenewal')!.priority = RepairPriority.RUNNING;
+        tracker.done(game);
+        state.repairQueue.slots.clear();
+        const rebuilt = new RepairProtocolSlot();
+        rebuilt.protocolId = 'armorPlateRenewal';
+        rebuilt.priority = RepairPriority.RUNNING;
+        state.repairQueue.slots.push(rebuilt);
+        tracker.done(game);
+        rebuilt.priority = RepairPriority.OFF;
+        const overhaul = new RepairProtocolSlot();
+        overhaul.protocolId = 'feedSystemOverhaul';
+        overhaul.priority = RepairPriority.RUNNING;
+        state.repairQueue.slots.push(overhaul);
+        tracker.done(game);
+        expect(tracker.outcome(game).overhaulPreemptedRenewal).toBe(true);
     });
 });

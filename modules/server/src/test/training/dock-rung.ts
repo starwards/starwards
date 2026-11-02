@@ -34,10 +34,10 @@ export interface DockTracker {
 }
 
 /** A plate counts as healthy above this share of its health, summed over its layers (the dock rung's pass bar). */
-export const HEALTHY_PLATE_RATIO = 0.9;
+const HEALTHY_PLATE_RATIO = 0.9;
 
 /** The dock rung's "healthy" plate: health above {@link HEALTHY_PLATE_RATIO}, unlike `Armor.numberOfHealthyPlates` (not broken). */
-export const isHealthy = (plate: ArmorPlate) => plate.healthRatio > HEALTHY_PLATE_RATIO;
+const isHealthy = (plate: ArmorPlate) => plate.healthRatio > HEALTHY_PLATE_RATIO;
 
 const overhaulIds: readonly string[] = [
     'feedSystemOverhaul',
@@ -57,6 +57,8 @@ export function trackDock(params: DockRungParams): {
     let dockedSeconds = 0;
     let launches = 0;
     let dockedStint = false;
+    let leaving = false;
+    let previousMode = DockingMode.UNDOCKED;
     let healthyBefore: boolean[] = [];
     let awaitingPromotion = false;
     let platesRepaired = 0;
@@ -68,8 +70,8 @@ export function trackDock(params: DockRungParams): {
     const tracker: DockTracker = {
         done(game) {
             const state = game.api.getShip(TRAINING_PLAYER_ID)?.state;
-            if (!state) {
-                return false;
+            if (!state || state.healthRatio <= 0) {
+                return true; // GVTS lost (mission kill): the hull can no longer be repaired
             }
             const armor = state.armor;
             const dt = game.seconds - lastSeconds;
@@ -78,15 +80,27 @@ export function trackDock(params: DockRungParams): {
             if (mode === DockingMode.DOCKED) {
                 dockedSeconds += dt;
             }
-            // A launch is the arrival at UNDOCKED that ends a docked stint: a bump-out (back to DOCKED) is not one.
+            // A launch is the arrival at UNDOCKED from UNDOCKING after a docked stint: a bump-out (DOCKING again) or a
+            // drift past the docking distance is not one.
             if (mode === DockingMode.DOCKED) {
                 dockedStint = true;
-            } else if (mode === DockingMode.UNDOCKED && dockedStint) {
+                leaving = false;
+            } else if (mode === DockingMode.UNDOCKING) {
+                leaving = dockedStint;
+            } else if (mode === DockingMode.UNDOCKED) {
+                if (leaving || previousMode === DockingMode.DOCKED) {
+                    launches++;
+                }
                 dockedStint = false;
-                launches++;
+                leaving = false;
+            } else {
+                leaving = false;
             }
+            previousMode = mode;
             const slots = state.repairQueue.slots;
-            renewal ??= slots.find((s) => s.protocolId === 'armorPlateRenewal');
+            if (!renewal || !slots.includes(renewal)) {
+                renewal = slots.find((s) => s.protocolId === 'armorPlateRenewal');
+            }
             const renewalPriority = renewal?.priority ?? RepairPriority.OFF;
             let repairedNow = 0;
             armor.armorPlates.forEach((plate, i) => {
@@ -115,6 +129,8 @@ export function trackDock(params: DockRungParams): {
                 if (promoted) {
                     overhaulPreemptedRenewal ||= overhaulIds.includes(promoted.protocolId);
                     awaitingPromotion = false;
+                } else if (slots.every((s) => s.priority === RepairPriority.OFF)) {
+                    awaitingPromotion = false; // the queue went idle: a later overhaul is not what replaced the renewal
                 }
             }
             renewalWasRunning = renewalPriority === RepairPriority.RUNNING;

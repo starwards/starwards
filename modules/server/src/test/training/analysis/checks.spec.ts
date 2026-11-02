@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { CheckResult, computeChecks } from './checks';
+import { DockingMode } from '@starwards/core/internal';
 import { Store } from './store';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
 
@@ -169,6 +170,15 @@ describe('computeChecks', () => {
             await frame(0);
             await frame(1);
             await value('p', '/velocity/x', 1, { num: 10 });
+            expect((await run()).player_stays_mobile.status).toBe('pass');
+        });
+
+        it('passes when the player ends docked', async () => {
+            await object('p', 'Spaceship', 0, 1, 'player');
+            await frame(0);
+            await frame(1);
+            await value('p', '/velocity/x', 1, { num: 0 });
+            await value('p', '/docking/mode', 1, { num: DockingMode.DOCKED });
             expect((await run()).player_stays_mobile.status).toBe('pass');
         });
 

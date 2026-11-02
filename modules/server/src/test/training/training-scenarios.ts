@@ -23,7 +23,7 @@ import {
     createTrainingT3DirectedMap,
     createTrainingT3IncomingMap,
 } from '../../scenarios/training';
-import { T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
+import { T2DockParams, createTrainingDockOnlyMap, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
     WeaponsMultiParams,
     createTrainingWeaponsMultiMap,
@@ -337,7 +337,7 @@ const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingSce
         playerArmor: fc.constant(playerArmor),
     }),
     enemies: late ? [TRAINING_TARGET_ID] : [],
-    createMap: (params) => trackDock(params).map,
+    createMap: (params) => createTrainingDockOnlyMap(params, { playerArmor: params.playerArmor }),
     trackDock,
 });
 

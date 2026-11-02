@@ -92,9 +92,13 @@ describe('crewReport on a dock rung', () => {
 
     it('tabulates passes, docked seconds, plates repaired, launch rate and preemptions per crew', () => {
         expect(report).toContain(
-            '| crew | passed | runs with dock metrics | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) |',
+            '| crew | passed | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) |',
         );
-        expect(report).toContain('| a | 1/2 | 2/2 | 190.0 | 10.0 | 0.10 | 1/2 |');
+        expect(report).toContain('| a | 1/2 | 190.0 | 10.0 | 0.10 | 1/2 |');
+    });
+
+    it('labels the main table by pass, not kill, on a dock rung', () => {
+        expect(report).toContain('| crew | brains | passed | time to pass p10 / median / p90 (s) |');
     });
 
     it('reads a failed late run with the attacker killed as not passed', () => {
