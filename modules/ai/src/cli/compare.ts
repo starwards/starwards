@@ -28,10 +28,12 @@ async function within(run: CrewRunResult, recording: string, horizon: number): P
     const frames = (await readFrames(recording)).filter((f) => f.t < horizon);
     const score = scoreFrames(
         frames,
-        { killed, seconds, timeoutSeconds: horizon },
+        // a dock pass is not a kill: no kill credit for the time after it
+        { killed: killed && !run.dock, seconds, timeoutSeconds: horizon },
         readEvents(recording).filter((e) => e.t < horizon),
     );
-    return { ...run, killed, seconds, timeoutSeconds: horizon, score: score ?? null };
+    const dock = run.dock && { ...run.dock, passedAt: killed ? run.dock.passedAt : null };
+    return { ...run, killed, seconds, timeoutSeconds: horizon, score: score ?? null, dock };
 }
 
 async function main() {

@@ -1,7 +1,7 @@
 import { isSignificant, pairedComparison } from './paired';
+import { mean, median } from '@starwards/server/src/test/training/gunnery-metrics';
 
 import { CrewRunResult } from './train-crew';
-import { median } from '@starwards/server/src/test/training/gunnery-metrics';
 
 /** Published input price of `jev-1.13.0`, US dollars per million input tokens (output tokens are free). */
 export const JEV_DOLLARS_PER_MILLION_TOKENS = 0.042;
@@ -13,7 +13,6 @@ function quantile(values: readonly number[], q: number) {
 }
 
 const fmt = (n: number, digits = 1) => (Number.isFinite(n) ? n.toFixed(digits) : '–');
-const meanOf = (xs: readonly number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
 /** What a paired comparison is made on: one number per run. `better` says which way is good. */
 const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefined; better: 'higher' | 'lower' }[] = [
@@ -52,7 +51,6 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
     ];
     const bySeed = (crew: string) => new Map(results.filter((r) => r.crew === crew).map((r) => [r.seed, r]));
     const base = bySeed(baseline);
-    const mean = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
     for (const crew of new Set(results.map((r) => r.crew))) {
         if (crew === baseline) continue;
         const mine = bySeed(crew);
@@ -99,7 +97,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         const sum = (f: (r: CrewRunResult) => number) => runs.reduce((a, r) => a + f(r), 0);
         const tokens = sum((r) => r.inputTokens);
         lines.push(
-            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(meanOf(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${sum((r) => r.score?.friendlyHits ?? 0)} (${runs.filter((r) => (r.score?.friendlyHits ?? 0) > 0).length}) | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
+            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(mean(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${sum((r) => r.score?.friendlyHits ?? 0)} (${runs.filter((r) => (r.score?.friendlyHits ?? 0) > 0).length}) | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
         );
     }
     if (results.some((r) => r.waves)) {
@@ -172,7 +170,7 @@ function wavesSection(results: readonly CrewRunResult[], crews: readonly string[
         const survived = waves.map((w) => w.survived);
         const sum = (f: (w: (typeof waves)[number]) => number) => waves.reduce((a, w) => a + f(w), 0);
         lines.push(
-            `| ${crew} | ${waves.filter((w) => w.passedAt !== null).length}/${waves.length} | ${Math.min(...survived)} / ${fmt(median(survived))} / ${Math.max(...survived)} | ${fmt(meanOf(waves.map((w) => w.stationsLost)), 2)} | ${sum((w) => w.raidersKilled)}/${sum((w) => w.raidersSpawned)} | ${waves.filter((w) => w.gvtsHealth > 0).length}/${waves.length} | ${fmt(meanOf(waves.map((w) => w.gvtsHealth)), 2)} |`,
+            `| ${crew} | ${waves.filter((w) => w.passedAt !== null).length}/${waves.length} | ${Math.min(...survived)} / ${fmt(median(survived))} / ${Math.max(...survived)} | ${fmt(mean(waves.map((w) => w.stationsLost)), 2)} | ${sum((w) => w.raidersKilled)}/${sum((w) => w.raidersSpawned)} | ${waves.filter((w) => w.gvtsHealth > 0).length}/${waves.length} | ${fmt(mean(waves.map((w) => w.gvtsHealth)), 2)} |`,
         );
     }
     return lines;
@@ -193,7 +191,7 @@ function dockSection(results: readonly CrewRunResult[], crews: readonly string[]
         const docks = results.flatMap((r) => (r.crew === crew && r.dock ? [r.dock] : []));
         if (!docks.length) continue;
         lines.push(
-            `| ${crew} | ${docks.filter((d) => d.passedAt !== null).length}/${docks.length} | ${fmt(meanOf(docks.map((d) => d.dockedSeconds)), 1)} | ${fmt(meanOf(docks.map((d) => d.platesRepaired)), 1)} | ${fmt(meanOf(docks.map((d) => d.launchesPerMinute)), 2)} | ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} |`,
+            `| ${crew} | ${docks.filter((d) => d.passedAt !== null).length}/${docks.length} | ${fmt(mean(docks.map((d) => d.dockedSeconds)), 1)} | ${fmt(mean(docks.map((d) => d.platesRepaired)), 1)} | ${fmt(mean(docks.map((d) => d.launchesPerMinute)), 2)} | ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} |`,
         );
     }
     return lines;

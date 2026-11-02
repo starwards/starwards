@@ -3,7 +3,13 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
-import { DockOutcome, DockRungParams, DockTracker, trackDock } from './dock-rung';
+import {
+    DockOnlyParams,
+    T2DockParams,
+    createTrainingDockOnlyMap,
+    createTrainingT2DockMap,
+} from '../../scenarios/training-dock';
+import { DockOutcome, DockTracker, trackDock } from './dock-rung';
 import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
@@ -23,7 +29,6 @@ import {
     createTrainingT3DirectedMap,
     createTrainingT3IncomingMap,
 } from '../../scenarios/training';
-import { T2DockParams, createTrainingDockOnlyMap, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
     WeaponsMultiParams,
     createTrainingWeaponsMultiMap,
@@ -327,9 +332,8 @@ const adversaryWaves = (profile: AdversaryProfile) =>
     waveRung({ ...W_WAVES, name: `AW-${profile.name}`, adversary: profile });
 
 /** Dock-only rung: the GVTS starts with `playerArmor` of its plates healthy beside an allied station; passes once all are. */
-const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockRungParams> => {
-    const createMap = (params: DockRungParams) =>
-        createTrainingDockOnlyMap(params, { playerArmor: params.playerArmor });
+const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockOnlyParams> => {
+    const createMap = (params: DockOnlyParams) => createTrainingDockOnlyMap(params, { playerArmor });
     return {
         name,
         description: `GVTS with ${playerArmor} healthy armor plates beside an allied, unarmed large station 2-5 km (surface) away, ${late ? 'one dragonfly-MK1 attacking from 15-25 km' : 'no attackers'}; passes once every plate is healthy (above 90% health)`,
@@ -337,7 +341,6 @@ const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingSce
             stationDistance: fc.integer({ min: 2000, max: 5000 }),
             stationBearing: fc.integer({ min: 0, max: 359 }),
             attackerDistance: late ? fc.integer({ min: 15000, max: 25000 }) : fc.constant(undefined),
-            playerArmor: fc.constant(playerArmor),
         }),
         enemies: late ? [TRAINING_TARGET_ID] : [],
         createMap,

@@ -6,7 +6,6 @@ import {
     RepairProtocolName,
     RepairProtocolSlot,
 } from '@starwards/core/internal';
-import { DockOnlyParams } from '../../scenarios/training-dock';
 import { HeadlessGame } from '../headless-game';
 import { TRAINING_PLAYER_ID } from '../../scenarios/training';
 
@@ -40,9 +39,6 @@ const HEALTHY_PLATE_RATIO = 0.9;
 const isHealthy = (plate: ArmorPlate) => plate.healthRatio > HEALTHY_PLATE_RATIO;
 
 const overhaulIds: readonly RepairProtocolName[] = ['feedSystemOverhaul', 'hullWideSystemsOverhaul'];
-
-/** A dock-only rung's layout: the station and attacker of {@link DockOnlyParams}, and how many plates the GVTS starts with healthy. */
-export type DockRungParams = DockOnlyParams & { readonly playerArmor: number };
 
 export function trackDock(map: GameMap): {
     map: GameMap;
