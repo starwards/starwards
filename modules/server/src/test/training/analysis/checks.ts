@@ -16,13 +16,19 @@ interface CheckParams {
     readonly shellsDamageArmorMinShells: number;
     readonly shellsDamageArmorMaxRangeM: number;
     readonly stripToKillSeconds: number;
+    /** A player that ends docked counts as mobile (dock-only rungs end docked by design; other rungs keep the strict check). */
+    readonly dockedCountsAsMobile: boolean;
 }
 
 const DEFAULT_CHECK_PARAMS: CheckParams = {
     shellsDamageArmorMinShells: 200,
     shellsDamageArmorMaxRangeM: 2000,
     stripToKillSeconds: 60,
+    dockedCountsAsMobile: false,
 };
+
+/** {@link DEFAULT_CHECK_PARAMS} for dock-only rungs. */
+export const DOCK_CHECK_PARAMS: CheckParams = { ...DEFAULT_CHECK_PARAMS, dockedCountsAsMobile: true };
 
 interface RoleIds {
     readonly player?: string;
@@ -63,7 +69,7 @@ export async function computeChecks(
         fireWithinRange(store, runId, roles),
         shellsDamageArmor(store, runId, roles, params),
         stripLeadsToKill(store, runId, roles, params),
-        playerStaysMobile(store, runId, roles),
+        playerStaysMobile(store, runId, roles, params),
         framesRegular(store, runId),
     ]).then(async (r) => [...r, ...(await missileBeyondOwnRadar(store, runId, roles))]);
     for (const r of results) {
@@ -76,7 +82,10 @@ export const CHECK_CATALOGUE: ReadonlyArray<{ name: string; description: string 
     { name: 'fire_within_range', description: "any fire window with mean distance beyond the gun's max range" },
     { name: 'shells_damage_armor', description: 'shells fired in range but no plate health lost' },
     { name: 'strip_leads_to_kill', description: 'armor stripped but no kill within stripToKillSeconds' },
-    { name: 'player_stays_mobile', description: 'player speed 0 at end, not docked, with no propulsion break' },
+    {
+        name: 'player_stays_mobile',
+        description: 'player speed 0 at end with no propulsion break (docked counts as mobile on dock-only rungs)',
+    },
     { name: 'frames_regular', description: 'frame t gaps deviate from interval_s by more than one frame' },
     {
         name: 'missile_beyond_own_radar',
@@ -196,7 +205,12 @@ async function stripLeadsToKill(
     return { name: 'strip_leads_to_kill', status: 'pass', t: null, detail: null };
 }
 
-async function playerStaysMobile(store: Store, runId: string, roles: RoleIds): Promise<CheckResult> {
+async function playerStaysMobile(
+    store: Store,
+    runId: string,
+    roles: RoleIds,
+    params: CheckParams,
+): Promise<CheckResult> {
     if (!roles.player) {
         return { name: 'player_stays_mobile', status: 'skip', t: null, detail: 'no player role' };
     }
@@ -212,7 +226,9 @@ async function playerStaysMobile(store: Store, runId: string, roles: RoleIds): P
     if (speed > 1e-6) {
         return { name: 'player_stays_mobile', status: 'pass', t: null, detail: { speed } };
     }
-    const docking = await store.valueAt(runId, roles.player, '/docking/mode', lastT);
+    const docking = params.dockedCountsAsMobile
+        ? await store.valueAt(runId, roles.player, '/docking/mode', lastT)
+        : undefined;
     if (docking?.num === DockingMode.DOCKED) {
         return { name: 'player_stays_mobile', status: 'pass', t: null, detail: { speed, docked: true } };
     }

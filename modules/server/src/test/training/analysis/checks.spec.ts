@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { CheckResult, computeChecks } from './checks';
+import { CheckResult, DOCK_CHECK_PARAMS, computeChecks } from './checks';
 import { DockingMode } from '@starwards/core/internal';
 import { Store } from './store';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
@@ -61,8 +61,8 @@ describe('computeChecks', () => {
             JSON.stringify(detail),
         );
     }
-    async function run(): Promise<Record<string, CheckResult>> {
-        const results = await computeChecks(store, runId);
+    async function run(params?: Parameters<typeof computeChecks>[2]): Promise<Record<string, CheckResult>> {
+        const results = await computeChecks(store, runId, params);
         return Object.fromEntries(results.map((r) => [r.name, r]));
     }
 
@@ -173,13 +173,14 @@ describe('computeChecks', () => {
             expect((await run()).player_stays_mobile.status).toBe('pass');
         });
 
-        it('passes when the player ends docked', async () => {
+        it('passes a docked player only with the dock-rung params', async () => {
             await object('p', 'Spaceship', 0, 1, 'player');
             await frame(0);
             await frame(1);
             await value('p', '/velocity/x', 1, { num: 0 });
             await value('p', '/docking/mode', 1, { num: DockingMode.DOCKED });
-            expect((await run()).player_stays_mobile.status).toBe('pass');
+            expect((await run()).player_stays_mobile.status).toBe('fail');
+            expect((await run(DOCK_CHECK_PARAMS)).player_stays_mobile.status).toBe('pass');
         });
 
         it('fails when the player is stopped with no propulsion break', async () => {

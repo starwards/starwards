@@ -3,8 +3,8 @@ import {
     DockingMode,
     GameMap,
     RepairPriority,
+    RepairProtocolName,
     RepairProtocolSlot,
-    repairProtocols,
 } from '@starwards/core/internal';
 import { DockOnlyParams } from '../../scenarios/training-dock';
 import { HeadlessGame } from '../headless-game';
@@ -39,10 +39,7 @@ const HEALTHY_PLATE_RATIO = 0.9;
 /** The dock rung's "healthy" plate: health above {@link HEALTHY_PLATE_RATIO}, unlike `Armor.numberOfHealthyPlates` (not broken). */
 const isHealthy = (plate: ArmorPlate) => plate.healthRatio > HEALTHY_PLATE_RATIO;
 
-const overhaulIds: readonly string[] = [
-    'feedSystemOverhaul',
-    'hullWideSystemsOverhaul',
-] as const satisfies readonly (keyof typeof repairProtocols)[];
+const overhaulIds: readonly RepairProtocolName[] = ['feedSystemOverhaul', 'hullWideSystemsOverhaul'];
 
 /** A dock-only rung's layout: the station and attacker of {@link DockOnlyParams}, and how many plates the GVTS starts with healthy. */
 export type DockRungParams = DockOnlyParams & { readonly playerArmor: number };
@@ -120,7 +117,7 @@ export function trackDock(map: GameMap): {
             } else if (awaitingPromotion) {
                 const promoted = slots.find((s) => s.priority === RepairPriority.RUNNING);
                 if (promoted) {
-                    overhaulPreemptedRenewal ||= overhaulIds.includes(promoted.protocolId);
+                    overhaulPreemptedRenewal ||= overhaulIds.includes(promoted.protocolId as RepairProtocolName);
                     awaitingPromotion = false;
                 } else if (slots.every((s) => s.priority === RepairPriority.OFF)) {
                     awaitingPromotion = false; // the queue went idle: a later overhaul is not what replaced the renewal

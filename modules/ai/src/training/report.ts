@@ -153,7 +153,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     );
     for (const r of results) {
         lines.push(
-            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${r.dock ? '–' : fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
+            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${r.dock && !r.enemies ? '–' : fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
         );
     }
     return lines.join('\n') + '\n';
