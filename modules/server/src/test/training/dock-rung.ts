@@ -6,7 +6,7 @@ import {
     RepairProtocolSlot,
     repairProtocols,
 } from '@starwards/core/internal';
-import { DockOnlyParams, createTrainingDockOnlyMap } from '../../scenarios/training-dock';
+import { DockOnlyParams } from '../../scenarios/training-dock';
 import { HeadlessGame } from '../headless-game';
 import { TRAINING_PLAYER_ID } from '../../scenarios/training';
 
@@ -47,7 +47,7 @@ const overhaulIds: readonly string[] = [
 /** A dock-only rung's layout: the station and attacker of {@link DockOnlyParams}, and how many plates the GVTS starts with healthy. */
 export type DockRungParams = DockOnlyParams & { readonly playerArmor: number };
 
-export function trackDock(params: DockRungParams): {
+export function trackDock(map: GameMap): {
     map: GameMap;
     tracker: DockTracker;
 } {
@@ -56,8 +56,7 @@ export function trackDock(params: DockRungParams): {
     let passedAt: number | null = null;
     let dockedSeconds = 0;
     let launches = 0;
-    let dockedStint = false;
-    let leaving = false;
+    let undocking = false;
     let previousMode = DockingMode.UNDOCKED;
     let healthyBefore: boolean[] = [];
     let awaitingPromotion = false;
@@ -80,21 +79,15 @@ export function trackDock(params: DockRungParams): {
             if (mode === DockingMode.DOCKED) {
                 dockedSeconds += dt;
             }
-            // A launch is the arrival at UNDOCKED from UNDOCKING after a docked stint: a bump-out (DOCKING again) or a
-            // drift past the docking distance is not one.
+            // A launch is the arrival at UNDOCKED from DOCKED, or after UNDOCKING began (even if a re-dock was started and
+            // aborted on the way out). A bump-out that drifts away (DOCKED, DOCKING, UNDOCKED) never began UNDOCKING.
             if (mode === DockingMode.DOCKED) {
-                dockedStint = true;
-                leaving = false;
+                undocking = false;
             } else if (mode === DockingMode.UNDOCKING) {
-                leaving = dockedStint;
+                undocking = true;
             } else if (mode === DockingMode.UNDOCKED) {
-                if (leaving || previousMode === DockingMode.DOCKED) {
-                    launches++;
-                }
-                dockedStint = false;
-                leaving = false;
-            } else {
-                leaving = false;
+                launches += Number(undocking || previousMode === DockingMode.DOCKED);
+                undocking = false;
             }
             previousMode = mode;
             const slots = state.repairQueue.slots;
@@ -153,7 +146,6 @@ export function trackDock(params: DockRungParams): {
             };
         },
     };
-    const map = createTrainingDockOnlyMap(params, { playerArmor: params.playerArmor });
     return {
         map: {
             ...map,

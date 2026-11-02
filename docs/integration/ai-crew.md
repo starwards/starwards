@@ -621,6 +621,15 @@ that spawn 140 km out ([`perception.ts`](../../modules/ai/src/adversary/percepti
 results: [`curriculum/adversary/`](../../modules/ai/curriculum/adversary/) (reports) and
 [`curriculum/baselines/adversary/`](../../modules/ai/curriculum/baselines/adversary/) (baselines).
 
+### Dock-only rungs: `D-dock-0of16`
+
+`D-dock-0of16` starts the GVTS with no healthy armor plate (`T0Lab.playerArmor`: how many of the first plates stay
+healthy; a plate is healthy above 90% of its health) beside an allied large station, with no attackers.
+`D-dock-0of16-late` adds one dragonfly-MK1 attacking from 15-25 km. A run passes once every plate is healthy,
+so the report's `killed` and `seconds` mean passed and time to pass. Each result carries `dock`: plates repaired,
+seconds docked, launches and launches per minute, and whether an overhaul replaced a cancelled armor-plate renewal.
+`crewReport` adds a Dock section and paired comparisons of plates repaired and renewal preemption.
+
 ## Branching: what if the crew had decided otherwise
 
 Owner's idea: keep a corpus of recordings and decision logs, go back to key decision points and try

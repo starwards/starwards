@@ -326,20 +326,24 @@ const adversaryT1 = (profile: AdversaryProfile): TrainingScenario<T0Params> => (
 const adversaryWaves = (profile: AdversaryProfile) =>
     waveRung({ ...W_WAVES, name: `AW-${profile.name}`, adversary: profile });
 
-/** Dock-only rung: the GVTS starts with `playerArmor` of its 16 plates healthy beside an allied station; passes once all are. */
-const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockRungParams> => ({
-    name,
-    description: `GVTS with ${playerArmor} of 16 armor plates healthy beside an allied, unarmed large station 2-5 km (surface) away, ${late ? 'one dragonfly-MK1 attacking from 15-25 km' : 'no attackers'}; passes once every plate is healthy (above 90% health)`,
-    params: fc.record({
-        stationDistance: fc.integer({ min: 2000, max: 5000 }),
-        stationBearing: fc.integer({ min: 0, max: 359 }),
-        attackerDistance: late ? fc.integer({ min: 15000, max: 25000 }) : fc.constant(undefined),
-        playerArmor: fc.constant(playerArmor),
-    }),
-    enemies: late ? [TRAINING_TARGET_ID] : [],
-    createMap: (params) => createTrainingDockOnlyMap(params, { playerArmor: params.playerArmor }),
-    trackDock,
-});
+/** Dock-only rung: the GVTS starts with `playerArmor` of its plates healthy beside an allied station; passes once all are. */
+const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockRungParams> => {
+    const createMap = (params: DockRungParams) =>
+        createTrainingDockOnlyMap(params, { playerArmor: params.playerArmor });
+    return {
+        name,
+        description: `GVTS with ${playerArmor} healthy armor plates beside an allied, unarmed large station 2-5 km (surface) away, ${late ? 'one dragonfly-MK1 attacking from 15-25 km' : 'no attackers'}; passes once every plate is healthy (above 90% health)`,
+        params: fc.record({
+            stationDistance: fc.integer({ min: 2000, max: 5000 }),
+            stationBearing: fc.integer({ min: 0, max: 359 }),
+            attackerDistance: late ? fc.integer({ min: 15000, max: 25000 }) : fc.constant(undefined),
+            playerArmor: fc.constant(playerArmor),
+        }),
+        enemies: late ? [TRAINING_TARGET_ID] : [],
+        createMap,
+        trackDock: (params) => trackDock(createMap(params)),
+    };
+};
 
 const adversaryRungs: Record<string, TrainingScenario<never>> = {
     ...Object.fromEntries(

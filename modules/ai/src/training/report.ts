@@ -22,6 +22,12 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
     { name: 'raiders killed', of: (r) => r.waves?.raidersKilled, better: 'higher' },
     { name: 'run value', of: (r) => r.score?.value, better: 'higher' },
     { name: 'friendly hits', of: (r) => r.score?.friendlyHits, better: 'lower' },
+    { name: 'dock: plates repaired', of: (r) => r.dock?.platesRepaired, better: 'higher' },
+    {
+        name: 'dock: renewal preempted',
+        of: (r) => (r.dock ? Number(r.dock.overhaulPreemptedRenewal) : undefined),
+        better: 'lower',
+    },
     { name: 'killed', of: (r) => (r.killed ? 1 : 0), better: 'higher' },
     { name: 'seconds', of: (r) => r.seconds, better: 'lower' },
     { name: 'tactical score', of: (r) => r.score?.tactical, better: 'higher' },
@@ -78,12 +84,13 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
  */
 export function crewReport(scenario: string, results: readonly CrewRunResult[], header: string, baseline?: string) {
     const crews = [...new Set(results.map((r) => r.crew))];
+    const dockRung = results.some((r) => r.dock);
     const lines = [
         `# Crew training: ${scenario}`,
         '',
         header,
         '',
-        `| crew | brains | ${results.some((r) => r.dock) ? 'passed' : 'kills'} | time to ${results.some((r) => r.dock) ? 'pass' : 'kill'} p10 / median / p90 (s) | run value | friendly hits (runs) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |`,
+        `| crew | brains | ${dockRung ? 'passed' : 'kills'} | time to ${dockRung ? 'pass' : 'kill'} p10 / median / p90 (s) | run value | friendly hits (runs) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |`,
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const crew of crews) {
@@ -98,7 +105,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     if (results.some((r) => r.waves)) {
         lines.push('', ...wavesSection(results, crews));
     }
-    if (results.some((r) => r.dock)) {
+    if (dockRung) {
         lines.push('', ...dockSection(results, crews));
     }
     if (crews.length > 1) {
@@ -145,7 +152,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     );
     for (const r of results) {
         lines.push(
-            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
+            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${r.dock ? '–' : fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
         );
     }
     return lines.join('\n') + '\n';
