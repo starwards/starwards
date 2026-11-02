@@ -12,6 +12,7 @@
  */
 import { CrewRunResult, runCrewTraining } from '../training/train-crew';
 
+import { applyAggroLogFlag } from '../training/aggro-log-flag';
 import { applyCacheFlags } from '../brain/jev-cache';
 import { crewReport } from '../training/report';
 import { fork } from 'node:child_process';
@@ -52,6 +53,7 @@ if (process.send) {
 }
 
 async function main() {
+    applyAggroLogFlag(process.argv);
     applyCacheFlags();
     const scenario = arg('scenario', 'T0');
     const crews = args('crew').map((c) => path.resolve(c));

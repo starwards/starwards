@@ -1,4 +1,4 @@
-import { AggroCharacter, ThreatTable } from './threat-table';
+import { AggroCharacter, ThreatSnapshot, ThreatSwitch, ThreatTable } from './threat-table';
 
 /**
  * An NPC's aggro: which attacker, if any, pulls it off its standing order. Owned by the NPC ship
@@ -20,6 +20,16 @@ export class AggroManager {
     /** The attacker currently steering the ship, `null` while it follows its standing order. */
     get heldId(): string | null {
         return this.table.heldId;
+    }
+
+    /** The `topN` strongest grudges and held state, read-only. */
+    snapshot(topN: number): ThreatSnapshot {
+        return this.table.snapshot(topN);
+    }
+
+    /** The latest change of `heldId`, `null` before the first. */
+    get lastSwitch(): ThreatSwitch | null {
+        return this.table.lastSwitch;
     }
 
     /** Credits a weapon hit's `amount` to `attackerId`. The caller filters self, friendly and unattributed hits. */

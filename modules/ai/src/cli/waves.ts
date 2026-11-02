@@ -26,6 +26,7 @@ import { idealScript, parseIdeals } from '../training/ideal';
 
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { ammoTelemetry } from '../training/ammo-telemetry';
+import { applyAggroLogFlag } from '../training/aggro-log-flag';
 import { applyCacheFlags } from '../brain/jev-cache';
 import { baselineCache } from '../training/baseline-cache';
 import { fork } from 'node:child_process';
@@ -210,6 +211,7 @@ function sequentialFor(runs: readonly WaveRun[], baseline: string, candidate: st
 }
 
 async function main() {
+    applyAggroLogFlag(process.argv);
     applyCacheFlags();
     const [results] = args('results');
     const { runs, header, outFile } = results

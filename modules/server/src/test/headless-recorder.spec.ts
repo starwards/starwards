@@ -2,8 +2,19 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import {
+    AggroEventData,
+    RecordingEventLine,
+    RecordingHeader,
+    SavedGame,
+    ShipManagerNpc,
+    XY,
+    aggroCharacters,
+    missionWeightForHits,
+    parseEventLine,
+    withMissionWeight,
+} from '@starwards/core/internal';
 import { HeadlessGame, SERVER_TICK_HZ } from './headless-game';
-import { RecordingEventLine, RecordingHeader, SavedGame, XY, parseEventLine } from '@starwards/core/internal';
 import { T0Params, TRAINING_PLAYER_ID, TRAINING_TARGET_ID, createTrainingT1Map } from '../scenarios/training';
 
 import { findSidecar, readSidecar } from '../recording/sidecar-file';
@@ -211,5 +222,80 @@ describe('HeadlessRecorder', () => {
             expect(granted).toBeLessThanOrEqual(demand + 1e-9);
         }
         expect(flows.some((f) => (f.data as { demand: number }).demand > 0)).toBe(true);
+    });
+});
+
+describe('HeadlessRecorder aggro log', () => {
+    let dir: string;
+    beforeAll(() => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'headless-recorder-aggro-'));
+    });
+    afterAll(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    /** T1 with its target a Brawler light enough that the GVTS's fire flips it; `held` per tick from live state. */
+    function run(name: string, aggroLogPeriodS?: number) {
+        const game = HeadlessGame.start(createTrainingT1Map(params), seed);
+        const raider = game.shipManagers.get(TRAINING_TARGET_ID) as ShipManagerNpc;
+        raider.state.aiProfile = { ...raider.state.aiProfile, aggro: 'Brawler' };
+        raider.setAggroCharacter(withMissionWeight(aggroCharacters.Brawler, missionWeightForHits(1)));
+        const recorder = new HeadlessRecorder(
+            game,
+            dir,
+            name,
+            1,
+            params,
+            SERVER_TICK_HZ,
+            aggroLogPeriodS === undefined ? {} : { aggroLogPeriodS },
+        );
+        const held = new Map<number, string>();
+        recorder.capture();
+        while (game.seconds < timeoutSeconds) {
+            game.tick(1 / SERVER_TICK_HZ);
+            recorder.capture();
+            if (raider.spaceObject.destroyed) break;
+            held.set(game.seconds, raider.state.aggroTargetId);
+        }
+        recorder.capture(true);
+        const events = readSidecar(recorder.eventsPath)
+            .split('\n')
+            .filter((line) => line)
+            .map((line) => parseEventLine(line)!);
+        return { events, held };
+    }
+
+    it('is off by default and leaves the sidecar identical to a run without it', () => {
+        const off = run('aggro-off');
+        const on = run('aggro-on', 1);
+        expect(off.events.filter((e) => e.kind === 'aggro')).toEqual([]);
+        expect(on.events.filter((e) => e.kind !== 'aggro')).toEqual(off.events);
+    });
+
+    it('logs held target, top threats, character and explained switches per raider', () => {
+        const { events, held } = run('aggro-log', 1);
+        const lines = events.filter((e) => e.kind === 'aggro');
+        expect(lines.length).toBeGreaterThan(0);
+        expect(lines.every((e) => e.objectId === TRAINING_TARGET_ID)).toBe(true);
+        const data = lines.map((e) => e.data as AggroEventData);
+        expect(data[0].char).toEqual(withMissionWeight(aggroCharacters.Brawler, missionWeightForHits(1)));
+        expect(data[0].type.character).toBe('Brawler');
+        expect(data.slice(1).every((d) => d.char === undefined)).toBe(true);
+        lines.forEach((e, i) => expect(data[i].held).toBe(held.get(e.t)));
+        const switches = data.filter((d) => d.why);
+        expect(switches.some((d) => d.held === TRAINING_PLAYER_ID)).toBe(true);
+        const { switchMargin } = aggroCharacters.Brawler;
+        for (const { why } of switches) {
+            if (why!.to !== '') expect(why!.challengerScore).toBeGreaterThan(why!.heldScore * (1 + switchMargin));
+        }
+        for (const d of data) {
+            const scores = d.top.map((x) => x.score);
+            expect(scores).toEqual([...scores].sort((a, b) => b - a));
+            expect(d.top.length).toBeLessThanOrEqual(3);
+        }
+        const heartbeats = lines.filter((_, i) => !data[i].why).map((e) => e.t);
+        for (let i = 1; i < heartbeats.length; i++) {
+            expect(heartbeats[i] - heartbeats[i - 1]).toBeGreaterThanOrEqual(1 - 1e-6);
+        }
     });
 });

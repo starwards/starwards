@@ -1,4 +1,4 @@
-import { RecordingEventLine, SavedGame, parseEventLine } from '@starwards/core/internal';
+import { AggroEventData, RecordingEventLine, SavedGame, parseEventLine } from '@starwards/core/internal';
 
 import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 import { bytesToSchema } from '@starwards/server/src/serialization/game-state-serialization';
@@ -30,4 +30,12 @@ export function readEvents(sgrPath: string): RecordingEventLine[] {
         const event = parseEventLine(line);
         return event ? [event] : [];
     });
+}
+
+/** The sidecar's `aggro` lines (written with the recorder's aggro log on), in order; none when it was off. */
+export function readAggroEvents(sgrPath: string): (RecordingEventLine & { objectId: string; data: AggroEventData })[] {
+    return readEvents(sgrPath).filter(
+        (e): e is RecordingEventLine & { objectId: string; data: AggroEventData } =>
+            e.kind === 'aggro' && e.objectId !== undefined,
+    );
 }

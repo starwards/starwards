@@ -84,6 +84,31 @@ export function withSpawnNoise(character: AggroCharacter, rng: () => number): Ag
     };
 }
 
+/** One threat-table entry as read by {@link ThreatTable.snapshot}: `idleS` is seconds since the attacker's last hit. */
+export interface ThreatEntry {
+    readonly id: string;
+    readonly score: number;
+    readonly idleS: number;
+}
+
+/** Read-only view of a {@link ThreatTable} for logging. */
+export interface ThreatSnapshot {
+    readonly heldId: string | null;
+    readonly switches: number;
+    /** The highest-scoring entries, descending. */
+    readonly top: ThreatEntry[];
+    /** The realised mission entry; `Infinity` for a Fixated character, `null` for none. */
+    readonly missionWeight: number | null;
+}
+
+/** Why `heldId` last changed: the winning entry's score against the one it displaced (the mission's weight when on mission, 0 once dropped). `null` ids are the mission. */
+export interface ThreatSwitch {
+    readonly from: string | null;
+    readonly to: string | null;
+    readonly challengerScore: number;
+    readonly heldScore: number;
+}
+
 /**
  * Per-ship threat accumulator (the MMO threat table). Fed from weapon damage; each entry holds while
  * its attacker keeps hitting and decays once it has gone `memorySeconds` without a hit. `heldId` is
@@ -96,6 +121,8 @@ export class ThreatTable {
     heldId: string | null = null;
     /** How many times `heldId` changed, including returns to mission. */
     switches = 0;
+    /** The latest change of `heldId`, `null` before the first. */
+    lastSwitch: ThreatSwitch | null = null;
     private readonly threat = new Map<string, number>();
     /** Table clock (sum of `update` deltas) at each attacker's latest hit. */
     private readonly lastHitAt = new Map<string, number>();
@@ -112,6 +139,20 @@ export class ThreatTable {
 
     get(attackerId: string): number {
         return this.threat.get(attackerId) ?? 0;
+    }
+
+    /** The `topN` strongest entries and the held state, without touching the table. */
+    snapshot(topN: number): ThreatSnapshot {
+        const top = [...this.threat]
+            .map(([id, score]) => ({ id, score, idleS: this.clock - (this.lastHitAt.get(id) ?? -Infinity) }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, topN);
+        return {
+            heldId: this.heldId,
+            switches: this.switches,
+            top,
+            missionWeight: this.character?.missionWeight ?? null,
+        };
     }
 
     /**
@@ -144,7 +185,7 @@ export class ThreatTable {
             }
         }
         if (this.heldId !== null && !this.threat.has(this.heldId)) {
-            this.setHeld(null);
+            this.setHeld(null, character.missionWeight, 0);
         }
         let best: string | null = null;
         let bestValue = character.missionWeight;
@@ -156,7 +197,7 @@ export class ThreatTable {
         }
         const heldValue = this.heldId === null ? character.missionWeight : this.get(this.heldId);
         if (best !== this.heldId && bestValue > heldValue * (1 + character.switchMargin)) {
-            this.setHeld(best);
+            this.setHeld(best, bestValue, heldValue);
         }
         for (const [id, value] of this.threat) {
             if (id !== this.heldId && value < character.missionWeight * 1e-3) {
@@ -169,7 +210,7 @@ export class ThreatTable {
     forget(id: string) {
         this.drop(id);
         if (this.heldId === id) {
-            this.setHeld(null);
+            this.setHeld(null, this.character?.missionWeight ?? 0, 0);
         }
     }
 
@@ -181,11 +222,12 @@ export class ThreatTable {
     private release() {
         this.threat.clear();
         this.lastHitAt.clear();
-        this.setHeld(null);
+        this.setHeld(null, this.character?.missionWeight ?? 0, 0);
     }
 
-    private setHeld(id: string | null) {
+    private setHeld(id: string | null, challengerScore: number, heldScore: number) {
         if (id !== this.heldId) {
+            this.lastSwitch = { from: this.heldId, to: id, challengerScore, heldScore };
             this.heldId = id;
             this.switches++;
         }

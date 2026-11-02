@@ -225,6 +225,30 @@ export interface RecordingEventLine {
     data?: unknown;
 }
 
+/**
+ * `data` of an `aggro` sidecar line (objectId the NPC ship), written by the headless recorder when its
+ * aggro log is on. Ids are `''` for the mission (standing order). Scores are in `Damage.amount` units;
+ * an infinite (Fixated) mission weight is written as JSON `null`.
+ */
+export interface AggroEventData {
+    /** The hull model and the aggro character's name (`null` when the AI profile names none). */
+    type: { model: string; character: string | null };
+    /** The attacker the ship engages, `''` while on mission. */
+    held: string;
+    /** The standing order and its target. */
+    order: { kind: string; targetId: string | null };
+    /** The strongest grudges, descending; `idleS` is seconds since the attacker's last hit. */
+    top: { id: string; score: number; idleS: number }[];
+    /** The realised mission entry. */
+    mission: number | null;
+    /** How many times `held` changed, including returns to mission. */
+    switches: number;
+    /** The realised character, on a ship's first line and whenever it changes. */
+    char?: { missionWeight: number | null; memorySeconds: number; switchMargin: number; presenceRate: number };
+    /** On the line written the tick `held` changed: the winning score against the displaced one. */
+    why?: { from: string; to: string; challengerScore: number; heldScore: number };
+}
+
 export function encodeEventLine(event: RecordingEventLine): string {
     return JSON.stringify(event) + '\n';
 }
