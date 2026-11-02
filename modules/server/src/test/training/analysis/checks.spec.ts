@@ -62,8 +62,8 @@ describe('computeChecks', () => {
             JSON.stringify(detail),
         );
     }
-    async function run(params?: Parameters<typeof computeChecks>[2]): Promise<Record<string, CheckResult>> {
-        const results = await computeChecks(store, runId, params);
+    async function run(): Promise<Record<string, CheckResult>> {
+        const results = await computeChecks(store, runId);
         return Object.fromEntries(results.map((r) => [r.name, r]));
     }
 

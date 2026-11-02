@@ -110,6 +110,7 @@ function toMarkdown(
     const ttk = killed.map((r) => r.seconds).sort((a, b) => a - b);
     const pct = (p: number) => (ttk.length ? ttk[Math.min(ttk.length - 1, Math.floor(ttk.length * p))] : NaN);
     const dockRung = results.some((r) => r.dock);
+    const targeted = !dockRung || results.some((r) => r.enemies > 0);
     const recording = options.recording
         ? `recording every ${options.recording.intervalSimSeconds} sim-s`
         : 'not recorded';
@@ -126,13 +127,17 @@ function toMarkdown(
               ]
             : []),
         `- ${dockRung ? 'Time to pass' : 'TTK'} sim-s (${dockRung ? 'passed' : 'killed'}): p10 ${f(pct(0.1))} / median ${f(pct(0.5))} / p90 ${f(pct(0.9))}`,
-        `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
-        `- Any system damage (health < 1): ${results.filter((r) => r.targetHealth < 1).length}/${results.length}`,
-        `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
-        `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}`,
+        ...(targeted
+            ? [
+                  `- Armor stripped: ${results.filter((r) => r.armorStrippedAt !== null).length}/${results.length}`,
+                  `- Any system damage (health < 1): ${results.filter((r) => r.targetHealth < 1).length}/${results.length}`,
+                  `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
+                  `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}`,
+              ]
+            : []),
         '',
         `| seed | params | ${dockRung ? 'passed' : 'killed'} | sim-s | armor stripped at | target health | shells | AP/HE | plate_intel | s firing | in range | in kill zone | blast hits | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |`,
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
                 `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${r.dock && !r.enemies ? '–' : f(r.targetHealth, 2)} | ${r.shellsFired} | ${r.shellsByAmmo.ap}/${r.shellsByAmmo.he} | ${r.plateIntelCalls} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,

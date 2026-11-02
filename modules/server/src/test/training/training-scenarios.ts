@@ -428,7 +428,8 @@ export interface TrainingRunOptions {
 
 /**
  * Plays one run to its end and records it, without analysing the recording: `seed` drives both the
- * fast-check layout sample and the die. The run ends at the timeout or once every enemy is gone.
+ * fast-check layout sample and the die. The run ends at the timeout, once the rung's tracker
+ * reports done, or, on a rung with no tracker, once every enemy is gone.
  */
 export async function playTraining<P>(
     scenario: TrainingScenario<P>,

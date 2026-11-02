@@ -26,7 +26,7 @@ export type Outcome = {
     value: number | null;
     /** A wave rung's outcome: `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
     waves?: WaveOutcome;
-    /** A dock-only rung's outcome: `killed` is its pass (every armor plate intact), not the attacker's death. */
+    /** A dock-only rung's outcome: `killed` is its pass (every armor plate above 90% health), not the attacker's death. */
     dock?: DockOutcome;
     /** Fingerprint of the crew's decisions, callouts, commands and orders before the branch point. */
     prefix: string;
