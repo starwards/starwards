@@ -500,10 +500,12 @@ export class GameManager {
         for (const [id, shipState] of fragment.ship) {
             const so = fragment.space.getShip(id);
             if (so) {
-                this.initShipManagerAndRoom(so, shipState, shipState.isPlayerShip);
+                // a clone: the decoded copy keeps its decoder's references, which a room's encoder mis-sends
+                this.initShipManagerAndRoom(so, shipState.clone(), shipState.isPlayerShip);
             }
         }
         await this.waitForAllShipRoomsInit();
+        map.resume?.(this.scriptApi);
         this.state.gameStatus = GameStatus.RUNNING;
         this.reconcileStationAssignments();
     }

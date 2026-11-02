@@ -3,6 +3,7 @@ import {
     SavedGame,
     ShipManagerNpc,
     ShipManagerPc,
+    SignalsJob,
     SpaceObject,
     Vec2,
     makeId,
@@ -143,6 +144,42 @@ describe('HeadlessGame.restore', () => {
         const restoredIds = new Set([...resumed.spaceManager.state].map((o) => o.id));
         for (const id of [makeId(), uniqueId('shell'), uniqueId('explosion')]) {
             expect(restoredIds.has(id)).toBe(false);
+        }
+    });
+});
+
+describe('HeadlessGame.tick', () => {
+    /** Destroyed objects the space state's maps still hold for an encode that never comes. */
+    const heldDeleted = (game: HeadlessGame) =>
+        [...game.spaceManager.state.maps()].reduce((sum, map) => {
+            const { journal } = map as unknown as { journal?: { snapshots?: Map<number, unknown> } };
+            // a colyseus upgrade that moves the journal must fail here, not read as nothing held
+            expect(journal).toBeDefined();
+            return sum + (journal!.snapshots?.size ?? 0);
+        }, 0);
+
+    it('releases destroyed space objects', () => {
+        const game = HeadlessGame.start(training_t1, 1);
+        while (game.seconds < 30) game.tick(1 / SERVER_TICK_HZ);
+        expect(heldDeleted(game)).toBe(0);
+    });
+});
+
+describe('HeadlessGame.restore of a ship mid-job', () => {
+    it('clears the job as a fresh manager does, without schema warnings', () => {
+        const game = HeadlessGame.start(training_t1, 1, { crewedPlayer: true });
+        game.tick(0.1);
+        const job = new SignalsJob();
+        job.id = 'job-1';
+        game.shipManagers.get(TRAINING_PLAYER_ID)!.state.signals.jobs.push(job);
+        const saved = game.saveGame();
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+        try {
+            const resumed = HeadlessGame.restore(saved, training_t1, 1, game.seconds, { crewedPlayer: true });
+            expect(warn).not.toHaveBeenCalled();
+            expect(resumed.shipManagers.get(TRAINING_PLAYER_ID)!.state.signals.jobs.length).toBe(0);
+        } finally {
+            warn.mockRestore();
         }
     });
 });

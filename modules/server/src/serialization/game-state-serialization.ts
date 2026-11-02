@@ -1,4 +1,4 @@
-import { Encoder, Schema } from '@colyseus/schema';
+import { $changes, $refId, ChangeTree, Encoder, Schema } from '@colyseus/schema';
 import { SAVED_GAME_MAGIC, isBinarySavedGame } from '@starwards/core/internal';
 import { gzip, unzip, zstdCompress, zstdDecompress } from 'node:zlib';
 
@@ -65,7 +65,21 @@ type Constructor<T extends Schema> = new (...args: never[]) => T;
 export function decodedCopy<T extends Schema>(ctor: Constructor<T>, source: T) {
     const copy = new ctor();
     new ConstructingDecoder(copy).decode(new Encoder(source.clone()).encodeAll({ offset: 0 }, encodeBuffer));
+    forgetRefIds(copy[$changes]!);
     return copy;
+}
+
+/**
+ * Drops the ref ids a decoder stamped on a tree. An encoder keeps an instance's ref id when it has
+ * one and numbers new instances from its own counter, so a decoded object put in a room's state
+ * shares its id with a later new one, and clients decode the one as the other. Reads
+ * `@colyseus/schema` 5 internals (`$refId`, `ChangeTree.refTarget`, `forEachChild`); the load tests in
+ * `admin/load-game-join.spec.ts` fail if an upgrade changes them.
+ */
+function forgetRefIds(tree: ChangeTree) {
+    (tree.ref as { [$refId]?: number })[$refId] = undefined;
+    (tree.refTarget as { [$refId]?: number })[$refId] = undefined;
+    tree.forEachChild((child) => forgetRefIds(child));
 }
 
 export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, serialized: string) {
