@@ -1,6 +1,7 @@
 import { DockingMode, radarReach } from '@starwards/core/internal';
 import { killedAt, meanDistance, shellsFired } from './metrics';
 import { missileLaunchRange, rangeRate } from '@starwards/bots';
+import { DOCK_ONLY_MAP_NAME } from '../../../scenarios/training-dock';
 import { Store } from './store';
 
 export type CheckStatus = 'pass' | 'fail' | 'skip';
@@ -16,19 +17,13 @@ interface CheckParams {
     readonly shellsDamageArmorMinShells: number;
     readonly shellsDamageArmorMaxRangeM: number;
     readonly stripToKillSeconds: number;
-    /** A player that ends docked counts as mobile (dock-only rungs end docked by design; other rungs keep the strict check). */
-    readonly dockedCountsAsMobile: boolean;
 }
 
 const DEFAULT_CHECK_PARAMS: CheckParams = {
     shellsDamageArmorMinShells: 200,
     shellsDamageArmorMaxRangeM: 2000,
     stripToKillSeconds: 60,
-    dockedCountsAsMobile: false,
 };
-
-/** {@link DEFAULT_CHECK_PARAMS} for dock-only rungs. */
-export const DOCK_CHECK_PARAMS: CheckParams = { ...DEFAULT_CHECK_PARAMS, dockedCountsAsMobile: true };
 
 interface RoleIds {
     readonly player?: string;
@@ -69,7 +64,7 @@ export async function computeChecks(
         fireWithinRange(store, runId, roles),
         shellsDamageArmor(store, runId, roles, params),
         stripLeadsToKill(store, runId, roles, params),
-        playerStaysMobile(store, runId, roles, params),
+        playerStaysMobile(store, runId, roles),
         framesRegular(store, runId),
     ]).then(async (r) => [...r, ...(await missileBeyondOwnRadar(store, runId, roles))]);
     for (const r of results) {
@@ -205,12 +200,7 @@ async function stripLeadsToKill(
     return { name: 'strip_leads_to_kill', status: 'pass', t: null, detail: null };
 }
 
-async function playerStaysMobile(
-    store: Store,
-    runId: string,
-    roles: RoleIds,
-    params: CheckParams,
-): Promise<CheckResult> {
+async function playerStaysMobile(store: Store, runId: string, roles: RoleIds): Promise<CheckResult> {
     if (!roles.player) {
         return { name: 'player_stays_mobile', status: 'skip', t: null, detail: 'no player role' };
     }
@@ -226,9 +216,11 @@ async function playerStaysMobile(
     if (speed > 1e-6) {
         return { name: 'player_stays_mobile', status: 'pass', t: null, detail: { speed } };
     }
-    const docking = params.dockedCountsAsMobile
-        ? await store.valueAt(runId, roles.player, '/docking/mode', lastT)
-        : undefined;
+    // Dock-only rungs end docked by design; read from the recording so a rebuilt store agrees.
+    const mapName = (await store.all<{ map_name: string }>('SELECT map_name FROM run WHERE run_id = ?', runId))[0]
+        ?.map_name;
+    const docking =
+        mapName === DOCK_ONLY_MAP_NAME ? await store.valueAt(runId, roles.player, '/docking/mode', lastT) : undefined;
     if (docking?.num === DockingMode.DOCKED) {
         return { name: 'player_stays_mobile', status: 'pass', t: null, detail: { speed, docked: true } };
     }

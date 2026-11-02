@@ -3,7 +3,6 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
-import { DOCK_CHECK_PARAMS, computeChecks } from './analysis/checks';
 import { DockOutcome, DockRungParams, DockTracker, trackDock } from './dock-rung';
 import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
@@ -34,6 +33,7 @@ import { ingest, storePathFor } from './analysis/store';
 
 import { HeadlessRecorder } from '../headless-recorder';
 import { WAVE_CUTS } from './wave-cuts';
+import { computeChecks } from './analysis/checks';
 import { computeEvents } from './analysis/events';
 import { extractMetrics } from './analysis/extract';
 import fc from 'fast-check';
@@ -443,6 +443,9 @@ export async function playTraining<P>(
     }: TrainingRunOptions,
 ) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
+    if (scenario.track && scenario.trackDock) {
+        throw new Error(`${scenario.name}: a rung takes one tracker, not both track and trackDock`);
+    }
     const tracked = scenario.track?.(params);
     const dockTracked = scenario.trackDock?.(params);
     const game = HeadlessGame.start(tracked?.map ?? dockTracked?.map ?? scenario.createMap(params), seed, {
@@ -522,7 +525,7 @@ export async function runTraining<P>(
     const dbPath = storePathFor(recorder.filePath);
     const store = await ingest(dbPath, recorder.filePath, { player: TRAINING_PLAYER_ID, target: TRAINING_TARGET_ID });
     await computeEvents(store, recorder.filePath);
-    const checkResults = await computeChecks(store, recorder.filePath, dock ? DOCK_CHECK_PARAMS : undefined);
+    const checkResults = await computeChecks(store, recorder.filePath);
     const failedChecks = checkResults.filter((c) => c.status === 'fail').map((c) => c.name);
     const passedChecks = checkResults.filter((c) => c.status === 'pass').map((c) => c.name);
     const metrics = await extractMetrics(store, recorder.filePath, {

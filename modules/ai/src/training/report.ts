@@ -22,7 +22,6 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
     { name: 'raiders killed', of: (r) => r.waves?.raidersKilled, better: 'higher' },
     { name: 'run value', of: (r) => r.score?.value, better: 'higher' },
     { name: 'friendly hits', of: (r) => r.score?.friendlyHits, better: 'lower' },
-    { name: 'dock: plates repaired', of: (r) => r.dock?.platesRepaired, better: 'higher' },
     {
         name: 'dock: renewal preempted',
         of: (r) => (r.dock ? Number(r.dock.overhaulPreemptedRenewal) : undefined),
@@ -148,7 +147,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         '',
         '## Runs',
         '',
-        '| crew | seed | killed | seconds | shells | target health | failed checks | recording |',
+        `| crew | seed | ${dockRung ? 'passed' : 'killed'} | seconds | shells | target health | failed checks | recording |`,
         '| --- | --- | --- | --- | --- | --- | --- | --- |',
     );
     for (const r of results) {

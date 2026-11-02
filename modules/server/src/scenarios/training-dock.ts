@@ -54,6 +54,9 @@ export interface DockOnlyParams {
     readonly attackerDistance?: number;
 }
 
+/** Map name of {@link createTrainingDockOnlyMap}; analysis keys dock-rung rules on it from the recording. */
+export const DOCK_ONLY_MAP_NAME = 'training_dock';
+
 /**
  * Dock-only rung: the GVTS starts constrained per `constraints` (typically {@link T0Lab.playerArmor}) beside an allied large
  * station, with no attackers unless `attackerDistance` sets one far enough to arrive late. Calibration only.
@@ -63,7 +66,7 @@ export function createTrainingDockOnlyMap(
     constraints: Omit<T0Lab, 'targetModel'> = {},
 ): GameMap {
     return {
-        name: 'training_dock',
+        name: DOCK_ONLY_MAP_NAME,
         init: (game) => {
             addConstrainedPlayer(game, constraints);
             addDockStation(game, stationDistance, stationBearing);

@@ -65,10 +65,7 @@ export function trackDock(map: GameMap): {
     let renewal: RepairProtocolSlot | undefined;
     const tracker: DockTracker = {
         done(game) {
-            const state = game.api.getShip(TRAINING_PLAYER_ID)?.state;
-            if (!state) {
-                return true; // GVTS gone: the hull can no longer be repaired
-            }
+            const state = game.api.getShip(TRAINING_PLAYER_ID)!.state; // the GVTS is non-expendable
             const armor = state.armor;
             const dt = game.seconds - lastSeconds;
             lastSeconds = game.seconds;

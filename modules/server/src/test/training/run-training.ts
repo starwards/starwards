@@ -12,10 +12,10 @@
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';
 
+import { mean, median } from './gunnery-metrics';
 import { SERVER_TICK_HZ } from '../headless-game';
 import { fork } from 'child_process';
 import fs from 'fs';
-import { median } from './gunnery-metrics';
 import os from 'os';
 import path from 'path';
 
@@ -94,7 +94,6 @@ const f = (n: number | null, d = 0) => (n === null || !Number.isFinite(n) ? '–
 /** Dock-only rungs: the dock behaviour behind the pass rate. */
 function dockSummary(results: TrainingResult[]): string[] {
     const docks = results.flatMap((r) => (r.dock ? [r.dock] : []));
-    const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
     return [
         `- Plates repaired (mean): ${f(mean(docks.map((d) => d.platesRepaired)), 1)}; seconds docked (mean): ${f(mean(docks.map((d) => d.dockedSeconds)), 1)}; launches per minute (mean): ${f(mean(docks.map((d) => d.launchesPerMinute)), 2)}; overhaul preempted renewal in ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} seeds`,
     ];
@@ -132,7 +131,7 @@ function toMarkdown(
         `- Median in-range fraction ${f(median(results.map((r) => r.inRangeFraction)), 2)}, in-kill-zone fraction ${f(median(results.map((r) => r.killZoneFraction)), 2)} (bot's belief)`,
         `- Blast hits on target (ground truth): median ${f(median(results.map((r) => r.blastHits)))}, seeds with none ${results.filter((r) => r.blastHits === 0).length}/${results.length}`,
         '',
-        '| seed | params | killed | sim-s | armor stripped at | target health | shells | AP/HE | plate_intel | s firing | in range | in kill zone | blast hits | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |',
+        `| seed | params | ${dockRung ? 'passed' : 'killed'} | sim-s | armor stripped at | target health | shells | AP/HE | plate_intel | s firing | in range | in kill zone | blast hits | mean dist m | target drift m | GVTS speed end | frames | wall s | failed checks |`,
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>

@@ -107,7 +107,9 @@ async function main() {
         if (!crew) throw new Error(`--expect-kills ${gate}: use <crew>=<min>-<max>`);
         const kills = results.filter((r) => r.crew === crew && r.killed).length;
         const ok = kills >= Number(min) && kills <= Number(max);
-        process.stdout.write(`gate ${crew}: ${kills} kills, expected ${min}-${max}: ${ok ? 'ok' : 'FAILED'}\n`);
+        process.stdout.write(
+            `gate ${crew}: ${kills} ${results.some((r) => r.dock) ? 'passes' : 'kills'}, expected ${min}-${max}: ${ok ? 'ok' : 'FAILED'}\n`,
+        );
         if (!ok) process.exitCode = 1;
     }
 }

@@ -31,6 +31,11 @@ export function gunneryFractions(samples: readonly GunnerySample[]) {
 }
 
 /** Median of the finite values; `NaN` when there are none. */
+/** Mean of `values`; NaN when empty. */
+export function mean(values: readonly number[]): number {
+    return values.length ? values.reduce((a, b) => a + b, 0) / values.length : NaN;
+}
+
 export function median(values: readonly number[]): number {
     const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
     if (!sorted.length) {

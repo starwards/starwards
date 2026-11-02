@@ -2,7 +2,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { CheckResult, DOCK_CHECK_PARAMS, computeChecks } from './checks';
+import { CheckResult, computeChecks } from './checks';
+import { DOCK_ONLY_MAP_NAME } from '../../../scenarios/training-dock';
 import { DockingMode } from '@starwards/core/internal';
 import { Store } from './store';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
@@ -173,14 +174,35 @@ describe('computeChecks', () => {
             expect((await run()).player_stays_mobile.status).toBe('pass');
         });
 
-        it('passes a docked player only with the dock-rung params', async () => {
+        async function dockedAtEnd(mapName: string) {
+            await store.run(
+                'INSERT INTO run VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                runId,
+                mapName,
+                '',
+                1,
+                null,
+                null,
+                null,
+                1,
+                2,
+                1,
+            );
             await object('p', 'Spaceship', 0, 1, 'player');
             await frame(0);
             await frame(1);
             await value('p', '/velocity/x', 1, { num: 0 });
             await value('p', '/docking/mode', 1, { num: DockingMode.DOCKED });
+        }
+
+        it('passes a docked player on the dock-only map', async () => {
+            await dockedAtEnd(DOCK_ONLY_MAP_NAME);
+            expect((await run()).player_stays_mobile.status).toBe('pass');
+        });
+
+        it('fails a docked, stopped player on any other map', async () => {
+            await dockedAtEnd('training_t2_dock');
             expect((await run()).player_stays_mobile.status).toBe('fail');
-            expect((await run(DOCK_CHECK_PARAMS)).player_stays_mobile.status).toBe('pass');
         });
 
         it('fails when the player is stopped with no propulsion break', async () => {
