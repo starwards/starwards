@@ -14,11 +14,12 @@ const LENGTH_BYTES = 4;
 
 /**
  * Shared by every whole-game encode (`schemaToString`, `decodedCopy`) and kept at twice the largest
- * encoding seen or decoded. A fresh encoder starts at `Encoder.BUFFER_SIZE`, which a whole game (the
- * recorder's keyframe, every second) outgrows, so each call overflowed: a warning, a reallocation and
- * a second full encode.
+ * encoding seen or decoded. Starts at 256 KB, above the 64-192 KB a whole game (the recorder's
+ * keyframe) encodes to: a smaller start overflowed on the first call (a warning, a reallocation and
+ * a second full encode). One buffer per process, so `Encoder.BUFFER_SIZE` stays small for every
+ * other encoder.
  */
-let encodeBuffer = new Uint8Array(Encoder.BUFFER_SIZE);
+let encodeBuffer = new Uint8Array(256 * 1024);
 
 function reserveEncodeBuffer(size: number) {
     if (size * 4 > encodeBuffer.length * 3) {

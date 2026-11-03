@@ -1,4 +1,4 @@
-import { Encoder, MapSchema, Schema } from '@colyseus/schema';
+import { MapSchema, Schema } from '@colyseus/schema';
 import { gameField, isBinarySavedGame } from '@starwards/core/internal';
 import {
     savedGameToSchema,
@@ -19,9 +19,10 @@ describe('game-state-serialization', () => {
         const dist = await stringToSchema(TestMapSchema, await schemaToString(src));
         expect(dist.toJSON()).toEqual(src.toJSON());
     });
-    it('encodes a state larger than Encoder.BUFFER_SIZE without overflowing more than once', async () => {
+    it('encodes a whole-game-sized state without overflowing', async () => {
         const src = new TestMapSchema();
-        for (let i = 0; src.value.size * 16 < 3 * Encoder.BUFFER_SIZE; i++) {
+        // training games encode at 64-192 KB
+        for (let i = 0; src.value.size * 16 < 160 * 1024; i++) {
             src.value.set(`key-${i}`, i);
         }
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -31,9 +32,7 @@ describe('game-state-serialization', () => {
                 const dist = await stringToSchema(TestMapSchema, await schemaToString(src.clone()));
                 expect(dist.toJSON()).toEqual(src.toJSON());
             }
-            expect(warn.mock.calls.filter(([m]) => String(m).includes('buffer overflow')).length).toBeLessThanOrEqual(
-                1,
-            );
+            expect(warn.mock.calls.filter(([m]) => String(m).includes('buffer overflow'))).toEqual([]);
         } finally {
             warn.mockRestore();
         }
