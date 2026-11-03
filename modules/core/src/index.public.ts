@@ -111,6 +111,7 @@ export {
     recordingSchemaHash,
 } from './recording';
 export type {
+    AggroEventData,
     RecordingBaseLine,
     RecordingEventLine,
     RecordingFrameLine,

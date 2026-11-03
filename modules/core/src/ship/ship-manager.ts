@@ -181,6 +181,16 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         return this.aggro.heldId;
     }
 
+    /** Read-only view of this NPC's threat table: held id, switch count and the `topN` strongest grudges. */
+    aggroSnapshot(topN: number) {
+        return this.aggro.snapshot(topN);
+    }
+
+    /** The latest change of {@link aggroHeldId}, with the scores that decided it. */
+    get aggroLastSwitch() {
+        return this.aggro.lastSwitch;
+    }
+
     /** Ticks aggro before automation, so automation engages this tick's held attacker. */
     protected updateAutomation(id: IterationData) {
         this.aggro.update(id.deltaSeconds, this.automationManager.hostileIdsInReach(), (attackerId) => {

@@ -1,18 +1,21 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { BINARY_FILE_MAGIC, encodeRecordChunkSync } from '../recording/recording-file';
 import {
+    AggroEventData,
     Explosion,
+    Order,
     Projectile,
     RECORDING_EXT,
     RecordingEventLine,
     ShipManager,
+    ShipManagerNpc,
     ShipManagerPc,
     currentEnergyModel,
     encodeEventLine,
     zstSidecarName,
 } from '@starwards/core/internal';
+import { BINARY_FILE_MAGIC, encodeRecordChunkSync } from '../recording/recording-file';
 import { BlastOverlaps } from './blast-overlaps';
 import { HeadlessGame } from './headless-game';
 import { appendSidecar } from '../recording/sidecar-file';
@@ -20,6 +23,28 @@ import { schemaToBytes } from '../serialization/game-state-serialization';
 
 /** Encoded event characters buffered before they are compressed into the sidecar as one zstd frame. */
 const SIDECAR_CHUNK = 1 << 20;
+
+/** Env knob for {@link HeadlessRecorderOptions.aggroLogPeriodS}: a heartbeat period in sim-seconds; unset or 0 is off. */
+export const AGGRO_LOG_ENV = 'STARWARDS_AGGRO_LOG';
+/** Threat-table entries per `aggro` line. */
+const AGGRO_LOG_TOP = 3;
+
+interface HeadlessRecorderOptions {
+    /**
+     * Writes `aggro` lines: one per NPC the tick its held target changes, and a heartbeat every this many
+     * sim-seconds per NPC with a grudge or a held target; 0 heartbeats every tick. `undefined` (the default)
+     * is off and reads {@link AGGRO_LOG_ENV}.
+     */
+    aggroLogPeriodS?: number;
+}
+
+/** The aggro log period from {@link AGGRO_LOG_ENV}; `undefined` (off) when unset, 0 or not a positive number. */
+function aggroLogPeriodFromEnv(env: Record<string, string | undefined> = process.env): number | undefined {
+    const period = Number(env[AGGRO_LOG_ENV]);
+    return period > 0 ? period : undefined;
+}
+
+type AggroSeen = { switches: number; char: string; nextHeartbeatAt: number };
 
 type Flying = { shipId: string; x: number; y: number; health: number };
 
@@ -39,7 +64,8 @@ type Flying = { shipId: string; x: number; y: number; health: number };
  * projectile, data `{ shipId, ammo, targetId, x, y, vx, vy, ttl }`; `targetId` is the shooter's weapons
  * target for an unguided round) and once as it goes (`projectile_end`, data `{ reason }`: `detonate` into a blast,
  * `impact` on a hull, `shotDown`, or `expire`), and every weapon hit a ship takes (`damage`, objectId the victim, data
- * `DamageReport`). Other modules add their own kinds through {@link HeadlessRecorder.record}.
+ * `DamageReport`). With {@link HeadlessRecorderOptions.aggroLogPeriodS} set, every NPC's threat table
+ * (`aggro`, objectId the NPC, data {@link AggroEventData}) on each held-target switch and on a heartbeat. Other modules add their own kinds through {@link HeadlessRecorder.record}.
  */
 export class HeadlessRecorder {
     readonly filePath: string;
@@ -54,6 +80,8 @@ export class HeadlessRecorder {
     private readonly blasts = new Set<string>();
     private impactsThisTick = new Set<string>();
     private pendingEvents: RecordingEventLine[] = [];
+    private readonly aggroLogPeriodS: number | undefined;
+    private readonly aggroSeen = new Map<string, AggroSeen>();
     /** Encoded events not yet compressed into the sidecar: one zstd frame per chunk compresses far better than one per frame. */
     private unwritten = '';
 
@@ -64,7 +92,9 @@ export class HeadlessRecorder {
         private readonly intervalSimSeconds: number,
         params?: unknown,
         hz?: number,
+        { aggroLogPeriodS = aggroLogPeriodFromEnv() }: HeadlessRecorderOptions = {},
     ) {
+        this.aggroLogPeriodS = aggroLogPeriodS;
         fs.mkdirSync(dir, { recursive: true });
         this.filePath = path.join(dir, `${name}${RECORDING_EXT}`);
         this.eventsPath = zstSidecarName(this.filePath);
@@ -113,6 +143,7 @@ export class HeadlessRecorder {
         this.observeBlastHits();
         this.observeProjectiles();
         this.listenToDefects();
+        this.observeAggro();
         if (!force && this.game.seconds + 1e-9 < this.nextFrameAt) {
             return;
         }
@@ -127,6 +158,59 @@ export class HeadlessRecorder {
         fs.appendFileSync(this.filePath, encodeRecordChunkSync({ kind: 'frame', t: this.game.seconds, bytes }));
         this.frames++;
         this.nextFrameAt = this.game.seconds + this.intervalSimSeconds;
+    }
+
+    private observeAggro() {
+        const period = this.aggroLogPeriodS;
+        if (period === undefined) return;
+        const now = this.game.seconds;
+        for (const [objectId, manager] of this.game.shipManagers) {
+            if (!(manager instanceof ShipManagerNpc) || manager.spaceObject.destroyed) continue;
+            const character = manager.aggroCharacter;
+            if (!character) continue;
+            const snapshot = manager.aggroSnapshot(AGGRO_LOG_TOP);
+            const seen = this.aggroSeen.get(objectId);
+            const switched = seen !== undefined && snapshot.switches !== seen.switches;
+            const engaged = snapshot.heldId !== null || snapshot.top.length > 0;
+            const due = engaged && (seen === undefined || now + 1e-9 >= seen.nextHeartbeatAt);
+            if (!switched && !due) {
+                if (seen) seen.switches = snapshot.switches;
+                continue;
+            }
+            const char = {
+                missionWeight: finiteOrNull(character.missionWeight),
+                memorySeconds: character.memorySeconds,
+                switchMargin: character.switchMargin,
+                presenceRate: character.presenceRate,
+            };
+            const charKey = JSON.stringify(char);
+            const last = manager.aggroLastSwitch;
+            const data: AggroEventData = {
+                type: { model: manager.spaceObject.model ?? '', character: manager.state.aiProfile.aggro },
+                held: snapshot.heldId ?? '',
+                order: { kind: Order[manager.state.order], targetId: manager.state.orderTargetId },
+                top: snapshot.top,
+                mission: finiteOrNull(snapshot.missionWeight),
+                switches: snapshot.switches,
+                ...(seen?.char === charKey ? {} : { char }),
+                ...(switched && last
+                    ? {
+                          why: {
+                              from: last.from ?? '',
+                              to: last.to ?? '',
+                              challengerScore: last.challengerScore,
+                              heldScore: last.heldScore,
+                          },
+                      }
+                    : {}),
+            };
+            this.record('aggro', objectId, data);
+            this.aggroSeen.set(objectId, {
+                switches: snapshot.switches,
+                char: charKey,
+                nextHeartbeatAt: due || !seen ? now + period : seen.nextHeartbeatAt,
+            });
+        }
     }
 
     private observeBlastHits() {
@@ -227,4 +311,8 @@ export class HeadlessRecorder {
             });
         }
     }
+}
+
+function finiteOrNull(value: number | null) {
+    return value !== null && Number.isFinite(value) ? value : null;
 }
