@@ -13,8 +13,8 @@ function row(seed: number, killed: number, kills: number): BranchRow {
         kind: 'engage@other',
         state: { enemies: 2, stations: [], orders: '' },
         outcome: {} as BranchRow['outcome'],
-        baseline: { killed: false, seconds: 100, kills: 1, value: 0.5 },
-        delta: { value: 0.1 * killed, kills, killed, seconds: null },
+        baseline: { passed: false, seconds: 100, kills: 1, value: 0.5 },
+        delta: { value: 0.1 * killed, kills, passed: killed, seconds: null },
         prefixMatches: true,
     } as unknown as BranchRow;
 }

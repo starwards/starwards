@@ -1,7 +1,7 @@
 import { DockingMode, radarReach } from '@starwards/core/internal';
 import { killedAt, meanDistance, shellsFired } from './metrics';
 import { missileLaunchRange, rangeRate } from '@starwards/bots';
-import { DOCK_ONLY_MAP_NAME } from '../../../scenarios/training-dock';
+import { DOCK_ONLY_MAP_NAME } from '../../../scenarios/dock-only-map-name';
 import { Store } from './store';
 
 export type CheckStatus = 'pass' | 'fail' | 'skip';

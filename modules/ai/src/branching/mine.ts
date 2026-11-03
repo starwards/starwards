@@ -33,7 +33,7 @@ type Finding = {
     value: PairedComparison;
     killsUp: number;
     killsDown: number;
-    /** Branches that won a run the recording lost (`killed`: a kill, or a wave rung's pass), and the reverse. */
+    /** Branches that won a run the recording lost (`passed`), and the reverse. */
     passUp: number;
     passDown: number;
     /** Branches whose replay diverged from the recording before their point: excluded. */
@@ -70,8 +70,8 @@ export function mine(rows: readonly BranchRow[], minBranches = 3): Finding[] {
                 ),
                 killsUp: valid.filter((r) => r.delta.kills > 0).length,
                 killsDown: valid.filter((r) => r.delta.kills < 0).length,
-                passUp: valid.filter((r) => r.delta.killed > 0).length,
-                passDown: valid.filter((r) => r.delta.killed < 0).length,
+                passUp: valid.filter((r) => r.delta.passed > 0).length,
+                passDown: valid.filter((r) => r.delta.passed < 0).length,
                 excluded: list.filter((r) => holds(r) && !r.prefixMatches).length,
             });
         }

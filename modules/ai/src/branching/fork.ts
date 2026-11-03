@@ -19,14 +19,16 @@ export type RunSpec = { crew: string; scenario: string; seed: number; timeoutSec
 /** A branch's (or a replay's) outcome, kept after its recording is deleted. */
 export type Outcome = {
     killed: boolean;
+    /** The rung's pass bar met (see `TrainingResult.passed`). */
+    passed: boolean;
     seconds: number;
     kills: number;
     enemies: number;
     /** Run value (`scoring/run-score.ts`): the time-mean snapshot score, the time after a kill counting 1. */
     value: number | null;
-    /** A wave rung's outcome: `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
+    /** A wave rung's outcome: `kills` and `enemies` are its raiders killed and spawned. */
     waves?: WaveOutcome;
-    /** A dock-only rung's outcome: `killed` is its pass (every armor plate above 90% health), not the attacker's death. */
+    /** A dock-only rung's outcome: its pass is every armor plate above 90% health. */
     dock?: DockOutcome;
     /** Fingerprint of the crew's decisions, callouts, commands and orders before the branch point. */
     prefix: string;
@@ -131,13 +133,19 @@ export async function runBranch(
             seconds = Math.max(seconds, frame.t);
         }
         const kills = waves ? waves.raidersKilled : watches.filter((w) => w.killed(seconds)).length;
-        const killed = waves ? waves.passedAt !== null : dock ? dock.passedAt !== null : kills === enemies.length;
+        const killed = waves
+            ? waves.passedAt !== null
+            : dock
+              ? enemies.length > 0 && kills === enemies.length
+              : kills === enemies.length;
+        const passed = dock ? dock.passedAt !== null : killed;
         if (dock?.passedAt != null) {
             seconds = dock.passedAt;
         }
-        const score = scorer.result({ killed: killed && !dock, seconds }); // a dock pass is not a kill
+        const score = scorer.result({ killed, seconds });
         return {
             killed,
+            passed,
             seconds,
             kills,
             enemies: waves ? waves.raidersSpawned : enemies.length,

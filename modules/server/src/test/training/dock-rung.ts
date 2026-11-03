@@ -5,8 +5,9 @@ import {
     RepairPriority,
     RepairProtocolName,
     RepairProtocolSlot,
+    repairProtocols,
 } from '@starwards/core/internal';
-import { HeadlessGame } from '../headless-game';
+import type { RungTracker } from './wave-rung';
 import { TRAINING_PLAYER_ID } from '../../scenarios/training';
 
 /** How a dock-only run went: the pass bar is every armor plate healthy. */
@@ -26,10 +27,21 @@ export interface DockOutcome {
     readonly overhaulPreemptedRenewal: boolean;
 }
 
-/** Watches a dock-only game: ends the run once every armor plate is healthy. */
-export interface DockTracker {
-    done(game: HeadlessGame): boolean;
-    outcome(game: HeadlessGame): DockOutcome;
+/** Aggregates of dock outcomes, split by whether the run passed. */
+export function dockAggregates(docks: readonly DockOutcome[]) {
+    const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
+    const split = (group: readonly DockOutcome[]) => ({
+        runs: group.length,
+        platesRepaired: mean(group.map((d) => d.platesRepaired)),
+        dockedSeconds: mean(group.map((d) => d.dockedSeconds)),
+        launchesPerMinute: mean(group.map((d) => d.launchesPerMinute)),
+        overhaulPreemptedRenewal: group.filter((d) => d.overhaulPreemptedRenewal).length,
+    });
+    return {
+        all: split(docks),
+        passed: split(docks.filter((d) => d.passedAt !== null)),
+        failed: split(docks.filter((d) => d.passedAt === null)),
+    };
 }
 
 /** A plate counts as healthy above this share of its health, summed over its layers (the dock rung's pass bar). */
@@ -38,11 +50,14 @@ const HEALTHY_PLATE_RATIO = 0.9;
 /** The dock rung's "healthy" plate: health above {@link HEALTHY_PLATE_RATIO}, unlike `Armor.numberOfHealthyPlates` (not broken). */
 const isHealthy = (plate: ArmorPlate) => plate.healthRatio > HEALTHY_PLATE_RATIO;
 
-const overhaulIds: readonly RepairProtocolName[] = ['feedSystemOverhaul', 'hullWideSystemsOverhaul'];
+/** The catalog's overhaul protocols: the ones a crew may promote over an armor-plate renewal. */
+const overhaulIds = (Object.keys(repairProtocols) as RepairProtocolName[]).filter((id) =>
+    /overhaul/i.test(repairProtocols[id].name),
+);
 
 export function trackDock(map: GameMap): {
     map: GameMap;
-    tracker: DockTracker;
+    tracker: RungTracker<{ dock: DockOutcome }>;
 } {
     let platesAtStart = 0;
     let platesHealthyAtStart = 0;
@@ -59,14 +74,15 @@ export function trackDock(map: GameMap): {
     let overhaulPreemptedRenewal = false;
     let lastSeconds = 0;
     let renewal: RepairProtocolSlot | undefined;
-    const tracker: DockTracker = {
+    const tracker: RungTracker<{ dock: DockOutcome }> = {
         done(game) {
             const state = game.api.getShip(TRAINING_PLAYER_ID)!.state; // the GVTS is non-expendable
             const armor = state.armor;
             const dt = game.seconds - lastSeconds;
             lastSeconds = game.seconds;
             const mode = state.docking.mode;
-            if (mode === DockingMode.DOCKED) {
+            // The mode sampled last tick held at the start of this interval, so a dock and an undock each cost one tick evenly.
+            if (previousMode === DockingMode.DOCKED) {
                 dockedSeconds += dt;
             }
             // A launch is the arrival at UNDOCKED from DOCKED, or after UNDOCKING began (even if a re-dock was started and
@@ -125,14 +141,16 @@ export function trackDock(map: GameMap): {
         },
         outcome(game) {
             return {
-                platesAtStart,
-                platesHealthyAtStart,
-                platesRepaired,
-                passedAt,
-                dockedSeconds,
-                launches,
-                launchesPerMinute: game.seconds > 0 ? (launches * 60) / game.seconds : 0,
-                overhaulPreemptedRenewal,
+                dock: {
+                    platesAtStart,
+                    platesHealthyAtStart,
+                    platesRepaired,
+                    passedAt,
+                    dockedSeconds,
+                    launches,
+                    launchesPerMinute: game.seconds > 0 ? (launches * 60) / game.seconds : 0,
+                    overhaulPreemptedRenewal,
+                },
             };
         },
     };

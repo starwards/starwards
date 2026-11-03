@@ -12,10 +12,11 @@
  */
 import { TrainingResult, TrainingRunOptions, runTraining, trainingScenarios } from './training-scenarios';
 
-import { mean, median } from './gunnery-metrics';
 import { SERVER_TICK_HZ } from '../headless-game';
+import { dockAggregates } from './dock-rung';
 import { fork } from 'child_process';
 import fs from 'fs';
+import { median } from './gunnery-metrics';
 import os from 'os';
 import path from 'path';
 
@@ -93,10 +94,10 @@ const f = (n: number | null, d = 0) => (n === null || !Number.isFinite(n) ? '–
 
 /** Dock-only rungs: the dock behaviour behind the pass rate. */
 function dockSummary(results: TrainingResult[]): string[] {
-    const docks = results.flatMap((r) => (r.dock ? [r.dock] : []));
-    return [
-        `- Plates repaired (mean): ${f(mean(docks.map((d) => d.platesRepaired)), 1)}; seconds docked (mean): ${f(mean(docks.map((d) => d.dockedSeconds)), 1)}; launches per minute (mean): ${f(mean(docks.map((d) => d.launchesPerMinute)), 2)}; overhaul preempted renewal in ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} seeds`,
-    ];
+    const { all, passed, failed } = dockAggregates(results.flatMap((r) => (r.dock ? [r.dock] : [])));
+    const line = (label: string, a: typeof all) =>
+        `- ${label} (${a.runs}): plates repaired (mean) ${f(a.platesRepaired, 1)}; seconds docked (mean) ${f(a.dockedSeconds, 1)}; launches per minute (mean) ${f(a.launchesPerMinute, 2)}; overhaul preempted renewal in ${a.overhaulPreemptedRenewal}/${a.runs} seeds`;
+    return [line('Dock, all runs', all), line('Dock, passed runs', passed), line('Dock, failed runs', failed)];
 }
 
 function toMarkdown(
@@ -106,11 +107,12 @@ function toMarkdown(
     wallSeconds: number,
     options: WorkerJob['options'],
 ): string {
-    const killed = results.filter((r) => r.killed);
-    const ttk = killed.map((r) => r.seconds).sort((a, b) => a - b);
+    const passedRuns = results.filter((r) => r.passed);
+    const ttk = passedRuns.map((r) => r.seconds).sort((a, b) => a - b);
     const pct = (p: number) => (ttk.length ? ttk[Math.min(ttk.length - 1, Math.floor(ttk.length * p))] : NaN);
-    const dockRung = results.some((r) => r.dock);
+    const dockRung = results.length > 0 && results.every((r) => r.dock);
     const targeted = !dockRung || results.some((r) => r.enemies > 0);
+    const noTarget = dockRung && !targeted;
     const recording = options.recording
         ? `recording every ${options.recording.intervalSimSeconds} sim-s`
         : 'not recorded';
@@ -119,7 +121,7 @@ function toMarkdown(
         '',
         `Timeout ${options.timeoutSeconds} sim-s, ${options.hz} Hz, ${results.length} seeds on ${workers} workers, ${f(wallSeconds)} s wall, ${recording}.`,
         '',
-        `- ${dockRung ? 'Pass rate' : 'Kill rate'}: **${killed.length}/${results.length}**`,
+        `- ${dockRung ? 'Pass rate' : 'Kill rate'}: **${passedRuns.length}/${results.length}**`,
         ...(dockRung ? dockSummary(results) : []),
         ...(results.some((r) => r.enemies > 1)
             ? [
@@ -140,7 +142,7 @@ function toMarkdown(
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...results.map(
             (r) =>
-                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${r.dock && !r.enemies ? '–' : f(r.targetHealth, 2)} | ${r.shellsFired} | ${r.shellsByAmmo.ap}/${r.shellsByAmmo.he} | ${r.plateIntelCalls} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,
+                `| ${r.seed} | \`${JSON.stringify(r.params)}\` | ${r.passed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${f(r.seconds)} | ${f(r.armorStrippedAt)} | ${noTarget ? '–' : f(r.targetHealth, 2)} | ${r.shellsFired} | ${r.shellsByAmmo.ap}/${r.shellsByAmmo.he} | ${r.plateIntelCalls} | ${f(r.secondsFiring)} | ${f(r.inRangeFraction, 2)} | ${f(r.killZoneFraction, 2)} | ${r.blastHits} | ${f(r.meanDistance)} | ${f(r.targetDrift)} | ${f(r.gvtsSpeed)} | ${r.frames ?? '–'} | ${f(r.wallSeconds, 1)} | ${r.failedChecks.join(', ') || '–'} |`,
         ),
         '',
     ].join('\n');

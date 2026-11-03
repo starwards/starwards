@@ -23,20 +23,20 @@ function args(name: string) {
 
 /** A run as it would have ended had the rung timed out at `horizon`. */
 async function within(run: CrewRunResult, recording: string, horizon: number): Promise<CrewRunResult> {
-    if (run.dock && horizon < run.timeoutSeconds && !(run.killed && run.seconds <= horizon)) {
+    if (run.dock && horizon < run.timeoutSeconds && !(run.passed && run.seconds <= horizon)) {
         // a run still going at the horizon: docked seconds, launches and renewal preemption are whole-run counts the frames do not rebuild
         throw new Error(`${run.scenario} is a dock rung: compare it at its played timeout (${run.timeoutSeconds} s)`);
     }
+    const passed = run.passed && run.seconds <= horizon;
     const killed = run.killed && run.seconds <= horizon;
     const seconds = Math.min(run.seconds, horizon);
     const frames = (await readFrames(recording)).filter((f) => f.t < horizon);
     const score = scoreFrames(
         frames,
-        // a dock pass is not a kill: no kill credit for the time after it
-        { killed: killed && !run.dock, seconds, timeoutSeconds: horizon },
+        { killed, seconds, timeoutSeconds: horizon },
         readEvents(recording).filter((e) => e.t < horizon),
     );
-    return { ...run, killed, seconds, timeoutSeconds: horizon, score: score ?? null };
+    return { ...run, killed, passed, seconds, timeoutSeconds: horizon, score: score ?? null };
 }
 
 async function main() {

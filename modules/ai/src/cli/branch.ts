@@ -287,7 +287,7 @@ async function corpus() {
                 seed: r.seed,
                 timeoutSeconds: r.timeoutSeconds,
                 recording,
-                baseline: { killed: r.killed, seconds: r.seconds, kills: r.kills, value: r.score?.value ?? null },
+                baseline: { passed: r.passed, seconds: r.seconds, kills: r.kills, value: r.score?.value ?? null },
             };
             return run;
         });
