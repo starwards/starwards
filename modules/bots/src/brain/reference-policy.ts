@@ -9,6 +9,7 @@ import { heardPlateIntel, informedAmmoSide } from './plate-intel';
 
 import { Control } from './controls';
 import { captainOrdersFromBoard } from '../crew/orders';
+import { gunPick } from './gun-target';
 import { isEnemyShip } from './enemy';
 import { referenceKnobs } from './reference-knobs';
 
@@ -336,11 +337,17 @@ function referenceChoice(
                 spend.firedOn >= referenceKnobs.FINISH_LOCK_SECONDS &&
                 locked !== undefined &&
                 locked.distance <= Math.min(fireRangeMeters, referenceKnobs.FIRE_RANGE_METERS);
+            const gun = gunPick(
+                display.radar as unknown as ShownRadar | undefined,
+                locked as unknown as ShownContact | undefined,
+            );
             return !targeting?.targetId ||
                 (locked &&
                     (!isShip(locked) ||
                         isAlly(locked, display) ||
-                        (orders.engage !== undefined && locked.name !== orders.engage && !finishing)))
+                        (gun
+                            ? locked.id !== gun.id
+                            : orders.engage !== undefined && locked.name !== orders.engage && !finishing)))
                 ? 'next'
                 : 'none';
         }

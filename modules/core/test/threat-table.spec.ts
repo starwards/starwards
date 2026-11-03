@@ -142,6 +142,44 @@ describe('ThreatTable', () => {
         expect(noisy.presenceRate).to.equal(aggroCharacters.Brawler.presenceRate);
         expect(withSpawnNoise(aggroCharacters.Fixated, () => 0).missionWeight).to.equal(Infinity);
     });
+
+    it('snapshot reports the held id, switch count and top entries by score with idle time, read-only', () => {
+        const table = brawler();
+        const { missionWeight, switchMargin } = aggroCharacters.Brawler;
+        table.add('a', missionWeight * 2);
+        table.add('b', missionWeight * 0.5);
+        table.update(1, [], never);
+        table.add('c', missionWeight * 0.1);
+        table.update(0.5, [], never);
+        const snapshot = table.snapshot(2);
+        expect(snapshot).to.deep.equal({
+            heldId: 'a',
+            switches: 1,
+            missionWeight,
+            top: [
+                { id: 'a', score: missionWeight * 2, idleS: 1.5 },
+                { id: 'b', score: missionWeight * 0.5, idleS: 1.5 },
+            ],
+        });
+        expect(table.lastSwitch).to.deep.equal({
+            from: null,
+            to: 'a',
+            challengerScore: missionWeight * 2,
+            heldScore: missionWeight,
+        });
+        expect(missionWeight * 2).to.be.greaterThan(missionWeight * (1 + switchMargin));
+        expect(table.snapshot(2), 'reading twice changes nothing').to.deep.equal(snapshot);
+    });
+
+    it('lastSwitch explains a return to mission with the mission as challenger', () => {
+        const table = brawler();
+        const { missionWeight } = aggroCharacters.Brawler;
+        table.add('a', missionWeight * 2);
+        table.update(0.05, [], never);
+        table.forget('a');
+        expect(table.heldId).to.equal(null);
+        expect(table.lastSwitch).to.deep.equal({ from: 'a', to: null, challengerScore: missionWeight, heldScore: 0 });
+    });
 });
 
 describe('aggro on an NPC attacking a station', () => {

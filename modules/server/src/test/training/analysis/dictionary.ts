@@ -25,6 +25,12 @@ export const DICTIONARY: readonly DictionaryEntry[] = [
         since: 1,
     },
     { path: '/armor/armorPlates/N/layers/M/health', meaning: 'armor plate layer health', unit: 'hp', since: 1 },
+    {
+        path: '/docking/mode',
+        meaning: 'docking state (0 docked, 1 undocked, 2 docking, 3 undocking)',
+        unit: 'enum',
+        since: 1,
+    },
     { path: '/chainGuns/N/isFiring', meaning: 'gun N firing', unit: 'boolean', since: 1 },
     { path: '/chainGuns/N/design/maxShellRange', meaning: 'gun N effective shell range', unit: 'm', since: 1 },
     { path: '/magazine/count_HiExpShell', meaning: 'HiExp shells remaining', unit: 'count', since: 1 },

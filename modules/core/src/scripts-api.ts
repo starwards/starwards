@@ -67,6 +67,8 @@ export interface GameApi {
 export interface GameMap {
     name: string;
     init: (game: GameApi) => void;
+    /** Called instead of `init` when a saved game is loaded: the map picks up the game's objects as they are. */
+    resume?: (game: GameApi) => void;
     /**
      * Called every tick while the game is running, including while paused — `deltaseconds`
      * is `0` at `speed = 0` (queued commands must keep draining). Gate any accumulation of

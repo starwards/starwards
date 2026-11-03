@@ -21,7 +21,13 @@ export class StatesToggle<S> {
         const directionNumber = direction ? 1 : -1;
         const nextStateIdx = (this.states.indexOf(this.state) + directionNumber) % this.states.length;
         this.state = this.states[nextStateIdx];
-        this.callBack(this.state);
+    }
+
+    /** Make the toggle's position follow the real state, which may have been changed elsewhere. Does not invoke the callback. */
+    syncState(s: S) {
+        if (this.states.includes(s)) {
+            this.state = s;
+        }
     }
 
     toggleState() {

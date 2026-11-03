@@ -1,5 +1,6 @@
 import { findSidecar, readSidecarLines } from '@starwards/server/src/recording/sidecar-file';
 import { readEvents, streamFrames } from '../scoring/recording';
+import { DockOutcome } from '@starwards/server/src/test/training/dock-rung';
 import { Intervention } from './levels';
 import { SavedGame } from '@starwards/core/internal';
 import { TRAINING_PLAYER_ID } from '@starwards/server/src/scenarios/training';
@@ -18,13 +19,17 @@ export type RunSpec = { crew: string; scenario: string; seed: number; timeoutSec
 /** A branch's (or a replay's) outcome, kept after its recording is deleted. */
 export type Outcome = {
     killed: boolean;
+    /** The rung's pass bar met (see `TrainingResult.passed`). */
+    passed: boolean;
     seconds: number;
     kills: number;
     enemies: number;
     /** Run value (`scoring/run-score.ts`): the time-mean snapshot score, the time after a kill counting 1. */
     value: number | null;
-    /** A wave rung's outcome: `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
+    /** A wave rung's outcome: `kills` and `enemies` are its raiders killed and spawned. */
     waves?: WaveOutcome;
+    /** A dock-only rung's outcome: its pass is every armor plate above 90% health. */
+    dock?: DockOutcome;
     /** Fingerprint of the crew's decisions, callouts, commands and orders before the branch point. */
     prefix: string;
     /** Fingerprint of the whole run's crew events: equal for two runs that played identically. */
@@ -105,7 +110,7 @@ export async function runBranch(
 ): Promise<Outcome> {
     const dir = keepDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'starwards-branch-'));
     try {
-        const { recorder, enemies, waves } = await playCrewTraining(run.crew, {
+        const { recorder, enemies, waves, dock } = await playCrewTraining(run.crew, {
             scenario: run.scenario,
             seed: run.seed,
             timeoutSeconds: run.timeoutSeconds,
@@ -128,14 +133,24 @@ export async function runBranch(
             seconds = Math.max(seconds, frame.t);
         }
         const kills = waves ? waves.raidersKilled : watches.filter((w) => w.killed(seconds)).length;
-        const killed = waves ? waves.passedAt !== null : kills === enemies.length;
+        const killed = waves
+            ? waves.passedAt !== null
+            : dock
+              ? enemies.length > 0 && kills === enemies.length
+              : kills === enemies.length;
+        const passed = dock ? dock.passedAt !== null : killed;
+        if (dock?.passedAt != null) {
+            seconds = dock.passedAt;
+        }
         const score = scorer.result({ killed, seconds });
         return {
             killed,
+            passed,
             seconds,
             kills,
             enemies: waves ? waves.raidersSpawned : enemies.length,
             ...(waves ? { waves } : {}),
+            ...(dock ? { dock } : {}),
             value: score?.value ?? null,
             ...fingerprint(recording, t),
         };

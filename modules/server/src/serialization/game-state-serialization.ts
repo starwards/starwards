@@ -1,4 +1,4 @@
-import { Encoder, Schema } from '@colyseus/schema';
+import { $changes, $refId, ChangeTree, Encoder, Schema } from '@colyseus/schema';
 import { SAVED_GAME_MAGIC, isBinarySavedGame } from '@starwards/core/internal';
 import { gzip, unzip, zstdCompress, zstdDecompress } from 'node:zlib';
 
@@ -14,11 +14,12 @@ const LENGTH_BYTES = 4;
 
 /**
  * Shared by every whole-game encode (`schemaToString`, `decodedCopy`) and kept at twice the largest
- * encoding seen or decoded. A fresh encoder starts at `Encoder.BUFFER_SIZE`, which a whole game (the
- * recorder's keyframe, every second) outgrows, so each call overflowed: a warning, a reallocation and
- * a second full encode.
+ * encoding seen or decoded. Starts at 256 KB, above the 64-192 KB a whole game (the recorder's
+ * keyframe) encodes to: a smaller start overflowed on the first call (a warning, a reallocation and
+ * a second full encode). One buffer per process, so `Encoder.BUFFER_SIZE` stays small for every
+ * other encoder.
  */
-let encodeBuffer = new Uint8Array(Encoder.BUFFER_SIZE);
+let encodeBuffer = new Uint8Array(256 * 1024);
 
 function reserveEncodeBuffer(size: number) {
     if (size * 4 > encodeBuffer.length * 3) {
@@ -65,7 +66,21 @@ type Constructor<T extends Schema> = new (...args: never[]) => T;
 export function decodedCopy<T extends Schema>(ctor: Constructor<T>, source: T) {
     const copy = new ctor();
     new ConstructingDecoder(copy).decode(new Encoder(source.clone()).encodeAll({ offset: 0 }, encodeBuffer));
+    forgetRefIds(copy[$changes]!);
     return copy;
+}
+
+/**
+ * Drops the ref ids a decoder stamped on a tree. An encoder keeps an instance's ref id when it has
+ * one and numbers new instances from its own counter, so a decoded object put in a room's state
+ * shares its id with a later new one, and clients decode the one as the other. Reads
+ * `@colyseus/schema` 5 internals (`$refId`, `ChangeTree.refTarget`, `forEachChild`); the load tests in
+ * `admin/load-game-join.spec.ts` fail if an upgrade changes them.
+ */
+function forgetRefIds(tree: ChangeTree) {
+    (tree.ref as { [$refId]?: number })[$refId] = undefined;
+    (tree.refTarget as { [$refId]?: number })[$refId] = undefined;
+    tree.forEachChild((child) => forgetRefIds(child));
 }
 
 export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, serialized: string) {

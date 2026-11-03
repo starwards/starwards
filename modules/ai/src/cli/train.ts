@@ -12,6 +12,7 @@
  */
 import { CrewRunResult, runCrewTraining } from '../training/train-crew';
 
+import { applyAggroLogFlag } from '../training/aggro-log-flag';
 import { applyCacheFlags } from '../brain/jev-cache';
 import { crewReport } from '../training/report';
 import { fork } from 'node:child_process';
@@ -52,6 +53,7 @@ if (process.send) {
 }
 
 async function main() {
+    applyAggroLogFlag(process.argv);
     applyCacheFlags();
     const scenario = arg('scenario', 'T0');
     const crews = args('crew').map((c) => path.resolve(c));
@@ -105,9 +107,11 @@ async function main() {
     for (const gate of args('expect-kills')) {
         const [crew, min, max] = /^(.+)=(\d+)-(\d+)$/.exec(gate)?.slice(1) ?? [];
         if (!crew) throw new Error(`--expect-kills ${gate}: use <crew>=<min>-<max>`);
-        const kills = results.filter((r) => r.crew === crew && r.killed).length;
+        const kills = results.filter((r) => r.crew === crew && r.passed).length;
         const ok = kills >= Number(min) && kills <= Number(max);
-        process.stdout.write(`gate ${crew}: ${kills} kills, expected ${min}-${max}: ${ok ? 'ok' : 'FAILED'}\n`);
+        process.stdout.write(
+            `gate ${crew}: ${kills} ${results.every((r) => r.dock) ? 'passes' : 'kills'}, expected ${min}-${max}: ${ok ? 'ok' : 'FAILED'}\n`,
+        );
         if (!ok) process.exitCode = 1;
     }
 }

@@ -18,6 +18,7 @@ import { BrainRequest } from './request';
 import { Display } from './controls';
 import { HULL_STATUS_TUNING } from '@starwards/core/internal';
 import { armorShare } from '../crew/orders';
+import { gunPick } from './gun-target';
 import { isEnemyShip } from './enemy';
 import { plateIntelFill } from './plate-intel';
 import { referenceKnobs } from './reference-knobs';
@@ -142,7 +143,11 @@ const threatTargeting = (p: Picture) => p.memory.get('threatTarget') === true;
 const closeTarget = (radar: Radar | undefined) => stationThreat(radar)?.enemy ?? nearestEnemy(radar);
 
 /** The captain's close target for this picture: by `threatPick` with `threatTarget`, else `closeTarget`. */
-const closeTargetOf = (p: Picture) => (threatTargeting(p) && threatPick(p)?.enemy) || closeTarget(p.radar);
+const closeTargetOf = (p: Picture) => {
+    const gun = gunPick(p.radar, p.memory.get('gunPick') as Contact | undefined);
+    p.memory.set('gunPick', gun);
+    return gun || (threatTargeting(p) && threatPick(p)?.enemy) || closeTarget(p.radar);
+};
 
 /** Whether `pick`'s enemy (the nearest by default) is inside the reference missile's launch envelope for how it moves. */
 function enemyInEnvelope({ radar, previous, seconds }: Picture, pick = nearestEnemy) {

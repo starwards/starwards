@@ -7,6 +7,8 @@ source_of_truth:
     - .github/workflows/release.yml
     - .github/k8s/build-preview-images.sh
     - .github/k8s/render-preview.js
+    - .github/k8s/prune-node-images.sh
+    - .github/k8s/remove-pr-environments.js
     - Dockerfile
     - docker/docker-compose.yml
 related:
@@ -107,12 +109,30 @@ then:
 - Reports a GitHub Deployment per additional exposed host (`pr-N-<service>`), beyond the
   game server host already reported via the job's `environment:` block.
 
-### 3. `teardown`
+### 3. `cleanup`
 
-Runs when a PR is closed. Deletes the `starwards-pr-<N>` namespace (which removes every
-resource in it — all compose services, ingress routes, the copied TLS secret) and
-removes the GitHub Deployment environments whose name is `pr-<N>` or starts with
-`pr-<N>-`.
+Runs when a PR is closed, daily at 03:17 UTC, and on `workflow_dispatch`. Each run removes
+the previews of **every** PR that is not open, so a missed `closed` event or a failed run
+is caught by the next one. These runs share the concurrency group `cleanup` and are never
+cancelled.
+
+- Deletes each `starwards-pr-<N>` namespace whose PR is not open (removing every
+  resource in it: all compose services, ingress routes, the copied TLS secret). If the
+  open-PR list cannot be fetched, the run fails rather than treat every preview as closed.
+- Prunes cached preview images from every node
+  ([`prune-node-images.sh`](../.github/k8s/prune-node-images.sh)): one privileged pod per
+  node in `kube-system`, chrooted into the host, removes each `ghcr.io/<repo>` and
+  `ghcr.io/<repo>/preview-*` image that no container on the node references. Other images
+  are never touched. It refuses to prune when the container list is unavailable.
+- Removes the GitHub Deployment environments `pr-<N>` and `pr-<N>-<service>` of every
+  PR that is not open ([`remove-pr-environments.js`](../.github/k8s/remove-pr-environments.js)).
+  Deleting an environment needs repo Administration: write, which `GITHUB_TOKEN` never
+  has. Without the `ENVIRONMENTS_ADMIN_TOKEN` secret (fine-grained PAT with Administration
+  and Deployments write) only the deployments are deactivated and deleted, and the empty
+  environments remain.
+
+A deploy that is still running when its PR closes checks the PR state before applying, and
+skips deploying if the PR is no longer open.
 
 ## Hostnames
 

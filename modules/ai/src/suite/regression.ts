@@ -62,7 +62,7 @@ const sum = <T>(runs: readonly T[], of: (run: T) => number | undefined) => runs.
 export function summariseRung(
     name: string,
     unordered: readonly (RunCost & {
-        killed: boolean;
+        passed: boolean;
         seconds: number;
         score?: { value: number } | null;
         passedChecks?: readonly string[];
@@ -78,8 +78,8 @@ export function summariseRung(
         kind: 'rung',
         name,
         runs: runs.length,
-        kills: runs.filter((r) => r.killed).length,
-        medianSeconds: median(runs.filter((r) => r.killed).map((r) => r.seconds)),
+        kills: runs.filter((r) => r.passed).length,
+        medianSeconds: median(runs.filter((r) => r.passed).map((r) => r.seconds)),
         refused: sum(runs, (r) => r.refused),
         fallbacks: sum(runs, (r) => r.fallbacks),
         ...(values.length === runs.length ? { values } : {}),

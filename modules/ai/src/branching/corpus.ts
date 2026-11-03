@@ -15,9 +15,9 @@ export type BranchRow = {
     state: Omit<StateSummary, 'board'>;
     outcome: Outcome;
     /** The recorded run's own outcome: the paired baseline. */
-    baseline: { killed: boolean; seconds: number; kills: number; value: number | null };
+    baseline: { passed: boolean; seconds: number; kills: number; value: number | null };
     /** Branch minus recorded run. */
-    delta: { value: number | null; kills: number; killed: number; seconds: number | null };
+    delta: { value: number | null; kills: number; passed: number; seconds: number | null };
     /** Whether the branch played exactly as the recording up to its point. */
     prefixMatches: boolean;
 };
@@ -84,8 +84,8 @@ export async function playJob(
         delta: {
             value: outcome.value !== null && b.value !== null ? outcome.value - b.value : null,
             kills: outcome.kills - b.kills,
-            killed: Number(outcome.killed) - Number(b.killed),
-            seconds: outcome.killed && b.killed ? outcome.seconds - b.seconds : null,
+            passed: Number(outcome.passed) - Number(b.passed),
+            seconds: outcome.passed && b.passed ? outcome.seconds - b.seconds : null,
         },
         prefixMatches: outcome.prefix === recorded.prefix,
     };

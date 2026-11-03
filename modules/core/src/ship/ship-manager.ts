@@ -53,6 +53,8 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET,
         );
+        this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
+        this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
         this.energyManager = new EnergyManager(this.state, this.heatManager);
         this.repairManager = new RepairManager(this.state, this.energyManager, this.heatManager);
         this.crewOrdersManager = new CrewOrdersManager(this.state.orderBoard);
@@ -76,6 +78,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
     public handleToggleSmartPilotManeuveringMode() {
         if (this.state.maneuveringModeCommand) {
             this.state.maneuveringModeCommand = false;
+            this.smartPilotManeuveringMode.syncState(this.state.smartPilot.maneuveringMode);
             this.smartPilotManeuveringMode.toggleState();
         }
     }
@@ -83,6 +86,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
     public handleToggleSmartPilotRotationMode() {
         if (this.state.rotationModeCommand) {
             this.state.rotationModeCommand = false;
+            this.smartPilotRotationMode.syncState(this.state.smartPilot.rotationMode);
             this.smartPilotRotationMode.toggleState();
         }
     }
@@ -179,6 +183,16 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     /** The attacker this NPC's aggro currently has it engage, `null` while on its standing order. */
     get aggroHeldId() {
         return this.aggro.heldId;
+    }
+
+    /** Read-only view of this NPC's threat table: held id, switch count and the `topN` strongest grudges. */
+    aggroSnapshot(topN: number) {
+        return this.aggro.snapshot(topN);
+    }
+
+    /** The latest change of {@link aggroHeldId}, with the scores that decided it. */
+    get aggroLastSwitch() {
+        return this.aggro.lastSwitch;
     }
 
     /** Ticks aggro before automation, so automation engages this tick's held attacker. */

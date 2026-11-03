@@ -12,6 +12,7 @@ const run = (profile: string, seed: number, killed: boolean, bin: number): Adver
     profile,
     seed,
     killed,
+    passed: killed,
     kills: Number(killed),
     enemies: 1,
     seconds: killed ? 60 + seed : 180,

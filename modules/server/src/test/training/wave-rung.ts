@@ -2,6 +2,7 @@ import { AdversaryProfile, applyAdversaryProfile } from '../../scenarios/adversa
 import { DEFAULT_WAVE_TUNING, STATIONS, createWaveDefenceMap } from '../../scenarios/wave-defence';
 import { GameApi, GameMap, mulberry32 } from '@starwards/core/internal';
 
+import type { DockOutcome } from './dock-rung';
 import { HeadlessGame } from '../headless-game';
 import { TRAINING_PLAYER_ID } from '../../scenarios/training';
 import type { TrainingScenario } from './training-scenarios';
@@ -41,11 +42,14 @@ export interface FirstWave {
 /** Arranges a rung's start after the map's own init (wave 1 already spawned), before the first tick. */
 export type WaveSetup = (game: GameApi, wave1: FirstWave) => void;
 
-/** Watches a wave-defence game and decides when its run ends. */
-export interface RungTracker {
+/** What a tracked rung reports: tagged by the kind of rung, so a result carries exactly one. */
+export type RungOutcome = { readonly waves: WaveOutcome } | { readonly dock: DockOutcome };
+
+/** Watches a tracked rung's game and decides when its run ends. */
+export interface RungTracker<O extends RungOutcome = RungOutcome> {
     /** Read after every tick: true ends the run. */
     done(game: HeadlessGame): boolean;
-    outcome(game: HeadlessGame): WaveOutcome;
+    outcome(game: HeadlessGame): O;
 }
 
 /** A wave rung's layout: only the seed of the map's own wave rng. */
@@ -77,7 +81,7 @@ export function waveRung({
     setup?: WaveSetup;
     description?: string;
 }): TrainingScenario<WaveRungParams> {
-    const track = ({ waveSeed }: WaveRungParams): { map: GameMap; tracker: RungTracker } => {
+    const track = ({ waveSeed }: WaveRungParams): { map: GameMap; tracker: RungTracker<{ waves: WaveOutcome }> } => {
         let reached = 0;
         let survived = 0;
         let stationsLost = 0;
@@ -113,7 +117,7 @@ export function waveRung({
                   },
               }
             : waveMap;
-        const tracker: RungTracker = {
+        const tracker: RungTracker<{ waves: WaveOutcome }> = {
             done(game) {
                 for (const id of raiders) {
                     const raiderState = adversary && !varied.has(id) ? game.api.getShip(id)?.state : undefined;
@@ -139,17 +143,19 @@ export function waveRung({
                 return passedAt !== null || stationsLost === STATIONS.length;
             },
             outcome: (game) => ({
-                passWaves,
-                survived,
-                reached,
-                stationsLost,
-                firstStationLostAt,
-                raidersKilled: killed.size,
-                raidersSpawned: raiders.size,
-                gvtsHealth: game.api.getShip(TRAINING_PLAYER_ID)?.state.healthRatio ?? 0,
-                passedAt,
-                endSeconds: game.seconds,
-                ...stationDamage(game),
+                waves: {
+                    passWaves,
+                    survived,
+                    reached,
+                    stationsLost,
+                    firstStationLostAt,
+                    raidersKilled: killed.size,
+                    raidersSpawned: raiders.size,
+                    gvtsHealth: game.api.getShip(TRAINING_PLAYER_ID)?.state.healthRatio ?? 0,
+                    passedAt,
+                    endSeconds: game.seconds,
+                    ...stationDamage(game),
+                },
             }),
         };
         return { map, tracker };

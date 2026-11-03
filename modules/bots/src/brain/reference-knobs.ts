@@ -100,6 +100,16 @@ export const REFERENCE_KNOB_DEFAULTS = {
     AMMO_AP_ONLY: 0,
     /** AP shells weapons spends on a lock before judging its plates broken (`AMMO_OPEN_AP`). */
     AMMO_OPEN_AP_SHELLS: 24,
+    /**
+     * Gun target priority, for the weapons lock and the captain's designated enemy. 0: current play. 1
+     * station-clear: the enemy nearest the own ship among those within `GUN_STATION_CLEAR_METERS` of any
+     * allied station; none inside falls back to 0. 2 highest-threat: the enemy nearest the allied station
+     * most enemies are within `ATTACK_METERS` of (ties: the station with the nearest enemy). Modes 1 and 2
+     * keep the held enemy while it still qualifies (mode 2: until another is `RETARGET_MARGIN_METERS` nearer the station).
+     */
+    GUN_TARGET_MODE: 0,
+    /** Station-clear radius of `GUN_TARGET_MODE` 1. */
+    GUN_STATION_CLEAR_METERS: 4000,
     /** Weapons launches a missile only at a lock within this many meters of an allied station; 0 at any lock. */
     MISSILE_STATION_METERS: 0,
     /** Weapons launches no missile at a lock its gun already fired this many seconds at (left to the gun to finish); 0 never skips. */
@@ -221,6 +231,16 @@ export const REFERENCE_KNOB_DEFAULTS = {
     BAIT_KITE_SECONDS: 10,
     /** Bait: the order ends and the captain stops giving it while the share of healthy armor plates is below this. */
     BAIT_ABORT_ARMOR: 0.5,
+    /** The armor share below which doctrine's standing dock order sends the ship to the dock. */
+    DOCTRINE_DOCK_BELOW_ARMOR: 0.5,
+    /** The armor share at which doctrine casts off from a dock it sent the ship to. */
+    DOCTRINE_UNDOCK_AT_ARMOR: 0.95,
+    /**
+     * Doctrine stands its dock order (dock while armor is below `DOCTRINE_DOCK_BELOW_ARMOR` AND this clear) only
+     * while every hostile in sight needs at least this many seconds to reach the ship: distance over closing
+     * speed, from the contact's shown velocity, else distance over 450 m/s. Captain docks are not gated. 0 is off.
+     */
+    DOCK_THREAT_ETA_SECONDS: 0,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,

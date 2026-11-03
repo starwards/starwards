@@ -25,6 +25,7 @@ async function analysedOutcome(t: number, intervention?: Intervention) {
         });
         return {
             killed: result.killed,
+            passed: result.passed,
             seconds: result.seconds,
             kills: result.kills,
             enemies: result.enemies,

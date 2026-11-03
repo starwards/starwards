@@ -3,10 +3,17 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { AdversaryProfile, adversaryProfiles, waveAdversaryProfiles } from '../../scenarios/adversary-profile';
+import {
+    DockOnlyParams,
+    T2DockParams,
+    createTrainingDockOnlyMap,
+    createTrainingT2DockMap,
+} from '../../scenarios/training-dock';
+import { DockOutcome, trackDock } from './dock-rung';
 import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
-import { RungTracker, WaveOutcome, waveRung } from './wave-rung';
+import { RungOutcome, RungTracker, WaveOutcome, waveRung } from './wave-rung';
 import {
     T0Lab,
     T0Params,
@@ -22,7 +29,6 @@ import {
     createTrainingT3DirectedMap,
     createTrainingT3IncomingMap,
 } from '../../scenarios/training';
-import { T2DockParams, createTrainingT2DockMap } from '../../scenarios/training-dock';
 import {
     WeaponsMultiParams,
     createTrainingWeaponsMultiMap,
@@ -42,8 +48,10 @@ export interface TrainingResult {
     readonly scenario: string;
     readonly seed: number;
     readonly params: unknown;
-    /** Every enemy of the rung destroyed. */
+    /** Every enemy of the rung destroyed. A wave rung's pass is surviving its waves, which it also reports here. */
     readonly killed: boolean;
+    /** The rung's pass bar met: set once in `runTraining` (kills, waves survived, or armor plates restored). */
+    readonly passed: boolean;
     /** Enemies destroyed, of {@link enemies}. */
     readonly kills: number;
     /** Enemies on the rung: 1, or the attackers of a multi-enemy rung. */
@@ -74,8 +82,10 @@ export interface TrainingResult {
     /** Distinct explosions that ever overlapped the target (recorder sidecar, tick-exact). */
     readonly blastHits: number;
     readonly hz: number;
-    /** A wave rung's outcome; `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
+    /** A wave rung's outcome; `kills` and `enemies` are its raiders killed and spawned. */
     readonly waves?: WaveOutcome;
+    /** A dock-only rung's outcome; its pass is every armor plate healthy, so `kills`/`enemies` count only the late attacker. */
+    readonly dock?: DockOutcome;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
     /** Names of `analysis/checks.ts` checks that passed on this run's store. */
@@ -95,7 +105,7 @@ export interface TrainingScenario<P> {
     createMap(params: P): GameMap;
     /** Ids of every enemy the run must destroy; the first is the target the per-target metrics read. Default: the one target. */
     readonly enemies?: readonly string[];
-    /** A rung whose map decides its own outcome (waves): the map and a tracker that ends the run and scores it. */
+    /** A rung whose map decides its own outcome (waves, dock): the map and a tracker that ends the run and scores it. */
     track?(params: P): { map: GameMap; tracker: RungTracker };
 }
 
@@ -130,7 +140,7 @@ const T0_WIDE: TrainingScenario<T0WideParams> = {
     createMap: (params) => createTrainingT0Map(params, { targetModel: params.targetModel }),
 };
 
-type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel' | 'playerMissiles'>>;
+type T0ConstrainedParams = T0Params & Required<Omit<T0Lab, 'targetModel' | 'playerMissiles' | 'playerArmor'>>;
 
 /** T0 with the GVTS starting short of energy and shells, guns already hot (calibration only). */
 const T0_CONSTRAINED: TrainingScenario<T0ConstrainedParams> = {
@@ -194,7 +204,7 @@ const T2_TWO_ATTACKERS: TrainingScenario<T2Params> = {
     enemies: [TRAINING_TARGET_ID, TRAINING_TARGET2_ID],
 };
 
-type T2ConstrainedParams = T2Params & Required<Omit<T0Lab, 'targetModel'>>;
+type T2ConstrainedParams = T2Params & Required<Omit<T0Lab, 'targetModel' | 'playerArmor'>>;
 
 /** T2 with the GVTS starting as on T0-constrained (short of energy and shells, guns already hot) and short of missiles. */
 const T2_CONSTRAINED: TrainingScenario<T2ConstrainedParams> = {
@@ -321,6 +331,23 @@ const adversaryT1 = (profile: AdversaryProfile): TrainingScenario<T0Params> => (
 const adversaryWaves = (profile: AdversaryProfile) =>
     waveRung({ ...W_WAVES, name: `AW-${profile.name}`, adversary: profile });
 
+/** Dock-only rung: the GVTS starts with `playerArmor` of its plates healthy beside an allied station; passes once all are. */
+const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingScenario<DockOnlyParams> => {
+    const createMap = (params: DockOnlyParams) => createTrainingDockOnlyMap(params, { playerArmor });
+    return {
+        name,
+        description: `GVTS with ${playerArmor} healthy armor plates beside an allied, unarmed large station 2-5 km (surface) away, ${late ? 'one dragonfly-MK1 attacking from 15-25 km' : 'no attackers'}; passes once every plate is healthy (above 90% health)`,
+        params: fc.record({
+            stationDistance: fc.integer({ min: 2000, max: 5000 }),
+            stationBearing: fc.integer({ min: 0, max: 359 }),
+            attackerDistance: late ? fc.integer({ min: 15000, max: 25000 }) : fc.constant(undefined),
+        }),
+        enemies: late ? [TRAINING_TARGET_ID] : [],
+        createMap,
+        track: (params) => trackDock(createMap(params)),
+    };
+};
+
 const adversaryRungs: Record<string, TrainingScenario<never>> = {
     ...Object.fromEntries(
         Object.values(adversaryProfiles).map((p) => [`A1-${p.name}`, adversaryT1(p) as TrainingScenario<never>]),
@@ -340,6 +367,8 @@ export const trainingScenarios: Record<string, TrainingScenario<never>> = {
     'T3-directed': T3_DIRECTED as TrainingScenario<never>,
     'T3-incoming': T3_INCOMING as TrainingScenario<never>,
     'T2-dock': T2_DOCK as TrainingScenario<never>,
+    'D-dock-0of16': dockOnly('D-dock-0of16', 0, false) as TrainingScenario<never>,
+    'D-dock-0of16-late': dockOnly('D-dock-0of16-late', 0, true) as TrainingScenario<never>,
     'T1-MK2': t1WithHull('T1-MK2', 'dragonfly-MK2') as TrainingScenario<never>,
     'T1-predator': t1WithHull('T1-predator', 'predator') as TrainingScenario<never>,
     'T1-cataphract': t1WithHull('T1-cataphract', 'cataphract') as TrainingScenario<never>,
@@ -402,7 +431,8 @@ export interface TrainingRunOptions {
 
 /**
  * Plays one run to its end and records it, without analysing the recording: `seed` drives both the
- * fast-check layout sample and the die. The run ends at the timeout or once every enemy is gone.
+ * fast-check layout sample and the die. The run ends at the timeout, once the rung's tracker
+ * reports done, or, on a rung with no tracker, once every enemy is gone.
  */
 export async function playTraining<P>(
     scenario: TrainingScenario<P>,
@@ -418,7 +448,10 @@ export async function playTraining<P>(
 ) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
     const tracked = scenario.track?.(params);
-    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, { crewedPlayer, npcRealEnergy });
+    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, {
+        crewedPlayer,
+        npcRealEnergy,
+    });
     const gvts = game.api.getShip(TRAINING_PLAYER_ID);
     if (!gvts) {
         throw new Error('GVTS missing');
@@ -456,14 +489,29 @@ export async function playTraining<P>(
         if (!tracked && !living.length) {
             break;
         }
-        const targetObject = game.spaceManager.state.get(living[0]);
+        const targetObject = living.length ? game.spaceManager.state.get(living[0]) : undefined;
         if (targetObject) {
             gunnery.push(sampleGunnery(gvts.state, targetObject));
         }
     }
     recorder.capture(true);
 
-    return { params, enemies, recorder, scratchDir, gunnery, waves: tracked?.tracker.outcome(game) };
+    return {
+        params,
+        enemies,
+        recorder,
+        scratchDir,
+        gunnery,
+        ...splitOutcome(tracked?.tracker.outcome(game)),
+    };
+}
+
+/** A tracked rung's outcome as the optional `waves` / `dock` fields a result carries. */
+function splitOutcome(outcome: RungOutcome | undefined) {
+    return {
+        waves: outcome && 'waves' in outcome ? outcome.waves : undefined,
+        dock: outcome && 'dock' in outcome ? outcome.dock : undefined,
+    };
 }
 
 /**
@@ -479,7 +527,7 @@ export async function runTraining<P>(
 ): Promise<TrainingResult> {
     const started = Date.now();
     const { seed, hz = SERVER_TICK_HZ, recording } = options;
-    const { params, enemies, recorder, scratchDir, gunnery, waves } = await playTraining(scenario, options);
+    const { params, enemies, recorder, scratchDir, gunnery, waves, dock } = await playTraining(scenario, options);
 
     const dbPath = storePathFor(recorder.filePath);
     const store = await ingest(dbPath, recorder.filePath, { player: TRAINING_PLAYER_ID, target: TRAINING_TARGET_ID });
@@ -499,12 +547,29 @@ export async function runTraining<P>(
         ? {
               ...metrics,
               killed: waves.passedAt !== null,
+              passed: waves.passedAt !== null,
               kills: waves.raidersKilled,
               enemies: waves.raidersSpawned,
               seconds: waves.passedAt ?? metrics.seconds,
               waves,
           }
-        : { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
+        : dock
+          ? {
+                ...metrics,
+                killed: enemies.length > 0 && kills === enemies.length,
+                passed: dock.passedAt !== null,
+                kills,
+                enemies: enemies.length,
+                seconds: dock.passedAt ?? metrics.seconds,
+                dock,
+            }
+          : {
+                ...metrics,
+                killed: kills === enemies.length,
+                passed: kills === enemies.length,
+                kills,
+                enemies: enemies.length,
+            };
 
     const wallSeconds = (Date.now() - started) / 1000;
     if (recording) {

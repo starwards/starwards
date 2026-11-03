@@ -4,7 +4,7 @@ import { decodedCopy, stringToSchema } from '../serialization/game-state-seriali
 import { gameField } from '@starwards/core/internal';
 import { gzipSync } from 'node:zlib';
 
-/** Its own file, so the module's shared encode buffer starts at `Encoder.BUFFER_SIZE` (jest isolates modules per file). */
+/** Its own file, so the module's shared encode buffer is at its initial 256 KB (jest isolates modules per file). */
 describe('game-state-serialization: loading a save', () => {
     class TestMapSchema extends Schema {
         @gameField({ map: 'number' })
@@ -12,7 +12,7 @@ describe('game-state-serialization: loading a save', () => {
     }
     it('sizes decodedCopy from the loaded save so it does not overflow', async () => {
         const src = new TestMapSchema();
-        for (let i = 0; src.value.size * 16 < 3 * Encoder.BUFFER_SIZE; i++) {
+        for (let i = 0; src.value.size * 16 < 512 * 1024; i++) {
             src.value.set(`save-${i}`, i);
         }
         // a save written by another process: this module's buffer has not seen its size

@@ -1,7 +1,7 @@
 import { isSignificant, pairedComparison } from './paired';
+import { mean, median } from '@starwards/server/src/test/training/gunnery-metrics';
 
 import { CrewRunResult } from './train-crew';
-import { median } from '@starwards/server/src/test/training/gunnery-metrics';
 
 /** Published input price of `jev-1.13.0`, US dollars per million input tokens (output tokens are free). */
 export const JEV_DOLLARS_PER_MILLION_TOKENS = 0.042;
@@ -13,7 +13,6 @@ function quantile(values: readonly number[], q: number) {
 }
 
 const fmt = (n: number, digits = 1) => (Number.isFinite(n) ? n.toFixed(digits) : '–');
-const meanOf = (xs: readonly number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
 /** What a paired comparison is made on: one number per run. `better` says which way is good. */
 const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefined; better: 'higher' | 'lower' }[] = [
@@ -22,7 +21,12 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
     { name: 'raiders killed', of: (r) => r.waves?.raidersKilled, better: 'higher' },
     { name: 'run value', of: (r) => r.score?.value, better: 'higher' },
     { name: 'friendly hits', of: (r) => r.score?.friendlyHits, better: 'lower' },
-    { name: 'killed', of: (r) => (r.killed ? 1 : 0), better: 'higher' },
+    {
+        name: 'dock: renewal preempted',
+        of: (r) => (r.dock ? Number(r.dock.overhaulPreemptedRenewal) : undefined),
+        better: 'lower',
+    },
+    { name: 'killed', of: (r) => (r.passed ? 1 : 0), better: 'higher' },
     { name: 'seconds', of: (r) => r.seconds, better: 'lower' },
     { name: 'tactical score', of: (r) => r.score?.tactical, better: 'higher' },
     { name: 'opportunity (helms)', of: (r) => r.score?.opportunity, better: 'higher' },
@@ -37,7 +41,11 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
  * with its 95% interval, how many seeds went each way, and the sign test. A metric a run lacks (no
  * score) is left out for that pair.
  */
+/** Every run of the rung is a dock run: its pass is plates restored, not kills. */
+const isDockRung = (runs: readonly CrewRunResult[]) => runs.length > 0 && runs.every((r) => r.dock);
+
 export function pairedSection(results: readonly CrewRunResult[], baseline: string) {
+    const dockRung = isDockRung(results);
     const lines = [
         `## Paired with ${baseline}, seed by seed`,
         '',
@@ -46,7 +54,6 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
     ];
     const bySeed = (crew: string) => new Map(results.filter((r) => r.crew === crew).map((r) => [r.seed, r]));
     const base = bySeed(baseline);
-    const mean = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
     for (const crew of new Set(results.map((r) => r.crew))) {
         if (crew === baseline) continue;
         const mine = bySeed(crew);
@@ -64,7 +71,7 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
             const good = metric.better === 'higher' ? c.meanDiff > 0 : c.meanDiff < 0;
             const sign = (n: number) => `${n >= 0 ? '+' : '−'}${fmt(Math.abs(n), digits)}`;
             lines.push(
-                `| ${crew} | ${metric.name} (${metric.better} is better) | ${seeds.length} | ${fmt(mean(a as number[]), digits)} | ${fmt(mean(b as number[]), digits)} | ${sign(c.meanDiff)} [${sign(c.ci[0])}, ${sign(c.ci[1])}] | ${c.wins} / ${c.losses} / ${c.ties} | ${fmt(c.signP, 3)} | ${isSignificant(c) ? (good ? 'better' : 'worse') : 'within noise'} |`,
+                `| ${crew} | ${dockRung ? dockLabel(metric.name) : metric.name} (${metric.better} is better) | ${seeds.length} | ${fmt(mean(a as number[]), digits)} | ${fmt(mean(b as number[]), digits)} | ${sign(c.meanDiff)} [${sign(c.ci[0])}, ${sign(c.ci[1])}] | ${c.wins} / ${c.losses} / ${c.ties} | ${fmt(c.signP, 3)} | ${isSignificant(c) ? (good ? 'better' : 'worse') : 'within noise'} |`,
             );
         }
     }
@@ -78,25 +85,29 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
  */
 export function crewReport(scenario: string, results: readonly CrewRunResult[], header: string, baseline?: string) {
     const crews = [...new Set(results.map((r) => r.crew))];
+    const dockRung = isDockRung(results);
     const lines = [
         `# Crew training: ${scenario}`,
         '',
         header,
         '',
-        '| crew | brains | kills | time to kill p10 / median / p90 (s) | run value | friendly hits (runs) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |',
+        `| crew | brains | ${dockRung ? 'passed' : 'kills'} | time to ${dockRung ? 'pass' : 'kill'} p10 / median / p90 (s) | run value | friendly hits (runs) | shells | decisions | fallbacks | refused | callouts said / suppressed | paid tokens | cached tokens (hits / requests) | cost ($) |`,
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const crew of crews) {
         const runs = results.filter((r) => r.crew === crew);
-        const kills = runs.filter((r) => r.killed).map((r) => r.seconds);
+        const kills = runs.filter((r) => r.passed).map((r) => r.seconds);
         const sum = (f: (r: CrewRunResult) => number) => runs.reduce((a, r) => a + f(r), 0);
         const tokens = sum((r) => r.inputTokens);
         lines.push(
-            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(meanOf(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${sum((r) => r.score?.friendlyHits ?? 0)} (${runs.filter((r) => (r.score?.friendlyHits ?? 0) > 0).length}) | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
+            `| ${crew} | ${runs[0].brains.join(', ')} | ${kills.length}/${runs.length}${partialKills(runs)} | ${fmt(quantile(kills, 0.1))} / ${fmt(median(kills))} / ${fmt(quantile(kills, 0.9))} | ${fmt(mean(runs.flatMap((r) => (r.score ? [r.score.value] : []))), 3)} | ${sum((r) => r.score?.friendlyHits ?? 0)} (${runs.filter((r) => (r.score?.friendlyHits ?? 0) > 0).length}) | ${fmt(median(runs.map((r) => r.shellsFired)), 0)} | ${sum((r) => r.decisions)} | ${sum((r) => r.fallbacks)} | ${sum((r) => r.refused)} | ${sum((r) => r.callouts)} / ${sum((r) => r.suppressed)} | ${tokens} | ${sum((r) => r.cachedTokens)} (${sum((r) => r.cacheHits)} / ${sum((r) => r.jevRequests)}) | ${fmt((tokens / 1e6) * JEV_DOLLARS_PER_MILLION_TOKENS, 3)} |`,
         );
     }
     if (results.some((r) => r.waves)) {
         lines.push('', ...wavesSection(results, crews));
+    }
+    if (dockRung) {
+        lines.push('', ...dockSection(results, crews));
     }
     if (crews.length > 1) {
         lines.push('', ...pairedSection(results, baseline ?? crews[0]));
@@ -137,12 +148,12 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
         '',
         '## Runs',
         '',
-        '| crew | seed | killed | seconds | shells | target health | failed checks | recording |',
+        `| crew | seed | ${dockRung ? 'passed' : 'killed'} | seconds | shells | target health | failed checks | recording |`,
         '| --- | --- | --- | --- | --- | --- | --- | --- |',
     );
     for (const r of results) {
         lines.push(
-            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
+            `| ${r.crew} | ${r.seed} | ${r.passed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${r.dock && !r.enemies ? '–' : fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
         );
     }
     return lines.join('\n') + '\n';
@@ -162,7 +173,28 @@ function wavesSection(results: readonly CrewRunResult[], crews: readonly string[
         const survived = waves.map((w) => w.survived);
         const sum = (f: (w: (typeof waves)[number]) => number) => waves.reduce((a, w) => a + f(w), 0);
         lines.push(
-            `| ${crew} | ${waves.filter((w) => w.passedAt !== null).length}/${waves.length} | ${Math.min(...survived)} / ${fmt(median(survived))} / ${Math.max(...survived)} | ${fmt(meanOf(waves.map((w) => w.stationsLost)), 2)} | ${sum((w) => w.raidersKilled)}/${sum((w) => w.raidersSpawned)} | ${waves.filter((w) => w.gvtsHealth > 0).length}/${waves.length} | ${fmt(meanOf(waves.map((w) => w.gvtsHealth)), 2)} |`,
+            `| ${crew} | ${waves.filter((w) => w.passedAt !== null).length}/${waves.length} | ${Math.min(...survived)} / ${fmt(median(survived))} / ${Math.max(...survived)} | ${fmt(mean(waves.map((w) => w.stationsLost)), 2)} | ${sum((w) => w.raidersKilled)}/${sum((w) => w.raidersSpawned)} | ${waves.filter((w) => w.gvtsHealth > 0).length}/${waves.length} | ${fmt(mean(waves.map((w) => w.gvtsHealth)), 2)} |`,
+        );
+    }
+    return lines;
+}
+
+/** On a dock rung `killed` is the pass and `seconds` the time to pass. */
+const dockLabel = (name: string) => (name === 'killed' ? 'passed' : name === 'seconds' ? 'time to pass' : name);
+
+/** Dock-only rungs: `killed` is the pass (every plate healthy), `seconds` the time to pass; these are the dock behaviour behind them. */
+function dockSection(results: readonly CrewRunResult[], crews: readonly string[]) {
+    const lines = [
+        '## Dock',
+        '',
+        '| crew | passed | seconds docked (mean) | plates repaired (mean) | launches per minute (mean) | runs where an overhaul preempted renewal |',
+        '| --- | --- | --- | --- | --- | --- |',
+    ];
+    for (const crew of crews) {
+        const docks = results.flatMap((r) => (r.crew === crew && r.dock ? [r.dock] : []));
+        if (!docks.length) continue;
+        lines.push(
+            `| ${crew} | ${docks.filter((d) => d.passedAt !== null).length}/${docks.length} | ${fmt(mean(docks.map((d) => d.dockedSeconds)), 1)} | ${fmt(mean(docks.map((d) => d.platesRepaired)), 1)} | ${fmt(mean(docks.map((d) => d.launchesPerMinute)), 2)} | ${docks.filter((d) => d.overhaulPreemptedRenewal).length}/${docks.length} |`,
         );
     }
     return lines;
@@ -170,8 +202,11 @@ function wavesSection(results: readonly CrewRunResult[], crews: readonly string[
 
 /** On a multi-enemy rung, the enemies killed over all runs, partial runs included. */
 function partialKills(runs: readonly CrewRunResult[]) {
+    if (isDockRung(runs)) {
+        return ''; // a dock rung's attacker count would read as success
+    }
     const enemies = runs.reduce((n, r) => n + (r.enemies ?? 1), 0);
     return enemies > runs.length
-        ? ` (enemies ${runs.reduce((n, r) => n + (r.kills ?? (r.killed ? 1 : 0)), 0)}/${enemies})`
+        ? ` (enemies ${runs.reduce((n, r) => n + (r.kills ?? (r.passed ? 1 : 0)), 0)}/${enemies})`
         : '';
 }
