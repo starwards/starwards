@@ -33,7 +33,7 @@ const board: OrdersBoard = {
             origin: '',
             issuedAt: 9.5,
             binds: ['helms'],
-            status: 'active',
+            trouble: [],
             fired: false,
             secondsAgo: 0.5,
             words: 'close to 2.0 km of raider',

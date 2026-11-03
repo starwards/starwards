@@ -1,4 +1,5 @@
 import {
+    AffirmOrderArg,
     CREW_ORDER_KINDS,
     CrewOrderBoard,
     DEFAULT_PRIORITIES,
@@ -8,12 +9,13 @@ import {
     OrderIssuer,
     OrderParamsArg,
     OrderSlot,
-    OrderStatus,
     RETREAT_RUN_METERS,
     ReportOrderProgressArg,
     RevokeOrderArg,
     SALVO_MISSILES,
     STANCES,
+    TroubleReason,
+    TroubleRecommendation,
     boardRanking,
     crewOrderCommands,
     orderParams,
@@ -50,6 +52,16 @@ export type OrderParams = {
     slot?: OrderSlot;
 };
 
+/** A seat's trouble with an order, as the board shows it. */
+export type OrderTrouble = {
+    seat: string;
+    reason: TroubleReason;
+    recommendation: TroubleRecommendation;
+    since: number;
+    /** The captain said to do the order anyway. */
+    affirmed: boolean;
+};
+
 /** One order on the board as a seat reads it. */
 export type Order = {
     id: number;
@@ -60,11 +72,12 @@ export type Order = {
     origin: string;
     issuedAt: number;
     binds: readonly string[];
-    status: OrderStatus;
+    /** The seats in trouble with this order. The order stays in force, and they keep following it as best they can. */
+    trouble: OrderTrouble[];
     /** The current sub-goal of a composite order (`en_route`, `docking`, `docked`), and when it began. */
     step?: string;
     stepAt?: number;
-    /** A plain progress note for the board: `en route, 2.1 km`, or why it was aborted. */
+    /** A plain progress note for the board: `en route, 2.1 km`,  */
     note?: string;
     /** A standing order whose trigger already started its order. */
     fired: boolean;
@@ -76,10 +89,18 @@ export type ProgressView = { station: string; display: Display; seconds: number 
 /** An order as given: a kind from the vocabulary (or `revoke`) and its parameters. */
 export type GivenOrder = { kind: string; params?: OrderParams };
 
+type Progress = Partial<Pick<Order, 'step' | 'note'>> & {
+    complete?: true;
+    trouble?: { reason: TroubleReason; recommendation: TroubleRecommendation } | null;
+};
+
 /** How an order kind moves through its steps, from what a seat shows. */
 type OrderProgress = {
-    /** Moves the order through its steps, completes or aborts it; undefined leaves it. */
-    progress?(order: Order, view: ProgressView): Partial<Pick<Order, 'step' | 'status' | 'note'>> | undefined;
+    /**
+     * Moves the order through its steps, records this seat's trouble with it (`trouble`, or `null` once it is over)
+     * or completes it, for a kind with a goal; undefined leaves it. Never ends an order on trouble.
+     */
+    progress?(order: Order, view: ProgressView): Progress | undefined;
     /** A standing order that starts another order once its trigger holds. */
     trigger?(order: Order, view: ProgressView): GivenOrder | undefined;
 };
@@ -103,6 +124,10 @@ const km = (m: number) => `${(m / 1000).toFixed(1)} km`;
 export const armorShare = (d: Display) => {
     const a = d.panels['armor-status'] as { numberOfPlates?: number; healthyPlates?: number } | undefined;
     return a?.numberOfPlates ? (a.healthyPlates ?? 0) / a.numberOfPlates : undefined;
+};
+const isDocked = (d: Display) => {
+    const mode = dockingMode(d);
+    return mode === DOCKING_MODE.DOCKED || mode === DOCKING_MODE.DOCKING;
 };
 const dockingMode = (d: Display) => (d.panels['docking-status'] as { mode?: number } | undefined)?.mode;
 
@@ -144,31 +169,63 @@ export function focusTarget(params: OrderParams, display: Display, previous?: Di
     });
 }
 
+/** Metres from where a ship was given that a wreck says it was destroyed. */
+const WRECK_METERS = 1000;
+const WRECK_MIN_RADIUS = 5;
+
+/**
+ * A seat's progress on an order that names a ship: while the ship is `missing` it records `target_lost` trouble
+ * (the seat keeps following the order); a wreck where the ship was given says it is destroyed, the goal reached;
+ * seen again, the trouble clears.
+ */
+function targetTrouble(display: Display, ref: OrderRef | undefined, missing: boolean, note: string): Progress {
+    if (!missing) return { trouble: null, note: '' };
+    const at = ref?.position;
+    const wreck =
+        at &&
+        ((display.radar as Radar | undefined)?.contacts ?? []).some(
+            (c) =>
+                c.type !== undefined &&
+                c.type !== 'Spaceship' &&
+                (c.radius ?? 0) >= WRECK_MIN_RADIUS &&
+                c.position &&
+                Math.hypot(c.position.x - at.x, c.position.y - at.y) <= WRECK_METERS,
+        );
+    return wreck
+        ? { complete: true, note: 'target destroyed' }
+        : { trouble: { reason: 'target_lost', recommendation: 'retarget' }, note };
+}
+
 /** The progress and triggers of the kinds that have them; the kinds themselves are data in core (`CREW_ORDER_KINDS`). */
 const ORDER_PROGRESS: Record<string, OrderProgress> = {
     chase_target: {
         progress: (order, { station, display }) =>
-            station === 'weapons' && !seenAs(display, order.params.target)
-                ? { status: 'aborted', note: 'target lost' }
+            station === 'weapons'
+                ? targetTrouble(display, order.params.target, !seenAs(display, order.params.target), 'target lost')
                 : undefined,
     },
     focus: {
         progress: (order, { station, display }) =>
-            station === 'weapons' && !order.params.pick && !focusTarget(order.params, display)
-                ? { status: 'aborted', note: 'targets lost or destroyed' }
+            station === 'weapons' && !order.params.pick
+                ? targetTrouble(
+                      display,
+                      order.params.targets?.find((t) => t.position),
+                      !focusTarget(order.params, display),
+                      'targets lost',
+                  )
                 : undefined,
     },
     engage: {
         progress: (order, { station, display }) =>
-            station === 'weapons' && order.params.target?.name !== undefined && !seenAs(display, order.params.target)
-                ? { status: 'aborted', note: 'target lost or destroyed' }
+            station === 'weapons' && order.params.target?.name !== undefined
+                ? targetTrouble(display, order.params.target, !seenAs(display, order.params.target), 'target lost')
                 : undefined,
     },
     dock_for_repair: {
         progress(order, { station, display }) {
-            if (station !== 'helms' || order.status !== 'active') return undefined;
+            if (station !== 'helms') return undefined;
             const mode = dockingMode(display);
-            if (mode === DOCKING_MODE.DOCKED) return { step: 'docked', status: 'complete', note: 'docked, repairing' };
+            if (mode === DOCKING_MODE.DOCKED) return { step: 'docked', complete: true, note: 'docked, repairing' };
             if (mode === DOCKING_MODE.DOCKING) return { step: 'docking', note: 'docking' };
             const at = own(display);
             const s = order.params.station?.position;
@@ -183,13 +240,13 @@ const ORDER_PROGRESS: Record<string, OrderProgress> = {
     undock: {
         progress: (_order, { station, display }) =>
             station === 'helms' && dockingMode(display) === DOCKING_MODE.UNDOCKED
-                ? { status: 'complete', note: 'clear of the dock' }
+                ? { complete: true, note: 'clear of the dock' }
                 : undefined,
     },
     launch: {
         progress: (_order, { station, display }) =>
             station === 'helms' && dockingMode(display) === DOCKING_MODE.UNDOCKED
-                ? { status: 'complete', note: 'launched' }
+                ? { complete: true, note: 'launched' }
                 : undefined,
     },
     retreat: {
@@ -198,12 +255,12 @@ const ORDER_PROGRESS: Record<string, OrderProgress> = {
             const t = whereIs(display, order.params.target, 'live');
             if (station !== 'helms' || !at || !t) return undefined;
             const away = Math.hypot(at.x - t.x, at.y - t.y);
-            return away >= RETREAT_RUN_METERS ? { status: 'complete', note: 'clear' } : { note: `${km(away)} out` };
+            return away >= RETREAT_RUN_METERS ? { complete: true, note: 'clear' } : { note: `${km(away)} out` };
         },
     },
     dock_below_armor: {
         trigger(order, { station, display }) {
-            const share = station === 'helms' ? armorShare(display) : undefined;
+            const share = station === 'helms' && !isDocked(display) ? armorShare(display) : undefined;
             return share !== undefined && share < (order.params.threshold ?? DOCK_BELOW_ARMOR_SHARE)
                 ? { kind: 'dock_for_repair', params: { station: order.params.station } }
                 : undefined;
@@ -215,7 +272,8 @@ const ORDER_PROGRESS: Record<string, OrderProgress> = {
 export type OrderCommand =
     | { command: 'issueOrder' | 'setStance' | 'doctrineIssueOrder'; arg: IssueOrderArg }
     | { command: 'revokeOrder' | 'doctrineRevokeOrder'; arg: RevokeOrderArg }
-    | { command: 'reportOrderProgress'; arg: ReportOrderProgressArg };
+    | { command: 'reportOrderProgress'; arg: ReportOrderProgressArg }
+    | { command: 'affirmOrder'; arg: AffirmOrderArg };
 
 /** Sends an order command through a ship driver: a seat's session in a live game or a headless one. */
 export function sendOrderCommand(driver: Pick<SessionShipDriver, 'command'>, c: OrderCommand) {
@@ -270,7 +328,11 @@ export function orderCommand(given: GivenOrder, issuer: OrderIssuer, origin = ''
 /** The order board panel as every seat sees it: each slot's order with its age and plain words, and the ranking. */
 export const ORDERS_PANEL = 'orders';
 export type ShownOrder = Order & { slot: OrderSlot; secondsAgo: number; words: string };
-export type OrdersBoard = { orders: ShownOrder[]; priorities: OrderSlot[] };
+export type OrdersBoard = {
+    orders: ShownOrder[];
+    priorities: OrderSlot[];
+    /** Game seconds on the board's clock. */ seconds?: number;
+};
 
 /**
  * The ship's synced order board as seats read it, orders in priority order; `energySeats` are the
@@ -295,7 +357,13 @@ export function readBoard(board: CrewOrderBoard, energySeats: readonly string[])
                     origin: o.origin,
                     issuedAt: o.issuedAt,
                     binds: def.binds === 'energy-drawing' ? energySeats : def.binds,
-                    status: o.status,
+                    trouble: o.trouble.map((t) => ({
+                        seat: t.seat,
+                        reason: t.reason,
+                        recommendation: t.recommendation,
+                        since: t.since,
+                        affirmed: t.affirmed,
+                    })),
                     ...(o.step ? { step: o.step, stepAt: o.stepAt } : {}),
                     ...(o.note ? { note: o.note } : {}),
                     fired: o.fired,
@@ -306,6 +374,7 @@ export function readBoard(board: CrewOrderBoard, energySeats: readonly string[])
             ];
         }),
         priorities,
+        seconds: board.seconds,
     };
 }
 
@@ -317,11 +386,30 @@ export function readBoard(board: CrewOrderBoard, energySeats: readonly string[])
 export function orderReports(board: OrdersBoard | undefined, view: ProgressView): OrderCommand[] {
     const out: OrderCommand[] = [];
     for (const order of board?.orders ?? []) {
-        if (order.status === 'aborted') continue;
         const rules = ORDER_PROGRESS[order.kind];
-        const change = order.status === 'active' ? rules?.progress?.(order, view) : undefined;
-        if (change && Object.entries(change).some(([k, v]) => order[k as keyof Order] !== v)) {
-            out.push({ command: 'reportOrderProgress', arg: { id: order.id, ...change } });
+        const change = rules?.progress?.(order, view);
+        if (change) {
+            const { trouble, complete, ...plain } = change;
+            const mine = order.trouble.find((t) => t.seat === view.station);
+            const differs = Object.entries(plain).some(([k, v]) => (order[k as keyof Order] ?? '') !== v);
+            const trouble_changed =
+                trouble === undefined
+                    ? false
+                    : trouble === null
+                      ? !!mine
+                      : mine?.reason !== trouble.reason || mine.recommendation !== trouble.recommendation;
+            if (differs || trouble_changed || complete) {
+                out.push({
+                    command: 'reportOrderProgress',
+                    arg: {
+                        id: order.id,
+                        ...plain,
+                        ...(complete ? { complete } : {}),
+                        ...(trouble && trouble_changed ? { trouble: { seat: view.station, ...trouble } } : {}),
+                        ...(trouble === null && mine ? { clearTrouble: view.station } : {}),
+                    },
+                });
+            }
         }
         const started = order.fired ? undefined : rules?.trigger?.(order, view);
         const target = started && CREW_ORDER_KINDS[started.kind]?.slot;
@@ -336,7 +424,7 @@ export function orderReports(board: OrdersBoard | undefined, view: ProgressView)
 
 function mayTake(board: OrdersBoard, from: OrderSlot, target: OrderSlot) {
     const occupant = board.orders.find((o) => o.slot === target);
-    if (!occupant || occupant.status !== 'active') return true;
+    if (!occupant) return true;
     return board.priorities.indexOf(from) < board.priorities.indexOf(target);
 }
 
@@ -350,14 +438,9 @@ export function readOrders(display: Display | undefined): OrdersBoard {
     );
 }
 
-/** The orders on a board that bind `station` now (active, or complete and still holding), highest priority first. */
+/** The orders on a board that bind `station` now, in trouble or not, highest priority first. */
 export function ordersBinding(board: OrdersBoard, station: string): ShownOrder[] {
-    return board.orders.filter(
-        (o) =>
-            o.binds.includes(station) &&
-            (o.status === 'active' ||
-                (o.status === 'complete' && CREW_ORDER_KINDS[o.kind]?.holdsWhenComplete === true)),
-    );
+    return board.orders.filter((o) => o.binds.includes(station));
 }
 
 /** Who gave an order, in words: `the captain`, `doctrine, from signals`. */
@@ -367,8 +450,15 @@ function provenance(o: ShownOrder) {
 
 /** The order board read out in plain words, for the verbal view. */
 export function ordersLines(board: OrdersBoard): string[] {
+    const trouble = (o: ShownOrder) =>
+        o.trouble
+            .map(
+                (t) =>
+                    ` [${t.seat}: ${t.reason.replace('_', ' ')}, recommends ${t.recommendation}${t.affirmed ? ', affirmed' : ''}]`,
+            )
+            .join('');
     const say = (o: ShownOrder) =>
-        `${o.slot}: ${o.words}${o.status !== 'active' ? ` (${o.status}${o.note ? `: ${o.note}` : ''})` : o.note ? ` (${o.note})` : ''}, from ${provenance(o)} ${Math.round(o.secondsAgo)} s ago`;
+        `${o.slot}: ${o.words}${o.note ? ` (${o.note})` : ''}${trouble(o)}, from ${provenance(o)} ${Math.round(o.secondsAgo)} s ago`;
     return [
         `Standing orders: ${board.orders.length ? board.orders.map(say).join('; ') : 'none'}.`,
         `Priorities: ${board.priorities.join(' > ')}.`,
@@ -379,7 +469,7 @@ export function ordersLines(board: OrdersBoard): string[] {
 export function ordersSummary(board: OrdersBoard): string {
     const orders = board.orders.map(
         (o) =>
-            `${o.slot}=${o.kind}${o.params.target?.name ? `:${o.params.target.name}` : ''}${o.params.station?.name ? `:${o.params.station.name}` : ''}${o.status !== 'active' ? `(${o.status})` : o.step ? `(${o.step})` : ''}${o.issuer === 'doctrine' ? '[doctrine]' : ''}`,
+            `${o.slot}=${o.kind}${o.params.target?.name ? `:${o.params.target.name}` : ''}${o.params.station?.name ? `:${o.params.station.name}` : ''}${o.trouble.length ? '(trouble)' : o.step ? `(${o.step})` : ''}${o.issuer === 'doctrine' ? '[doctrine]' : ''}`,
     );
     return [...orders, `priorities=${board.priorities.join('>')}`].join(' ');
 }
@@ -410,7 +500,7 @@ export function captainOrdersFromBoard(
     dock?: boolean;
 } {
     const board = readOrders(display);
-    const m = board.orders.find((o) => o.slot === 'maneuver' && o.status === 'active');
+    const m = board.orders.find((o) => o.slot === 'maneuver');
     let helm: HelmOrder | undefined;
     if (m?.kind === 'hold_here') {
         helm = { kind: 'hold' };
@@ -433,11 +523,11 @@ export function captainOrdersFromBoard(
                     : { kind: 'hold' };
         }
     }
-    const engage = board.orders.find((o) => o.kind === 'engage' && o.status === 'active');
-    const salvo = board.orders.find((o) => o.kind === 'salvo' && o.status === 'active');
-    const focus = board.orders.find((o) => o.kind === 'focus' && o.status === 'active');
-    const checkFire = board.orders.some((o) => o.kind === 'check_fire' && o.status === 'active');
-    const dock = board.orders.some((o) => o.kind === 'dock_for_repair' && o.status !== 'aborted');
+    const engage = board.orders.find((o) => o.kind === 'engage');
+    const salvo = board.orders.find((o) => o.kind === 'salvo');
+    const focus = board.orders.find((o) => o.kind === 'focus');
+    const checkFire = board.orders.some((o) => o.kind === 'check_fire');
+    const dock = board.orders.some((o) => o.kind === 'dock_for_repair') || (display !== undefined && isDocked(display));
     return {
         helm,
         engage:

@@ -49,9 +49,13 @@ export const DEFAULT_PRIORITIES: readonly OrderSlot[] = [
 export const ORDER_ISSUERS = ['captain', 'doctrine'] as const;
 export type OrderIssuer = (typeof ORDER_ISSUERS)[number];
 
-/** `aborted`: the order cannot be carried out any more (its target is gone); it stays on the board, saying why in `note`. */
-export const ORDER_STATUSES = ['active', 'complete', 'aborted'] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
+/** Why a seat records trouble with an order: `target_lost`, the ship it names is not on the seat's radar. */
+export const TROUBLE_REASONS = ['target_lost'] as const;
+export type TroubleReason = (typeof TROUBLE_REASONS)[number];
+
+/** What a seat recommends the captain does about an order in trouble. */
+export const TROUBLE_RECOMMENDATIONS = ['hold', 'revoke', 'retarget'] as const;
+export type TroubleRecommendation = (typeof TROUBLE_RECOMMENDATIONS)[number];
 
 /**
  * The type of an order parameter, for a form that edits it:
@@ -124,8 +128,8 @@ export type CrewOrderKind = {
     describe(params: OrderParamsArg): string;
     /** Order kinds this one cannot stand beside: giving either revokes the other, whatever their slots. */
     contradicts?: readonly string[];
-    /** A completed order still binds its seats until replaced (docked, the ship stays docked and repairs). */
-    holdsWhenComplete?: boolean;
+    /** The order has a goal: reaching it completes the order and empties its slot. Other orders are flags only a captain order changes. */
+    goal?: true;
     /** Stances: the slot ranking while this stance is in force. */
     ranking?: readonly OrderSlot[];
 };
@@ -189,6 +193,7 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
         reference: LIVE_SHIP,
         describe: (p) => `chase ${named(p.target, 'the enemy')}`,
         contradicts: ['retreat', 'hold_position'],
+        goal: true,
     },
     engage: {
         slot: 'engagement',
@@ -197,6 +202,7 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
         reference: LIVE_SHIP,
         describe: (p) => `engage ${named(p.target, 'the enemy')}`,
         contradicts: ['hold_fire'],
+        goal: true,
     },
     hold_fire: {
         slot: 'engagement',
@@ -218,10 +224,16 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
         params: { station: 'required' },
         reference: FROZEN_STATION,
         describe: (p) => `dock at ${named(p.station, 'the station')} for armor repairs`,
-        holdsWhenComplete: true,
+        goal: true,
     },
-    undock: { slot: 'navigation', binds: ['helms'], params: {}, describe: () => 'cast off' },
-    launch: { slot: 'navigation', binds: ['helms'], params: {}, describe: () => 'cast off and launch at full speed' },
+    undock: { slot: 'navigation', binds: ['helms'], params: {}, describe: () => 'cast off', goal: true },
+    launch: {
+        slot: 'navigation',
+        binds: ['helms'],
+        params: {},
+        describe: () => 'cast off and launch at full speed',
+        goal: true,
+    },
     patrol: {
         slot: 'navigation',
         binds: ['helms'],
@@ -239,6 +251,7 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
         reference: { mode: 'live', why: 'the ship runs from where the enemy is now, not from where it was' },
         describe: (p) => `retreat from ${named(p.target, 'the enemy')}`,
         contradicts: ['chase_target', 'close_to'],
+        goal: true,
     },
     hold_position: {
         slot: 'navigation',
@@ -281,6 +294,7 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
                   ? 'focus the fastest closing enemy'
                   : `focus ${(p.targets ?? []).map((t) => named(t, 'a contact')).join(', then ')}`,
         contradicts: ['hold_fire'],
+        goal: true,
     },
     /**
      * Fire discipline, in the stance slot: weapons launches until `count` missiles of this order fly,
@@ -337,6 +351,19 @@ export class CrewOrderParams extends Schema {
     @gameField('string') pick = '';
 }
 
+/** A seat's record of trouble with an order: the seat keeps following the order as best it can. */
+export class CrewOrderTrouble extends Schema {
+    @gameField('string') seat = '';
+    /** {@link TroubleReason}. */
+    @gameField('string') reason: TroubleReason = 'target_lost';
+    /** {@link TroubleRecommendation}. */
+    @gameField('string') recommendation: TroubleRecommendation = 'hold';
+    /** Board seconds ({@link CrewOrderBoard.seconds}) at which the seat recorded it. */
+    @gameField('float64') since = 0;
+    /** The captain answered it: do the order anyway. */
+    @gameField('boolean') affirmed = false;
+}
+
 /** One order on the board: its kind and parameters, who gave it and when, and how far it has got. */
 export class CrewOrder extends Schema {
     /** Unique on this board, increasing: progress reports name the order they are about. */
@@ -349,16 +376,16 @@ export class CrewOrder extends Schema {
     @gameField('string') origin = '';
     /** Board seconds ({@link CrewOrderBoard.seconds}) at which it was given. */
     @gameField('float64') issuedAt = 0;
-    /** {@link OrderStatus}. */
-    @gameField('string') status: OrderStatus = 'active';
     /** The current sub-goal of a composite order (`en_route`, `docking`, `docked`), '' for none. */
     @gameField('string') step = '';
     /** Board seconds at which `step` began. */
     @gameField('float64') stepAt = 0;
-    /** A plain progress note, or why it was aborted: `en route, 2.1 km`, `target lost`. */
+    /** A plain progress note: `en route, 2.1 km`. */
     @gameField('string') note = '';
     /** A standing order whose trigger already started its order. */
     @gameField('boolean') fired = false;
+    /** The seats that have trouble following this order, one entry per seat. The order stays in force while they are listed. */
+    @gameField([CrewOrderTrouble]) trouble = new ArraySchema<CrewOrderTrouble>();
 }
 
 /** An order to place. Carries no issuer: the server derives it from the command that carried it. */
@@ -367,16 +394,23 @@ export type RevokeOrderArg = { slot: OrderSlot };
 export type ReportOrderProgressArg = {
     id: number;
     step?: string;
-    status?: OrderStatus;
+    /** The order's goal is reached: only goal kinds complete, and completing empties the slot. */
+    complete?: boolean;
     note?: string;
     fired?: boolean;
+    /** The reporting seat records (or updates) its trouble with the order. */
+    trouble?: { seat: string; reason: TroubleReason; recommendation: TroubleRecommendation };
+    /** The seat's trouble is over: the named seat's entry is removed. */
+    clearTrouble?: string;
 };
+export type AffirmOrderArg = { id: number };
 
 export type CrewOrderCommand =
     | ({ type: 'issue'; issuer: OrderIssuer } & IssueOrderArg)
     | ({ type: 'stance'; issuer: OrderIssuer } & IssueOrderArg)
     | ({ type: 'revoke'; issuer: OrderIssuer } & RevokeOrderArg)
-    | ({ type: 'progress' } & ReportOrderProgressArg);
+    | ({ type: 'progress' } & ReportOrderProgressArg)
+    | ({ type: 'affirm' } & AffirmOrderArg);
 
 /**
  * A ship's order board: one order per slot, the active stance in the `stance` slot. Synced whole to

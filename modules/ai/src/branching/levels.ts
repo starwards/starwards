@@ -179,7 +179,7 @@ function keepToBranchOrders(seats: SeatPlan[], inFlight: () => string | undefine
                     const call = result.answers[CALLOUT_QUESTION]?.choice;
                     const kind = call && orderFromCallout(call, {}, undefined)?.kind;
                     const standing = readOrders(display)
-                        .orders.filter((o) => o.issuer === 'captain' && o.origin === 'branch' && o.status === 'active')
+                        .orders.filter((o) => o.issuer === 'captain' && o.origin === 'branch')
                         .map((o) => o.kind);
                     const sent = inFlight();
                     if (sent) standing.push(sent);
@@ -206,6 +206,8 @@ function giveAt(t: number, order: GivenOrder): Intervention {
     let given = false;
     /** The branch order sent and not yet on the board: commands land at the ship's next update. */
     let inFlight: string | undefined;
+    let dockOnBoard = false;
+    let dockedAt: number | undefined;
     return {
         seats: (seats) => keepToBranchOrders(seats, () => inFlight),
         intervene: (seconds: number, board: OrdersBoard | undefined, send: (c: OrderCommand) => void) => {
@@ -219,13 +221,15 @@ function giveAt(t: number, order: GivenOrder): Intervention {
                 given = true;
                 give(order);
             }
-            const docked = board?.orders.find((o) => o.slot === 'navigation');
-            if (
-                given &&
-                docked?.kind === 'dock_for_repair' &&
-                docked.status === 'complete' &&
-                seconds - (docked.stepAt ?? seconds) >= UNDOCK_AFTER_SECONDS
-            ) {
+            const nav = board?.orders.find((o) => o.slot === 'navigation');
+            // the dock order completing empties its slot: the ship is docked from the moment it left the board
+            if (nav?.kind === 'dock_for_repair') dockOnBoard = true;
+            else if (dockOnBoard && !nav) {
+                dockOnBoard = false;
+                dockedAt = seconds;
+            } else if (nav) dockedAt = undefined;
+            if (given && dockedAt !== undefined && seconds - dockedAt >= UNDOCK_AFTER_SECONDS) {
+                dockedAt = undefined;
                 give({ kind: 'undock' });
             }
         },

@@ -112,7 +112,7 @@ describe('reference seats under the order board', () => {
         expect((await choices(policy, helmsDisplay(board([]), [], docked))).dock).toBe('wait');
         const state = testBoard().give([dock]);
         state.report({ station: 'helms', display: helmsDisplay(board([]), [], docked) });
-        expect(state.shown.orders[0]?.status).toBe('complete');
+        expect(state.shown.orders).toEqual([]);
         expect((await choices(policy, helmsDisplay(state.shown, [], docked))).dock).toBe('wait');
         expect((await choices(policy, helmsDisplay(board([{ kind: 'undock' }]), [], docked))).dock).toBe('press');
     });
@@ -162,10 +162,10 @@ describe('reference seats under the order board', () => {
 
     it('dock for repair: the engineer queues docked-tier repairs for lost armor once docked', async () => {
         const state = testBoard().give([dock]);
-        state.report({ station: 'helms', display: helmsDisplay(board([]), [], { dockingMode: DOCKING_MODE.DOCKED }) });
         const shown: Display = {
             panels: {
                 [ORDERS_PANEL]: state.shown,
+                'docking-status': { mode: DOCKING_MODE.DOCKED },
                 'armor-status': { numberOfPlates: 16, healthyPlates: 12 },
                 'damage-report': [],
                 'repair-queue': {
@@ -185,10 +185,10 @@ describe('reference seats under the order board', () => {
 
     it('dock for repair: renewal is lifted to HIGH while armor is lost, and the overhaul waits for full armor', async () => {
         const state = testBoard().give([dock]);
-        state.report({ station: 'helms', display: helmsDisplay(board([]), [], { dockingMode: DOCKING_MODE.DOCKED }) });
         const engineer = (healthyPlates: number, renewal: string, overhaul: string): Display => ({
             panels: {
                 [ORDERS_PANEL]: state.shown,
+                'docking-status': { mode: DOCKING_MODE.DOCKED },
                 'armor-status': { numberOfPlates: 16, healthyPlates },
                 'damage-report': [{}],
                 'repair-queue': {

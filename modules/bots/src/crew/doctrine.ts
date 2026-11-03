@@ -1,5 +1,5 @@
 import { CREW_ORDER_KINDS, HullStatus, OrderSlot } from '@starwards/core/internal';
-import { GivenOrder, OrderCommand, OrdersBoard, armorShare, orderCommand, paramsArg } from './orders';
+import { DOCKING_MODE, GivenOrder, OrderCommand, OrdersBoard, armorShare, orderCommand, paramsArg } from './orders';
 
 import { Display } from '../brain/controls';
 import { isEnemyShip } from '../brain/enemy';
@@ -71,7 +71,10 @@ export function crewDoctrine() {
     let allyHurt = false;
     let soonestEta = Infinity;
     let now = 0;
-    let dockedSince: { id: string | number; at: number } | undefined;
+    let docked = false;
+    /** The doctrine order (the dock order, or the standing one that started it) whose docking the ship is still in, once the dock order's slot has emptied. */
+    let dockedBy: number | undefined;
+    let dockedSince: { id: number; at: number } | undefined;
     let exitedAt = -Infinity;
     const want = (given: GivenOrder, origin: string) =>
         wanted.set(CREW_ORDER_KINDS[given.kind].slot, { given, origin });
@@ -143,7 +146,11 @@ export function crewDoctrine() {
             allyHurt ||= ((display.panels['hull-status'] ?? []) as HullStatus[]).some(
                 (r) => r.allied && r.intel === 'LIVE' && r.hull !== undefined && r.hull !== 'intact',
             );
-            if (station === 'helms') armor = armorShare(display);
+            if (station === 'helms') {
+                armor = armorShare(display);
+                docked =
+                    (display.panels['docking-status'] as { mode?: number } | undefined)?.mode === DOCKING_MODE.DOCKED;
+            }
         },
         /** The commands that bring each slot doctrine wants to its order, where no captain order stands in the way. */
         commands(board: OrdersBoard | undefined): OrderCommand[] {
@@ -151,9 +158,13 @@ export function crewDoctrine() {
             wanted.delete('navigation');
             const nav = orders.find((o) => o.slot === 'navigation');
             const out: OrderCommand[] = [];
-            if (nav) now = nav.issuedAt + nav.secondsAgo;
-            if (nav?.issuer === 'doctrine' && nav.kind === 'dock_for_repair' && nav.status === 'complete') {
-                if (dockedSince?.id !== nav.id) dockedSince = { id: nav.id, at: now };
+            now = board?.seconds ?? (nav ? nav.issuedAt + nav.secondsAgo : now);
+            const standing = orders.find((o) => o.issuer === 'doctrine' && o.kind === 'dock_below_armor' && o.fired);
+            if (nav?.issuer === 'doctrine' && nav.kind === 'dock_for_repair') dockedBy = nav.id;
+            else if (!nav && standing) dockedBy = standing.id;
+            else if (!nav && !docked) dockedBy = undefined;
+            if (!nav && docked && dockedBy !== undefined) {
+                if (dockedSince?.id !== dockedBy) dockedSince = { id: dockedBy, at: now };
                 const k = referenceKnobs;
                 const mayExitOnThreat = armor === undefined || armor >= k.DOCK_EXIT_ARMOR_FLOOR;
                 const threat =

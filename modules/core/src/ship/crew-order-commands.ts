@@ -1,4 +1,4 @@
-import { IssueOrderArg, ReportOrderProgressArg, RevokeOrderArg } from './crew-orders';
+import { AffirmOrderArg, IssueOrderArg, ReportOrderProgressArg, RevokeOrderArg } from './crew-orders';
 
 import { ShipState } from './ship-state';
 
@@ -54,5 +54,13 @@ export const reportOrderProgress = {
     cmdName: 'reportOrderProgress',
     setValue: (state: ShipState, value: ReportOrderProgressArg) => {
         state.orderBoard.commands.push({ ...value, type: 'progress' });
+    },
+};
+
+/** The captain's answer to an order in trouble: do it anyway. Only a captain order can be affirmed. */
+export const affirmOrder = {
+    cmdName: 'affirmOrder',
+    setValue: (state: ShipState, value: AffirmOrderArg) => {
+        state.orderBoard.commands.push({ ...value, type: 'affirm' });
     },
 };

@@ -1,21 +1,24 @@
 import {
+    AffirmOrderArg,
     CREW_ORDER_KINDS,
     CrewOrder,
     CrewOrderBoard,
     CrewOrderRef,
+    CrewOrderTrouble,
     FOCUS_PICKS,
     IssueOrderArg,
     NUMBER_PARAMS,
     ORDER_ISSUERS,
     ORDER_PARAMS,
     ORDER_SLOTS,
-    ORDER_STATUSES,
     OrderIssuer,
     OrderParamName,
     OrderRefArg,
     REF_PARAMS,
     ReportOrderProgressArg,
     RevokeOrderArg,
+    TROUBLE_REASONS,
+    TROUBLE_RECOMMENDATIONS,
 } from './crew-orders';
 import { IterationData, Updateable } from '../updateable';
 
@@ -98,8 +101,10 @@ const sameRef = (a: CrewOrderRef, b: CrewOrderRef) =>
  *   as `stance`, and `stance` takes only them. A doctrine order never
  *   replaces or revokes a captain order: it is refused instead.
  * - `revoke`: empties a slot. Doctrine cannot revoke a captain order.
- * - `progress`: updates the named order while it is active (or marks a standing order fired);
- *   reports about an order no longer on the board are dropped.
+ * - `progress`: records a step, a note, a fired standing order or a seat's trouble on the named order. It never
+ *   ends or replaces an order, except that a goal kind's goal reached empties its slot. Reports about an order
+ *   no longer on the board are dropped.
+ * - `affirm`: marks the trouble on a captain's order as answered ("do it anyway").
  */
 export class CrewOrdersManager implements Updateable {
     constructor(private readonly board: CrewOrderBoard) {}
@@ -113,6 +118,7 @@ export class CrewOrdersManager implements Updateable {
             if ((c.type === 'issue' || c.type === 'stance') && validIssue(c) && stanceCommand(c)) this.issue(c);
             else if (c.type === 'revoke') this.revoke(c as RevokeOrderArg & { issuer: OrderIssuer });
             else if (c.type === 'progress') this.progress(c as ReportOrderProgressArg);
+            else if (c.type === 'affirm') this.affirm(c as AffirmOrderArg);
         }
     }
 
@@ -129,7 +135,7 @@ export class CrewOrdersManager implements Updateable {
         }
         order.params.pick = params.pick ?? '';
         const current = this.board.slots.get(def.slot);
-        if (current?.kind === kind && current.status === 'active' && this.sameParams(current, order)) return;
+        if (current?.kind === kind && this.sameParams(current, order)) return;
         const displaced = [...this.board.slots.entries()].filter(
             ([slot, o]) =>
                 slot === def.slot ||
@@ -161,16 +167,46 @@ export class CrewOrdersManager implements Updateable {
         this.board.slots.delete(slot);
     }
 
-    private progress({ id, step, status, note, fired }: ReportOrderProgressArg) {
-        const order = [...this.board.slots.values()].find((o) => o.id === id);
+    private progress({ id, step, complete, note, fired, trouble, clearTrouble }: ReportOrderProgressArg) {
+        const slot = [...this.board.slots.entries()].find(([, o]) => o.id === id)?.[0];
+        const order = slot && this.board.slots.get(slot);
         if (!order) return;
         if (fired === true) order.fired = true;
-        if (order.status !== 'active') return;
         if (typeof step === 'string' && step !== order.step) {
             order.step = step;
             order.stepAt = this.board.seconds;
         }
         if (typeof note === 'string') order.note = note;
-        if (status !== undefined && ORDER_STATUSES.includes(status)) order.status = status;
+        if (isObject(trouble) && typeof trouble.seat === 'string' && trouble.seat) this.recordTrouble(order, trouble);
+        if (typeof clearTrouble === 'string') {
+            const at = order.trouble.findIndex((t) => t.seat === clearTrouble);
+            if (at >= 0) order.trouble.splice(at, 1);
+        }
+        if (complete === true && CREW_ORDER_KINDS[order.kind]?.goal) this.board.slots.delete(slot);
+    }
+
+    private recordTrouble(
+        order: CrewOrder,
+        { seat, reason, recommendation }: NonNullable<ReportOrderProgressArg['trouble']>,
+    ) {
+        if (!TROUBLE_REASONS.includes(reason) || !TROUBLE_RECOMMENDATIONS.includes(recommendation)) return;
+        const known = order.trouble.find((t) => t.seat === seat);
+        if (known) {
+            known.reason = reason;
+            known.recommendation = recommendation;
+            return;
+        }
+        const t = new CrewOrderTrouble();
+        t.seat = seat;
+        t.reason = reason;
+        t.recommendation = recommendation;
+        t.since = this.board.seconds;
+        order.trouble.push(t);
+    }
+
+    private affirm({ id }: AffirmOrderArg) {
+        const order = [...this.board.slots.values()].find((o) => o.id === id);
+        if (order?.issuer !== 'captain') return;
+        for (const t of order.trouble) t.affirmed = true;
     }
 }
