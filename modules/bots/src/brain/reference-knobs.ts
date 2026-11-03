@@ -100,6 +100,16 @@ export const REFERENCE_KNOB_DEFAULTS = {
     AMMO_AP_ONLY: 0,
     /** AP shells weapons spends on a lock before judging its plates broken (`AMMO_OPEN_AP`). */
     AMMO_OPEN_AP_SHELLS: 24,
+    /**
+     * Gun target priority, for the weapons lock and the captain's designated enemy. 0: current play. 1
+     * station-clear: the enemy nearest the own ship among those within `GUN_STATION_CLEAR_METERS` of any
+     * allied station; none inside falls back to 0. 2 highest-threat: the enemy nearest the allied station
+     * most enemies are within `ATTACK_METERS` of (ties: the station with the nearest enemy). Modes 1 and 2
+     * keep the held enemy while it still qualifies (mode 2: until another is `RETARGET_MARGIN_METERS` nearer the station).
+     */
+    GUN_TARGET_MODE: 0,
+    /** Station-clear radius of `GUN_TARGET_MODE` 1. */
+    GUN_STATION_CLEAR_METERS: 4000,
     /** Weapons launches a missile only at a lock within this many meters of an allied station; 0 at any lock. */
     MISSILE_STATION_METERS: 0,
     /** Weapons launches no missile at a lock its gun already fired this many seconds at (left to the gun to finish); 0 never skips. */
