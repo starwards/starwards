@@ -270,4 +270,66 @@ describe('crew doctrine', () => {
             expect(slot('navigation')).toMatchObject({ kind: 'launch', issuer: 'captain' });
         });
     });
+
+    describe('dock armour knobs', () => {
+        afterEach(() => setReferenceKnobs());
+        it('reads the dock-below and undock-at thresholds from the knobs', () => {
+            setReferenceKnobs({ DOCTRINE_DOCK_BELOW_ARMOR: 0.3, DOCTRINE_UNDOCK_AT_ARMOR: 0.6 });
+            const { b, doctrine, run, slot } = crew();
+            doctrine.see('helms', helms(10));
+            run();
+            expect(slot('repair')?.params).toMatchObject({ threshold: 0.3 });
+            b.report({ station: 'helms', display: helms(5) });
+            expect(slot('navigation')?.kind).not.toBe('dock_for_repair');
+            b.report({ station: 'helms', display: helms(2) });
+            expect(slot('navigation')?.kind).toBe('dock_for_repair');
+            b.report({ station: 'helms', display: helms(2, true, DOCKING_MODE.DOCKED) });
+            doctrine.see('helms', helms(6, true, DOCKING_MODE.DOCKED));
+            run();
+            expect(slot('navigation')?.kind).toBe('undock');
+        });
+    });
+
+    describe('threat ETA dock trigger', () => {
+        afterEach(() => setReferenceKnobs());
+        /** A hostile `distance` m dead ahead, closing at `closing` m/s. */
+        const withHostile = (distance: number, closing: number): Display => {
+            const d = helms(10);
+            (d.radar as { contacts: object[] }).contacts.push({
+                name: 'raider',
+                type: 'Spaceship',
+                faction: 2,
+                radius: 50,
+                distance,
+                position: { x: 0, y: distance },
+                velocity: { x: 0, y: -closing },
+            });
+            return d;
+        };
+        const standsDock = (display: Display) => {
+            const { doctrine, run, slot } = crew();
+            doctrine.see('helms', display);
+            run();
+            return slot('repair')?.kind === 'dock_below_armor';
+        };
+        it('is off by default: a near hostile does not stop the dock order', () => {
+            expect(standsDock(withHostile(3000, 100))).toBe(true);
+        });
+        it('a hostile arriving within T blocks the dock; a later one does not', () => {
+            setReferenceKnobs({ DOCK_THREAT_ETA_SECONDS: 60 });
+            expect(standsDock(withHostile(3000, 100))).toBe(false);
+            expect(standsDock(withHostile(9000, 100))).toBe(true);
+        });
+        it('no hostiles means the ETA is clear', () => {
+            setReferenceKnobs({ DOCK_THREAT_ETA_SECONDS: 60 });
+            expect(standsDock(helms(10))).toBe(true);
+        });
+        it('a hostile moving away is no threat; without velocity its distance over top speed counts', () => {
+            setReferenceKnobs({ DOCK_THREAT_ETA_SECONDS: 60 });
+            expect(standsDock(withHostile(3000, -100))).toBe(true);
+            const d = withHostile(3000, 0);
+            delete (d.radar as { contacts: { velocity?: object }[] }).contacts[1].velocity;
+            expect(standsDock(d)).toBe(false);
+        });
+    });
 });

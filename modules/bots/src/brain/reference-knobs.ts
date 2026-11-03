@@ -201,6 +201,16 @@ export const REFERENCE_KNOB_DEFAULTS = {
     DOCK_EXIT_HOLDOFF_SECONDS: 0,
     /** Above 0.5, a doctrine repair dock is cast off with `launch`, else with `undock`. */
     DOCK_EXIT_LAUNCH: 0,
+    /** The armor share below which doctrine's standing dock order sends the ship to the dock. */
+    DOCTRINE_DOCK_BELOW_ARMOR: 0.5,
+    /** The armor share at which doctrine casts off from a dock it sent the ship to. */
+    DOCTRINE_UNDOCK_AT_ARMOR: 0.95,
+    /**
+     * Doctrine stands its dock order (dock while armor is below `DOCTRINE_DOCK_BELOW_ARMOR` AND this clear) only
+     * while every hostile in sight needs at least this many seconds to reach the ship: distance over closing
+     * speed, from the contact's shown velocity, else distance over 450 m/s. Captain docks are not gated. 0 is off.
+     */
+    DOCK_THREAT_ETA_SECONDS: 0,
     MAGAZINE_FIRST_SECONDS: 300,
     MAGAZINE_FIRST_WINDOW_SECONDS: 60,
     MAGAZINE_FIRST_PRE_DOCK_SECONDS: 90,
