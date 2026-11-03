@@ -146,3 +146,23 @@ describe('helms under a bait order', () => {
         expect((await choices(policy, shown)).boost).toBe('hold');
     });
 });
+
+describe('bait telemetry', () => {
+    afterEach(() => setReferenceKnobs());
+
+    it('reports each phase the helms reaches, with its target', async () => {
+        const policy = withOrderBoard(idleTestPolicy, 'helms');
+        const run = async (at: XY, secondsAgo: number) => {
+            const shown = helms(at, secondsAgo);
+            const controls = stationControls({ display: shown, capabilities: helmsCapabilities, burstSeconds: 1 });
+            return (await policy.answer({} as BrainRequest, controls, shown)).events ?? [];
+        };
+        expect(await run({ x: 12_000, y: 0 }, 0)).toEqual([
+            { kind: 'bait', data: { station: 'helms', phase: 'close', target: 'raider', held: 0 } },
+        ]);
+        expect((await run({ x: 12_000, y: 0 }, 1)).length).toBe(0);
+        expect((await run({ x: 2_000, y: 0 }, 2)).map((e) => e.data.phase)).toEqual(['pull']);
+        const kite = await run({ x: 2_000, y: 0 }, 2 + referenceKnobs.BAIT_PULL_SECONDS);
+        expect(kite.map((e) => e.data.phase)).toEqual(['kite']);
+    });
+});

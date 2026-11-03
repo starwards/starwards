@@ -1,4 +1,4 @@
-import { Answer, Policy } from './brain';
+import { Answer, Policy, PolicyEvent } from './brain';
 import { CREW_ORDER_KINDS, RETREAT_RUN_METERS, SALVO_MISSILES } from '@starwards/core/internal';
 import { DOCKING_MODE, ShownOrder, armorShare, focusTarget, ordersBinding, readOrders, whereIs } from '../crew/orders';
 import { flightSeconds, stillFlying } from './salvo';
@@ -38,6 +38,8 @@ type Context = {
     controls: readonly Control[];
     base: Record<string, Answer>;
     memory: Map<string, unknown>;
+    /** Reports a telemetry event (kind and data) for the recording's sidecar. */
+    report: (kind: string, data: Record<string, unknown>) => void;
     /** The seat's display at its previous decision. */
     previous?: Display;
 };
@@ -188,7 +190,14 @@ type BaitPhase = 'close' | 'pull' | 'kite';
  * kite for `BAIT_KITE_SECONDS`, then close again for the next hit. Kept across the captain's repeated orders
  * (each decision gives the order again) by the target's name and the seat's clock; a gap resets it.
  */
-function baitPhase(memory: Map<string, unknown>, target: Contact, now: number, at: XY, range: number): BaitPhase {
+function baitPhase(
+    memory: Map<string, unknown>,
+    target: Contact,
+    now: number,
+    at: XY,
+    range: number,
+    report: Context['report'],
+): BaitPhase {
     const last = memory.get('bait') as { name?: string; phase: BaitPhase; since: number; seen: number } | undefined;
     let state =
         last && last.name === target.name && now - last.seen <= BAIT_RESET_SECONDS
@@ -201,6 +210,7 @@ function baitPhase(memory: Map<string, unknown>, target: Contact, now: number, a
         state = { ...state, phase: 'kite', since: now };
     else if (state.phase === 'kite' && held >= referenceKnobs.BAIT_KITE_SECONDS)
         state = { ...state, phase: 'close', since: now };
+    if (state !== last) report('bait', { phase: state.phase, target: target.name, held: now - state.since });
     memory.set('bait', { ...state, seen: now });
     return state.phase;
 }
@@ -291,7 +301,7 @@ const helmsExecutors: Record<string, OrderExecutor> = {
     },
     bait: {
         constrains: HELM,
-        propose(order, { display, memory }) {
+        propose(order, { display, memory, report }) {
             const helms = display.panels['helms-stats'] as Helms | undefined;
             const target = seen(display, order.params.target?.name);
             const armor = armorShare(display);
@@ -299,7 +309,7 @@ const helmsExecutors: Record<string, OrderExecutor> = {
                 return {};
             const now = order.issuedAt + order.secondsAgo;
             const range = order.params.range || referenceKnobs.BAIT_RANGE_METERS;
-            const phase = baitPhase(memory, target, now, own(display), range);
+            const phase = baitPhase(memory, target, now, own(display), range, report);
             const at = own(display);
             const off = sub(at, target.position);
             const spot =
@@ -550,6 +560,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
             const display = shown as Display;
             const board = readOrders(shown);
             const answers: Record<string, Answer> = { ...result.answers };
+            const events: PolicyEvent[] = [...(result.events ?? [])];
             const decided = new Set<string>();
             for (const order of ordersBinding(board, station)) {
                 const executor = executors[order.kind];
@@ -560,6 +571,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
                     base: result.answers,
                     memory,
                     previous,
+                    report: (kind, data) => events.push({ kind, data: { station, ...data } }),
                 });
                 for (const control of controls) {
                     const choice = proposal[control.id];
@@ -570,7 +582,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
                 }
             }
             previous = display;
-            return { ...result, answers };
+            return { ...result, answers, events };
         },
     };
 }
