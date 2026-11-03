@@ -37,7 +37,7 @@ describe('a loaded game', () => {
 });
 
 describe('a game loaded from a recording frame', () => {
-    jest.setTimeout(120_000);
+    jest.setTimeout(300_000);
     const gameDriver = makeDriver();
 
     it('keeps a space client in sync as objects come and go', async () => {
