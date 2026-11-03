@@ -26,7 +26,7 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
         of: (r) => (r.dock ? Number(r.dock.overhaulPreemptedRenewal) : undefined),
         better: 'lower',
     },
-    { name: 'killed', of: (r) => (r.killed ? 1 : 0), better: 'higher' },
+    { name: 'killed', of: (r) => (r.passed ? 1 : 0), better: 'higher' },
     { name: 'seconds', of: (r) => r.seconds, better: 'lower' },
     { name: 'tactical score', of: (r) => r.score?.tactical, better: 'higher' },
     { name: 'opportunity (helms)', of: (r) => r.score?.opportunity, better: 'higher' },
@@ -41,8 +41,11 @@ const PAIRED_METRICS: { name: string; of: (r: CrewRunResult) => number | undefin
  * with its 95% interval, how many seeds went each way, and the sign test. A metric a run lacks (no
  * score) is left out for that pair.
  */
+/** Every run of the rung is a dock run: its pass is plates restored, not kills. */
+const isDockRung = (runs: readonly CrewRunResult[]) => runs.length > 0 && runs.every((r) => r.dock);
+
 export function pairedSection(results: readonly CrewRunResult[], baseline: string) {
-    const dockRung = results.some((r) => r.dock);
+    const dockRung = isDockRung(results);
     const lines = [
         `## Paired with ${baseline}, seed by seed`,
         '',
@@ -82,7 +85,7 @@ export function pairedSection(results: readonly CrewRunResult[], baseline: strin
  */
 export function crewReport(scenario: string, results: readonly CrewRunResult[], header: string, baseline?: string) {
     const crews = [...new Set(results.map((r) => r.crew))];
-    const dockRung = results.some((r) => r.dock);
+    const dockRung = isDockRung(results);
     const lines = [
         `# Crew training: ${scenario}`,
         '',
@@ -93,7 +96,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     ];
     for (const crew of crews) {
         const runs = results.filter((r) => r.crew === crew);
-        const kills = runs.filter((r) => r.killed).map((r) => r.seconds);
+        const kills = runs.filter((r) => r.passed).map((r) => r.seconds);
         const sum = (f: (r: CrewRunResult) => number) => runs.reduce((a, r) => a + f(r), 0);
         const tokens = sum((r) => r.inputTokens);
         lines.push(
@@ -150,7 +153,7 @@ export function crewReport(scenario: string, results: readonly CrewRunResult[], 
     );
     for (const r of results) {
         lines.push(
-            `| ${r.crew} | ${r.seed} | ${r.killed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${r.dock && !r.enemies ? '–' : fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
+            `| ${r.crew} | ${r.seed} | ${r.passed ? 'yes' : r.kills && !r.dock ? `${r.kills}/${r.enemies}` : 'no'} | ${fmt(r.seconds)} | ${r.shellsFired} | ${r.dock && !r.enemies ? '–' : fmt(r.targetHealth, 2)} | ${r.failedChecks.join(', ') || '–'} | ${r.recording ?? '–'} |`,
         );
     }
     return lines.join('\n') + '\n';
@@ -199,11 +202,11 @@ function dockSection(results: readonly CrewRunResult[], crews: readonly string[]
 
 /** On a multi-enemy rung, the enemies killed over all runs, partial runs included. */
 function partialKills(runs: readonly CrewRunResult[]) {
-    if (runs.some((r) => r.dock)) {
-        return ''; // a dock rung's `killed` is its pass; the attacker count would read as success
+    if (isDockRung(runs)) {
+        return ''; // a dock rung's attacker count would read as success
     }
     const enemies = runs.reduce((n, r) => n + (r.enemies ?? 1), 0);
     return enemies > runs.length
-        ? ` (enemies ${runs.reduce((n, r) => n + (r.kills ?? (r.killed ? 1 : 0)), 0)}/${enemies})`
+        ? ` (enemies ${runs.reduce((n, r) => n + (r.kills ?? (r.passed ? 1 : 0)), 0)}/${enemies})`
         : '';
 }

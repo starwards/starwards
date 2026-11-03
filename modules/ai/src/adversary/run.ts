@@ -36,6 +36,7 @@ export async function playAdversaryRun(options: {
         profile: options.profile,
         seed: options.seed,
         killed: result.killed,
+        passed: result.passed,
         kills: result.kills,
         enemies: result.enemies,
         seconds: result.seconds,

@@ -13,6 +13,7 @@ export interface AdversaryRun {
     readonly profile: string;
     readonly seed: number;
     readonly killed: boolean;
+    readonly passed: boolean;
     readonly kills: number;
     readonly enemies: number;
     readonly seconds: number;
@@ -55,7 +56,7 @@ export function summariseProfiles(runs: readonly AdversaryRun[]): ProfileSummary
     const profiles = [...new Set(runs.map((r) => r.profile))];
     return profiles.map((profile) => {
         const own = runs.filter((r) => r.profile === profile);
-        const passes = own.filter((r) => r.killed).length;
+        const passes = own.filter((r) => r.passed).length;
         return {
             profile,
             runs: own.length,

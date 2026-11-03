@@ -7,6 +7,7 @@ import {
     addConstrainedPlayer,
     createTrainingT2Map,
 } from './training';
+import { DOCK_ONLY_MAP_NAME } from './dock-only-map-name';
 
 /** The allied station of the docking rung (T2-dock). */
 export const TRAINING_DOCK_ID = 'dock';
@@ -53,9 +54,6 @@ export interface DockOnlyParams {
     /** When set, a dragonfly-MK1 starts this far from the GVTS on the bearing opposite the station, ordered to attack it. */
     readonly attackerDistance?: number;
 }
-
-/** Map name of {@link createTrainingDockOnlyMap}; analysis keys dock-rung rules on it from the recording. */
-export const DOCK_ONLY_MAP_NAME = 'training_dock';
 
 /**
  * Dock-only rung: the GVTS starts constrained per `constraints` (typically {@link T0Lab.playerArmor}) beside an allied large

@@ -9,11 +9,11 @@ import {
     createTrainingDockOnlyMap,
     createTrainingT2DockMap,
 } from '../../scenarios/training-dock';
-import { DockOutcome, DockTracker, trackDock } from './dock-rung';
+import { DockOutcome, trackDock } from './dock-rung';
 import { FlightDoctrine, GameMap, ShipModel } from '@starwards/core/internal';
 import { GunnerySample, gunneryFractions, sampleGunnery } from './gunnery-metrics';
 import { HeadlessGame, SERVER_TICK_HZ } from '../headless-game';
-import { RungTracker, WaveOutcome, waveRung } from './wave-rung';
+import { RungOutcome, RungTracker, WaveOutcome, waveRung } from './wave-rung';
 import {
     T0Lab,
     T0Params,
@@ -48,8 +48,10 @@ export interface TrainingResult {
     readonly scenario: string;
     readonly seed: number;
     readonly params: unknown;
-    /** Every enemy of the rung destroyed. */
+    /** Every enemy of the rung destroyed. A wave rung's pass is surviving its waves, which it also reports here. */
     readonly killed: boolean;
+    /** The rung's pass bar met: set once in `runTraining` (kills, waves survived, or armor plates restored). */
+    readonly passed: boolean;
     /** Enemies destroyed, of {@link enemies}. */
     readonly kills: number;
     /** Enemies on the rung: 1, or the attackers of a multi-enemy rung. */
@@ -80,9 +82,9 @@ export interface TrainingResult {
     /** Distinct explosions that ever overlapped the target (recorder sidecar, tick-exact). */
     readonly blastHits: number;
     readonly hz: number;
-    /** A wave rung's outcome; `killed` is its pass, `kills` and `enemies` its raiders killed and spawned. */
+    /** A wave rung's outcome; `kills` and `enemies` are its raiders killed and spawned. */
     readonly waves?: WaveOutcome;
-    /** A dock-only rung's outcome; `killed` is its pass (every armor plate healthy), so `kills`/`enemies` count only the late attacker. */
+    /** A dock-only rung's outcome; its pass is every armor plate healthy, so `kills`/`enemies` count only the late attacker. */
     readonly dock?: DockOutcome;
     /** Names of `analysis/checks.ts` checks that failed on this run's store. */
     readonly failedChecks: readonly string[];
@@ -103,10 +105,8 @@ export interface TrainingScenario<P> {
     createMap(params: P): GameMap;
     /** Ids of every enemy the run must destroy; the first is the target the per-target metrics read. Default: the one target. */
     readonly enemies?: readonly string[];
-    /** A rung whose map decides its own outcome (waves): the map and a tracker that ends the run and scores it. */
+    /** A rung whose map decides its own outcome (waves, dock): the map and a tracker that ends the run and scores it. */
     track?(params: P): { map: GameMap; tracker: RungTracker };
-    /** A dock-only rung: the map and a tracker that ends the run once the hull is whole and reports the dock metrics. */
-    trackDock?(params: P): { map: GameMap; tracker: DockTracker };
 }
 
 const T0_PLAY_DEAD_DRAGONFLY: TrainingScenario<T0Params> = {
@@ -344,7 +344,7 @@ const dockOnly = (name: string, playerArmor: number, late: boolean): TrainingSce
         }),
         enemies: late ? [TRAINING_TARGET_ID] : [],
         createMap,
-        trackDock: (params) => trackDock(createMap(params)),
+        track: (params) => trackDock(createMap(params)),
     };
 };
 
@@ -447,12 +447,8 @@ export async function playTraining<P>(
     }: TrainingRunOptions,
 ) {
     const [params] = fc.sample(scenario.params, { seed, numRuns: 1 });
-    if (scenario.track && scenario.trackDock) {
-        throw new Error(`${scenario.name}: a rung takes one tracker, not both track and trackDock`);
-    }
     const tracked = scenario.track?.(params);
-    const dockTracked = scenario.trackDock?.(params);
-    const game = HeadlessGame.start(tracked?.map ?? dockTracked?.map ?? scenario.createMap(params), seed, {
+    const game = HeadlessGame.start(tracked?.map ?? scenario.createMap(params), seed, {
         crewedPlayer,
         npcRealEnergy,
     });
@@ -486,11 +482,11 @@ export async function playTraining<P>(
         await beforeTick?.(game, recorder);
         game.tick(dt);
         recorder.capture();
-        if (tracked?.tracker.done(game) || dockTracked?.tracker.done(game)) {
+        if (tracked?.tracker.done(game)) {
             break;
         }
         const living = enemies.filter(alive);
-        if (!tracked && !dockTracked && !living.length) {
+        if (!tracked && !living.length) {
             break;
         }
         const targetObject = living.length ? game.spaceManager.state.get(living[0]) : undefined;
@@ -506,8 +502,15 @@ export async function playTraining<P>(
         recorder,
         scratchDir,
         gunnery,
-        waves: tracked?.tracker.outcome(game),
-        dock: dockTracked?.tracker.outcome(game),
+        ...splitOutcome(tracked?.tracker.outcome(game)),
+    };
+}
+
+/** A tracked rung's outcome as the optional `waves` / `dock` fields a result carries. */
+function splitOutcome(outcome: RungOutcome | undefined) {
+    return {
+        waves: outcome && 'waves' in outcome ? outcome.waves : undefined,
+        dock: outcome && 'dock' in outcome ? outcome.dock : undefined,
     };
 }
 
@@ -544,6 +547,7 @@ export async function runTraining<P>(
         ? {
               ...metrics,
               killed: waves.passedAt !== null,
+              passed: waves.passedAt !== null,
               kills: waves.raidersKilled,
               enemies: waves.raidersSpawned,
               seconds: waves.passedAt ?? metrics.seconds,
@@ -552,13 +556,20 @@ export async function runTraining<P>(
         : dock
           ? {
                 ...metrics,
-                killed: dock.passedAt !== null,
+                killed: enemies.length > 0 && kills === enemies.length,
+                passed: dock.passedAt !== null,
                 kills,
                 enemies: enemies.length,
                 seconds: dock.passedAt ?? metrics.seconds,
                 dock,
             }
-          : { ...metrics, killed: kills === enemies.length, kills, enemies: enemies.length };
+          : {
+                ...metrics,
+                killed: kills === enemies.length,
+                passed: kills === enemies.length,
+                kills,
+                enemies: enemies.length,
+            };
 
     const wallSeconds = (Date.now() - started) / 1000;
     if (recording) {

@@ -94,7 +94,7 @@ describe('regression rule', () => {
     it('summarises a rung with every seed’s value in seed order and its paid and cached tokens', () => {
         const run = (seed: number, value: number) => ({
             seed,
-            killed: true,
+            passed: true,
             seconds: 50,
             refused: 0,
             fallbacks: 1,
@@ -171,7 +171,7 @@ describe('regression rule', () => {
     it('counts per rung the runs that passed each check', () => {
         const run = (seed: number, passedChecks: string[]) => ({
             seed,
-            killed: true,
+            passed: true,
             seconds: 50,
             refused: 0,
             fallbacks: 0,

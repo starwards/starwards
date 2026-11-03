@@ -104,8 +104,7 @@ export async function runCrewTraining(crewPath: string, options: CrewRunOptions)
     const result = await running;
     const score = result.recording
         ? await scoreRun(result.recording, {
-              // a dock pass is not a kill: no kill credit for the time after it
-              killed: result.killed && !result.dock,
+              killed: result.killed,
               seconds: result.seconds,
               timeoutSeconds: options.timeoutSeconds,
               playerId: TRAINING_PLAYER_ID,

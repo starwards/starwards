@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { CheckResult, computeChecks } from './checks';
-import { DOCK_ONLY_MAP_NAME } from '../../../scenarios/training-dock';
+import { DOCK_ONLY_MAP_NAME } from '../../../scenarios/dock-only-map-name';
 import { DockingMode } from '@starwards/core/internal';
 import { Store } from './store';
 import { rmDirRetrying } from './__fixtures__/rm-retry';
