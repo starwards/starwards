@@ -14,6 +14,8 @@ export type WaveRun = {
     passed?: boolean;
     stationsLost?: number;
     survived?: number;
+    /** Sim seconds at which the run ended. */
+    endSeconds?: number;
     /** How the GVTS spent its magazine (mmo-telemetry.ts). */
     ammo?: AmmoReport;
     /** Every GVTS missile launch and how it ended (missile-telemetry.ts). */
