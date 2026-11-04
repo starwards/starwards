@@ -1,11 +1,12 @@
-import { Answer, Policy } from './brain';
+import { Answer, Policy, PolicyEvent } from './brain';
 import { CREW_ORDER_KINDS, RETREAT_RUN_METERS, SALVO_MISSILES } from '@starwards/core/internal';
-import { DOCKING_MODE, ShownOrder, focusTarget, ordersBinding, readOrders, whereIs } from '../crew/orders';
+import { DOCKING_MODE, ShownOrder, armorShare, focusTarget, ordersBinding, readOrders, whereIs } from '../crew/orders';
 import { flightSeconds, stillFlying } from './salvo';
 
 import { Control } from './controls';
 import { checkFireOf } from './callout';
 import { isEnemyShip } from './enemy';
+import { referenceKnobs } from './reference-knobs';
 
 type XY = { x: number; y: number };
 type Contact = {
@@ -23,6 +24,7 @@ type Radar = { ownShip?: { heading?: number; position?: XY; faction?: number }; 
 type Display = { panels: Record<string, unknown>; radar?: Radar };
 type Helms = {
     rotationMode?: number;
+    targetLocked?: boolean;
     maneuveringMode?: number;
     rotationCommand?: number;
     maneuveringCommand?: Partial<XY>;
@@ -36,6 +38,8 @@ type Context = {
     controls: readonly Control[];
     base: Record<string, Answer>;
     memory: Map<string, unknown>;
+    /** Reports a telemetry event (kind and data) for the recording's sidecar. */
+    report: (kind: string, data: Record<string, unknown>) => void;
     /** The seat's display at its previous decision. */
     previous?: Display;
 };
@@ -77,6 +81,12 @@ const MAX_SPEED = 450;
 const ORDERED_SPEED = 0.9 * MAX_SPEED;
 const GAIN = 0.3;
 const PURSUIT_METERS = 1_500;
+/** Bait: a contact this wide or wider is an allied station. */
+const BAIT_STATION_RADIUS = 200;
+/** Bait: the ship counts as at range inside this multiple of it. */
+const BAIT_ARRIVED = 1.25;
+/** Bait: a gap this long in the order restarts the cycle. */
+const BAIT_RESET_SECONDS = 15;
 const HELM = ['rotationMode', 'maneuveringMode', 'rotation', 'boost', 'strafe', 'afterBurner', 'antiDrift'] as const;
 
 const own = (d: Display) => d.radar?.ownShip?.position ?? { x: 0, y: 0 };
@@ -173,6 +183,58 @@ function dockSpot(display: Display, order: ShownOrder) {
     };
 }
 
+type BaitPhase = 'close' | 'pull' | 'kite';
+
+/**
+ * The bait cycle: close to range, hold it firing for `BAIT_PULL_SECONDS` (the raider's aggro lands on the ship),
+ * kite for `BAIT_KITE_SECONDS`, then close again for the next hit. Kept across the captain's repeated orders
+ * (each decision gives the order again) by the target's name and the seat's clock; a gap resets it.
+ */
+function baitPhase(
+    memory: Map<string, unknown>,
+    target: Contact,
+    now: number,
+    at: XY,
+    range: number,
+    report: Context['report'],
+): BaitPhase {
+    const last = memory.get('bait') as { name?: string; phase: BaitPhase; since: number; seen: number } | undefined;
+    let state =
+        last && last.name === target.name && now - last.seen <= BAIT_RESET_SECONDS
+            ? last
+            : { name: target.name, phase: 'close' as BaitPhase, since: now, seen: now };
+    const held = now - state.since;
+    const atRange = Math.hypot(target.position!.x - at.x, target.position!.y - at.y) <= range * BAIT_ARRIVED;
+    if (state.phase === 'close' && atRange) state = { ...state, phase: 'pull', since: now };
+    else if (state.phase === 'pull' && held >= referenceKnobs.BAIT_PULL_SECONDS)
+        state = { ...state, phase: 'kite', since: now };
+    else if (state.phase === 'kite' && held >= referenceKnobs.BAIT_KITE_SECONDS)
+        state = { ...state, phase: 'close', since: now };
+    if (state !== last) report('bait', { phase: state.phase, target: target.name, held: now - state.since });
+    memory.set('bait', { ...state, seen: now });
+    return state.phase;
+}
+
+/** The kite point: `BAIT_KITE_METERS` from the nearest allied station, on the line from it through the ship. */
+function kiteSpot(display: Display, raider: XY) {
+    const at = own(display);
+    const faction = display.radar?.ownShip?.faction;
+    const station = (display.radar?.contacts ?? [])
+        .filter(
+            (c) =>
+                c.type === 'Spaceship' && c.faction === faction && (c.radius ?? 0) >= BAIT_STATION_RADIUS && c.position,
+        )
+        .sort((a, b) => a.distance - b.distance)[0];
+    // with no station in sight, run straight away from the raider
+    const from = station?.position ?? raider;
+    const out = sub(at, from);
+    const unit = scale(out, 1 / Math.max(length(out), 1));
+    // never nearer the station than the ship already is
+    return station?.position
+        ? add(station.position, scale(unit, Math.max(referenceKnobs.BAIT_KITE_METERS, length(out))))
+        : add(at, scale(unit, referenceKnobs.BAIT_KITE_METERS));
+}
+
 const helmsExecutors: Record<string, OrderExecutor> = {
     dock_for_repair: {
         constrains: [...HELM, 'dock'],
@@ -235,6 +297,33 @@ const helmsExecutors: Record<string, OrderExecutor> = {
             if (contact && contact.distance < CHASE_HANDOVER_METERS) return {};
             const spot = where(display, order, 'target');
             return spot ? flyHelm(display, spot) : {};
+        },
+    },
+    bait: {
+        constrains: HELM,
+        propose(order, { display, memory, report }) {
+            const helms = display.panels['helms-stats'] as Helms | undefined;
+            const target = seen(display, order.params.target?.name);
+            const armor = armorShare(display);
+            if (!helms || !target?.position || (armor !== undefined && armor < referenceKnobs.BAIT_ABORT_ARMOR))
+                return {};
+            const now = order.issuedAt + order.secondsAgo;
+            const range = order.params.range || referenceKnobs.BAIT_RANGE_METERS;
+            const phase = baitPhase(memory, target, now, own(display), range, report);
+            const at = own(display);
+            const off = sub(at, target.position);
+            const spot =
+                phase === 'kite'
+                    ? kiteSpot(display, target.position)
+                    : add(target.position, scale(off, range / Math.max(length(off), 1)));
+            // thrust takes the ship to the spot, the nose stays on the raider so the gun keeps firing while it runs
+            const choice = flyHelm(display, spot, { afterburner: phase === 'close' });
+            choice.rotationMode = helms.targetLocked && helms.rotationMode !== TARGET_MODE ? 'press' : 'wait';
+            choice.rotation =
+                helms.rotationMode === TARGET_MODE
+                    ? 'centre'
+                    : turnToward(helms, delta(target.bearing, heading(display)));
+            return choice;
         },
     },
     focus: {
@@ -347,6 +436,7 @@ function holdFire(controls: readonly Control[]) {
 const weaponsExecutors: Record<string, OrderExecutor> = {
     focus: lockFocus,
     chase_target: lockNamed,
+    bait: lockNamed,
     engage: lockNamed,
     hold_fire: {
         constrains: ['fireChainGun', 'fireTube', 'tubeSafety'],
@@ -470,6 +560,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
             const display = shown as Display;
             const board = readOrders(shown);
             const answers: Record<string, Answer> = { ...result.answers };
+            const events: PolicyEvent[] = [...(result.events ?? [])];
             const decided = new Set<string>();
             for (const order of ordersBinding(board, station)) {
                 const executor = executors[order.kind];
@@ -480,6 +571,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
                     base: result.answers,
                     memory,
                     previous,
+                    report: (kind, data) => events.push({ kind, data: { station, ...data } }),
                 });
                 for (const control of controls) {
                     const choice = proposal[control.id];
@@ -490,7 +582,7 @@ export function withOrderBoard(policy: Policy, station: string): Policy {
                 }
             }
             previous = display;
-            return { ...result, answers };
+            return { ...result, answers, events };
         },
     };
 }

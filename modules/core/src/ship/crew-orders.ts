@@ -49,8 +49,8 @@ export const DEFAULT_PRIORITIES: readonly OrderSlot[] = [
 export const ORDER_ISSUERS = ['captain', 'doctrine'] as const;
 export type OrderIssuer = (typeof ORDER_ISSUERS)[number];
 
-/** Why a seat records trouble with an order: `target_lost`, the ship it names is not on the seat's radar. */
-export const TROUBLE_REASONS = ['target_lost'] as const;
+/** Why a seat records trouble with an order: `target_lost`, the ship it names is not on the seat's radar; `hull_low`, the ship is too weak to carry it out. */
+export const TROUBLE_REASONS = ['target_lost', 'hull_low'] as const;
 export type TroubleReason = (typeof TROUBLE_REASONS)[number];
 
 /** What a seat recommends the captain does about an order in trouble. */
@@ -186,6 +186,18 @@ export const CREW_ORDER_KINDS: Record<string, CrewOrderKind> = {
         describe: (p) => `close to ${km(p.range ?? 0)} of ${named(p.target, 'the enemy')}`,
     },
     hold_here: { slot: 'maneuver', binds: ['helms'], params: {}, describe: () => 'hold here' },
+    /**
+     * Pull a raider's aggro and kite it off the stations: helms closes to `range` of the named ship, weapons
+     * fires at it, then helms runs away from the nearest allied station with the nose on the raider, and
+     * comes back for another hit before the raiders' grudge fades.
+     */
+    bait: {
+        slot: 'maneuver',
+        binds: ['helms', 'weapons'],
+        params: { target: 'required', range: 'optional' },
+        reference: LIVE_SHIP,
+        describe: (p) => `bait ${named(p.target, 'the enemy')} away from the stations`,
+    },
     chase_target: {
         slot: 'maneuver',
         binds: ['helms', 'weapons'],
