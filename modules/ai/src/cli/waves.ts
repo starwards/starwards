@@ -25,8 +25,6 @@ import { SEQUENTIAL_LOOKS, sequentialScreen, sequentialText } from '../training/
 import { WaveRun, waveCompareSection } from '../training/wave-compare';
 import { idealScript, parseIdeals } from '../training/ideal';
 
-import { logWaveRuns } from '../training/mlflow-log';
-
 import { HeadlessGame } from '@starwards/server/src/test/headless-game';
 import { ammoTelemetry } from '../training/ammo-telemetry';
 import { applyAggroLogFlag } from '../training/aggro-log-flag';
@@ -34,6 +32,7 @@ import { applyCacheFlags } from '../brain/jev-cache';
 import { baselineCache } from '../training/baseline-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
+import { logWaveRuns } from '../training/mlflow-log';
 import { missileTelemetry } from '../training/missile-telemetry';
 import { npcDifficultyPresets } from '@starwards/core/internal';
 import os from 'node:os';

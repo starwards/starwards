@@ -12,9 +12,10 @@ import { WaveRun } from './wave-compare';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
-export type MlflowLogOptions = {
+type MlflowLogOptions = {
     resultsFile: string;
     /** Crew name → crew JSON path, for its hash and brains; unresolved crews log without them. */
     crewFiles: Map<string, string>;
@@ -95,7 +96,7 @@ export async function logWaveRuns(o: MlflowLogOptions): Promise<number> {
             max_results: 1,
         });
         if (done.runs?.length) {
-            console.log(`mlflow: ${o.resultsFile} already logged (results_sha ${resultsSha})`);
+            process.stdout.write(`mlflow: ${o.resultsFile} already logged (results_sha ${resultsSha})\n`);
             return 0;
         }
         const crews = new Map([...new Set(runs.map((r) => r.crew))].map((c) => [c, crewInfo(o.crewFiles.get(c))]));
@@ -109,7 +110,7 @@ export async function logWaveRuns(o: MlflowLogOptions): Promise<number> {
                 ...crews.get(r.crew)!,
                 batch: path.basename(outDir),
                 out_dir: outDir,
-                host: process.env.HOSTNAME ?? process.env.HOST ?? '',
+                host: os.hostname(),
                 results_sha: resultsSha,
                 'mlflow.runName': `${r.crew}/${scenario}/s${r.seed}`,
             };
@@ -145,10 +146,12 @@ export async function logWaveRuns(o: MlflowLogOptions): Promise<number> {
             });
             await api(uri, 'runs/update', { run_id: run.info.run_id, status: 'FINISHED', end_time: Date.now() });
         }
-        console.log(`mlflow: logged ${runs.length} run(s) of ${o.resultsFile} to ${uri}`);
+        process.stdout.write(`mlflow: logged ${runs.length} run(s) of ${o.resultsFile} to ${uri}\n`);
         return runs.length;
     } catch (e) {
-        console.error(`mlflow: logging ${o.resultsFile} failed, results kept on disk: ${(e as Error).message}`);
+        process.stderr.write(
+            `mlflow: logging ${o.resultsFile} failed, results kept on disk: ${(e as Error).message}\n`,
+        );
         return 0;
     }
 }

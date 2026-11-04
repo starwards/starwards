@@ -5,10 +5,10 @@
  *
  * Crews resolve to `<crews>/<crew>.json` (default `crews/`) for their hash and brains.
  */
+import { WaveRun } from '../training/wave-compare';
 import fs from 'node:fs';
 import { logWaveRuns } from '../training/mlflow-log';
 import path from 'node:path';
-import { WaveRun } from '../training/wave-compare';
 
 const flag = (name: string) => {
     const i = process.argv.indexOf(`--${name}`);
@@ -16,7 +16,9 @@ const flag = (name: string) => {
 };
 const resultsFile = process.argv[2];
 if (!resultsFile || !process.env.MLFLOW_TRACKING_URI) {
-    throw new Error('usage: MLFLOW_TRACKING_URI=<uri> mlflow-log <out>/<scenario>-waves.json [--crews <dir>] [--build <sha>]');
+    throw new Error(
+        'usage: MLFLOW_TRACKING_URI=<uri> mlflow-log <out>/<scenario>-waves.json [--crews <dir>] [--build <sha>]',
+    );
 }
 const crewsDir = path.resolve(flag('crews') ?? 'crews');
 const runs = JSON.parse(fs.readFileSync(resultsFile, 'utf8')) as WaveRun[];
