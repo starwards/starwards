@@ -23,6 +23,8 @@ type MlflowLogOptions = {
     experiment?: string;
     /** Overrides `$GIT_COMMIT`, then `git rev-parse HEAD`. */
     build?: string;
+    /** Extra tags on every run. */
+    tags?: Record<string, string>;
 };
 
 const sha = (data: string | Buffer) => createHash('sha256').update(data).digest('hex').slice(0, 16);
@@ -101,7 +103,10 @@ export async function logWaveRuns(o: MlflowLogOptions): Promise<number> {
         }
         const crews = new Map([...new Set(runs.map((r) => r.crew))].map((c) => [c, crewInfo(o.crewFiles.get(c))]));
         for (const r of runs) {
-            const passed = r.passed ?? ((r.stationsLost ?? NaN) === 0 && (r.survived ?? 0) >= 3);
+            // results before `passed` was recorded: derive it, or leave it out when the outcome is missing too
+            const derived = r.passed === undefined;
+            const passed =
+                r.passed ?? (r.stationsLost === undefined ? undefined : r.stationsLost === 0 && (r.survived ?? 0) >= 3);
             const tags: Record<string, string> = {
                 arm: r.crew,
                 scenario,
@@ -112,10 +117,12 @@ export async function logWaveRuns(o: MlflowLogOptions): Promise<number> {
                 out_dir: outDir,
                 host: os.hostname(),
                 results_sha: resultsSha,
+                ...(derived && { passed_derived: 'true' }),
+                ...o.tags,
                 'mlflow.runName': `${r.crew}/${scenario}/s${r.seed}`,
             };
             const metrics: Record<string, number | undefined> = {
-                passed: Number(passed),
+                passed: passed === undefined ? undefined : Number(passed),
                 kills: r.fitness.raidersKilled,
                 stationsLost: r.stationsLost,
                 survived: r.survived,
