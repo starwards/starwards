@@ -85,7 +85,7 @@ export async function shipCrew(options: ShipCrewOptions) {
     const boardNow = () =>
         readBoard(ctx.shipDriver.state.orderBoard, energyDrawingSeats(Object.fromEntries(seatCommands)));
     let recordedBoard = '';
-    const baitStatus = new Map<number, string>();
+    const baitTroubled = new Map<number, number>();
     let recording = false;
     let stopped = false;
     let seconds = 0;
@@ -156,12 +156,12 @@ export async function shipCrew(options: ShipCrewOptions) {
             if (shownBoard) emit('orders', shownBoard);
             for (const o of shownBoard?.orders ?? []) {
                 if (o.kind !== 'bait') continue;
-                const before = baitStatus.get(o.id);
-                if (before === undefined) emit('bait', { event: 'issued', order: o.id, target: o.params.target?.name });
-                if (o.status !== 'active' && before !== o.status) {
-                    emit('bait', { event: 'ended', order: o.id, status: o.status, reason: o.note });
+                if (!baitTroubled.has(o.id))
+                    emit('bait', { event: 'issued', order: o.id, target: o.params.target?.name });
+                if (o.trouble.length > (baitTroubled.get(o.id) ?? 0)) {
+                    emit('bait', { event: 'trouble', order: o.id, reasons: o.trouble.map((t) => t.reason) });
                 }
-                baitStatus.set(o.id, o.status);
+                baitTroubled.set(o.id, o.trouble.length);
             }
         }
         for (const e of result.events) emit(e.kind, e.data);

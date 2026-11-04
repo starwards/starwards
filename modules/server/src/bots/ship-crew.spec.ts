@@ -136,6 +136,25 @@ describe('ship crew runner', () => {
         expect(events.filter((e) => e.kind === 'brain_error')).toEqual([]);
     });
 
+    it('keeps an engage order standing when weapons loses its target: trouble is recorded, nothing aborts', async () => {
+        const target = gameDriver.getShip('target');
+        const gvts = gameDriver.getShip(SHIP);
+        target.spaceObject.position.setValue({ x: gvts.spaceObject.position.x, y: gvts.spaceObject.position.y + 2500 });
+        (target.spaceObject.scanLevels as unknown as ScanLevel[])[gvts.spaceObject.faction] = ScanLevel.BASIC;
+        const crew = await start();
+        crew.addSeat('captain', 'bot-captain-1', 'reference');
+        crew.addSeat('weapons', 'bot-weapons-2', 'reference');
+        await until(() => statuses.length === 2, 10_000);
+        await until(() => gvts.state.orderBoard.slots.get('engagement')?.kind === 'engage', 15_000);
+        // the target leaves every radar
+        target.spaceObject.position.setValue({ x: gvts.spaceObject.position.x + 5e7, y: gvts.spaceObject.position.y });
+        await until(() => (gvts.state.orderBoard.slots.get('engagement')?.trouble.length ?? 0) > 0, 15_000);
+        await crew.stop();
+        const engage = gvts.state.orderBoard.slots.get('engagement')!;
+        expect(engage.kind).toBe('engage');
+        expect(engage.trouble[0]).toMatchObject({ seat: 'weapons', reason: 'target_lost', recommendation: 'retarget' });
+    });
+
     it('emits nothing while recording is off', async () => {
         const crew = await start();
         crew.addSeat('pilot', 'bot-pilot-1', 'reference');

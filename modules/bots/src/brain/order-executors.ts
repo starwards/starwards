@@ -241,7 +241,7 @@ const helmsExecutors: Record<string, OrderExecutor> = {
         propose(order, { display }) {
             const mode = docking(display);
             // docking or docked, the autopilot and the clamp hold the ship until the captain orders it off
-            if (order.status === 'complete' || mode === DOCKING_MODE.DOCKING || mode === DOCKING_MODE.DOCKED) {
+            if (mode === DOCKING_MODE.DOCKING || mode === DOCKING_MODE.DOCKED) {
                 return { dock: 'wait', antiDrift: 'release', afterBurner: 'release', rotation: 'centre' };
             }
             const target = dockSpot(display, order);
@@ -479,9 +479,9 @@ const weaponsExecutors: Record<string, OrderExecutor> = {
 const engineerExecutors: Record<string, OrderExecutor> = {
     dock_for_repair: {
         constrains: ['cycleRepairPriority', 'systemPower'],
-        propose(order, { display, controls }) {
+        propose(_order, { display, controls }) {
             // en route the thrusters get full power; docked, the docked-tier repairs run
-            if (order.status !== 'complete') return powerUp(display, controls, /^\/thrusters\//);
+            if (docking(display) !== DOCKING_MODE.DOCKED) return powerUp(display, controls, /^\/thrusters\//);
             const slots = (display.panels['repair-queue'] as { slots?: RepairSlot[] } | undefined)?.slots ?? [];
             const armor = display.panels['armor-status'] as
                 { numberOfPlates?: number; healthyPlates?: number } | undefined;

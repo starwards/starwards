@@ -72,7 +72,7 @@ describe('crew doctrine', () => {
         b.report({ station: 'helms', display: helms(4, true, DOCKING_MODE.DOCKED) });
         doctrine.see('helms', helms(9, true, DOCKING_MODE.DOCKED));
         run();
-        expect(slot('navigation')?.kind).toBe('dock_for_repair');
+        expect(slot('navigation')).toBeUndefined();
         doctrine.see('helms', helms(10, true, DOCKING_MODE.DOCKED));
         run();
         expect(slot('navigation')).toMatchObject({ kind: 'undock', issuer: 'doctrine' });
@@ -110,7 +110,7 @@ describe('crew doctrine', () => {
             c.b.report({ station: 'helms', display: helms(healthy, true, DOCKING_MODE.DOCKED) });
             c.doctrine.see('helms', helms(healthy, true, DOCKING_MODE.DOCKED));
             c.run();
-            expect(c.slot('navigation')?.kind).toBe('dock_for_repair');
+            expect(c.slot('navigation')).toBeUndefined();
             return c;
         };
         const enemy = (distance: number, faction = 2) => ({
@@ -138,7 +138,7 @@ describe('crew doctrine', () => {
             doctrine.see('signals', allyRow('critical'));
             b.tick(10_000);
             run();
-            expect(slot('navigation')?.kind).toBe('dock_for_repair');
+            expect(slot('navigation')).toBeUndefined();
         });
 
         describe('DOCK_EXIT_THREAT_METERS', () => {
@@ -157,7 +157,7 @@ describe('crew doctrine', () => {
                     withContacts(helms(0, true, DOCKING_MODE.DOCKED), [enemy(9000), enemy(2000, -1), enemy(2000, 1)]),
                 );
                 run();
-                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+                expect(slot('navigation')).toBeUndefined();
             });
             it('forgets the threat once commands() ran', () => {
                 setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000 });
@@ -166,7 +166,7 @@ describe('crew doctrine', () => {
                 expect(doctrine.commands(b.shown)).toHaveLength(1);
                 expect(doctrine.commands(b.shown)).toEqual([]);
                 run();
-                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+                expect(slot('navigation')).toBeUndefined();
             });
         });
 
@@ -184,7 +184,7 @@ describe('crew doctrine', () => {
                 doctrine.see('signals', allyRow('intact'));
                 doctrine.see('signals', allyRow('critical', 'SNAPSHOT'));
                 run();
-                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+                expect(slot('navigation')).toBeUndefined();
             });
         });
 
@@ -203,7 +203,7 @@ describe('crew doctrine', () => {
                 b.tick(100);
                 doctrine.see('helms', helms(0, true, DOCKING_MODE.DOCKED));
                 run();
-                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+                expect(slot('navigation')).toBeUndefined();
             });
         });
 
@@ -213,7 +213,7 @@ describe('crew doctrine', () => {
                 const { doctrine, run, slot } = dockedAt(2);
                 doctrine.see('helms', nearEnemy(2));
                 run();
-                expect(slot('navigation')?.kind).toBe('dock_for_repair');
+                expect(slot('navigation')).toBeUndefined();
             });
             it('opens the threat exit at the floor', () => {
                 setReferenceKnobs({ DOCK_EXIT_THREAT_METERS: 8000, DOCK_EXIT_ARMOR_FLOOR: 0.3 });

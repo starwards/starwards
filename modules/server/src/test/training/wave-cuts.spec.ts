@@ -1,4 +1,4 @@
-import { DockingMode, XY } from '@starwards/core/internal';
+import { DockingMode, XY, crewOrderCommands } from '@starwards/core/internal';
 import { runTraining, trainingScenarios } from './training-scenarios';
 
 import { HeadlessGame } from '../headless-game';
@@ -74,8 +74,23 @@ describe('wave scenario cuts', () => {
         const state = game.api.getShip(GVTS)!.state;
         const dock = state.orderBoard.slots.get('navigation');
         expect(dock).toMatchObject({ kind: 'dock_for_repair', issuer: 'captain' });
-        expect(dock!.status).not.toBe('aborted');
         expect(dock!.params.station.name).toBe(state.docking.targetId);
+    });
+
+    it('undock: once docked the dock order completes, its slot empties, and the ship stays docked and keeps repairing', () => {
+        const { game } = started('W-cut-undock');
+        game.tick(1 / 60);
+        const state = game.api.getShip(GVTS)!.state;
+        const id = state.orderBoard.slots.get('navigation')!.id;
+        crewOrderCommands.reportOrderProgress.setValue(state, { id, step: 'docked', complete: true });
+        const damaged = state.armor.numberOfPlates;
+        game.tick(1 / 60);
+        expect(state.orderBoard.slots.get('navigation')).toBeUndefined();
+        for (let i = 0; i < 60 * 30; i++) game.tick(1 / 60);
+        expect(state.docking.mode).toBe(DockingMode.DOCKED);
+        expect(state.orderBoard.slots.get('navigation')).toBeUndefined();
+        expect(state.armor.numberOfPlates).toBe(damaged);
+        expect(state.orderBoard.slots.get('repair')?.kind).not.toBe('dock_for_repair');
     });
 
     it('undock: the GVTS starts on a quarter store with its reactor efficiency shot down to 0.05', () => {

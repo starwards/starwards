@@ -2,8 +2,15 @@ import { CrewOrdersManager, boardRanking, crewOrderCommands, demoShip, makeShipS
 import { Decoder, Encoder } from '@colyseus/schema';
 import { expect } from 'chai';
 
-const { issueOrder, revokeOrder, setStance, doctrineIssueOrder, doctrineRevokeOrder, reportOrderProgress } =
-    crewOrderCommands;
+const {
+    issueOrder,
+    revokeOrder,
+    setStance,
+    doctrineIssueOrder,
+    doctrineRevokeOrder,
+    reportOrderProgress,
+    affirmOrder,
+} = crewOrderCommands;
 
 function ship() {
     const state = makeShipState('ship', demoShip);
@@ -24,7 +31,7 @@ describe('crew order board', () => {
         expect(slot('maneuver')).to.equal(undefined);
         tick();
         const o = slot('maneuver')!;
-        expect([o.kind, o.issuer, o.issuedAt, o.status, o.id]).to.eql(['close_to', 'captain', 1, 'active', 1]);
+        expect([o.kind, o.issuer, o.issuedAt, o.id]).to.eql(['close_to', 'captain', 1, 1]);
         expect(orderParams(o.params)).to.eql({ target: { name: 'raider', position: { x: 1, y: 2 } }, range: 2000 });
     });
 
@@ -181,19 +188,72 @@ describe('crew order board', () => {
         expect([slot('navigation')!.kind, slot('navigation')!.issuer]).to.eql(['undock', 'captain']);
     });
 
-    it('takes progress reports for the order on the board, stamping step changes', () => {
+    it('takes progress reports for the order on the board, stamping step changes, and never ends a non-goal order', () => {
+        const { state, tick, slot } = ship();
+        issueOrder.setValue(state, { kind: 'engage', params: { target: { name: 'r' } } });
+        issueOrder.setValue(state, { kind: 'hold_here' });
+        tick();
+        const id = slot('engagement')!.id;
+        reportOrderProgress.setValue(state, { id, step: 'aiming', note: 'on target' });
+        reportOrderProgress.setValue(state, { id: id + 7, complete: true });
+        tick();
+        tick();
+        reportOrderProgress.setValue(state, { id: slot('maneuver')!.id, complete: true });
+        reportOrderProgress.setValue(state, { id, step: 'firing' });
+        tick();
+        expect(slot('maneuver')?.kind).to.equal('hold_here');
+        const o = slot('engagement')!;
+        expect([o.step, o.stepAt, o.note]).to.eql(['firing', 4, 'on target']);
+    });
+
+    it('completes a goal kind on report and empties its slot', () => {
         const { state, tick, slot } = ship();
         issueOrder.setValue(state, { kind: 'dock_for_repair', params: { station: { name: 'd' } } });
         tick();
-        const id = slot('navigation')!.id;
-        reportOrderProgress.setValue(state, { id, step: 'docked', status: 'complete', note: 'docked, repairing' });
-        reportOrderProgress.setValue(state, { id: id + 7, status: 'aborted' });
+        reportOrderProgress.setValue(state, { id: slot('navigation')!.id, step: 'docked', complete: true });
         tick();
+        expect(slot('navigation')).to.equal(undefined);
+    });
+
+    it('records trouble per seat, keeps the order, clears it by seat, and lets only a captain order be affirmed', () => {
+        const { state, tick, slot } = ship();
+        issueOrder.setValue(state, { kind: 'engage', params: { target: { name: 'r' } } });
         tick();
-        reportOrderProgress.setValue(state, { id, status: 'aborted' });
+        const id = slot('engagement')!.id;
+        const trouble = { seat: 'weapons', reason: 'target_lost', recommendation: 'retarget' } as const;
+        reportOrderProgress.setValue(state, { id, trouble });
+        reportOrderProgress.setValue(state, { id, trouble: { ...trouble, seat: 'helms' } });
+        reportOrderProgress.setValue(state, { id, trouble });
         tick();
-        const o = slot('navigation')!;
-        expect([o.step, o.stepAt, o.status, o.note]).to.eql(['docked', 2, 'complete', 'docked, repairing']);
+        const o = slot('engagement')!;
+        expect(o.trouble.map((t) => [t.seat, t.reason, t.recommendation, t.since, t.affirmed])).to.eql([
+            ['weapons', 'target_lost', 'retarget', 2, false],
+            ['helms', 'target_lost', 'retarget', 2, false],
+        ]);
+        affirmOrder.setValue(state, { id });
+        tick();
+        expect(o.trouble.every((t) => t.affirmed)).to.equal(true);
+        reportOrderProgress.setValue(state, { id, clearTrouble: 'weapons' });
+        tick();
+        expect(o.trouble.map((t) => t.seat)).to.eql(['helms']);
+        // a re-issue with changed params replaces the order and clears the trouble
+        issueOrder.setValue(state, { kind: 'engage', params: { target: { name: 'q' } } });
+        tick();
+        expect(slot('engagement')!.trouble.length).to.equal(0);
+    });
+
+    it('does not affirm a doctrine order', () => {
+        const { state, tick, slot } = ship();
+        doctrineIssueOrder.setValue(state, { kind: 'engage' });
+        tick();
+        const id = slot('engagement')!.id;
+        reportOrderProgress.setValue(state, {
+            id,
+            trouble: { seat: 'weapons', reason: 'target_lost', recommendation: 'hold' },
+        });
+        affirmOrder.setValue(state, { id });
+        tick();
+        expect(slot('engagement')!.trouble[0].affirmed).to.equal(false);
     });
 
     it('reaches a client mirror through encode/decode', () => {

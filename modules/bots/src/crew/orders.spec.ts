@@ -1,4 +1,4 @@
-import { DOCKING_MODE, orderCommand, orderFromCallout, ordersLines } from './orders';
+import { DOCKING_MODE, orderCommand, orderFromCallout, ordersBinding, ordersLines } from './orders';
 
 import { Display } from '../brain/controls';
 import { testBoard } from './orders.fixtures';
@@ -54,10 +54,34 @@ describe('crew order board as seats read it', () => {
         expect(b.shown.priorities.slice(0, 2)).toEqual(['fire_control', 'repair']);
     });
 
-    it('aborts an engagement whose target weapons no longer sees, and says why', () => {
+    it('records trouble on an engagement whose target weapons no longer sees, keeps it binding, and clears it when seen', () => {
         const b = testBoard().give([{ kind: 'engage', params: { target: { name: 'raider' } } }]);
         b.report({ station: 'weapons', display: { panels: {}, radar: { contacts: [] } } });
-        expect(slot(b, 'engagement')).toMatchObject({ status: 'aborted', note: 'target lost or destroyed' });
+        expect(slot(b, 'engagement')).toMatchObject({
+            kind: 'engage',
+            trouble: [{ seat: 'weapons', reason: 'target_lost', recommendation: 'retarget', affirmed: false }],
+        });
+        expect(ordersBinding(b.shown, 'weapons').map((o) => o.kind)).toEqual(['engage']);
+        expect(ordersLines(b.shown)[0]).toContain('weapons: target lost, recommends retarget');
+        b.report({
+            station: 'weapons',
+            display: { panels: {}, radar: { contacts: [{ name: 'raider', distance: 900 }] } },
+        });
+        expect(slot(b, 'engagement')?.trouble).toEqual([]);
+    });
+
+    it('completes a chase whose target is gone and a wreck lies where it was given', () => {
+        const b = testBoard().give([
+            { kind: 'chase_target', params: { target: { name: 'raider', position: { x: 100, y: 0 } } } },
+        ]);
+        b.report({
+            station: 'weapons',
+            display: {
+                panels: {},
+                radar: { contacts: [{ type: 'Wreck', radius: 20, position: { x: 150, y: 0 }, distance: 1 }] },
+            },
+        });
+        expect(slot(b, 'maneuver')).toBeUndefined();
     });
 
     it('completes dock for repair once docked; casting off is its own order', () => {
@@ -71,17 +95,17 @@ describe('crew order board as seats read it', () => {
         expect(slot(b, 'navigation')).toMatchObject({ step: 'en_route', note: 'en route, 3.8 km' });
         b.tick(10).report({ station: 'helms', display: helms(DOCKING_MODE.DOCKING, 3700) });
         b.tick(20).report({ station: 'helms', display: helms(DOCKING_MODE.DOCKED, 3780) });
-        expect(slot(b, 'navigation')).toMatchObject({ step: 'docked', stepAt: 20, status: 'complete' });
+        expect(slot(b, 'navigation')).toBeUndefined();
         b.tick(80).give([orderFromCallout('undock', undefined, undefined)]);
         b.tick(90).report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 3780) });
-        expect(slot(b, 'navigation')).toMatchObject({ kind: 'undock', status: 'complete' });
+        expect(slot(b, 'navigation')).toBeUndefined();
     });
 
     it('completes a launch order once the ship is clear of the dock', () => {
         const b = testBoard();
         b.tick(0).give([orderFromCallout('launch', undefined, undefined)]);
         b.tick(5).report({ station: 'helms', display: helms(DOCKING_MODE.UNDOCKED, 3780) });
-        expect(slot(b, 'navigation')).toMatchObject({ kind: 'launch', status: 'complete' });
+        expect(slot(b, 'navigation')).toBeUndefined();
     });
 
     it('fires a standing dock order once armor falls below its share, once, under its own issuer', () => {
