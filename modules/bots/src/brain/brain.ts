@@ -22,7 +22,12 @@ export type Answers = {
     model?: string;
     inputTokens?: number;
     latencyMs?: number;
+    /** Telemetry the policy's executors reported at this decision (kind and data), for the recording's sidecar. */
+    events?: PolicyEvent[];
 };
+
+/** One telemetry line from a policy: the sidecar event kind and its data. */
+export type PolicyEvent = { kind: string; data: Record<string, unknown> };
 
 /** Answers a brain's request: the model, hand-written rules, or nothing at all. Rules read the raw `display`; a model reads only the request. */
 export type Policy = {
@@ -47,6 +52,8 @@ type DecisionResult = {
     presses: Press[];
     /** What this brain says on the crew channel, if it chose to speak and its display supplies the values: one per callout question. */
     callouts: Said[];
+    /** Telemetry the policy reported at this decision. */
+    events: PolicyEvent[];
     meta: {
         brain: string;
         version: number;
@@ -122,6 +129,7 @@ export function buttonBrain(spec: BrainSpec, policy: Policy) {
                 decisions,
                 presses: decisions.flatMap((d) => (d.press ? [d.press] : [])),
                 callouts,
+                events: answered.events ?? [],
                 meta: {
                     brain: spec.id,
                     version: spec.version,

@@ -16,6 +16,7 @@ import { ChoiceQuestion } from './request';
 import { Display } from './controls';
 import { isEnemyShip } from './enemy';
 import { plateIntelFill } from './plate-intel';
+import { referenceKnobs } from './reference-knobs';
 
 /** The question id of a brain's callout, beside its controls' questions. */
 export const CALLOUT_QUESTION = 'callout';
@@ -322,6 +323,19 @@ const calloutFills: Record<
         const enemy = nearestEnemy(radar as Radar | undefined);
         return enemy && { name: enemy.name };
     },
+    /** Captain: bait the swarm raider nearest an allied station (or the one the speaker names in `supplied.target`), `distance` away on world `bearing`. */
+    baitOrder: ({ radar }, _previous, _seconds, supplied) => {
+        const r = radar as Radar | undefined;
+        const enemy = suppliedTarget(r, supplied) ?? baitTarget(r);
+        return (
+            enemy && {
+                name: enemy.name,
+                range: (referenceKnobs.BAIT_RANGE_METERS / 1000).toFixed(1),
+                distance: (enemy.distance / 1000).toFixed(1),
+                bearing: bearingWords(enemy.bearing),
+            }
+        );
+    },
     /** Captain: fly to the centre of the allied stations in sight, `distance` away on world `bearing`. */
     guardOrder: ({ radar }) => {
         const r = radar as Radar | undefined;
@@ -441,6 +455,30 @@ export function stationThreat(r: Radar | undefined) {
         }
     }
     return best;
+}
+
+/**
+ * The swarm-class raider (a hull no wider than `MISSILE_KILL_RADIUS_METERS`: a few blasts flip its aggro) nearest an
+ * allied station, within `ATTACK_METERS` of it: the one to bait off that station.
+ */
+export function baitTarget(r: Radar | undefined) {
+    const own = r?.ownShip?.faction;
+    const stations = alliedStations(r).filter((s) => s.position);
+    let best: { enemy: Contact; gap: number } | undefined;
+    for (const enemy of r?.contacts ?? []) {
+        if (
+            !isEnemyShip(enemy, own) ||
+            !enemy.position ||
+            (enemy.radius ?? Infinity) > referenceKnobs.MISSILE_KILL_RADIUS_METERS
+        ) {
+            continue;
+        }
+        for (const station of stations) {
+            const gap = Math.hypot(enemy.position.x - station.position!.x, enemy.position.y - station.position!.y);
+            if (gap <= referenceKnobs.ATTACK_METERS && (!best || gap < best.gap)) best = { enemy, gap };
+        }
+    }
+    return best?.enemy;
 }
 
 /** A contact this wide or wider is a station a ship docks at, not a ship. */
