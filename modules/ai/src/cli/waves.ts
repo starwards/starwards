@@ -18,7 +18,8 @@
  * latency assumed.
  *
  * Recordings land in `<out>/<crew>/<scenario>_seed<N>.sgr` (a frame every 5 s), the runs in
- * `<out>/<scenario>-waves.json`, the report in `<out>/<scenario>-waves.md`.
+ * `<out>/<scenario>-waves.json`, the report in `<out>/<scenario>-waves.md`. With `MLFLOW_TRACKING_URI`
+ * set, the runs are also logged to MLflow (`training/mlflow-log.ts`).
  */
 import { SEQUENTIAL_LOOKS, sequentialScreen, sequentialText } from '../training/paired';
 import { WaveRun, waveCompareSection } from '../training/wave-compare';
@@ -31,6 +32,7 @@ import { applyCacheFlags } from '../brain/jev-cache';
 import { baselineCache } from '../training/baseline-cache';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';
+import { logWaveRuns } from '../training/mlflow-log';
 import { missileTelemetry } from '../training/missile-telemetry';
 import { npcDifficultyPresets } from '@starwards/core/internal';
 import os from 'node:os';
@@ -95,6 +97,7 @@ async function runJob(job: Job) {
                 passed: result.waves.passedAt !== null,
                 stationsLost: result.waves.stationsLost,
                 survived: result.waves.survived,
+                endSeconds: result.waves.endSeconds,
                 ammo: ended && telemetry.report(ended),
                 missiles: missiles.report(),
             });
@@ -189,6 +192,10 @@ async function play(): Promise<{ runs: WaveRun[]; header: string; outFile: strin
     const outFile = path.join(outDir, `${scenario}-waves.json`);
     fs.writeFileSync(outFile, JSON.stringify(runs, null, 2));
     const header = `${scenario}, seeds ${firstSeed}–${firstSeed + played - 1}${sequential ? ` (sequential, looks ${looks.join('/')})` : ''}, timeout ${base.timeoutSeconds} s, ${workers} worker(s), total wall ${((Date.now() - started) / 1000).toFixed(0)} s`;
+    await logWaveRuns({
+        resultsFile: outFile,
+        crewFiles: new Map(crews.map((c) => [crewName(c), c.split('#')[0]])),
+    });
     return { runs, header, outFile };
 }
 
